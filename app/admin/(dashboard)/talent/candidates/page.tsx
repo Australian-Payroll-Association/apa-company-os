@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { listEntity, countEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -7,6 +6,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { CandidateManage } from "./CandidateManage";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,8 @@ type Candidate = {
   headline: string | null;
   current_title: string | null;
   pool_status: string | null;
+  notes: string | null;
+  availability: string | null;
   linkedin_url: string | null;
   resume_document_id: string | null;
   person_id: string | null;
@@ -58,7 +60,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
   const [{ rows, total, pageSize, error }, activeCount, passiveCount, placedCount] = await Promise.all([
     listEntity<Candidate>(
       "candidates",
-      "id, headline, current_title, pool_status, linkedin_url, resume_document_id, person_id, created_at, people!person_id(full_name, email), companies(name)",
+      "id, headline, current_title, pool_status, notes, availability, linkedin_url, resume_document_id, person_id, created_at, people!person_id(full_name, email), companies(name)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["headline", "current_title"], sort, dir, filters },
     ),
     countEntity("candidates", { pool_status: "active" }),
@@ -129,27 +131,20 @@ export default async function CandidatesPage({ searchParams }: { searchParams: S
             eyebrow: "Candidate",
             title: p?.full_name || p?.email || "(no name)",
             body: (
-              <>
-                <dl className="admin-kv">
-                  <dt>Headline</dt>
-                  <dd>{r.headline || "—"}</dd>
-                  <dt>Current</dt>
-                  <dd>{r.current_title ? (co ? `${r.current_title} @ ${co}` : r.current_title) : "—"}</dd>
-                  <dt>Pool</dt>
-                  <dd>{r.pool_status ? <Badge tone={statusTone(r.pool_status)}>{humanize(r.pool_status)}</Badge> : "—"}</dd>
-                  <dt>LinkedIn</dt>
-                  <dd>{r.linkedin_url ? <a href={r.linkedin_url} target="_blank" rel="noreferrer">Profile ↗</a> : "—"}</dd>
-                  <dt>Resume</dt>
-                  <dd>{r.resume_document_id ? <a href={`/admin/talent/resume/${r.resume_document_id}`} target="_blank" rel="noreferrer">Open ↗</a> : "—"}</dd>
-                  <dt>Added</dt>
-                  <dd>{formatDate(r.created_at)}</dd>
-                </dl>
-                <div style={{ marginTop: 16 }}>
-                  <Link href={`/admin/talent/candidates/${r.id}`} className="admin-btn admin-btn--primary">
-                    Open full profile
-                  </Link>
-                </div>
-              </>
+              <CandidateManage
+                candidate={{
+                  id: r.id,
+                  headline: r.headline,
+                  currentTitle: r.current_title,
+                  companyName: co ?? null,
+                  poolStatus: r.pool_status,
+                  notes: r.notes,
+                  availability: r.availability,
+                  linkedinUrl: r.linkedin_url,
+                  resumeDocumentId: r.resume_document_id,
+                  createdAt: r.created_at,
+                }}
+              />
             ),
           };
         }}
