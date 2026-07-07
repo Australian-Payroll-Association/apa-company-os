@@ -33,6 +33,7 @@ export type DealCard = {
   personName: string | null;
   companyName: string | null;
   amountCents: number | null;
+  amountUsdCents: number | null;
   currency: string | null;
   probability: number | null;
   status: string | null;
@@ -83,7 +84,7 @@ function dealSortValue(c: DealCard, key: string, stageLabelMap: Map<string, stri
     case "stage":
       return c.columnId === HANDOFF_COLUMN_ID ? "new from sdr" : (stageLabelMap.get(c.columnId) ?? "").toLowerCase();
     case "amount":
-      return c.amountCents;
+      return c.amountUsdCents;
     case "prob":
       return c.probability;
     case "nextstep":
@@ -364,7 +365,7 @@ export function DealsBoard({
               <div className="sap-card-sub">{c.companyName || c.personName || "—"}</div>
               <NextStepLine card={c} />
               <div className="sap-card-meta">
-                <Badge tone="info">{formatCents(c.amountCents, c.currency ?? undefined)}</Badge>
+                <Badge tone="info">{formatCents(c.amountUsdCents, "usd")}</Badge>
                 {c.probability != null && <span className="sap-card-sub">{c.probability}%</span>}
                 {(() => {
                   const d = idleDays(c.updatedAt);
@@ -414,9 +415,9 @@ export function DealsBoard({
             </>
           )}
           columnFooter={(_col, colCards) => {
-            const total = colCards.reduce((s, c) => s + (c.amountCents ?? 0), 0);
+            const total = colCards.reduce((s, c) => s + (c.amountUsdCents ?? 0), 0);
             const weighted = colCards.reduce(
-              (s, c) => s + (c.amountCents ?? 0) * ((c.probability ?? 0) / 100),
+              (s, c) => s + (c.amountUsdCents ?? 0) * ((c.probability ?? 0) / 100),
               0,
             );
             return (
@@ -1010,7 +1011,7 @@ function DealsList({
                         stageLabel.get(c.columnId) ?? "—"
                       )}
                     </td>
-                    <td style={{ textAlign: "right" }}>{formatCents(c.amountCents, c.currency ?? undefined)}</td>
+                    <td style={{ textAlign: "right" }}>{formatCents(c.amountUsdCents, "usd")}</td>
                     <td style={{ textAlign: "right" }}>{c.probability != null ? `${c.probability}%` : "—"}</td>
                     <td>
                       {c.status !== "open" ? (

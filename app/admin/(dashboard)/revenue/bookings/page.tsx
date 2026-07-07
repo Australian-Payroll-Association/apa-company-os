@@ -26,6 +26,7 @@ type Booking = {
   end_date: string | null;
   party_size: number | null;
   amount_cents: number | null;
+  amount_usd_cents: number | null;
   currency: string | null;
   status: string | null;
   created_at: string;
@@ -36,7 +37,7 @@ type Booking = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 const PAGE_SIZE = 25;
-const SORTABLE = new Set(["start_date", "kind", "party_size", "amount_cents", "status", "created_at"]);
+const SORTABLE = new Set(["start_date", "kind", "party_size", "amount_usd_cents", "status", "created_at"]);
 
 // Real distinct values in the table today (checked against the DB). Kind is omitted
 // deliberately: every booking is currently a "stay", so it makes a single-value filter.
@@ -61,7 +62,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const [{ rows, total, pageSize, error }, upcomingRes, confirmedCount] = await Promise.all([
     listEntity<Booking>(
       "bookings",
-      "id, kind, start_date, end_date, party_size, amount_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
+      "id, kind, start_date, end_date, party_size, amount_cents, amount_usd_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["kind"], sort, dir, filters },
     ),
     companyOs.from("bookings").select("*", { count: "exact", head: true }).gte("start_date", today),
@@ -94,7 +95,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
         ),
     },
     { key: "party_size", header: "Party", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => r.party_size ?? <span className="admin-cell-muted">—</span> },
-    { key: "amount_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
+    { key: "amount_usd_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_usd_cents, "usd") },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : <span className="admin-cell-muted">—</span>) },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
   ];
@@ -153,7 +154,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
                   <dt>Party</dt>
                   <dd className="admin-cell-mono">{r.party_size ?? "—"}</dd>
                   <dt>Amount</dt>
-                  <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                  <dd className="admin-cell-mono">{formatCents(r.amount_usd_cents, "usd")}</dd>
+                  {(r.currency ?? "usd").toLowerCase() !== "usd" && (
+                    <>
+                      <dt>Native</dt>
+                      <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                    </>
+                  )}
                   <dt>Status</dt>
                   <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
                   <dt>Created</dt>

@@ -22,7 +22,7 @@ export type Company = {
 
 export type Company360 = {
   company: Company;
-  deals: Array<{ id: string; title: string | null; amount_cents: number | null; currency: string | null; status: string | null; created_at: string }>;
+  deals: Array<{ id: string; title: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; created_at: string }>;
   people: Array<{ id: string; full_name: string | null; email: string }>;
 };
 
@@ -43,7 +43,7 @@ export async function getCompany360(id: string): Promise<Company360 | null> {
     safe(
       companyOs
         .from("deals")
-        .select("id, title, amount_cents, currency, status, created_at")
+        .select("id, title, amount_cents, amount_usd_cents, currency, status, created_at")
         .eq("company_id", id)
         .order("created_at", { ascending: false }),
     ),

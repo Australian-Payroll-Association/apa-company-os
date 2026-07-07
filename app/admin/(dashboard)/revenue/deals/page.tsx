@@ -26,6 +26,7 @@ type Row = {
   title: string | null;
   stage_id: string | null;
   amount_cents: number | null;
+  amount_usd_cents: number | null;
   currency: string | null;
   probability: number | null;
   status: string | null;
@@ -71,7 +72,7 @@ export default async function DealsPage() {
   let query = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, people!person_id(full_name, email), companies(name)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, people!person_id(full_name, email), companies(name)",
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -91,6 +92,7 @@ export default async function DealsPage() {
       personName: p?.full_name ?? p?.email ?? null,
       companyName: co?.name ?? null,
       amountCents: r.amount_cents,
+      amountUsdCents: r.amount_usd_cents,
       currency: r.currency,
       probability: r.probability,
       status: r.status,
@@ -110,9 +112,9 @@ export default async function DealsPage() {
   // KPIs and the board ignore archived deals; the list can opt in to show them.
   const activeCards = cards.filter((c) => !c.archivedAt);
   const openCards = activeCards.filter((c) => c.status === "open");
-  const openPipeline = openCards.reduce((s, c) => s + (c.amountCents ?? 0), 0);
+  const openPipeline = openCards.reduce((s, c) => s + (c.amountUsdCents ?? 0), 0);
   const weighted = openCards.reduce(
-    (s, c) => s + (c.amountCents ?? 0) * ((c.probability ?? 0) / 100),
+    (s, c) => s + (c.amountUsdCents ?? 0) * ((c.probability ?? 0) / 100),
     0,
   );
   const monthEnd = new Date();
@@ -120,7 +122,7 @@ export default async function DealsPage() {
   monthEnd.setHours(0, 0, 0, 0);
   const closingThisMonth = openCards
     .filter((c) => c.expectedClose && new Date(c.expectedClose) < monthEnd)
-    .reduce((s, c) => s + (c.amountCents ?? 0), 0);
+    .reduce((s, c) => s + (c.amountUsdCents ?? 0), 0);
   const noNextStep = openCards.filter((c) => !c.nextStepDate).length;
   const pendingHandoffs = activeCards.filter((c) => c.columnId === HANDOFF_COLUMN_ID).length;
 

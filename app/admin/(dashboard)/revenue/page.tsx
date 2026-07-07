@@ -161,6 +161,7 @@ export default async function SalesCockpitPage() {
       personName: p?.full_name ?? p?.email ?? null,
       companyName: co?.name ?? null,
       amountCents: d.amount_cents,
+      amountUsdCents: d.amount_usd_cents,
       currency: d.currency,
       probability: d.probability,
       status: d.status,

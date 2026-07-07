@@ -38,7 +38,8 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                   <div className="admin-list-sub">{formatDate(d.created_at)}</div>
                 </div>
                 <div className="admin-list-aside">
-                  <strong className="admin-cell-mono">{formatCents(d.amount_cents, d.currency ?? "usd")}</strong>
+                  <strong className="admin-cell-mono">{formatCents(d.amount_usd_cents, "usd")}</strong>
+
                   <Badge tone={statusTone(d.status)}>{humanize(d.status)}</Badge>
                 </div>
               </div>

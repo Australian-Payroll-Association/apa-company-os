@@ -288,6 +288,15 @@ export async function updateDeal(dealId: string, patch: DealPatch): Promise<Resu
       updates.amount_usd_cents = fx.amountUsdCents;
       updates.fx_rate = fx.rate;
       updates.fx_rate_fetched_at = new Date().toISOString();
+      // Keep the shared fx_rates table fresh from real usage, so the trigger that
+      // normalizes orders/products/bookings (company_os.set_amount_usd_cents) uses a
+      // current rate too. Best-effort — never block the deal save.
+      await companyOs
+        .from("fx_rates")
+        .upsert(
+          { currency: (currency ?? "usd").toLowerCase(), rate_to_usd: fx.rate, updated_at: new Date().toISOString() },
+          { onConflict: "currency" },
+        );
     } catch (err) {
       console.error(`FX conversion failed for deal ${dealId}:`, err);
     }

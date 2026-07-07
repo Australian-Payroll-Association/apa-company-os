@@ -22,6 +22,7 @@ type Pr = { title: string | null };
 type Order = {
   id: string;
   amount_cents: number | null;
+  amount_usd_cents: number | null;
   currency: string | null;
   status: string | null;
   payment_method: string | null;
@@ -35,7 +36,7 @@ type Order = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 const PAGE_SIZE = 25;
-const SORTABLE = new Set(["amount_cents", "status", "payment_method", "created_at"]);
+const SORTABLE = new Set(["amount_usd_cents", "status", "payment_method", "created_at"]);
 
 // Real distinct values in the table today (checked against the DB), not the full enum.
 const STATUS_OPTIONS = [
@@ -61,28 +62,27 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   if (statusParam) filters.status = statusParam;
   if (methodParam) filters.payment_method = methodParam;
 
-  // KPI strip: revenue is USD-only (orders mix currencies with no normalized column);
-  // native currency + amount stay on each row and in the side car.
+  // KPI strip: revenue sums amount_usd_cents (every currency normalized to USD by
+  // company_os.set_amount_usd_cents); native currency + amount stay in the side car.
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const [{ rows, total, pageSize, error }, revRes, paidCount, pendingCount] = await Promise.all([
     listEntity<Order>(
       "orders",
-      "id, amount_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
+      "id, amount_cents, amount_usd_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir, filters },
     ),
     companyOs
       .from("orders")
-      .select("amount_cents")
+      .select("amount_usd_cents")
       .eq("status", "paid")
-      .eq("currency", "usd")
       .gte("created_at", monthStart),
     countEntity("orders", { status: "paid" }),
     countEntity("orders", { status: "pending" }),
   ]);
 
-  const revenueThisMonth = ((revRes.data as { amount_cents: number | null }[] | null) ?? []).reduce(
-    (s, r) => s + (r.amount_cents ?? 0),
+  const revenueThisMonth = ((revRes.data as { amount_usd_cents: number | null }[] | null) ?? []).reduce(
+    (s, r) => s + (r.amount_usd_cents ?? 0),
     0,
   );
 
@@ -97,7 +97,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       },
     },
     { key: "product", header: "Product", cell: (r) => one(r.products)?.title || <span className="admin-cell-muted">—</span> },
-    { key: "amount_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
+    { key: "amount_usd_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_usd_cents, "usd") },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : <span className="admin-cell-muted">—</span>) },
     { key: "payment_method", header: "Method", sortable: true, cell: (r) => (r.payment_method ? humanize(r.payment_method) : <span className="admin-cell-muted">—</span>) },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
@@ -149,7 +149,13 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                   <dt>Product</dt>
                   <dd>{one(r.products)?.title || "—"}</dd>
                   <dt>Amount</dt>
-                  <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                  <dd className="admin-cell-mono">{formatCents(r.amount_usd_cents, "usd")}</dd>
+                  {(r.currency ?? "usd").toLowerCase() !== "usd" && (
+                    <>
+                      <dt>Native</dt>
+                      <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                    </>
+                  )}
                   <dt>Status</dt>
                   <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
                   <dt>Method</dt>
