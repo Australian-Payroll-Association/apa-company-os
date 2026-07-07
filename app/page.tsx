@@ -50,6 +50,23 @@ const T_COUNT = testimonials.length
 const T_REAL_OFFSET = T_COUNT
 const extTestimonials = [...testimonials, ...testimonials, ...testimonials]
 
+// Video testimonials (YouTube). Order is shuffled on the client after mount so a
+// different clip leads the slider on every refresh.
+const videoTestimonials = [
+  { id: 'jRwrSYlaO4Q', name: 'James Murray', caption: 'How I Build Multiple Projects in 1 Day' },
+  { id: 'YSP6Xt0UEyk', name: 'Maureen Birdsall', caption: 'Infinite Leverage Stories' },
+  { id: 'wlJNxiEbYVA', name: 'Tracy Angwin', caption: 'Private Retreat' },
+]
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 export default function HomePage() {
   const [activeExtIdx, setActiveExtIdx] = useState(T_REAL_OFFSET)
   const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
@@ -57,6 +74,13 @@ export default function HomePage() {
   const trackRef = useRef<HTMLDivElement>(null)
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSnappingRef = useRef(false)
+
+  // Video testimonials: render source order on the server / first paint (so
+  // hydration matches), then shuffle after mount to randomize the lead clip.
+  const [videoOrder, setVideoOrder] = useState(videoTestimonials)
+  useEffect(() => {
+    setVideoOrder(shuffleArray(videoTestimonials))
+  }, [])
 
   // currentTestimonial: real 0-(T_COUNT-1), derived from activeExtIdx
   const currentTestimonial = ((activeExtIdx - T_REAL_OFFSET) % T_COUNT + T_COUNT) % T_COUNT
@@ -317,9 +341,13 @@ export default function HomePage() {
           <div className="yt-slider-wrap">
             <div className="yt-viewport">
               <div className="yt-track">
-                {['jRwrSYlaO4Q','NmvVPdsLsn4','9g6bhTIJeKA'].map(id => (
-                  <div key={id} className="yt-card">
-                    <iframe src={`https://www.youtube.com/embed/${id}`} title="Edge8 video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" className="yt-iframe" />
+                {videoOrder.map(v => (
+                  <div key={v.id} className="yt-card">
+                    <iframe src={`https://www.youtube.com/embed/${v.id}`} title={`${v.name} — ${v.caption}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" className="yt-iframe" />
+                    <div className="yt-caption">
+                      <span className="yt-name">{v.name}</span>
+                      <span className="yt-role">{v.caption}</span>
+                    </div>
                   </div>
                 ))}
               </div>

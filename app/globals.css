@@ -874,6 +874,9 @@ nav {
 .yt-track { display: flex; gap: 20px; padding: 4px 0 12px; }
 .yt-card { flex-shrink: 0; width: 420px; border-radius: var(--radius); overflow: hidden; scroll-snap-align: start; }
 .yt-iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
+.yt-caption { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; }
+.yt-name { font-weight: 600; font-size: 15px; }
+.yt-role { font-size: 13px; opacity: .7; }
 .yt-nav { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 /* ─── TESTIMONIALS ────────────────────────────────── */
