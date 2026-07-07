@@ -6,6 +6,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 import { JobReqBoard, type AppCard } from "./JobReqBoard";
+import { JobPostingEditor } from "./JobPostingEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,11 @@ type ReqRow = {
   description: string | null;
   requirements: string | null;
   responsibilities: string | null;
+  slug: string | null;
+  is_public: boolean;
+  full_jd: string | null;
+  application_questions: unknown;
+  metadata: Record<string, unknown> | null;
   companies: Co | Co[] | null;
 };
 type P = { full_name: string | null; email: string; headline: string | null };
@@ -51,7 +57,7 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
   const reqRes = await companyOs
     .from("job_requisitions")
     .select(
-      "id, title, status, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, opened_at, description, requirements, responsibilities, companies!client_company_id(name)",
+      "id, title, status, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, opened_at, description, requirements, responsibilities, slug, is_public, full_jd, application_questions, metadata, companies!client_company_id(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -117,6 +123,22 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
         Hiring pipeline · {cards.length} {cards.length === 1 ? "applicant" : "applicants"}
       </div>
       <JobReqBoard jobReqId={id} columns={columns} initialCards={cards} />
+
+      <JobPostingEditor
+        reqId={id}
+        posting={{
+          isPublic: req.is_public,
+          slug: req.slug ?? "",
+          fullJd: req.full_jd ?? "",
+          excerpt: typeof req.metadata?.excerpt === "string" ? req.metadata.excerpt : "",
+          department: typeof req.metadata?.department === "string" ? req.metadata.department : "",
+          featured: req.metadata?.featured === true,
+          questions: Array.isArray(req.application_questions)
+            ? (req.application_questions as unknown[]).filter((q): q is string => typeof q === "string").slice(0, 3)
+            : [],
+          reqIsOpen: req.status === "open",
+        }}
+      />
 
       {sections.length > 0 && (
         <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 16 }}>

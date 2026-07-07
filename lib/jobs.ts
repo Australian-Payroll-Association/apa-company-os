@@ -1,10 +1,12 @@
-import fs from 'fs'
-import path from 'path'
-import matter from 'gray-matter'
 import { remark } from 'remark'
 import remarkHtml from 'remark-html'
+import { companyOs } from '@/lib/supabase'
 
-const jobsDir = path.join(process.cwd(), 'content', 'jobs')
+// Public job postings, sourced from the ATS (company_os.job_requisitions).
+// A role is live on /careers iff status = 'open' AND is_public. Content is the
+// req's full_jd markdown; presentation extras (department label, excerpt,
+// featured) ride in metadata. Publishing is managed from the admin job req
+// page — no code change needed to post or unpost a role.
 
 export type JobPost = {
   slug: string
@@ -21,47 +23,64 @@ export type JobPost = {
   contentHtml: string
 }
 
-export async function getActiveJobs(): Promise<JobPost[]> {
-  if (!fs.existsSync(jobsDir)) return []
+const EMPLOYMENT_LABEL: Record<string, string> = {
+  full_time: 'Full-time',
+  part_time: 'Part-time',
+  contract: 'Contract',
+  intern: 'Internship',
+  temp: 'Temporary',
+  advisor: 'Advisor',
+}
 
-  // Files starting with _ are templates — excluded from the page
-  const files = fs.readdirSync(jobsDir).filter(
-    (f) => f.endsWith('.md') && !f.startsWith('_')
-  )
-  if (files.length === 0) return []
+type ReqRow = {
+  id: string
+  slug: string | null
+  title: string
+  employment_type: string
+  location: string | null
+  opened_at: string | null
+  full_jd: string | null
+  description: string | null
+  metadata: Record<string, unknown> | null
+}
+
+export async function getActiveJobs(): Promise<JobPost[]> {
+  const { data, error } = await companyOs
+    .from('job_requisitions')
+    .select('id, slug, title, employment_type, location, opened_at, full_jd, description, metadata')
+    .eq('status', 'open')
+    .eq('is_public', true)
+    .order('opened_at', { ascending: false })
+  if (error) {
+    console.error('[jobs] job_requisitions read failed:', error.message)
+    return []
+  }
 
   const jobs = await Promise.all(
-    files.map(async (filename) => {
-      const slug = filename.replace(/\.md$/, '')
-      const fullPath = path.join(jobsDir, filename)
-      const fileContents = fs.readFileSync(fullPath, 'utf8')
-      const { data, content } = matter(fileContents)
-
-      const processedContent = await remark().use(remarkHtml).process(content)
-      const contentHtml = processedContent.toString()
-
+    ((data ?? []) as ReqRow[]).map(async (r) => {
+      const meta = r.metadata ?? {}
+      const markdown = r.full_jd || r.description || ''
+      const processed = await remark().use(remarkHtml).process(markdown)
       return {
-        slug,
-        title: data.title ?? '',
-        department: data.department ?? 'General',
-        location: data.location ?? 'Remote',
-        type: data.type ?? 'Full-time',
-        posted: data.posted ?? '',
-        excerpt: data.excerpt ?? '',
-        applyEmail: data.applyEmail ?? 'hello@edge8.ai',
-        supabaseJobId: data.supabase_job_id ?? null,
-        featured: data.featured ?? false,
-        active: data.active ?? true,
-        contentHtml,
+        slug: r.slug ?? r.id,
+        title: r.title,
+        department: typeof meta.department === 'string' && meta.department ? meta.department : 'General',
+        location: r.location ?? 'Remote',
+        type: EMPLOYMENT_LABEL[r.employment_type] ?? 'Full-time',
+        posted: r.opened_at ?? '',
+        excerpt: typeof meta.excerpt === 'string' ? meta.excerpt : '',
+        applyEmail: 'mai@edge8.ai',
+        supabaseJobId: r.id,
+        featured: meta.featured === true,
+        active: true,
+        contentHtml: processed.toString(),
       } as JobPost
-    })
+    }),
   )
 
-  return jobs
-    .filter((j) => j.active)
-    .sort((a, b) => {
-      if (a.featured && !b.featured) return -1
-      if (!a.featured && b.featured) return 1
-      return new Date(b.posted).getTime() - new Date(a.posted).getTime()
-    })
+  return jobs.sort((a, b) => {
+    if (a.featured && !b.featured) return -1
+    if (!a.featured && b.featured) return 1
+    return new Date(b.posted).getTime() - new Date(a.posted).getTime()
+  })
 }

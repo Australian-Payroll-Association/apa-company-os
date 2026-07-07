@@ -1,5 +1,9 @@
 import Link from 'next/link'
 import { getActiveJobs } from '@/lib/jobs'
+
+// Postings come live from the ATS — render per-request so publishing a role
+// in the admin shows up without a redeploy.
+export const dynamic = 'force-dynamic'
 import JobCard from './JobCard'
 import RevealObserver from './RevealObserver'
 import HeroStats from '@/components/HeroStats'
