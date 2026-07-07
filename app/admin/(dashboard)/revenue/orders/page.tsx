@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { listEntity } from "@/lib/admin/query";
+import { companyOs } from "@/lib/supabase";
+import { listEntity, countEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, statusTone } from "@/components/admin/Badge";
+import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 
@@ -34,17 +37,53 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const PAGE_SIZE = 25;
 const SORTABLE = new Set(["amount_cents", "status", "payment_method", "created_at"]);
 
+// Real distinct values in the table today (checked against the DB), not the full enum.
+const STATUS_OPTIONS = [
+  { value: "paid", label: "Paid" },
+  { value: "pending", label: "Pending" },
+  { value: "refunded", label: "Refunded" },
+];
+const METHOD_OPTIONS = [
+  { value: "stripe", label: "Stripe" },
+  { value: "offline_vn", label: "Offline (VN)" },
+];
+
 export default async function OrdersPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
+  const statusParam = firstParam(searchParams.status);
+  const methodParam = firstParam(searchParams.method);
 
-  const { rows, total, pageSize, error } = await listEntity<Order>(
-    "orders",
-    "id, amount_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir },
+  const filters: Record<string, string | number | boolean | null> = {};
+  if (statusParam) filters.status = statusParam;
+  if (methodParam) filters.payment_method = methodParam;
+
+  // KPI strip: revenue is USD-only (orders mix currencies with no normalized column);
+  // native currency + amount stay on each row and in the side car.
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const [{ rows, total, pageSize, error }, revRes, paidCount, pendingCount] = await Promise.all([
+    listEntity<Order>(
+      "orders",
+      "id, amount_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
+      { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir, filters },
+    ),
+    companyOs
+      .from("orders")
+      .select("amount_cents")
+      .eq("status", "paid")
+      .eq("currency", "usd")
+      .gte("created_at", monthStart),
+    countEntity("orders", { status: "paid" }),
+    countEntity("orders", { status: "pending" }),
+  ]);
+
+  const revenueThisMonth = ((revRes.data as { amount_cents: number | null }[] | null) ?? []).reduce(
+    (s, r) => s + (r.amount_cents ?? 0),
+    0,
   );
 
   const columns: Column<Order>[] = [
@@ -53,27 +92,91 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       header: "Contact",
       cell: (r) => {
         const p = one(r.people);
-        return r.person_id ? (
-          <Link href={`/admin/contacts/${r.person_id}`} className="admin-cell-strong">
-            {p?.full_name || p?.email || "View"}
-          </Link>
-        ) : (
-          <span className="admin-cell-muted">{p?.email || "—"}</span>
-        );
+        const label = p?.full_name || p?.email;
+        return <span className={label ? "admin-cell-strong" : "admin-cell-muted"}>{label || "—"}</span>;
       },
     },
     { key: "product", header: "Product", cell: (r) => one(r.products)?.title || <span className="admin-cell-muted">—</span> },
-    { key: "amount_cents", header: "Amount", sortable: true, cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
+    { key: "amount_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : <span className="admin-cell-muted">—</span>) },
-    { key: "payment_method", header: "Method", sortable: true, cell: (r) => r.payment_method || <span className="admin-cell-muted">—</span> },
+    { key: "payment_method", header: "Method", sortable: true, cell: (r) => (r.payment_method ? humanize(r.payment_method) : <span className="admin-cell-muted">—</span>) },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
   ];
 
   return (
     <>
-      <PageHead eyebrow="Revenue" title="Orders" sub={`${total.toLocaleString()} orders`} />
+      <PageHead eyebrow="Revenue" title="Orders" sub={`${total.toLocaleString()} ${total === 1 ? "order" : "orders"}`} />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <DataTable columns={columns} rows={rows} total={total} page={page} pageSize={pageSize} sort={sort} dir={dir} basePath="/admin/revenue/orders" searchParams={searchParams} searchPlaceholder="Search Stripe session…" emptyText="No orders match." />
+
+      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <MetricCard label="Revenue this month" value={formatCents(revenueThisMonth)} sub="USD · paid orders" />
+        <MetricCard label="Paid" value={paidCount} sub={`of ${total.toLocaleString()} orders`} />
+        <MetricCard label="Pending" value={pendingCount} sub="awaiting payment" />
+      </div>
+
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        sort={sort}
+        dir={dir}
+        basePath="/admin/revenue/orders"
+        searchParams={searchParams}
+        searchPlaceholder="Search Stripe session…"
+        emptyText="No orders match."
+        filterBar={
+          <FilterBar
+            basePath="/admin/revenue/orders"
+            searchParams={searchParams}
+            filters={[
+              { key: "status", label: "Status", options: STATUS_OPTIONS },
+              { key: "method", label: "Method", options: METHOD_OPTIONS },
+            ]}
+          />
+        }
+        getRowPreview={(r) => {
+          const p = one(r.people);
+          return {
+            eyebrow: "Order",
+            title: p?.full_name || p?.email || "Order",
+            body: (
+              <>
+                <dl className="admin-kv">
+                  <dt>Contact</dt>
+                  <dd>{p?.full_name || p?.email || "—"}</dd>
+                  <dt>Product</dt>
+                  <dd>{one(r.products)?.title || "—"}</dd>
+                  <dt>Amount</dt>
+                  <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                  <dt>Status</dt>
+                  <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
+                  <dt>Method</dt>
+                  <dd>{r.payment_method ? humanize(r.payment_method) : "—"}</dd>
+                  {r.refunded_cents ? (
+                    <>
+                      <dt>Refunded</dt>
+                      <dd className="admin-cell-mono">{formatCents(r.refunded_cents, r.currency ?? undefined)}</dd>
+                    </>
+                  ) : null}
+                  <dt>Stripe</dt>
+                  <dd className="admin-cell-mono" style={{ fontSize: 12, wordBreak: "break-all" }}>{r.stripe_session_id || "—"}</dd>
+                  <dt>Created</dt>
+                  <dd>{formatDate(r.created_at)}</dd>
+                </dl>
+                {r.person_id && (
+                  <div style={{ marginTop: 16 }}>
+                    <Link href={`/admin/contacts/${r.person_id}`} className="admin-btn admin-btn--primary">
+                      Open contact
+                    </Link>
+                  </div>
+                )}
+              </>
+            ),
+          };
+        }}
+      />
     </>
   );
 }

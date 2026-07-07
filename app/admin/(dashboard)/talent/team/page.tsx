@@ -70,11 +70,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       header: "Name",
       cell: (r) => {
         const p = one(r.people);
-        return (
-          <Link href={`/admin/talent/team/${r.id}`} className="admin-cell-strong">
-            {p?.full_name || p?.email || "View"}
-          </Link>
-        );
+        return <span className="admin-cell-strong">{p?.full_name || p?.email || "View"}</span>;
       },
     },
     { key: "employee_number", header: "Employee #", sortable: true, cell: (r) => r.employee_number || <span className="admin-cell-muted">—</span> },
@@ -111,7 +107,49 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
           </Link>
         ))}
       </nav>
-      <DataTable columns={columns} rows={rows} total={total} page={page} pageSize={pageSize} sort={sort} dir={dir} basePath="/admin/talent/team" searchParams={searchParams} searchPlaceholder="Search employee #…" emptyText={seg.key === "contractors" ? "No contractors yet." : "No team members match."} />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        sort={sort}
+        dir={dir}
+        basePath="/admin/talent/team"
+        searchParams={searchParams}
+        searchPlaceholder="Search employee #…"
+        emptyText={seg.key === "contractors" ? "No contractors yet." : "No team members match."}
+        getRowPreview={(r) => {
+          const p = one(r.people);
+          return {
+            eyebrow: "Team member",
+            title: p?.full_name || p?.email || "Team member",
+            body: (
+              <>
+                <dl className="admin-kv">
+                  <dt>Email</dt>
+                  <dd>{p?.email || "—"}</dd>
+                  <dt>Employee #</dt>
+                  <dd className="admin-cell-mono">{r.employee_number || "—"}</dd>
+                  <dt>Type</dt>
+                  <dd>{r.employment_type ? <Badge>{humanize(r.employment_type)}</Badge> : "—"}</dd>
+                  <dt>Location</dt>
+                  <dd>{r.work_location || "—"}</dd>
+                  <dt>Status</dt>
+                  <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
+                  <dt>Started</dt>
+                  <dd>{r.start_date ? formatDate(r.start_date) : "—"}</dd>
+                </dl>
+                <div style={{ marginTop: 16 }}>
+                  <Link href={`/admin/talent/team/${r.id}`} className="admin-btn admin-btn--primary">
+                    Open full profile
+                  </Link>
+                </div>
+              </>
+            ),
+          };
+        }}
+      />
     </>
   );
 }
