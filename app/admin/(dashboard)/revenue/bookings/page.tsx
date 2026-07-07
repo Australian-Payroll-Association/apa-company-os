@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { listEntity } from "@/lib/admin/query";
+import { companyOs } from "@/lib/supabase";
+import { listEntity, countEntity } from "@/lib/admin/query";
 import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, statusTone } from "@/components/admin/Badge";
+import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 
@@ -36,6 +39,13 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const PAGE_SIZE = 25;
 const SORTABLE = new Set(["start_date", "kind", "party_size", "amount_cents", "status", "created_at"]);
 
+// Real distinct values in the table today (checked against the DB). Kind is omitted
+// deliberately: every booking is currently a "stay", so it makes a single-value filter.
+const STATUS_OPTIONS = [
+  { value: "confirmed", label: "Confirmed" },
+  { value: "pending", label: "Pending" },
+];
+
 export default async function BookingsPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
@@ -43,12 +53,30 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const sortParam = firstParam(searchParams.sort);
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
+  const statusParam = firstParam(searchParams.status);
 
-  const { rows, total, pageSize, error } = await listEntity<Booking>(
-    "bookings",
-    "id, kind, start_date, end_date, party_size, amount_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["kind"], sort, dir, filters: brandId ? { brand_id: brandId } : undefined },
-  );
+  const filters: Record<string, string | number | boolean | null> = {};
+  if (brandId) filters.brand_id = brandId;
+  if (statusParam) filters.status = statusParam;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const brandFilter: Record<string, string | number | boolean | null> = brandId ? { brand_id: brandId } : {};
+
+  const [{ rows, total, pageSize, error }, upcomingRes, confirmedCount] = await Promise.all([
+    listEntity<Booking>(
+      "bookings",
+      "id, kind, start_date, end_date, party_size, amount_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
+      { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["kind"], sort, dir, filters },
+    ),
+    (() => {
+      let x = companyOs.from("bookings").select("*", { count: "exact", head: true }).gte("start_date", today);
+      if (brandId) x = x.eq("brand_id", brandId);
+      return x;
+    })(),
+    countEntity("bookings", { ...brandFilter, status: "confirmed" }),
+  ]);
+
+  const upcomingCount = upcomingRes.count ?? 0;
 
   const columns: Column<Booking>[] = [
     {
@@ -56,13 +84,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       header: "Contact",
       cell: (r) => {
         const p = one(r.people);
-        return r.person_id ? (
-          <Link href={`/admin/contacts/${r.person_id}`} className="admin-cell-strong">
-            {p?.full_name || p?.email || "View"}
-          </Link>
-        ) : (
-          <span className="admin-cell-muted">{p?.email || "—"}</span>
-        );
+        const label = p?.full_name || p?.email;
+        return <span className={label ? "admin-cell-strong" : "admin-cell-muted"}>{label || "—"}</span>;
       },
     },
     { key: "product", header: "Product", cell: (r) => one(r.products)?.title || <span className="admin-cell-muted">—</span> },
@@ -78,17 +101,84 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
           <span className="admin-cell-muted">—</span>
         ),
     },
-    { key: "party_size", header: "Party", sortable: true, cell: (r) => r.party_size ?? <span className="admin-cell-muted">—</span> },
-    { key: "amount_cents", header: "Amount", sortable: true, cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
+    { key: "party_size", header: "Party", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => r.party_size ?? <span className="admin-cell-muted">—</span> },
+    { key: "amount_cents", header: "Amount", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => formatCents(r.amount_cents, r.currency ?? undefined) },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : <span className="admin-cell-muted">—</span>) },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
   ];
 
   return (
     <>
-      <PageHead eyebrow="Revenue" title="AIO Pad" sub={`${total.toLocaleString()} bookings`} />
+      <PageHead eyebrow="Revenue" title="AIO Pad" sub={`${total.toLocaleString()} ${total === 1 ? "booking" : "bookings"}`} />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <DataTable columns={columns} rows={rows} total={total} page={page} pageSize={pageSize} sort={sort} dir={dir} basePath="/admin/revenue/bookings" searchParams={searchParams} searchPlaceholder="Search kind…" emptyText="No bookings match." />
+
+      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <MetricCard label="Upcoming" value={upcomingCount} sub="start date today or later" />
+        <MetricCard label="Confirmed" value={confirmedCount} sub={`of ${total.toLocaleString()} bookings`} />
+      </div>
+
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        sort={sort}
+        dir={dir}
+        basePath="/admin/revenue/bookings"
+        searchParams={searchParams}
+        searchPlaceholder="Search kind…"
+        emptyText="No bookings match."
+        filterBar={
+          <FilterBar
+            basePath="/admin/revenue/bookings"
+            searchParams={searchParams}
+            filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
+          />
+        }
+        getRowPreview={(r) => {
+          const p = one(r.people);
+          return {
+            eyebrow: "Booking",
+            title: p?.full_name || p?.email || one(r.products)?.title || "Booking",
+            body: (
+              <>
+                <dl className="admin-kv">
+                  <dt>Contact</dt>
+                  <dd>{p?.full_name || p?.email || "—"}</dd>
+                  <dt>Product</dt>
+                  <dd>{one(r.products)?.title || "—"}</dd>
+                  <dt>Kind</dt>
+                  <dd>{r.kind ? <Badge>{humanize(r.kind)}</Badge> : "—"}</dd>
+                  <dt>Dates</dt>
+                  <dd>
+                    {r.start_date
+                      ? r.end_date
+                        ? `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`
+                        : formatDate(r.start_date)
+                      : "—"}
+                  </dd>
+                  <dt>Party</dt>
+                  <dd className="admin-cell-mono">{r.party_size ?? "—"}</dd>
+                  <dt>Amount</dt>
+                  <dd className="admin-cell-mono">{formatCents(r.amount_cents, r.currency ?? undefined)}</dd>
+                  <dt>Status</dt>
+                  <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
+                  <dt>Created</dt>
+                  <dd>{formatDate(r.created_at)}</dd>
+                </dl>
+                {r.person_id && (
+                  <div style={{ marginTop: 16 }}>
+                    <Link href={`/admin/contacts/${r.person_id}`} className="admin-btn admin-btn--primary">
+                      Open contact
+                    </Link>
+                  </div>
+                )}
+              </>
+            ),
+          };
+        }}
+      />
     </>
   );
 }
