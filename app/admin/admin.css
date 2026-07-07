@@ -516,7 +516,11 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .admin-table tbody tr:last-child td { border-bottom: 0; }
 .admin-table tbody tr { transition: background var(--transition); }
 .admin-table tbody tr:hover { background: #fafbfd; }
+/* Clickable rows open the record in the side car (DetailDrawer). Accent-tinted
+   hover signals interactivity; the focus ring keeps keyboard users oriented. */
 .admin-table tbody tr.is-clickable { cursor: pointer; }
+.admin-table tbody tr.is-clickable:hover { background: var(--admin-accent-soft); }
+.admin-table tbody tr.is-clickable:focus-visible { outline: 2px solid var(--admin-accent); outline-offset: -2px; }
 .admin-cell-strong { font-weight: 600; color: var(--admin-ink); }
 .admin-cell-muted { color: var(--admin-muted); }
 .admin-cell-mono { font-family: var(--admin-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }

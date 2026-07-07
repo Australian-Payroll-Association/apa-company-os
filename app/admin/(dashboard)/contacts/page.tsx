@@ -93,11 +93,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
       key: "full_name",
       header: "Name",
       sortable: true,
-      cell: (r) => (
-        <Link href={`/admin/contacts/${r.id}`} className="admin-cell-strong">
-          {r.full_name || "(no name)"}
-        </Link>
-      ),
+      cell: (r) => <span className="admin-cell-strong">{r.full_name || "(no name)"}</span>,
     },
     { key: "email", header: "Email", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.email}</span> },
     { key: "phone", header: "Phone", sortable: true, cell: (r) => r.phone || <span className="admin-cell-muted">—</span> },
@@ -167,6 +163,40 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
             ]}
           />
         }
+        getRowPreview={(r) => ({
+          eyebrow: "Contact",
+          title: r.full_name || r.email,
+          body: (
+            <>
+              <dl className="admin-kv">
+                <dt>Email</dt>
+                <dd>{r.email}</dd>
+                <dt>Phone</dt>
+                <dd>{r.phone || "—"}</dd>
+                <dt>Persona</dt>
+                <dd>{r.persona ? <Badge>{humanize(r.persona)}</Badge> : "—"}</dd>
+                <dt>Source</dt>
+                <dd>{r.source || "—"}</dd>
+                <dt>Deal value</dt>
+                <dd className="admin-cell-mono">
+                  {r.deal_count ? formatCents(r.deal_value_usd_cents) : "—"}
+                </dd>
+              </dl>
+              {(r.archived_at || r.do_not_contact || r.is_team_member) && (
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 12 }}>
+                  {r.archived_at && <Badge tone="neutral">Archived</Badge>}
+                  {r.do_not_contact && <Badge tone="err">Do not contact</Badge>}
+                  {r.is_team_member && <Badge tone="info">Team</Badge>}
+                </div>
+              )}
+              <div style={{ marginTop: 16 }}>
+                <Link href={`/admin/contacts/${r.id}`} className="admin-btn admin-btn--primary">
+                  Open full profile
+                </Link>
+              </div>
+            </>
+          ),
+        })}
       />
     </>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { TableSearch } from "./TableSearch";
+import { PreviewRow } from "./PreviewRow";
 
 export type Column<T> = {
   key: string;
@@ -11,6 +12,10 @@ export type Column<T> = {
   align?: "right";
   className?: string;
 };
+
+// When provided, the whole row is clickable and opens this content in the side
+// car (DetailDrawer). Rendered server-side, so cells/body can use any component.
+export type RowPreview = { title: ReactNode; eyebrow?: ReactNode; body: ReactNode };
 
 // Server component. URL-driven: sortable headers and pagination are plain
 // <Link>s (no client JS); only the search box is a client island. Column cell
@@ -28,6 +33,7 @@ export function DataTable<T extends { id?: string | number }>({
   searchPlaceholder,
   emptyText = "No records.",
   filterBar,
+  getRowPreview,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -41,6 +47,7 @@ export function DataTable<T extends { id?: string | number }>({
   searchPlaceholder?: string;
   emptyText?: string;
   filterBar?: ReactNode;
+  getRowPreview?: (row: T) => RowPreview;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -86,19 +93,26 @@ export function DataTable<T extends { id?: string | number }>({
                 </td>
               </tr>
             ) : (
-              rows.map((row, i) => (
-                <tr key={row.id ?? i}>
-                  {columns.map((c) => (
-                    <td
-                      key={c.key}
-                      className={c.className}
-                      style={c.align === "right" ? { textAlign: "right" } : undefined}
-                    >
-                      {c.cell ? c.cell(row) : ((row as Record<string, unknown>)[c.key] as ReactNode) ?? "—"}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row, i) => {
+                const cells = columns.map((c) => (
+                  <td
+                    key={c.key}
+                    className={c.className}
+                    style={c.align === "right" ? { textAlign: "right" } : undefined}
+                  >
+                    {c.cell ? c.cell(row) : ((row as Record<string, unknown>)[c.key] as ReactNode) ?? "—"}
+                  </td>
+                ));
+                if (getRowPreview) {
+                  const p = getRowPreview(row);
+                  return (
+                    <PreviewRow key={row.id ?? i} title={p.title} eyebrow={p.eyebrow} preview={p.body}>
+                      {cells}
+                    </PreviewRow>
+                  );
+                }
+                return <tr key={row.id ?? i}>{cells}</tr>;
+              })
             )}
           </tbody>
         </table>

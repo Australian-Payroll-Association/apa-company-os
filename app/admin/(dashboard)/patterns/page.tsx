@@ -276,6 +276,42 @@ export default function PatternsPage() {
           </div>
         </Section>
 
+        {/* ─── Clickable rows + side car ──────────────── */}
+        <Section
+          title="Clickable rows &amp; side car"
+          sub="In CRM lists the whole row is the click target and opens the record in the side car (the right-hand drawer shown lower down). The name is not a separate link."
+        >
+          <div className="admin-table-wrap">
+            <div className="admin-table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Persona</th>
+                    <th style={{ textAlign: "right" }}>Deal value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="is-clickable" tabIndex={0} role="button" aria-haspopup="dialog">
+                    <td className="admin-cell-strong">Jane Doe</td>
+                    <td><Badge tone="ok" dot>Customer</Badge></td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>$12,480.00</td>
+                  </tr>
+                  <tr className="is-clickable" tabIndex={0} role="button" aria-haspopup="dialog">
+                    <td className="admin-cell-strong">Minh Tran</td>
+                    <td><Badge tone="warn" dot>Lead</Badge></td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>$3,200.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="pat-caption">
+            Hover a row to see the accent-tinted affordance. Wire it with DataTable&rsquo;s
+            getRowPreview, or the PreviewRow component for bespoke tables.
+          </p>
+        </Section>
+
         {/* ─── Tabs + segmented ───────────────────────── */}
         <Section title="Tabs &amp; segmented control">
           <div className="admin-tabs">
