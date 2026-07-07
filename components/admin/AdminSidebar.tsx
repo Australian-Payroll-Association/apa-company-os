@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut } from "@/app/admin/(dashboard)/actions";
 
 // Nav is data-driven. `enabled: false` items render muted with a "soon" tag and
@@ -112,16 +112,12 @@ const NAV: NavGroup[] = [
       {
         subheading: "Configuration",
         items: [
-          { label: "Brands", href: "/admin/settings/brands", ico: "✺" },
-          { label: "Legal entities", href: "/admin/settings/legal-entities", ico: "§" },
           { label: "Pipelines", href: "/admin/settings/pipelines", ico: "⇶" },
         ],
       },
     ],
   },
 ];
-
-export type Brand = { id: string; name: string };
 
 // The three views a user can land in. These are SEPARATE apps: Admin is this
 // /admin console; Team and Manager live in the /team portal. The switcher
@@ -153,32 +149,17 @@ function initials(email: string): string {
 
 export function AdminSidebar({
   user,
-  brands,
-  activeBrandId,
 }: {
   user: { email: string };
-  brands: Brand[];
-  activeBrandId: string | null;
 }) {
   const pathname = usePathname() ?? "";
-  const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
-  const [brandMenuOpen, setBrandMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const userInitials = initials(user.email);
 
   function toggle(key: string) {
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
-  }
-
-  const activeBrand = brands.find((b) => b.id === activeBrandId) ?? null;
-
-  function selectBrand(id: string | null) {
-    if (id) document.cookie = `crm_brand=${id}; path=/; max-age=31536000; samesite=lax`;
-    else document.cookie = "crm_brand=; path=/; max-age=0; samesite=lax";
-    setBrandMenuOpen(false);
-    router.refresh();
   }
 
   function renderItem(item: NavItem, isSub: boolean) {
@@ -277,7 +258,6 @@ export function AdminSidebar({
               aria-label="Profile and views"
               onClick={() => {
                 setProfileMenuOpen((v) => !v);
-                setBrandMenuOpen(false);
               }}
             >
               {userInitials}
@@ -342,37 +322,6 @@ export function AdminSidebar({
               </button>
             </form>
           </div>
-        )}
-
-        <button
-          className="admin-brandbtn"
-          onClick={() => {
-            setBrandMenuOpen((v) => !v);
-            setProfileMenuOpen(false);
-          }}
-          aria-expanded={brandMenuOpen}
-        >
-          <span className="admin-brandbtn-label">
-            <span className="admin-brandbtn-eyebrow">Brand</span>
-            {activeBrand ? activeBrand.name : "All brands"}
-          </span>
-          <span aria-hidden>▾</span>
-        </button>
-        {brandMenuOpen && (
-          <ul className="admin-brandmenu">
-            <li>
-              <button aria-current={!activeBrandId} onClick={() => selectBrand(null)}>
-                All brands
-              </button>
-            </li>
-            {brands.map((b) => (
-              <li key={b.id}>
-                <button aria-current={b.id === activeBrandId} onClick={() => selectBrand(b.id)}>
-                  {b.name}
-                </button>
-              </li>
-            ))}
-          </ul>
         )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>

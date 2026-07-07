@@ -1,5 +1,4 @@
 import { listEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
@@ -31,7 +30,6 @@ const PAGE_SIZE = 25;
 const SORTABLE = new Set(["title", "type", "tier", "location", "date_start", "amount_cents", "active", "created_at"]);
 
 export default async function ProductsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -41,7 +39,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   const { rows, total, pageSize, error } = await listEntity<Product>(
     "products",
     "id, title, type, tier, location, date_start, amount_cents, currency, active, created_at",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir, filters: brandId ? { brand_id: brandId } : undefined },
+    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir },
   );
 
   const columns: Column<Product>[] = [

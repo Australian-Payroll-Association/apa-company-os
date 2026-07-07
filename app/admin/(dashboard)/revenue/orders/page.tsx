@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -36,7 +35,6 @@ const PAGE_SIZE = 25;
 const SORTABLE = new Set(["amount_cents", "status", "payment_method", "created_at"]);
 
 export default async function OrdersPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -46,7 +44,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const { rows, total, pageSize, error } = await listEntity<Order>(
     "orders",
     "id, amount_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir, filters: brandId ? { brand_id: brandId } : undefined },
+    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir },
   );
 
   const columns: Column<Order>[] = [

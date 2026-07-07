@@ -1,5 +1,4 @@
 import { companyOs } from "@/lib/supabase";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { InquiriesBoard, type InquiryCard } from "./InquiriesBoard";
@@ -32,7 +31,6 @@ type Row = {
 };
 
 export default async function InquiriesPage() {
-  const brandId = getActiveBrandId();
   let query = companyOs
     .from("inquiries")
     .select(
@@ -42,7 +40,6 @@ export default async function InquiriesPage() {
     .not("type", "in", NON_SALES_INQUIRY_TYPES)
     .order("created_at", { ascending: false })
     .limit(500);
-  if (brandId) query = query.eq("brand_id", brandId);
 
   const { data, error } = await query;
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
@@ -34,7 +33,6 @@ const PAGE_SIZE = 25;
 const SORTABLE = new Set(["code", "program_type", "rate", "active", "created_at"]);
 
 export default async function AffiliatesPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -44,7 +42,7 @@ export default async function AffiliatesPage({ searchParams }: { searchParams: S
   const { rows, total, pageSize, error } = await listEntity<Affiliate>(
     "affiliates",
     "id, code, program_type, rate, stripe_coupon_id, active, notes, created_at, person_id, people(full_name, email)",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["code", "notes"], sort, dir, filters: brandId ? { brand_id: brandId } : undefined },
+    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["code", "notes"], sort, dir },
   );
 
   const columns: Column<Affiliate>[] = [

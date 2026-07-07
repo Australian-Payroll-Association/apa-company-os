@@ -1,5 +1,4 @@
 import { companyOs } from "@/lib/supabase";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
@@ -48,8 +47,6 @@ type Row = {
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
 export default async function DealsPage() {
-  const brandId = getActiveBrandId();
-
   const { data: stages } = await companyOs
     .from("pipeline_stages")
     .select("id, name, position, is_won, is_lost")
@@ -78,7 +75,6 @@ export default async function DealsPage() {
     )
     .order("created_at", { ascending: false })
     .limit(500);
-  if (brandId) query = query.eq("brand_id", brandId);
 
   const { data, error } = await query;
 

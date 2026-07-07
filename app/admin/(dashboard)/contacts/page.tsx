@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
@@ -55,7 +54,6 @@ const TEAM_OPTIONS = [
 ];
 
 export default async function ContactsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -68,7 +66,6 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
   const teamParam = firstParam(searchParams.team);
 
   const filters: Record<string, string | number | boolean | null> = {};
-  if (brandId) filters.source_brand_id = brandId;
   if (personaParam) filters.persona = personaParam === UNSET ? null : personaParam;
   if (stageParam) filters.lifecycle_stage = stageParam;
   if (teamParam === "true" || teamParam === "false") filters.is_team_member = teamParam === "true";

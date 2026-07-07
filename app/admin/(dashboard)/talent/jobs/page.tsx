@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -43,7 +42,6 @@ function salaryBand(min: number | null, max: number | null, cur: string | null) 
 }
 
 export default async function JobsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -53,7 +51,7 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
   const { rows, total, pageSize, error } = await listEntity<JobReq>(
     "job_requisitions",
     "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, created_at, companies!client_company_id(name)",
-    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir, filters: brandId ? { brand_id: brandId } : undefined },
+    { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir },
   );
 
   const columns: Column<JobReq>[] = [

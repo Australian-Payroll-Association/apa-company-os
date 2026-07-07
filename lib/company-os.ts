@@ -2,10 +2,7 @@ import { companyOs } from "./supabase";
 
 // Shared write helpers for the `company_os` schema. All site forms persist
 // through these so the person-centric model (people → inquiries / candidates /
-// applications / bookings / orders) stays consistent. Edge8 = Talent Edge LLC.
-
-export const EDGE8_BRAND_ID = "02f31cd4-b402-4db7-9988-c331f7d47785";
-export const TALENT_EDGE_LLC_ID = "996771d6-1ca5-442a-be67-30f05084c33d";
+// applications / bookings / orders) stays consistent.
 
 type Ok<T> = { ok: true } & T;
 type Err = { ok: false; error: string };
@@ -29,7 +26,6 @@ export async function getOrCreatePerson(input: {
       full_name: input.name ?? null,
       phone: input.phone ?? null,
       source: input.source ?? null,
-      source_brand_id: EDGE8_BRAND_ID,
     },
     { onConflict: "email", ignoreDuplicates: true },
   );
@@ -88,7 +84,6 @@ export async function attachResumeDocument(
       storage_path: doc.storagePath,
       mime_type: doc.mimeType,
       byte_size: doc.byteSize,
-      brand_id: EDGE8_BRAND_ID,
       entity_type: "candidate",
       entity_id: candidateId,
     })
@@ -169,8 +164,6 @@ export async function recordPrivateSessionBooking(input: {
       .from("orders")
       .insert({
         person_id: input.personId,
-        brand_id: EDGE8_BRAND_ID,
-        legal_entity_id: TALENT_EDGE_LLC_ID,
         payment_method: "stripe",
         stripe_session_id: input.stripeSessionId,
         amount_cents: input.amountCents,
@@ -185,7 +178,6 @@ export async function recordPrivateSessionBooking(input: {
 
     const { error: bookErr } = await companyOs.from("bookings").insert({
       person_id: input.personId,
-      brand_id: EDGE8_BRAND_ID,
       order_id: orderId,
       kind: "private_session",
       start_date: input.startDate,

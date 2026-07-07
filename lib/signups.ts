@@ -1,5 +1,5 @@
 import { companyOs } from "./supabase";
-import { getOrCreatePerson, EDGE8_BRAND_ID } from "./company-os";
+import { getOrCreatePerson } from "./company-os";
 import { promotePersonToLead } from "./lifecycle";
 import { SOURCE_SITE } from "./utils";
 
@@ -72,7 +72,6 @@ export async function recordRetreatSignup(
     .from("inquiries")
     .insert({
       person_id: person.id,
-      brand_id: EDGE8_BRAND_ID,
       type: "retreat",
       message: composedMessage,
       source,

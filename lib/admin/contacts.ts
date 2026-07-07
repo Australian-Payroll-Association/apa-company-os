@@ -15,7 +15,6 @@ export type Person = {
   phone: string | null;
   persona: string | null;
   source: string | null;
-  source_brand_id: string | null;
   linkedin_url: string | null;
   country: string | null;
   city: string | null;

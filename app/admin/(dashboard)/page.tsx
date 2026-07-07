@@ -1,5 +1,4 @@
 import { companyOs } from "@/lib/supabase";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 
@@ -11,16 +10,9 @@ export const metadata = {
   description: "Company OS home with today's revenue, talent, and operations numbers.",
 };
 
-// Count rows in a table, optionally scoped to the active brand. `head: true`
-// fetches only the count (no rows over the wire).
-async function countRows(
-  table: string,
-  brandCol: string | null,
-  brandId: string | null,
-): Promise<number | null> {
-  let q = companyOs.from(table).select("*", { count: "exact", head: true });
-  if (brandCol && brandId) q = q.eq(brandCol, brandId);
-  const { count, error } = await q;
+// Count rows in a table. `head: true` fetches only the count (no rows over the wire).
+async function countRows(table: string): Promise<number | null> {
+  const { count, error } = await companyOs.from(table).select("*", { count: "exact", head: true });
   if (error) return null;
   return count ?? 0;
 }
@@ -28,17 +20,16 @@ async function countRows(
 const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("en-US"));
 
 export default async function DashboardPage() {
-  const brandId = getActiveBrandId();
   const [people, companies, inquiries, deals, candidates, applications, orders, bookings] =
     await Promise.all([
-      countRows("people", null, brandId),
-      countRows("companies", null, brandId),
-      countRows("inquiries", "brand_id", brandId),
-      countRows("deals", "brand_id", brandId),
-      countRows("candidates", null, brandId),
-      countRows("applications", null, brandId),
-      countRows("orders", "brand_id", brandId),
-      countRows("bookings", "brand_id", brandId),
+      countRows("people"),
+      countRows("companies"),
+      countRows("inquiries"),
+      countRows("deals"),
+      countRows("candidates"),
+      countRows("applications"),
+      countRows("orders"),
+      countRows("bookings"),
     ]);
 
   return (
