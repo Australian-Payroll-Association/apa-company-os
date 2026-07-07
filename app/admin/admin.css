@@ -788,7 +788,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 12px;
-  align-items: flex-start;
+  align-items: stretch;
 }
 .sap-col {
   flex: 0 0 268px;
@@ -823,7 +823,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 48px;
+  min-height: 120px;
   flex: 1;
 }
 .sap-col-foot {

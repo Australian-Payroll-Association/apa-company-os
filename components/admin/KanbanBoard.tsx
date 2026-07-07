@@ -37,11 +37,7 @@ export function KanbanBoard<T extends KanbanCardBase>({
           return (
             <Droppable droppableId={col.id} key={col.id}>
               {(provided, snapshot) => (
-                <div
-                  className={`sap-col${snapshot.isDraggingOver ? " is-over" : ""}`}
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                >
+                <div className={`sap-col${snapshot.isDraggingOver ? " is-over" : ""}`}>
                   <div className="sap-col-head">
                     <span
                       className="sap-col-dot"
@@ -50,7 +46,10 @@ export function KanbanBoard<T extends KanbanCardBase>({
                     <span className="sap-col-label">{col.label}</span>
                     <span className="sap-col-count">{colCards.length}</span>
                   </div>
-                  <div className="sap-col-body">
+                  {/* Droppable ref lives on the card list (not the whole column)
+                      so the placeholder sizes it — this keeps an empty column a
+                      full-height drop target instead of collapsing to nothing. */}
+                  <div className="sap-col-body" ref={provided.innerRef} {...provided.droppableProps}>
                     {colCards.map((card, i) => (
                       <Draggable draggableId={card.id} index={i} key={card.id}>
                         {(dp, ds) => (
