@@ -43,7 +43,7 @@ const NAV: NavGroup[] = [
         items: [
           { label: "Orders", href: "/admin/revenue/orders", ico: "⛁", enabled: true },
           { label: "AIO Pad", href: "/admin/revenue/bookings", ico: "⌂", enabled: true },
-          { label: "Retreat", href: "/admin/revenue/registrations", ico: "✓", enabled: true },
+          { label: "Public Retreats", href: "/admin/revenue/public-retreats", ico: "✓", enabled: true },
           { label: "Products", href: "/admin/revenue/products", ico: "▦", enabled: true },
           { label: "Affiliates", href: "/admin/revenue/affiliates", ico: "%", enabled: true },
         ],
