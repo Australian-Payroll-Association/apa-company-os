@@ -30,7 +30,7 @@ const NAV: NavGroup[] = [
       {
         subheading: "CRM",
         items: [
-          { label: "Funnel", href: "/admin/revenue/funnel", ico: "▽", enabled: true },
+          { label: "Cockpit", href: "/admin/revenue", ico: "◎", enabled: true },
           { label: "Deals", href: "/admin/revenue/deals", ico: "$", enabled: true },
           { label: "Leads", href: "/admin/revenue/leads", ico: "◉", enabled: true },
           { label: "Inquiries", href: "/admin/revenue/inquiries", ico: "☰", enabled: true },
@@ -135,7 +135,10 @@ const VIEWS: View[] = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/admin") return pathname === "/admin" || pathname === "/admin/";
+  // Index links (Dashboard, Cockpit) match exactly so they don't light up on
+  // every child route nested beneath them.
+  if (href === "/admin" || href === "/admin/revenue")
+    return pathname === href || pathname === `${href}/`;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
