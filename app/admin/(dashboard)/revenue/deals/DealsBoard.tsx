@@ -133,15 +133,17 @@ export function DealsBoard({
   initialCards,
   lostStageIds,
   stageOptions,
+  initialSelectedId,
 }: {
   columns: KanbanColumn[];
   initialCards: DealCard[];
   lostStageIds: string[];
   stageOptions: StageOption[];
+  initialSelectedId?: string | null;
 }) {
   const router = useRouter();
   const [cards, setCards] = useState<DealCard[]>(initialCards);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);

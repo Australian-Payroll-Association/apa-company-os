@@ -3,6 +3,7 @@ import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
+import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 import { DealsBoard, HANDOFF_COLUMN_ID, type DealCard, type StageOption } from "./DealsBoard";
 
@@ -47,8 +48,9 @@ type Row = {
 
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
-export default async function DealsPage() {
+export default async function DealsPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const brandId = getActiveBrandId();
+  const initialSelectedId = firstParam(searchParams.deal) ?? null;
 
   const { data: stages } = await companyOs
     .from("pipeline_stages")
@@ -155,6 +157,7 @@ export default async function DealsPage() {
         initialCards={cards}
         lostStageIds={lostStageIds}
         stageOptions={stageOptions}
+        initialSelectedId={initialSelectedId}
       />
     </>
   );

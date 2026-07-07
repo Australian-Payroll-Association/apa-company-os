@@ -137,7 +137,10 @@ export function CockpitDeals({ deals }: { deals: CockpitDeal[] }) {
               </div>
             )}
             <div style={{ marginTop: 16 }}>
-              <Link href="/admin/revenue/deals" className="admin-btn admin-btn--primary">
+              <Link
+                href={`/admin/revenue/deals?deal=${selected.id}`}
+                className="admin-btn admin-btn--primary"
+              >
                 Open in pipeline
               </Link>
             </div>
