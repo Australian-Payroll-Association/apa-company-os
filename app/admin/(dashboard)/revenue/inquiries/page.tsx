@@ -11,6 +11,10 @@ export const metadata = {
 };
 
 const ACTIVE_STATUSES = ["new_lead", "contacted", "discovery", "proposal", "won", "lost"];
+// The inquiries board is inbound SALES contact only. Event/commerce/legacy-import
+// intake (retreat signups, checkout, newsletter, the one-off legacy 'general'
+// bulk import) lives in orders/registrations, not here.
+const NON_SALES_INQUIRY_TYPES = "(general,retreat,trip,checkout,newsletter)";
 
 type EmbeddedPerson = { full_name: string | null; email: string; do_not_contact: boolean | null };
 type Row = {
@@ -34,6 +38,7 @@ export default async function InquiriesPage() {
       "id, type, subject, message, source, status, created_at, deal_id, person_id, people(full_name, email, do_not_contact)",
     )
     .in("status", ACTIVE_STATUSES)
+    .not("type", "in", NON_SALES_INQUIRY_TYPES)
     .order("created_at", { ascending: false })
     .limit(500);
   if (brandId) query = query.eq("brand_id", brandId);
