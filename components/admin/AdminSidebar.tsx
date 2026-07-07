@@ -58,7 +58,6 @@ const NAV: NavGroup[] = [
         subheading: "ATS",
         items: [
           { label: "Applications", href: "/admin/talent/applications", ico: "⇉", enabled: true },
-          { label: "Candidates", href: "/admin/talent/candidates", ico: "☺", enabled: true },
           { label: "Job Reqs", href: "/admin/talent/jobs", ico: "▤", enabled: true },
         ],
       },

@@ -24,7 +24,7 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   const data = await getPerson360(params.id);
   if (!data) notFound();
 
-  const { person, inquiries, deals, orders, bookings, candidate, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
+  const { person, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
   const primaryCompany = companies.find((c) => c.is_primary) ?? companies[0] ?? null;
   const name = person.full_name || person.preferred_name || person.email;
   const location = [person.city, person.state_province, person.country].filter(Boolean).join(", ");
@@ -191,27 +191,31 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
       key: "recruiting",
       label: "Recruiting",
       count: applications.length,
-      content: !candidate ? (
-        <Empty text="Not a candidate." />
+      content: applications.length === 0 && !person.headline && !person.do_not_hire ? (
+        <Empty text="No applications." />
       ) : (
         <div>
-          <div className="admin-list-row">
-            <div className="admin-list-main">
-              <div className="admin-list-title">{candidate.headline || "Candidate"}</div>
-              <div className="admin-list-sub">
-                {candidate.linkedin_url ? (
-                  <a href={candidate.linkedin_url} target="_blank" rel="noreferrer">
-                    LinkedIn
-                  </a>
-                ) : (
-                  "—"
-                )}
+          {(person.headline || person.do_not_hire) && (
+            <div className="admin-list-row">
+              <div className="admin-list-main">
+                <div className="admin-list-title">{person.headline || person.current_title || "Applicant"}</div>
+                <div className="admin-list-sub">
+                  {person.linkedin_url ? (
+                    <a href={person.linkedin_url} target="_blank" rel="noreferrer">
+                      LinkedIn
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </div>
               </div>
+              {person.do_not_hire && (
+                <div className="admin-list-aside">
+                  <Badge tone="err">Do not hire</Badge>
+                </div>
+              )}
             </div>
-            <div className="admin-list-aside">
-              <Badge tone={statusTone(candidate.pool_status)}>{humanize(candidate.pool_status)}</Badge>
-            </div>
-          </div>
+          )}
           {applications.length === 0 ? (
             <Empty text="No applications." />
           ) : (
@@ -219,10 +223,18 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               {applications.map((a) => (
                 <div className="admin-list-row" key={a.id}>
                   <div className="admin-list-main">
-                    <div className="admin-list-title">Application</div>
+                    <div className="admin-list-title">{a.job_title || "Application"}</div>
                     <div className="admin-list-sub">
                       Applied {formatDate(a.applied_at ?? a.created_at)}
                       {a.rating ? ` · ★ ${a.rating}` : ""}
+                      {a.resume_document_id ? (
+                        <>
+                          {" · "}
+                          <a href={`/admin/talent/resume/${a.resume_document_id}`} target="_blank" rel="noreferrer">
+                            Resume ↗
+                          </a>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                   <div className="admin-list-aside">

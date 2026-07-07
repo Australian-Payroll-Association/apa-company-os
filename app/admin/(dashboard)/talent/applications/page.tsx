@@ -11,10 +11,19 @@ export const metadata = {
   description: "Job applications moving through the hiring pipeline.",
 };
 
-// Talent office: every application across all reqs. Rows load once and the
-// client table handles search, the job-req filter, paging, and the manage shelf.
-type P = { full_name: string | null; email: string };
-type Cand = { person_id: string | null; headline: string | null; people: P | P[] | null };
+// Talent office: every application across all reqs, joined straight to the
+// person (the candidates table is retired). Rows load once and the client
+// table handles search, the job-req filter, paging, and the manage shelf.
+type P = {
+  full_name: string | null;
+  email: string;
+  phone: string | null;
+  headline: string | null;
+  current_title: string | null;
+  linkedin_url: string | null;
+  portfolio_url: string | null;
+  do_not_hire: boolean;
+};
 type Jr = { title: string | null };
 type St = { name: string | null };
 type RawApp = {
@@ -25,8 +34,12 @@ type RawApp = {
   decided_at: string | null;
   rejection_reason: string | null;
   current_stage_id: string | null;
+  cover_letter: string | null;
+  answers: { q: string; a: string }[] | null;
+  resume_document_id: string | null;
   job_requisition_id: string | null;
-  candidates: Cand | Cand[] | null;
+  person_id: string | null;
+  people: P | P[] | null;
   job_requisitions: Jr | Jr[] | null;
   application_stages: St | St[] | null;
 };
@@ -38,7 +51,7 @@ export default async function ApplicationsPage() {
     companyOs
       .from("applications")
       .select(
-        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, job_requisition_id, candidates(person_id, headline, people!person_id(full_name, email)), job_requisitions(title), application_stages(name)",
+        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, headline, current_title, linkedin_url, portfolio_url, do_not_hire), job_requisitions(title), application_stages(name)",
       )
       .order("created_at", { ascending: false })
       .limit(2000),
@@ -50,13 +63,18 @@ export default async function ApplicationsPage() {
   const error = appsRes.error?.message ?? null;
   const raw = (appsRes.data ?? []) as unknown as RawApp[];
   const rows: AppRow[] = raw.map((r) => {
-    const cand = one(r.candidates);
-    const p = one(cand?.people ?? null);
+    const p = one(r.people);
     return {
       id: r.id,
       candidateName: p?.full_name || p?.email || null,
-      headline: cand?.headline ?? null,
-      personId: cand?.person_id ?? null,
+      email: p?.email ?? null,
+      phone: p?.phone ?? null,
+      headline: p?.headline ?? null,
+      currentTitle: p?.current_title ?? null,
+      linkedinUrl: p?.linkedin_url ?? null,
+      portfolioUrl: p?.portfolio_url ?? null,
+      doNotHire: Boolean(p?.do_not_hire),
+      personId: r.person_id,
       jobReqId: r.job_requisition_id,
       jobReqTitle: one(r.job_requisitions)?.title ?? null,
       stageName: one(r.application_stages)?.name ?? null,
@@ -66,6 +84,9 @@ export default async function ApplicationsPage() {
       rejectionReason: r.rejection_reason,
       appliedAt: r.applied_at,
       decidedAt: r.decided_at,
+      coverLetter: r.cover_letter,
+      answers: Array.isArray(r.answers) ? r.answers : [],
+      resumeDocumentId: r.resume_document_id,
     };
   });
 

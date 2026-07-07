@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
 import {
   addApplicationNote,
   getApplicationNotes,
   getApplicationStages,
+  updateApplicantProfile,
   updateApplication,
+  uploadApplicationResume,
   type AppNote,
   type StageOption,
 } from "./actions";
@@ -27,29 +28,41 @@ export type AppManageData = {
   currentStageName: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
+  coverLetter: string | null;
+  answers: { q: string; a: string }[];
+  resumeDocumentId: string | null;
+  // person-side profile (edits write to people)
+  email: string | null;
+  phone: string | null;
+  headline: string | null;
+  currentTitle: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  doNotHire: boolean;
 };
 
 const STATUS_OPTIONS = [
   ["active", "Active"],
   ["on_hold", "On hold"],
+  ["passive", "Passive"],
+  ["withdrawn", "Withdrawn"],
   ["hired", "Hired"],
   ["rejected", "Rejected"],
 ] as const;
 
 // Editable "manage" surface for one application, rendered inside the row's side
-// shelf (DetailDrawer). Field changes (stage, status, rating, rejection reason)
-// commit together on Save; notes post individually to the thread below.
+// shelf (DetailDrawer). Two save scopes: application fields write applications;
+// the applicant profile writes people. Notes post individually to the thread.
 export function ApplicationManage({ app }: { app: AppManageData }) {
   const router = useRouter();
 
+  // ── application-side state ──
   const [stageId, setStageId] = useState(app.currentStageId ?? "");
   const [status, setStatus] = useState(app.status ?? "active");
   const [rating, setRating] = useState<number | null>(app.rating ?? null);
   const [rejectionReason, setRejectionReason] = useState(app.rejectionReason ?? "");
-
   const [stages, setStages] = useState<StageOption[]>([]);
   const [stagesLoading, setStagesLoading] = useState(true);
-
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -105,12 +118,8 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
   return (
     <>
       <dl className="admin-kv" style={{ marginBottom: 16 }}>
-        <dt>Candidate</dt>
-        <dd>{app.candidateName || "—"}</dd>
         <dt>Job req</dt>
         <dd>{app.jobReqTitle || "—"}</dd>
-        <dt>Status</dt>
-        <dd>{app.status ? <Badge tone={statusTone(app.status)}>{humanize(app.status)}</Badge> : "—"}</dd>
         <dt>Applied</dt>
         <dd>{app.appliedAt ? formatDate(app.appliedAt) : "—"}</dd>
         {app.decidedAt && (
@@ -119,6 +128,10 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
             <dd>{formatDate(app.decidedAt)}</dd>
           </>
         )}
+        <dt>Resume</dt>
+        <dd>
+          <ResumeField applicationId={app.id} resumeDocumentId={app.resumeDocumentId} />
+        </dd>
       </dl>
 
       <form
@@ -186,10 +199,49 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
         <div className="admin-form-actions">
           <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : "Save application"}
           </button>
         </div>
       </form>
+
+      {(app.coverLetter || app.answers.length > 0) && (
+        <div style={{ marginTop: 18 }}>
+          {app.coverLetter && (
+            <div style={{ marginBottom: 12 }}>
+              <div className="admin-label" style={{ marginBottom: 6 }}>
+                Cover letter
+              </div>
+              <div style={{ whiteSpace: "pre-wrap", borderLeft: "2px solid var(--admin-line-strong)", paddingLeft: 10 }}>
+                {app.coverLetter}
+              </div>
+            </div>
+          )}
+          {app.answers.map((x, i) => (
+            <div key={i} style={{ marginBottom: 12 }}>
+              <div className="admin-label" style={{ marginBottom: 6 }}>
+                {x.q}
+              </div>
+              <div style={{ whiteSpace: "pre-wrap", borderLeft: "2px solid var(--admin-line-strong)", paddingLeft: 10 }}>
+                {x.a || "—"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {app.personId && (
+        <ApplicantProfile
+          personId={app.personId}
+          name={app.candidateName}
+          email={app.email}
+          phone={app.phone}
+          headline={app.headline}
+          currentTitle={app.currentTitle}
+          linkedinUrl={app.linkedinUrl}
+          portfolioUrl={app.portfolioUrl}
+          doNotHire={app.doNotHire}
+        />
+      )}
 
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
         {app.personId && (
@@ -206,6 +258,184 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
       <ApplicationNotes applicationId={app.id} />
     </>
+  );
+}
+
+// View the current resume (signed-URL route) and upload a replacement.
+function ResumeField({
+  applicationId,
+  resumeDocumentId,
+}: {
+  applicationId: string;
+  resumeDocumentId: string | null;
+}) {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [docId, setDocId] = useState(resumeDocumentId);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    const fd = new FormData();
+    fd.append("resume", file);
+    const r = await uploadApplicationResume(applicationId, fd);
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = "";
+    if (!r.ok) return setErr(r.error);
+    setDocId(r.documentId);
+    router.refresh();
+  }
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {docId ? (
+        <a href={`/admin/talent/resume/${docId}`} target="_blank" rel="noreferrer" className="admin-cell-strong">
+          Open ↗
+        </a>
+      ) : (
+        <span className="admin-cell-muted">none</span>
+      )}
+      <button
+        type="button"
+        className="admin-btn admin-btn--sm"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+      >
+        {busy ? "Uploading…" : docId ? "Replace" : "Upload"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        style={{ display: "none" }}
+        onChange={onFile}
+      />
+      {err && <span style={{ color: "var(--admin-err-ink)" }}>{err}</span>}
+    </span>
+  );
+}
+
+// The applicant as a person: identity + professional profile. Saves write to
+// people (shared with the CRM), not to the application. do_not_hire is the
+// recruiting flag — separate from the do_not_contact consent opt-out, which is
+// managed from Contact 360, not here.
+function ApplicantProfile(props: {
+  personId: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  headline: string | null;
+  currentTitle: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  doNotHire: boolean;
+}) {
+  const router = useRouter();
+  const [phone, setPhone] = useState(props.phone ?? "");
+  const [headline, setHeadline] = useState(props.headline ?? "");
+  const [currentTitle, setCurrentTitle] = useState(props.currentTitle ?? "");
+  const [linkedinUrl, setLinkedinUrl] = useState(props.linkedinUrl ?? "");
+  const [portfolioUrl, setPortfolioUrl] = useState(props.portfolioUrl ?? "");
+  const [doNotHire, setDoNotHire] = useState(props.doNotHire);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setMsg(null);
+
+    const patch: Parameters<typeof updateApplicantProfile>[1] = {};
+    if (phone.trim() !== (props.phone ?? "")) patch.phone = phone.trim() || null;
+    if (headline.trim() !== (props.headline ?? "")) patch.headline = headline.trim() || null;
+    if (currentTitle.trim() !== (props.currentTitle ?? "")) patch.current_title = currentTitle.trim() || null;
+    if (linkedinUrl.trim() !== (props.linkedinUrl ?? "")) patch.linkedin_url = linkedinUrl.trim() || null;
+    if (portfolioUrl.trim() !== (props.portfolioUrl ?? "")) patch.portfolio_url = portfolioUrl.trim() || null;
+    if (doNotHire !== props.doNotHire) patch.do_not_hire = doNotHire;
+
+    if (Object.keys(patch).length === 0) {
+      setSaving(false);
+      setMsg({ ok: true, text: "Nothing changed." });
+      return;
+    }
+
+    const r = await updateApplicantProfile(props.personId, patch);
+    setSaving(false);
+    if (!r.ok) {
+      setMsg({ ok: false, text: r.error });
+      return;
+    }
+    setMsg({ ok: true, text: "Profile saved." });
+    router.refresh();
+  }
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div className="admin-label" style={{ marginBottom: 6 }}>
+        Applicant — {props.name || props.email || "person"}
+      </div>
+      <form
+        className="admin-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        {msg && <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="admin-field">
+            <label className="admin-label">Headline</label>
+            <input className="admin-input" value={headline} onChange={(e) => setHeadline(e.target.value)} />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Current title</label>
+            <input className="admin-input" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="admin-field">
+            <label className="admin-label">Phone</label>
+            <input className="admin-input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">LinkedIn</label>
+            <input
+              className="admin-input"
+              type="url"
+              placeholder="https://linkedin.com/in/…"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">Portfolio</label>
+          <input
+            className="admin-input"
+            type="url"
+            placeholder="https://…"
+            value={portfolioUrl}
+            onChange={(e) => setPortfolioUrl(e.target.value)}
+          />
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input type="checkbox" checked={doNotHire} onChange={(e) => setDoNotHire(e.target.checked)} />
+          <span>
+            Do not hire <span className="admin-cell-muted">(we would not consider this person again)</span>
+          </span>
+        </label>
+
+        <div className="admin-form-actions">
+          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
+            {saving ? "Saving…" : "Save profile"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

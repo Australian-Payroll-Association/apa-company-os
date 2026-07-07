@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { companyOs } from "@/lib/supabase";
+import { randomUUID } from "crypto";
+import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-// The real distinct statuses in the table today (checked against the DB).
-const APP_STATUSES = new Set(["active", "on_hold", "hired", "rejected"]);
+// Matches the applications_status_check constraint.
+const APP_STATUSES = new Set(["active", "on_hold", "passive", "withdrawn", "hired", "rejected"]);
+const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 export type StageOption = { id: string; name: string; isTerminal: boolean };
 export type AppNote = { id: string; kind: string; body: string | null; occurredAt: string | null };
@@ -92,6 +94,110 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   return { ok: true };
 }
 
+// Person-side profile edits from the application shelf. These write to people —
+// identity and professional profile are person attributes, not per-application.
+// do_not_hire is the recruiting flag ("would we look at them again?"), kept
+// strictly separate from do_not_contact (consent opt-out), which this action
+// never touches.
+export type ApplicantProfilePatch = {
+  headline?: string | null;
+  current_title?: string | null;
+  linkedin_url?: string | null;
+  portfolio_url?: string | null;
+  phone?: string | null;
+  do_not_hire?: boolean;
+};
+
+export async function updateApplicantProfile(personId: string, patch: ApplicantProfilePatch): Promise<Result> {
+  const admin = await requireAdmin();
+  const updates: Record<string, unknown> = {};
+
+  if (patch.headline !== undefined) updates.headline = patch.headline?.trim() || null;
+  if (patch.current_title !== undefined) updates.current_title = patch.current_title?.trim() || null;
+  if (patch.linkedin_url !== undefined) updates.linkedin_url = patch.linkedin_url?.trim() || null;
+  if (patch.portfolio_url !== undefined) updates.portfolio_url = patch.portfolio_url?.trim() || null;
+  if (patch.phone !== undefined) updates.phone = patch.phone?.trim() || null;
+  if (patch.do_not_hire !== undefined) updates.do_not_hire = patch.do_not_hire;
+
+  if (Object.keys(updates).length === 0) return { ok: true };
+
+  const { error } = await companyOs.from("people").update(updates).eq("id", personId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "people",
+    recordId: personId,
+    operation: "update",
+    actor: admin.email,
+    newData: updates,
+  });
+  revalidatePath("/admin/talent/applications");
+  revalidatePath(`/admin/contacts/${personId}`);
+  return { ok: true };
+}
+
+// Upload (or replace) the resume on an application. The file goes to the same
+// private `resumes` bucket the careers form uses; the documents row hangs off
+// the application. Replacing links a new document — the old file is kept for
+// the audit trail rather than deleted.
+export async function uploadApplicationResume(
+  applicationId: string,
+  formData: FormData,
+): Promise<{ ok: true; documentId: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  const file = formData.get("resume");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a file first." };
+  if (file.size > MAX_RESUME_BYTES) return { ok: false, error: "Resume is too large (max 10 MB)." };
+
+  const { data: app, error: aErr } = await companyOs
+    .from("applications")
+    .select("id, person_id, people!person_id(full_name, email)")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (aErr || !app) return { ok: false, error: aErr?.message ?? "Application not found." };
+  const person = Array.isArray(app.people) ? app.people[0] : app.people;
+  const personName = person?.full_name || person?.email || "applicant";
+
+  const filename = (file.name || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  const storagePath = `admin/${applicationId}/${randomUUID()}-${filename}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await supabase.storage.from("resumes").upload(storagePath, buffer, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (upErr) return { ok: false, error: `Upload failed: ${upErr.message}` };
+
+  const { data: doc, error: dErr } = await companyOs
+    .from("documents")
+    .insert({
+      title: `Resume — ${personName}`,
+      storage_path: storagePath,
+      mime_type: file.type || null,
+      byte_size: file.size,
+      entity_type: "application",
+      entity_id: applicationId,
+    })
+    .select("id")
+    .single();
+  if (dErr || !doc) return { ok: false, error: dErr?.message ?? "Could not save the document." };
+
+  const { error: linkErr } = await companyOs
+    .from("applications")
+    .update({ resume_document_id: doc.id })
+    .eq("id", applicationId);
+  if (linkErr) return { ok: false, error: linkErr.message };
+
+  await recordAudit({
+    table: "applications",
+    recordId: applicationId,
+    operation: "update",
+    actor: admin.email,
+    newData: { resume_document_id: doc.id, resume_file: filename },
+  });
+  revalidatePath("/admin/talent/applications");
+  return { ok: true, documentId: doc.id };
+}
+
 // Application notes live in the shared interactions activity log, scoped with
 // subject_type='application' + subject_id. Automatic 'status_change' rows are
 // hidden so the thread reads as a human note history. Mirrors deal comms.
@@ -128,16 +234,14 @@ export async function addApplicationNote(
   const text = body.trim();
   if (!text) return { ok: false, error: "Write something before saving." };
 
-  // Copy the candidate's person onto the log entry so the note also lands on the
-  // contact's 360 timeline (which filters interactions by person_id).
+  // Copy the applicant's person onto the log entry so the note also lands on
+  // the contact's 360 timeline (which filters interactions by person_id).
   const { data: app, error: aErr } = await companyOs
     .from("applications")
-    .select("candidate_id, candidates(person_id)")
+    .select("person_id")
     .eq("id", applicationId)
     .maybeSingle();
   if (aErr || !app) return { ok: false, error: aErr?.message ?? "Application not found." };
-  const cand = Array.isArray(app.candidates) ? app.candidates[0] : app.candidates;
-  const personId = (cand?.person_id as string | null) ?? null;
 
   const occurredAt = new Date().toISOString();
   const { data, error } = await companyOs
@@ -145,7 +249,7 @@ export async function addApplicationNote(
     .insert({
       kind: "note",
       body: text,
-      person_id: personId,
+      person_id: app.person_id,
       subject_type: "application",
       subject_id: applicationId,
       occurred_at: occurredAt,

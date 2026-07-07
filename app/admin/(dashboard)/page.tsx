@@ -20,13 +20,13 @@ async function countRows(table: string): Promise<number | null> {
 const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("en-US"));
 
 export default async function DashboardPage() {
-  const [people, companies, inquiries, deals, candidates, applications, orders, bookings] =
+  const [people, companies, inquiries, deals, jobReqs, applications, orders, bookings] =
     await Promise.all([
       countRows("people"),
       countRows("companies"),
       countRows("inquiries"),
       countRows("deals"),
-      countRows("candidates"),
+      countRows("job_requisitions"),
       countRows("applications"),
       countRows("orders"),
       countRows("bookings"),
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
         <MetricCard label="Companies" value={fmt(companies)} href="/admin/revenue/companies" />
         <MetricCard label="Inquiries" value={fmt(inquiries)} href="/admin/revenue/inquiries" />
         <MetricCard label="Deals" value={fmt(deals)} href="/admin/revenue/deals" />
-        <MetricCard label="Candidates" value={fmt(candidates)} href="/admin/talent/candidates" />
+        <MetricCard label="Job Reqs" value={fmt(jobReqs)} href="/admin/talent/jobs" />
         <MetricCard label="Applications" value={fmt(applications)} href="/admin/talent/applications" />
         <MetricCard label="Orders" value={fmt(orders)} href="/admin/revenue/orders" />
         <MetricCard label="AIO Pad" value={fmt(bookings)} href="/admin/revenue/bookings" />

@@ -9,7 +9,13 @@ import { ApplicationManage, type AppManageData } from "./ApplicationManage";
 export type AppRow = {
   id: string;
   candidateName: string | null;
+  email: string | null;
+  phone: string | null;
   headline: string | null;
+  currentTitle: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  doNotHire: boolean;
   personId: string | null;
   jobReqId: string | null;
   jobReqTitle: string | null;
@@ -20,6 +26,9 @@ export type AppRow = {
   rejectionReason: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
+  coverLetter: string | null;
+  answers: { q: string; a: string }[];
+  resumeDocumentId: string | null;
 };
 
 const PAGE_SIZES = [25, 50, 100];
@@ -38,6 +47,16 @@ function toManageData(r: AppRow): AppManageData {
     currentStageName: r.stageName,
     appliedAt: r.appliedAt,
     decidedAt: r.decidedAt,
+    coverLetter: r.coverLetter,
+    answers: r.answers,
+    resumeDocumentId: r.resumeDocumentId,
+    email: r.email,
+    phone: r.phone,
+    headline: r.headline,
+    currentTitle: r.currentTitle,
+    linkedinUrl: r.linkedinUrl,
+    portfolioUrl: r.portfolioUrl,
+    doNotHire: r.doNotHire,
   };
 }
 

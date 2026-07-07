@@ -16,6 +16,10 @@ export type Person = {
   persona: string | null;
   source: string | null;
   linkedin_url: string | null;
+  headline: string | null;
+  current_title: string | null;
+  portfolio_url: string | null;
+  do_not_hire: boolean | null;
   country: string | null;
   city: string | null;
   state_province: string | null;
@@ -39,8 +43,7 @@ export type Person360 = {
   deals: Array<{ id: string; title: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; stage_id: string | null; created_at: string }>;
   orders: Array<{ id: string; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; payment_method: string | null; created_at: string }>;
   bookings: Array<{ id: string; kind: string | null; start_date: string | null; end_date: string | null; party_size: number | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; created_at: string }>;
-  candidate: { id: string; headline: string | null; pool_status: string | null; linkedin_url: string | null; resume_document_id: string | null } | null;
-  applications: Array<{ id: string; job_requisition_id: string | null; status: string | null; rating: number | null; applied_at: string | null; created_at: string }>;
+  applications: Array<{ id: string; job_requisition_id: string | null; job_title: string | null; status: string | null; rating: number | null; applied_at: string | null; created_at: string; resume_document_id: string | null }>;
   documents: Array<{ id: string; title: string | null; mime_type: string | null; byte_size: number | null; created_at: string }>;
   surveyResponses: Array<{ id: string; survey_id: string | null; submitted_at: string | null; created_at: string | null }>;
   interactions: Array<{ id: string; kind: string | null; subject: string | null; body: string | null; occurred_at: string | null; created_at: string }>;
@@ -59,13 +62,13 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   if (personRes.error || !personRes.data) return null;
   const person = personRes.data as Person;
 
-  const [inquiries, deals, orders, bookings, candidateRes, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
+  const [inquiries, deals, orders, bookings, applicationRows, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
     await Promise.all([
       safe(companyOs.from("inquiries").select("id, type, subject, status, source, created_at, deal_id").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("deals").select("id, title, amount_cents, amount_usd_cents, currency, status, stage_id, created_at").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("orders").select("id, amount_cents, amount_usd_cents, currency, status, payment_method, created_at").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("bookings").select("id, kind, start_date, end_date, party_size, amount_cents, amount_usd_cents, currency, status, created_at").eq("person_id", id).order("created_at", { ascending: false })),
-      companyOs.from("candidates").select("id, headline, pool_status, linkedin_url, resume_document_id").eq("person_id", id).maybeSingle(),
+      safe(companyOs.from("applications").select("id, job_requisition_id, status, rating, applied_at, created_at, resume_document_id, job_requisitions(title)").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("documents").select("id, title, mime_type, byte_size, created_at").eq("entity_type", "person").eq("entity_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("survey_responses").select("id, survey_id, submitted_at, created_at").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("interactions").select("id, kind, subject, body, occurred_at, created_at").eq("person_id", id).order("occurred_at", { ascending: false }).limit(100)),
@@ -74,17 +77,30 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
       safe(companyOs.from("person_companies").select("company_id, title, role, is_primary, companies(id, name)").eq("person_id", id).order("is_primary", { ascending: false })),
     ]);
 
-  const candidate = candidateRes.data ?? null;
-  let applications: Person360["applications"] = [];
-  if (candidate?.id) {
-    applications = await safe(
-      companyOs
-        .from("applications")
-        .select("id, job_requisition_id, status, rating, applied_at, created_at")
-        .eq("candidate_id", candidate.id)
-        .order("created_at", { ascending: false }),
-    );
-  }
+  const applications: Person360["applications"] = (
+    applicationRows as Array<{
+      id: string;
+      job_requisition_id: string | null;
+      status: string | null;
+      rating: number | null;
+      applied_at: string | null;
+      created_at: string;
+      resume_document_id: string | null;
+      job_requisitions: { title: string | null } | Array<{ title: string | null }> | null;
+    }>
+  ).map((a) => {
+    const jr = Array.isArray(a.job_requisitions) ? a.job_requisitions[0] : a.job_requisitions;
+    return {
+      id: a.id,
+      job_requisition_id: a.job_requisition_id,
+      job_title: jr?.title ?? null,
+      status: a.status,
+      rating: a.rating,
+      applied_at: a.applied_at,
+      created_at: a.created_at,
+      resume_document_id: a.resume_document_id,
+    };
+  });
 
   return {
     person,
@@ -92,7 +108,6 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     deals: deals as Person360["deals"],
     orders: orders as Person360["orders"],
     bookings: bookings as Person360["bookings"],
-    candidate: candidate as Person360["candidate"],
     applications,
     documents: documents as Person360["documents"],
     surveyResponses: surveyResponses as Person360["surveyResponses"],
