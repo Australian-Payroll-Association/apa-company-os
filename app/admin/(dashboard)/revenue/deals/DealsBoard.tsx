@@ -549,7 +549,7 @@ export function DealsBoard({
   );
 }
 
-function DealDetail({
+export function DealDetail({
   card,
   stages,
   lostSet,
