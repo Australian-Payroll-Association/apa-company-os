@@ -1,10 +1,9 @@
 import { Resend } from 'resend'
-import { supabase } from '@/lib/supabase'
+import { supabase, companyOs } from '@/lib/supabase'
 import {
   getOrCreatePerson,
-  getOrCreateCandidate,
-  attachResumeDocument,
   getOrCreateApplication,
+  attachApplicationResume,
 } from '@/lib/company-os'
 import { notifyOps } from '@/lib/lark'
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,6 +14,7 @@ export const runtime = 'nodejs'
 const FROM = 'Edge8 Careers <contact@edge8.ai>'
 const DEFAULT_RECIPIENTS = ['mai@edge8.ai']
 const MAX_RESUME_BYTES = 10 * 1024 * 1024
+const MAX_TEXT_CHARS = 10_000
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80)
@@ -22,6 +22,14 @@ function sanitizeFilename(name: string): string {
 
 function isEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 export async function POST(req: NextRequest) {
@@ -38,6 +46,7 @@ export async function POST(req: NextRequest) {
     const email = String(form.get('email') ?? '').trim()
     const phone = String(form.get('phone') ?? '').trim() || null
     const linkedin = String(form.get('linkedin') ?? '').trim() || null
+    const cover_letter = String(form.get('cover_letter') ?? '').trim().slice(0, MAX_TEXT_CHARS) || null
     const resume = form.get('resume')
 
     if (!job_id || !full_name || !email) {
@@ -52,6 +61,22 @@ export async function POST(req: NextRequest) {
     if (resume.size > MAX_RESUME_BYTES) {
       return NextResponse.json({ error: 'Resume is too large (max 10 MB)' }, { status: 400 })
     }
+
+    // Per-role questions come from the requisition (source of truth), never
+    // from the client — the answers snapshot pairs each configured question
+    // with the submitted answer_<i> field.
+    const { data: reqRow } = await companyOs
+      .from('job_requisitions')
+      .select('application_questions')
+      .eq('id', job_id)
+      .maybeSingle()
+    const questions: string[] = Array.isArray(reqRow?.application_questions)
+      ? (reqRow.application_questions as unknown[]).filter((q): q is string => typeof q === 'string').slice(0, 3)
+      : []
+    const answers = questions.map((q, i) => ({
+      q,
+      a: String(form.get(`answer_${i}`) ?? '').trim().slice(0, MAX_TEXT_CHARS),
+    }))
 
     // 1) Upload resume to private storage bucket
     const filename = sanitizeFilename(resume.name || 'resume.pdf')
@@ -68,11 +93,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to upload resume' }, { status: 500 })
     }
 
-    // 2) company_os: person → candidate → resume document → application
+    // 2) company_os: person → application → resume document
     const person = await getOrCreatePerson({
       email,
       name: full_name,
       phone,
+      linkedin,
       source: 'edge8.ai/careers',
     })
     if (!person.ok) {
@@ -80,13 +106,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to save applicant' }, { status: 500 })
     }
 
-    const candidate = await getOrCreateCandidate(person.id, { linkedin })
-    if (!candidate.ok) {
-      console.error('Candidate upsert error:', candidate.error)
-      return NextResponse.json({ error: 'Failed to save applicant' }, { status: 500 })
+    const application = await getOrCreateApplication(person.id, job_id, {
+      coverLetter: cover_letter,
+      answers,
+      meta: { job_slug, job_title },
+    })
+    if (!application.ok) {
+      console.error('Application error:', application.error)
+      return NextResponse.json({ error: 'Failed to link application' }, { status: 500 })
     }
 
-    const doc = await attachResumeDocument(candidate.id, {
+    const doc = await attachApplicationResume(application.id, {
       storagePath,
       mimeType: resume.type || null,
       byteSize: resume.size,
@@ -95,15 +125,6 @@ export async function POST(req: NextRequest) {
     if (!doc.ok) {
       console.error('Resume document error:', doc.error)
       return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
-    }
-
-    const application = await getOrCreateApplication(candidate.id, job_id, {
-      job_slug,
-      job_title,
-    })
-    if (!application.ok) {
-      console.error('Application error:', application.error)
-      return NextResponse.json({ error: 'Failed to link application' }, { status: 500 })
     }
 
     // 4) Signed URL for recruiter convenience (7 days)
@@ -120,6 +141,13 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.RESEND_API_KEY
     if (apiKey) {
       try {
+        const answersHtml = answers
+          .filter((x) => x.a)
+          .map(
+            (x) =>
+              `<tr><td style="padding:6px 16px 6px 0;color:#666;vertical-align:top">Q: ${escapeHtml(x.q)}</td><td style="white-space:pre-wrap">${escapeHtml(x.a)}</td></tr>`,
+          )
+          .join('')
         const resend = new Resend(apiKey)
         await resend.emails.send({
           from: FROM,
@@ -129,13 +157,15 @@ export async function POST(req: NextRequest) {
           html: `
             <h2>New job application</h2>
             <table style="border-collapse:collapse;font-family:sans-serif;font-size:15px">
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Role</td><td><strong>${job_title}</strong> (${job_slug})</td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Applicant</td><td>${full_name}</td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Email</td><td><a href="mailto:${email}">${email}</a></td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Phone</td><td>${phone ?? '—'}</td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">LinkedIn</td><td>${linkedin ? `<a href="${linkedin}">${linkedin}</a>` : '—'}</td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Resume</td><td>${signed?.signedUrl ? `<a href="${signed.signedUrl}">Download (7-day link)</a>` : storagePath}</td></tr>
-              <tr><td style="padding:6px 16px 6px 0;color:#666">Candidate ID</td><td><code>${candidate.id}</code></td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Role</td><td><strong>${escapeHtml(job_title)}</strong> (${escapeHtml(job_slug)})</td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Applicant</td><td>${escapeHtml(full_name)}</td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Email</td><td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Phone</td><td>${phone ? escapeHtml(phone) : '—'}</td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">LinkedIn</td><td>${linkedin ? `<a href="${escapeHtml(linkedin)}">${escapeHtml(linkedin)}</a>` : '—'}</td></tr>
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Resume</td><td>${signed?.signedUrl ? `<a href="${signed.signedUrl}">Download (7-day link)</a>` : escapeHtml(storagePath)}</td></tr>
+              ${cover_letter ? `<tr><td style="padding:6px 16px 6px 0;color:#666;vertical-align:top">Cover letter</td><td style="white-space:pre-wrap">${escapeHtml(cover_letter)}</td></tr>` : ''}
+              ${answersHtml}
+              <tr><td style="padding:6px 16px 6px 0;color:#666">Application ID</td><td><code>${application.id}</code></td></tr>
             </table>
           `,
         })

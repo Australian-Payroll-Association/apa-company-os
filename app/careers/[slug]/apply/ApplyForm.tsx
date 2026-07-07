@@ -6,23 +6,28 @@ type Props = {
   jobId: string
   jobTitle: string
   jobSlug: string
+  questions: string[] // up to 3, configured per role on the job requisition
 }
 
 const MAX_RESUME_MB = 10
 
-export default function ApplyForm({ jobId, jobTitle, jobSlug }: Props) {
+export default function ApplyForm({ jobId, jobTitle, jobSlug, questions }: Props) {
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     phone: '',
     linkedin: '',
+    cover_letter: '',
     website: '', // honeypot
   })
+  const [answers, setAnswers] = useState<string[]>(questions.map(() => ''))
   const [resume, setResume] = useState<File | null>(null)
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -43,6 +48,10 @@ export default function ApplyForm({ jobId, jobTitle, jobSlug }: Props) {
       setError('Please attach your resume')
       return
     }
+    if (answers.some((a) => !a.trim())) {
+      setError('Please answer all the questions for this role')
+      return
+    }
     setStatus('sending')
     setError(null)
     try {
@@ -54,6 +63,8 @@ export default function ApplyForm({ jobId, jobTitle, jobSlug }: Props) {
       fd.append('email', form.email)
       fd.append('phone', form.phone)
       fd.append('linkedin', form.linkedin)
+      fd.append('cover_letter', form.cover_letter)
+      answers.forEach((a, i) => fd.append(`answer_${i}`, a))
       fd.append('website', form.website)
       fd.append('resume', resume)
 
@@ -133,6 +144,34 @@ export default function ApplyForm({ jobId, jobTitle, jobSlug }: Props) {
           />
         </div>
       </div>
+
+      <div className="contact-field">
+        <label htmlFor="cover_letter">Cover letter</label>
+        <textarea
+          id="cover_letter"
+          name="cover_letter"
+          rows={6}
+          placeholder="Tell us why Edge8, and why this role. Paste it in — no attachment needed."
+          value={form.cover_letter}
+          onChange={handleChange}
+        />
+      </div>
+
+      {questions.map((q, i) => (
+        <div className="contact-field" key={i}>
+          <label htmlFor={`answer_${i}`}>{q} *</label>
+          <textarea
+            id={`answer_${i}`}
+            name={`answer_${i}`}
+            rows={3}
+            required
+            value={answers[i]}
+            onChange={(e) =>
+              setAnswers((cur) => cur.map((a, j) => (j === i ? e.target.value : a)))
+            }
+          />
+        </div>
+      ))}
 
       <div className="contact-field">
         <label htmlFor="resume">Resume * (PDF or Word, max {MAX_RESUME_MB} MB)</label>
