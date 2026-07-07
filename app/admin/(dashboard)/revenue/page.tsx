@@ -7,6 +7,8 @@ import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
 import { ACTIVE_LEAD_STAGES } from "@/lib/lifecycle";
 import { CockpitDeals } from "./CockpitDeals";
+import { HANDOFF_COLUMN_ID, type DealCard } from "./deals/DealsBoard";
+import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +34,21 @@ type DealRow = {
   id: string;
   title: string | null;
   stage_id: string | null;
+  amount_cents: number | null;
   amount_usd_cents: number | null;
+  currency: string | null;
   owner_id: string | null;
+  status: string | null;
+  source: string | null;
+  expected_close_date: string | null;
   next_step: string | null;
   next_step_date: string | null;
+  proposal_url: string | null;
+  contract_url: string | null;
+  handoff_status: string | null;
+  lost_reason: string | null;
   probability: number | null;
+  person_id: string | null;
   updated_at: string | null;
   people: Embedded<{ full_name: string | null; email: string }>;
   companies: Embedded<{ name: string | null }>;
@@ -73,7 +85,7 @@ export default async function SalesCockpitPage() {
   let dealsQuery = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_usd_cents, owner_id, next_step, next_step_date, probability, updated_at, people!person_id(full_name, email), companies(name)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, people!person_id(full_name, email), companies(name)",
     )
     .eq("status", "open")
     .is("archived_at", null)
@@ -130,6 +142,45 @@ export default async function SalesCockpitPage() {
     .filter((x) => x.gaps.length > 0)
     .sort((a, b) => (b.d.amount_usd_cents ?? 0) - (a.d.amount_usd_cents ?? 0));
 
+  const firstStageId = stages[0]?.id ?? "";
+  const dealStages: KanbanColumn[] = stages.map((s) => ({
+    id: s.id,
+    label: s.name,
+    accent: s.is_won ? "#1a9e74" : s.is_lost ? "#9ca3af" : "#6b7194",
+  }));
+  const lostStageIds = stages.filter((s) => s.is_lost).map((s) => s.id);
+
+  // Full deal cards for the side car — the same shape the pipeline board uses, so
+  // the cockpit opens the identical DealDetail shelf.
+  const dealCards: DealCard[] = deals.map((d) => {
+    const co = one(d.companies);
+    const p = one(d.people);
+    const pendingHandoff = d.handoff_status === "pending" && d.status === "open";
+    return {
+      id: d.id,
+      columnId: pendingHandoff ? HANDOFF_COLUMN_ID : d.stage_id ?? firstStageId,
+      stageId: d.stage_id ?? firstStageId,
+      title: d.title,
+      personId: d.person_id,
+      personName: p?.full_name ?? p?.email ?? null,
+      companyName: co?.name ?? null,
+      amountCents: d.amount_cents,
+      currency: d.currency,
+      probability: d.probability,
+      status: d.status,
+      expectedClose: d.expected_close_date,
+      source: d.source,
+      nextStep: d.next_step,
+      nextStepDate: d.next_step_date,
+      proposalUrl: d.proposal_url,
+      contractUrl: d.contract_url,
+      handoffStatus: d.handoff_status ?? "none",
+      lostReason: d.lost_reason,
+      archivedAt: null,
+      updatedAt: d.updated_at,
+    };
+  });
+
   const cockpitDeals = needsAttention.map(({ d, gaps }) => {
     const co = one(d.companies);
     const p = one(d.people);
@@ -138,12 +189,7 @@ export default async function SalesCockpitPage() {
       title: d.title || co?.name || p?.full_name || p?.email || "Untitled deal",
       stage: d.stage_id ? stageName.get(d.stage_id) ?? "—" : "—",
       usd: d.amount_usd_cents,
-      hasOwner: !!d.owner_id,
-      probability: d.probability,
       nextStep: d.next_step,
-      nextStepDate: d.next_step_date,
-      company: co?.name ?? null,
-      person: p?.full_name ?? p?.email ?? null,
       gaps,
     };
   });
@@ -176,12 +222,17 @@ export default async function SalesCockpitPage() {
       {/* ── Deals needing attention: the priority action list ── */}
       <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
         <h2 className="admin-card-title">Deals needing attention</h2>
-        <CockpitDeals deals={cockpitDeals} />
+        <CockpitDeals
+          deals={cockpitDeals}
+          cards={dealCards}
+          stages={dealStages}
+          lostStageIds={lostStageIds}
+        />
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", alignItems: "start" }}>
         {/* ── Leads to work ── */}
-        <div className="admin-card admin-section-card">
+        <div className="admin-card admin-section-card" style={{ alignSelf: "start" }}>
           <h2 className="admin-card-title">Leads to work</h2>
           {leads.length === 0 ? (
             <div className="admin-empty">No current leads in the queue.</div>
@@ -218,7 +269,7 @@ export default async function SalesCockpitPage() {
         </div>
 
         {/* ── Inquiries to triage ── */}
-        <div className="admin-card admin-section-card">
+        <div className="admin-card admin-section-card" style={{ alignSelf: "start" }}>
           <h2 className="admin-card-title">Inquiries to triage</h2>
           {inquiries.length === 0 ? (
             <div className="admin-empty">No new contact-us inquiries. Inbox zero.</div>

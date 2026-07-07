@@ -1,30 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
-import { formatCents, formatDate } from "@/lib/admin/format";
+import { formatCents, humanize } from "@/lib/admin/format";
+import type { KanbanColumn } from "@/components/admin/KanbanBoard";
+import { DealDetail, type DealCard } from "./deals/DealsBoard";
+import { moveDealStage, decideHandoff } from "./deals/actions";
 
 export type CockpitDeal = {
   id: string;
   title: string;
   stage: string;
   usd: number | null;
-  hasOwner: boolean;
-  probability: number | null;
   nextStep: string | null;
-  nextStepDate: string | null;
-  company: string | null;
-  person: string | null;
   gaps: string[];
 };
 
-// The cockpit's priority list: clicking a deal row opens it in the side car
-// (DetailDrawer) instead of navigating away, so the rep never loses the list.
-export function CockpitDeals({ deals }: { deals: CockpitDeal[] }) {
+// The cockpit's priority list. Clicking a deal opens it in the side car with the
+// *same* editable deal shelf the pipeline board uses (the shared DealDetail),
+// so the cockpit and the board are identical. Mutations refresh server data.
+export function CockpitDeals({
+  deals,
+  cards,
+  stages,
+  lostStageIds,
+}: {
+  deals: CockpitDeal[];
+  cards: DealCard[];
+  stages: KanbanColumn[];
+  lostStageIds: string[];
+}) {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = deals.find((d) => d.id === selectedId) ?? null;
+  const selected = cards.find((c) => c.id === selectedId) ?? null;
+  const lostSet = new Set(lostStageIds);
+
+  async function changeStage(cardId: string, toStageId: string, lostReason?: string) {
+    const card = cards.find((c) => c.id === cardId);
+    if (card?.handoffStatus === "pending") {
+      const r = await decideHandoff(cardId, "accepted");
+      if (!r.ok) return;
+    }
+    await moveDealStage(cardId, toStageId, lostReason);
+    router.refresh();
+  }
+
+  async function decide(cardId: string, decision: "accepted" | "rejected", rejectReason?: string) {
+    await decideHandoff(cardId, decision, rejectReason);
+    if (decision === "rejected") setSelectedId(null);
+    router.refresh();
+  }
 
   if (deals.length === 0) {
     return (
@@ -89,59 +116,23 @@ export function CockpitDeals({ deals }: { deals: CockpitDeal[] }) {
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelectedId(null)}
-        eyebrow="Deal"
-        title={selected?.title || "Deal"}
+        eyebrow={selected ? humanize(selected.status ?? "") : ""}
+        title={selected?.title || selected?.personName || "Deal"}
       >
         {selected && (
-          <>
-            <dl className="admin-kv">
-              <dt>Company</dt>
-              <dd>{selected.company || "—"}</dd>
-              <dt>Contact</dt>
-              <dd>{selected.person || "—"}</dd>
-              <dt>Stage</dt>
-              <dd>{selected.stage}</dd>
-              <dt>Value</dt>
-              <dd className="admin-cell-mono">{formatCents(selected.usd)}</dd>
-              <dt>Owner</dt>
-              <dd>
-                {selected.hasOwner ? (
-                  "Assigned"
-                ) : (
-                  <span style={{ color: "var(--admin-err-ink)" }}>Unassigned</span>
-                )}
-              </dd>
-              <dt>Probability</dt>
-              <dd>{selected.probability != null ? `${selected.probability}%` : "—"}</dd>
-              <dt>Next step</dt>
-              <dd>
-                {selected.nextStep ? (
-                  selected.nextStep
-                ) : (
-                  <span style={{ color: "var(--admin-faint)" }}>none set</span>
-                )}
-              </dd>
-              <dt>Due</dt>
-              <dd>{selected.nextStepDate ? formatDate(selected.nextStepDate) : "—"}</dd>
-            </dl>
-            {selected.gaps.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div className="lead-section-label">Missing</div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                  {selected.gaps.map((g) => (
-                    <Badge key={g} tone="warn">
-                      {g}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div style={{ marginTop: 16 }}>
-              <Link href="/admin/revenue/deals" className="admin-btn admin-btn--primary">
-                Open in pipeline
-              </Link>
-            </div>
-          </>
+          <DealDetail
+            card={selected}
+            stages={stages}
+            lostSet={lostSet}
+            onChangeStage={changeStage}
+            onDecideHandoff={decide}
+            onPatch={() => router.refresh()}
+            onRemove={() => {
+              setSelectedId(null);
+              router.refresh();
+            }}
+            onClose={() => setSelectedId(null)}
+          />
         )}
       </DetailDrawer>
     </>
