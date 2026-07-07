@@ -1,6 +1,7 @@
 import { companyOs } from "@/lib/supabase";
 import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { InquiriesBoard, type InquiryCard } from "./InquiriesBoard";
 
 export const dynamic = "force-dynamic";
@@ -63,18 +64,32 @@ export default async function InquiriesPage() {
     };
   });
 
+  const count = (fn: (c: InquiryCard) => boolean) => cards.filter(fn).length;
+  const kpis = {
+    fresh: count((c) => c.columnId === "new_lead"),
+    contacted: count((c) => c.columnId === "contacted"),
+    discussion: count((c) => c.columnId === "discovery" || c.columnId === "proposal"),
+    converted: count((c) => !!c.deal_id),
+  };
+
   return (
     <>
       <PageHead
         eyebrow="Revenue"
         title="Inquiries"
-        sub={`${cards.length} open · drag a card to change stage`}
+        sub={`${cards.length} open · contact-us intake, drag a card to change stage`}
       />
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
           {error.message}
         </div>
       )}
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard label="New" value={kpis.fresh} sub="unworked" />
+        <MetricCard label="Contacted" value={kpis.contacted} />
+        <MetricCard label="In discussion" value={kpis.discussion} />
+        <MetricCard label="Converted to deal" value={kpis.converted} />
+      </div>
       <InquiriesBoard initialCards={cards} />
     </>
   );
