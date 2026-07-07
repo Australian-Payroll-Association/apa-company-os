@@ -4,6 +4,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
 import { ArchivedToggle } from "@/components/admin/ArchivedToggle";
+import { FilterBar } from "@/components/admin/FilterBar";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { CompanyEditDrawer } from "./CompanyEditDrawer";
@@ -32,6 +33,12 @@ type Company = {
 const PAGE_SIZE = 25;
 const SORTABLE = new Set(["name", "domain", "industry", "size_band", "country", "priority", "created_at"]);
 
+const PRIORITY_OPTIONS = [
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
+
 export default async function CompaniesPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
@@ -39,6 +46,10 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const showArchived = firstParam(searchParams.archived) === "1";
+  const priorityParam = firstParam(searchParams.priority);
+
+  const filters: Record<string, string | number | boolean | null> = {};
+  if (priorityParam) filters.priority = priorityParam;
 
   const { rows, total, pageSize, error } = await listEntity<Company>(
     "companies",
@@ -51,6 +62,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       sort,
       dir,
       excludeArchived: !showArchived,
+      filters,
     },
   );
 
@@ -95,7 +107,26 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
         }
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <DataTable columns={columns} rows={rows} total={total} page={page} pageSize={pageSize} sort={sort} dir={dir} basePath="/admin/revenue/companies" searchParams={searchParams} searchPlaceholder="Search name or domain…" emptyText="No companies match." />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        sort={sort}
+        dir={dir}
+        basePath="/admin/revenue/companies"
+        searchParams={searchParams}
+        searchPlaceholder="Search name or domain…"
+        emptyText="No companies match."
+        filterBar={
+          <FilterBar
+            basePath="/admin/revenue/companies"
+            searchParams={searchParams}
+            filters={[{ key: "priority", label: "Priority", options: PRIORITY_OPTIONS }]}
+          />
+        }
+      />
     </>
   );
 }
