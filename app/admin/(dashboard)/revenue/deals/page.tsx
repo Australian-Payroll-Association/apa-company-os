@@ -41,8 +41,10 @@ type Row = {
   lost_reason: string | null;
   archived_at: string | null;
   updated_at: string | null;
+  referrer_id: string | null;
   people: Embedded<{ full_name: string | null; email: string }>;
   companies: Embedded<{ name: string | null }>;
+  referrer: Embedded<{ full_name: string | null; email: string }>;
 };
 
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
@@ -72,7 +74,7 @@ export default async function DealsPage() {
   let query = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, people!person_id(full_name, email), companies(name)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies(name), referrer:people!referrer_id(full_name, email)",
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -82,6 +84,7 @@ export default async function DealsPage() {
   const cards: DealCard[] = ((data as Row[] | null) ?? []).map((r) => {
     const p = one(r.people);
     const co = one(r.companies);
+    const rf = one(r.referrer);
     const pendingHandoff = r.handoff_status === "pending" && r.status === "open";
     return {
       id: r.id,
@@ -91,6 +94,8 @@ export default async function DealsPage() {
       personId: r.person_id,
       personName: p?.full_name ?? p?.email ?? null,
       companyName: co?.name ?? null,
+      referrerId: r.referrer_id,
+      referrerName: rf?.full_name ?? rf?.email ?? null,
       amountCents: r.amount_cents,
       amountUsdCents: r.amount_usd_cents,
       currency: r.currency,

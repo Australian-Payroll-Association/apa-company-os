@@ -428,3 +428,209 @@ export async function bulkDeleteDeals(ids: string[]): Promise<BulkDeleteResult> 
         : `Deleted ${deletedIds.length} deal${deletedIds.length === 1 ? "" : "s"}.`,
   };
 }
+
+// ─── Communications ──────────────────────────────────────────────────────────
+// Deal communications live in the shared interactions activity log, scoped with
+// subject_type='deal' + subject_id. We surface the manual entries (notes, calls,
+// emails, meetings) and hide the automatic 'status_change' rows the pipeline
+// writes on every stage move, so the list reads as a human conversation history.
+export type Communication = {
+  id: string;
+  kind: string;
+  subject: string | null;
+  body: string | null;
+  occurredAt: string | null;
+};
+
+const AUTO_INTERACTION_KINDS = ["status_change"];
+
+export async function getDealCommunications(
+  dealId: string,
+): Promise<{ ok: true; items: Communication[] } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const { data, error } = await companyOs
+    .from("interactions")
+    .select("id, kind, subject, body, occurred_at")
+    .eq("subject_type", "deal")
+    .eq("subject_id", dealId)
+    .not("kind", "in", `(${AUTO_INTERACTION_KINDS.join(",")})`)
+    .order("occurred_at", { ascending: false })
+    .limit(200);
+  if (error) return { ok: false, error: error.message };
+
+  const items: Communication[] = (data ?? []).map((r) => ({
+    id: r.id as string,
+    kind: (r.kind as string) ?? "note",
+    subject: (r.subject as string | null) ?? null,
+    body: (r.body as string | null) ?? null,
+    occurredAt: (r.occurred_at as string | null) ?? null,
+  }));
+  return { ok: true, items };
+}
+
+export async function addDealCommunication(
+  dealId: string,
+  body: string,
+): Promise<{ ok: true; item: Communication } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write something before saving." };
+
+  // Copy the deal's person/company onto the log entry so the note also lands on
+  // the contact's 360 timeline (which filters interactions by person_id).
+  const { data: deal, error: dErr } = await companyOs
+    .from("deals")
+    .select("person_id, company_id")
+    .eq("id", dealId)
+    .maybeSingle();
+  if (dErr || !deal) return { ok: false, error: dErr?.message ?? "Deal not found." };
+
+  const occurredAt = new Date().toISOString();
+  const { data, error } = await companyOs
+    .from("interactions")
+    .insert({
+      kind: "note",
+      body: text,
+      person_id: deal.person_id,
+      company_id: deal.company_id,
+      subject_type: "deal",
+      subject_id: dealId,
+      occurred_at: occurredAt,
+      metadata: { source: "deal_drawer" },
+    })
+    .select("id, kind, subject, body, occurred_at")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  refresh();
+  return {
+    ok: true,
+    item: {
+      id: data.id as string,
+      kind: (data.kind as string) ?? "note",
+      subject: (data.subject as string | null) ?? null,
+      body: (data.body as string | null) ?? null,
+      occurredAt: (data.occurred_at as string | null) ?? occurredAt,
+    },
+  };
+}
+
+// ─── Referrer ────────────────────────────────────────────────────────────────
+// A deal credits one referrer, stored as a real people row via deals.referrer_id.
+export type PersonHit = { id: string; name: string; email: string };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function personHit(row: { id: string; full_name: string | null; email: string }): PersonHit {
+  return { id: row.id, name: row.full_name?.trim() || row.email, email: row.email };
+}
+
+// Typeahead for the referrer picker. Strips PostgREST filter metacharacters from
+// the raw term so a stray comma or paren can't break (or inject into) the `or`.
+export async function searchPeople(query: string): Promise<PersonHit[]> {
+  await requireAdmin();
+
+  const term = query.trim().replace(/[,%()*\\]/g, "");
+  if (term.length < 2) return [];
+  const like = `%${term}%`;
+
+  const { data, error } = await companyOs
+    .from("people")
+    .select("id, full_name, email")
+    .is("archived_at", null)
+    .or(`full_name.ilike.${like},email.ilike.${like}`)
+    .order("full_name")
+    .limit(8);
+  if (error) return [];
+  return (data ?? []).map(personHit);
+}
+
+// Link an existing contact as the deal's referrer, or clear it with null.
+export async function setDealReferrer(
+  dealId: string,
+  referrerId: string | null,
+): Promise<{ ok: true; referrer: PersonHit | null } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  let referrer: PersonHit | null = null;
+  if (referrerId) {
+    const { data: person, error: pErr } = await companyOs
+      .from("people")
+      .select("id, full_name, email")
+      .eq("id", referrerId)
+      .maybeSingle();
+    if (pErr) return { ok: false, error: pErr.message };
+    if (!person) return { ok: false, error: "That contact no longer exists." };
+    referrer = personHit(person);
+  }
+
+  const { error } = await companyOs.from("deals").update({ referrer_id: referrerId }).eq("id", dealId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "deals",
+    recordId: dealId,
+    operation: "update",
+    actor: admin.email,
+    newData: { referrer_id: referrerId },
+  });
+  refresh();
+  return { ok: true, referrer };
+}
+
+// Create a brand-new contact (name + email) and link them as the referrer.
+// Matches on email first so a referrer who is already in the CRM is reused
+// rather than duplicated (people.email is a unique citext).
+export async function createReferrerForDeal(
+  dealId: string,
+  name: string,
+  email: string,
+): Promise<{ ok: true; referrer: PersonHit; created: boolean } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  const fullName = name.trim();
+  const addr = email.trim();
+  if (!fullName) return { ok: false, error: "Referrer name is required." };
+  if (!EMAIL_RE.test(addr)) return { ok: false, error: "Enter a valid email." };
+
+  const { data: existing, error: exErr } = await companyOs
+    .from("people")
+    .select("id, full_name, email")
+    .eq("email", addr)
+    .maybeSingle();
+  if (exErr) return { ok: false, error: exErr.message };
+
+  let person = existing;
+  let created = false;
+  if (!person) {
+    const { data: inserted, error: insErr } = await companyOs
+      .from("people")
+      .insert({ full_name: fullName, email: addr, source: "referral" })
+      .select("id, full_name, email")
+      .single();
+    if (insErr) return { ok: false, error: insErr.message };
+    person = inserted;
+    created = true;
+    await recordAudit({
+      table: "people",
+      recordId: person.id,
+      operation: "insert",
+      actor: admin.email,
+      newData: { full_name: fullName, email: addr, source: "referral" },
+    });
+  }
+
+  const { error } = await companyOs.from("deals").update({ referrer_id: person.id }).eq("id", dealId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "deals",
+    recordId: dealId,
+    operation: "update",
+    actor: admin.email,
+    newData: { referrer_id: person.id },
+  });
+
+  refresh();
+  return { ok: true, referrer: personHit(person), created };
+}

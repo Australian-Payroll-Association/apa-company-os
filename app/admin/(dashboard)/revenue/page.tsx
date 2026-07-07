@@ -49,8 +49,10 @@ type DealRow = {
   probability: number | null;
   person_id: string | null;
   updated_at: string | null;
+  referrer_id: string | null;
   people: Embedded<{ full_name: string | null; email: string }>;
   companies: Embedded<{ name: string | null }>;
+  referrer: Embedded<{ full_name: string | null; email: string }>;
 };
 type LeadRow = {
   id: string;
@@ -83,7 +85,7 @@ export default async function SalesCockpitPage() {
   let dealsQuery = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, people!person_id(full_name, email), companies(name)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, referrer_id, people!person_id(full_name, email), companies(name), referrer:people!referrer_id(full_name, email)",
     )
     .eq("status", "open")
     .is("archived_at", null)
@@ -151,6 +153,7 @@ export default async function SalesCockpitPage() {
   const dealCards: DealCard[] = deals.map((d) => {
     const co = one(d.companies);
     const p = one(d.people);
+    const rf = one(d.referrer);
     const pendingHandoff = d.handoff_status === "pending" && d.status === "open";
     return {
       id: d.id,
@@ -160,6 +163,8 @@ export default async function SalesCockpitPage() {
       personId: d.person_id,
       personName: p?.full_name ?? p?.email ?? null,
       companyName: co?.name ?? null,
+      referrerId: d.referrer_id,
+      referrerName: rf?.full_name ?? rf?.email ?? null,
       amountCents: d.amount_cents,
       amountUsdCents: d.amount_usd_cents,
       currency: d.currency,
