@@ -71,11 +71,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       key: "name",
       header: "Name",
       sortable: true,
-      cell: (r) => (
-        <Link href={`/admin/revenue/companies/${r.id}`} className="admin-cell-strong">
-          {r.name || "(no name)"}
-        </Link>
-      ),
+      cell: (r) => <span className="admin-cell-strong">{r.name || "(no name)"}</span>,
     },
     { key: "domain", header: "Domain", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.domain || "—"}</span> },
     { key: "industry", header: "Industry", sortable: true, cell: (r) => r.industry || <span className="admin-cell-muted">—</span> },
@@ -126,6 +122,36 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
             filters={[{ key: "priority", label: "Priority", options: PRIORITY_OPTIONS }]}
           />
         }
+        getRowPreview={(r) => ({
+          eyebrow: "Company",
+          title: r.name || "(no name)",
+          body: (
+            <>
+              <dl className="admin-kv">
+                <dt>Domain</dt>
+                <dd>{r.domain || "—"}</dd>
+                <dt>Industry</dt>
+                <dd>{r.industry || "—"}</dd>
+                <dt>Size</dt>
+                <dd>{r.size_band || "—"}</dd>
+                <dt>Country</dt>
+                <dd>{r.country || "—"}</dd>
+                <dt>Priority</dt>
+                <dd>{r.priority ? <Badge>{humanize(r.priority)}</Badge> : "—"}</dd>
+              </dl>
+              {r.archived_at && (
+                <div style={{ marginTop: 12 }}>
+                  <Badge tone="neutral">Archived</Badge>
+                </div>
+              )}
+              <div style={{ marginTop: 16 }}>
+                <Link href={`/admin/revenue/companies/${r.id}`} className="admin-btn admin-btn--primary">
+                  Open full profile
+                </Link>
+              </div>
+            </>
+          ),
+        })}
       />
     </>
   );

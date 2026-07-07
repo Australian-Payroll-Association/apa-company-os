@@ -6,6 +6,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
 import { ACTIVE_LEAD_STAGES } from "@/lib/lifecycle";
+import { CockpitDeals } from "./CockpitDeals";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +130,24 @@ export default async function SalesCockpitPage() {
     .filter((x) => x.gaps.length > 0)
     .sort((a, b) => (b.d.amount_usd_cents ?? 0) - (a.d.amount_usd_cents ?? 0));
 
+  const cockpitDeals = needsAttention.map(({ d, gaps }) => {
+    const co = one(d.companies);
+    const p = one(d.people);
+    return {
+      id: d.id,
+      title: d.title || co?.name || p?.full_name || p?.email || "Untitled deal",
+      stage: d.stage_id ? stageName.get(d.stage_id) ?? "—" : "—",
+      usd: d.amount_usd_cents,
+      hasOwner: !!d.owner_id,
+      probability: d.probability,
+      nextStep: d.next_step,
+      nextStepDate: d.next_step_date,
+      company: co?.name ?? null,
+      person: p?.full_name ?? p?.email ?? null,
+      gaps,
+    };
+  });
+
   return (
     <>
       <PageHead
@@ -157,49 +176,7 @@ export default async function SalesCockpitPage() {
       {/* ── Deals needing attention: the priority action list ── */}
       <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
         <h2 className="admin-card-title">Deals needing attention</h2>
-        {needsAttention.length === 0 ? (
-          <div className="admin-empty">Every open deal has an owner, a value, a next step, and a date. Nice.</div>
-        ) : (
-          <div className="admin-table-scroll">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Deal</th>
-                  <th>Stage</th>
-                  <th style={{ textAlign: "right" }}>Value</th>
-                  <th>Missing</th>
-                  <th>Current next step</th>
-                </tr>
-              </thead>
-              <tbody>
-                {needsAttention.map(({ d, gaps }) => {
-                  const co = one(d.companies);
-                  const p = one(d.people);
-                  const who = d.title || co?.name || p?.full_name || p?.email || "Untitled deal";
-                  return (
-                    <tr key={d.id}>
-                      <td className="admin-cell-strong">
-                        <Link href={`/admin/revenue/deals?deal=${d.id}`}>{who}</Link>
-                      </td>
-                      <td className="admin-cell-muted">{d.stage_id ? stageName.get(d.stage_id) ?? "—" : "—"}</td>
-                      <td className="admin-cell-mono" style={{ textAlign: "right" }}>{formatCents(d.amount_usd_cents)}</td>
-                      <td>
-                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          {gaps.map((g) => (
-                            <Badge key={g} tone="warn">{g}</Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="admin-cell-muted" style={{ maxWidth: 340 }}>
-                        {d.next_step ? d.next_step : <span style={{ color: "var(--admin-faint)" }}>none set</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CockpitDeals deals={cockpitDeals} />
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", alignItems: "start" }}>
