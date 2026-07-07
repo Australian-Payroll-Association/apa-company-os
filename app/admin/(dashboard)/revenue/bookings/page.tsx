@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { listEntity, countEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -47,7 +46,6 @@ const STATUS_OPTIONS = [
 ];
 
 export default async function BookingsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -56,11 +54,9 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const statusParam = firstParam(searchParams.status);
 
   const filters: Record<string, string | number | boolean | null> = {};
-  if (brandId) filters.brand_id = brandId;
   if (statusParam) filters.status = statusParam;
 
   const today = new Date().toISOString().slice(0, 10);
-  const brandFilter: Record<string, string | number | boolean | null> = brandId ? { brand_id: brandId } : {};
 
   const [{ rows, total, pageSize, error }, upcomingRes, confirmedCount] = await Promise.all([
     listEntity<Booking>(
@@ -68,12 +64,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       "id, kind, start_date, end_date, party_size, amount_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["kind"], sort, dir, filters },
     ),
-    (() => {
-      let x = companyOs.from("bookings").select("*", { count: "exact", head: true }).gte("start_date", today);
-      if (brandId) x = x.eq("brand_id", brandId);
-      return x;
-    })(),
-    countEntity("bookings", { ...brandFilter, status: "confirmed" }),
+    companyOs.from("bookings").select("*", { count: "exact", head: true }).gte("start_date", today),
+    countEntity("bookings", { status: "confirmed" }),
   ]);
 
   const upcomingCount = upcomingRes.count ?? 0;

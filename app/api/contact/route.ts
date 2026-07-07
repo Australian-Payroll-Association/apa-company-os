@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { companyOs } from '@/lib/supabase'
-import { getOrCreatePerson, EDGE8_BRAND_ID } from '@/lib/company-os'
+import { getOrCreatePerson } from '@/lib/company-os'
 import { promotePersonToLead } from '@/lib/lifecycle'
 import { notifyOps } from '@/lib/lark'
 import { NextRequest, NextResponse } from 'next/server'
@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
     if (person.ok) {
       const { error: inquiryError } = await companyOs.from('inquiries').insert({
         person_id:   person.id,
-        brand_id:    EDGE8_BRAND_ID,
         type:        'consultation',
         subject:     'AI Audit Request',
         message:     message || null,

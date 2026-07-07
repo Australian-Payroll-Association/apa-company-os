@@ -37,7 +37,6 @@ type DirectoryRow = {
   end_date: string | null;
   department_name: string | null;
   position_title: string | null;
-  legal_entity_name: string | null;
   manager_name: string | null;
   team: string | null;
   location: string | null;
@@ -126,8 +125,6 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               <dd>{m.employee_number || "—"}</dd>
               <dt>Location</dt>
               <dd>{m.location || "—"}</dd>
-              <dt>Legal entity</dt>
-              <dd>{m.legal_entity_name || "—"}</dd>
               <dt>Start date</dt>
               <dd>{m.start_date ? formatDate(m.start_date) : "—"}</dd>
               {m.end_date && (

@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
-import { EDGE8_BRAND_ID } from "@/lib/company-os";
 import { promotePersonToLead, recordTransition } from "@/lib/lifecycle";
 import { recordAudit } from "@/lib/admin/audit";
 import { guardedDelete } from "@/lib/admin/mutations";
@@ -261,7 +260,6 @@ export async function bookMeetingAndHandOff(personId: string): Promise<Result> {
     status: "open",
     source: "sdr_handoff",
     handoff_status: "pending",
-    brand_id: EDGE8_BRAND_ID,
   });
   if (dErr) return { ok: false, error: dErr.message };
 

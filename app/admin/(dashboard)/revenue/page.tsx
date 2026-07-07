@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
@@ -79,7 +78,6 @@ function dealGaps(d: DealRow): string[] {
 }
 
 export default async function SalesCockpitPage() {
-  const brandId = getActiveBrandId();
   const nowIso = new Date().toISOString();
 
   let dealsQuery = companyOs
@@ -90,7 +88,6 @@ export default async function SalesCockpitPage() {
     .eq("status", "open")
     .is("archived_at", null)
     .limit(500);
-  if (brandId) dealsQuery = dealsQuery.eq("brand_id", brandId);
 
   let inqQuery = companyOs
     .from("inquiries")
@@ -99,7 +96,6 @@ export default async function SalesCockpitPage() {
     .not("type", "in", NON_SALES_INQUIRY_TYPES)
     .order("created_at", { ascending: false })
     .limit(50);
-  if (brandId) inqQuery = inqQuery.eq("brand_id", brandId);
 
   const [stagesRes, dealsRes, leadsRes, inqRes, overdueRes] = await Promise.all([
     companyOs.from("pipeline_stages").select("id, name, is_won, is_lost").order("position"),

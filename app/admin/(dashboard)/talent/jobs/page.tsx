@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { listEntity, countEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -53,7 +52,6 @@ function salaryBand(min: number | null, max: number | null, cur: string | null) 
 }
 
 export default async function JobsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -62,10 +60,7 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
   const statusParam = firstParam(searchParams.status);
 
   const filters: Record<string, string | number | boolean | null> = {};
-  if (brandId) filters.brand_id = brandId;
   if (statusParam) filters.status = statusParam;
-
-  const brandFilter: Record<string, string | number | boolean | null> = brandId ? { brand_id: brandId } : {};
 
   const [{ rows, total, pageSize, error }, openCount, filledCount] = await Promise.all([
     listEntity<JobReq>(
@@ -73,8 +68,8 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
       "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, created_at, companies!client_company_id(name)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir, filters },
     ),
-    countEntity("job_requisitions", { ...brandFilter, status: "open" }),
-    countEntity("job_requisitions", { ...brandFilter, status: "filled" }),
+    countEntity("job_requisitions", { status: "open" }),
+    countEntity("job_requisitions", { status: "filled" }),
   ]);
 
   const columns: Column<JobReq>[] = [

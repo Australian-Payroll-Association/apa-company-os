@@ -202,10 +202,9 @@ async function ensureTeamMember(
     return error ? { error: error.message } : { id: existingTm.id };
   }
 
-  const { id: entityId } = entityForEmail(email);
   const { data, error } = await companyOs
     .from("team_members")
-    .insert({ person_id: personId, legal_entity_id: entityId, status: active ? "active" : "alumni", ...link })
+    .insert({ person_id: personId, status: active ? "active" : "alumni", ...link })
     .select("id")
     .single();
   if (error || !data) return { error: error?.message ?? "team_member insert failed" };

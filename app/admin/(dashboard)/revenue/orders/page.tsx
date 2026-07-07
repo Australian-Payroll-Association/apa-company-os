@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { listEntity, countEntity } from "@/lib/admin/query";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -50,7 +49,6 @@ const METHOD_OPTIONS = [
 ];
 
 export default async function OrdersPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -60,7 +58,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const methodParam = firstParam(searchParams.method);
 
   const filters: Record<string, string | number | boolean | null> = {};
-  if (brandId) filters.brand_id = brandId;
   if (statusParam) filters.status = statusParam;
   if (methodParam) filters.payment_method = methodParam;
 
@@ -68,26 +65,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   // native currency + amount stay on each row and in the side car.
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const brandFilter: Record<string, string | number | boolean | null> = brandId ? { brand_id: brandId } : {};
-
   const [{ rows, total, pageSize, error }, revRes, paidCount, pendingCount] = await Promise.all([
     listEntity<Order>(
       "orders",
       "id, amount_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir, filters },
     ),
-    (() => {
-      let x = companyOs
-        .from("orders")
-        .select("amount_cents")
-        .eq("status", "paid")
-        .eq("currency", "usd")
-        .gte("created_at", monthStart);
-      if (brandId) x = x.eq("brand_id", brandId);
-      return x;
-    })(),
-    countEntity("orders", { ...brandFilter, status: "paid" }),
-    countEntity("orders", { ...brandFilter, status: "pending" }),
+    companyOs
+      .from("orders")
+      .select("amount_cents")
+      .eq("status", "paid")
+      .eq("currency", "usd")
+      .gte("created_at", monthStart),
+    countEntity("orders", { status: "paid" }),
+    countEntity("orders", { status: "pending" }),
   ]);
 
   const revenueThisMonth = ((revRes.data as { amount_cents: number | null }[] | null) ?? []).reduce(

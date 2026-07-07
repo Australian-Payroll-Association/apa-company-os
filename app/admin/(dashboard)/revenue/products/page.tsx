@@ -1,6 +1,5 @@
 import { listEntity, countEntity } from "@/lib/admin/query";
 import { companyOs } from "@/lib/supabase";
-import { getActiveBrandId } from "@/lib/admin/brand";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -43,7 +42,6 @@ const TYPE_OPTIONS = [
 ];
 
 export default async function ProductsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const brandId = getActiveBrandId();
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -52,11 +50,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   const typeParam = firstParam(searchParams.type);
 
   const filters: Record<string, string | number | boolean | null> = {};
-  if (brandId) filters.brand_id = brandId;
   if (typeParam) filters.type = typeParam;
 
   const nowIso = new Date().toISOString();
-  const brandFilter: Record<string, string | number | boolean | null> = brandId ? { brand_id: brandId } : {};
 
   const [{ rows, total, pageSize, error }, activeCount, upcomingRes] = await Promise.all([
     listEntity<Product>(
@@ -64,16 +60,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
       "id, title, type, tier, location, date_start, amount_cents, currency, active, created_at",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir, filters },
     ),
-    countEntity("products", { ...brandFilter, active: true }),
-    (() => {
-      let x = companyOs
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("active", true)
-        .gte("date_start", nowIso);
-      if (brandId) x = x.eq("brand_id", brandId);
-      return x;
-    })(),
+    countEntity("products", { active: true }),
+    companyOs
+      .from("products")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true)
+      .gte("date_start", nowIso),
   ]);
 
   const upcomingCount = upcomingRes.count ?? 0;
