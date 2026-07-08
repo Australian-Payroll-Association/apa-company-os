@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
-import { recordTransition } from "@/lib/lifecycle";
+import { bumpPersonCompanies, getLead, recordTransition } from "@/lib/lifecycle";
 import { recordAudit, recordAuditMany } from "@/lib/admin/audit";
 import { archiveRecord, guardedDelete, restoreRecord } from "@/lib/admin/mutations";
 import { convertToUsdCents } from "@/lib/admin/fx";
@@ -42,52 +42,52 @@ function normalizeUrl(v: string | null | undefined): string | null {
   return /^https?:\/\//i.test(s) ? s : `https://${s}`;
 }
 
-// When a deal closes, the person's lifecycle follows: won → customer; lost →
-// back to nurture unless they're already a customer or have another open deal.
+// When a deal closes, the lead journey follows: won → the account becomes a
+// customer and the lead row retires (deleted — the person is no longer being
+// worked; transitions keep the history); lost → back to nurture unless they
+// have another open deal or a won one (already a customer).
 async function syncPersonAfterClose(dealId: string, personId: string | null, won: boolean) {
   if (!personId) return;
-  const { data: person } = await companyOs
-    .from("people")
-    .select("lifecycle_stage, lead_status")
-    .eq("id", personId)
-    .maybeSingle();
-  if (!person) return;
+  const lead = await getLead(personId);
 
   if (won) {
-    if (person.lifecycle_stage === "customer") return;
-    await companyOs
-      .from("people")
-      .update({ lifecycle_stage: "customer", lead_status: null, lead_sla_due_at: null })
-      .eq("id", personId);
-    await recordTransition({
-      personId,
-      fromStage: person.lifecycle_stage,
-      toStage: "customer",
-      fromStatus: person.lead_status,
-      toStatus: null,
-      reason: "deal_won",
-    });
+    await bumpPersonCompanies(personId, "customer", { reason: "deal_won" });
+    if (lead) {
+      await companyOs.from("lead").delete().eq("person_id", personId);
+      await recordTransition({
+        personId,
+        fromStatus: lead.status,
+        toStatus: null,
+        reason: "deal_won",
+      });
+    }
     return;
   }
 
-  if (person.lifecycle_stage === "customer") return;
-  const { count } = await companyOs
+  const { count: otherActive } = await companyOs
     .from("deals")
     .select("id", { count: "exact", head: true })
     .eq("person_id", personId)
-    .eq("status", "open")
+    .in("status", ["open", "won"])
     .neq("id", dealId);
-  if ((count ?? 0) > 0) return;
+  if ((otherActive ?? 0) > 0) return;
 
-  await companyOs
-    .from("people")
-    .update({ lifecycle_stage: "lead", lead_status: "nurture" })
-    .eq("id", personId);
+  const { error } = await companyOs.from("lead").upsert(
+    {
+      person_id: personId,
+      status: "nurture",
+      sla_due_at: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "person_id" },
+  );
+  if (error) {
+    console.error("lead nurture sync failed:", error.message);
+    return;
+  }
   await recordTransition({
     personId,
-    fromStage: person.lifecycle_stage,
-    toStage: "lead",
-    fromStatus: person.lead_status,
+    fromStatus: lead?.status ?? null,
     toStatus: "nurture",
     reason: "deal_lost",
   });
@@ -174,20 +174,22 @@ export async function decideHandoff(
   if (error) return { ok: false, error: error.message };
 
   if (decision === "rejected" && deal.person_id) {
-    const { data: person } = await companyOs
-      .from("people")
-      .select("lifecycle_stage, lead_status")
-      .eq("id", deal.person_id)
-      .maybeSingle();
-    await companyOs
-      .from("people")
-      .update({ lifecycle_stage: "sql", lead_status: "connected" })
-      .eq("id", deal.person_id);
+    // Back to the SDR queue: the lead resumes at connected (they had a real
+    // conversation; the deal just wasn't ready for a closer).
+    const lead = await getLead(deal.person_id);
+    const { error: lErr } = await companyOs.from("lead").upsert(
+      {
+        person_id: deal.person_id,
+        status: "connected",
+        sla_due_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "person_id" },
+    );
+    if (lErr) console.error("handoff-reject lead sync failed:", lErr.message);
     await recordTransition({
       personId: deal.person_id,
-      fromStage: person?.lifecycle_stage ?? null,
-      toStage: "sql",
-      fromStatus: person?.lead_status ?? null,
+      fromStatus: lead?.status ?? null,
       toStatus: "connected",
       reason: "handoff_rejected",
       note: reason,

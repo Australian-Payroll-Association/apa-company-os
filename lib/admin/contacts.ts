@@ -30,15 +30,21 @@ export type Person = {
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string | null;
-  lifecycle_stage: string;
-  lead_status: string | null;
-  disqualified_reason: string | null;
   archived_at: string | null;
   archived_by: string | null;
 };
 
+// The lead satellite row, when the person is (or was) worked as a lead.
+export type PersonLead = {
+  status: string;
+  sla_due_at: string | null;
+  attempt_count: number;
+  disqualified_reason: string | null;
+};
+
 export type Person360 = {
   person: Person;
+  lead: PersonLead | null;
   inquiries: Array<{ id: string; type: string | null; subject: string | null; status: string | null; source: string | null; created_at: string; deal_id: string | null }>;
   deals: Array<{ id: string; title: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; stage_id: string | null; created_at: string }>;
   orders: Array<{ id: string; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; status: string | null; payment_method: string | null; created_at: string }>;
@@ -62,8 +68,9 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   if (personRes.error || !personRes.data) return null;
   const person = personRes.data as Person;
 
-  const [inquiries, deals, orders, bookings, applicationRows, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
+  const [leadRows, inquiries, deals, orders, bookings, applicationRows, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
     await Promise.all([
+      safe(companyOs.from("lead").select("status, sla_due_at, attempt_count, disqualified_reason").eq("person_id", id)),
       safe(companyOs.from("inquiries").select("id, type, subject, status, source, created_at, deal_id").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("deals").select("id, title, amount_cents, amount_usd_cents, currency, status, stage_id, created_at").eq("person_id", id).order("created_at", { ascending: false })),
       safe(companyOs.from("orders").select("id, amount_cents, amount_usd_cents, currency, status, payment_method, created_at").eq("person_id", id).order("created_at", { ascending: false })),
@@ -104,6 +111,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
 
   return {
     person,
+    lead: (leadRows[0] as PersonLead | undefined) ?? null,
     inquiries: inquiries as Person360["inquiries"],
     deals: deals as Person360["deals"],
     orders: orders as Person360["orders"],

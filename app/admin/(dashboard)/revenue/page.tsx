@@ -4,7 +4,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
-import { ACTIVE_LEAD_STAGES } from "@/lib/lifecycle";
+import { ACTIVE_LEAD_STATUSES } from "@/lib/lifecycle";
 import { CockpitDeals } from "./CockpitDeals";
 import { HANDOFF_COLUMN_ID, type DealCard } from "./deals/DealsBoard";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
@@ -20,8 +20,6 @@ export const metadata = {
 // for the four things a rep needs to act — an owner, a value, a next step, and a
 // date — and anything missing is surfaced up top so nothing dies silently.
 
-const ACTIVE_STATUS_FILTER =
-  "lead_status.is.null,lead_status.in.(new,attempting,connected,meeting_booked)";
 // Inquiry types that are NOT inbound sales contact (events, commerce, legacy import).
 const NON_SALES_INQUIRY_TYPES = "(general,retreat,trip,checkout,newsletter)";
 
@@ -61,6 +59,13 @@ type LeadRow = {
   lead_status: string | null;
   lead_sla_due_at: string | null;
   created_at: string;
+};
+// Raw shape from the lead satellite join; flattened into LeadRow after fetch.
+type LeadRawRow = {
+  status: string | null;
+  sla_due_at: string | null;
+  created_at: string;
+  people: { id: string; full_name: string | null; email: string } | null;
 };
 type InquiryRow = {
   id: string;
@@ -103,29 +108,36 @@ export default async function SalesCockpitPage() {
     companyOs.from("pipeline_stages").select("id, name, is_won, is_lost").order("position"),
     dealsQuery,
     companyOs
-      .from("people")
-      .select("id, full_name, email, lead_status, lead_sla_due_at, created_at")
-      .in("lifecycle_stage", ACTIVE_LEAD_STAGES)
-      .or(ACTIVE_STATUS_FILTER)
-      .is("archived_at", null)
-      .order("lead_sla_due_at", { ascending: true, nullsFirst: false })
+      .from("lead")
+      .select("status, sla_due_at, created_at, people!person_id!inner(id, full_name, email, archived_at)")
+      .in("status", ACTIVE_LEAD_STATUSES)
+      .is("people.archived_at", null)
+      .order("sla_due_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true })
       .limit(50),
     inqQuery,
     companyOs
-      .from("people")
-      .select("id", { count: "exact", head: true })
-      .in("lifecycle_stage", ACTIVE_LEAD_STAGES)
-      .or(ACTIVE_STATUS_FILTER)
-      .is("archived_at", null)
-      .not("lead_sla_due_at", "is", null)
-      .lt("lead_sla_due_at", nowIso),
+      .from("lead")
+      .select("person_id, people!person_id!inner(id)", { count: "exact", head: true })
+      .in("status", ACTIVE_LEAD_STATUSES)
+      .is("people.archived_at", null)
+      .not("sla_due_at", "is", null)
+      .lt("sla_due_at", nowIso),
   ]);
 
   const stages = (stagesRes.data as Stage[] | null) ?? [];
   const stageName = new Map(stages.map((s) => [s.id, s.name]));
   const deals = (dealsRes.data as DealRow[] | null) ?? [];
-  const leads = (leadsRes.data as LeadRow[] | null) ?? [];
+  const leads: LeadRow[] = ((leadsRes.data as unknown as LeadRawRow[] | null) ?? [])
+    .filter((l) => l.people)
+    .map((l) => ({
+      id: l.people!.id,
+      full_name: l.people!.full_name,
+      email: l.people!.email,
+      lead_status: l.status,
+      lead_sla_due_at: l.sla_due_at,
+      created_at: l.created_at,
+    }));
   const inquiries = (inqRes.data as InquiryRow[] | null) ?? [];
   const slaOverdue = overdueRes.count ?? 0;
   const err = stagesRes.error || dealsRes.error || leadsRes.error || inqRes.error;
