@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { listEntity, countEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -7,6 +6,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { JobReqManage } from "./JobReqManage";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,8 @@ export const metadata = {
   description: "Open roles and their hiring status.",
 };
 
-// Talent office: job requisitions. The row opens the req's hiring board.
+// Talent office: job requisitions. The row opens a manage shelf (edit, close,
+// delete); the full page keeps the hiring board and public-posting editor.
 type Co = { name: string | null };
 type JobReq = {
   id: string;
@@ -28,8 +29,13 @@ type JobReq = {
   currency: string | null;
   status: string | null;
   opened_at: string | null;
+  closed_at: string | null;
+  description: string | null;
+  slug: string | null;
+  is_public: boolean;
   created_at: string;
   companies: Co | Co[] | null;
+  applications: { count: number }[] | null;
 };
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
@@ -65,7 +71,7 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
   const [{ rows, total, pageSize, error }, openCount, filledCount] = await Promise.all([
     listEntity<JobReq>(
       "job_requisitions",
-      "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, created_at, companies!client_company_id(name)",
+      "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, closed_at, description, slug, is_public, created_at, companies!client_company_id(name), applications(count)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["title"], sort, dir, filters },
     ),
     countEntity("job_requisitions", { status: "open" }),
@@ -123,27 +129,26 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
           eyebrow: "Job req",
           title: r.title || "(untitled req)",
           body: (
-            <>
-              <dl className="admin-kv">
-                <dt>Company</dt>
-                <dd>{one(r.companies)?.name || "—"}</dd>
-                <dt>Type</dt>
-                <dd>{r.employment_type ? <Badge>{humanize(r.employment_type)}</Badge> : "—"}</dd>
-                <dt>Location</dt>
-                <dd>{[r.location, r.remote_policy ? humanize(r.remote_policy) : null].filter(Boolean).join(" · ") || "—"}</dd>
-                <dt>Salary</dt>
-                <dd className="admin-cell-mono">{salaryBand(r.salary_min_cents, r.salary_max_cents, r.currency) || "—"}</dd>
-                <dt>Status</dt>
-                <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
-                <dt>Opened</dt>
-                <dd>{r.opened_at ? formatDate(r.opened_at) : "—"}</dd>
-              </dl>
-              <div style={{ marginTop: 16 }}>
-                <Link href={`/admin/talent/jobs/${r.id}`} className="admin-btn admin-btn--primary">
-                  Open full profile
-                </Link>
-              </div>
-            </>
+            <JobReqManage
+              req={{
+                id: r.id,
+                title: r.title ?? "",
+                companyName: one(r.companies)?.name ?? null,
+                status: r.status,
+                employmentType: r.employment_type ?? "full_time",
+                location: r.location,
+                remotePolicy: r.remote_policy,
+                salaryMinCents: r.salary_min_cents,
+                salaryMaxCents: r.salary_max_cents,
+                currency: r.currency ?? "usd",
+                openedAt: r.opened_at,
+                closedAt: r.closed_at,
+                description: r.description,
+                isPublic: r.is_public,
+                slug: r.slug,
+                applicationCount: r.applications?.[0]?.count ?? 0,
+              }}
+            />
           ),
         })}
       />
