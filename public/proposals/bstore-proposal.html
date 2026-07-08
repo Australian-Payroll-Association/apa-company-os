@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bstore: AI & Data Proposal | Edge8</title>
+<meta name="description" content="A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database and working automations.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bstore: AI & Data Proposal | Edge8">
+<meta property="og:description" content="A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database and working automations.">
+<meta property="og:image" content="https://www.edge8.ai/social.jpg">
+<meta property="og:url" content="https://www.edge8.ai/proposals/bstore-proposal.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bstore: AI & Data Proposal | Edge8">
+<meta name="twitter:description" content="A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database and working automations.">
+<meta name="twitter:image" content="https://www.edge8.ai/social.jpg">
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--navy);
+    background:var(--mist);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:840px;
+    margin:0 auto;
+    background:var(--white);
+  }
+  header{
+    background:var(--navy);
+    color:var(--white);
+    padding:56px 56px 48px;
+  }
+  .eyebrow{
+    font-size:13px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--mint);
+    font-weight:600;
+    margin-bottom:18px;
+  }
+  header h1{
+    font-size:34px;
+    line-height:1.2;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  header p.sub{
+    font-size:17px;
+    color:var(--mist);
+    max-width:620px;
+  }
+  .meta{
+    margin-top:30px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:28px;
+    font-size:13px;
+    color:var(--mist);
+  }
+  .meta div span{
+    display:block;
+    color:var(--mint);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:3px;
+  }
+  section{padding:44px 56px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{
+    font-size:13px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--blue);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  h3{
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:18px;
+    color:var(--navy);
+  }
+  p{margin-bottom:16px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li{
+    position:relative;
+    padding-left:24px;
+    margin-bottom:10px;
+    font-size:16px;
+  }
+  ul li::before{
+    content:"";
+    position:absolute;
+    left:0;top:11px;
+    width:8px;height:8px;
+    background:var(--mint);
+    border-radius:50%;
+  }
+  .cost-table{
+    width:100%;
+    border-collapse:collapse;
+    margin:8px 0 4px;
+    font-size:15px;
+  }
+  .cost-table th{
+    text-align:left;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--blue);
+    padding:0 0 12px;
+    border-bottom:2px solid var(--mist);
+  }
+  .cost-table th.num,.cost-table td.num{text-align:right;}
+  .cost-table td{
+    padding:14px 0;
+    border-bottom:1px solid var(--mist);
+    vertical-align:top;
+  }
+  .cost-table td .label{font-weight:600;}
+  .cost-table td .note{display:block;font-size:13px;color:#5a6478;margin-top:2px;}
+  .cost-table tr.total td{
+    border-bottom:none;
+    border-top:2px solid var(--navy);
+    font-weight:700;
+    font-size:17px;
+    padding-top:16px;
+  }
+  .callout{
+    background:var(--navy);
+    color:var(--white);
+    padding:34px 36px;
+    border-radius:10px;
+    margin:6px 0;
+  }
+  .callout .q{
+    font-size:22px;
+    font-weight:600;
+    line-height:1.4;
+  }
+  .callout .q .hl{color:var(--mint);}
+  .callout .tag{
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mint);font-weight:600;margin-bottom:14px;display:block;
+  }
+  .phase{
+    display:flex;
+    gap:22px;
+    padding:24px 0;
+    border-bottom:1px solid var(--mist);
+  }
+  .phase:last-child{border-bottom:none;}
+  .phase .num{
+    flex:0 0 52px;
+    height:52px;
+    background:var(--mist);
+    color:var(--navy);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;
+  }
+  .phase .body h4{font-size:19px;font-weight:700;margin-bottom:6px;}
+  .phase .body .role{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--pink);font-weight:700;margin-bottom:8px;
+  }
+  .phase .body p{margin-bottom:0;font-size:15px;}
+  .options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:6px;
+  }
+  .opt{
+    border:1px solid var(--mist);
+    border-radius:10px;
+    padding:24px;
+  }
+  .opt h4{font-size:17px;font-weight:700;margin-bottom:6px;}
+  .opt .price{font-size:26px;font-weight:700;color:var(--blue);margin-bottom:8px;}
+  .opt .price small{font-size:14px;color:#5a6478;font-weight:500;}
+  .opt p{font-size:14px;margin-bottom:0;}
+  .next-step{
+    background:var(--mint);
+    color:var(--navy);
+    padding:30px 36px;
+    border-radius:10px;
+  }
+  .next-step h3{margin-bottom:8px;}
+  .next-step p{margin-bottom:0;font-size:16px;}
+  footer{
+    background:var(--navy);
+    color:var(--mist);
+    padding:30px 56px;
+    font-size:13px;
+  }
+  footer strong{color:var(--white);}
+  .disclaimer{font-size:13px;color:#5a6478;margin-top:10px;}
+  @media (max-width:620px){
+    header,section,footer{padding-left:28px;padding-right:28px;}
+    .options{grid-template-columns:1fr;}
+    header h1{font-size:27px;}
+  }
+  @media print{
+    body{background:var(--white);}
+    .page{max-width:100%;}
+    .callout,.next-step,.opt,.phase .num{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Edge8 &nbsp;·&nbsp; Proposal</div>
+    <h1>From Documented Workflows to Working Automations</h1>
+    <p class="sub">A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database, a clear roadmap, and automations that give your people time back.</p>
+    <div class="meta">
+      <div><span>Prepared for</span>Sean Rohald, Bstore</div>
+      <div><span>Prepared by</span>Dave Hajdu &amp; Quan Chau, Edge8</div>
+      <div><span>Date</span>7 July 2026</div>
+      <div><span>Status</span>For confirmation</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>What we heard</h2>
+    <h3>Where you are today</h3>
+    <p>You run a bricks-and-mortar retail business with an ecommerce arm, around 160 staff, mostly in stores, with about 20 in the back office. Your team is further along with AI than most:</p>
+    <ul>
+      <li><strong>LLMs are in daily use</strong> and you already have some agentic workflows running.</li>
+      <li><strong>Two quarters of groundwork done.</strong> You documented the workflows in a few key departments to find the bottlenecks worth fixing.</li>
+      <li><strong>Leadership is trained, the rest of the team isn't.</strong> AI capability so far has reached the leadership group and stopped there.</li>
+    </ul>
+    <p>And then it stalled. There's no in-house technical skillset to take the next step, and everyone is too stretched to self-teach. New projects meet resistance because the team is already under-resourced. In your words, you've done it a little backwards: the bottlenecks are mapped, but nobody has the time or the skills to act on the findings.</p>
+  </section>
+
+  <section>
+    <h2>The opportunity</h2>
+    <div class="callout">
+      <span class="tag">The question worth answering</span>
+      <p class="q">What if the team you already have could get meaningfully more done without adding headcount, because the training finally reaches your store managers and back office, and a central database lets AI do the heavy lifting?</p>
+    </div>
+    <p style="margin-top:24px;">That's the goal you described, and the good news is the hard part is already done. The workflow documentation you spent two quarters on is exactly the input a database design and automation roadmap needs. What's missing is the capability to execute, and that's what the two tracks below deliver, in parallel, from August.</p>
+  </section>
+
+  <section>
+    <h2>The path</h2>
+    <h3>Two tracks, starting together in August</h3>
+
+    <div class="phase">
+      <div class="num">1</div>
+      <div class="body">
+        <div class="role">Track one · The capability</div>
+        <h4>AI Officer certification for 30&ndash;40 of your people</h4>
+        <p>We put your store managers and back-office team through the Edge8 AI Officer certification platform. It's challenge-based, not attendance-based: every person builds real automations on real work and has proof of what they can do at the end. This is how AI capability cascades past the leadership team, without pulling anyone out of their day job for weeks of classroom time.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">2</div>
+      <div class="body">
+        <div class="role">Track two · The foundation</div>
+        <h4>Central database &amp; automation roadmap</h4>
+        <p>A consulting engagement where we map your current systems and data, design your central company database, and turn your workflow documentation into a prioritised automation roadmap. Then we start building, beginning with the bottlenecks your own mapping already identified, so each automation gives time back to a team that needs it.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">3</div>
+      <div class="body">
+        <div class="role">Optional follow-on</div>
+        <h4>A dedicated AI engineer</h4>
+        <p>Once the roadmap is set and the first automations are live, you can add a dedicated Edge8 engineer (based in Vietnam, working as part of your team) to keep building. Your certified people know what to ask for; the engineer ships it. This is optional and only makes sense after the foundation is in place.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Investment</h2>
+    <h3>Reference pricing, to confirm together</h3>
+    <table class="cost-table">
+      <thead>
+        <tr><th>Track</th><th class="num">Investment (USD)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="label">AI Officer certification</span><span class="note">40 seats, store managers + back office &middot; standard $99 / person / month</span></td>
+          <td class="num"><s style="color:#5a6478;font-weight:400;">$3,960 / month</s><br>$990 / month with 75% discount</td>
+        </tr>
+        <tr>
+          <td><span class="label">Consulting: database &amp; roadmap</span><span class="note">Systems map, database design, automation build</span></td>
+          <td class="num">$5,000 / month for the first 2 months<br>then $1,000 / month</td>
+        </tr>
+        <tr>
+          <td><span class="label">Human tokens</span><span class="note">Start with a block of 80</span></td>
+          <td class="num">$4,000</td>
+        </tr>
+        <tr>
+          <td><span class="label">Dedicated AI engineer (optional, later)</span><span class="note">Part-time or full-time, once the roadmap is set</span></td>
+          <td class="num">$2,000 &ndash; $4,000 / month</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="disclaimer">These are the reference figures from our call. We'll confirm seat count, consulting scope, and the pricing model that fits best before anything is signed.</p>
+  </section>
+
+  <section>
+    <div class="next-step">
+      <h3>Next step</h3>
+      <p>Schedule a call to discuss the proposal and finalize the budget. Both tracks kick off in August.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>A note on EO.</strong> As fellow EO members, we are mutually waiving the EO non-solicitation guideline so we're free to propose business to one another. This is an acknowledgement between members, not a restriction on Bstore.</p>
+    <p style="margin-top:14px;"><strong>Edge8</strong> &nbsp;·&nbsp; AI consulting &amp; staffing &nbsp;·&nbsp; David Hajdu &amp; Quan</p>
+  </footer>
+
+</div>
+</body>
+</html>
