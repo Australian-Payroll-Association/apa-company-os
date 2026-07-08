@@ -198,7 +198,7 @@ function QuestionForm({
   onCancel?: () => void;
 }) {
   return (
-    <div className="admin-form" style={{ display: "grid", gap: 12 }}>
+    <div className="admin-form">
       <div className="admin-field">
         <label className="admin-label">Question</label>
         <input
@@ -298,312 +298,352 @@ export function SurveyBuilder({
   }
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
+    <>
       {banner && (
-        <div className={`admin-alert admin-alert--${banner.tone}`}>{banner.text}</div>
+        <div className={`admin-alert admin-alert--${banner.tone}`} style={{ marginBottom: 16 }}>
+          {banner.text}
+        </div>
       )}
 
-      {/* Status + sharing */}
-      <div className="admin-card admin-section-card">
-        <h2 className="admin-card-title">Status</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <Badge tone={surveyStatusTone(survey.status)}>{survey.status}</Badge>
-          {survey.is_anonymous && <Badge tone="info">anonymous</Badge>}
-          <span className="admin-cell-muted">
-            {responseCount} response{responseCount === 1 ? "" : "s"}
-          </span>
-          <span style={{ flex: 1 }} />
-          {survey.status === "draft" && (
-            <button
-              className="admin-btn admin-btn--primary"
-              disabled={pending}
-              onClick={() => run(() => setSurveyStatus(survey.id, "published"), "Survey published.")}
+      <div className="admin-360">
+        {/* Left rail: status, settings, danger zone */}
+        <div style={{ display: "grid", gap: 20 }}>
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Status</h2>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}
             >
-              Publish
-            </button>
-          )}
-          {survey.status === "published" && (
-            <button
-              className="admin-btn"
-              disabled={pending}
-              onClick={() => run(() => setSurveyStatus(survey.id, "closed"), "Survey closed.")}
-            >
-              Close
-            </button>
-          )}
-          {survey.status === "closed" && (
-            <button
-              className="admin-btn"
-              disabled={pending}
-              onClick={() => run(() => setSurveyStatus(survey.id, "published"), "Survey reopened.")}
-            >
-              Reopen
-            </button>
-          )}
-          {responseCount === 0 && (
-            <ConfirmButton
-              className="admin-btn admin-btn--danger"
-              label="Delete"
-              title="Delete this survey?"
-              body={`"${survey.name}" and its questions will be permanently deleted.`}
-              confirmLabel="Delete survey"
-              onConfirm={() => deleteSurvey(survey.id)}
-              onDone={() => router.push("/admin/operations/surveys")}
-            />
-          )}
-        </div>
-        {survey.status === "published" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
-            <code className="admin-cell-mono">/surveys/{survey.slug}</code>
-            <button className="admin-btn admin-btn--sm" onClick={copyLink}>
-              {copied ? "Copied ✓" : "Copy link"}
-            </button>
-            <a
-              className="admin-btn admin-btn--sm"
-              href={`/surveys/${survey.slug}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open ↗
-            </a>
-          </div>
-        )}
-      </div>
-
-      {/* Meta */}
-      <div className="admin-card admin-section-card">
-        <h2 className="admin-card-title">Details</h2>
-        <form
-          className="admin-form"
-          style={{ display: "grid", gap: 12, maxWidth: 560 }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            run(
-              () =>
-                updateSurveyMeta(survey.id, {
-                  name,
-                  slug,
-                  description,
-                  introText,
-                  thankYouText,
-                  isAnonymous,
-                }),
-              "Survey saved.",
-            );
-          }}
-        >
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-name">Name</label>
-            <input
-              id="sb-name"
-              className="admin-input"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (survey.status === "draft" && !slugTouched) setSlug(slugify(e.target.value));
-              }}
-              required
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-slug">Public link</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>/surveys/</span>
-              <input
-                id="sb-slug"
-                className="admin-input"
-                value={slug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setSlug(e.target.value);
-                }}
-                disabled={survey.status !== "draft"}
-                required
-              />
+              <Badge tone={surveyStatusTone(survey.status)}>{survey.status}</Badge>
+              {survey.is_anonymous && <Badge tone="info">anonymous</Badge>}
+              <span className="admin-cell-muted">
+                {responseCount} response{responseCount === 1 ? "" : "s"}
+              </span>
             </div>
-            <span className="admin-hint">
-              {survey.status === "draft"
-                ? "Fills in from the name; edit it for a tidier link. Frozen after publishing."
-                : "Frozen after publishing."}
-            </span>
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-desc">Description (optional)</label>
-            <textarea
-              id="sb-desc"
-              className="admin-textarea"
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-intro">Intro text (first screen, optional)</label>
-            <textarea
-              id="sb-intro"
-              className="admin-textarea"
-              rows={2}
-              value={introText}
-              onChange={(e) => setIntroText(e.target.value)}
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-thanks">Thank-you text (optional)</label>
-            <textarea
-              id="sb-thanks"
-              className="admin-textarea"
-              rows={2}
-              value={thankYouText}
-              onChange={(e) => setThankYouText(e.target.value)}
-            />
-          </div>
-          <label className="admin-timeoff-check">
-            <input
-              type="checkbox"
-              checked={isAnonymous}
-              disabled={locked}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-            />
-            Anonymous — responses never store who answered
-            {locked && <span className="admin-hint"> (frozen once responses exist)</span>}
-          </label>
-          <div className="admin-form-actions">
-            <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
-              {pending ? "Saving…" : "Save details"}
-            </button>
-          </div>
-        </form>
-      </div>
 
-      {/* Questions */}
-      <div className="admin-card admin-section-card">
-        <h2 className="admin-card-title">Questions</h2>
-        {locked && (
-          <div className="admin-alert admin-alert--ok" style={{ marginBottom: 12 }}>
-            This survey has responses: wording can be edited and questions added, but types,
-            options, and scales are frozen, and questions cannot be deleted.
-          </div>
-        )}
-
-        {fields.length === 0 ? (
-          <div className="admin-empty">No questions yet. Add the first one below.</div>
-        ) : (
-          <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
-            {fields.map((f, i) =>
-              editingId === f.id ? (
-                <div key={f.id} className="admin-card" style={{ padding: 16 }}>
-                  <QuestionForm
-                    type={f.type as FieldType}
-                    draft={editDraft}
-                    setDraft={setEditDraft}
-                    locked={locked}
-                    pending={pending}
-                    submitLabel="Save question"
-                    onSubmit={() =>
-                      run(() => updateField(f.id, toInput(editDraft)), "Question saved.", () =>
-                        setEditingId(null),
-                      )
-                    }
-                    onCancel={() => setEditingId(null)}
-                  />
-                </div>
-              ) : (
-                <div
-                  key={f.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "10px 12px",
-                    border: "1px solid var(--admin-line)",
-                    borderRadius: "var(--admin-radius-sm)",
-                  }}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {survey.status === "draft" && (
+                <button
+                  className="admin-btn admin-btn--primary"
+                  disabled={pending}
+                  onClick={() => run(() => setSurveyStatus(survey.id, "published"), "Survey published.")}
                 >
-                  <span className="admin-cell-mono" style={{ minWidth: 24 }}>{i + 1}.</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="admin-cell-strong">
-                      {f.label}
-                      {f.required && <span title="Required"> *</span>}
-                    </div>
-                    <div className="admin-cell-muted">
-                      {FIELD_TYPE_LABEL[f.type as FieldType] ?? f.type}
-                      {(f.type === "single_choice" || f.type === "multi_choice") &&
-                        ` · ${(f.config?.choices ?? []).length} options`}
-                      {f.type === "rating" &&
-                        ` · ${ratingBounds(f.config).min}–${ratingBounds(f.config).max}`}
-                    </div>
-                  </div>
-                  <button
-                    className="admin-btn admin-btn--sm"
-                    disabled={pending || i === 0}
-                    aria-label="Move up"
-                    onClick={() => run(() => moveField(f.id, "up"), "Moved.")}
-                  >
-                    ↑
+                  Publish
+                </button>
+              )}
+              {survey.status === "published" && (
+                <button
+                  className="admin-btn"
+                  disabled={pending}
+                  onClick={() => run(() => setSurveyStatus(survey.id, "closed"), "Survey closed.")}
+                >
+                  Close
+                </button>
+              )}
+              {survey.status === "closed" && (
+                <button
+                  className="admin-btn"
+                  disabled={pending}
+                  onClick={() => run(() => setSurveyStatus(survey.id, "published"), "Survey reopened.")}
+                >
+                  Reopen
+                </button>
+              )}
+            </div>
+
+            {survey.status === "published" && (
+              <div style={{ marginTop: 14 }}>
+                <div className="admin-hint" style={{ marginBottom: 6 }}>Public link</div>
+                <code
+                  className="admin-cell-mono"
+                  style={{ display: "block", wordBreak: "break-all", fontSize: 12.5, marginBottom: 8 }}
+                >
+                  /surveys/{survey.slug}
+                </code>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="admin-btn admin-btn--sm" onClick={copyLink}>
+                    {copied ? "Copied ✓" : "Copy link"}
                   </button>
-                  <button
+                  <a
                     className="admin-btn admin-btn--sm"
-                    disabled={pending || i === fields.length - 1}
-                    aria-label="Move down"
-                    onClick={() => run(() => moveField(f.id, "down"), "Moved.")}
+                    href={`/surveys/${survey.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
                   >
-                    ↓
-                  </button>
-                  <button
-                    className="admin-btn admin-btn--sm"
-                    disabled={pending}
-                    onClick={() => {
-                      setEditingId(f.id);
-                      setEditDraft(draftFrom(f));
-                    }}
-                  >
-                    Edit
-                  </button>
-                  {!locked && (
-                    <ConfirmButton
-                      className="admin-btn admin-btn--sm admin-btn--danger"
-                      label="Delete"
-                      title="Delete this question?"
-                      body={`"${f.label}" will be removed from the survey.`}
-                      confirmLabel="Delete question"
-                      onConfirm={() => deleteField(f.id)}
-                      onDone={() => router.refresh()}
-                    />
-                  )}
+                    Open ↗
+                  </a>
                 </div>
-              ),
+              </div>
             )}
           </div>
-        )}
 
-        <h3 className="admin-card-title" style={{ marginTop: 8 }}>Add a question</h3>
-        <div className="admin-field" style={{ maxWidth: 320 }}>
-          <label className="admin-label" htmlFor="sb-add-type">Type</label>
-          <select
-            id="sb-add-type"
-            className="admin-select"
-            value={addType}
-            onChange={(e) => setAddType(e.target.value as FieldType)}
-          >
-            {FIELD_TYPES.map((t) => (
-              <option key={t} value={t}>{FIELD_TYPE_LABEL[t]}</option>
-            ))}
-          </select>
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Details</h2>
+            <form
+              className="admin-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                run(
+                  () =>
+                    updateSurveyMeta(survey.id, {
+                      name,
+                      slug,
+                      description,
+                      introText,
+                      thankYouText,
+                      isAnonymous,
+                    }),
+                  "Survey saved.",
+                );
+              }}
+            >
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-name">Name</label>
+                <input
+                  id="sb-name"
+                  className="admin-input"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (survey.status === "draft" && !slugTouched) setSlug(slugify(e.target.value));
+                  }}
+                  required
+                />
+              </div>
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-slug">Public link</label>
+                <input
+                  id="sb-slug"
+                  className="admin-input"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    setSlug(e.target.value);
+                  }}
+                  disabled={survey.status !== "draft"}
+                  required
+                />
+                <span className="admin-hint">
+                  /surveys/{slug || "…"}
+                  {survey.status === "draft" ? " — frozen after publishing" : " — frozen"}
+                </span>
+              </div>
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-desc">Description</label>
+                <textarea
+                  id="sb-desc"
+                  className="admin-textarea"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-intro">Intro (first screen)</label>
+                <textarea
+                  id="sb-intro"
+                  className="admin-textarea"
+                  rows={2}
+                  value={introText}
+                  onChange={(e) => setIntroText(e.target.value)}
+                />
+              </div>
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-thanks">Thank-you screen</label>
+                <textarea
+                  id="sb-thanks"
+                  className="admin-textarea"
+                  rows={2}
+                  value={thankYouText}
+                  onChange={(e) => setThankYouText(e.target.value)}
+                />
+              </div>
+              <label className="admin-timeoff-check">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  disabled={locked}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                />
+                Anonymous responses
+              </label>
+              {locked && (
+                <span className="admin-hint">Anonymity is frozen once responses exist.</span>
+              )}
+              <div className="admin-form-actions">
+                <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
+                  {pending ? "Saving…" : "Save details"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {responseCount === 0 && (
+            <div className="admin-danger-zone">
+              <div className="admin-danger-zone-title">Danger zone</div>
+              <div className="admin-danger-row">
+                <div className="admin-danger-row-text">
+                  Permanently delete this survey and its questions. This cannot be undone.
+                </div>
+                <ConfirmButton
+                  className="admin-btn admin-btn--danger admin-btn--sm"
+                  label="Delete"
+                  title="Delete this survey?"
+                  body={`"${survey.name}" and its questions will be permanently deleted.`}
+                  confirmLabel="Delete survey"
+                  onConfirm={() => deleteSurvey(survey.id)}
+                  onDone={() => router.push("/admin/operations/surveys")}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        <QuestionForm
-          type={addType}
-          draft={addDraft}
-          setDraft={setAddDraft}
-          locked={false}
-          pending={pending}
-          submitLabel="Add question"
-          onSubmit={() =>
-            run(() => addField(survey.id, addType, toInput(addDraft)), "Question added.", () =>
-              setAddDraft(emptyDraft),
-            )
-          }
-        />
+
+        {/* Main: questions */}
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">
+            Questions <span className="admin-cell-muted" style={{ fontWeight: 400 }}>· {fields.length}</span>
+          </h2>
+
+          {locked && (
+            <div className="admin-alert admin-alert--ok" style={{ marginBottom: 14 }}>
+              This survey has responses: wording can be edited and questions added, but types,
+              options, and scales are frozen, and questions can&rsquo;t be deleted.
+            </div>
+          )}
+
+          {fields.length === 0 ? (
+            <div className="admin-empty">No questions yet. Add the first one below.</div>
+          ) : (
+            <div className="admin-list">
+              {fields.map((f, i) =>
+                editingId === f.id ? (
+                  <div
+                    key={f.id}
+                    className="admin-list-row"
+                    style={{ display: "block", paddingTop: 14, paddingBottom: 14 }}
+                  >
+                    <QuestionForm
+                      type={f.type as FieldType}
+                      draft={editDraft}
+                      setDraft={setEditDraft}
+                      locked={locked}
+                      pending={pending}
+                      submitLabel="Save question"
+                      onSubmit={() =>
+                        run(() => updateField(f.id, toInput(editDraft)), "Question saved.", () =>
+                          setEditingId(null),
+                        )
+                      }
+                      onCancel={() => setEditingId(null)}
+                    />
+                  </div>
+                ) : (
+                  <div key={f.id} className="admin-list-row">
+                    <div className="admin-list-main">
+                      <div className="admin-list-title">
+                        <span
+                          className="admin-cell-mono"
+                          style={{ color: "var(--admin-muted)", marginRight: 6 }}
+                        >
+                          {i + 1}
+                        </span>
+                        {f.label}
+                        {f.required && (
+                          <span className="admin-cell-muted" title="Required">
+                            {" "}
+                            *
+                          </span>
+                        )}
+                      </div>
+                      <div className="admin-list-sub">
+                        {FIELD_TYPE_LABEL[f.type as FieldType] ?? f.type}
+                        {(f.type === "single_choice" || f.type === "multi_choice") &&
+                          ` · ${(f.config?.choices ?? []).length} options`}
+                        {f.type === "rating" &&
+                          ` · ${ratingBounds(f.config).min}–${ratingBounds(f.config).max}`}
+                      </div>
+                    </div>
+                    <div
+                      className="admin-list-aside"
+                      style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                    >
+                      <button
+                        className="admin-btn admin-btn--sm"
+                        disabled={pending || i === 0}
+                        aria-label="Move up"
+                        onClick={() => run(() => moveField(f.id, "up"), "Moved.")}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="admin-btn admin-btn--sm"
+                        disabled={pending || i === fields.length - 1}
+                        aria-label="Move down"
+                        onClick={() => run(() => moveField(f.id, "down"), "Moved.")}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        className="admin-btn admin-btn--sm"
+                        disabled={pending}
+                        onClick={() => {
+                          setEditingId(f.id);
+                          setEditDraft(draftFrom(f));
+                        }}
+                      >
+                        Edit
+                      </button>
+                      {!locked && (
+                        <ConfirmButton
+                          className="admin-btn admin-btn--sm admin-btn--danger"
+                          label="Delete"
+                          title="Delete this question?"
+                          body={`"${f.label}" will be removed from the survey.`}
+                          confirmLabel="Delete question"
+                          onConfirm={() => deleteField(f.id)}
+                          onDone={() => router.refresh()}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+
+          <div style={{ borderTop: "1px solid var(--admin-line)", marginTop: 18, paddingTop: 18 }}>
+            <h3 className="admin-card-title">Add a question</h3>
+            <div style={{ display: "grid", gap: 12, maxWidth: 480 }}>
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="sb-add-type">Type</label>
+                <select
+                  id="sb-add-type"
+                  className="admin-select"
+                  value={addType}
+                  onChange={(e) => setAddType(e.target.value as FieldType)}
+                >
+                  {FIELD_TYPES.map((t) => (
+                    <option key={t} value={t}>{FIELD_TYPE_LABEL[t]}</option>
+                  ))}
+                </select>
+              </div>
+              <QuestionForm
+                type={addType}
+                draft={addDraft}
+                setDraft={setAddDraft}
+                locked={false}
+                pending={pending}
+                submitLabel="Add question"
+                onSubmit={() =>
+                  run(() => addField(survey.id, addType, toInput(addDraft)), "Question added.", () =>
+                    setAddDraft(emptyDraft),
+                  )
+                }
+              />
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
