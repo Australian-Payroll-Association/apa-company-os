@@ -21,6 +21,14 @@ type Proposal = {
 // One entry per proposal file under public/proposals/. Ordered newest first.
 const PROPOSALS: Proposal[] = [
   {
+    client: "Bstore",
+    kind: "AI & Data Proposal",
+    summary:
+      "A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database and working automations.",
+    date: "July 2026",
+    href: "/proposals/bstore-proposal.html",
+  },
+  {
     client: "Arca Wellness & Longevity",
     kind: "AI Storefront Proposal",
     summary:
