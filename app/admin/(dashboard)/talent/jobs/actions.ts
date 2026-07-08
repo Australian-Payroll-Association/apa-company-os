@@ -15,6 +15,10 @@ const CLOSE_OUTCOMES = new Set(["filled", "closed", "cancelled"]);
 function refresh(id: string) {
   revalidatePath("/admin/talent/jobs");
   revalidatePath(`/admin/talent/jobs/${id}`);
+  // status/is_public and posting content changes here can affect what's live
+  // on /careers, so bust its cache too (belt-and-suspenders alongside the
+  // noStore() in lib/jobs.ts).
+  revalidatePath("/careers");
 }
 
 // ─── Edit ────────────────────────────────────────────────────────────────────
@@ -161,5 +165,6 @@ export async function deleteJobReq(jobReqId: string): Promise<Result> {
     context: { via: "jobs_shelf" },
   });
   revalidatePath("/admin/talent/jobs");
+  revalidatePath("/careers");
   return { ok: true };
 }

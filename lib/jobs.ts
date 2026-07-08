@@ -1,5 +1,6 @@
 import { remark } from 'remark'
 import remarkHtml from 'remark-html'
+import { unstable_noStore as noStore } from 'next/cache'
 import { companyOs } from '@/lib/supabase'
 
 // Public job postings, sourced from the ATS (company_os.job_requisitions).
@@ -45,6 +46,13 @@ type ReqRow = {
 }
 
 export async function getActiveJobs(): Promise<JobPost[]> {
+  // The Supabase client's internal fetch() calls are made from a module-scope
+  // singleton (lib/supabase.ts), which can slip past force-dynamic's cache
+  // detection and get stuck in Vercel's persistent Data Cache across
+  // deployments. noStore() explicitly opts this data fetch out — the fix
+  // Next.js docs prescribe for non-fetch-based/third-party data sources.
+  noStore()
+
   const { data, error } = await companyOs
     .from('job_requisitions')
     .select('id, slug, title, employment_type, location, opened_at, full_jd, description, metadata')

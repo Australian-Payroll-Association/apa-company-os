@@ -97,5 +97,6 @@ export async function updateJobPosting(jobReqId: string, patch: JobPostingPatch)
     newData: updates,
   });
   revalidatePath(`/admin/talent/jobs/${jobReqId}`);
+  revalidatePath("/careers");
   return { ok: true };
 }
