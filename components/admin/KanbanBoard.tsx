@@ -12,21 +12,30 @@ export function KanbanBoard<T extends KanbanCardBase>({
   columns,
   cards,
   onMove,
+  onReorder,
   onCardClick,
   renderCard,
   columnFooter,
 }: {
   columns: KanbanColumn[];
   cards: T[];
-  onMove: (cardId: string, toColumnId: string) => void;
+  onMove: (cardId: string, toColumnId: string, toIndex?: number) => void;
+  // Fired on a same-column drag (card stays in its column, just changes rank).
+  // Optional — boards that don't track a within-column order can omit it.
+  onReorder?: (cardId: string, columnId: string, toIndex: number) => void;
   onCardClick?: (card: T) => void;
   renderCard: (card: T) => ReactNode;
   columnFooter?: (column: KanbanColumn, cards: T[]) => ReactNode;
 }) {
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
-    if (!destination || destination.droppableId === source.droppableId) return;
-    onMove(draggableId, destination.droppableId);
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId) {
+      if (destination.index === source.index) return;
+      onReorder?.(draggableId, destination.droppableId, destination.index);
+      return;
+    }
+    onMove(draggableId, destination.droppableId, destination.index);
   }
 
   return (

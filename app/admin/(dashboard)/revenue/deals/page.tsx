@@ -25,6 +25,7 @@ type Row = {
   id: string;
   title: string | null;
   stage_id: string | null;
+  position: number;
   amount_cents: number | null;
   amount_usd_cents: number | null;
   currency: string | null;
@@ -71,12 +72,14 @@ export default async function DealsPage() {
   ];
   const firstStageId = stageList[0]?.id ?? "";
 
+  // Ordered by priority (position) within each stage; the board/list group by
+  // columnId so this global order is only meaningful within same-stage runs.
   let query = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies(name), referrer:people!referrer_id(full_name, email)",
+      "id, title, stage_id, position, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies(name), referrer:people!referrer_id(full_name, email)",
     )
-    .order("created_at", { ascending: false })
+    .order("position", { ascending: true })
     .limit(500);
 
   const { data, error } = await query;
@@ -90,6 +93,7 @@ export default async function DealsPage() {
       id: r.id,
       columnId: pendingHandoff ? HANDOFF_COLUMN_ID : r.stage_id ?? firstStageId,
       stageId: r.stage_id ?? firstStageId,
+      position: r.position,
       title: r.title,
       personId: r.person_id,
       personName: p?.full_name ?? p?.email ?? null,

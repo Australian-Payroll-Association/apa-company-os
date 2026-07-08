@@ -12,8 +12,10 @@ import {
   disqualifyLead,
   logCall,
   markConnected,
+  pinLead,
   removeFromQueue,
   saveQualification,
+  unpinLead,
 } from "./actions";
 
 export type QueueRow = {
@@ -27,6 +29,7 @@ export type QueueRow = {
   status: string;
   slaDueAt: string | null;
   attemptCount: number;
+  pinnedAt: string | null;
   inquiry: { subject: string | null; message: string | null; createdAt: string } | null;
   qual: {
     goal: string;
@@ -109,12 +112,18 @@ export function LeadQueue({ rows }: { rows: QueueRow[] }) {
         {rows.map((r) => {
           const open = openId === r.id;
           return (
-            <div key={r.id} className={`lead-card${open ? " is-open" : ""}`}>
-              <button
-                type="button"
+            <div key={r.id} className={`lead-card${open ? " is-open" : ""}${r.pinnedAt ? " is-pinned" : ""}`}>
+              <div
                 className="lead-head"
+                role="button"
+                tabIndex={0}
                 aria-expanded={open}
                 onClick={() => setOpenId(open ? null : r.id)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  setOpenId(open ? null : r.id);
+                }}
               >
                 <div className="lead-head-main">
                   <div className="lead-name">
@@ -126,13 +135,27 @@ export function LeadQueue({ rows }: { rows: QueueRow[] }) {
                   </div>
                 </div>
                 <div className="lead-head-meta">
+                  {r.pinnedAt && <Badge tone="info">Pinned</Badge>}
                   {slaBadge(r.slaDueAt)}
                   {statusBadge(r.status)}
                   <span className="lead-attempt">
                     {r.attemptCount > 0 ? `attempt ${r.attemptCount}` : "no attempts"}
                   </span>
+                  <button
+                    type="button"
+                    className={`lead-pin-btn${r.pinnedAt ? " is-active" : ""}`}
+                    aria-pressed={!!r.pinnedAt}
+                    title={r.pinnedAt ? "Unpin from top of queue" : "Pin to top of queue"}
+                    disabled={pending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      run(() => (r.pinnedAt ? unpinLead(r.id) : pinLead(r.id)));
+                    }}
+                  >
+                    {r.pinnedAt ? "★" : "☆"}
+                  </button>
                 </div>
-              </button>
+              </div>
 
               {open && <LeadDetail row={r} pending={pending} run={run} />}
             </div>

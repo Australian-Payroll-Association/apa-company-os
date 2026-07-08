@@ -136,6 +136,23 @@ export async function moveDealStage(
   return { ok: true };
 }
 
+// Rewrites `position` (0..n-1) for a full ordered set of deal ids — the new
+// rank of a single stage/column after a drag. Called after the stage-change
+// side effects (if any) so a rejected move never leaves positions dangling.
+export async function reorderDeals(orderedIds: string[]): Promise<Result> {
+  await requireAdmin();
+  if (orderedIds.length === 0) return { ok: true };
+
+  const results = await Promise.all(
+    orderedIds.map((id, position) => companyOs.from("deals").update({ position }).eq("id", id)),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+
+  refresh();
+  return { ok: true };
+}
+
 // The closer's side of the SDR handoff contract. Reject sends the person back
 // to the SDR queue and closes the deal; the reason feeds SDR coaching.
 export async function decideHandoff(
@@ -378,6 +395,20 @@ export async function bulkUpdateDeals(ids: string[], patch: BulkDealPatch): Prom
 
   const { error } = await companyOs.from("deals").update(updates).in("id", ids);
   if (error) return { ok: false, error: error.message };
+
+  // Bulk-moved deals land at the bottom of the destination stage's priority
+  // order, appended after whatever was already there.
+  if (updates.stage_id) {
+    const { count: existing } = await companyOs
+      .from("deals")
+      .select("id", { count: "exact", head: true })
+      .eq("stage_id", updates.stage_id as string)
+      .not("id", "in", `(${ids.join(",")})`);
+    await Promise.all(
+      ids.map((id, i) => companyOs.from("deals").update({ position: (existing ?? 0) + i }).eq("id", id)),
+    );
+  }
+
   await recordAuditMany(
     ids.map((id) => ({ table: "deals", recordId: id, operation: "bulk_update" as const, actor: admin.email, newData: updates })),
   );

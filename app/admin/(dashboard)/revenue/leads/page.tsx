@@ -25,6 +25,7 @@ type LeadJoinRow = {
   status: string;
   sla_due_at: string | null;
   attempt_count: number;
+  pinned_at: string | null;
   created_at: string;
   people: {
     id: string;
@@ -67,10 +68,13 @@ export default async function LeadsPage() {
     companyOs
       .from("lead")
       .select(
-        "status, sla_due_at, attempt_count, created_at, people!person_id!inner(id, full_name, email, phone, source, archived_at, person_companies(companies(name)), person_qualifications!person_id(goal, plan, challenge, timeline, budget, authority), inquiries(subject, message, created_at))",
+        "status, sla_due_at, attempt_count, pinned_at, created_at, people!person_id!inner(id, full_name, email, phone, source, archived_at, person_companies(companies(name)), person_qualifications!person_id(goal, plan, challenge, timeline, budget, authority), inquiries(subject, message, created_at))",
       )
       .in("status", ACTIVE_LEAD_STATUSES)
       .is("people.archived_at", null)
+      // Pinned leads (manually boosted) sort to the top, most recently pinned
+      // first; everyone else keeps the system SLA-first, then-oldest order.
+      .order("pinned_at", { ascending: false, nullsFirst: false })
       .order("sla_due_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true })
       .limit(200),
@@ -105,6 +109,7 @@ export default async function LeadsPage() {
         status: l.status ?? "new",
         slaDueAt: l.sla_due_at,
         attemptCount: l.attempt_count ?? 0,
+        pinnedAt: l.pinned_at,
         inquiry: latestInquiry
           ? {
               subject: latestInquiry.subject,

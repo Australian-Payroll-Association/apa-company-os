@@ -171,6 +171,9 @@ export default async function SalesCockpitPage() {
       id: d.id,
       columnId: pendingHandoff ? HANDOFF_COLUMN_ID : d.stage_id ?? firstStageId,
       stageId: d.stage_id ?? firstStageId,
+      // Not fetched here — this cockpit view only opens DealDetail (no board/list
+      // rendering), which never reads or writes position.
+      position: 0,
       title: d.title,
       personId: d.person_id,
       personName: p?.full_name ?? p?.email ?? null,

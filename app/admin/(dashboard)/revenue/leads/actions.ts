@@ -119,6 +119,38 @@ export async function logCall(personId: string, note: string): Promise<Result> {
   return { ok: true };
 }
 
+// Manual boost above the SLA-ordered queue — for a lead that needs working
+// now regardless of where SLA/age would otherwise place it. SLA still governs
+// order among pinned leads' unpinned peers and among each other's ties.
+export async function pinLead(personId: string): Promise<Result> {
+  await requireAdmin();
+
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
+
+  const { error } = await companyOs
+    .from("lead")
+    .update({ pinned_at: new Date().toISOString() })
+    .eq("person_id", personId);
+  if (error) return { ok: false, error: error.message };
+
+  refresh();
+  return { ok: true };
+}
+
+export async function unpinLead(personId: string): Promise<Result> {
+  await requireAdmin();
+
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
+
+  const { error } = await companyOs.from("lead").update({ pinned_at: null }).eq("person_id", personId);
+  if (error) return { ok: false, error: error.message };
+
+  refresh();
+  return { ok: true };
+}
+
 export async function markConnected(personId: string): Promise<Result> {
   await requireAdmin();
 
@@ -239,6 +271,13 @@ export async function bookMeetingAndHandOff(personId: string): Promise<Result> {
   }[];
   const companyId = pcs[0]?.company_id ?? null;
 
+  // New deals land at the bottom of the destination stage's priority order —
+  // the closer can drag it up from there.
+  const { count: stageDealCount } = await companyOs
+    .from("deals")
+    .select("id", { count: "exact", head: true })
+    .eq("stage_id", firstStage.id);
+
   const name = person.full_name || person.email;
   const { error: dErr } = await companyOs.from("deals").insert({
     title: `${name} — SDR handoff`,
@@ -246,6 +285,7 @@ export async function bookMeetingAndHandOff(personId: string): Promise<Result> {
     company_id: companyId,
     pipeline_id: pipeline.id,
     stage_id: firstStage.id,
+    position: stageDealCount ?? 0,
     status: "open",
     source: "sdr_handoff",
     handoff_status: "pending",

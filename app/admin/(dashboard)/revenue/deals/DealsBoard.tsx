@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -19,6 +20,7 @@ import {
   deleteDeal,
   getDealCommunications,
   moveDealStage,
+  reorderDeals,
   restoreDeal,
   searchPeople,
   setDealReferrer,
@@ -35,6 +37,7 @@ export type DealCard = {
   id: string;
   columnId: string;
   stageId: string | null;
+  position: number;
   title: string | null;
   personId: string | null;
   personName: string | null;
@@ -184,17 +187,20 @@ export function DealsBoard({
   }
   const [banner, setBanner] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pendingLost, setPendingLost] = useState<{ cardId: string; toColumnId: string } | null>(
-    null,
-  );
+  const [pendingLost, setPendingLost] = useState<
+    { cardId: string; toColumnId: string; toIndex?: number } | null
+  >(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [search, setSearch] = useState("");
 
   const lostSet = new Set(lostStageIds);
   const query = search.trim().toLowerCase();
-  const activeCards = cards.filter((c) => !c.archivedAt && cardMatches(c, query));
-  const archivedCards = cards.filter((c) => c.archivedAt && cardMatches(c, query));
+  // Sort by position (not just filter) so a reorder's patched position values
+  // are always reflected, regardless of the underlying array's insert order.
+  const byPosition = (a: DealCard, b: DealCard) => a.position - b.position;
+  const activeCards = cards.filter((c) => !c.archivedAt && cardMatches(c, query)).sort(byPosition);
+  const archivedCards = cards.filter((c) => c.archivedAt && cardMatches(c, query)).sort(byPosition);
   const listCards = showArchived ? archivedCards : activeCards;
   const stageLabelMap = new Map(columns.map((c) => [c.id, c.label]));
   const sortedListCards = listSort ? [...listCards].sort(makeDealComparator(listSort, stageLabelMap)) : listCards;
@@ -218,14 +224,35 @@ export function DealsBoard({
     router.refresh();
   }
 
-  function applyMove(cardId: string, toColumnId: string, lostReason?: string) {
+  // Reorders `toColumnId`'s cards so `cardId` lands at `toIndex`, returning the
+  // new full order for that column (used both to patch local state and to
+  // persist positions for every card whose rank shifted).
+  function reorderColumn(all: DealCard[], cardId: string, toColumnId: string, toIndex?: number): DealCard[] {
+    const destBefore = all.filter((c) => c.columnId === toColumnId && c.id !== cardId);
+    const insertAt = toIndex != null ? Math.min(Math.max(toIndex, 0), destBefore.length) : destBefore.length;
+    const moved = all.find((c) => c.id === cardId);
+    if (!moved) return destBefore;
+    return [...destBefore.slice(0, insertAt), moved, ...destBefore.slice(insertAt)];
+  }
+
+  function applyMove(cardId: string, toColumnId: string, lostReason?: string, toIndex?: number) {
     const prev = cards;
+    const destOrdered = reorderColumn(prev, cardId, toColumnId, toIndex);
+    const positionById = new Map(destOrdered.map((c, i) => [c.id, i]));
     setCards((cs) =>
-      cs.map((c) =>
-        c.id === cardId
-          ? { ...c, columnId: toColumnId, stageId: toColumnId, handoffStatus: c.handoffStatus === "pending" ? "accepted" : c.handoffStatus }
-          : c,
-      ),
+      cs.map((c) => {
+        if (c.id === cardId) {
+          return {
+            ...c,
+            columnId: toColumnId,
+            stageId: toColumnId,
+            position: positionById.get(c.id) ?? c.position,
+            handoffStatus: c.handoffStatus === "pending" ? "accepted" : c.handoffStatus,
+          };
+        }
+        const pos = positionById.get(c.id);
+        return pos != null ? { ...c, position: pos } : c;
+      }),
     );
     setBanner(null);
     const card = prev.find((c) => c.id === cardId);
@@ -235,24 +262,42 @@ export function DealsBoard({
             r.ok ? moveDealStage(cardId, toColumnId, lostReason) : r,
           )
         : moveDealStage(cardId, toColumnId, lostReason);
-    chain.then((r) => {
+    chain
+      .then((r) => (r.ok ? reorderDeals(destOrdered.map((c) => c.id)) : r))
+      .then((r) => {
+        if (!r.ok) {
+          setCards(prev);
+          setBanner(`Couldn't move deal: ${r.error}`);
+        } else {
+          router.refresh();
+        }
+      });
+  }
+
+  function move(cardId: string, toColumnId: string, toIndex?: number) {
+    if (toColumnId === HANDOFF_COLUMN_ID) return;
+    if (lostSet.has(toColumnId)) {
+      setPendingLost({ cardId, toColumnId, toIndex });
+      setReason("");
+      return;
+    }
+    applyMove(cardId, toColumnId, undefined, toIndex);
+  }
+
+  // Same-column drag: card stays in its stage, just changes rank within it.
+  function reorder(cardId: string, columnId: string, toIndex: number) {
+    const prev = cards;
+    const destOrdered = reorderColumn(prev, cardId, columnId, toIndex);
+    const positionById = new Map(destOrdered.map((c, i) => [c.id, i]));
+    setCards((cs) => cs.map((c) => (positionById.has(c.id) ? { ...c, position: positionById.get(c.id)! } : c)));
+    reorderDeals(destOrdered.map((c) => c.id)).then((r) => {
       if (!r.ok) {
         setCards(prev);
-        setBanner(`Couldn't move deal: ${r.error}`);
+        setBanner(`Couldn't reorder: ${r.error}`);
       } else {
         router.refresh();
       }
     });
-  }
-
-  function move(cardId: string, toColumnId: string) {
-    if (toColumnId === HANDOFF_COLUMN_ID) return;
-    if (lostSet.has(toColumnId)) {
-      setPendingLost({ cardId, toColumnId });
-      setReason("");
-      return;
-    }
-    applyMove(cardId, toColumnId);
   }
 
   function decide(cardId: string, decision: "accepted" | "rejected", rejectReason?: string) {
@@ -381,7 +426,7 @@ export function DealsBoard({
             className="admin-btn admin-btn--danger"
             disabled={!reason}
             onClick={() => {
-              applyMove(pendingLost.cardId, pendingLost.toColumnId, reason);
+              applyMove(pendingLost.cardId, pendingLost.toColumnId, reason, pendingLost.toIndex);
               setPendingLost(null);
             }}
           >
@@ -398,6 +443,7 @@ export function DealsBoard({
           columns={columns}
           cards={activeCards}
           onMove={move}
+          onReorder={reorder}
           onCardClick={(c) => setSelectedId(c.id)}
           renderCard={(c) => (
             <>
@@ -479,6 +525,11 @@ export function DealsBoard({
             onRowClick={(c) => setSelectedId(c.id)}
             sort={listSort}
             onSort={sortList}
+            // Drag-to-reorder only makes sense against the natural priority
+            // order — once a column sort or search is applied, rows no longer
+            // sit at a rank you can meaningfully drag.
+            reorderEnabled={!listSort && !query}
+            onReorder={reorder}
             emptyText={query ? "No deals match your search." : showArchived ? "No archived deals." : "No deals yet."}
           />
 
@@ -1273,6 +1324,11 @@ function DealCommunications({ dealId }: { dealId: string }) {
 
 // Non-drag alternative to the kanban: a flat table with multi-select. Row tap
 // opens the shared DealDetail drawer; the checkboxes drive the bulk action bar.
+//
+// Drag-to-reorder (reorderEnabled) only applies against the natural priority
+// order — the parent gates it off whenever a column sort or search is active.
+// When enabled, rows are grouped into one Droppable per stage (mirroring the
+// board's columns) so a drag can only re-rank within a stage, never across one.
 function DealsList({
   cards,
   columns,
@@ -1282,6 +1338,8 @@ function DealsList({
   onRowClick,
   sort,
   onSort,
+  reorderEnabled,
+  onReorder,
   emptyText,
 }: {
   cards: DealCard[];
@@ -1292,10 +1350,13 @@ function DealsList({
   onRowClick: (card: DealCard) => void;
   sort: ListSort | null;
   onSort: (key: string) => void;
+  reorderEnabled: boolean;
+  onReorder: (cardId: string, columnId: string, toIndex: number) => void;
   emptyText: string;
 }) {
   const stageLabel = new Map(columns.map((c) => [c.id, c.label]));
   const allSelected = cards.length > 0 && cards.every((c) => selected.has(c.id));
+  const colCount = reorderEnabled ? 8 : 7;
 
   const sortableTh = (label: string, key: string, align?: "right") => (
     <th style={align === "right" ? { textAlign: "right" } : undefined}>
@@ -1306,12 +1367,77 @@ function DealsList({
     </th>
   );
 
+  function handleDragEnd(result: DropResult) {
+    const { destination, source, draggableId } = result;
+    if (!destination || destination.droppableId !== source.droppableId) return;
+    if (destination.index === source.index) return;
+    onReorder(draggableId, destination.droppableId, destination.index);
+  }
+
+  function rowCells(c: DealCard) {
+    const d = idleDays(c.updatedAt);
+    const idle = c.status === "open" && d != null && d > 14;
+    const isSel = selected.has(c.id);
+    return (
+      <>
+        <td className="admin-cell-check" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            aria-label={`Select ${c.title || "deal"}`}
+            checked={isSel}
+            onChange={() => onToggle(c.id)}
+          />
+        </td>
+        <td>
+          <div className="admin-cell-strong">
+            {c.title || c.personName || c.companyName || "(untitled deal)"}
+          </div>
+          <div className="admin-cell-muted">{c.companyName || c.personName || "—"}</div>
+        </td>
+        <td>
+          {c.columnId === HANDOFF_COLUMN_ID ? (
+            <Badge tone="warn">New from SDR</Badge>
+          ) : (
+            stageLabel.get(c.columnId) ?? "—"
+          )}
+        </td>
+        <td style={{ textAlign: "right" }}>{formatCents(c.amountUsdCents, "usd")}</td>
+        <td style={{ textAlign: "right" }}>{c.probability != null ? `${c.probability}%` : "—"}</td>
+        <td>
+          {c.status !== "open" ? (
+            <span className="admin-cell-muted">—</span>
+          ) : c.nextStepDate ? (
+            <span>
+              {c.nextStep || "next step"} · {formatDate(c.nextStepDate)}
+            </span>
+          ) : (
+            <span style={{ color: "var(--admin-err-ink)", fontWeight: 600 }}>No next step</span>
+          )}
+        </td>
+        <td>
+          <Badge tone={statusTone(c.status ?? "")}>{humanize(c.status)}</Badge>
+          {idle && (
+            <>
+              {" "}
+              <Badge tone="warn">idle {d}d</Badge>
+            </>
+          )}
+        </td>
+      </>
+    );
+  }
+
+  const groups = reorderEnabled
+    ? columns.map((col) => ({ col, rows: cards.filter((c) => c.columnId === col.id) })).filter((g) => g.rows.length > 0)
+    : null;
+
   return (
     <div className="admin-table-wrap">
       <div className="admin-table-scroll">
         <table className="admin-table">
           <thead>
             <tr>
+              {reorderEnabled && <th className="admin-cell-drag" aria-hidden />}
               <th className="admin-cell-check">
                 <input type="checkbox" aria-label="Select all deals" checked={allSelected} onChange={onToggleAll} />
               </th>
@@ -1323,72 +1449,59 @@ function DealsList({
               {sortableTh("Status", "status")}
             </tr>
           </thead>
-          <tbody>
-            {cards.length === 0 ? (
+          {cards.length === 0 ? (
+            <tbody>
               <tr>
-                <td colSpan={7}>
+                <td colSpan={colCount}>
                   <div className="admin-empty">{emptyText}</div>
                 </td>
               </tr>
-            ) : (
-              cards.map((c) => {
-                const d = idleDays(c.updatedAt);
-                const idle = c.status === "open" && d != null && d > 14;
-                const isSel = selected.has(c.id);
-                return (
-                  <tr
-                    key={c.id}
-                    className={`is-clickable${isSel ? " is-selected" : ""}${c.archivedAt ? " admin-row-archived" : ""}`}
-                    onClick={() => onRowClick(c)}
-                  >
-                    <td className="admin-cell-check" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${c.title || "deal"}`}
-                        checked={isSel}
-                        onChange={() => onToggle(c.id)}
-                      />
-                    </td>
-                    <td>
-                      <div className="admin-cell-strong">
-                        {c.title || c.personName || c.companyName || "(untitled deal)"}
-                      </div>
-                      <div className="admin-cell-muted">{c.companyName || c.personName || "—"}</div>
-                    </td>
-                    <td>
-                      {c.columnId === HANDOFF_COLUMN_ID ? (
-                        <Badge tone="warn">New from SDR</Badge>
-                      ) : (
-                        stageLabel.get(c.columnId) ?? "—"
-                      )}
-                    </td>
-                    <td style={{ textAlign: "right" }}>{formatCents(c.amountUsdCents, "usd")}</td>
-                    <td style={{ textAlign: "right" }}>{c.probability != null ? `${c.probability}%` : "—"}</td>
-                    <td>
-                      {c.status !== "open" ? (
-                        <span className="admin-cell-muted">—</span>
-                      ) : c.nextStepDate ? (
-                        <span>
-                          {c.nextStep || "next step"} · {formatDate(c.nextStepDate)}
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--admin-err-ink)", fontWeight: 600 }}>No next step</span>
-                      )}
-                    </td>
-                    <td>
-                      <Badge tone={statusTone(c.status ?? "")}>{humanize(c.status)}</Badge>
-                      {idle && (
-                        <>
-                          {" "}
-                          <Badge tone="warn">idle {d}d</Badge>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
+            </tbody>
+          ) : groups ? (
+            <DragDropContext onDragEnd={handleDragEnd}>
+              {groups.map(({ col, rows }) => (
+                <Droppable droppableId={col.id} key={col.id}>
+                  {(provided) => (
+                    <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                      <tr className="admin-table-group-row">
+                        <td colSpan={colCount}>{col.label}</td>
+                      </tr>
+                      {rows.map((c, i) => (
+                        <Draggable draggableId={c.id} index={i} key={c.id}>
+                          {(dp, ds) => (
+                            <tr
+                              ref={dp.innerRef}
+                              {...dp.draggableProps}
+                              className={`is-clickable${selected.has(c.id) ? " is-selected" : ""}${c.archivedAt ? " admin-row-archived" : ""}${ds.isDragging ? " is-dragging" : ""}`}
+                              onClick={() => onRowClick(c)}
+                            >
+                              <td className="admin-cell-drag" {...dp.dragHandleProps} onClick={(e) => e.stopPropagation()}>
+                                ⠿
+                              </td>
+                              {rowCells(c)}
+                            </tr>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </tbody>
+                  )}
+                </Droppable>
+              ))}
+            </DragDropContext>
+          ) : (
+            <tbody>
+              {cards.map((c) => (
+                <tr
+                  key={c.id}
+                  className={`is-clickable${selected.has(c.id) ? " is-selected" : ""}${c.archivedAt ? " admin-row-archived" : ""}`}
+                  onClick={() => onRowClick(c)}
+                >
+                  {rowCells(c)}
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
     </div>

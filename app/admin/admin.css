@@ -896,6 +896,20 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 }
 .lead-head-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .lead-attempt { font-size: 12px; color: var(--admin-muted); white-space: nowrap; }
+.lead-card.is-pinned { border-color: var(--admin-accent); }
+.lead-pin-btn {
+  background: none;
+  border: 0;
+  padding: 4px;
+  margin: -4px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--admin-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.lead-pin-btn:hover { color: var(--admin-accent); background: var(--admin-accent-soft); }
+.lead-pin-btn.is-active { color: var(--admin-accent); }
 .lead-detail { padding: 14px 16px 16px; border-top: 1px solid var(--admin-line-soft); }
 .lead-meta-row {
   display: flex;
@@ -1058,6 +1072,31 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .admin-table td.admin-cell-check, .admin-table th.admin-cell-check { width: 34px; text-align: center; padding-right: 0; }
 .admin-table tbody tr.is-selected { background: var(--admin-info-bg); }
 .admin-row-archived td:not(.admin-cell-check) { opacity: 0.5; }
+
+/* ─── Drag-to-reorder rows (deals list, priority order) ───────────────────── */
+/* Fixed layout keeps column widths stable once a row leaves flow while
+   dragging — without it the row's cells collapse to content width mid-drag. */
+.admin-table:has(.admin-cell-drag) { table-layout: fixed; }
+.admin-table td.admin-cell-drag, .admin-table th.admin-cell-drag { width: 28px; padding: 0 0 0 12px; }
+.admin-table td.admin-cell-drag {
+  color: var(--admin-muted);
+  cursor: grab;
+  text-align: center;
+  font-size: 14px;
+}
+.admin-table tbody tr.is-dragging {
+  background: var(--admin-surface);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.18);
+}
+.admin-table-group-row td {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  background: #fbfcfd;
+}
 
 /* Checkboxes: globals.css sets appearance:none on every input, which strips the
    native checkmark. Restore a visible checked state for all admin checkboxes. */
