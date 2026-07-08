@@ -319,10 +319,11 @@ function ResumeField({
   );
 }
 
-// The applicant as a person: identity + professional profile. Saves write to
-// people (shared with the CRM), not to the application. do_not_hire is the
-// recruiting flag — separate from the do_not_contact consent opt-out, which is
-// managed from Contact 360, not here.
+// The applicant as a person: identity + professional profile. Identity fields
+// (phone, LinkedIn) write to people (shared with the CRM); recruiting fields
+// write to the candidate_profile satellite — never to the application.
+// do_not_hire is the recruiting flag — separate from the do_not_contact
+// consent opt-out, which is managed from Contact 360, not here.
 function ApplicantProfile(props: {
   personId: string;
   name: string | null;

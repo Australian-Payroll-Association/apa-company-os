@@ -94,11 +94,12 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   return { ok: true };
 }
 
-// Person-side profile edits from the application shelf. These write to people —
-// identity and professional profile are person attributes, not per-application.
-// do_not_hire is the recruiting flag ("would we look at them again?"), kept
-// strictly separate from do_not_contact (consent opt-out), which this action
-// never touches.
+// Profile edits from the application shelf. Identity fields (phone, LinkedIn)
+// are person attributes and write to people; recruiting-profile fields
+// (headline, title, portfolio, do_not_hire) live on the candidate_profile
+// satellite and upsert there. do_not_hire is the recruiting flag ("would we
+// look at them again?"), kept strictly separate from do_not_contact (consent
+// opt-out), which this action never touches.
 export type ApplicantProfilePatch = {
   headline?: string | null;
   current_title?: string | null;
@@ -110,26 +111,47 @@ export type ApplicantProfilePatch = {
 
 export async function updateApplicantProfile(personId: string, patch: ApplicantProfilePatch): Promise<Result> {
   const admin = await requireAdmin();
-  const updates: Record<string, unknown> = {};
+  const personUpdates: Record<string, unknown> = {};
+  const profileUpdates: Record<string, unknown> = {};
 
-  if (patch.headline !== undefined) updates.headline = patch.headline?.trim() || null;
-  if (patch.current_title !== undefined) updates.current_title = patch.current_title?.trim() || null;
-  if (patch.linkedin_url !== undefined) updates.linkedin_url = patch.linkedin_url?.trim() || null;
-  if (patch.portfolio_url !== undefined) updates.portfolio_url = patch.portfolio_url?.trim() || null;
-  if (patch.phone !== undefined) updates.phone = patch.phone?.trim() || null;
-  if (patch.do_not_hire !== undefined) updates.do_not_hire = patch.do_not_hire;
+  if (patch.linkedin_url !== undefined) personUpdates.linkedin_url = patch.linkedin_url?.trim() || null;
+  if (patch.phone !== undefined) personUpdates.phone = patch.phone?.trim() || null;
+  if (patch.headline !== undefined) profileUpdates.headline = patch.headline?.trim() || null;
+  if (patch.current_title !== undefined) profileUpdates.current_title = patch.current_title?.trim() || null;
+  if (patch.portfolio_url !== undefined) profileUpdates.portfolio_url = patch.portfolio_url?.trim() || null;
+  if (patch.do_not_hire !== undefined) profileUpdates.do_not_hire = patch.do_not_hire;
 
-  if (Object.keys(updates).length === 0) return { ok: true };
+  if (Object.keys(personUpdates).length === 0 && Object.keys(profileUpdates).length === 0) {
+    return { ok: true };
+  }
 
-  const { error } = await companyOs.from("people").update(updates).eq("id", personId);
-  if (error) return { ok: false, error: error.message };
-  await recordAudit({
-    table: "people",
-    recordId: personId,
-    operation: "update",
-    actor: admin.email,
-    newData: updates,
-  });
+  if (Object.keys(personUpdates).length > 0) {
+    const { error } = await companyOs.from("people").update(personUpdates).eq("id", personId);
+    if (error) return { ok: false, error: error.message };
+    await recordAudit({
+      table: "people",
+      recordId: personId,
+      operation: "update",
+      actor: admin.email,
+      newData: personUpdates,
+    });
+  }
+
+  if (Object.keys(profileUpdates).length > 0) {
+    const { error } = await companyOs.from("candidate_profile").upsert(
+      { person_id: personId, ...profileUpdates, updated_at: new Date().toISOString() },
+      { onConflict: "person_id" },
+    );
+    if (error) return { ok: false, error: error.message };
+    await recordAudit({
+      table: "candidate_profile",
+      recordId: personId,
+      operation: "update",
+      actor: admin.email,
+      newData: profileUpdates,
+    });
+  }
+
   revalidatePath("/admin/talent/applications");
   revalidatePath(`/admin/contacts/${personId}`);
   return { ok: true };
