@@ -24,7 +24,7 @@ type P = {
   portfolio_url: string | null;
   do_not_hire: boolean;
 };
-type Jr = { title: string | null };
+type Jr = { title: string | null; status: string | null };
 type St = { name: string | null };
 type RawApp = {
   id: string;
@@ -51,7 +51,7 @@ export default async function ApplicationsPage() {
     companyOs
       .from("applications")
       .select(
-        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, headline, current_title, linkedin_url, portfolio_url, do_not_hire), job_requisitions(title), application_stages(name)",
+        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, headline, current_title, linkedin_url, portfolio_url, do_not_hire), job_requisitions(title, status), application_stages(name)",
       )
       .order("created_at", { ascending: false })
       .limit(2000),
@@ -77,6 +77,7 @@ export default async function ApplicationsPage() {
       personId: r.person_id,
       jobReqId: r.job_requisition_id,
       jobReqTitle: one(r.job_requisitions)?.title ?? null,
+      jobReqStatus: one(r.job_requisitions)?.status ?? null,
       stageName: one(r.application_stages)?.name ?? null,
       currentStageId: r.current_stage_id,
       status: r.status,

@@ -19,6 +19,7 @@ export type AppRow = {
   personId: string | null;
   jobReqId: string | null;
   jobReqTitle: string | null;
+  jobReqStatus: string | null;
   stageName: string | null;
   currentStageId: string | null;
   status: string | null;
@@ -32,6 +33,9 @@ export type AppRow = {
 };
 
 const PAGE_SIZES = [25, 50, 100];
+
+// Canonical status order for the filter dropdown (pipeline-ish, ends terminal).
+const STATUS_ORDER = ["active", "on_hold", "passive", "withdrawn", "hired", "rejected"];
 
 function toManageData(r: AppRow): AppManageData {
   return {
@@ -66,29 +70,52 @@ function toManageData(r: AppRow): AppManageData {
 export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const [search, setSearch] = useState("");
   const [reqFilter, setReqFilter] = useState(""); // "" = all reqs
+  const [statusFilter, setStatusFilter] = useState(""); // "" = all statuses
+  const [stageFilter, setStageFilter] = useState(""); // "" = all stages
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Distinct job reqs present in the data, for the filter dropdown.
+  // Job reqs for the filter dropdown: only reqs that are still open — closed
+  // roles' applications remain findable via search/status/stage.
   const reqOptions = useMemo(() => {
     const m = new Map<string, string>();
-    for (const r of rows) if (r.jobReqId) m.set(r.jobReqId, r.jobReqTitle || "(untitled req)");
+    for (const r of rows) {
+      if (r.jobReqId && r.jobReqStatus === "open") m.set(r.jobReqId, r.jobReqTitle || "(untitled req)");
+    }
     return [...m.entries()]
       .map(([id, title]) => ({ id, title }))
       .sort((a, b) => a.title.localeCompare(b.title));
+  }, [rows]);
+
+  // Statuses present in the data, in canonical pipeline order.
+  const statusOptions = useMemo(() => {
+    const present = new Set(rows.map((r) => r.status).filter((s): s is string => Boolean(s)));
+    return STATUS_ORDER.filter((s) => present.has(s)).concat(
+      [...present].filter((s) => !STATUS_ORDER.includes(s)).sort(),
+    );
+  }, [rows]);
+
+  // Stage names present in the data. Stages belong to a req, but names repeat
+  // across reqs ("Interview", "Offer"), so filtering by name works globally.
+  const stageOptions = useMemo(() => {
+    return [...new Set(rows.map((r) => r.stageName).filter((s): s is string => Boolean(s)))].sort((a, b) =>
+      a.localeCompare(b),
+    );
   }, [rows]);
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (reqFilter && r.jobReqId !== reqFilter) return false;
+      if (statusFilter && r.status !== statusFilter) return false;
+      if (stageFilter && r.stageName !== stageFilter) return false;
       if (!query) return true;
       return [r.candidateName, r.headline, r.jobReqTitle, r.stageName, r.status ? humanize(r.status) : null].some(
         (v) => (v ? v.toLowerCase().includes(query) : false),
       );
     });
-  }, [rows, reqFilter, query]);
+  }, [rows, reqFilter, statusFilter, stageFilter, query]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -124,10 +151,44 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
           }}
           aria-label="Filter by job req"
         >
-          <option value="">All job reqs</option>
+          <option value="">All open job reqs</option>
           {reqOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.title}
+            </option>
+          ))}
+        </select>
+        <select
+          className="admin-select"
+          style={{ maxWidth: 160 }}
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by status"
+        >
+          <option value="">All statuses</option>
+          {statusOptions.map((s) => (
+            <option key={s} value={s}>
+              {humanize(s)}
+            </option>
+          ))}
+        </select>
+        <select
+          className="admin-select"
+          style={{ maxWidth: 180 }}
+          value={stageFilter}
+          onChange={(e) => {
+            setStageFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by stage"
+        >
+          <option value="">All stages</option>
+          {stageOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
             </option>
           ))}
         </select>
