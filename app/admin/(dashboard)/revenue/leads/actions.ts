@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
-import { promotePersonToLead, recordTransition } from "@/lib/lifecycle";
+import {
+  bumpPersonCompanies,
+  getLead,
+  promotePersonToLead,
+  recordTransition,
+} from "@/lib/lifecycle";
 import { recordAudit } from "@/lib/admin/audit";
 import { guardedDelete } from "@/lib/admin/mutations";
 
@@ -38,29 +43,23 @@ export async function promoteLead(personId: string): Promise<Result> {
 export async function removeFromQueue(personId: string): Promise<Result> {
   const admin = await requireAdmin();
 
-  const { data: person, error: pErr } = await companyOs
-    .from("people")
-    .select("lifecycle_stage, lead_status")
-    .eq("id", personId)
-    .maybeSingle();
-  if (pErr || !person) return { ok: false, error: pErr?.message ?? "Person not found." };
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not in the queue." };
 
   const { error } = await companyOs
-    .from("people")
-    .update({ lead_status: "nurture", lead_sla_due_at: null })
-    .eq("id", personId);
+    .from("lead")
+    .update({ status: "nurture", sla_due_at: null, updated_at: new Date().toISOString() })
+    .eq("person_id", personId);
   if (error) return { ok: false, error: error.message };
 
   await recordTransition({
     personId,
-    fromStage: person.lifecycle_stage,
-    toStage: person.lifecycle_stage,
-    fromStatus: person.lead_status,
+    fromStatus: lead.status,
     toStatus: "nurture",
     reason: "removed_from_queue",
   });
   await recordAudit({
-    table: "people",
+    table: "lead",
     recordId: personId,
     operation: "update",
     actor: admin.email,
@@ -71,7 +70,8 @@ export async function removeFromQueue(personId: string): Promise<Result> {
 }
 
 // Destructive: permanently erase the person (GDPR), guarded by the schema's
-// foreign keys. Clearly separated from the safe "remove from queue".
+// foreign keys. The lead row follows via ON DELETE CASCADE. Clearly separated
+// from the safe "remove from queue".
 export async function deleteLeadPerson(personId: string): Promise<Result> {
   const admin = await requireAdmin();
   const r = await guardedDelete("people", personId, admin.email, { via: "leads" });
@@ -84,12 +84,8 @@ export async function deleteLeadPerson(personId: string): Promise<Result> {
 export async function logCall(personId: string, note: string): Promise<Result> {
   await requireAdmin();
 
-  const { data: person, error: pErr } = await companyOs
-    .from("people")
-    .select("lead_status, lead_attempt_count")
-    .eq("id", personId)
-    .maybeSingle();
-  if (pErr || !person) return { ok: false, error: pErr?.message ?? "Person not found." };
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
 
   const { error: iErr } = await companyOs.from("interactions").insert({
     kind: "call",
@@ -102,15 +98,16 @@ export async function logCall(personId: string, note: string): Promise<Result> {
   if (iErr) return { ok: false, error: iErr.message };
 
   const updates: Record<string, unknown> = {
-    lead_attempt_count: (person.lead_attempt_count ?? 0) + 1,
-    lead_sla_due_at: null,
+    attempt_count: (lead.attempt_count ?? 0) + 1,
+    sla_due_at: null,
+    updated_at: new Date().toISOString(),
   };
-  if (person.lead_status === "new") updates.lead_status = "attempting";
+  if (lead.status === "new") updates.status = "attempting";
 
-  const { error: uErr } = await companyOs.from("people").update(updates).eq("id", personId);
+  const { error: uErr } = await companyOs.from("lead").update(updates).eq("person_id", personId);
   if (uErr) return { ok: false, error: uErr.message };
 
-  if (person.lead_status === "new") {
+  if (lead.status === "new") {
     await recordTransition({
       personId,
       fromStatus: "new",
@@ -125,23 +122,19 @@ export async function logCall(personId: string, note: string): Promise<Result> {
 export async function markConnected(personId: string): Promise<Result> {
   await requireAdmin();
 
-  const { data: person, error: pErr } = await companyOs
-    .from("people")
-    .select("lead_status")
-    .eq("id", personId)
-    .maybeSingle();
-  if (pErr || !person) return { ok: false, error: pErr?.message ?? "Person not found." };
-  if (person.lead_status === "connected") return { ok: true };
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
+  if (lead.status === "connected") return { ok: true };
 
   const { error } = await companyOs
-    .from("people")
-    .update({ lead_status: "connected", lead_sla_due_at: null })
-    .eq("id", personId);
+    .from("lead")
+    .update({ status: "connected", sla_due_at: null, updated_at: new Date().toISOString() })
+    .eq("person_id", personId);
   if (error) return { ok: false, error: error.message };
 
   await recordTransition({
     personId,
-    fromStatus: person.lead_status,
+    fromStatus: lead.status,
     toStatus: "connected",
     reason: "connected",
   });
@@ -175,7 +168,7 @@ export async function saveQualification(
 }
 
 // Enumerated exit. mode 'nurture' keeps the person warm for re-engagement;
-// 'unqualified' is a hard no. Either way the person stays and the transition
+// 'unqualified' is a hard no. Either way the lead row stays and the transition
 // log keeps this cycle queryable.
 export async function disqualifyLead(
   personId: string,
@@ -186,28 +179,23 @@ export async function disqualifyLead(
   await requireAdmin();
   if (!DISQUALIFY_REASONS.has(reason)) return { ok: false, error: "Pick a reason." };
 
-  const { data: person, error: pErr } = await companyOs
-    .from("people")
-    .select("lifecycle_stage, lead_status")
-    .eq("id", personId)
-    .maybeSingle();
-  if (pErr || !person) return { ok: false, error: pErr?.message ?? "Person not found." };
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
 
   const { error } = await companyOs
-    .from("people")
+    .from("lead")
     .update({
-      lead_status: mode,
-      lead_sla_due_at: null,
+      status: mode,
+      sla_due_at: null,
       disqualified_reason: reason,
+      updated_at: new Date().toISOString(),
     })
-    .eq("id", personId);
+    .eq("person_id", personId);
   if (error) return { ok: false, error: error.message };
 
   await recordTransition({
     personId,
-    fromStage: person.lifecycle_stage,
-    toStage: person.lifecycle_stage,
-    fromStatus: person.lead_status,
+    fromStatus: lead.status,
     toStatus: mode,
     reason,
     note: note.trim() || null,
@@ -217,19 +205,20 @@ export async function disqualifyLead(
 }
 
 // The SDR→closer handoff: create a pending deal on the default pipeline's
-// first stage and move the person to opportunity/open_deal. The closer
-// accepts or rejects it on the Deals board.
+// first stage, move the lead to open_deal, and raise the account to
+// opportunity. The closer accepts or rejects it on the Deals board.
 export async function bookMeetingAndHandOff(personId: string): Promise<Result> {
   await requireAdmin();
 
   const { data: person, error: pErr } = await companyOs
     .from("people")
-    .select(
-      "full_name, email, lifecycle_stage, lead_status, person_companies(company_id, companies(name))",
-    )
+    .select("full_name, email, person_companies(company_id, companies(name))")
     .eq("id", personId)
     .maybeSingle();
   if (pErr || !person) return { ok: false, error: pErr?.message ?? "Person not found." };
+
+  const lead = await getLead(personId);
+  if (!lead) return { ok: false, error: "Not an active lead." };
 
   const { data: pipeline, error: plErr } = await companyOs
     .from("pipelines")
@@ -264,23 +253,18 @@ export async function bookMeetingAndHandOff(personId: string): Promise<Result> {
   if (dErr) return { ok: false, error: dErr.message };
 
   const { error: uErr } = await companyOs
-    .from("people")
-    .update({
-      lifecycle_stage: "opportunity",
-      lead_status: "open_deal",
-      lead_sla_due_at: null,
-    })
-    .eq("id", personId);
+    .from("lead")
+    .update({ status: "open_deal", sla_due_at: null, updated_at: new Date().toISOString() })
+    .eq("person_id", personId);
   if (uErr) return { ok: false, error: uErr.message };
 
   await recordTransition({
     personId,
-    fromStage: person.lifecycle_stage,
-    toStage: "opportunity",
-    fromStatus: person.lead_status,
+    fromStatus: lead.status,
     toStatus: "open_deal",
     reason: "meeting_booked",
   });
+  await bumpPersonCompanies(personId, "opportunity", { reason: "meeting_booked" });
 
   refresh();
   revalidatePath("/admin/revenue/deals");

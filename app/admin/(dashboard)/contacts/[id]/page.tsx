@@ -24,7 +24,8 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   const data = await getPerson360(params.id);
   if (!data) notFound();
 
-  const { person, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
+  const { person, lead, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
+  const isCustomer = deals.some((d) => d.status === "won");
   const primaryCompany = companies.find((c) => c.is_primary) ?? companies[0] ?? null;
   const name = person.full_name || person.preferred_name || person.email;
   const location = [person.city, person.state_province, person.country].filter(Boolean).join(", ");
@@ -300,17 +301,15 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
             {person.archived_at && <Badge tone="neutral">Archived</Badge>}
             {person.do_not_contact && <Badge tone="err">Do not contact</Badge>}
             {person.is_team_member && <Badge tone="info">Team</Badge>}
-            {person.lifecycle_stage && person.lifecycle_stage !== "none" && (
-              <Badge tone={person.lifecycle_stage === "customer" ? "ok" : "info"}>
-                {humanize(person.lifecycle_stage)}
-                {person.lead_status ? ` · ${humanize(person.lead_status)}` : ""}
-              </Badge>
+            {isCustomer && <Badge tone="ok">Customer</Badge>}
+            {!isCustomer && lead && (
+              <Badge tone="info">Lead · {humanize(lead.status)}</Badge>
             )}
             {person.persona && <Badge>{humanize(person.persona)}</Badge>}
             {!person.do_not_contact &&
               !person.is_team_member &&
-              (["none", "subscriber"].includes(person.lifecycle_stage ?? "none") ||
-                ["unqualified", "nurture"].includes(person.lead_status ?? "")) && (
+              !isCustomer &&
+              (!lead || ["unqualified", "nurture"].includes(lead.status)) && (
                 <PromoteButton personId={person.id} />
               )}
           </span>

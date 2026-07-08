@@ -38,32 +38,42 @@ If unsure a column exists, verify:
 
 | Column | Allowed values |
 |---|---|
-| `people.lifecycle_stage` | `none`, `subscriber`, `lead`, `mql`, `sql`, `opportunity`, `customer`, `evangelist` |
-| `people.lead_status` | `new`, `attempting`, `connected`, `meeting_booked`, `open_deal`, `unqualified`, `nurture` |
+| `companies.lifecycle_stage` | `none`, `subscriber`, `lead`, `mql`, `sql`, `opportunity`, `customer`, `evangelist` — **account-level**; people do not carry a stage |
+| `lead.status` | `new`, `attempting`, `connected`, `meeting_booked`, `open_deal`, `unqualified`, `nurture` |
 | `people.persona` | `null`, `vendor`, `prospect`, `client`, `job_seeker`, `employee`, `student` |
-| `people.disqualified_reason` | `no_budget`, `no_need`, `bad_timing`, `no_authority`, `unresponsive`, `competitor`, `not_icp`, `other` |
+| `lead.disqualified_reason` | `no_budget`, `no_need`, `bad_timing`, `no_authority`, `unresponsive`, `competitor`, `not_icp`, `other` |
+
+**The lead model (satellite):** being a lead is a role, not a person attribute.
+`company_os.lead` holds one row per person being worked (`person_id` unique,
+`status`, `sla_due_at`, `attempt_count`, `disqualified_reason`). `people` has
+**no** `lifecycle_stage`/`lead_status` columns. Employees/candidates never get a
+`lead` row. The account's funnel position is `companies.lifecycle_stage`
+(raise-only: never move a company backwards).
 | `inquiries.type` | `general`, `keynote`, `consultation`, `coaching`, `retreat`, `newsletter`, `trip`, `service`, `partnership`, `checkout`, `other` |
 | `inquiries.status` | `new_lead`, `contacted`, `qualified`, `discovery_call`, `proposal`, `won`, `lost`, `nurture`, `archived` |
 | `interactions.kind` | `note`, `call`, `email`, `meeting`, `message`, `status_change`, `system` |
 | `person_companies.role` | `owner_founder`, `executive`, `employee`, `primary`, `secondary`, `board`, `advisor`, `other` |
 
-Idempotency keys: `people.email` is unique; `person_companies (person_id, company_id)` is unique.
+Idempotency keys: `people.email` is unique; `person_companies (person_id, company_id)`
+and `lead.person_id` are unique.
 
-## Decide lifecycle_stage + lead_status first
+## Decide who gets a lead row first
 
 Classify the person before writing:
 
-- **The buyer / decision-maker** (this is "the lead"): `lifecycle_stage='lead'`,
-  `persona='prospect'`, and pick `lead_status`:
-  - Cold inbound (they filled a form or cold-emailed asking): `lead_status='new'`
-    and set `lead_sla_due_at = now() + interval '4 hours'` (speed-to-lead clock).
-  - Warm referral / already in conversation: `lead_status='connected'`, no SLA.
-  - A meeting is already booked: `lead_status='meeting_booked'`, no SLA.
-- **A gatekeeper / EA / referrer / plus-one** (not buying): `lifecycle_stage='none'`,
-  `lead_status=null`, `persona=null`. They are a contact, linked to the company,
-  not a lead. Do not give them an inquiry or an SLA.
-- **Never** touch someone already `customer`/`evangelist`, and never demote an
-  existing active lead. When in doubt, enrich (Flow B), don't reset.
+- **The buyer / decision-maker** (this is "the lead"): `persona='prospect'` on
+  the person, plus a `company_os.lead` row with the right `status`:
+  - Cold inbound (they filled a form or cold-emailed asking): `status='new'`
+    and `sla_due_at = now() + interval '4 hours'` (speed-to-lead clock).
+  - Warm referral / already in conversation: `status='connected'`, no SLA.
+  - A meeting is already booked: `status='meeting_booked'`, no SLA.
+- **A gatekeeper / EA / referrer / plus-one** (not buying): no `lead` row,
+  `persona=null`. They are a contact, linked to the company, not a lead.
+  Do not give them an inquiry or an SLA.
+- **Never demote**: if a `lead` row already exists with an active status
+  (`new`/`attempting`/`connected`/`meeting_booked`/`open_deal`), or the person
+  has an open/won deal (they're a customer), leave the lead state alone and
+  enrich (Flow B) instead.
 
 Do **not** create a `deal`. Deals are opened after discovery, from the Leads
 queue ("book meeting & hand off") or manually once there's value to size.
@@ -92,60 +102,83 @@ co_ins as (
 company as (
   select id from co union all select id from co_ins
 ),
-lead as (
+lead_person as (
   insert into company_os.people
-    (email, full_name, first_name, last_name, phone, source, persona, lifecycle_stage, lead_status, lead_sla_due_at, notes, metadata)
+    (email, full_name, first_name, last_name, phone, source, persona, notes, metadata)
   values
     ('{{email}}','{{Full Name}}','{{First}}','{{Last}}','{{phone|null}}','{{referral|inbound|outbound}}',
-     'prospect','lead','{{new|connected|meeting_booked}}', {{now()+interval '4 hours' | null}},
-     '{{one-line context}}', '{}'::jsonb)
+     'prospect','{{one-line context}}', '{}'::jsonb)
   on conflict (email) do update set  -- fill blanks only, never clobber
      full_name = coalesce(company_os.people.full_name, excluded.full_name),
      phone     = coalesce(company_os.people.phone, excluded.phone),
      updated_at = now()
   returning id
 ),
+lead as (
+  -- the lead satellite row: this is what makes them a lead
+  insert into company_os.lead (person_id, status, sla_due_at, source)
+  select id, '{{new|connected|meeting_booked}}', {{now()+interval '4 hours' | null}},
+         '{{referral|inbound|outbound}}'
+  from lead_person
+  on conflict (person_id) do nothing  -- never demote an existing lead
+  returning person_id
+),
 link as (
   insert into company_os.person_companies (person_id, company_id, role, title, is_primary)
-  select lead.id, company.id, 'primary', {{'Title'|null}}, true from lead, company
+  select lead_person.id, company.id, 'primary', {{'Title'|null}}, true from lead_person, company
   on conflict (person_id, company_id) do nothing
   returning person_id
 ),
+stage as (
+  -- raise the account (never lower it): none/subscriber → lead
+  update company_os.companies c set lifecycle_stage = 'lead', updated_at = now()
+  from company
+  where c.id = company.id and c.lifecycle_stage in ('none','subscriber')
+  returning c.id
+),
 inq as (
   insert into company_os.inquiries (person_id, type, subject, message, source, status, metadata)
-  select lead.id, '{{consultation|general|...}}', '{{Subject}}', '{{What they want}}',
+  select lead_person.id, '{{consultation|general|...}}', '{{Subject}}', '{{What they want}}',
          '{{referral|inbound|outbound}}', 'new_lead',
          jsonb_build_object('company','{{Company Name}}')
-  from lead
+  from lead_person
   returning id
 ),
 mtg as (  -- OPTIONAL: only if a meeting/call is already booked
   insert into company_os.interactions (kind, subject, body, occurred_at, person_id, company_id, metadata)
   select 'meeting', '{{Meeting subject}}', '{{Meeting notes}}',
-         timestamptz '{{YYYY-MM-DD HH:MM:SS+00}}', lead.id, company.id,
+         timestamptz '{{YYYY-MM-DD HH:MM:SS+00}}', lead_person.id, company.id,
          jsonb_build_object('source','manual_entry')
-  from lead, company
+  from lead_person, company
   returning id
 ),
 trans as (
-  insert into company_os.lifecycle_transitions (person_id, from_stage, to_stage, from_status, to_status, reason, note)
-  select lead.id, 'none','lead', null, '{{new|connected|meeting_booked}}', 'promoted_manually', '{{why}}'
+  -- status transition for the person; only when a lead row was actually created
+  insert into company_os.lifecycle_transitions (person_id, from_status, to_status, reason, note)
+  select person_id, null, '{{new|connected|meeting_booked}}', 'promoted_manually', '{{why}}'
   from lead
   returning id
+),
+co_trans as (
+  -- stage transition for the account; only when the stage actually moved
+  insert into company_os.lifecycle_transitions (company_id, from_stage, to_stage, reason)
+  select id, 'none', 'lead', 'promoted_manually' from stage
+  returning id
 )
-select (select id from lead) as lead_id, (select id from company) as company_id;
+select (select id from lead_person) as person_id, (select id from company) as company_id;
 ```
 
-4. For each extra contact (EA, referrer), add a person with `lifecycle_stage='none'`,
-   `persona=null`, and a `person_companies` link with `is_primary=false` and the
+4. For each extra contact (EA, referrer), add a person with `persona=null`, **no
+   `lead` row**, and a `person_companies` link with `is_primary=false` and the
    right `role` (usually `'other'` or `'employee'`). No inquiry, no transition.
 5. Timezones: store `occurred_at` in UTC. E.g. a Perth (AWST, +08) meeting at
    14 Jul 07:30 → `2026-07-13 23:30:00+00`.
 
 ## Flow B — enrich / update an existing record
 
-1. Find the person: `select id, full_name, lifecycle_stage, lead_status, persona
-   from company_os.people where email = '{{email}}';` (or `ilike full_name` if no email).
+1. Find the person and their lead state: `select p.id, p.full_name, p.persona,
+   l.status as lead_status from company_os.people p left join company_os.lead l
+   on l.person_id = p.id where p.email = '{{email}}';` (or `ilike full_name` if no email).
 2. Apply only what's new — pick the relevant statements:
    - **Fill in fields** (never overwrite good data): `update company_os.people set
      phone = coalesce(phone, '{{}}'), linkedin_url = coalesce(linkedin_url, '{{}}'),
@@ -156,19 +189,22 @@ select (select id from lead) as lead_id, (select id from company) as company_id;
    - **Attach to a company**: reuse the `co`/`co_ins` pattern for the company id,
      then insert `person_companies … on conflict (person_id, company_id) do nothing`.
    - **Advance the lead** (e.g. connected → meeting_booked): update
-     `people.lead_status` **and** insert a matching `lifecycle_transitions` row so
+     `company_os.lead.status` (and `updated_at`) **and** insert a matching
+     `lifecycle_transitions` row (person-scoped, `from_status`/`to_status`) so
      the funnel stays truthful. Do not skip the transition.
-   - **Disqualify**: `lifecycle_stage` stays `lead`, set `lead_status='unqualified'`
-     (or `'nurture'`) + a valid `disqualified_reason` + a transition row.
+   - **Disqualify**: keep the `lead` row, set `status='unqualified'` (or
+     `'nurture'`), `sla_due_at=null`, a valid `disqualified_reason`, + a
+     transition row.
 
 ## Verify (always, before reporting done)
 
 ```sql
-select p.full_name, p.email::text, p.lifecycle_stage, p.lead_status, p.persona, p.source,
-       c.name as company, pc.is_primary, pc.title,
+select p.full_name, p.email::text, l.status as lead_status, l.sla_due_at, p.persona, p.source,
+       c.name as company, c.lifecycle_stage as company_stage, pc.is_primary, pc.title,
        (select count(*) from company_os.inquiries i where i.person_id=p.id) as inquiries,
        (select count(*) from company_os.interactions x where x.person_id=p.id) as interactions
 from company_os.people p
+left join company_os.lead l on l.person_id = p.id
 left join company_os.person_companies pc on pc.person_id=p.id
 left join company_os.companies c on c.id=pc.company_id
 where p.email = '{{email}}';
