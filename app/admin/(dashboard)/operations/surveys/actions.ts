@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -41,38 +42,34 @@ export type SurveyMetaInput = {
   isAnonymous: boolean;
 };
 
-export async function createSurvey(input: SurveyMetaInput): Promise<CreateResult> {
+export async function createBlankSurvey(): Promise<CreateResult> {
   const admin = await requireAdmin();
 
-  const name = input.name.trim();
-  if (!name) return { ok: false, error: "Give the survey a name." };
-  const slug = slugify(input.slug || name);
-  if (!slug) return { ok: false, error: "Give the survey a slug." };
-
+  // Create-on-click: drop the operator straight into the builder rather than
+  // gating on a separate metadata form. The slug is auto-unique and follows the
+  // title while the survey stays a draft (see updateSurveyMeta's auto-sync).
+  const slug = `untitled-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
   const { data, error } = await companyOs
     .from("surveys")
     .insert({
       slug,
-      name,
-      description: input.description.trim() || null,
+      name: "Untitled survey",
       status: "draft",
-      intro_text: input.introText.trim() || null,
-      thank_you_text: input.thankYouText.trim() || null,
-      is_anonymous: input.isAnonymous,
+      is_anonymous: false,
       created_by: admin.email,
     })
     .select("id")
     .single();
-  if (error || !data) return { ok: false, error: friendlySlugError(error?.message ?? "Insert failed.") };
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not create the survey." };
 
   await recordAudit({
     table: "surveys",
     recordId: data.id,
     operation: "insert",
     actor: admin.email,
-    newData: { slug, name, is_anonymous: input.isAnonymous },
+    newData: { slug, name: "Untitled survey" },
   });
-  refresh(data.id);
+  revalidatePath("/admin/operations/surveys");
   return { ok: true, id: data.id };
 }
 

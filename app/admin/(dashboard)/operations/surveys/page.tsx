@@ -7,6 +7,7 @@ import { listEntity, countEntity } from "@/lib/admin/query";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { formatDate } from "@/lib/admin/format";
 import { surveyStatusTone } from "@/lib/admin/surveys";
+import { NewSurveyButton } from "./NewSurveyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -113,11 +114,7 @@ export default async function SurveysPage({
         eyebrow="Operations · Workplace"
         title="Surveys"
         sub="Light Typeform: build, share, and read team and external surveys."
-        action={
-          <Link href={`${BASE}/new`} className="admin-btn admin-btn--primary">
-            New survey
-          </Link>
-        }
+        action={<NewSurveyButton />}
       />
 
       {list.error && <div className="admin-alert admin-alert--err">{list.error}</div>}

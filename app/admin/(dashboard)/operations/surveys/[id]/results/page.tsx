@@ -246,7 +246,7 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
               .map((a) => parseStoredAnswer(f, a))
               .filter((v): v is NonNullable<typeof v> => v !== null);
             return (
-              <div className="admin-card" key={f.id}>
+              <div className="admin-card admin-section-card" key={f.id}>
                 <h2 className="admin-card-title">
                   {i + 1}. {f.label}
                 </h2>
@@ -261,7 +261,7 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
         </div>
       )}
 
-      <div className="admin-card">
+      <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Responses</h2>
         <div className="admin-table-wrap">
           <div className="admin-table-scroll">

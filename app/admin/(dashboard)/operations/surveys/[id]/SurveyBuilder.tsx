@@ -8,6 +8,7 @@ import {
   FIELD_TYPES,
   FIELD_TYPE_LABEL,
   ratingBounds,
+  slugify,
   surveyStatusTone,
   type FieldType,
   type SurveyFieldRow,
@@ -262,6 +263,7 @@ export function SurveyBuilder({
   // Meta form
   const [name, setName] = useState(survey.name);
   const [slug, setSlug] = useState(survey.slug);
+  const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState(survey.description ?? "");
   const [introText, setIntroText] = useState(survey.intro_text ?? "");
   const [thankYouText, setThankYouText] = useState(survey.thank_you_text ?? "");
@@ -302,7 +304,7 @@ export function SurveyBuilder({
       )}
 
       {/* Status + sharing */}
-      <div className="admin-card">
+      <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Status</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <Badge tone={surveyStatusTone(survey.status)}>{survey.status}</Badge>
@@ -369,7 +371,7 @@ export function SurveyBuilder({
       </div>
 
       {/* Meta */}
-      <div className="admin-card">
+      <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Details</h2>
         <form
           className="admin-form"
@@ -396,23 +398,34 @@ export function SurveyBuilder({
               id="sb-name"
               className="admin-input"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (survey.status === "draft" && !slugTouched) setSlug(slugify(e.target.value));
+              }}
               required
             />
           </div>
           <div className="admin-field">
-            <label className="admin-label" htmlFor="sb-slug">Slug</label>
-            <input
-              id="sb-slug"
-              className="admin-input"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              disabled={survey.status !== "draft"}
-              required
-            />
-            {survey.status !== "draft" && (
-              <span className="admin-hint">The slug is frozen after publishing.</span>
-            )}
+            <label className="admin-label" htmlFor="sb-slug">Public link</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>/surveys/</span>
+              <input
+                id="sb-slug"
+                className="admin-input"
+                value={slug}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setSlug(e.target.value);
+                }}
+                disabled={survey.status !== "draft"}
+                required
+              />
+            </div>
+            <span className="admin-hint">
+              {survey.status === "draft"
+                ? "Fills in from the name; edit it for a tidier link. Frozen after publishing."
+                : "Frozen after publishing."}
+            </span>
           </div>
           <div className="admin-field">
             <label className="admin-label" htmlFor="sb-desc">Description (optional)</label>
@@ -463,7 +476,7 @@ export function SurveyBuilder({
       </div>
 
       {/* Questions */}
-      <div className="admin-card">
+      <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Questions</h2>
         {locked && (
           <div className="admin-alert admin-alert--ok" style={{ marginBottom: 12 }}>
