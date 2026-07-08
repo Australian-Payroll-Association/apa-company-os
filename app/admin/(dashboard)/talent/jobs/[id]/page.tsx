@@ -40,7 +40,8 @@ type ReqRow = {
   metadata: Record<string, unknown> | null;
   companies: Co | Co[] | null;
 };
-type P = { full_name: string | null; email: string; headline: string | null };
+type Cp = { headline: string | null };
+type P = { full_name: string | null; email: string; candidate_profile: Cp | Cp[] | null };
 type AppRow = {
   id: string;
   current_stage_id: string | null;
@@ -68,7 +69,7 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
     companyOs.from("application_stages").select("id, name, position, is_terminal").eq("job_requisition_id", id).order("position"),
     companyOs
       .from("applications")
-      .select("id, current_stage_id, status, rating, applied_at, person_id, people!person_id(full_name, email, headline)")
+      .select("id, current_stage_id, status, rating, applied_at, person_id, people!person_id(full_name, email, candidate_profile(headline))")
       .eq("job_requisition_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -79,12 +80,13 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
 
   const cards: AppCard[] = ((appsRes.data ?? []) as AppRow[]).map((a) => {
     const p = one(a.people);
+    const cp = one(p?.candidate_profile ?? null);
     return {
       id: a.id,
       columnId: a.current_stage_id ?? firstStageId,
       candidateName: p?.full_name ?? p?.email ?? null,
       personId: a.person_id,
-      headline: p?.headline ?? null,
+      headline: cp?.headline ?? null,
       status: a.status,
       rating: a.rating,
       appliedAt: a.applied_at,

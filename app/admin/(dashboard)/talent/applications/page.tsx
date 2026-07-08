@@ -12,17 +12,22 @@ export const metadata = {
 };
 
 // Talent office: every application across all reqs, joined straight to the
-// person (the candidates table is retired). Rows load once and the client
-// table handles search, the job-req filter, paging, and the manage shelf.
+// person (the candidates table is retired). Recruiting-profile fields live on
+// the candidate_profile satellite, embedded through the person. Rows load once
+// and the client table handles search, the job-req filter, paging, and the
+// manage shelf.
+type Cp = {
+  headline: string | null;
+  current_title: string | null;
+  portfolio_url: string | null;
+  do_not_hire: boolean;
+};
 type P = {
   full_name: string | null;
   email: string;
   phone: string | null;
-  headline: string | null;
-  current_title: string | null;
   linkedin_url: string | null;
-  portfolio_url: string | null;
-  do_not_hire: boolean;
+  candidate_profile: Cp | Cp[] | null;
 };
 type Jr = { title: string | null; status: string | null };
 type St = { name: string | null };
@@ -51,7 +56,7 @@ export default async function ApplicationsPage() {
     companyOs
       .from("applications")
       .select(
-        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, headline, current_title, linkedin_url, portfolio_url, do_not_hire), job_requisitions(title, status), application_stages(name)",
+        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions(title, status), application_stages(name)",
       )
       .order("created_at", { ascending: false })
       .limit(2000),
@@ -64,16 +69,17 @@ export default async function ApplicationsPage() {
   const raw = (appsRes.data ?? []) as unknown as RawApp[];
   const rows: AppRow[] = raw.map((r) => {
     const p = one(r.people);
+    const cp = one(p?.candidate_profile ?? null);
     return {
       id: r.id,
       candidateName: p?.full_name || p?.email || null,
       email: p?.email ?? null,
       phone: p?.phone ?? null,
-      headline: p?.headline ?? null,
-      currentTitle: p?.current_title ?? null,
+      headline: cp?.headline ?? null,
+      currentTitle: cp?.current_title ?? null,
       linkedinUrl: p?.linkedin_url ?? null,
-      portfolioUrl: p?.portfolio_url ?? null,
-      doNotHire: Boolean(p?.do_not_hire),
+      portfolioUrl: cp?.portfolio_url ?? null,
+      doNotHire: Boolean(cp?.do_not_hire),
       personId: r.person_id,
       jobReqId: r.job_requisition_id,
       jobReqTitle: one(r.job_requisitions)?.title ?? null,

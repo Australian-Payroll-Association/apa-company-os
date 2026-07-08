@@ -24,7 +24,7 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   const data = await getPerson360(params.id);
   if (!data) notFound();
 
-  const { person, lead, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
+  const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
   const isCustomer = deals.some((d) => d.status === "won");
   const primaryCompany = companies.find((c) => c.is_primary) ?? companies[0] ?? null;
   const name = person.full_name || person.preferred_name || person.email;
@@ -192,14 +192,14 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
       key: "recruiting",
       label: "Recruiting",
       count: applications.length,
-      content: applications.length === 0 && !person.headline && !person.do_not_hire ? (
+      content: applications.length === 0 && !candidateProfile?.headline && !candidateProfile?.do_not_hire ? (
         <Empty text="No applications." />
       ) : (
         <div>
-          {(person.headline || person.do_not_hire) && (
+          {(candidateProfile?.headline || candidateProfile?.do_not_hire) && (
             <div className="admin-list-row">
               <div className="admin-list-main">
-                <div className="admin-list-title">{person.headline || person.current_title || "Applicant"}</div>
+                <div className="admin-list-title">{candidateProfile?.headline || candidateProfile?.current_title || "Applicant"}</div>
                 <div className="admin-list-sub">
                   {person.linkedin_url ? (
                     <a href={person.linkedin_url} target="_blank" rel="noreferrer">
@@ -210,7 +210,7 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
                   )}
                 </div>
               </div>
-              {person.do_not_hire && (
+              {candidateProfile?.do_not_hire && (
                 <div className="admin-list-aside">
                   <Badge tone="err">Do not hire</Badge>
                 </div>
