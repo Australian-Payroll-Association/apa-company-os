@@ -24,6 +24,7 @@ const REL_LABEL: Record<string, string> = {
   affiliates: "affiliate records",
   applications: "applications",
   job_requisitions: "job requisitions",
+  lifecycle_transitions: "lifecycle transitions",
   projects: "projects",
   candidates: "a candidate profile",
   tasks: "tasks",
