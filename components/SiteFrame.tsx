@@ -6,7 +6,7 @@ import Nav from './Nav'
 import Footer from './Footer'
 
 // Routes that render standalone, without the site nav/footer (e.g. full-screen decks, the /admin CRM, the /team portal).
-const BARE_ROUTES = ['/blueprints/team-onboarding', '/reserve', '/admin', '/team']
+const BARE_ROUTES = ['/blueprints/team-onboarding', '/reserve', '/admin', '/team', '/surveys']
 
 export default function SiteFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname()

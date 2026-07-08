@@ -83,7 +83,7 @@ const NAV: NavGroup[] = [
         items: [
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥" },
           { label: "Documents", href: "/admin/operations/documents", ico: "⎙" },
-          { label: "Surveys", href: "/admin/operations/surveys", ico: "✎" },
+          { label: "Surveys", href: "/admin/operations/surveys", ico: "✎", enabled: true },
         ],
       },
     ],
