@@ -907,6 +907,24 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   margin: -4px 0;
 }
 .lead-drag-handle:hover { color: var(--admin-accent); }
+.lead-zone-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  margin: 14px 0 6px 2px;
+}
+.lead-zone { min-height: 56px; border-radius: var(--admin-radius); transition: background var(--transition); }
+.lead-zone.is-drop-target { background: #e7edf9; }
+.lead-zone-empty {
+  border: 1px dashed var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
 .lead-pin-btn {
   background: none;
   border: 0;
