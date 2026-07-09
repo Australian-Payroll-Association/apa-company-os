@@ -897,6 +897,16 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .lead-head-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .lead-attempt { font-size: 12px; color: var(--admin-muted); white-space: nowrap; }
 .lead-card.is-pinned { border-color: var(--admin-accent); }
+.lead-card.is-dragging { box-shadow: 0 10px 24px rgba(16, 24, 40, 0.18); border-color: var(--admin-accent); }
+.lead-drag-handle {
+  flex-shrink: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  cursor: grab;
+  padding: 4px 2px;
+  margin: -4px 0;
+}
+.lead-drag-handle:hover { color: var(--admin-accent); }
 .lead-pin-btn {
   background: none;
   border: 0;

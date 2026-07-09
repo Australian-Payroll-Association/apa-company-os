@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Badge } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { formatDate, humanize } from "@/lib/admin/format";
@@ -83,6 +84,10 @@ export function LeadQueue({ rows }: { rows: QueueRow[] }) {
   const [openId, setOpenId] = useState<string | null>(rows[0]?.id ?? null);
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Local copy so a drag can reorder immediately; resynced whenever the
+  // server sends a fresh (SLA-recomputed) order after a pin/unpin round-trip.
+  const [localRows, setLocalRows] = useState(rows);
+  useEffect(() => setLocalRows(rows), [rows]);
 
   function run(action: () => Promise<{ ok: true } | { ok: false; error: string }>) {
     setBanner(null);
@@ -91,6 +96,33 @@ export function LeadQueue({ rows }: { rows: QueueRow[] }) {
       if (!r.ok) setBanner(r.error);
       else router.refresh();
     });
+  }
+
+  // Drag is a shortcut for pin/unpin, not a general reorder (the queue itself
+  // stays system-ordered by SLA/age). Dropping at the very top pins the lead;
+  // dragging a pinned lead down out of the top spot unpins it. Anything else
+  // is a no-op — the row snaps back to its SLA-computed slot.
+  function handleDragEnd(result: DropResult) {
+    const { destination, source, draggableId } = result;
+    if (!destination || destination.index === source.index) return;
+    const row = localRows.find((r) => r.id === draggableId);
+    if (!row) return;
+
+    if (destination.index === 0) {
+      if (row.pinnedAt) return;
+      setLocalRows((rs) => [row, ...rs.filter((r) => r.id !== draggableId)]);
+      run(() => pinLead(row.id));
+      return;
+    }
+    if (row.pinnedAt) {
+      setLocalRows((rs) => {
+        const rest = rs.filter((r) => r.id !== draggableId);
+        const at = rest.findIndex((r) => !r.pinnedAt);
+        const insertAt = at === -1 ? rest.length : at;
+        return [...rest.slice(0, insertAt), row, ...rest.slice(insertAt)];
+      });
+      run(() => unpinLead(row.id));
+    }
   }
 
   if (rows.length === 0) {
@@ -108,60 +140,84 @@ export function LeadQueue({ rows }: { rows: QueueRow[] }) {
           {banner}
         </div>
       )}
-      <div className="lead-queue">
-        {rows.map((r) => {
-          const open = openId === r.id;
-          return (
-            <div key={r.id} className={`lead-card${open ? " is-open" : ""}${r.pinnedAt ? " is-pinned" : ""}`}>
-              <div
-                className="lead-head"
-                role="button"
-                tabIndex={0}
-                aria-expanded={open}
-                onClick={() => setOpenId(open ? null : r.id)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter" && e.key !== " ") return;
-                  e.preventDefault();
-                  setOpenId(open ? null : r.id);
-                }}
-              >
-                <div className="lead-head-main">
-                  <div className="lead-name">
-                    {r.name}
-                    {r.company ? <span className="admin-cell-muted"> · {r.company}</span> : null}
-                  </div>
-                  <div className="lead-sub">
-                    {r.inquiry?.subject || r.inquiry?.message || r.email}
-                  </div>
-                </div>
-                <div className="lead-head-meta">
-                  {r.pinnedAt && <Badge tone="info">Pinned</Badge>}
-                  {slaBadge(r.slaDueAt)}
-                  {statusBadge(r.status)}
-                  <span className="lead-attempt">
-                    {r.attemptCount > 0 ? `attempt ${r.attemptCount}` : "no attempts"}
-                  </span>
-                  <button
-                    type="button"
-                    className={`lead-pin-btn${r.pinnedAt ? " is-active" : ""}`}
-                    aria-pressed={!!r.pinnedAt}
-                    title={r.pinnedAt ? "Unpin from top of queue" : "Pin to top of queue"}
-                    disabled={pending}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      run(() => (r.pinnedAt ? unpinLead(r.id) : pinLead(r.id)));
-                    }}
-                  >
-                    {r.pinnedAt ? "★" : "☆"}
-                  </button>
-                </div>
-              </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="leads-queue">
+          {(provided) => (
+            <div className="lead-queue" ref={provided.innerRef} {...provided.droppableProps}>
+              {localRows.map((r, i) => {
+                const open = openId === r.id;
+                return (
+                  <Draggable draggableId={r.id} index={i} key={r.id}>
+                    {(dp, ds) => (
+                      <div
+                        ref={dp.innerRef}
+                        {...dp.draggableProps}
+                        className={`lead-card${open ? " is-open" : ""}${r.pinnedAt ? " is-pinned" : ""}${ds.isDragging ? " is-dragging" : ""}`}
+                      >
+                        <div
+                          className="lead-head"
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={open}
+                          onClick={() => setOpenId(open ? null : r.id)}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== " ") return;
+                            e.preventDefault();
+                            setOpenId(open ? null : r.id);
+                          }}
+                        >
+                          <span
+                            className="lead-drag-handle"
+                            {...dp.dragHandleProps}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Drag ${r.name} to reorder`}
+                            title="Drag to the top to pin"
+                          >
+                            ⠿
+                          </span>
+                          <div className="lead-head-main">
+                            <div className="lead-name">
+                              {r.name}
+                              {r.company ? <span className="admin-cell-muted"> · {r.company}</span> : null}
+                            </div>
+                            <div className="lead-sub">
+                              {r.inquiry?.subject || r.inquiry?.message || r.email}
+                            </div>
+                          </div>
+                          <div className="lead-head-meta">
+                            {r.pinnedAt && <Badge tone="info">Pinned</Badge>}
+                            {slaBadge(r.slaDueAt)}
+                            {statusBadge(r.status)}
+                            <span className="lead-attempt">
+                              {r.attemptCount > 0 ? `attempt ${r.attemptCount}` : "no attempts"}
+                            </span>
+                            <button
+                              type="button"
+                              className={`lead-pin-btn${r.pinnedAt ? " is-active" : ""}`}
+                              aria-pressed={!!r.pinnedAt}
+                              title={r.pinnedAt ? "Unpin from top of queue" : "Pin to top of queue"}
+                              disabled={pending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                run(() => (r.pinnedAt ? unpinLead(r.id) : pinLead(r.id)));
+                              }}
+                            >
+                              {r.pinnedAt ? "★" : "☆"}
+                            </button>
+                          </div>
+                        </div>
 
-              {open && <LeadDetail row={r} pending={pending} run={run} />}
+                        {open && <LeadDetail row={r} pending={pending} run={run} />}
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </>
   );
 }
