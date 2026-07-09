@@ -5,11 +5,13 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { archiveRecord, guardedDelete, restoreRecord, type Result } from "@/lib/admin/mutations";
+import { getCompany360, type Company360 } from "@/lib/admin/companies";
 
 export type CompanyPatch = {
   name?: string;
   domain?: string;
   industry?: string;
+  industry_normalized?: string;
   size_band?: string;
   country?: string;
   website?: string;
@@ -20,6 +22,13 @@ export type CompanyPatch = {
 function refresh(id?: string) {
   revalidatePath("/admin/revenue/companies");
   if (id) revalidatePath(`/admin/revenue/companies/${id}`);
+}
+
+// Feeds the list-page shelf: company record + linked deals and people,
+// fetched lazily when a row is opened.
+export async function getCompanyShelf(id: string): Promise<Company360 | null> {
+  await requireAdmin();
+  return getCompany360(id);
 }
 
 export async function updateCompany(id: string, patch: CompanyPatch): Promise<Result> {

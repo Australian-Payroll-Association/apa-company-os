@@ -400,6 +400,47 @@
 .admin-btn--danger:hover { background: var(--admin-err-bg); }
 .admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* ─── Charts ──────────────────────────────────────── */
+/* Categorical palette, fixed order, CVD-validated against the light surface.
+   Identity is never color-alone: legends carry label + count. */
+:root {
+  --admin-chart-1: #287be8;
+  --admin-chart-2: #e2662c;
+  --admin-chart-3: #1a9e74;
+  --admin-chart-4: #d1458b;
+  --admin-chart-5: #7c5cd6;
+  --admin-chart-6: #a87f10;
+  --admin-chart-7: #12a0b5;
+  --admin-chart-8: #b23a48;
+}
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+.admin-summary-grid .mp-kpi { min-width: 0; }
+.admin-chart-card { padding: 16px 18px; min-width: 0; }
+.admin-chart-card .mp-kpi-label { margin-bottom: 12px; }
+.admin-chart text { font-family: var(--font-body, inherit); }
+.admin-donut { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.admin-chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.admin-chart-legend li { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.admin-chart-swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.admin-chart-legend-label { color: var(--admin-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-chart-legend-count { color: var(--admin-ink); font-variant-numeric: tabular-nums; margin-left: auto; }
+
 /* ─── Cards / metric tiles ────────────────────────── */
 .admin-card {
   background: var(--admin-surface);
@@ -552,6 +593,14 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 }
 .admin-pagebtn:hover { border-color: var(--admin-muted); }
 .admin-pagebtn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+/* Page-size switcher (25/50/100) sits left of Prev/Next. */
+.admin-pagesize { display: inline-flex; gap: 6px; margin-right: 10px; }
+.admin-pagesize .admin-pagebtn[aria-current="true"] {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent);
+  font-weight: 600;
+  pointer-events: none;
+}
 
 /* ─── Detail drawer ───────────────────────────────── */
 .admin-drawer-backdrop {
@@ -717,6 +766,21 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .admin-list-sub { font-size: 12.5px; color: var(--admin-muted); margin-top: 1px; }
 .admin-list-aside { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 @media (max-width: 880px) { .admin-360 { grid-template-columns: 1fr; } }
+
+/* ─── Shelf (drawer) sections ─────────────────────── */
+.admin-shelf-sections { display: flex; flex-direction: column; gap: 22px; }
+.admin-shelf-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  margin-bottom: 8px;
+}
 
 /* ─── Inline alerts ───────────────────────────────── */
 .admin-alert { padding: 10px 14px; border-radius: var(--admin-radius-sm); font-size: 13.5px; }

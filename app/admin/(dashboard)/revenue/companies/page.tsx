@@ -1,13 +1,17 @@
-import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
 import { ArchivedToggle } from "@/components/admin/ArchivedToggle";
 import { FilterBar } from "@/components/admin/FilterBar";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { BarChart } from "@/components/admin/charts/BarChart";
+import { DonutChart } from "@/components/admin/charts/DonutChart";
+import { getCompaniesSummary } from "@/lib/admin/company-summary";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { CompanyEditDrawer } from "./CompanyEditDrawer";
+import { CompaniesShelfProvider, CompanyShelfRow, type CompanyRow } from "./CompaniesShelf";
 
 export const dynamic = "force-dynamic";
 
@@ -17,21 +21,10 @@ export const metadata = {
 };
 
 // Revenue office: companies (accounts). Spine-level, brand-agnostic.
-type Company = {
-  id: string;
-  name: string | null;
-  domain: string | null;
-  industry: string | null;
-  size_band: string | null;
-  country: string | null;
-  website: string | null;
-  priority: string | null;
-  archived_at: string | null;
-  created_at: string;
-};
+type Company = CompanyRow;
 
-const PAGE_SIZE = 25;
-const SORTABLE = new Set(["name", "domain", "industry", "size_band", "country", "priority", "created_at"]);
+const PAGE_SIZES = [25, 50, 100];
+const SORTABLE = new Set(["name", "domain", "industry_normalized", "size_band", "country", "priority", "created_at"]);
 
 const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
@@ -41,6 +34,8 @@ const PRIORITY_OPTIONS = [
 
 export default async function CompaniesPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
+  const sizeParam = Number(firstParam(searchParams.size));
+  const pageSizeChoice = PAGE_SIZES.includes(sizeParam) ? sizeParam : 25;
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
@@ -51,20 +46,23 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
   const filters: Record<string, string | number | boolean | null> = {};
   if (priorityParam) filters.priority = priorityParam;
 
-  const { rows, total, pageSize, error } = await listEntity<Company>(
-    "companies",
-    "id, name, domain, industry, size_band, country, website, priority, archived_at, created_at",
-    {
-      page,
-      pageSize: PAGE_SIZE,
-      search: q,
-      searchColumns: ["name", "domain"],
-      sort,
-      dir,
-      excludeArchived: !showArchived,
-      filters,
-    },
-  );
+  const [{ rows, total, pageSize, error }, summary] = await Promise.all([
+    listEntity<Company>(
+      "companies",
+      "id, name, domain, industry, industry_normalized, size_band, country, website, priority, archived_at, created_at",
+      {
+        page,
+        pageSize: pageSizeChoice,
+        search: q,
+        searchColumns: ["name", "domain"],
+        sort,
+        dir,
+        excludeArchived: !showArchived,
+        filters,
+      },
+    ),
+    getCompaniesSummary(),
+  ]);
 
   const columns: Column<Company>[] = [
     {
@@ -74,7 +72,12 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       cell: (r) => <span className="admin-cell-strong">{r.name || "(no name)"}</span>,
     },
     { key: "domain", header: "Domain", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.domain || "—"}</span> },
-    { key: "industry", header: "Industry", sortable: true, cell: (r) => r.industry || <span className="admin-cell-muted">—</span> },
+    {
+      key: "industry_normalized",
+      header: "Industry",
+      sortable: true,
+      cell: (r) => r.industry_normalized || r.industry || <span className="admin-cell-muted">—</span>,
+    },
     { key: "size_band", header: "Size", sortable: true, cell: (r) => r.size_band || <span className="admin-cell-muted">—</span> },
     { key: "country", header: "Country", sortable: true, cell: (r) => r.country || <span className="admin-cell-muted">—</span> },
     {
@@ -102,57 +105,59 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
           <ArchivedToggle basePath="/admin/revenue/companies" searchParams={searchParams} showArchived={showArchived} />
         }
       />
-      {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <DataTable
-        columns={columns}
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        sort={sort}
-        dir={dir}
-        basePath="/admin/revenue/companies"
-        searchParams={searchParams}
-        searchPlaceholder="Search name or domain…"
-        emptyText="No companies match."
-        filterBar={
-          <FilterBar
-            basePath="/admin/revenue/companies"
-            searchParams={searchParams}
-            filters={[{ key: "priority", label: "Priority", options: PRIORITY_OPTIONS }]}
+      {summary && (
+        <div className="admin-summary-grid">
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">By size (employees)</div>
+            <BarChart
+              data={summary.sizeBands}
+              ariaLabel="Companies by employee-size band"
+              emptyText="Size data pending enrichment."
+            />
+          </div>
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">By industry</div>
+            <DonutChart
+              data={summary.industries}
+              centerLabel="companies"
+              ariaLabel="Companies by industry category"
+              emptyText="Industry data pending enrichment."
+            />
+          </div>
+          <MetricCard
+            label="Active deals"
+            value={summary.withActiveDeals}
+            sub="companies with an open deal"
+            href="/admin/revenue/deals"
           />
-        }
-        getRowPreview={(r) => ({
-          eyebrow: "Company",
-          title: r.name || "(no name)",
-          body: (
-            <>
-              <dl className="admin-kv">
-                <dt>Domain</dt>
-                <dd>{r.domain || "—"}</dd>
-                <dt>Industry</dt>
-                <dd>{r.industry || "—"}</dd>
-                <dt>Size</dt>
-                <dd>{r.size_band || "—"}</dd>
-                <dt>Country</dt>
-                <dd>{r.country || "—"}</dd>
-                <dt>Priority</dt>
-                <dd>{r.priority ? <Badge>{humanize(r.priority)}</Badge> : "—"}</dd>
-              </dl>
-              {r.archived_at && (
-                <div style={{ marginTop: 12 }}>
-                  <Badge tone="neutral">Archived</Badge>
-                </div>
-              )}
-              <div style={{ marginTop: 16 }}>
-                <Link href={`/admin/revenue/companies/${r.id}`} className="admin-btn admin-btn--primary">
-                  Open full profile
-                </Link>
-              </div>
-            </>
-          ),
-        })}
-      />
+          <MetricCard label="Clients" value={summary.clients} sub="customer or evangelist stage" />
+        </div>
+      )}
+      {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
+      <CompaniesShelfProvider>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZES}
+          sort={sort}
+          dir={dir}
+          basePath="/admin/revenue/companies"
+          searchParams={searchParams}
+          searchPlaceholder="Search name or domain…"
+          emptyText="No companies match."
+          filterBar={
+            <FilterBar
+              basePath="/admin/revenue/companies"
+              searchParams={searchParams}
+              filters={[{ key: "priority", label: "Priority", options: PRIORITY_OPTIONS }]}
+            />
+          }
+          renderRow={(row, cells) => <CompanyShelfRow row={row}>{cells}</CompanyShelfRow>}
+        />
+      </CompaniesShelfProvider>
     </>
   );
 }

@@ -8,10 +8,12 @@ export type Company = {
   name: string | null;
   domain: string | null;
   industry: string | null;
+  industry_normalized: string | null;
   size_band: string | null;
   country: string | null;
   website: string | null;
   priority: string | null;
+  lifecycle_stage: string;
   notes: string | null;
   billing_address: string | null;
   archived_at: string | null;

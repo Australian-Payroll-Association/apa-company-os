@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
 import { updateCompany, type CompanyPatch } from "./actions";
 
 export type EditableCompany = {
@@ -8,6 +9,7 @@ export type EditableCompany = {
   name: string | null;
   domain: string | null;
   industry: string | null;
+  industry_normalized?: string | null;
   size_band: string | null;
   country: string | null;
   website: string | null;
@@ -32,6 +34,7 @@ export function CompanyEditForm({
     name: company.name ?? "",
     domain: company.domain ?? "",
     industry: company.industry ?? "",
+    industry_normalized: company.industry_normalized ?? "",
     size_band: company.size_band ?? "",
     country: company.country ?? "",
     website: company.website ?? "",
@@ -51,6 +54,7 @@ export function CompanyEditForm({
       name: form.name,
       domain: form.domain,
       industry: form.industry,
+      industry_normalized: form.industry_normalized,
       size_band: form.size_band,
       country: form.country,
       website: form.website,
@@ -88,9 +92,26 @@ export function CompanyEditForm({
           <input className="admin-input" value={form.industry} onChange={(e) => field("industry", e.target.value)} />
         </div>
         <div className="admin-field">
-          <label className="admin-label">Size</label>
-          <input className="admin-input" value={form.size_band} onChange={(e) => field("size_band", e.target.value)} placeholder="e.g. 11-50" />
+          <label className="admin-label">Category</label>
+          <select className="admin-input" value={form.industry_normalized} onChange={(e) => field("industry_normalized", e.target.value)}>
+            <option value="">—</option>
+            {INDUSTRY_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="admin-field">
+          <label className="admin-label">Size (employees)</label>
+          <select className="admin-input" value={form.size_band} onChange={(e) => field("size_band", e.target.value)}>
+            <option value="">—</option>
+            {SIZE_BANDS.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
