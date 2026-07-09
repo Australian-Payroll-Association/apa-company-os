@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
-import { bumpPersonCompanies, getLead, recordTransition } from "@/lib/lifecycle";
+import { bumpCompanyLifecycle, bumpPersonCompanies, getLead, recordTransition } from "@/lib/lifecycle";
 import { recordAudit, recordAuditMany } from "@/lib/admin/audit";
 import { archiveRecord, guardedDelete, restoreRecord } from "@/lib/admin/mutations";
 import { convertToUsdCents } from "@/lib/admin/fx";
@@ -124,12 +124,17 @@ export async function moveDealStage(
     .from("deals")
     .update(updates)
     .eq("id", dealId)
-    .select("person_id")
+    .select("person_id, company_id")
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
 
   if (stage.is_won || stage.is_lost) {
     await syncPersonAfterClose(dealId, deal?.person_id ?? null, stage.is_won);
+  }
+  // The person-side sync only bumps companies linked via person_companies;
+  // the deal's own account becomes a customer regardless (raise-only).
+  if (stage.is_won && deal?.company_id) {
+    await bumpCompanyLifecycle(deal.company_id, "customer", { reason: "deal_won" });
   }
 
   refresh();

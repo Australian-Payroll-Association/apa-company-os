@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { TableSearch } from "./TableSearch";
 import { PreviewRow } from "./PreviewRow";
@@ -34,6 +34,8 @@ export function DataTable<T extends { id?: string | number }>({
   emptyText = "No records.",
   filterBar,
   getRowPreview,
+  renderRow,
+  pageSizeOptions,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -48,6 +50,11 @@ export function DataTable<T extends { id?: string | number }>({
   emptyText?: string;
   filterBar?: ReactNode;
   getRowPreview?: (row: T) => RowPreview;
+  // Escape hatch for pages that need a client-owned row (e.g. an interactive
+  // shelf). Receives the server-rendered cells; must return a <tr>.
+  renderRow?: (row: T, cells: ReactNode) => ReactNode;
+  // When set, renders a page-size switcher (URL-driven, resets to page 1).
+  pageSizeOptions?: number[];
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -103,6 +110,9 @@ export function DataTable<T extends { id?: string | number }>({
                     {c.cell ? c.cell(row) : ((row as Record<string, unknown>)[c.key] as ReactNode) ?? "—"}
                   </td>
                 ));
+                if (renderRow) {
+                  return <Fragment key={row.id ?? i}>{renderRow(row, cells)}</Fragment>;
+                }
                 if (getRowPreview) {
                   const p = getRowPreview(row);
                   return (
@@ -124,6 +134,20 @@ export function DataTable<T extends { id?: string | number }>({
               {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()}
             </span>
             <div className="admin-pagination-controls">
+              {pageSizeOptions && (
+                <span className="admin-pagesize">
+                  {pageSizeOptions.map((n) => (
+                    <Link
+                      key={n}
+                      className="admin-pagebtn"
+                      aria-current={n === pageSize ? "true" : undefined}
+                      href={basePath + mergeQuery(searchParams, { size: n, page: 1 })}
+                    >
+                      {n}
+                    </Link>
+                  ))}
+                </span>
+              )}
               <Link
                 className="admin-pagebtn"
                 aria-disabled={page <= 1}
