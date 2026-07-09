@@ -16,6 +16,8 @@ export function KanbanBoard<T extends KanbanCardBase>({
   onCardClick,
   renderCard,
   columnFooter,
+  hideEmptyColumns,
+  emptyText,
 }: {
   columns: KanbanColumn[];
   cards: T[];
@@ -26,6 +28,13 @@ export function KanbanBoard<T extends KanbanCardBase>({
   onCardClick?: (card: T) => void;
   renderCard: (card: T) => ReactNode;
   columnFooter?: (column: KanbanColumn, cards: T[]) => ReactNode;
+  // Skip rendering columns with no cards. A stage with zero deals stays
+  // reachable via the detail shelf's stage picker or the list view — this
+  // just keeps a wide pipeline from padding itself out with empty lanes.
+  hideEmptyColumns?: boolean;
+  // Shown instead of the board when hideEmptyColumns leaves nothing to draw
+  // (every column is empty) — otherwise the board would just go blank.
+  emptyText?: string;
 }) {
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
@@ -38,10 +47,18 @@ export function KanbanBoard<T extends KanbanCardBase>({
     onMove(draggableId, destination.droppableId, destination.index);
   }
 
+  const visibleColumns = hideEmptyColumns
+    ? columns.filter((col) => cards.some((c) => c.columnId === col.id))
+    : columns;
+
+  if (hideEmptyColumns && visibleColumns.length === 0) {
+    return <div className="admin-empty">{emptyText ?? "Nothing here."}</div>;
+  }
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="sap-kanban">
-        {columns.map((col) => {
+        {visibleColumns.map((col) => {
           const colCards = cards.filter((c) => c.columnId === col.id);
           return (
             <Droppable droppableId={col.id} key={col.id}>

@@ -445,6 +445,8 @@ export function DealsBoard({
           cards={activeCards}
           onMove={move}
           onReorder={reorder}
+          hideEmptyColumns
+          emptyText={query ? "No deals match your search." : showArchived ? "No archived deals." : "No deals yet."}
           onCardClick={(c) => setSelectedId(c.id)}
           renderCard={(c) => (
             <>
