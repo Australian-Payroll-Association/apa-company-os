@@ -202,11 +202,14 @@ export function DealsBoard({
   const byPosition = (a: DealCard, b: DealCard) => a.position - b.position;
   const activeCards = cards.filter((c) => !c.archivedAt && cardMatches(c, query)).sort(byPosition);
   const archivedCards = cards.filter((c) => c.archivedAt && cardMatches(c, query)).sort(byPosition);
-  // Real pipeline stages always show, even at zero deals, so there's always a
-  // drop target for every stage. Only the synthetic "New from SDR" handoff
-  // bucket — not a configured stage — disappears when there's nothing pending.
+  // The two "nothing new to look at" entry columns — the synthetic SDR
+  // handoff bucket and the first real stage — collapse away when empty.
+  // Every stage after that (Contacted onward) always shows, even at zero
+  // deals, so it still reads as "we have nothing here" rather than vanishing.
+  const firstStageColumnId = columns.find((c) => c.id !== HANDOFF_COLUMN_ID)?.id;
+  const collapsibleIds = new Set([HANDOFF_COLUMN_ID, firstStageColumnId]);
   const boardColumns = columns.filter(
-    (col) => col.id !== HANDOFF_COLUMN_ID || activeCards.some((c) => c.columnId === HANDOFF_COLUMN_ID),
+    (col) => !collapsibleIds.has(col.id) || activeCards.some((c) => c.columnId === col.id),
   );
   const listCards = showArchived ? archivedCards : activeCards;
   const stageLabelMap = new Map(columns.map((c) => [c.id, c.label]));
