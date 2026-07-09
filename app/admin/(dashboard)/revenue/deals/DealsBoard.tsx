@@ -18,6 +18,7 @@ import {
   createReferrerForDeal,
   decideHandoff,
   deleteDeal,
+  demoteDealToLead,
   getDealCommunications,
   moveDealStage,
   reorderDeals,
@@ -666,6 +667,7 @@ export function DealDetail({
   const [lostReason, setLostReason] = useState("");
   const [rejectingHandoff, setRejectingHandoff] = useState(false);
   const [handoffReason, setHandoffReason] = useState("");
+  const [demoteReason, setDemoteReason] = useState("");
 
   const [title, setTitle] = useState(card.title ?? "");
   const [amount, setAmount] = useState(card.amountCents != null ? (card.amountCents / 100).toString() : "");
@@ -845,6 +847,37 @@ export function DealDetail({
           </div>
         )}
       </div>
+
+      {!archived && !pendingHandoff && card.status === "open" && card.personId && (
+        <div style={{ marginBottom: 16 }}>
+          <ConfirmButton
+            className="admin-btn"
+            label="Demote to lead"
+            title="Send this deal back to the leads queue?"
+            body={
+              <>
+                <p style={{ marginBottom: 8 }}>
+                  "{card.title || "This deal"}" moves back to the SDR queue as a lead. The deal is
+                  archived, not deleted — restore it any time from the danger zone below.
+                </p>
+                <input
+                  className="admin-input"
+                  placeholder="Why? (optional)"
+                  value={demoteReason}
+                  onChange={(e) => setDemoteReason(e.target.value)}
+                />
+              </>
+            }
+            confirmLabel="Demote to lead"
+            onConfirm={() => demoteDealToLead(card.id, demoteReason)}
+            onDone={() => {
+              onPatch({ archivedAt: new Date().toISOString() });
+              setDemoteReason("");
+              onClose();
+            }}
+          />
+        </div>
+      )}
 
       <dl className="admin-kv" style={{ marginBottom: 16 }}>
         <dt>Status</dt>

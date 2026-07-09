@@ -136,6 +136,66 @@ export async function moveDealStage(
   return { ok: true };
 }
 
+// Send an open deal back to being a lead — it was accepted or created
+// prematurely and needs more qualification before it's worth a closer's time.
+// Archives the deal (kept, reversible, out of the board/forecast — the same
+// mechanism the manual Archive button uses) and reopens the person's lead row
+// at 'connected', since a deal implies real contact already happened, so
+// there's no fresh SLA clock to start.
+export async function demoteDealToLead(dealId: string, reason: string): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: deal, error: dErr } = await companyOs
+    .from("deals")
+    .select("person_id, status, handoff_status, archived_at")
+    .eq("id", dealId)
+    .maybeSingle();
+  if (dErr || !deal) return { ok: false, error: dErr?.message ?? "Deal not found." };
+  if (deal.archived_at) return { ok: false, error: "This deal is already archived." };
+  if (deal.status !== "open") return { ok: false, error: "Only open deals can be demoted." };
+  if (deal.handoff_status === "pending") {
+    return { ok: false, error: "This deal is still a pending handoff — accept or reject it instead." };
+  }
+  if (!deal.person_id) return { ok: false, error: "This deal isn't linked to a contact." };
+
+  const { error: aErr } = await companyOs
+    .from("deals")
+    .update({ archived_at: new Date().toISOString(), archived_by: admin.email })
+    .eq("id", dealId);
+  if (aErr) return { ok: false, error: aErr.message };
+
+  const lead = await getLead(deal.person_id);
+  const { error: lErr } = await companyOs.from("lead").upsert(
+    {
+      person_id: deal.person_id,
+      status: "connected",
+      sla_due_at: null,
+      disqualified_reason: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "person_id" },
+  );
+  if (lErr) return { ok: false, error: lErr.message };
+
+  await recordTransition({
+    personId: deal.person_id,
+    fromStatus: lead?.status ?? null,
+    toStatus: "connected",
+    reason: "demoted_from_deal",
+    note: reason.trim() || null,
+  });
+  await recordAudit({
+    table: "deals",
+    recordId: dealId,
+    operation: "update",
+    actor: admin.email,
+    context: { action: "demoted_to_lead", reason: reason.trim() || null },
+  });
+
+  refresh();
+  return { ok: true };
+}
+
 // Rewrites `position` (0..n-1) for a full ordered set of deal ids — the new
 // rank of a single stage/column after a drag. Called after the stage-change
 // side effects (if any) so a rejected move never leaves positions dangling.
