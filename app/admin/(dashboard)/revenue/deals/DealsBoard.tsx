@@ -202,6 +202,12 @@ export function DealsBoard({
   const byPosition = (a: DealCard, b: DealCard) => a.position - b.position;
   const activeCards = cards.filter((c) => !c.archivedAt && cardMatches(c, query)).sort(byPosition);
   const archivedCards = cards.filter((c) => c.archivedAt && cardMatches(c, query)).sort(byPosition);
+  // Real pipeline stages always show, even at zero deals, so there's always a
+  // drop target for every stage. Only the synthetic "New from SDR" handoff
+  // bucket — not a configured stage — disappears when there's nothing pending.
+  const boardColumns = columns.filter(
+    (col) => col.id !== HANDOFF_COLUMN_ID || activeCards.some((c) => c.columnId === HANDOFF_COLUMN_ID),
+  );
   const listCards = showArchived ? archivedCards : activeCards;
   const stageLabelMap = new Map(columns.map((c) => [c.id, c.label]));
   const sortedListCards = listSort ? [...listCards].sort(makeDealComparator(listSort, stageLabelMap)) : listCards;
@@ -441,12 +447,10 @@ export function DealsBoard({
 
       {view === "board" ? (
         <KanbanBoard<DealCard>
-          columns={columns}
+          columns={boardColumns}
           cards={activeCards}
           onMove={move}
           onReorder={reorder}
-          hideEmptyColumns
-          emptyText={query ? "No deals match your search." : showArchived ? "No archived deals." : "No deals yet."}
           onCardClick={(c) => setSelectedId(c.id)}
           renderCard={(c) => (
             <>
