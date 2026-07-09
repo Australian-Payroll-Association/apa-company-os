@@ -10,7 +10,6 @@ import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { getCompaniesSummary } from "@/lib/admin/company-summary";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { CompanyEditDrawer } from "./CompanyEditDrawer";
 import { CompaniesShelfProvider, CompanyShelfRow, type CompanyRow } from "./CompaniesShelf";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +91,6 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       ),
     },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
-    { key: "actions", header: "", align: "right", cell: (r) => <CompanyEditDrawer company={r} /> },
   ];
 
   return (
