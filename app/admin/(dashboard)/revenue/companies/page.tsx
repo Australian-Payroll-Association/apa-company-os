@@ -1,10 +1,10 @@
+import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
 import { ArchivedToggle } from "@/components/admin/ArchivedToggle";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { getCompaniesSummary } from "@/lib/admin/company-summary";
@@ -115,12 +115,20 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       {summary && (
         <div className="admin-summary-grid">
           <div className="admin-card admin-chart-card">
-            <div className="mp-kpi-label">By size (employees)</div>
-            <BarChart
-              data={summary.sizeBands}
-              ariaLabel="Companies by employee-size band"
-              emptyText="Size data pending enrichment."
-            />
+            <div className="admin-stat-stack">
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Companies</span>
+                <span className="admin-stat-val">{summary.total.toLocaleString()}</span>
+              </div>
+              <Link href="/admin/revenue/deals" className="admin-stat-row">
+                <span className="admin-stat-label">Active Deals</span>
+                <span className="admin-stat-val">{summary.withActiveDeals.toLocaleString()}</span>
+              </Link>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Clients</span>
+                <span className="admin-stat-val">{summary.clients.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
           <div className="admin-card admin-chart-card">
             <div className="mp-kpi-label">By industry</div>
@@ -131,13 +139,22 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
               emptyText="Industry data pending enrichment."
             />
           </div>
-          <MetricCard
-            label="Active deals"
-            value={summary.withActiveDeals}
-            sub="companies with an open deal"
-            href="/admin/revenue/deals"
-          />
-          <MetricCard label="Clients" value={summary.clients} sub="customer or evangelist stage" />
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">By country</div>
+            <DonutChart
+              data={summary.countries}
+              centerLabel="companies"
+              ariaLabel="Companies by country"
+              neutralLabel="Unknown"
+              emptyText="Country data pending enrichment."
+            />
+            <div className="mp-kpi-label" style={{ marginTop: 18 }}>By size (employees)</div>
+            <BarChart
+              data={summary.sizeBands}
+              ariaLabel="Companies by employee-size band"
+              emptyText="Size data pending enrichment."
+            />
+          </div>
         </div>
       )}
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}

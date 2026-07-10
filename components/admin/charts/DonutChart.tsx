@@ -9,37 +9,41 @@ const C = 2 * Math.PI * R;
 const STROKE = 26;
 const GAP = 2;
 
-const MUTED_SLICES = new Set(["Uncategorized", "Other categories"]);
+const OTHER_LABEL = "Other categories";
 
 export function DonutChart({
   data,
   centerLabel,
   ariaLabel,
   maxSlices = 8,
+  neutralLabel = "Uncategorized",
   emptyText = "No data yet.",
 }: {
   data: Array<{ label: string; value: number }>;
   centerLabel: string;
   ariaLabel: string;
   maxSlices?: number;
+  // Label rendered muted-gray and pinned last (the "no data" bucket).
+  neutralLabel?: string;
   emptyText?: string;
 }) {
+  const muted = new Set([neutralLabel, OTHER_LABEL]);
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total <= 0) {
     return <div className="admin-empty" style={{ padding: "32px 16px" }}>{emptyText}</div>;
   }
 
-  // Named categories sorted desc; fold the tail, keep Uncategorized last.
-  const named = data.filter((d) => !MUTED_SLICES.has(d.label)).sort((a, b) => b.value - a.value);
-  const uncategorized = data.filter((d) => d.label === "Uncategorized");
+  // Named categories sorted desc; fold the tail, keep the neutral bucket last.
+  const named = data.filter((d) => !muted.has(d.label)).sort((a, b) => b.value - a.value);
+  const neutral = data.filter((d) => d.label === neutralLabel);
   const head = named.slice(0, maxSlices - 1);
   const tail = named.slice(maxSlices - 1);
   const slices = [
     ...head,
     ...(tail.length > 0
-      ? [{ label: "Other categories", value: tail.reduce((s, d) => s + d.value, 0) }]
+      ? [{ label: OTHER_LABEL, value: tail.reduce((s, d) => s + d.value, 0) }]
       : []),
-    ...uncategorized,
+    ...neutral,
   ];
 
   let acc = 0;
@@ -49,7 +53,7 @@ export function DonutChart({
     acc += len;
     return {
       ...s,
-      color: MUTED_SLICES.has(s.label) ? "var(--admin-muted)" : `var(--admin-chart-${(i % 8) + 1})`,
+      color: muted.has(s.label) ? "var(--admin-muted)" : `var(--admin-chart-${(i % 8) + 1})`,
       // Shorten by the gap so a sliver of surface separates adjacent slices.
       dash: `${Math.max(0, len - GAP)} ${C - Math.max(0, len - GAP)}`,
       // Start at 12 o'clock (offset C/4), then advance clockwise.
