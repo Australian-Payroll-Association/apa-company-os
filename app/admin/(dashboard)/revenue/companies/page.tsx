@@ -8,6 +8,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { getCompaniesSummary } from "@/lib/admin/company-summary";
+import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { CompaniesShelfProvider, CompanyShelfRow, type CompanyRow } from "./CompaniesShelf";
@@ -41,9 +42,17 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const showArchived = firstParam(searchParams.archived) === "1";
   const priorityParam = firstParam(searchParams.priority);
+  const industryParam = firstParam(searchParams.industry);
+  const bandParam = firstParam(searchParams.size_band);
 
   const filters: Record<string, string | number | boolean | null> = {};
   if (priorityParam) filters.priority = priorityParam;
+  if (industryParam && (INDUSTRY_CATEGORIES as readonly string[]).includes(industryParam)) {
+    filters.industry_normalized = industryParam;
+  }
+  if (bandParam && (SIZE_BANDS as readonly string[]).includes(bandParam)) {
+    filters.size_band = bandParam;
+  }
 
   const [{ rows, total, pageSize, error }, summary] = await Promise.all([
     listEntity<Company>(
@@ -150,7 +159,11 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
             <FilterBar
               basePath="/admin/revenue/companies"
               searchParams={searchParams}
-              filters={[{ key: "priority", label: "Priority", options: PRIORITY_OPTIONS }]}
+              filters={[
+                { key: "industry", label: "Industry", options: INDUSTRY_CATEGORIES.map((c) => ({ value: c, label: c })) },
+                { key: "size_band", label: "Size", options: SIZE_BANDS.map((b) => ({ value: b, label: b })) },
+                { key: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+              ]}
             />
           }
           renderRow={(row, cells) => <CompanyShelfRow row={row}>{cells}</CompanyShelfRow>}
