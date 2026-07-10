@@ -24,14 +24,22 @@ export function PreviewRow({
 }) {
   const [open, setOpen] = useState(false);
 
+  // The row itself carries role="button", so exclude it from the interactive-
+  // element guard — closest() matches the element AND its ancestors, and a
+  // guard that can match the row swallows every click (dead preview).
+  function hitsInnerInteractive(e: { target: EventTarget; currentTarget: HTMLTableRowElement }) {
+    const hit = (e.target as HTMLElement).closest("a,button,input,select,label,[role=button]");
+    return !!hit && hit !== e.currentTarget;
+  }
+
   function onClick(e: MouseEvent<HTMLTableRowElement>) {
-    if ((e.target as HTMLElement).closest("a,button,input,select,label,[role=button]")) return;
+    if (hitsInnerInteractive(e)) return;
     setOpen(true);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTableRowElement>) {
     if (e.key === "Enter" || e.key === " ") {
-      if ((e.target as HTMLElement).closest("a,button,input,select,label,[role=button]")) return;
+      if (hitsInnerInteractive(e)) return;
       e.preventDefault();
       setOpen(true);
     }
