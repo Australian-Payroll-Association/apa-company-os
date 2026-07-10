@@ -20,6 +20,7 @@ export async function updatePerson(
     full_name?: string;
     phone?: string;
     persona?: string;
+    country?: string;
     linkedin_url?: string;
     notes?: string;
     do_not_contact?: boolean;
