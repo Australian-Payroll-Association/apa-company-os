@@ -444,7 +444,7 @@ a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
 .admin-pill-val { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--admin-ink); font-variant-numeric: tabular-nums; }
 .admin-chart-card .mp-kpi-label { margin-bottom: 12px; }
 .admin-chart text { font-family: var(--font-body, inherit); }
-.admin-donut { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.admin-donut { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .admin-chart-legend {
   list-style: none;
   margin: 0;
