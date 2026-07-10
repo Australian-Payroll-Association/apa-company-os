@@ -1,12 +1,14 @@
-import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
 import { ArchivedToggle } from "@/components/admin/ArchivedToggle";
 import { FilterBar } from "@/components/admin/FilterBar";
+import { DonutChart } from "@/components/admin/charts/DonutChart";
+import { getContactsSummary } from "@/lib/admin/contacts-summary";
 import { formatDate, formatCents, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { ContactsShelfProvider, ContactShelfRow, type ContactRow } from "./ContactsShelf";
 
 export const dynamic = "force-dynamic";
 
@@ -15,23 +17,10 @@ export const metadata = {
   description: "Every person in the Company Database, one searchable contact spine.",
 };
 
-type Person = {
-  id: string;
-  full_name: string | null;
-  email: string;
-  phone: string | null;
-  persona: string | null;
-  source: string | null;
-  do_not_contact: boolean | null;
-  is_team_member: boolean | null;
-  archived_at: string | null;
-  created_at: string;
-  deal_value_usd_cents: number | null;
-  deal_count: number | null;
-};
+type Person = ContactRow;
 
 const PAGE_SIZE = 25;
-const SORTABLE = new Set(["full_name", "email", "phone", "persona", "source", "deal_value_usd_cents", "created_at"]);
+const SORTABLE = new Set(["full_name", "email", "phone", "persona", "country", "deal_value_usd_cents", "created_at"]);
 
 // Sentinel for "persona is null" — distinct from "" (no filter applied).
 const UNSET = "__unset__";
@@ -70,20 +59,23 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
   if (stageParam) filters.lifecycle_stage = stageParam;
   if (teamParam === "true" || teamParam === "false") filters.is_team_member = teamParam === "true";
 
-  const { rows, total, pageSize, error } = await listEntity<Person>(
-    "people_with_deals",
-    "id, full_name, email, phone, persona, source, do_not_contact, is_team_member, archived_at, created_at, deal_value_usd_cents, deal_count",
-    {
-      page,
-      pageSize: PAGE_SIZE,
-      search: q,
-      searchColumns: ["full_name", "email", "phone"],
-      sort,
-      dir,
-      excludeArchived: !showArchived,
-      filters,
-    },
-  );
+  const [{ rows, total, pageSize, error }, summary] = await Promise.all([
+    listEntity<Person>(
+      "people_with_deals",
+      "id, full_name, email, phone, persona, country, source, do_not_contact, is_team_member, archived_at, created_at, deal_value_usd_cents, deal_count",
+      {
+        page,
+        pageSize: PAGE_SIZE,
+        search: q,
+        searchColumns: ["full_name", "email", "phone"],
+        sort,
+        dir,
+        excludeArchived: !showArchived,
+        filters,
+      },
+    ),
+    getContactsSummary(),
+  ]);
 
   const columns: Column<Person>[] = [
     {
@@ -100,24 +92,13 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
       sortable: true,
       cell: (r) => (r.persona ? <Badge>{humanize(r.persona)}</Badge> : <span className="admin-cell-muted">—</span>),
     },
-    { key: "source", header: "Source", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.source || "—"}</span> },
+    { key: "country", header: "Country", sortable: true, cell: (r) => r.country || <span className="admin-cell-muted">—</span> },
     {
       key: "deal_value_usd_cents",
       header: "Deal value",
       sortable: true,
       align: "right",
       cell: (r) => (r.deal_count ? formatCents(r.deal_value_usd_cents) : <span className="admin-cell-muted">—</span>),
-    },
-    {
-      key: "flags",
-      header: "Flags",
-      cell: (r) => (
-        <span style={{ display: "inline-flex", gap: 4 }}>
-          {r.archived_at && <Badge tone="neutral">Archived</Badge>}
-          {r.do_not_contact && <Badge tone="err">Do not contact</Badge>}
-          {r.is_team_member && <Badge tone="info">Team</Badge>}
-        </span>
-      ),
     },
     { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
   ];
@@ -132,69 +113,87 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
           <ArchivedToggle basePath="/admin/contacts" searchParams={searchParams} showArchived={showArchived} />
         }
       />
+      {summary && (
+        <div className="admin-summary">
+          <div className="admin-summary-pills">
+            <div className="admin-pill">
+              <span className="admin-pill-label">Contacts</span>
+              <span className="admin-pill-val">{summary.total.toLocaleString()}</span>
+            </div>
+            <div className="admin-pill">
+              <span className="admin-pill-label">Prospects</span>
+              <span className="admin-pill-val">{summary.prospects.toLocaleString()}</span>
+            </div>
+            <div className="admin-pill">
+              <span className="admin-pill-label">Clients</span>
+              <span className="admin-pill-val">{summary.clients.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="admin-summary-grid">
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">By persona</div>
+              <DonutChart
+                data={summary.personas}
+                centerLabel="contacts"
+                ariaLabel="Contacts by persona"
+                neutralLabel="Unset"
+                emptyText="No contacts yet."
+              />
+            </div>
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">By source</div>
+              <DonutChart
+                data={summary.sources}
+                centerLabel="contacts"
+                ariaLabel="Contacts by source channel"
+                emptyText="No source data yet."
+              />
+            </div>
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">By country</div>
+              <DonutChart
+                data={summary.countries}
+                centerLabel="contacts"
+                ariaLabel="Contacts by country"
+                neutralLabel="Unknown"
+                emptyText="Country data pending enrichment."
+              />
+            </div>
+          </div>
+        </div>
+      )}
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
           {error}
         </div>
       )}
-      <DataTable
-        columns={columns}
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        sort={sort}
-        dir={dir}
-        basePath="/admin/contacts"
-        searchParams={searchParams}
-        searchPlaceholder="Search name, email, or phone…"
-        emptyText="No contacts match."
-        filterBar={
-          <FilterBar
-            basePath="/admin/contacts"
-            searchParams={searchParams}
-            filters={[
-              { key: "persona", label: "Persona", options: PERSONA_OPTIONS },
-              { key: "stage", label: "Stage", options: STAGE_OPTIONS },
-              { key: "team", label: "Team", options: TEAM_OPTIONS },
-            ]}
-          />
-        }
-        getRowPreview={(r) => ({
-          eyebrow: "Contact",
-          title: r.full_name || r.email,
-          body: (
-            <>
-              <dl className="admin-kv">
-                <dt>Email</dt>
-                <dd>{r.email}</dd>
-                <dt>Phone</dt>
-                <dd>{r.phone || "—"}</dd>
-                <dt>Persona</dt>
-                <dd>{r.persona ? <Badge>{humanize(r.persona)}</Badge> : "—"}</dd>
-                <dt>Source</dt>
-                <dd>{r.source || "—"}</dd>
-                <dt>Deal value</dt>
-                <dd className="admin-cell-mono">
-                  {r.deal_count ? formatCents(r.deal_value_usd_cents) : "—"}
-                </dd>
-              </dl>
-              {(r.archived_at || r.do_not_contact || r.is_team_member) && (
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 12 }}>
-                  {r.archived_at && <Badge tone="neutral">Archived</Badge>}
-                  {r.do_not_contact && <Badge tone="err">Do not contact</Badge>}
-                  {r.is_team_member && <Badge tone="info">Team</Badge>}
-                </div>
-              )}
-              <div style={{ marginTop: 16 }}>
-                <Link href={`/admin/contacts/${r.id}`} className="admin-btn admin-btn--primary">
-                  Open full profile
-                </Link>
-              </div>
-            </>
-          ),
-        })}
-      />
+      <ContactsShelfProvider>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          sort={sort}
+          dir={dir}
+          basePath="/admin/contacts"
+          searchParams={searchParams}
+          searchPlaceholder="Search name, email, or phone…"
+          emptyText="No contacts match."
+          filterBar={
+            <FilterBar
+              basePath="/admin/contacts"
+              searchParams={searchParams}
+              filters={[
+                { key: "persona", label: "Persona", options: PERSONA_OPTIONS },
+                { key: "stage", label: "Stage", options: STAGE_OPTIONS },
+                { key: "team", label: "Team", options: TEAM_OPTIONS },
+              ]}
+            />
+          }
+          renderRow={(row, cells) => <ContactShelfRow row={row}>{cells}</ContactShelfRow>}
+        />
+      </ContactsShelfProvider>
     </>
   );
 }
