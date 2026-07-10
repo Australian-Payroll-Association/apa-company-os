@@ -13,6 +13,7 @@ type Form = {
   outbound_flight: string
   outbound_dep_date: string
   outbound_dep_time: string
+  notes: string
   website: string // honeypot
 }
 
@@ -20,6 +21,7 @@ const empty: Form = {
   family_name: '', contact_email: '',
   inbound_flight: '', inbound_arr_date: '', inbound_arr_time: '',
   outbound_flight: '', outbound_dep_date: '', outbound_dep_time: '',
+  notes: '',
   website: '',
 }
 
@@ -28,7 +30,7 @@ export default function FlightForm() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const set = (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,6 +126,16 @@ export default function FlightForm() {
           <input id="outbound_dep_time" name="outbound_dep_time" type="time"
             value={form.outbound_dep_time} onChange={set} />
         </div>
+      </div>
+
+      {/* ── Comments / Requests ───────────────────────── */}
+      <p className="contact-form-eyebrow" style={{ marginTop: 16 }}>Comments or special requests</p>
+      <div className="contact-field">
+        <label htmlFor="notes">Anything you'd like us to know?</label>
+        <textarea id="notes" name="notes" rows={4}
+          placeholder="e.g. connecting flight, dietary needs, meeting point preference…"
+          value={form.notes} onChange={set}
+          style={{ resize: 'vertical' }} />
       </div>
 
       {/* Honeypot */}

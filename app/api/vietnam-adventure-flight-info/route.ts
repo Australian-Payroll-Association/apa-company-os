@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       return_flight:     body.outbound_flight   || null,
       return_dep_date:   body.outbound_dep_date || null,
       return_dep_time:   body.outbound_dep_time || null,
+      notes:             body.notes             || null,
     })
 
     if (insertErr) {
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
               <tr><td style="padding:4px 16px 4px 0;color:#666;width:160px">Flight</td><td>${esc(body.outbound_flight || '—')}</td></tr>
               <tr><td style="padding:4px 16px 4px 0;color:#666">Departure</td><td>${fmt(body.outbound_dep_date, body.outbound_dep_time)}</td></tr>
             </table>
+            ${body.notes ? `<h3 style="font-family:sans-serif;font-size:13px;text-transform:uppercase;color:#666;letter-spacing:.05em;margin-bottom:8px">Comments / Requests</h3><p style="font-family:sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(body.notes)}</p>` : ''}
           `,
         })
       } catch (mailErr) {
