@@ -20,6 +20,7 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved?: 
     full_name: person.full_name ?? "",
     phone: person.phone ?? "",
     persona: person.persona ?? "",
+    country: person.country ?? "",
     linkedin_url: person.linkedin_url ?? "",
     notes: person.notes ?? "",
     do_not_contact: !!person.do_not_contact,
@@ -64,6 +65,10 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved?: 
             <option value={form.persona}>{form.persona}</option>
           )}
         </select>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Country</label>
+        <input className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)} />
       </div>
       <div className="admin-field">
         <label className="admin-label">LinkedIn</label>
