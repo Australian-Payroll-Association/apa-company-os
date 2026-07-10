@@ -15,6 +15,9 @@ export async function moveInquiryStatus(id: string, status: string): Promise<Res
   const { error } = await companyOs.from("inquiries").update({ status }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/revenue/inquiries");
+  // The cockpit's "Inquiries to triage" card only shows new_lead; archiving or
+  // moving an inquiry must clear it there too, not just on the board.
+  revalidatePath("/admin/revenue");
   return { ok: true };
 }
 

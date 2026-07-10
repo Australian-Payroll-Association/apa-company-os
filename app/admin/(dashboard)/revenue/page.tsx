@@ -286,7 +286,10 @@ export default async function SalesCockpitPage() {
         </div>
 
         {/* ── Inquiries to triage ── */}
-        <div className="admin-card admin-section-card" style={{ alignSelf: "start" }}>
+        {/* marginTop:0 cancels the `.admin-section-card + .admin-section-card` stacking
+            margin, which the grid's adjacent siblings otherwise inherit and which would
+            push this card 16px below the Leads card. */}
+        <div className="admin-card admin-section-card" style={{ alignSelf: "start", marginTop: 0 }}>
           <h2 className="admin-card-title">Inquiries to triage</h2>
           {inquiries.length === 0 ? (
             <div className="admin-empty">No new contact-us inquiries. Inbox zero.</div>
