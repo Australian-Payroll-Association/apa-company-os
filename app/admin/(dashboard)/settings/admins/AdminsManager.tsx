@@ -199,12 +199,14 @@ export function AdminsManager({
                             )}
                           </div>
                         ) : (
-                          <span
-                            className="admin-cell-muted"
-                            title="Managed via the ADMIN_ALLOWLIST env var on Vercel — add them here to manage them from this page."
-                          >
-                            via env var
-                          </span>
+                          <div style={{ textAlign: "right" }}>
+                            <span
+                              className="admin-cell-muted"
+                              title="Managed via the ADMIN_ALLOWLIST env var on Vercel — add them here to manage them from this page."
+                            >
+                              via env var
+                            </span>
+                          </div>
                         )}
                       </td>
                     </tr>
