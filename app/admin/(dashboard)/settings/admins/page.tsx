@@ -19,7 +19,7 @@ export default async function AdminsPage() {
       <PageHead
         eyebrow="Settings"
         title="Admins"
-        sub="Who can sign in to this console."
+        sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "admin" : "admins"} can sign in to this console.`}
       />
 
       {error && <div className="admin-alert admin-alert--err">{error}</div>}

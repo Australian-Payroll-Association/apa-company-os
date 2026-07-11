@@ -107,109 +107,113 @@ export function AdminsManager({
       </div>
 
       <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Admin</th>
-              <th>Login</th>
-              <th>Last sign-in</th>
-              <th>Added</th>
-              <th aria-label="Actions"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
+        <div className="admin-table-scroll">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan={5} className="admin-cell-muted">No admins yet.</td>
+                <th>Admin</th>
+                <th>Login</th>
+                <th>Last sign-in</th>
+                <th>Added</th>
+                <th aria-label="Actions"></th>
               </tr>
-            ) : (
-              rows.map((r) => {
-                const isSelf = r.email.toLowerCase() === currentEmail.toLowerCase();
-                return (
-                  <tr key={r.id ?? `env-${r.email}`}>
-                    <td>
-                      <div className="admin-cell-strong">{r.displayName || r.email}</div>
-                      {r.displayName && <div className="admin-cell-muted">{r.email}</div>}
-                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                        {isSelf && <Badge tone="info">You</Badge>}
-                        {r.source !== "db" && (
-                          <span title="Also granted by the ADMIN_ALLOWLIST env var — removing the row here won't revoke access until the env var changes too.">
-                            <Badge>Env allowlist</Badge>
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td>{loginStatus(r)}</td>
-                    <td className="admin-cell-muted">
-                      {r.lastSignInAt ? formatDate(r.lastSignInAt) : "—"}
-                    </td>
-                    <td className="admin-cell-muted">
-                      {r.createdAt ? formatDate(r.createdAt) : "—"}
-                      {r.createdBy && <div>by {r.createdBy}</div>}
-                    </td>
-                    <td>
-                      {r.id ? (
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                          <button
-                            className="admin-btn admin-btn--sm"
-                            disabled={pending}
-                            onClick={() =>
-                              setEditing({ id: r.id!, email: r.email, name: r.displayName ?? "" })
-                            }
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="admin-btn admin-btn--sm"
-                            disabled={pending}
-                            onClick={() =>
-                              run(() => resendAccessLink(r.id!), "Access link sent.")
-                            }
-                          >
-                            {r.hasLogin ? "Send reset link" : "Resend invite"}
-                          </button>
-                          {!isSelf && (
-                            <ConfirmButton
-                              className="admin-btn admin-btn--sm admin-btn--danger"
-                              label="Remove"
-                              title="Remove admin access"
-                              body={
-                                <>
-                                  <strong>{r.displayName || r.email}</strong> will immediately lose
-                                  access to this console. Their login is kept and they can be
-                                  re-added later.
-                                  {r.source === "both" && (
-                                    <>
-                                      {" "}They are also in the <code>ADMIN_ALLOWLIST</code> env
-                                      var, which still grants access until it is updated on Vercel.
-                                    </>
-                                  )}
-                                </>
-                              }
-                              confirmLabel="Remove access"
-                              onConfirm={() => deleteAdmin(r.id!)}
-                              onDone={() => {
-                                setBanner({ tone: "ok", text: `${r.email} removed.` });
-                                router.refresh();
-                              }}
-                            />
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="admin-empty">No admins yet.</div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => {
+                  const isSelf = r.email.toLowerCase() === currentEmail.toLowerCase();
+                  return (
+                    <tr key={r.id ?? `env-${r.email}`}>
+                      <td>
+                        <div className="admin-cell-strong">{r.displayName || r.email}</div>
+                        {r.displayName && <div className="admin-cell-muted">{r.email}</div>}
+                        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                          {isSelf && <Badge tone="info">You</Badge>}
+                          {r.source !== "db" && (
+                            <span title="Also granted by the ADMIN_ALLOWLIST env var — removing the row here won't revoke access until the env var changes too.">
+                              <Badge>Env allowlist</Badge>
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <span
-                          className="admin-cell-muted"
-                          title="Managed via the ADMIN_ALLOWLIST env var on Vercel — add them here to manage them from this page."
-                        >
-                          via env var
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                      </td>
+                      <td>{loginStatus(r)}</td>
+                      <td className="admin-cell-muted">
+                        {r.lastSignInAt ? formatDate(r.lastSignInAt) : "—"}
+                      </td>
+                      <td className="admin-cell-muted">
+                        {r.createdAt ? formatDate(r.createdAt) : "—"}
+                        {r.createdBy && <div>by {r.createdBy}</div>}
+                      </td>
+                      <td>
+                        {r.id ? (
+                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                            <button
+                              className="admin-btn admin-btn--sm"
+                              disabled={pending}
+                              onClick={() =>
+                                setEditing({ id: r.id!, email: r.email, name: r.displayName ?? "" })
+                              }
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="admin-btn admin-btn--sm"
+                              disabled={pending}
+                              onClick={() =>
+                                run(() => resendAccessLink(r.id!), "Access link sent.")
+                              }
+                            >
+                              {r.hasLogin ? "Send reset link" : "Resend invite"}
+                            </button>
+                            {!isSelf && (
+                              <ConfirmButton
+                                className="admin-btn admin-btn--sm admin-btn--danger"
+                                label="Remove"
+                                title="Remove admin access"
+                                body={
+                                  <>
+                                    <strong>{r.displayName || r.email}</strong> will immediately lose
+                                    access to this console. Their login is kept and they can be
+                                    re-added later.
+                                    {r.source === "both" && (
+                                      <>
+                                        {" "}They are also in the <code>ADMIN_ALLOWLIST</code> env
+                                        var, which still grants access until it is updated on Vercel.
+                                      </>
+                                    )}
+                                  </>
+                                }
+                                confirmLabel="Remove access"
+                                onConfirm={() => deleteAdmin(r.id!)}
+                                onDone={() => {
+                                  setBanner({ tone: "ok", text: `${r.email} removed.` });
+                                  router.refresh();
+                                }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            className="admin-cell-muted"
+                            title="Managed via the ADMIN_ALLOWLIST env var on Vercel — add them here to manage them from this page."
+                          >
+                            via env var
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {editing && (
