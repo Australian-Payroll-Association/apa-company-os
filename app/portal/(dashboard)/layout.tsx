@@ -20,7 +20,10 @@ export default async function PortalDashboardLayout({
     actor.memberships.length === 1
       ? actor.memberships[0].companyName
       : actor.memberships.map((m) => m.companyName).filter(Boolean).join(" · ") || null;
-  const entitlements = { team: await hasAssignedStaff(actor) };
+  // Time Off is visible iff Team is (same scope source: an active staff
+  // assignment) — one lookup covers both, per the design doc's entitlement rules.
+  const hasStaff = await hasAssignedStaff(actor);
+  const entitlements = { team: hasStaff, timeOff: hasStaff };
 
   return (
     <div className="admin-shell">

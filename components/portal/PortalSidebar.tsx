@@ -13,6 +13,7 @@ import { signOut } from "@/app/portal/(dashboard)/actions";
 // links. Modules with no `entitlementKey` (Home) are always live once built.
 export type PortalEntitlements = {
   team: boolean;
+  timeOff: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -21,7 +22,7 @@ type NavItem = { label: string; href: string; ico: string; built?: boolean; enti
 const NAV: NavItem[] = [
   { label: "Home", href: "/portal", ico: "◈", built: true },
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
-  { label: "Time Off", href: "/portal/time-off", ico: "☼" },
+  { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
   { label: "Projects", href: "/portal/projects", ico: "⇉" },
   { label: "Invoices", href: "/portal/invoices", ico: "▤" },
   { label: "My Events", href: "/portal/events", ico: "▦" },

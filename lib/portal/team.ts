@@ -40,6 +40,20 @@ export async function hasAssignedStaff(actor: PortalActor): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+// The assigned team_member ids for the actor's company scope — the shared
+// derivation step other /portal modules need before reading team-scoped data
+// (e.g. lib/portal/time-off.ts). Time Off's scope is "assigned staff", not a
+// direct company_id column, so this two-step lookup is required there too.
+export async function getAssignedTeamMemberIds(actor: PortalActor): Promise<string[]> {
+  if (actor.companyScope.length === 0) return [];
+  const { data } = await portalRead(actor, "staff_assignments", "team_member_id").eq(
+    "status",
+    "active",
+  );
+  const rows = (data ?? []) as unknown as { team_member_id: string }[];
+  return [...new Set(rows.map((r) => r.team_member_id))];
+}
+
 export async function getAssignedTeam(actor: PortalActor): Promise<PortalTeamMember[]> {
   if (actor.companyScope.length === 0) return [];
 
