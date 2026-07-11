@@ -1,0 +1,158 @@
+import { formatCents } from "./admin/format";
+
+// Shared event types + pure display helpers. Safe to import from client and
+// server components alike (no Supabase, no node builtins). Server-side
+// queries and ticket-code generation live in lib/events-server.ts.
+// Design: docs/plans/2026-07-11-event-management-design.md
+
+export const EVENT_TYPES = [
+  "retreat",
+  "workshop",
+  "webinar",
+  "micro_session",
+  "dinner",
+  "private_trip",
+  "company_event",
+] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
+
+export const EVENT_STATUSES = [
+  "draft",
+  "published",
+  "open",
+  "closed",
+  "completed",
+  "cancelled",
+] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+
+export const EVENT_VISIBILITIES = ["public", "private", "internal"] as const;
+export type EventVisibility = (typeof EVENT_VISIBILITIES)[number];
+
+// Registration lifecycle. Legacy rows predate the events model: 'confirmed'
+// reads as registered (see normalizeRegistrationStatus) and is never
+// rewritten; 'refunded' exists in live data and stays terminal.
+export const REGISTRATION_STATUSES = [
+  "pending_payment",
+  "registered",
+  "waitlisted",
+  "cancelled",
+  "attended",
+  "no_show",
+  "confirmed",
+  "refunded",
+] as const;
+export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number];
+
+// Statuses that hold a seat against event/tier capacity (mirrors the
+// register_for_event RPC — keep the two in sync).
+export const SEAT_HOLDING_STATUSES: RegistrationStatus[] = [
+  "pending_payment",
+  "registered",
+  "attended",
+  "confirmed",
+];
+
+export function normalizeRegistrationStatus(status: string): RegistrationStatus {
+  return status === "confirmed" ? "registered" : (status as RegistrationStatus);
+}
+
+export type EventRecord = {
+  id: string;
+  slug: string;
+  type: EventType;
+  status: EventStatus;
+  visibility: EventVisibility;
+  title: string;
+  blurb: string | null;
+  description: string | null;
+  location: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  timezone: string;
+  capacity: number | null;
+  cover_image_url: string | null;
+  owner_person_id: string | null;
+  landing_path: string | null;
+  feedback_survey_id: string | null;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// An event tier is a company_os.products row (type='event') linked via
+// event_id. capacity here is the per-tier cap, independent of the event's.
+export type EventTier = {
+  id: string;
+  event_id: string | null;
+  title: string;
+  tier: string | null;
+  description: string | null;
+  amount_cents: number;
+  amount_usd_cents: number | null;
+  currency: string;
+  capacity: number | null;
+  sort_order: number;
+  active: boolean;
+};
+
+export type EventRegistration = {
+  id: string;
+  event_id: string | null;
+  product_id: string | null;
+  order_id: string | null;
+  person_id: string;
+  attendee_name: string | null;
+  attendee_email: string | null;
+  status: RegistrationStatus;
+  guest_count: number;
+  waitlist_position: number | null;
+  ticket_code: string | null;
+  checked_in_at: string | null;
+  confirmation_sent_at: string | null;
+  cancelled_at: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+// --- Pricing display -------------------------------------------------------
+
+// A tier at 0 cents is Free (skips Stripe); an event with no active tiers is
+// entirely free.
+export function tierPriceLabel(tier: Pick<EventTier, "amount_cents" | "currency">): string {
+  return tier.amount_cents === 0 ? "Free" : formatCents(tier.amount_cents, tier.currency);
+}
+
+// List/card summary: "Free" or "From $X" (cheapest active tier).
+export function eventPriceSummary(
+  tiers: Array<Pick<EventTier, "amount_cents" | "currency" | "active">>
+): string {
+  const active = tiers.filter((t) => t.active);
+  if (active.length === 0) return "Free";
+  const cheapest = active.reduce((a, b) => (b.amount_cents < a.amount_cents ? b : a));
+  if (cheapest.amount_cents === 0) return "Free";
+  return `From ${formatCents(cheapest.amount_cents, cheapest.currency)}`;
+}
+
+// --- Ticket URLs (pure string helpers; code generation is server-only) -----
+
+export function ticketPath(code: string): string {
+  return `/t/${code}`;
+}
+
+export function eventPath(slug: string): string {
+  return `/events/${slug}`;
+}
+
+// Accept a scanned value that may be a full ticket URL ("https://host/t/ABC?x=1")
+// or a bare code, and return the bare code. Returns "" if nothing usable.
+export function normalizeTicketCode(scanned: string): string {
+  const raw = scanned.trim();
+  if (!raw) return "";
+  const marker = "/t/";
+  const idx = raw.indexOf(marker);
+  const tail = idx === -1 ? raw : raw.slice(idx + marker.length);
+  return tail.split(/[/?#]/)[0].trim().toUpperCase();
+}
