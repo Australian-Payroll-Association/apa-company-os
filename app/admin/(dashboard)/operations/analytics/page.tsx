@@ -1,5 +1,4 @@
 import { PageHead } from "@/components/admin/PageHead";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
 
@@ -15,7 +14,7 @@ export default async function AnalyticsPage() {
       <PageHead
         eyebrow="Operations"
         title="Analytics"
-        sub="Site traffic from Vercel Web Analytics, last 30 days, production only."
+        sub="Site traffic from Vercel Web Analytics, since Jul 11, 2026, production only."
         action={
           <a
             href={VERCEL_ANALYTICS_URL}
@@ -29,37 +28,30 @@ export default async function AnalyticsPage() {
       />
 
       {"error" in overview ? (
-        <div className="admin-card" style={{ padding: 24 }}>
-          <p className="admin-card-title" style={{ marginBottom: 8 }}>
-            Analytics unavailable
-          </p>
-          <p style={{ color: "var(--admin-muted)" }}>{overview.error}</p>
-        </div>
+        <div className="admin-alert admin-alert--err">{overview.error}</div>
       ) : (
-        <>
-          <div className="mp-kpi-grid">
-            <MetricCard
-              label="Page views (30d)"
-              value={overview.totals.pageviews.toLocaleString()}
-            />
-            <MetricCard
-              label="Visitors (30d)"
-              value={overview.totals.visitors.toLocaleString()}
-            />
+        <div className="admin-summary">
+          <div className="admin-summary-pills">
+            <div className="admin-pill">
+              <span className="admin-pill-label">Page views</span>
+              <span className="admin-pill-val">{overview.totals.pageviews.toLocaleString()}</span>
+            </div>
+            <div className="admin-pill">
+              <span className="admin-pill-label">Visitors</span>
+              <span className="admin-pill-val">{overview.totals.visitors.toLocaleString()}</span>
+            </div>
           </div>
-
-          <div className="admin-card" style={{ padding: 24, marginBottom: 20 }}>
-            <p className="admin-card-title">Daily page views</p>
-            <BarChart data={overview.daily} ariaLabel="Daily page views" />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            <div className="admin-card" style={{ padding: 24 }}>
-              <p className="admin-card-title">Top pages</p>
+          <div className="admin-summary-grid">
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">Daily page views</div>
+              <BarChart data={overview.daily} ariaLabel="Daily page views" />
+            </div>
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">Top pages</div>
               <BarChart data={overview.topPages} ariaLabel="Top pages by page views" />
             </div>
-            <div className="admin-card" style={{ padding: 24 }}>
-              <p className="admin-card-title">Top referrers</p>
+            <div className="admin-card admin-chart-card">
+              <div className="mp-kpi-label">Top referrers</div>
               <BarChart
                 data={overview.topReferrers}
                 ariaLabel="Top referrers by page views"
@@ -67,7 +59,7 @@ export default async function AnalyticsPage() {
               />
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

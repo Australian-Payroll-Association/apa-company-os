@@ -1,7 +1,8 @@
 const TEAM_ID = "team_d4UiCMTHURZQlqlxjr8riwQD";
 const PROJECT_ID = "prj_LzyuOkqtS1ttYk56LF1wd0Q6XSo4";
 const API_BASE = "https://api.vercel.com/v1/query/web-analytics";
-const WINDOW_DAYS = 30;
+// Web Analytics was enabled on 2026-07-11 — there's no data before this date.
+const TRACKING_START = "2026-07-11T00:00:00.000Z";
 const TOP_N = 8;
 
 type CountResponse = { data: { pageviews: number; visitors: number } };
@@ -49,10 +50,8 @@ export async function getAnalyticsOverview(): Promise<AnalyticsResult> {
     return { error: "VERCEL_ANALYTICS_TOKEN is not set. Add it as a project environment variable to enable this page." };
   }
 
-  const until = new Date();
-  const since = new Date(until.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const sinceStr = since.toISOString();
-  const untilStr = until.toISOString();
+  const sinceStr = TRACKING_START;
+  const untilStr = new Date().toISOString();
   const filter = "environment eq 'production'";
 
   try {
