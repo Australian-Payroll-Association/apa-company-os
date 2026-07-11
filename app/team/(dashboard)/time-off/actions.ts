@@ -1,0 +1,116 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireTeamMember } from "@/lib/team-auth";
+import { teamInsertOwn, teamRead, teamUpdateInScope, getManagerContact } from "@/lib/team/data";
+import { LEAVE_TYPES, LEAVE_TYPE_LABEL, countWorkingDays, formatDays, type LeaveType } from "@/lib/admin/time-off";
+import { formatDate } from "@/lib/admin/format";
+import { notifyOps } from "@/lib/lark";
+import { sendTransactionalEmail } from "@/lib/email";
+
+// Own-service time-off actions for /team. Deliberately NOT a reuse of the
+// admin actions in app/admin/(dashboard)/operations/time-off/requests/actions.ts
+// — those are safe only under requireAdmin(); reused as-is here they would let
+// any signed-in employee file or cancel leave for anyone (IDOR). Every write
+// below goes through requireTeamMember() plus the scoped helpers in
+// lib/team/data.ts, which force or verify actor.teamMemberId server-side.
+
+type Result = { ok: true } | { ok: false; error: string };
+
+const LEAVE_TYPE_SET = new Set<string>(LEAVE_TYPES);
+
+function refresh() {
+  revalidatePath("/team/time-off");
+}
+
+// Minimal HTML-escape for free-text interpolated into an email body. `reason`
+// is employee-authored and lands in their manager's inbox, so it must not be
+// able to inject markup.
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+  );
+}
+
+export async function requestOwnTimeOff(input: {
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  isHalfDay: boolean;
+  reason: string;
+}): Promise<Result> {
+  const actor = await requireTeamMember();
+
+  if (!LEAVE_TYPE_SET.has(input.leaveType)) return { ok: false, error: "Pick a leave type." };
+  if (!input.startDate || !input.endDate) return { ok: false, error: "Pick start and end dates." };
+  if (input.endDate < input.startDate)
+    return { ok: false, error: "End date cannot be before the start date." };
+  if (input.isHalfDay && input.startDate !== input.endDate)
+    return { ok: false, error: "A half day must be a single date." };
+
+  // teamInsertOwn forces team_member_id = actor.teamMemberId — no id field is
+  // accepted from the client here at all, so there is nothing to spoof.
+  const { data, error } = await teamInsertOwn(actor, "time_off", {
+    leave_type: input.leaveType as LeaveType,
+    status: "requested",
+    start_date: input.startDate,
+    end_date: input.endDate,
+    is_half_day: input.isHalfDay,
+    reason: input.reason.trim() || null,
+  });
+  if (error || !data) return { ok: false, error: error ?? "Could not submit request." };
+
+  // Best-effort notifications: never let a Lark/email failure block or fail
+  // the request the employee just successfully submitted.
+  const leaveLabel = LEAVE_TYPE_LABEL[input.leaveType as LeaveType];
+  const days = countWorkingDays(input.startDate, input.endDate, input.isHalfDay);
+  const dateRange =
+    input.startDate === input.endDate
+      ? formatDate(input.startDate)
+      : `${formatDate(input.startDate)} → ${formatDate(input.endDate)}`;
+
+  notifyOps(
+    `Time off requested: ${actor.displayName} — ${leaveLabel}, ${dateRange} (${formatDays(days)}).`,
+  ).catch(() => {});
+
+  getManagerContact(actor)
+    .then((mgr) => {
+      if (!mgr) return undefined;
+      return sendTransactionalEmail({
+        to: mgr.email,
+        subject: `Time off request from ${actor.displayName}`,
+        html: `
+          <p>${escapeHtml(actor.displayName)} requested ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
+          ${input.reason.trim() ? `<p>Reason: ${escapeHtml(input.reason.trim())}</p>` : ""}
+          <p>Review it in the workspace under My Team &gt; Approvals.</p>
+        `,
+      });
+    })
+    .catch(() => {});
+
+  refresh();
+  return { ok: true };
+}
+
+export async function cancelOwnTimeOff(id: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  if (!id) return { ok: false, error: "Missing request." };
+
+  // Deliberately stricter than the actor's general read scope: a manager's
+  // scope includes their reports (so they can see and later approve/reject
+  // those requests), but this is the employee's OWN cancel button, so it must
+  // check literal self-ownership, not "self or report".
+  const { data: row } = await teamRead(actor, "time_off", "status, team_member_id")
+    .eq("id", id)
+    .maybeSingle();
+  const r = row as { status: string; team_member_id: string } | null;
+  if (!r || r.team_member_id !== actor.teamMemberId) return { ok: false, error: "Request not found." };
+  if (r.status === "cancelled") return { ok: true };
+  if (r.status === "taken") return { ok: false, error: "Taken leave cannot be cancelled." };
+
+  const { ok, error } = await teamUpdateInScope(actor, "time_off", id, { status: "cancelled" });
+  if (!ok) return { ok: false, error: error ?? "Could not cancel request." };
+
+  refresh();
+  return { ok: true };
+}

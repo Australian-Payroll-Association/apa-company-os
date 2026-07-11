@@ -102,3 +102,85 @@ export async function assertInScope(
   const owner = (data as unknown as Record<string, string>)[cfg.column];
   return scopeIds(actor, cfg.scope).includes(owner) ? owner : null;
 }
+
+// Scoped insert: the ONLY way /team code creates company_os rows. Forces the
+// table's scope column to the actor's OWN id (never the broader manager scope,
+// and never a client-supplied value) so a create can only ever be "for myself".
+// Spreading `row` before the forced key means any client-supplied value for
+// that column is silently overwritten, not merely validated.
+export async function teamInsertOwn(
+  actor: TeamActor,
+  table: keyof typeof SCOPE_ALLOWLIST,
+  row: Record<string, unknown>,
+): Promise<{ data: { id: string } | null; error: string | null }> {
+  const cfg = SCOPE_ALLOWLIST[table];
+  if (!cfg) throw new Error(`teamInsertOwn: '${table}' is not in the /team scope allowlist`);
+  const ownId = cfg.scope === "team_member" ? actor.teamMemberId : actor.personId;
+  const { data, error } = await companyOs
+    .from(table)
+    .insert({ ...row, [cfg.column]: ownId } as Record<string, unknown>)
+    .select("id")
+    .maybeSingle();
+  return { data: (data as { id: string } | null) ?? null, error: error?.message ?? null };
+}
+
+// Scoped update: re-derives ownership via assertInScope immediately before
+// writing, so a mutation can never trust a stale or client-forged id. Callers
+// that need a narrower check than "actor's scope" (e.g. strictly self, not
+// self-plus-reports) must assert that themselves before calling this.
+export async function teamUpdateInScope(
+  actor: TeamActor,
+  table: keyof typeof SCOPE_ALLOWLIST,
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<{ ok: boolean; error: string | null }> {
+  const owner = await assertInScope(actor, table, id);
+  if (!owner) return { ok: false, error: "Not found." };
+  const { error } = await companyOs.from(table).update(patch).eq("id", id);
+  return { ok: !error, error: error?.message ?? null };
+}
+
+// The actor's own leave balance + policy label, read from team_directory but
+// filtered to exactly one row (their own, by actor.teamMemberId — never client
+// input). team_directory is not in SCOPE_ALLOWLIST because it is unsafe to read
+// broadly (it carries every member's leave balance); this is a narrow,
+// purpose-built exception, the same shape as getOwnProfile below.
+export type OwnLeaveSummary = {
+  policyName: string | null;
+  totalDays: number | null;
+  usedDays: number | null;
+};
+
+export async function getOwnLeaveSummary(actor: TeamActor): Promise<OwnLeaveSummary | null> {
+  const { data } = await companyOs
+    .from("team_directory")
+    .select("leave_policy, total_days, used_days")
+    .eq("id", actor.teamMemberId)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as { leave_policy: string | null; total_days: number | string | null; used_days: number | string | null };
+  const num = (v: number | string | null) => (v === null ? null : Number(v));
+  return { policyName: r.leave_policy, totalDays: num(r.total_days), usedDays: num(r.used_days) };
+}
+
+// The actor's manager's contact details, for notifying on a new time-off
+// request. Self-scoped by actor.teamMemberId; returns null if the actor has no
+// manager or the manager has no email on file.
+export type ManagerContact = { email: string; displayName: string };
+
+export async function getManagerContact(actor: TeamActor): Promise<ManagerContact | null> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select(
+      "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name, email))",
+    )
+    .eq("id", actor.teamMemberId)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as unknown as Record<string, unknown>;
+  type PersonEmail = { full_name: string | null; preferred_name: string | null; email: string | null };
+  const mgr = one(r.manager as { people: PersonEmail | PersonEmail[] | null } | { people: PersonEmail | PersonEmail[] | null }[] | null);
+  const person = one(mgr?.people ?? null);
+  if (!person?.email) return null;
+  return { email: person.email, displayName: person.preferred_name || person.full_name || person.email };
+}

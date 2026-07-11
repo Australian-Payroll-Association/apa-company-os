@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getOwnProfile, teamRead } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
@@ -52,8 +53,9 @@ export default async function TeamHome() {
       <div className="admin-card" style={{ padding: "18px 20px" }}>
         <h2 className="admin-card-title">Your workspace is being built</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
-          Time Off, your profile, and the team directory are arriving shortly. The items marked
-          "soon" in the sidebar will switch on as each one ships.
+          <Link href="/team/time-off">Time Off</Link> is live. Your profile and the team directory
+          are arriving shortly. The items marked "soon" in the sidebar will switch on as each one
+          ships.
         </p>
       </div>
     </>
