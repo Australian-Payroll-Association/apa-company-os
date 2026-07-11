@@ -2,11 +2,32 @@
 
 import { useMemo, useState } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
-import { Badge } from "@/components/admin/Badge";
-import { formatCents, formatDate } from "@/lib/admin/format";
-import { RetreatManage, type RetreatManageData } from "./RetreatManage";
+import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { formatCents, formatDate, humanize } from "@/lib/admin/format";
+import { EVENT_TYPES, EVENT_STATUSES, type EventType, type EventStatus, type EventVisibility } from "@/lib/events";
+import { EventManage, type EventAttendee, type EventTierRow } from "./EventManage";
 
-export type RetreatRow = RetreatManageData;
+export type EventRow = {
+  id: string;
+  slug: string;
+  type: EventType;
+  status: EventStatus;
+  visibility: EventVisibility;
+  title: string;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  capacity: number | null;
+  landingPath: string | null;
+  notes: string | null;
+  archivedAt: string | null;
+  tiers: EventTierRow[];
+  attendees: EventAttendee[];
+  registeredCount: number;
+  totalCount: number;
+  fromUsdCents: number;
+  collectedUsdCents: number;
+};
 
 const PAGE_SIZES = [25, 50, 100];
 
@@ -17,21 +38,28 @@ function dateRange(start: string | null, end: string | null): string {
   return `${s} → ${formatDate(end)}`;
 }
 
-// A retreat whose dates have passed is done, regardless of the active flag
-// (which governs whether it's still open for registration/sale).
-export function isPast(dateStart: string | null, dateEnd: string | null): boolean {
-  const last = dateEnd ?? dateStart;
-  if (!last) return false;
-  return last < new Date().toISOString().slice(0, 10);
+const STATUS_TONE: Record<EventStatus, BadgeTone> = {
+  draft: "neutral",
+  published: "info",
+  open: "ok",
+  closed: "warn",
+  completed: "info",
+  cancelled: "err",
+};
+
+export function eventStatusBadge(status: EventStatus, archivedAt: string | null) {
+  if (archivedAt) return <Badge tone="neutral">Archived</Badge>;
+  return <Badge tone={STATUS_TONE[status]}>{humanize(status)}</Badge>;
 }
 
-// Client-owned retreats table: rows + manage shelf live in one client tree so
-// a row click reliably opens the DetailDrawer (a client shelf injected into a
-// server-rendered row preview never opens — same lesson as the job reqs
-// list). The catalogue is small; search, status filter, and paging happen
-// client-side.
-export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
+// Client-owned events table: rows + manage shelf live in one client tree so a
+// row click reliably opens the DetailDrawer (see components/admin/DataTable's
+// getRowPreview — a server-rendered preview injecting a client shelf never
+// opens; same lesson as the retreats and job reqs lists). The catalogue is
+// small, so search/type/status filter and paging happen client-side.
+export function EventsTable({ rows }: { rows: EventRow[] }) {
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
@@ -40,12 +68,17 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
   const query = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     return rows.filter((r) => {
-      if (statusFilter === "active" && !r.active) return false;
-      if (statusFilter === "inactive" && r.active) return false;
+      if (statusFilter === "archived") {
+        if (!r.archivedAt) return false;
+      } else {
+        if (r.archivedAt) return false;
+        if (statusFilter && r.status !== statusFilter) return false;
+      }
+      if (typeFilter && r.type !== typeFilter) return false;
       if (!query) return true;
-      return [r.name, r.location, r.cohortSlug].some((v) => (v ? v.toLowerCase().includes(query) : false));
+      return [r.title, r.location, r.slug].some((v) => (v ? v.toLowerCase().includes(query) : false));
     });
-  }, [rows, statusFilter, query]);
+  }, [rows, statusFilter, typeFilter, query]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -63,14 +96,31 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
         <input
           className="admin-input"
           style={{ maxWidth: 280 }}
-          placeholder="Search retreat or location…"
+          placeholder="Search event, location, or slug…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(1);
           }}
-          aria-label="Search retreats"
+          aria-label="Search events"
         />
+        <select
+          className="admin-select"
+          style={{ maxWidth: 160 }}
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setPage(1);
+          }}
+          aria-label="Filter by type"
+        >
+          <option value="">All types</option>
+          {EVENT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {humanize(t)}
+            </option>
+          ))}
+        </select>
         <select
           className="admin-select"
           style={{ maxWidth: 160 }}
@@ -82,8 +132,12 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          {EVENT_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {humanize(s)}
+            </option>
+          ))}
+          <option value="archived">Archived</option>
         </select>
         <select
           className="admin-select"
@@ -108,7 +162,8 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Retreat</th>
+                <th>Event</th>
+                <th>Type</th>
                 <th>Location</th>
                 <th>Dates</th>
                 <th style={{ textAlign: "right" }}>Registered</th>
@@ -120,8 +175,8 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
-                    <div className="admin-empty">No retreats match.</div>
+                  <td colSpan={8}>
+                    <div className="admin-empty">No events match.</div>
                   </td>
                 </tr>
               ) : (
@@ -141,28 +196,23 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
                     aria-haspopup="dialog"
                   >
                     <td>
-                      <span className="admin-cell-strong">{r.name}</span>
+                      <span className="admin-cell-strong">{r.title}</span>
                     </td>
+                    <td>{humanize(r.type)}</td>
                     <td>{r.location || <span className="admin-cell-muted">—</span>}</td>
-                    <td>{dateRange(r.dateStart, r.dateEnd)}</td>
+                    <td>{dateRange(r.startsAt, r.endsAt)}</td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
-                      {r.registrations > r.confirmed ? `${r.confirmed} (${r.registrations} incl. unconfirmed)` : String(r.confirmed)}
+                      {r.totalCount > r.registeredCount
+                        ? `${r.registeredCount} (${r.totalCount} incl. other)`
+                        : String(r.registeredCount)}
                     </td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
-                      {formatCents(r.fromUsdCents, "usd")}
+                      {r.tiers.length === 0 ? "Free" : formatCents(r.fromUsdCents, "usd")}
                     </td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                       {formatCents(r.collectedUsdCents, "usd")}
                     </td>
-                    <td>
-                      {isPast(r.dateStart, r.dateEnd) ? (
-                        <Badge tone="info">Complete</Badge>
-                      ) : r.active ? (
-                        <Badge tone="ok">Active</Badge>
-                      ) : (
-                        <Badge tone="neutral">Inactive</Badge>
-                      )}
-                    </td>
+                    <td>{eventStatusBadge(r.status, r.archivedAt)}</td>
                   </tr>
                 ))
               )}
@@ -200,8 +250,8 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
         )}
       </div>
 
-      <DetailDrawer open={!!selected} onClose={() => setSelectedId(null)} eyebrow="Retreat" title={selected?.name}>
-        {selected && <RetreatManage retreat={selected} />}
+      <DetailDrawer open={!!selected} onClose={() => setSelectedId(null)} eyebrow="Event" title={selected?.title}>
+        {selected && <EventManage event={selected} />}
       </DetailDrawer>
     </>
   );
