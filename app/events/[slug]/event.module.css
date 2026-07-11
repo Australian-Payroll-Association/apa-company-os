@@ -129,18 +129,6 @@
   font-weight: 600;
 }
 
-.paidCta {
-  color: var(--blue);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.paidCta:hover {
-  text-decoration: underline;
-}
-
 .form {
   margin-top: 8px;
 }

@@ -4,33 +4,31 @@ import { useState } from "react";
 import { registerForEventPublic, type PublicRegisterResult } from "./actions";
 import styles from "./event.module.css";
 
-export type FreeTierOption = { id: string; title: string; description: string | null };
+export type TierOption = {
+  id: string;
+  title: string;
+  description: string | null;
+  priceLabel: string;
+  isFree: boolean;
+};
 
-// Free registration form. Paid tiers never reach this component — the page
-// routes them to the bespoke landing page or /contact until Stripe lands in
-// PR 5. When an event's only tiers are paid, the form is replaced by a
-// pointer to those CTAs.
-export function RegisterForm({
-  slug,
-  freeTiers,
-  hasOnlyPaidTiers,
-}: {
-  slug: string;
-  freeTiers: FreeTierOption[];
-  hasOnlyPaidTiers: boolean;
-}) {
+type Done = Extract<PublicRegisterResult, { ok: true; status: "registered" | "waitlisted" }>;
+
+// Registration form for open events. Free tiers (or a no-tier event) confirm
+// in place; a paid tier hands the browser off to Stripe Checkout and the
+// webhook completes the registration.
+export function RegisterForm({ slug, tiers }: { slug: string; tiers: TierOption[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [guests, setGuests] = useState("0");
-  const [tierId, setTierId] = useState(freeTiers[0]?.id ?? "");
+  const [tierId, setTierId] = useState(tiers[0]?.id ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<Extract<PublicRegisterResult, { ok: true }> | null>(null);
+  const [done, setDone] = useState<Done | null>(null);
 
-  if (hasOnlyPaidTiers) {
-    return <div className={styles.notice}>Pick a ticket above to reserve your seat.</div>;
-  }
+  const selectedTier = tiers.find((t) => t.id === tierId) ?? null;
+  const isPaid = !!selectedTier && !selectedTier.isFree;
 
   if (done) {
     return (
@@ -66,8 +64,16 @@ export function RegisterForm({
       productId: tierId || null,
       guestCount: Number(guests) || 0,
     });
+    if (!r.ok) {
+      setPending(false);
+      return setError(r.error);
+    }
+    if (r.status === "payment") {
+      // Keep the button in its pending state through the redirect.
+      window.location.href = r.checkoutUrl;
+      return;
+    }
     setPending(false);
-    if (!r.ok) return setError(r.error);
     setDone(r);
   }
 
@@ -81,22 +87,23 @@ export function RegisterForm({
     >
       <h2 className={styles.sectionLabel}>Register</h2>
 
-      {freeTiers.length > 1 && (
+      {tiers.length > 0 && (
         <div className={styles.fieldRow}>
           <span className={styles.fieldLabel}>Ticket</span>
           <div className={styles.tiers}>
-            {freeTiers.map((t) => (
+            {tiers.map((t) => (
               <button
                 type="button"
                 key={t.id}
                 className={`${styles.tier} ${tierId === t.id ? styles.tierActive : ""}`}
                 onClick={() => setTierId(t.id)}
+                aria-pressed={tierId === t.id}
               >
                 <div>
                   <div className={styles.tierName}>{t.title}</div>
                   {t.description && <div className={styles.tierDesc}>{t.description}</div>}
                 </div>
-                <span className={styles.free}>Free</span>
+                {t.isFree ? <span className={styles.free}>Free</span> : <span className={styles.tierPrice}>{t.priceLabel}</span>}
               </button>
             ))}
           </div>
@@ -129,27 +136,33 @@ export function RegisterForm({
         </label>
         <input id="reg-phone" className={styles.input} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
       </div>
-      <div className={styles.fieldRow}>
-        <label className={styles.fieldLabel} htmlFor="reg-guests">
-          Guests you're bringing
-        </label>
-        <input
-          id="reg-guests"
-          className={styles.input}
-          type="number"
-          min={0}
-          max={4}
-          value={guests}
-          onChange={(e) => setGuests(e.target.value)}
-        />
-      </div>
+      {!isPaid && (
+        <div className={styles.fieldRow}>
+          <label className={styles.fieldLabel} htmlFor="reg-guests">
+            Guests you're bringing
+          </label>
+          <input
+            id="reg-guests"
+            className={styles.input}
+            type="number"
+            min={0}
+            max={4}
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          />
+        </div>
+      )}
 
       {error && <div className={styles.error}>{error}</div>}
 
       <button type="submit" className={styles.btnPrimary} disabled={pending}>
-        {pending ? "Registering…" : "Register"}
+        {pending ? (isPaid ? "Heading to payment…" : "Registering…") : isPaid ? `Continue to payment · ${selectedTier.priceLabel}` : "Register"}
       </button>
-      <div className={styles.hint}>You'll get a confirmation email with your ticket link.</div>
+      <div className={styles.hint}>
+        {isPaid
+          ? "Your seat is held for 30 minutes while you pay. You'll get your ticket by email once payment completes."
+          : "You'll get a confirmation email with your ticket link."}
+      </div>
     </form>
   );
 }

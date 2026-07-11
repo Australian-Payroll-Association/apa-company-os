@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug, getEventTiers } from "@/lib/events-server";
 import { eventPriceSummary, formatEventDates, tierPriceLabel } from "@/lib/events";
 import { getSiteOrigin } from "@/lib/site-origin";
-import { RegisterForm, type FreeTierOption } from "./RegisterForm";
+import { RegisterForm, type TierOption } from "./RegisterForm";
 import styles from "./event.module.css";
 
 export const dynamic = "force-dynamic";
@@ -42,13 +42,15 @@ export default async function PublicEventPage({ params }: { params: { slug: stri
   if (!event || event.status === "draft") notFound();
 
   const tiers = await getEventTiers(event.id); // active only
-  const freeTiers: FreeTierOption[] = tiers
-    .filter((t) => t.amount_cents === 0)
-    .map((t) => ({ id: t.id, title: t.title, description: t.description }));
-  const paidTiers = tiers.filter((t) => t.amount_cents > 0);
+  const tierOptions: TierOption[] = tiers.map((t) => ({
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    priceLabel: tierPriceLabel(t),
+    isFree: t.amount_cents === 0,
+  }));
   const dateLabel = formatEventDates(event.starts_at, event.ends_at, event.timezone);
   const isOpen = event.status === "open";
-  const paidCtaHref = event.landing_path || "/contact";
 
   const jsonLd =
     event.visibility === "public"
@@ -102,24 +104,17 @@ export default async function PublicEventPage({ params }: { params: { slug: stri
           <p className={styles.blurb}>{event.description ?? event.blurb}</p>
         )}
 
-        {paidTiers.length > 0 && (
+        {!isOpen && tierOptions.length > 0 && (
           <>
             <h2 className={styles.sectionLabel}>Tickets</h2>
             <div className={styles.tiers}>
-              {paidTiers.map((t) => (
+              {tierOptions.map((t) => (
                 <div key={t.id} className={`${styles.tier} ${styles.tierStatic}`}>
                   <div>
                     <div className={styles.tierName}>{t.title}</div>
                     {t.description && <div className={styles.tierDesc}>{t.description}</div>}
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div className={styles.tierPrice}>{tierPriceLabel(t)}</div>
-                    {isOpen && (
-                      <a className={styles.paidCta} href={paidCtaHref}>
-                        {event.landing_path ? "Reserve →" : "Contact us →"}
-                      </a>
-                    )}
-                  </div>
+                  {t.isFree ? <span className={styles.free}>Free</span> : <div className={styles.tierPrice}>{t.priceLabel}</div>}
                 </div>
               ))}
             </div>
@@ -127,7 +122,7 @@ export default async function PublicEventPage({ params }: { params: { slug: stri
         )}
 
         {isOpen ? (
-          <RegisterForm slug={event.slug} freeTiers={freeTiers} hasOnlyPaidTiers={tiers.length > 0 && freeTiers.length === 0} />
+          <RegisterForm slug={event.slug} tiers={tierOptions} />
         ) : (
           <div className={styles.notice}>{CLOSED_COPY[event.status] ?? "Registration isn't available right now."}</div>
         )}
