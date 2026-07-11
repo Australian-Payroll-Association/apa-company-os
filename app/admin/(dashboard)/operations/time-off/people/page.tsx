@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
+import { PeopleRow } from "./PeopleRow";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { humanize } from "@/lib/admin/format";
 import { formatLeaveBalance } from "@/lib/admin/time-off";
@@ -16,7 +17,7 @@ export const metadata = {
 // Operations → Time Off → People. One row per team member with their approver,
 // team, location, leave policy, work schedule, and current-period balance. Data
 // comes from company_os.team_directory (normalized identity + synced Dayoff
-// facts). Read-only; the Employee name opens the shared Team Member profile.
+// facts). Read-only; clicking the row opens the shared Team Member profile.
 type DirectoryRow = {
   id: string;
   full_name: string | null;
@@ -107,11 +108,9 @@ export default async function TimeOffPeoplePage({ searchParams }: { searchParams
                 </tr>
               ) : (
                 rows.map((r) => (
-                  <tr key={r.id}>
+                  <PeopleRow key={r.id} href={`/admin/talent/team/${r.id}`}>
                     <td>
-                      <Link href={`/admin/talent/team/${r.id}`} className="admin-cell-strong">
-                        {r.full_name || r.email}
-                      </Link>
+                      <span className="admin-cell-strong">{r.full_name || r.email}</span>
                     </td>
                     <td>{r.manager_name || muted}</td>
                     <td>{r.team || muted}</td>
@@ -129,7 +128,7 @@ export default async function TimeOffPeoplePage({ searchParams }: { searchParams
                       {formatLeaveBalance(r.used_days)} / {formatLeaveBalance(r.total_days)}
                     </td>
                     <td className="admin-cell-mono">0 / 0</td>
-                  </tr>
+                  </PeopleRow>
                 ))
               )}
             </tbody>

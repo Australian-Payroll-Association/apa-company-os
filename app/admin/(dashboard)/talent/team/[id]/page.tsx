@@ -5,6 +5,8 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { PreviewRow } from "@/components/admin/PreviewRow";
+import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { formatDate, humanize } from "@/lib/admin/format";
 import {
   LEAVE_TYPE_LABEL,
@@ -76,6 +78,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
 
   const m = memberRes.data as DirectoryRow | null;
   if (!m) notFound();
+
+  // Survey responses are keyed by person, not team member. Skip the lookup when
+  // the directory row has no linked person (nothing could be attributed to it).
+  const surveyResponses = m.person_id ? await getPersonSurveyResponses(m.person_id) : [];
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;
@@ -157,49 +163,95 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        <div className="admin-card admin-section-card">
-          <h2 className="admin-card-title">Time off ({requests.length})</h2>
-          {requests.length === 0 ? (
-            <div className="admin-empty">No time-off requests yet.</div>
-          ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Dates</th>
-                    <th>Days</th>
-                    <th>Status</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((r) => {
-                    const days =
-                      num(r.days) ?? countWorkingDays(r.start_date, r.end_date, r.is_half_day);
-                    const range =
-                      r.start_date === r.end_date
-                        ? formatDate(r.start_date) + (r.is_half_day ? " (half)" : "")
-                        : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`;
-                    return (
-                      <tr key={r.id}>
-                        <td>
-                          {LEAVE_TYPE_LABEL[r.leave_type as keyof typeof LEAVE_TYPE_LABEL] ??
-                            humanize(r.leave_type)}
+        <div>
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Time off ({requests.length})</h2>
+            {requests.length === 0 ? (
+              <div className="admin-empty">No time-off requests yet.</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Dates</th>
+                      <th>Days</th>
+                      <th>Status</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map((r) => {
+                      const days =
+                        num(r.days) ?? countWorkingDays(r.start_date, r.end_date, r.is_half_day);
+                      const range =
+                        r.start_date === r.end_date
+                          ? formatDate(r.start_date) + (r.is_half_day ? " (half)" : "")
+                          : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`;
+                      return (
+                        <tr key={r.id}>
+                          <td>
+                            {LEAVE_TYPE_LABEL[r.leave_type as keyof typeof LEAVE_TYPE_LABEL] ??
+                              humanize(r.leave_type)}
+                          </td>
+                          <td>{range}</td>
+                          <td>{days > 0 ? formatDays(days) : "—"}</td>
+                          <td>
+                            <Badge tone={leaveStatusTone(r.status)}>{humanize(r.status)}</Badge>
+                          </td>
+                          <td className="admin-cell-muted">{r.reason || "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Survey responses ({surveyResponses.length})</h2>
+            {surveyResponses.length === 0 ? (
+              <div className="admin-empty">No survey responses yet.</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Survey</th>
+                      <th>Submitted</th>
+                      <th style={{ textAlign: "right" }}>Answered</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {surveyResponses.map((s) => (
+                      <PreviewRow
+                        key={s.id}
+                        title={s.surveyName}
+                        eyebrow={`Submitted ${formatDate(s.submittedAt)}`}
+                        preview={
+                          <div style={{ display: "grid", gap: 14 }}>
+                            {s.fields.map((f) => (
+                              <div key={f.fieldId}>
+                                <div className="admin-cell-muted">{f.label}</div>
+                                <div>{f.value ?? "—"}</div>
+                              </div>
+                            ))}
+                          </div>
+                        }
+                      >
+                        <td className="admin-cell-strong">{s.surveyName}</td>
+                        <td title={formatDate(s.submittedAt)}>{formatDate(s.submittedAt)}</td>
+                        <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                          {s.answeredCount}/{s.fieldCount}
                         </td>
-                        <td>{range}</td>
-                        <td>{days > 0 ? formatDays(days) : "—"}</td>
-                        <td>
-                          <Badge tone={leaveStatusTone(r.status)}>{humanize(r.status)}</Badge>
-                        </td>
-                        <td className="admin-cell-muted">{r.reason || "—"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </PreviewRow>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
