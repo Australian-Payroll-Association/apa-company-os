@@ -66,12 +66,13 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   // company_os.set_amount_usd_cents); native currency + amount stay in the side car.
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const [{ rows, total, pageSize, error }, revRes, paidCount, pendingCount] = await Promise.all([
+  const [{ rows, total, pageSize, error }, totalRes, revRes, paidCount, pendingCount] = await Promise.all([
     listEntity<Order>(
       "orders",
       "id, amount_cents, amount_usd_cents, currency, status, payment_method, refunded_cents, stripe_session_id, created_at, person_id, people(full_name, email), products(title)",
       { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["stripe_session_id"], sort, dir, filters },
     ),
+    companyOs.from("orders").select("amount_usd_cents").eq("status", "paid"),
     companyOs
       .from("orders")
       .select("amount_usd_cents")
@@ -81,10 +82,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     countEntity("orders", { status: "pending" }),
   ]);
 
-  const revenueThisMonth = ((revRes.data as { amount_usd_cents: number | null }[] | null) ?? []).reduce(
-    (s, r) => s + (r.amount_usd_cents ?? 0),
-    0,
-  );
+  const sumCents = (res: { data: { amount_usd_cents: number | null }[] | null }) =>
+    (res.data ?? []).reduce((s, r) => s + (r.amount_usd_cents ?? 0), 0);
+  const totalCollected = sumCents(totalRes);
+  const revenueThisMonth = sumCents(revRes);
 
   const columns: Column<Order>[] = [
     {
@@ -109,7 +110,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Revenue this month" value={formatCents(revenueThisMonth)} sub="USD · paid orders" />
+        <MetricCard label="Total Collected" value={formatCents(totalCollected)} sub="USD · paid orders" />
+        <MetricCard label="Revenue this Month" value={formatCents(revenueThisMonth)} sub="USD · paid orders" />
         <MetricCard label="Paid" value={paidCount} sub={`of ${total.toLocaleString()} orders`} />
         <MetricCard label="Pending" value={pendingCount} sub="awaiting payment" />
       </div>

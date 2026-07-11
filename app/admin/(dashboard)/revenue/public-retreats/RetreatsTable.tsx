@@ -17,6 +17,14 @@ function dateRange(start: string | null, end: string | null): string {
   return `${s} → ${formatDate(end)}`;
 }
 
+// A retreat whose dates have passed is done, regardless of the active flag
+// (which governs whether it's still open for registration/sale).
+export function isPast(dateStart: string | null, dateEnd: string | null): boolean {
+  const last = dateEnd ?? dateStart;
+  if (!last) return false;
+  return last < new Date().toISOString().slice(0, 10);
+}
+
 // Client-owned retreats table: rows + manage shelf live in one client tree so
 // a row click reliably opens the DetailDrawer (a client shelf injected into a
 // server-rendered row preview never opens — same lesson as the job reqs
@@ -146,7 +154,15 @@ export function RetreatsTable({ rows }: { rows: RetreatRow[] }) {
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                       {formatCents(r.collectedUsdCents, "usd")}
                     </td>
-                    <td>{r.active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>}</td>
+                    <td>
+                      {isPast(r.dateStart, r.dateEnd) ? (
+                        <Badge tone="info">Complete</Badge>
+                      ) : r.active ? (
+                        <Badge tone="ok">Active</Badge>
+                      ) : (
+                        <Badge tone="neutral">Inactive</Badge>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

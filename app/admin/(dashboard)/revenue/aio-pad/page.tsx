@@ -46,7 +46,7 @@ const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
 ];
 
-export default async function BookingsPage({ searchParams }: { searchParams: SearchParamsObj }) {
+export default async function AioPadPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
@@ -58,8 +58,10 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   if (statusParam) filters.status = statusParam;
 
   const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 
-  const [{ rows, total, pageSize, error }, upcomingRes, confirmedCount] = await Promise.all([
+  const [{ rows, total, pageSize, error }, upcomingRes, confirmedCount, totalRes, revRes] = await Promise.all([
     listEntity<Booking>(
       "bookings",
       "id, kind, start_date, end_date, party_size, amount_cents, amount_usd_cents, currency, status, created_at, person_id, people(full_name, email), products(title)",
@@ -67,9 +69,19 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
     ),
     companyOs.from("bookings").select("*", { count: "exact", head: true }).gte("start_date", today),
     countEntity("bookings", { status: "confirmed" }),
+    companyOs.from("bookings").select("amount_usd_cents").eq("status", "confirmed"),
+    companyOs
+      .from("bookings")
+      .select("amount_usd_cents")
+      .eq("status", "confirmed")
+      .gte("created_at", monthStart),
   ]);
 
   const upcomingCount = upcomingRes.count ?? 0;
+  const sumCents = (res: { data: { amount_usd_cents: number | null }[] | null }) =>
+    (res.data ?? []).reduce((s, r) => s + (r.amount_usd_cents ?? 0), 0);
+  const totalCollected = sumCents(totalRes);
+  const revenueThisMonth = sumCents(revRes);
 
   const columns: Column<Booking>[] = [
     {
@@ -106,6 +118,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <MetricCard label="Total Collected" value={formatCents(totalCollected)} sub="USD · confirmed bookings" />
+        <MetricCard label="Revenue this Month" value={formatCents(revenueThisMonth)} sub="USD · confirmed bookings" />
         <MetricCard label="Upcoming" value={upcomingCount} sub="start date today or later" />
         <MetricCard label="Confirmed" value={confirmedCount} sub={`of ${total.toLocaleString()} bookings`} />
       </div>
@@ -118,13 +132,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
         pageSize={pageSize}
         sort={sort}
         dir={dir}
-        basePath="/admin/revenue/bookings"
+        basePath="/admin/revenue/aio-pad"
         searchParams={searchParams}
         searchPlaceholder="Search kind…"
         emptyText="No bookings match."
         filterBar={
           <FilterBar
-            basePath="/admin/revenue/bookings"
+            basePath="/admin/revenue/aio-pad"
             searchParams={searchParams}
             filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
           />
