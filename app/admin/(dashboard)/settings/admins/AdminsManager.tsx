@@ -71,7 +71,7 @@ export function AdminsManager({
         <div className={`admin-alert admin-alert--${banner.tone}`}>{banner.text}</div>
       )}
 
-      <div className="admin-card" style={{ marginBottom: 20 }}>
+      <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
         <h2 className="admin-card-title">Add an admin</h2>
         <form className="admin-form" onSubmit={submitAdd}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
