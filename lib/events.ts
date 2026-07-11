@@ -136,6 +136,31 @@ export function eventPriceSummary(
   return `From ${formatCents(cheapest.amount_cents, cheapest.currency)}`;
 }
 
+// --- Date display -----------------------------------------------------------
+
+// "Aug 24, 2026" / "Aug 24–26, 2026" / "Aug 30 – Sep 2, 2026", rendered in
+// the event's own timezone so a 9am Saigon start doesn't show as the prior
+// day for a UTC server.
+export function formatEventDates(
+  startsAt: string | null,
+  endsAt: string | null,
+  timezone: string
+): string {
+  if (!startsAt) return "Dates TBD";
+  const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone, ...opts }).format(new Date(iso));
+  const startDay = fmt(startsAt, { month: "short", day: "numeric", year: "numeric" });
+  if (!endsAt) return startDay;
+  const endDay = fmt(endsAt, { month: "short", day: "numeric", year: "numeric" });
+  if (endDay === startDay) return startDay;
+  const sameMonth =
+    fmt(startsAt, { month: "short", year: "numeric" }) === fmt(endsAt, { month: "short", year: "numeric" });
+  if (sameMonth) {
+    return `${fmt(startsAt, { month: "short", day: "numeric" })}–${fmt(endsAt, { day: "numeric" })}, ${fmt(endsAt, { year: "numeric" })}`;
+  }
+  return `${fmt(startsAt, { month: "short", day: "numeric" })} – ${endDay}`;
+}
+
 // --- Ticket URLs (pure string helpers; code generation is server-only) -----
 
 export function ticketPath(code: string): string {

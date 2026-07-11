@@ -8,15 +8,18 @@ const emailFrom = process.env.EMAIL_FROM || "Edge8 <notifications@edge8.ai>";
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+// Returns true only when Resend accepted the send — callers that stamp
+// "sent" markers (e.g. event_registrations.confirmation_sent_at) must not
+// stamp on a no-op or failure, or the real send never happens.
 export async function sendTransactionalEmail(opts: {
   to: string | string[];
   subject: string;
   html: string;
   replyTo?: string;
-}): Promise<void> {
+}): Promise<boolean> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set, skipping send to", opts.to);
-    return;
+    return false;
   }
 
   const { error } = await resend.emails.send({
@@ -29,7 +32,40 @@ export async function sendTransactionalEmail(opts: {
 
   if (error) {
     console.error("[email] send failed:", error);
+    return false;
   }
+  return true;
+}
+
+// Registration confirmation for any event: the attendee's ticket link is the
+// payload. Returns whether the send was accepted (see sendTransactionalEmail).
+export async function sendEventTicketEmail(opts: {
+  to: string;
+  name: string | null;
+  eventTitle: string;
+  dateLabel: string;
+  location: string | null;
+  ticketUrl: string;
+}): Promise<boolean> {
+  const greetingName =
+    opts.name && opts.name.trim().length > 0 ? opts.name.split(" ")[0] : "there";
+  const where = opts.location ? ` in ${opts.location}` : "";
+  const html = `
+    <p>Hi ${greetingName},</p>
+    <p>You're registered for <strong>${opts.eventTitle}</strong>${where}, ${opts.dateLabel}.</p>
+    <p>Your ticket is here — save the link or the QR on that page for the day:</p>
+    <p style="margin:20px 0;"><a href="${opts.ticketUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">View my ticket</a></p>
+    <p style="font-size:13px;color:#64748b;">Or copy this link: ${opts.ticketUrl}</p>
+    <p style="margin-top:24px;">Reply to this email any time if plans change.</p>
+    <p>Dave and the Edge8 team</p>
+  `.trim();
+
+  return sendTransactionalEmail({
+    to: opts.to,
+    subject: `You're in: ${opts.eventTitle}`,
+    html,
+    replyTo: "quan@edge8.ai",
+  });
 }
 
 // Customer-facing email when they reserve a Saigon seat with the
