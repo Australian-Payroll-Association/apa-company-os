@@ -21,15 +21,17 @@ export function AssumeBanner({
   return (
     <div
       style={{
-        background: "#7c2d12",
-        color: "#fff",
-        padding: "8px 16px",
+        background: "var(--admin-warn-bg)",
+        color: "var(--admin-warn-ink)",
+        borderBottom: "1px solid var(--admin-line-strong)",
+        padding: "6px 16px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: 8,
-        fontSize: 13,
+        fontSize: 12.5,
+        lineHeight: 1.4,
       }}
     >
       <span>
@@ -38,11 +40,7 @@ export function AssumeBanner({
         expires in {expiresIn}m
       </span>
       <form action={endAssumeSession}>
-        <button
-          type="submit"
-          className="admin-btn admin-btn--sm"
-          style={{ background: "#fff", color: "#7c2d12" }}
-        >
+        <button type="submit" className="admin-btn admin-btn--sm">
           Exit
         </button>
       </form>

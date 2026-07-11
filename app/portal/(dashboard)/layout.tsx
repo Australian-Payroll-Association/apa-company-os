@@ -38,7 +38,7 @@ export default async function PortalDashboardLayout({
   };
 
   return (
-    <div className="admin-shell">
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {actor.impersonation && (
         <AssumeBanner
           impersonation={actor.impersonation}
@@ -46,13 +46,15 @@ export default async function PortalDashboardLayout({
           companyName={companyName}
         />
       )}
-      <PortalSidebar
-        name={actor.displayName}
-        companyName={companyName}
-        entitlements={entitlements}
-        impersonating={!!actor.impersonation}
-      />
-      <main className="admin-main">{children}</main>
+      <div className="admin-shell" style={{ flex: 1, minHeight: 0 }}>
+        <PortalSidebar
+          name={actor.displayName}
+          companyName={companyName}
+          entitlements={entitlements}
+          impersonating={!!actor.impersonation}
+        />
+        <main className="admin-main">{children}</main>
+      </div>
     </div>
   );
 }
