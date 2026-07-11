@@ -5,8 +5,10 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
+import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
 import { formatDate, humanize } from "@/lib/admin/format";
 import {
   LEAVE_TYPE_LABEL,
@@ -82,6 +84,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   // Survey responses are keyed by person, not team member. Skip the lookup when
   // the directory row has no linked person (nothing could be attributed to it).
   const surveyResponses = m.person_id ? await getPersonSurveyResponses(m.person_id) : [];
+  const [assignments, assignableCompanies] = await Promise.all([
+    getAssignmentsForTeamMember(m.id),
+    listAssignableCompanies(),
+  ]);
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;
@@ -161,6 +167,12 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               <span className="admin-cell-muted">No linked person record.</span>
             )}
           </div>
+
+          <AssignmentsBlock
+            teamMemberId={m.id}
+            assignments={assignments}
+            companies={assignableCompanies}
+          />
         </div>
 
         <div>

@@ -5,16 +5,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/portal/(dashboard)/actions";
 
-// Client-portal sibling of TeamSidebar: same admin shell CSS, flat nav. Items
-// without `enabled` render as muted "soon" placeholders (their PR has not
-// shipped yet) so the shell always looks complete without dead links. Which
-// modules apply to a given client is decided per PR as each module ships
-// entitlement-driven visibility; the v1 shell shows the full set.
-type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
+// Client-portal sibling of TeamSidebar: same admin shell CSS, flat nav. A nav
+// item renders live only when its module has BOTH shipped (`built`) and the
+// actor is entitled to it (design doc: "Team visible iff any company in scope
+// has an active staff_assignments row", etc.) — otherwise it renders as a
+// muted "soon" placeholder so the shell always looks complete without dead
+// links. Modules with no `entitlementKey` (Home) are always live once built.
+export type PortalEntitlements = {
+  team: boolean;
+};
+
+type EntitlementKey = keyof PortalEntitlements;
+type NavItem = { label: string; href: string; ico: string; built?: boolean; entitlementKey?: EntitlementKey };
 
 const NAV: NavItem[] = [
-  { label: "Home", href: "/portal", ico: "◈", enabled: true },
-  { label: "Team", href: "/portal/team", ico: "☷" },
+  { label: "Home", href: "/portal", ico: "◈", built: true },
+  { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼" },
   { label: "Projects", href: "/portal/projects", ico: "⇉" },
   { label: "Invoices", href: "/portal/invoices", ico: "▤" },
@@ -26,9 +32,20 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function PortalSidebar({ name, companyName }: { name: string; companyName: string | null }) {
+export function PortalSidebar({
+  name,
+  companyName,
+  entitlements,
+}: {
+  name: string;
+  companyName: string | null;
+  entitlements: PortalEntitlements;
+}) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
+
+  const isEnabled = (item: NavItem) =>
+    !!item.built && (!item.entitlementKey || entitlements[item.entitlementKey]);
 
   return (
     <>
@@ -56,7 +73,7 @@ export function PortalSidebar({ name, companyName }: { name: string; companyName
           <div className="admin-nav-group">
             {companyName && <div className="admin-nav-grouplabel">{companyName}</div>}
             {NAV.map((item) =>
-              item.enabled ? (
+              isEnabled(item) ? (
                 <Link
                   key={item.href}
                   href={item.href}

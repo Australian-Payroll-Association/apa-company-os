@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requirePortalMember } from "@/lib/portal-auth";
+import { hasAssignedStaff } from "@/lib/portal/team";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import "../../admin/admin.css";
 
@@ -19,10 +20,11 @@ export default async function PortalDashboardLayout({
     actor.memberships.length === 1
       ? actor.memberships[0].companyName
       : actor.memberships.map((m) => m.companyName).filter(Boolean).join(" · ") || null;
+  const entitlements = { team: await hasAssignedStaff(actor) };
 
   return (
     <div className="admin-shell">
-      <PortalSidebar name={actor.displayName} companyName={companyName} />
+      <PortalSidebar name={actor.displayName} companyName={companyName} entitlements={entitlements} />
       <main className="admin-main">{children}</main>
     </div>
   );

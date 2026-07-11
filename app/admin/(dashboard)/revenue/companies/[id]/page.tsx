@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany360 } from "@/lib/admin/companies";
 import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
+import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/staff-assignments";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
+import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -22,7 +24,11 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people } = data;
   const name = company.name || "(no name)";
-  const portalMemberships = await getPortalMembershipsForCompany(company.id);
+  const [portalMemberships, assignments, assignableTeamMembers] = await Promise.all([
+    getPortalMembershipsForCompany(company.id),
+    getAssignmentsForCompany(company.id),
+    listActiveTeamMembers(),
+  ]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
@@ -163,6 +169,13 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
               <dd>{formatDate(company.created_at)}</dd>
             </dl>
           </div>
+
+          <AssignedStaffCard
+            companyId={company.id}
+            assignments={assignments}
+            teamMembers={assignableTeamMembers}
+          />
+
           <div className="admin-card admin-section-card">
             <CompanyDangerZone companyId={company.id} companyName={name} archived={!!company.archived_at} />
           </div>

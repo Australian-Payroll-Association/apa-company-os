@@ -1,0 +1,89 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { companyOs } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/admin-auth";
+import { recordAudit } from "@/lib/admin/audit";
+
+// Server actions for company_os.staff_assignments, used from both the company
+// 360 "Assigned staff" card and the team-member detail "Assignments" block.
+
+type Result = { ok: true } | { ok: false; error: string };
+
+function refresh(companyId: string, teamMemberId: string) {
+  revalidatePath(`/admin/revenue/companies/${companyId}`);
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+}
+
+export async function createAssignment(input: {
+  companyId: string;
+  teamMemberId: string;
+  roleTitle: string;
+}): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!input.companyId || !input.teamMemberId) {
+    return { ok: false, error: "Pick both a company and a team member." };
+  }
+
+  const { data: existing } = await companyOs
+    .from("staff_assignments")
+    .select("id")
+    .eq("company_id", input.companyId)
+    .eq("team_member_id", input.teamMemberId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (existing) return { ok: false, error: "This person is already assigned to this company." };
+
+  const { data: row, error } = await companyOs
+    .from("staff_assignments")
+    .insert({
+      company_id: input.companyId,
+      team_member_id: input.teamMemberId,
+      role_title: input.roleTitle.trim() || null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "staff_assignments",
+    recordId: row.id as string,
+    operation: "insert",
+    actor: admin.email,
+    context: { company_id: input.companyId, team_member_id: input.teamMemberId },
+  });
+
+  refresh(input.companyId, input.teamMemberId);
+  return { ok: true };
+}
+
+// Ends an assignment (status -> 'ended'); the row stays for history rather than
+// being deleted. Re-assigning the same pair inserts a fresh active row.
+export async function endAssignment(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: row, error: rErr } = await companyOs
+    .from("staff_assignments")
+    .select("company_id, team_member_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (rErr || !row) return { ok: false, error: rErr?.message ?? "Assignment not found." };
+  if (row.status !== "active") return { ok: true };
+
+  const { error } = await companyOs
+    .from("staff_assignments")
+    .update({ status: "ended", end_date: new Date().toISOString().slice(0, 10) })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "staff_assignments",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { action: "end_assignment" },
+  });
+
+  refresh(row.company_id as string, row.team_member_id as string);
+  return { ok: true };
+}
