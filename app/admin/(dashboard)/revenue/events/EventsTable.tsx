@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
-import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { eventStatusBadge } from "./EventStatusBadge";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import Link from "next/link";
 import { EVENT_TYPES, EVENT_STATUSES, type EventType, type EventStatus, type EventVisibility } from "@/lib/events";
@@ -37,20 +37,6 @@ function dateRange(start: string | null, end: string | null): string {
   const s = formatDate(start);
   if (!end || formatDate(end) === s) return s;
   return `${s} → ${formatDate(end)}`;
-}
-
-const STATUS_TONE: Record<EventStatus, BadgeTone> = {
-  draft: "neutral",
-  published: "info",
-  open: "ok",
-  closed: "warn",
-  completed: "info",
-  cancelled: "err",
-};
-
-export function eventStatusBadge(status: EventStatus, archivedAt: string | null) {
-  if (archivedAt) return <Badge tone="neutral">Archived</Badge>;
-  return <Badge tone={STATUS_TONE[status]}>{humanize(status)}</Badge>;
 }
 
 // Client-owned events table: rows + manage shelf live in one client tree so a

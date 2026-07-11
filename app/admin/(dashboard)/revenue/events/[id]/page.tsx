@@ -9,7 +9,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { eventPath, normalizeRegistrationStatus, type EventStatus, type EventType, type EventVisibility } from "@/lib/events";
 import { qrPngDataUrl } from "@/lib/qr";
 import { getSiteOrigin } from "@/lib/site-origin";
-import { eventStatusBadge } from "../EventsTable";
+import { eventStatusBadge } from "../EventStatusBadge";
 import { RosterTab, type RosterRegistration, type RosterTier } from "./RosterTab";
 import { EventSettings, type EventSettingsData, type SettingsTier, type SurveyOption } from "./EventSettings";
 

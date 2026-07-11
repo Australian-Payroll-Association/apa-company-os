@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { getEventQrs, type QrLink } from "./actions";
-import { eventStatusBadge, type EventRow } from "./EventsTable";
+import { eventStatusBadge } from "./EventStatusBadge";
+import type { EventRow } from "./EventsTable";
 
 export type EventTierRow = {
   id: string;
