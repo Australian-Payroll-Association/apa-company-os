@@ -42,6 +42,7 @@ export function statusTone(status: string | null | undefined): BadgeTone {
     case "discovery":
     case "proposal":
     case "passive":
+    case "future_consideration":
       return "warn";
     case "new_lead":
     case "contacted":

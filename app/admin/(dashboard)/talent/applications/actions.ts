@@ -9,7 +9,15 @@ import { recordAudit } from "@/lib/admin/audit";
 type Result = { ok: true } | { ok: false; error: string };
 
 // Matches the applications_status_check constraint.
-const APP_STATUSES = new Set(["active", "on_hold", "passive", "withdrawn", "hired", "rejected"]);
+const APP_STATUSES = new Set([
+  "active",
+  "on_hold",
+  "passive",
+  "withdrawn",
+  "hired",
+  "rejected",
+  "future_consideration",
+]);
 const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 export type StageOption = { id: string; name: string; isTerminal: boolean };

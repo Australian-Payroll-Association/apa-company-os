@@ -35,7 +35,15 @@ export type AppRow = {
 const PAGE_SIZES = [25, 50, 100];
 
 // Canonical status order for the filter dropdown (pipeline-ish, ends terminal).
-const STATUS_ORDER = ["active", "on_hold", "passive", "withdrawn", "hired", "rejected"];
+const STATUS_ORDER = [
+  "active",
+  "on_hold",
+  "future_consideration",
+  "passive",
+  "withdrawn",
+  "hired",
+  "rejected",
+];
 
 function toManageData(r: AppRow): AppManageData {
   return {

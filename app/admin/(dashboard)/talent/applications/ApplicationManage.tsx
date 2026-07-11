@@ -48,6 +48,7 @@ const STATUS_OPTIONS = [
   ["withdrawn", "Withdrawn"],
   ["hired", "Hired"],
   ["rejected", "Rejected"],
+  ["future_consideration", "Future consideration"],
 ] as const;
 
 // Editable "manage" surface for one application, rendered inside the row's side
