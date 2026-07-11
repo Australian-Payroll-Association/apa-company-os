@@ -4,13 +4,23 @@ import { useState, useTransition } from "react";
 import { updatePerson } from "../actions";
 import type { Person } from "@/lib/admin/contacts";
 
-export function PersonEditForm({ person }: { person: Person }) {
+// Known persona values (company_os has no enum on people.persona). "" = Unset.
+const PERSONA_OPTIONS = [
+  { value: "", label: "Unset" },
+  { value: "job_seeker", label: "Job seeker" },
+  { value: "prospect", label: "Prospect" },
+  { value: "client", label: "Client" },
+  { value: "employee", label: "Employee" },
+];
+
+export function PersonEditForm({ person, onSaved }: { person: Person; onSaved?: () => void }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [form, setForm] = useState({
     full_name: person.full_name ?? "",
     phone: person.phone ?? "",
     persona: person.persona ?? "",
+    country: person.country ?? "",
     linkedin_url: person.linkedin_url ?? "",
     notes: person.notes ?? "",
     do_not_contact: !!person.do_not_contact,
@@ -26,6 +36,7 @@ export function PersonEditForm({ person }: { person: Person }) {
     start(async () => {
       const r = await updatePerson(person.id, form);
       setMsg(r.ok ? { ok: true, text: "Saved." } : { ok: false, text: r.error });
+      if (r.ok) onSaved?.();
     });
   }
 
@@ -44,7 +55,20 @@ export function PersonEditForm({ person }: { person: Person }) {
       </div>
       <div className="admin-field">
         <label className="admin-label">Persona</label>
-        <input className="admin-input" value={form.persona} onChange={(e) => field("persona", e.target.value)} />
+        <select className="admin-input" value={form.persona} onChange={(e) => field("persona", e.target.value)}>
+          {PERSONA_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+          {form.persona && !PERSONA_OPTIONS.some((o) => o.value === form.persona) && (
+            <option value={form.persona}>{form.persona}</option>
+          )}
+        </select>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Country</label>
+        <input className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)} />
       </div>
       <div className="admin-field">
         <label className="admin-label">LinkedIn</label>
