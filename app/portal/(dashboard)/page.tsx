@@ -1,6 +1,5 @@
 import { requirePortalMember } from "@/lib/portal-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { MetricCard } from "@/components/admin/MetricCard";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +7,13 @@ export const dynamic = "force-dynamic";
 // JWT-derived actor. Module pages arrive one PR at a time (see
 // docs/plans/2026-07-11-client-portal-design.md); until each ships, the
 // sidebar marks it "soon" and this page stays a welcome surface.
+//
+// Company/email render via .admin-kv (dt/dd), not MetricCard/.mp-kpi — that
+// component is a stat tile (28px bold, ~212px-minimum column), built for
+// short numbers, not a full company name or an email address. Using it here
+// produced ugly mid-word wraps ("Entrepreneu" / "rs") once long values were
+// forced to wrap instead of overflowing. A plain info card has no such width
+// constraint and wraps at word boundaries like everywhere else in the app.
 export default async function PortalHome() {
   const actor = await requirePortalMember();
   const companies = actor.memberships.map((m) => m.companyName).filter(Boolean) as string[];
@@ -20,16 +26,17 @@ export default async function PortalHome() {
         sub={companies.length > 0 ? companies.join(" · ") : undefined}
       />
 
-      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Company" value={companies[0] ?? "—"} sub={actor.email} />
-        <MetricCard
-          label="Your portal"
-          value="Getting started"
-          sub="Modules switch on as they ship"
-        />
+      <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
+        <h2 className="admin-card-title">Your account</h2>
+        <dl className="admin-kv">
+          <dt>Company</dt>
+          <dd>{companies[0] ?? "—"}</dd>
+          <dt>Email</dt>
+          <dd>{actor.email}</dd>
+        </dl>
       </div>
 
-      <div className="admin-card" style={{ padding: "18px 20px" }}>
+      <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Your portal is being set up</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
           Your team, time off, project updates, invoices, and events are arriving shortly. The
