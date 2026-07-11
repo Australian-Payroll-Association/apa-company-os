@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { qrPngDataUrl } from "@/lib/qr";
+import { getSiteOrigin } from "@/lib/site-origin";
 import {
   eventPath,
   EVENT_TYPES,
@@ -20,18 +20,6 @@ type Result = { ok: true } | { ok: false; error: string };
 
 function refresh() {
   revalidatePath("/admin/revenue/events");
-}
-
-// company_os has no public grants; production always resolves via the
-// incoming request's Host header (matches the checkout route's origin
-// derivation). PREVIEW_URL/site fallback only matters for local/CI runs
-// with no request context.
-function siteOrigin(): string {
-  const h = headers();
-  const host = h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? (host?.includes("localhost") ? "http" : "https");
-  if (host) return `${proto}://${host}`;
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://www.edge8.ai";
 }
 
 // ─── Edit ────────────────────────────────────────────────────────────────────
@@ -167,7 +155,7 @@ export async function restoreEvent(eventId: string): Promise<Result> {
 export async function getEventSignupQr(slug: string): Promise<{ ok: true; url: string; png: string } | { ok: false; error: string }> {
   await requireAdmin();
   try {
-    const url = `${siteOrigin()}${eventPath(slug)}`;
+    const url = `${getSiteOrigin()}${eventPath(slug)}`;
     const png = await qrPngDataUrl(url);
     return { ok: true, url, png };
   } catch (err) {

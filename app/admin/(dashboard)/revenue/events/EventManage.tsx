@@ -134,6 +134,10 @@ export function EventManage({ event }: { event: EventRow }) {
         </dd>
       </dl>
 
+      <Link href={`/admin/revenue/events/${event.id}`} className="admin-btn" style={{ marginBottom: 16, display: "inline-block" }}>
+        Open full event page →
+      </Link>
+
       <div style={{ marginBottom: 16 }}>
         <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
           Signup link
