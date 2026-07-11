@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { hasAssignedStaff } from "@/lib/portal/team";
+import { hasInvoices } from "@/lib/portal/invoices";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import "../../admin/admin.css";
 
@@ -22,8 +23,11 @@ export default async function PortalDashboardLayout({
       : actor.memberships.map((m) => m.companyName).filter(Boolean).join(" · ") || null;
   // Time Off is visible iff Team is (same scope source: an active staff
   // assignment) — one lookup covers both, per the design doc's entitlement rules.
-  const hasStaff = await hasAssignedStaff(actor);
-  const entitlements = { team: hasStaff, timeOff: hasStaff };
+  const [hasStaff, hasInvoicesResult] = await Promise.all([
+    hasAssignedStaff(actor),
+    hasInvoices(actor),
+  ]);
+  const entitlements = { team: hasStaff, timeOff: hasStaff, invoices: hasInvoicesResult };
 
   return (
     <div className="admin-shell">

@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { getCompany360 } from "@/lib/admin/companies";
 import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
 import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/staff-assignments";
+import { getInvoicesForCompany, getQboCustomerIds } from "@/lib/admin/invoices";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
+import { InvoicesTab } from "@/components/admin/InvoicesTab";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -24,11 +26,14 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people } = data;
   const name = company.name || "(no name)";
-  const [portalMemberships, assignments, assignableTeamMembers] = await Promise.all([
-    getPortalMembershipsForCompany(company.id),
-    getAssignmentsForCompany(company.id),
-    listActiveTeamMembers(),
-  ]);
+  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds] =
+    await Promise.all([
+      getPortalMembershipsForCompany(company.id),
+      getAssignmentsForCompany(company.id),
+      listActiveTeamMembers(),
+      getInvoicesForCompany(company.id),
+      getQboCustomerIds(company.id),
+    ]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
@@ -112,6 +117,14 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
             })}
           </div>
         ),
+    },
+    {
+      key: "invoices",
+      label: "Invoices",
+      count: invoices.length,
+      content: (
+        <InvoicesTab companyId={company.id} invoices={invoices} qboCustomerIds={qboCustomerIds} />
+      ),
     },
   ];
 

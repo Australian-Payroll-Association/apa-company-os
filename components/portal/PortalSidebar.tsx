@@ -14,6 +14,7 @@ import { signOut } from "@/app/portal/(dashboard)/actions";
 export type PortalEntitlements = {
   team: boolean;
   timeOff: boolean;
+  invoices: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -24,7 +25,7 @@ const NAV: NavItem[] = [
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
   { label: "Projects", href: "/portal/projects", ico: "⇉" },
-  { label: "Invoices", href: "/portal/invoices", ico: "▤" },
+  { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
   { label: "My Events", href: "/portal/events", ico: "▦" },
 ];
 
