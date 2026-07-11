@@ -78,6 +78,7 @@ export default async function PortalTeamPage() {
             // also starves the admin-kv dt/dd grid inside each card down to
             // a near-zero value column.
             gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            alignItems: "stretch", // cards in a row match the tallest one instead of each sizing to its own content
             gap: 16,
             marginBottom: 20,
           }}
