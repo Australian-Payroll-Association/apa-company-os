@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPerson360 } from "@/lib/admin/contacts";
+import { getPortalMembershipsForPerson } from "@/lib/admin/portal";
+import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
@@ -25,6 +27,10 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   if (!data) notFound();
 
   const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
+  const portalMemberships = await getPortalMembershipsForPerson(params.id);
+  const membershipByCompany = new Map(
+    portalMemberships.filter((m) => m.company_id).map((m) => [m.company_id as string, m]),
+  );
   const isCustomer = deals.some((d) => d.status === "won");
   const primaryCompany = companies.find((c) => c.is_primary) ?? companies[0] ?? null;
   const name = person.full_name || person.preferred_name || person.email;
@@ -346,6 +352,27 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               <dd>{formatDate(person.created_at)}</dd>
             </dl>
           </div>
+          {!person.is_team_member && companies.length > 0 && (
+            <div className="admin-card admin-section-card">
+              <h2 className="admin-card-title">Client portal</h2>
+              <div className="admin-list">
+                {companies.map((c) => (
+                  <div className="admin-list-row" key={c.company_id}>
+                    <div className="admin-list-main">
+                      <div className="admin-list-title">{c.name || "—"}</div>
+                    </div>
+                    <div className="admin-list-aside">
+                      <PortalMemberControls
+                        personId={person.id}
+                        companyId={c.company_id}
+                        active={membershipByCompany.get(c.company_id)?.status === "active"}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="admin-card admin-section-card">
             <PersonDangerZone
               personId={person.id}

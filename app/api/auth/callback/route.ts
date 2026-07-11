@@ -5,12 +5,12 @@ import { cookies } from "next/headers";
 // Supabase Auth PKCE callback. Supabase redirects here after a magic link or
 // password reset; we exchange the code for a session, then send the user on.
 // Next 14: cookies() is synchronous.
-// Only allow redirecting to our own /admin or /team surfaces. `next` is
-// attacker-controllable (it rides in the magic-link URL), so anything else
+// Only allow redirecting to our own /admin, /team or /portal surfaces. `next`
+// is attacker-controllable (it rides in the magic-link URL), so anything else
 // (external hosts, protocol-relative //evil, path traversal) falls back to a
 // safe internal default. Closes open-redirect / landing-surface confusion.
 function safeNext(raw: string | null): string {
-  if (raw && /^\/(admin|team)(\/|$)/.test(raw) && !raw.includes("..")) return raw;
+  if (raw && /^\/(admin|team|portal)(\/|$)/.test(raw) && !raw.includes("..")) return raw;
   return "/admin";
 }
 

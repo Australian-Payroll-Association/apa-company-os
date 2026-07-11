@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Coarse edge gate for /admin/* and /team/*: refreshes the Supabase session
+// Coarse edge gate for /admin/*, /team/* and /portal/*: refreshes the Supabase session
 // cookie and bounces unauthenticated requests to the right login page. This is
 // defense-in-depth and UX, NOT the security boundary — requireAdmin() /
 // requireTeamMember() in the layouts and every server action do the authoritative
@@ -10,17 +10,26 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // The login pages and auth callback must stay reachable without a session.
+  // The login pages and auth callbacks must stay reachable without a session.
+  // The invite callbacks carry the session in the URL *hash*, which never
+  // reaches the server — bouncing them to login would strand the invite.
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/team/login") ||
+    pathname.startsWith("/team/callback") ||
+    pathname.startsWith("/portal/login") ||
+    pathname.startsWith("/portal/callback") ||
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next({ request });
   }
 
   // Each surface has its own login page.
-  const loginPath = pathname.startsWith("/team") ? "/team/login" : "/admin/login";
+  const loginPath = pathname.startsWith("/team")
+    ? "/team/login"
+    : pathname.startsWith("/portal")
+      ? "/portal/login"
+      : "/admin/login";
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -70,5 +79,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/team/:path*"],
+  matcher: ["/admin/:path*", "/team/:path*", "/portal/:path*"],
 };

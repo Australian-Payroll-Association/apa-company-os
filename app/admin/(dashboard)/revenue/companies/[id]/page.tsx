@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany360 } from "@/lib/admin/companies";
+import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
+import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -20,6 +22,10 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people } = data;
   const name = company.name || "(no name)";
+  const portalMemberships = await getPortalMembershipsForCompany(company.id);
+  const activeMemberCount = [...portalMemberships.values()].filter(
+    (m) => m.status === "active",
+  ).length;
 
   const tabs: TabDef[] = [
     {
@@ -66,6 +72,38 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                 </div>
               </div>
             ))}
+          </div>
+        ),
+    },
+    {
+      key: "portal",
+      label: "Portal",
+      count: activeMemberCount,
+      content:
+        people.length === 0 ? (
+          <Empty text="Link a contact on the People tab first, then invite them here." />
+        ) : (
+          <div className="admin-list">
+            {people.map((p) => {
+              const membership = portalMemberships.get(p.id);
+              return (
+                <div className="admin-list-row" key={p.id}>
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">
+                      <Link href={`/admin/contacts/${p.id}`}>{p.full_name || p.email}</Link>
+                    </div>
+                    <div className="admin-list-sub">{p.email}</div>
+                  </div>
+                  <div className="admin-list-aside">
+                    <PortalMemberControls
+                      personId={p.id}
+                      companyId={company.id}
+                      active={membership?.status === "active"}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ),
     },
