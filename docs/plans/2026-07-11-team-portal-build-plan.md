@@ -226,6 +226,24 @@ Each PR: its own branch off main, CI green, reviewed, merged before the next
 dependent PR starts. Migrations via Supabase MCP `apply_migration`, additive
 only, grants included.
 
+### Recommended Claude model per PR
+
+Security-critical PRs get the top tier; pattern-following UI work runs fine on
+Sonnet. Run `/code-review` before merging any PR marked security-critical.
+
+| PR | Work | Model | Why |
+|---|---|---|---|
+| 1 | Provisioning (shipped, #194) | Fable 5 | Security-critical: identity linking, ban/revoke semantics. Built with Fable 5. |
+| 2 | Time Off, employee side | Sonnet 5 | Pattern-following (scoped helper + admin design system), but the new actions must force `team_member_id = actor.teamMemberId` — review that line specifically. |
+| 3 | Manager approvals + calendar + manager home | Fable 5 (or Opus 4.8) | Security-critical: IDOR re-scoping of approve/reject, direct-report scope derivation. `/code-review` before merge. |
+| 4 | Directory + My Profile | Sonnet 5 | Routine pages; the one sharp edge (no leave balances in the directory helper) is spelled out in Workstream C. |
+| 5 | Surveys in /team | Sonnet 5 | Smallest lift; reuses the existing runner and identity resolution. |
+| 6 | Announcements | Sonnet 5 | Greenfield but simple CRUD; the migration must include service_role grants. |
+
+If switching models per PR is more hassle than it is worth, staying on Fable 5
+throughout is the safe default — the cost delta across six PRs is small next to
+the cost of an auth bug in this portal.
+
 ## Standing constraints (apply to every PR)
 
 - Every `/team` page and action starts with `requireTeamMember()`; every
