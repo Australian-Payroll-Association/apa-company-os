@@ -7,6 +7,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { formatCents, humanize } from "@/lib/admin/format";
 import { deleteRetreat, updateRetreat } from "./actions";
+import { isPast } from "./RetreatsTable";
 
 export type RetreatTier = {
   id: string;
@@ -78,7 +79,15 @@ export function RetreatManage({ retreat }: { retreat: RetreatManageData }) {
     <>
       <dl className="admin-kv" style={{ marginBottom: 16 }}>
         <dt>Status</dt>
-        <dd>{retreat.active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>}</dd>
+        <dd>
+          {isPast(retreat.dateStart, retreat.dateEnd) ? (
+            <Badge tone="info">Complete</Badge>
+          ) : retreat.active ? (
+            <Badge tone="ok">Active</Badge>
+          ) : (
+            <Badge tone="neutral">Inactive</Badge>
+          )}
+        </dd>
         <dt>Cohort</dt>
         <dd className="admin-cell-mono">{retreat.cohortSlug}</dd>
         <dt>From</dt>

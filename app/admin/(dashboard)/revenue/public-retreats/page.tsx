@@ -53,8 +53,15 @@ type RegRow = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
+type RevRow = {
+  orders: { amount_usd_cents: number | null } | { amount_usd_cents: number | null }[] | null;
+};
+
 export default async function PublicRetreatsPage() {
-  const [retreatsRes, tiersRes, attendeeRes] = await Promise.all([
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+
+  const [retreatsRes, tiersRes, attendeeRes, revRes] = await Promise.all([
     companyOs
       .from("public_retreats")
       .select("id, cohort_slug, name, location, date_start, date_end, active, from_usd_cents, collected_usd_cents, registrations, confirmed")
@@ -69,9 +76,20 @@ export default async function PublicRetreatsPage() {
     companyOs
       .from("event_registrations")
       .select("status, attendee_name, attendee_email, person_id, people(full_name, email), products!inner(cohort_slug, tier)"),
+    // Revenue this month: confirmed registrations whose order was created this month.
+    companyOs
+      .from("event_registrations")
+      .select("orders!inner(amount_usd_cents, created_at), products!inner(type)")
+      .eq("status", "confirmed")
+      .eq("products.type", "event")
+      .gte("orders.created_at", monthStart),
   ]);
 
   const error = retreatsRes.error?.message ?? tiersRes.error?.message ?? attendeeRes.error?.message ?? null;
+  const revenueThisMonth = ((revRes.data ?? []) as RevRow[]).reduce(
+    (s, r) => s + (one(r.orders)?.amount_usd_cents ?? 0),
+    0,
+  );
 
   const tiersByCohort = new Map<string, RetreatTier[]>();
   for (const t of (tiersRes.data ?? []) as TierRow[]) {
@@ -135,9 +153,10 @@ export default async function PublicRetreatsPage() {
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <MetricCard label="Total Collected" value={formatCents(totalCollected, "usd")} sub="USD · confirmed" />
+        <MetricCard label="Revenue this Month" value={formatCents(revenueThisMonth, "usd")} sub="USD · confirmed" />
         <MetricCard label="Active retreats" value={activeRetreats} sub={`of ${rows.length} scheduled`} />
         <MetricCard label="Registered" value={totalRegistered} sub="confirmed attendees" />
-        <MetricCard label="Collected" value={formatCents(totalCollected, "usd")} sub="USD · confirmed" />
       </div>
 
       <RetreatsTable rows={rows} />
