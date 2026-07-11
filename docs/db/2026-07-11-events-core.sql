@@ -106,10 +106,14 @@ alter table company_os.event_registrations
 --    byte % 32 has no modulo bias.
 -- ---------------------------------------------------------------------------
 
+-- citext and pgcrypto live in the `extensions` schema on Supabase, so both
+-- functions pin it into search_path (::citext / gen_random_bytes fail to
+-- resolve otherwise — caught by the post-apply RPC smoke test).
 create or replace function company_os.new_ticket_code(len integer default 12)
 returns text
 language plpgsql
 volatile
+set search_path = company_os, extensions, pg_catalog
 as $$
 declare
   alphabet constant text := '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -148,7 +152,7 @@ create or replace function company_os.register_for_event(
 ) returns jsonb
 language plpgsql
 security definer
-set search_path = company_os, pg_catalog
+set search_path = company_os, extensions, pg_catalog
 as $$
 declare
   ev record;
