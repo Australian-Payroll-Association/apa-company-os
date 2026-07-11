@@ -1,7 +1,8 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { companyOs } from "@/lib/supabase";
+import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { qrPngDataUrl } from "@/lib/qr";
@@ -12,6 +13,7 @@ import {
   EVENT_TYPES,
   EVENT_STATUSES,
   EVENT_VISIBILITIES,
+  type EventMedia,
   type EventType,
   type EventStatus,
   type EventVisibility,
@@ -222,6 +224,9 @@ export type EventPatch = {
   capacity?: number | null;
   landing_path?: string | null;
   notes?: string | null;
+  blurb?: string | null;
+  description?: string | null;
+  cover_image_url?: string | null;
 };
 
 export async function updateEvent(eventId: string, patch: EventPatch): Promise<Result> {
@@ -267,6 +272,9 @@ export async function updateEvent(eventId: string, patch: EventPatch): Promise<R
     updates.capacity = patch.capacity;
   }
   if (patch.landing_path !== undefined) updates.landing_path = patch.landing_path?.trim() || null;
+  if (patch.blurb !== undefined) updates.blurb = patch.blurb?.trim() || null;
+  if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
+  if (patch.cover_image_url !== undefined) updates.cover_image_url = patch.cover_image_url?.trim() || null;
   if (patch.notes !== undefined) updates.notes = patch.notes?.trim() || null;
 
   if (Object.keys(updates).length === 0) return { ok: true };
@@ -346,4 +354,148 @@ export async function getEventSignupQr(slug: string): Promise<{ ok: true; url: s
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to generate QR." };
   }
+}
+
+// ─── Media ───────────────────────────────────────────────────────────────────
+// events.media is an ordered jsonb array of {kind, url, caption}. Images are
+// uploaded to the public event-media bucket (server-side via the service
+// client — same pattern as the careers resume upload, but a public bucket);
+// videos are external URLs the public page turns into embeds. Read-modify-
+// write on the array is fine at admin concurrency.
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+
+async function loadEventMedia(eventId: string): Promise<{ media: EventMedia[]; slug: string } | { error: string }> {
+  const { data, error } = await companyOs.from("events").select("slug, media").eq("id", eventId).maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Event not found." };
+  return { media: Array.isArray(data.media) ? (data.media as EventMedia[]) : [], slug: data.slug };
+}
+
+async function saveEventMedia(eventId: string, media: EventMedia[]): Promise<Result> {
+  const { error } = await companyOs.from("events").update({ media }).eq("id", eventId);
+  if (error) return { ok: false, error: error.message };
+  refresh();
+  return { ok: true };
+}
+
+// Upload an image and either set it as the cover or append it to the gallery.
+export async function uploadEventImage(
+  eventId: string,
+  formData: FormData
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  const file = formData.get("file");
+  const target = formData.get("target") === "cover" ? "cover" : "gallery";
+  const caption = String(formData.get("caption") ?? "").trim() || null;
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Pick an image file first." };
+  if (!IMAGE_TYPES.has(file.type)) return { ok: false, error: "Use a JPEG, PNG, WebP, AVIF, or GIF image." };
+  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image is too large (max 8 MB)." };
+
+  const loaded = await loadEventMedia(eventId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+  const path = `${loaded.slug}/${randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await supabase.storage.from("event-media").upload(path, buffer, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (upErr) return { ok: false, error: `Upload failed: ${upErr.message}` };
+
+  const { data: pub } = supabase.storage.from("event-media").getPublicUrl(path);
+  const url = pub.publicUrl;
+
+  let result: Result;
+  if (target === "cover") {
+    const { error } = await companyOs.from("events").update({ cover_image_url: url }).eq("id", eventId);
+    result = error ? { ok: false, error: error.message } : { ok: true };
+    if (result.ok) refresh();
+  } else {
+    result = await saveEventMedia(eventId, [...loaded.media, { kind: "image", url, caption }]);
+  }
+  if (!result.ok) return result;
+
+  await recordAudit({
+    table: "events",
+    recordId: eventId,
+    operation: "update",
+    actor: admin.email,
+    newData: { [target === "cover" ? "cover_image_url" : "media_added"]: url },
+    context: { via: "events_shelf_media_upload" },
+  });
+  return { ok: true, url };
+}
+
+export async function addEventVideo(eventId: string, url: string, caption?: string | null): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const trimmed = url.trim();
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error();
+  } catch {
+    return { ok: false, error: "Enter a full video URL (YouTube, Vimeo, or a direct video file)." };
+  }
+
+  const loaded = await loadEventMedia(eventId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+
+  const result = await saveEventMedia(eventId, [
+    ...loaded.media,
+    { kind: "video", url: trimmed, caption: caption?.trim() || null },
+  ]);
+  if (!result.ok) return result;
+
+  await recordAudit({
+    table: "events",
+    recordId: eventId,
+    operation: "update",
+    actor: admin.email,
+    newData: { media_added: trimmed },
+    context: { via: "events_shelf_add_video" },
+  });
+  return { ok: true };
+}
+
+export async function removeEventMedia(eventId: string, index: number): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const loaded = await loadEventMedia(eventId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+  if (index < 0 || index >= loaded.media.length) return { ok: false, error: "That item no longer exists — refresh and retry." };
+
+  const removed = loaded.media[index];
+  const media = loaded.media.filter((_, i) => i !== index);
+  const result = await saveEventMedia(eventId, media);
+  if (!result.ok) return result;
+
+  // The storage object is left in place on purpose: the URL may be reused
+  // (cover, other events) and orphan cleanup is cheap to do later in bulk.
+  await recordAudit({
+    table: "events",
+    recordId: eventId,
+    operation: "update",
+    actor: admin.email,
+    newData: { media_removed: removed.url },
+    context: { via: "events_shelf_remove_media" },
+  });
+  return { ok: true };
+}
+
+export async function moveEventMedia(eventId: string, index: number, dir: "up" | "down"): Promise<Result> {
+  await requireAdmin();
+
+  const loaded = await loadEventMedia(eventId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+  const target = dir === "up" ? index - 1 : index + 1;
+  if (index < 0 || index >= loaded.media.length || target < 0 || target >= loaded.media.length) {
+    return { ok: true }; // nothing to do at the edges
+  }
+  const media = [...loaded.media];
+  [media[index], media[target]] = [media[target], media[index]];
+  return saveEventMedia(eventId, media);
 }

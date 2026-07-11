@@ -15,7 +15,18 @@ import {
   type EventStatus,
   type EventVisibility,
 } from "@/lib/events";
-import { addEventTier, archiveEvent, getEventSignupQr, restoreEvent, setTierActive, updateEvent } from "./actions";
+import {
+  addEventTier,
+  addEventVideo,
+  archiveEvent,
+  getEventSignupQr,
+  moveEventMedia,
+  removeEventMedia,
+  restoreEvent,
+  setTierActive,
+  updateEvent,
+  uploadEventImage,
+} from "./actions";
 import { eventStatusBadge, type EventRow } from "./EventsTable";
 
 export type EventTierRow = {
@@ -60,6 +71,8 @@ export function EventManage({ event }: { event: EventRow }) {
   const [capacity, setCapacity] = useState(event.capacity?.toString() ?? "");
   const [landingPath, setLandingPath] = useState(event.landingPath ?? "");
   const [notes, setNotes] = useState(event.notes ?? "");
+  const [blurb, setBlurb] = useState(event.blurb ?? "");
+  const [description, setDescription] = useState(event.description ?? "");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -102,6 +115,8 @@ export function EventManage({ event }: { event: EventRow }) {
       capacity: cap,
       landing_path: landingPath || null,
       notes: notes || null,
+      blurb: blurb || null,
+      description: description || null,
     });
     setSaving(false);
     if (!r.ok) return setMsg({ ok: false, text: r.error });
@@ -179,6 +194,25 @@ export function EventManage({ event }: { event: EventRow }) {
           <label className="admin-label">Title</label>
           <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
         </div>
+        <div className="admin-field">
+          <label className="admin-label">One-line blurb</label>
+          <input
+            className="admin-input"
+            value={blurb}
+            onChange={(e) => setBlurb(e.target.value)}
+            placeholder="Shown on cards and link previews"
+          />
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">Full description</label>
+          <textarea
+            className="admin-input"
+            rows={7}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="The long-form pitch shown on the signup page. Blank lines start a new paragraph."
+          />
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Type</label>
@@ -253,6 +287,8 @@ export function EventManage({ event }: { event: EventRow }) {
       </form>
 
       <TiersSection event={event} onChanged={() => router.refresh()} setShelfMsg={setMsg} />
+
+      <MediaSection event={event} onChanged={() => router.refresh()} />
 
       <div style={{ marginTop: 16 }}>
         <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
@@ -476,6 +512,195 @@ function TiersSection({
       <div className="admin-hint" style={{ marginTop: 6 }}>
         Prices are fixed once a ticket is on sale — deactivate it and add a new one to reprice.
       </div>
+    </div>
+  );
+}
+
+// Cover image + ordered media gallery (images uploaded to the public
+// event-media bucket, videos by URL). Everything here writes immediately —
+// it's not part of the Save form above.
+function MediaSection({ event, onChanged }: { event: EventRow; onChanged: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoCaption, setVideoCaption] = useState("");
+  const [imageCaption, setImageCaption] = useState("");
+
+  async function upload(file: File, target: "cover" | "gallery") {
+    setBusy(target);
+    setError(null);
+    const fd = new FormData();
+    fd.set("file", file);
+    fd.set("target", target);
+    if (target === "gallery" && imageCaption) fd.set("caption", imageCaption);
+    const r = await uploadEventImage(event.id, fd);
+    setBusy(null);
+    if (!r.ok) return setError(r.error);
+    setImageCaption("");
+    onChanged();
+  }
+
+  async function submitVideo() {
+    setBusy("video");
+    setError(null);
+    const r = await addEventVideo(event.id, videoUrl, videoCaption || null);
+    setBusy(null);
+    if (!r.ok) return setError(r.error);
+    setVideoUrl("");
+    setVideoCaption("");
+    onChanged();
+  }
+
+  async function run(label: string, fn: () => Promise<{ ok: boolean }>) {
+    setBusy(label);
+    setError(null);
+    await fn();
+    setBusy(null);
+    onChanged();
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        Cover image
+      </div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+        {event.coverImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.coverImageUrl}
+            alt="Cover"
+            width={96}
+            height={64}
+            style={{ borderRadius: 8, objectFit: "cover", border: "1px solid var(--admin-border, #e2e2e8)" }}
+          />
+        ) : (
+          <span className="admin-cell-muted">None — the signup page renders without a hero.</span>
+        )}
+        <label className="admin-btn" style={{ cursor: "pointer" }}>
+          {busy === "cover" ? "Uploading…" : event.coverImageUrl ? "Replace" : "Upload"}
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            disabled={busy !== null}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) upload(f, "cover");
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {event.coverImageUrl && (
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={busy !== null}
+            onClick={() => run("cover-clear", () => updateEvent(event.id, { cover_image_url: null }))}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        Gallery & video
+      </div>
+      {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 8 }}>{error}</div>}
+
+      {event.media.length === 0 ? (
+        <div className="admin-empty">No media yet.</div>
+      ) : (
+        <div className="admin-list">
+          {event.media.map((m, i) => (
+            <div className="admin-list-row" key={`${m.url}-${i}`}>
+              <div className="admin-list-main" style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
+                {m.kind === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.url} alt={m.caption ?? ""} width={56} height={40} style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                ) : (
+                  <span style={{ flexShrink: 0 }}>🎬</span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div className="admin-list-title" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {m.caption || m.url}
+                  </div>
+                  <div className="admin-list-sub">{m.kind}</div>
+                </div>
+              </div>
+              <div className="admin-list-aside" style={{ display: "flex", gap: 4 }}>
+                <button type="button" className="admin-btn" disabled={busy !== null || i === 0} onClick={() => run("move", () => moveEventMedia(event.id, i, "up"))} aria-label="Move up">
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={busy !== null || i === event.media.length - 1}
+                  onClick={() => run("move", () => moveEventMedia(event.id, i, "down"))}
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+                <button type="button" className="admin-btn" disabled={busy !== null} onClick={() => run("remove", () => removeEventMedia(event.id, i))}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+        <input
+          className="admin-input"
+          style={{ maxWidth: 220 }}
+          placeholder="Caption (optional)"
+          value={imageCaption}
+          onChange={(e) => setImageCaption(e.target.value)}
+        />
+        <label className="admin-btn" style={{ cursor: "pointer" }}>
+          {busy === "gallery" ? "Uploading…" : "Upload image"}
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            disabled={busy !== null}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) upload(f, "gallery");
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+
+      <form
+        style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitVideo();
+        }}
+      >
+        <input
+          className="admin-input"
+          style={{ maxWidth: 260 }}
+          type="url"
+          placeholder="YouTube / Vimeo / .mp4 URL"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
+          required
+        />
+        <input
+          className="admin-input"
+          style={{ maxWidth: 180 }}
+          placeholder="Caption (optional)"
+          value={videoCaption}
+          onChange={(e) => setVideoCaption(e.target.value)}
+        />
+        <button type="submit" className="admin-btn" disabled={busy !== null}>
+          {busy === "video" ? "Adding…" : "Add video"}
+        </button>
+      </form>
     </div>
   );
 }

@@ -57,6 +57,14 @@ export function normalizeRegistrationStatus(status: string): RegistrationStatus 
   return status === "confirmed" ? "registered" : (status as RegistrationStatus);
 }
 
+// Ordered gallery item (events.media jsonb). Images are event-media bucket
+// uploads; videos are external URLs (YouTube/Vimeo/direct file).
+export type EventMedia = {
+  kind: "image" | "video";
+  url: string;
+  caption?: string | null;
+};
+
 export type EventRecord = {
   id: string;
   slug: string;
@@ -72,6 +80,7 @@ export type EventRecord = {
   timezone: string;
   capacity: number | null;
   cover_image_url: string | null;
+  media: EventMedia[];
   owner_person_id: string | null;
   landing_path: string | null;
   feedback_survey_id: string | null;
@@ -173,6 +182,45 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+// --- Video embeds -----------------------------------------------------------
+
+export type VideoEmbed =
+  | { type: "youtube" | "vimeo"; embedSrc: string }
+  | { type: "file"; url: string }
+  | { type: "link"; url: string };
+
+// Classify a pasted video URL for the public page: YouTube/Vimeo become
+// privacy-friendly iframe embeds, direct files a <video> tag, anything else
+// an outbound link. Pure — safe for client and server.
+export function parseVideoEmbed(url: string): VideoEmbed {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return { type: "link", url };
+  }
+  const host = u.hostname.replace(/^www\./, "");
+
+  if (host === "youtu.be" || host === "youtube.com" || host === "youtube-nocookie.com" || host === "m.youtube.com") {
+    let id = "";
+    if (host === "youtu.be") id = u.pathname.slice(1).split("/")[0];
+    else if (u.pathname === "/watch") id = u.searchParams.get("v") ?? "";
+    else if (u.pathname.startsWith("/shorts/") || u.pathname.startsWith("/embed/") || u.pathname.startsWith("/live/"))
+      id = u.pathname.split("/")[2] ?? "";
+    if (/^[\w-]{6,20}$/.test(id)) {
+      return { type: "youtube", embedSrc: `https://www.youtube-nocookie.com/embed/${id}` };
+    }
+  }
+
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const id = u.pathname.split("/").find((p) => /^\d{6,}$/.test(p));
+    if (id) return { type: "vimeo", embedSrc: `https://player.vimeo.com/video/${id}` };
+  }
+
+  if (/\.(mp4|webm|mov|m4v)$/i.test(u.pathname)) return { type: "file", url };
+  return { type: "link", url };
 }
 
 // --- Ticket URLs (pure string helpers; code generation is server-only) -----

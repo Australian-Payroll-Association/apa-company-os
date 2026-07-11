@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEventBySlug, getEventTiers } from "@/lib/events-server";
-import { eventPriceSummary, formatEventDates, tierPriceLabel } from "@/lib/events";
+import { eventPriceSummary, formatEventDates, parseVideoEmbed, tierPriceLabel, type EventMedia } from "@/lib/events";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { RegisterForm, type TierOption } from "./RegisterForm";
 import styles from "./event.module.css";
@@ -100,9 +100,22 @@ export default async function PublicEventPage({ params }: { params: { slug: stri
           <img src={event.cover_image_url} alt={event.title} className={styles.cover} />
         )}
 
-        {(event.blurb || event.description) && (
-          <p className={styles.blurb}>{event.description ?? event.blurb}</p>
+        {event.blurb && !event.description && <p className={styles.blurb}>{event.blurb}</p>}
+        {event.description && (
+          <div>
+            {event.description
+              .split(/\n{2,}/)
+              .map((para) => para.trim())
+              .filter(Boolean)
+              .map((para, i) => (
+                <p key={i} className={styles.blurb}>
+                  {para}
+                </p>
+              ))}
+          </div>
         )}
+
+        <MediaGallery media={event.media} title={event.title} />
 
         {!isOpen && tierOptions.length > 0 && (
           <>
@@ -128,5 +141,52 @@ export default async function PublicEventPage({ params }: { params: { slug: stri
         )}
       </div>
     </main>
+  );
+}
+
+// Ordered media gallery: images as figures with captions, videos as
+// privacy-friendly embeds (YouTube nocookie / Vimeo player), direct files as
+// <video>, anything unrecognized as an outbound link.
+function MediaGallery({ media, title }: { media: EventMedia[]; title: string }) {
+  const items = Array.isArray(media) ? media.filter((m) => m && m.url) : [];
+  if (items.length === 0) return null;
+  return (
+    <div className={styles.gallery}>
+      {items.map((m, i) => {
+        if (m.kind === "image") {
+          return (
+            <figure key={i} className={styles.galleryItem}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={m.url} alt={m.caption || title} className={styles.galleryImg} loading="lazy" />
+              {m.caption && <figcaption className={styles.galleryCaption}>{m.caption}</figcaption>}
+            </figure>
+          );
+        }
+        const embed = parseVideoEmbed(m.url);
+        return (
+          <figure key={i} className={styles.galleryItem}>
+            {"embedSrc" in embed ? (
+              <div className={styles.videoFrame}>
+                <iframe
+                  src={embed.embedSrc}
+                  title={m.caption || `${title} video`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            ) : embed.type === "file" ? (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video className={styles.galleryImg} src={embed.url} controls preload="metadata" />
+            ) : (
+              <a href={embed.url} target="_blank" rel="noopener noreferrer" className={styles.videoLink}>
+                Watch video ↗
+              </a>
+            )}
+            {m.caption && <figcaption className={styles.galleryCaption}>{m.caption}</figcaption>}
+          </figure>
+        );
+      })}
+    </div>
   );
 }
