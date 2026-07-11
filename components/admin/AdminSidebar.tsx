@@ -112,6 +112,7 @@ const NAV: NavGroup[] = [
         subheading: "Access",
         items: [
           { label: "Admins", href: "/admin/settings/admins", ico: "⚿", enabled: true },
+          { label: "Assume", href: "/admin/settings/assume", ico: "⧉", enabled: true },
         ],
       },
       {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/app/portal/(dashboard)/actions";
+import { signOut, endAssumeSession } from "@/app/portal/(dashboard)/actions";
 
 // Client-portal sibling of TeamSidebar: same admin shell CSS, flat nav. A nav
 // item renders live only when its module has BOTH shipped (`built`) and the
@@ -39,10 +39,16 @@ export function PortalSidebar({
   name,
   companyName,
   entitlements,
+  impersonating = false,
 }: {
   name: string;
   companyName: string | null;
   entitlements: PortalEntitlements;
+  // While an admin is viewing via Assume, the footer control ends the Assume
+  // session instead of signing out — this is the admin's REAL session
+  // underneath, not the client's, so a plain "Sign out" here would be wrong
+  // (and confusing) rather than just ending the view-as.
+  impersonating?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
@@ -108,9 +114,9 @@ export function PortalSidebar({
 
         <div className="admin-foot">
           <span className="admin-foot-email">{name}</span>
-          <form action={signOut}>
+          <form action={impersonating ? endAssumeSession : signOut}>
             <button type="submit" className="admin-signout">
-              Sign out
+              {impersonating ? "Exit assume mode" : "Sign out"}
             </button>
           </form>
         </div>

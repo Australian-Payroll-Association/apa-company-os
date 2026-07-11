@@ -4,6 +4,7 @@ import { hasAssignedStaff } from "@/lib/portal/team";
 import { hasInvoices } from "@/lib/portal/invoices";
 import { hasEventRegistrations } from "@/lib/portal/events";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { AssumeBanner } from "@/components/portal/AssumeBanner";
 import "../../admin/admin.css";
 
 export const metadata: Metadata = {
@@ -38,7 +39,19 @@ export default async function PortalDashboardLayout({
 
   return (
     <div className="admin-shell">
-      <PortalSidebar name={actor.displayName} companyName={companyName} entitlements={entitlements} />
+      {actor.impersonation && (
+        <AssumeBanner
+          impersonation={actor.impersonation}
+          viewingAsName={actor.displayName}
+          companyName={companyName}
+        />
+      )}
+      <PortalSidebar
+        name={actor.displayName}
+        companyName={companyName}
+        entitlements={entitlements}
+        impersonating={!!actor.impersonation}
+      />
       <main className="admin-main">{children}</main>
     </div>
   );

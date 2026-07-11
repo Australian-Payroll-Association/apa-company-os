@@ -14,18 +14,36 @@
 // Access is an explicit allowlist: a person may log in iff they hold at least
 // one active company_os.portal_members row. CRM links (person_companies) never
 // grant access by themselves.
+//
+// ADMIN "ASSUME" (view a client's portal as them): an admin's real Supabase
+// session is NEVER swapped. Instead, a short-lived, server-tracked row in
+// company_os.portal_assume_sessions — referenced only by an opaque id in an
+// httpOnly cookie — lets getPortalActor() build a scoped actor for that one
+// company while the admin stays authenticated as themselves throughout. See
+// lib/admin/portal-assume.ts (start) and app/portal/(dashboard)/actions.ts
+// (end). Every start/end is audit-logged.
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createSessionClient } from "@/lib/supabase/server";
 import { companyOs } from "@/lib/supabase";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { PORTAL_STATUSES } from "@/lib/team-auth";
+
+export const ASSUME_COOKIE = "portal_assume";
+export const ASSUME_SESSION_MINUTES = 30;
 
 export type PortalMembership = {
   id: string;
   companyId: string | null;
   companyName: string | null;
   role: string;
+};
+
+export type PortalImpersonation = {
+  adminEmail: string;
+  sessionId: string;
+  expiresAt: string;
 };
 
 export type PortalActor = {
@@ -36,6 +54,9 @@ export type PortalActor = {
   // Scope, computed server-side from the JWT — never from client input.
   companyScope: string[]; // companies.id values this actor may read
   memberships: PortalMembership[];
+  // Set iff an admin is viewing this actor's portal via Assume. Every /portal
+  // page renders a banner when this is present (app/portal/(dashboard)/layout.tsx).
+  impersonation: PortalImpersonation | null;
 };
 
 function displayNameOf(p: {
@@ -61,10 +82,55 @@ type MembershipRow = {
 const one = <T,>(e: T | T[] | null | undefined): T | null =>
   Array.isArray(e) ? e[0] ?? null : e ?? null;
 
+type AssumeSessionRow = {
+  id: string;
+  company_id: string;
+  person_id: string;
+  started_by: string;
+  expires_at: string;
+  ended_at: string | null;
+};
+
+// Reads the Assume cookie and, if it points at a still-active session started
+// by THIS admin, builds a portal actor scoped to that session's company. The
+// started_by check means one admin's cookie can never be replayed to assume
+// under a different admin's identity, even if leaked within the org. Returns
+// null (never throws) on any missing/expired/mismatched/foreign-key-broken
+// state — the caller falls back to the normal "admin -> /admin" redirect.
+async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string): Promise<PortalActor | null> {
+  const sessionId = cookies().get(ASSUME_COOKIE)?.value;
+  if (!sessionId) return null;
+
+  const { data } = await companyOs
+    .from("portal_assume_sessions")
+    .select("id, company_id, person_id, started_by, expires_at, ended_at")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const session = data as AssumeSessionRow | null;
+  if (!session || session.ended_at || session.started_by !== adminEmail) return null;
+  if (new Date(session.expires_at).getTime() <= Date.now()) return null;
+
+  const [{ data: company }, { data: person }] = await Promise.all([
+    companyOs.from("companies").select("id, name").eq("id", session.company_id).maybeSingle(),
+    companyOs.from("people").select("id, full_name, email").eq("id", session.person_id).maybeSingle(),
+  ]);
+  if (!company || !person) return null;
+
+  return {
+    authUserId: adminAuthUserId,
+    personId: person.id,
+    displayName: person.full_name || person.email,
+    email: person.email,
+    companyScope: [company.id],
+    memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: "member" }],
+    impersonation: { adminEmail, sessionId: session.id, expiresAt: session.expires_at },
+  };
+}
+
 // Resolve the signed-in user to a portal actor. Returns a redirect target
 // instead of an actor when the caller is not a portal user:
 //   - not signed in                    -> /portal/login
-//   - an admin                         -> /admin  (admins have no /portal identity)
+//   - an admin, no active Assume session -> /admin  (admins have no /portal identity)
 //   - an active team member            -> /team   (employees use /team, never /portal)
 //   - no active portal_members row     -> /portal/login
 export async function getPortalActor(): Promise<GetActorResult> {
@@ -75,7 +141,11 @@ export async function getPortalActor(): Promise<GetActorResult> {
   const email = user?.email?.toLowerCase();
   if (!user || !email) return { actor: null, redirectTo: "/portal/login" };
 
-  if (await isAdminEmail(email)) return { actor: null, redirectTo: "/admin" };
+  if (await isAdminEmail(email)) {
+    const assumed = await getActiveAssumeActor(email, user.id);
+    if (assumed) return { actor: assumed };
+    return { actor: null, redirectTo: "/admin" };
+  }
 
   // Identity by auth_user_id, never by email.
   const { data: person } = await companyOs
@@ -122,6 +192,7 @@ export async function getPortalActor(): Promise<GetActorResult> {
       email: person.email,
       companyScope,
       memberships,
+      impersonation: null,
     },
   };
 }

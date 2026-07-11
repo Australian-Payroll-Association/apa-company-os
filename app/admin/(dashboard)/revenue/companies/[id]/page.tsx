@@ -9,6 +9,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
+import { ViewAsClientButton } from "@/components/admin/ViewAsClientButton";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
 import { CompanyEditForm } from "../CompanyEditForm";
@@ -94,7 +95,11 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         people.length === 0 ? (
           <Empty text="Link a contact on the People tab first, then invite them here." />
         ) : (
-          <div className="admin-list">
+          <div>
+            <div style={{ marginBottom: 12 }}>
+              <ViewAsClientButton companyId={company.id} />
+            </div>
+            <div className="admin-list">
             {people.map((p) => {
               const membership = portalMemberships.get(p.id);
               return (
@@ -115,6 +120,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                 </div>
               );
             })}
+            </div>
           </div>
         ),
     },
