@@ -161,6 +161,20 @@ export function formatEventDates(
   return `${fmt(startsAt, { month: "short", day: "numeric" })} – ${endDay}`;
 }
 
+// --- Slugs ------------------------------------------------------------------
+
+// "AI Workshop — Saigon" → "ai-workshop-saigon". Used for event slugs (URL +
+// QR) and tier product slugs; uniqueness is the caller's job.
+export function slugify(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics (Vietnamese names)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 // --- Ticket URLs (pure string helpers; code generation is server-only) -----
 
 export function ticketPath(code: string): string {

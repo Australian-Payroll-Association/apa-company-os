@@ -15,7 +15,7 @@ import {
   type EventStatus,
   type EventVisibility,
 } from "@/lib/events";
-import { archiveEvent, getEventSignupQr, restoreEvent, updateEvent } from "./actions";
+import { addEventTier, archiveEvent, getEventSignupQr, restoreEvent, setTierActive, updateEvent } from "./actions";
 import { eventStatusBadge, type EventRow } from "./EventsTable";
 
 export type EventTierRow = {
@@ -252,32 +252,7 @@ export function EventManage({ event }: { event: EventRow }) {
         </div>
       </form>
 
-      <div style={{ marginTop: 16 }}>
-        <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          Tiers
-        </div>
-        {event.tiers.length === 0 ? (
-          <div className="admin-empty">No tiers — this event is free.</div>
-        ) : (
-          <div className="admin-list">
-            {event.tiers.map((t) => (
-              <div className="admin-list-row" key={t.id}>
-                <div className="admin-list-main">
-                  <div className="admin-list-title">{t.title}</div>
-                  <div className="admin-list-sub">{t.tier ? humanize(t.tier) : "—"}</div>
-                </div>
-                <div className="admin-list-aside">
-                  <span className="admin-cell-mono">{tierPriceLabel({ amount_cents: t.amountCents, currency: t.currency })}</span>{" "}
-                  {!t.active && <Badge tone="neutral">Inactive</Badge>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="admin-hint" style={{ marginTop: 6 }}>
-          Manage tier pricing on the <Link href="/admin/revenue/products">Products</Link> page.
-        </div>
-      </div>
+      <TiersSection event={event} onChanged={() => router.refresh()} setShelfMsg={setMsg} />
 
       <div style={{ marginTop: 16 }}>
         <div className="admin-cell-muted" style={{ marginBottom: 6, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
@@ -355,5 +330,152 @@ export function EventManage({ event }: { event: EventRow }) {
         )}
       </div>
     </>
+  );
+}
+
+// Tier list + add form. A tier's price is immutable once it can be bought —
+// deactivate and add a new tier to reprice — so the only per-tier action is
+// the active toggle.
+function TiersSection({
+  event,
+  onChanged,
+  setShelfMsg,
+}: {
+  event: EventRow;
+  onChanged: () => void;
+  setShelfMsg: (m: { ok: boolean; text: string } | null) => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("0");
+  const [capacity, setCapacity] = useState("");
+  const [description, setDescription] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function submit() {
+    setPending(true);
+    setError(null);
+    const r = await addEventTier(event.id, {
+      title,
+      amountUsd: Number(price) || 0,
+      capacity: capacity.trim() === "" ? null : Number(capacity),
+      description: description || null,
+    });
+    setPending(false);
+    if (!r.ok) return setError(r.error);
+    setTitle("");
+    setPrice("0");
+    setCapacity("");
+    setDescription("");
+    setShowAdd(false);
+    onChanged();
+  }
+
+  async function toggle(tierId: string, active: boolean) {
+    setTogglingId(tierId);
+    const r = await setTierActive(event.id, tierId, active);
+    setTogglingId(null);
+    if (!r.ok) setShelfMsg({ ok: false, text: r.error });
+    else onChanged();
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}
+      >
+        <div className="admin-cell-muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Tickets
+        </div>
+        <button type="button" className="admin-btn" onClick={() => setShowAdd((v) => !v)}>
+          {showAdd ? "Cancel" : "Add ticket"}
+        </button>
+      </div>
+
+      {showAdd && (
+        <form
+          className="admin-form"
+          style={{ marginBottom: 12 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          {error && <div className="admin-alert admin-alert--err">{error}</div>}
+          <div className="admin-field">
+            <label className="admin-label">Ticket name</label>
+            <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="General admission" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="admin-field">
+              <label className="admin-label">Price (USD)</label>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                step="1"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <div className="admin-hint">0 = free ticket</div>
+            </div>
+            <div className="admin-field">
+              <label className="admin-label">Seats for this ticket</label>
+              <input
+                className="admin-input"
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="Uncapped"
+              />
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">What's included (optional)</label>
+            <input className="admin-input" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="admin-form-actions">
+            <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
+              {pending ? "Adding…" : "Add ticket"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {event.tiers.length === 0 ? (
+        <div className="admin-empty">No tickets — the event registers as free.</div>
+      ) : (
+        <div className="admin-list">
+          {event.tiers.map((t) => (
+            <div className="admin-list-row" key={t.id}>
+              <div className="admin-list-main">
+                <div className="admin-list-title">{t.title}</div>
+                <div className="admin-list-sub">
+                  {[t.description, t.capacity ? `${t.capacity} seats` : null].filter(Boolean).join(" · ") || "—"}
+                </div>
+              </div>
+              <div className="admin-list-aside" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="admin-cell-mono">{tierPriceLabel({ amount_cents: t.amountCents, currency: t.currency })}</span>
+                {!t.active && <Badge tone="neutral">Inactive</Badge>}
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={togglingId === t.id}
+                  onClick={() => toggle(t.id, !t.active)}
+                >
+                  {t.active ? "Deactivate" : "Activate"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="admin-hint" style={{ marginTop: 6 }}>
+        Prices are fixed once a ticket is on sale — deactivate it and add a new one to reprice.
+      </div>
+    </div>
   );
 }

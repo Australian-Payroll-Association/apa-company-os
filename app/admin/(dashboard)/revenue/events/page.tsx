@@ -4,6 +4,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
 import { normalizeRegistrationStatus, type EventStatus, type EventType, type EventVisibility } from "@/lib/events";
 import { EventsTable, type EventRow } from "./EventsTable";
+import { NewEventButton } from "./NewEventButton";
 import type { EventAttendee, EventTierRow } from "./EventManage";
 
 export const dynamic = "force-dynamic";
@@ -190,6 +191,7 @@ export default async function EventsPage() {
         eyebrow="Revenue"
         title="Events"
         sub={`${activeRows.length.toLocaleString()} ${activeRows.length === 1 ? "event" : "events"}`}
+        action={<NewEventButton />}
       />
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
