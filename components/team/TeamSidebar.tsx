@@ -19,8 +19,8 @@ const ME: NavGroup[] = [
     label: "Me",
     items: [
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
-      { label: "My Profile", href: "/team/profile", ico: "☺" },
-      { label: "Directory", href: "/team/directory", ico: "☷" },
+      { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
+      { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
     ],
   },
 ];

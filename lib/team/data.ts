@@ -32,7 +32,14 @@ export function teamRead(actor: TeamActor, table: keyof typeof SCOPE_ALLOWLIST, 
 // The actor's OWN employment summary (self-scoped by construction: filtered on
 // actor.teamMemberId, which comes from the JWT-derived actor, never client input).
 // Department/position/manager are reference labels, safe for the employee to see.
-type PersonLite = { full_name: string | null; preferred_name: string | null; email: string; phone: string | null };
+type PersonLite = {
+  full_name: string | null;
+  preferred_name: string | null;
+  email: string;
+  phone: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+};
 type ManagerName = { full_name: string | null; preferred_name: string | null };
 export type OwnProfile = {
   id: string;
@@ -60,7 +67,7 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     .from("team_members")
     .select(
       "id, employee_number, employment_type, work_location, status, start_date, " +
-        "people:people!person_id(full_name, preferred_name, email, phone), " +
+        "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone), " +
         "departments:departments!department_id(name), " +
         "positions:positions!position_id(title), " +
         "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
@@ -183,4 +190,76 @@ export async function getManagerContact(actor: TeamActor): Promise<ManagerContac
   const person = one(mgr?.people ?? null);
   if (!person?.email) return null;
   return { email: person.email, displayName: person.preferred_name || person.full_name || person.email };
+}
+
+// The company directory: current team members (active, on leave, or on notice —
+// people who work here today; pre_start and departed are excluded), with a FIXED
+// safe column list. Company-visible by design, so it takes no per-actor filter —
+// but it deliberately does NOT read the team_directory view, which carries every
+// member's leave balance, and it exposes no contact details (deferred decision:
+// names/roles only). Widening these columns is a reviewed change, not a tweak.
+const DIRECTORY_STATUSES = ["active", "on_leave", "notice"];
+
+export type DirectoryEntry = {
+  id: string;
+  name: string;
+  positionTitle: string | null;
+  departmentName: string | null;
+  location: string | null;
+  managerName: string | null;
+};
+
+export async function getDirectory(): Promise<DirectoryEntry[]> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select(
+      "id, work_location, " +
+        "people:people!person_id(full_name, preferred_name), " +
+        "departments:departments!department_id(name), " +
+        "positions:positions!position_id(title), " +
+        "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
+    )
+    .in("status", DIRECTORY_STATUSES);
+  type Name = { full_name: string | null; preferred_name: string | null };
+  const entries = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
+    const person = one(r.people as Name | Name[] | null);
+    const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
+    const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
+    const mgr = one(r.manager as { people: Name | Name[] | null } | { people: Name | Name[] | null }[] | null);
+    return {
+      id: r.id as string,
+      name: nameOf(person) ?? "—",
+      positionTitle: pos?.title ?? null,
+      departmentName: dept?.name ?? null,
+      location: (r.work_location as string | null) ?? null,
+      managerName: nameOf(one(mgr?.people ?? null)),
+    };
+  });
+  return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Self-scoped profile update: writes ONLY the actor's own people row (filtered
+// on actor.personId from the JWT-derived actor, never client input) and ONLY
+// the fields an employee may edit about themselves. Employment fields, names
+// used for payroll (full_name), and email are admin-managed; widening this
+// allowlist is a security decision, not a convenience.
+const OWN_EDITABLE_FIELDS = [
+  "preferred_name",
+  "phone",
+  "emergency_contact_name",
+  "emergency_contact_phone",
+] as const;
+export type OwnEditableField = (typeof OWN_EDITABLE_FIELDS)[number];
+
+export async function updateOwnContact(
+  actor: TeamActor,
+  fields: Partial<Record<OwnEditableField, string | null>>,
+): Promise<{ ok: boolean; error: string | null }> {
+  const patch: Record<string, string | null> = {};
+  for (const key of OWN_EDITABLE_FIELDS) {
+    if (key in fields) patch[key] = fields[key] ?? null;
+  }
+  if (Object.keys(patch).length === 0) return { ok: false, error: "Nothing to update." };
+  const { error } = await companyOs.from("people").update(patch).eq("id", actor.personId);
+  return { ok: !error, error: error?.message ?? null };
 }

@@ -51,11 +51,11 @@ export default async function TeamHome() {
       </div>
 
       <div className="admin-card" style={{ padding: "18px 20px" }}>
-        <h2 className="admin-card-title">Your workspace is being built</h2>
+        <h2 className="admin-card-title">Your workspace is growing</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
-          <Link href="/team/time-off">Time Off</Link> is live. Your profile and the team directory
-          are arriving shortly. The items marked "soon" in the sidebar will switch on as each one
-          ships.
+          <Link href="/team/time-off">Time Off</Link>, <Link href="/team/profile">your profile</Link>,
+          and the <Link href="/team/directory">team directory</Link> are live. The items marked
+          "soon" in the sidebar will switch on as each one ships.
         </p>
       </div>
     </>
