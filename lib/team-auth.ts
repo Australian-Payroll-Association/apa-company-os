@@ -32,8 +32,9 @@ export type TeamActor = {
 
 // team_members.status values that grant portal access. Candidates (recruiting),
 // terminated, and alumni are denied; pre_start is allowed so new hires can do
-// onboarding before day one.
-const PORTAL_STATUSES = ["active", "on_leave", "notice", "pre_start"];
+// onboarding before day one. Exported so provisioning refuses to invite anyone
+// the gate would turn away.
+export const PORTAL_STATUSES = ["active", "on_leave", "notice", "pre_start"];
 
 function displayNameOf(p: {
   preferred_name: string | null;

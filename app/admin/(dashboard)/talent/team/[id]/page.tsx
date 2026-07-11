@@ -156,7 +156,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
             <h2 className="admin-card-title">Portal access</h2>
             <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
             {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} provisioned={!!m.auth_user_id} />
+              <InvitePortalButton teamMemberId={m.id} provisioned={!!m.auth_user_id} full />
             ) : (
               <span className="admin-cell-muted">No linked person record.</span>
             )}
