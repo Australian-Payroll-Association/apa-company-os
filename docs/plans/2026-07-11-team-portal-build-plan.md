@@ -46,6 +46,17 @@ in `/team`.
 
 ## Workstream A — Provisioning (PR 1, first, blocking)
 
+> Status update while building PR 1: more of this existed than assumed. The
+> `inviteToPortal` action, `InvitePortalButton`, and the implicit-flow
+> `/team/callback` landing were already on main, and the DB already has
+> `UNIQUE(people.auth_user_id)`, `UNIQUE(people.email)` (citext, no duplicates)
+> and `people.is_team_member` — so no migration was needed. PR 1 therefore
+> delivers the gaps: portal-status eligibility guard, empty-email guard,
+> resend sign-in link, revoke access (auth-user ban; invite un-bans to
+> restore), and audit logging on all four transitions. Magic-link rate
+> limiting rides on Supabase's built-in OTP limits, which is sufficient for
+> the pilot.
+
 Admin action "Invite to portal" on Talent > Team, gated by `requireAdmin()`,
 exactly per the design doc's provisioning flow:
 
