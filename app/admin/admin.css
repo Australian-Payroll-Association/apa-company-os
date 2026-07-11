@@ -488,12 +488,13 @@ a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
   text-decoration: none;
   color: inherit;
   display: block;
+  min-width: 0; /* grid items default to min-width:auto, which lets a long unbroken value (a one-word company name, an email) grow the box past its track instead of wrapping */
   transition: border-color var(--transition), transform var(--transition);
 }
 a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
 .mp-kpi-label { font-size: 12.5px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.mp-kpi-val { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin-top: 6px; color: var(--admin-ink); }
-.mp-kpi-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 2px; }
+.mp-kpi-val { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin-top: 6px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.mp-kpi-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 2px; overflow-wrap: anywhere; }
 
 /* ─── Badges / pills ──────────────────────────────── */
 .admin-badge {
