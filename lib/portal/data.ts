@@ -18,6 +18,7 @@ type ScopeKind = "company" | "person";
 const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   portal_members: { column: "person_id", scope: "person" },
   staff_assignments: { column: "company_id", scope: "company" },
+  event_registrations: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: PortalActor, scope: ScopeKind): string[] {

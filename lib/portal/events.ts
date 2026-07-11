@@ -1,0 +1,59 @@
+// Client-visible event registrations ("My Events"). Unlike team.ts/time-off.ts/
+// invoices.ts, this scope is a plain single-column filter (person_id = actor's
+// own id) with no cross-client fan-out and no forbidden columns, so it goes
+// through the generic lib/portal/data.ts allowlist rather than a bespoke
+// reviewed helper.
+
+import type { PortalActor } from "@/lib/portal-auth";
+import { portalRead } from "@/lib/portal/data";
+
+export type PortalEventRegistration = {
+  id: string;
+  status: string;
+  eventTitle: string | null;
+  eventType: string | null;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  tierTitle: string | null;
+};
+
+type Embedded<T> = T | T[] | null;
+const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
+
+type Row = {
+  id: string;
+  status: string;
+  events: Embedded<{ title: string | null; type: string | null; location: string | null; starts_at: string | null; ends_at: string | null }>;
+  products: Embedded<{ title: string | null }>;
+};
+
+// Entitlement check for nav/module visibility (design doc: "shown when the
+// logged-in contact has registrations"). Cheap existence check.
+export async function hasEventRegistrations(actor: PortalActor): Promise<boolean> {
+  const { data } = await portalRead(actor, "event_registrations", "id").limit(1);
+  return (data ?? []).length > 0;
+}
+
+export async function getMyEvents(actor: PortalActor): Promise<PortalEventRegistration[]> {
+  const { data } = await portalRead(
+    actor,
+    "event_registrations",
+    "id, status, events(title, type, location, starts_at, ends_at), products(title)",
+  ).order("id", { ascending: false });
+
+  return ((data ?? []) as unknown as Row[]).map((r) => {
+    const event = one(r.events);
+    const product = one(r.products);
+    return {
+      id: r.id,
+      status: r.status,
+      eventTitle: event?.title ?? null,
+      eventType: event?.type ?? null,
+      location: event?.location ?? null,
+      startsAt: event?.starts_at ?? null,
+      endsAt: event?.ends_at ?? null,
+      tierTitle: product?.title ?? null,
+    };
+  });
+}
