@@ -1,9 +1,28 @@
+import type { ReactNode } from "react";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getAssignedTeam, type PortalTeamMember } from "@/lib/portal/team";
 import { PageHead } from "@/components/admin/PageHead";
 import { formatDate } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
+
+// Stacked label-over-value, not the shared .admin-kv's side-by-side
+// label|value grid. admin-kv's fixed 120px label column leaves too little
+// room for a value like an email address at this card's width — no ratio
+// tweak fixes that in general, since it's squeezing a ~20-character
+// unbreakable string into whatever's left after the label column. Stacking
+// gives the value the full card width, so it only wraps when it's actually
+// too long for that, not because a sibling column ate half the space.
+function Field({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: "var(--admin-muted)" }}>{label}</div>
+      <div style={{ fontSize: 13.5, color: "var(--admin-ink)", overflowWrap: "anywhere" }}>
+        {value}
+      </div>
+    </div>
+  );
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -92,24 +111,18 @@ export default async function PortalTeamPage() {
                   <Avatar name={name} avatarUrl={m.avatarUrl} />
                   <h2 className="admin-card-title" style={{ margin: 0 }}>{name}</h2>
                 </div>
-                <dl className="admin-kv">
-                  <dt>Role</dt>
-                  <dd>{m.roleTitle || m.positionTitle || "—"}</dd>
-                  <dt>Email</dt>
-                  <dd>{m.email ? <a href={`mailto:${m.email}`}>{m.email}</a> : "—"}</dd>
-                  <dt>Phone</dt>
-                  <dd>{m.phone ? <a href={`tel:${m.phone}`}>{m.phone}</a> : "—"}</dd>
-                  <dt>Address</dt>
-                  <dd>{addr || m.location || "—"}</dd>
-                  <dt>Schedule</dt>
-                  <dd>{m.workSchedule || "—"}</dd>
-                  {m.startDate && (
-                    <>
-                      <dt>With you since</dt>
-                      <dd>{formatDate(m.startDate)}</dd>
-                    </>
-                  )}
-                </dl>
+                <Field label="Role" value={m.roleTitle || m.positionTitle || "—"} />
+                <Field
+                  label="Email"
+                  value={m.email ? <a href={`mailto:${m.email}`}>{m.email}</a> : "—"}
+                />
+                <Field
+                  label="Phone"
+                  value={m.phone ? <a href={`tel:${m.phone}`}>{m.phone}</a> : "—"}
+                />
+                <Field label="Address" value={addr || m.location || "—"} />
+                <Field label="Schedule" value={m.workSchedule || "—"} />
+                {m.startDate && <Field label="With you since" value={formatDate(m.startDate)} />}
               </div>
             );
           })}
