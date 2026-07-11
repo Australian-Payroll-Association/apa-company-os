@@ -17,15 +17,35 @@ export type PortalTeamMember = {
   location: string | null;
   workSchedule: string | null;
   startDate: string | null;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  city: string | null;
+  stateProvince: string | null;
+  country: string | null;
 };
 
 type DirectoryRow = {
   id: string;
+  person_id: string | null;
   full_name: string | null;
   position_title: string | null;
   location: string | null;
   work_schedule: string | null;
   start_date: string | null;
+};
+
+// Contact fields don't live on team_directory (it's built for org/leave
+// context, not directory contact info) — joined separately from people. All
+// still directory-safe: no compensation, no legal/HR fields.
+type PersonContactRow = {
+  id: string;
+  email: string;
+  phone: string | null;
+  avatar_url: string | null;
+  city: string | null;
+  state_province: string | null;
+  country: string | null;
 };
 
 // Entitlement check for nav/module visibility (design doc: "Team visible iff
@@ -75,18 +95,39 @@ export async function getAssignedTeam(actor: PortalActor): Promise<PortalTeamMem
   // manager chain, legal entity, or leave policy.
   const { data } = await companyOs
     .from("team_directory")
-    .select("id, full_name, position_title, location, work_schedule, start_date")
+    .select("id, person_id, full_name, position_title, location, work_schedule, start_date")
     .in("id", memberIds);
+  const rows = (data ?? []) as DirectoryRow[];
 
-  return ((data ?? []) as DirectoryRow[])
-    .map((r) => ({
-      teamMemberId: r.id,
-      fullName: r.full_name,
-      roleTitle: roleByMemberId.get(r.id) ?? null,
-      positionTitle: r.position_title,
-      location: r.location,
-      workSchedule: r.work_schedule,
-      startDate: r.start_date,
-    }))
+  const personIds = rows.map((r) => r.person_id).filter((id): id is string => !!id);
+  const { data: peopleData } = personIds.length
+    ? await companyOs
+        .from("people")
+        .select("id, email, phone, avatar_url, city, state_province, country")
+        .in("id", personIds)
+    : { data: [] as PersonContactRow[] };
+  const contactByPersonId = new Map(
+    ((peopleData ?? []) as PersonContactRow[]).map((p) => [p.id, p]),
+  );
+
+  return rows
+    .map((r) => {
+      const contact = r.person_id ? contactByPersonId.get(r.person_id) : undefined;
+      return {
+        teamMemberId: r.id,
+        fullName: r.full_name,
+        roleTitle: roleByMemberId.get(r.id) ?? null,
+        positionTitle: r.position_title,
+        location: r.location,
+        workSchedule: r.work_schedule,
+        startDate: r.start_date,
+        email: contact?.email ?? null,
+        phone: contact?.phone ?? null,
+        avatarUrl: contact?.avatar_url ?? null,
+        city: contact?.city ?? null,
+        stateProvince: contact?.state_province ?? null,
+        country: contact?.country ?? null,
+      };
+    })
     .sort((a, b) => (a.fullName ?? "").localeCompare(b.fullName ?? ""));
 }

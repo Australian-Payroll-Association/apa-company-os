@@ -337,8 +337,10 @@ the dashboard layout), skinned for clients.
   Client question answered: "who is out when", not "how much leave do they
   have".
 - Team view shows directory-safe fields only: no employee_number, no legal
-  entity, no manager chain, no compensation, no personal contact details
-  beyond what Edge8 chooses (work email optional, decide at build).
+  entity, no manager chain, no compensation. Resolved 2026-07-11: work email,
+  phone, photo, and city/state/country ARE shown (joined from `people`,
+  outside `team_directory`'s own columns) — clients asked to see who they're
+  working with, not just a role label.
 - Only `approved` and `taken` leave is shown by default; `requested` rows are
   shown as "pending" with no detail. (Open decision 2 below can change this.)
 - Project updates are publish-gated; drafts never leave the server.
