@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import SiteFrame from '@/components/SiteFrame'
 
@@ -55,6 +56,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <SiteFrame>{children}</SiteFrame>
+        <Analytics />
       </body>
     </html>
   )

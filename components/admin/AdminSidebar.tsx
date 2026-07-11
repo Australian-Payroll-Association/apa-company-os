@@ -86,6 +86,12 @@ const NAV: NavGroup[] = [
           { label: "Surveys", href: "/admin/operations/surveys", ico: "✎", enabled: true },
         ],
       },
+      {
+        subheading: "Insights",
+        items: [
+          { label: "Analytics", href: "/admin/operations/analytics", ico: "▲", enabled: true },
+        ],
+      },
     ],
   },
   {
