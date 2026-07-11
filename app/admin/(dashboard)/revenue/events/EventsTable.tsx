@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
-import { EVENT_TYPES, EVENT_STATUSES, type EventMedia, type EventType, type EventStatus, type EventVisibility } from "@/lib/events";
+import Link from "next/link";
+import { EVENT_TYPES, EVENT_STATUSES, type EventType, type EventStatus, type EventVisibility } from "@/lib/events";
 import { EventManage, type EventAttendee, type EventTierRow } from "./EventManage";
 
 export type EventRow = {
@@ -20,10 +21,6 @@ export type EventRow = {
   capacity: number | null;
   landingPath: string | null;
   notes: string | null;
-  blurb: string | null;
-  description: string | null;
-  coverImageUrl: string | null;
-  media: EventMedia[];
   archivedAt: string | null;
   tiers: EventTierRow[];
   attendees: EventAttendee[];
@@ -254,7 +251,19 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
         )}
       </div>
 
-      <DetailDrawer open={!!selected} onClose={() => setSelectedId(null)} eyebrow="Event" title={selected?.title}>
+      <DetailDrawer
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        eyebrow="Event"
+        title={selected?.title}
+        action={
+          selected && (
+            <Link href={`/admin/revenue/events/${selected.id}`} className="admin-btn">
+              Open event page →
+            </Link>
+          )
+        }
+      >
         {selected && <EventManage event={selected} />}
       </DetailDrawer>
     </>

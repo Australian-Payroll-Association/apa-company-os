@@ -227,6 +227,7 @@ export type EventPatch = {
   blurb?: string | null;
   description?: string | null;
   cover_image_url?: string | null;
+  feedback_survey_id?: string | null;
 };
 
 export async function updateEvent(eventId: string, patch: EventPatch): Promise<Result> {
@@ -275,6 +276,17 @@ export async function updateEvent(eventId: string, patch: EventPatch): Promise<R
   if (patch.blurb !== undefined) updates.blurb = patch.blurb?.trim() || null;
   if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
   if (patch.cover_image_url !== undefined) updates.cover_image_url = patch.cover_image_url?.trim() || null;
+  if (patch.feedback_survey_id !== undefined) {
+    if (patch.feedback_survey_id !== null) {
+      const { data: survey } = await companyOs
+        .from("surveys")
+        .select("id")
+        .eq("id", patch.feedback_survey_id)
+        .maybeSingle();
+      if (!survey) return { ok: false, error: "That survey no longer exists." };
+    }
+    updates.feedback_survey_id = patch.feedback_survey_id;
+  }
   if (patch.notes !== undefined) updates.notes = patch.notes?.trim() || null;
 
   if (Object.keys(updates).length === 0) return { ok: true };
@@ -338,21 +350,44 @@ export async function restoreEvent(eventId: string): Promise<Result> {
   return { ok: true };
 }
 
-// ─── Signup QR ───────────────────────────────────────────────────────────────
-// The public /events/[slug] signup page ships in PR 4; the link/QR is exposed
-// here now so the admin habit ("every event has a shareable signup QR") is in
-// place from day one. Until PR 4 ships, the URL resolves to a 404 — that's
-// fine to hand out ahead of launch (same "deploy before migrate" posture as
-// the RPC), and it means nothing changes here when PR 4 lands.
+// ─── QRs ─────────────────────────────────────────────────────────────────────
+// The shelf's at-a-glance pair: the signup link and — once a feedback survey
+// is linked — the feedback link with the event's cohort stamped so responses
+// stay attributable per event while the survey is shared across events.
 
-export async function getEventSignupQr(slug: string): Promise<{ ok: true; url: string; png: string } | { ok: false; error: string }> {
+export type QrLink = { url: string; png: string };
+
+export async function getEventQrs(
+  eventId: string
+): Promise<{ ok: true; signup: QrLink; feedback: QrLink | null } | { ok: false; error: string }> {
   await requireAdmin();
   try {
-    const url = `${getSiteOrigin()}${eventPath(slug)}`;
-    const png = await qrPngDataUrl(url);
-    return { ok: true, url, png };
+    const { data: event, error } = await companyOs
+      .from("events")
+      .select("slug, feedback_survey_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (error || !event) return { ok: false, error: error?.message ?? "Event not found." };
+
+    const origin = getSiteOrigin();
+    const signupUrl = `${origin}${eventPath(event.slug)}`;
+    const signup: QrLink = { url: signupUrl, png: await qrPngDataUrl(signupUrl) };
+
+    let feedback: QrLink | null = null;
+    if (event.feedback_survey_id) {
+      const { data: survey } = await companyOs
+        .from("surveys")
+        .select("slug")
+        .eq("id", event.feedback_survey_id)
+        .maybeSingle();
+      if (survey?.slug) {
+        const url = `${origin}/surveys/${survey.slug}?cohort=${encodeURIComponent(event.slug)}`;
+        feedback = { url, png: await qrPngDataUrl(url) };
+      }
+    }
+    return { ok: true, signup, feedback };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to generate QR." };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to generate QRs." };
   }
 }
 

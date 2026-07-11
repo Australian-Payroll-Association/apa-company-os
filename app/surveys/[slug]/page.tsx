@@ -22,7 +22,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function PublicSurveyPage({ params }: { params: { slug: string } }) {
+export default async function PublicSurveyPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { cohort?: string };
+}) {
   const { data } = await companyOs
     .from("surveys")
     .select(
@@ -66,6 +72,7 @@ export default async function PublicSurveyPage({ params }: { params: { slug: str
         fields={fields}
         actorName={survey.is_anonymous ? null : actor?.name ?? null}
         needIdentity={!survey.is_anonymous && !actor}
+        cohort={searchParams?.cohort ?? null}
       />
     </main>
   );

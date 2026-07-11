@@ -24,6 +24,7 @@ export function SurveyRunner({
   fields,
   actorName,
   needIdentity,
+  cohort,
 }: {
   slug: string;
   name: string;
@@ -33,6 +34,10 @@ export function SurveyRunner({
   fields: SurveyFieldRow[];
   actorName: string | null;
   needIdentity: boolean;
+  // Event slug when the survey was reached via an event's feedback QR
+  // (/surveys/x?cohort=<event-slug>) — stamped onto the response so answers
+  // stay attributable per event while the survey is shared across events.
+  cohort?: string | null;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [qIndex, setQIndex] = useState(0);
@@ -79,6 +84,7 @@ export function SurveyRunner({
           name: respName,
           email: respEmail,
           answers,
+          cohort: cohort ?? undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));

@@ -11,14 +11,15 @@ import { qrPngDataUrl } from "@/lib/qr";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { eventStatusBadge } from "../EventsTable";
 import { RosterTab, type RosterRegistration, type RosterTier } from "./RosterTab";
+import { EventSettings, type EventSettingsData, type SettingsTier, type SurveyOption } from "./EventSettings";
 
 export const dynamic = "force-dynamic";
 
 // Ops console for one event: KPIs + signup/feedback QRs, the full roster
 // (statuses, manual add, check-in, waitlist promote, bulk no-show, CSV
-// export), and a revenue ledger. The manage shelf on the list page (PR 2)
-// stays the place to edit the event's own fields; this page is where the
-// day-of and money-tracking work happens.
+// export), a revenue ledger, and Settings — the single place everything gets
+// edited (fields, survey link, tickets, media, archive). The list-page shelf
+// is a read-only summary that links here.
 
 type EventDbRow = {
   id: string;
@@ -31,6 +32,12 @@ type EventDbRow = {
   starts_at: string | null;
   ends_at: string | null;
   capacity: number | null;
+  landing_path: string | null;
+  notes: string | null;
+  blurb: string | null;
+  description: string | null;
+  cover_image_url: string | null;
+  media: unknown;
   archived_at: string | null;
   feedback_survey_id: string | null;
 };
@@ -39,6 +46,7 @@ type TierDbRow = {
   id: string;
   title: string | null;
   tier: string | null;
+  description: string | null;
   amount_cents: number | null;
   currency: string | null;
   capacity: number | null;
@@ -70,15 +78,17 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes] = await Promise.all([
     companyOs
       .from("events")
-      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, archived_at, feedback_survey_id")
+      .select(
+        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id"
+      )
       .eq("id", params.id)
       .maybeSingle(),
     companyOs
       .from("products")
-      .select("id, title, tier, amount_cents, currency, capacity, active")
+      .select("id, title, tier, description, amount_cents, currency, capacity, active")
       .eq("event_id", params.id)
       .order("amount_cents", { ascending: true }),
     companyOs
@@ -88,6 +98,12 @@ export default async function EventDetailPage({ params }: { params: { id: string
       )
       .eq("event_id", params.id)
       .order("created_at", { ascending: true }),
+    companyOs
+      .from("surveys")
+      .select("id, name")
+      .is("archived_at", null)
+      .eq("status", "published")
+      .order("name", { ascending: true }),
   ]);
 
   const event = eventRes.data as EventDbRow | null;
@@ -224,6 +240,43 @@ export default async function EventDetailPage({ params }: { params: { id: string
     </div>
   );
 
+  const surveys: SurveyOption[] = ((surveysRes.data ?? []) as { id: string; name: string }[]).map((x) => ({
+    id: x.id,
+    name: x.name,
+  }));
+
+  const settingsTiers: SettingsTier[] = tiers.map((t) => ({
+    id: t.id,
+    title: t.title ?? "(untitled tier)",
+    description: t.description,
+    amountCents: t.amount_cents ?? 0,
+    currency: t.currency ?? "usd",
+    capacity: t.capacity,
+    active: t.active,
+  }));
+
+  const settingsData: EventSettingsData = {
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    type: event.type,
+    status: event.status,
+    visibility: event.visibility,
+    location: event.location,
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+    capacity: event.capacity,
+    landingPath: event.landing_path,
+    notes: event.notes,
+    blurb: event.blurb,
+    description: event.description,
+    coverImageUrl: event.cover_image_url,
+    media: Array.isArray(event.media) ? (event.media as EventSettingsData["media"]) : [],
+    feedbackSurveyId: event.feedback_survey_id,
+    archivedAt: event.archived_at,
+    totalRegistrations: registrations.length,
+  };
+
   return (
     <>
       <PageHead
@@ -238,6 +291,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           { key: "overview", label: "Overview", content: overview },
           { key: "roster", label: "Roster", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
           { key: "revenue", label: "Revenue", content: revenue },
+          { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} /> },
         ]}
       />
     </>

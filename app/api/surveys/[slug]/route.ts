@@ -75,6 +75,20 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       if (person.ok) personId = person.id;
     }
 
+    // Event attribution: ?cohort=<event-slug> arrives via an event's feedback
+    // QR. Only stamped when it matches a real event, so junk query params
+    // can't pollute the column (which trend reporting groups by).
+    let cohortSlug: string | null = null;
+    const cohortRaw = typeof body.cohort === "string" ? body.cohort.trim().slice(0, 120) : "";
+    if (cohortRaw) {
+      const { data: eventRow } = await companyOs
+        .from("events")
+        .select("slug")
+        .eq("slug", cohortRaw)
+        .maybeSingle();
+      cohortSlug = eventRow?.slug ?? null;
+    }
+
     const { data: response, error: rErr } = await companyOs
       .from("survey_responses")
       .insert({
@@ -83,6 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         person_id: personId,
         respondent_name: respondentName,
         respondent_email: respondentEmail,
+        ...(cohortSlug ? { cohort_slug: cohortSlug } : {}),
       })
       .select("id")
       .single();

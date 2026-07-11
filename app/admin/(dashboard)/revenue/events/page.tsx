@@ -2,7 +2,7 @@ import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
-import { normalizeRegistrationStatus, type EventMedia, type EventStatus, type EventType, type EventVisibility } from "@/lib/events";
+import { normalizeRegistrationStatus, type EventStatus, type EventType, type EventVisibility } from "@/lib/events";
 import { EventsTable, type EventRow } from "./EventsTable";
 import { NewEventButton } from "./NewEventButton";
 import type { EventAttendee, EventTierRow } from "./EventManage";
@@ -34,10 +34,6 @@ type EventDbRow = {
   capacity: number | null;
   landing_path: string | null;
   notes: string | null;
-  blurb: string | null;
-  description: string | null;
-  cover_image_url: string | null;
-  media: unknown;
   archived_at: string | null;
 };
 
@@ -81,9 +77,7 @@ export default async function EventsPage() {
   const [eventsRes, tiersRes, regsRes, monthRevenueRes] = await Promise.all([
     companyOs
       .from("events")
-      .select(
-        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at"
-      )
+      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, archived_at")
       .order("starts_at", { ascending: false, nullsFirst: false }),
     companyOs
       .from("products")
@@ -176,10 +170,6 @@ export default async function EventsPage() {
       capacity: e.capacity,
       landingPath: e.landing_path,
       notes: e.notes,
-      blurb: e.blurb,
-      description: e.description,
-      coverImageUrl: e.cover_image_url,
-      media: Array.isArray(e.media) ? (e.media as EventMedia[]) : [],
       archivedAt: e.archived_at,
       tiers,
       attendees: attendeesByEvent.get(e.id) ?? [],

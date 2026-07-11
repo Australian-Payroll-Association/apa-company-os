@@ -7,12 +7,17 @@ export function DetailDrawer({
   onClose,
   title,
   eyebrow,
+  action,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: ReactNode;
   eyebrow?: ReactNode;
+  // Optional control rendered in the header, left of the close button —
+  // e.g. an "open full page" link when the shelf is a summary of a record
+  // that has its own route.
+  action?: ReactNode;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -35,9 +40,12 @@ export function DetailDrawer({
             {eyebrow && <div className="admin-drawer-eyebrow">{eyebrow}</div>}
             <div className="admin-drawer-title">{title}</div>
           </div>
-          <button className="admin-drawer-close" onClick={onClose} aria-label="Close">
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {action}
+            <button className="admin-drawer-close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
         </div>
         <div className="admin-drawer-body">{children}</div>
       </aside>
