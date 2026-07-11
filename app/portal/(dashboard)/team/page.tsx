@@ -22,7 +22,20 @@ export default async function PortalTeamPage() {
           <div className="admin-empty">No dedicated staff assigned yet.</div>
         </div>
       ) : (
-        <div className="mp-kpi-grid">
+        <div
+          style={{
+            display: "grid",
+            // auto-fit (not the shared .mp-kpi-grid's auto-fill) so these
+            // profile cards share the full row width when there are fewer
+            // than would fit at the minimum — auto-fill instead leaves empty
+            // trailing tracks and pins every card to the 212px floor, which
+            // also starves the admin-kv dt/dd grid inside each card down to
+            // a near-zero value column.
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 16,
+            marginBottom: 20,
+          }}
+        >
           {team.map((m) => (
             <div className="admin-card admin-section-card" key={m.teamMemberId}>
               <h2 className="admin-card-title">{m.fullName || "Team member"}</h2>
