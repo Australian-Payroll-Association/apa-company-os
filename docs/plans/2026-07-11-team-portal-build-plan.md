@@ -46,6 +46,9 @@ in `/team`.
 
 ## Workstream A — Provisioning (PR 1, first, blocking)
 
+**Model: Fable 5** — security-critical (identity linking, ban/revoke
+semantics). Shipped in #194, built with Fable 5.
+
 > Status update while building PR 1: more of this existed than assumed. The
 > `inviteToPortal` action, `InvitePortalButton`, and the implicit-flow
 > `/team/callback` landing were already on main, and the DB already has
@@ -93,6 +96,10 @@ invited.
 
 ### PR 2 — Employee side (`/team/time-off`)
 
+**Model: Sonnet 5** — pattern-following work on established rails, but review
+the create action specifically: it must force `team_member_id =
+actor.teamMemberId`.
+
 - Page: own balance (from the `team_directory` view, own row only), own policy
   label, request history via `teamRead(actor, "time_off", …)`, and a "Request
   time off" form (leave type, start/end, half-day, optional reason). Reuse
@@ -110,6 +117,10 @@ invited.
 - Enable the Time Off nav item.
 
 ### PR 3 — Manager approvals, team calendar, manager home
+
+**Model: Fable 5 (or Opus 4.8)** — security-critical: IDOR re-scoping of
+approve/reject and direct-report scope derivation. Run `/code-review` before
+merge.
 
 - `/team/reports` as the **manager home**: a dashboard landing for the My Team
   section, not a bare roster. v1 widgets: pending approvals count, who is off
@@ -137,6 +148,9 @@ on a non-report's request (verified by test or manual probe).
 
 ## Workstream C — Directory + My Profile (PR 4)
 
+**Model: Sonnet 5** — routine pages; the one sharp edge (no leave balances in
+the directory helper) is spelled out below.
+
 - `/team/directory`: read-only list of active team members: name, position,
   department, location, manager. **Do not** read the `team_directory` view
   wholesale — it carries leave balances. Add a dedicated helper in
@@ -155,6 +169,9 @@ on a non-report's request (verified by test or manual probe).
 
 ## Workstream D — Surveys in /team (PR 5)
 
+**Model: Sonnet 5** — smallest lift; reuses the existing runner and identity
+resolution.
+
 Small lift; the runner and identity resolution already exist.
 
 - `/team/surveys`: list `status = "published"`, non-archived surveys. Surveys
@@ -172,6 +189,9 @@ Small lift; the runner and identity resolution already exist.
 - Nav: add a "Surveys" item under Me (new; not in the original nav sketch).
 
 ## Workstream E — Announcements (PR 6)
+
+**Model: Sonnet 5** — simple CRUD; the migration must include `service_role`
+grants.
 
 Greenfield; smallest useful version:
 
