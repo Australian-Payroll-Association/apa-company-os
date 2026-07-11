@@ -98,8 +98,14 @@ invited.
   manager if one is set (existing `sendTransactionalEmail`).
 - Enable the Time Off nav item.
 
-### PR 3 — Manager approvals + team calendar
+### PR 3 — Manager approvals, team calendar, manager home
 
+- `/team/reports` as the **manager home**: a dashboard landing for the My Team
+  section, not a bare roster. v1 widgets: pending approvals count, who is off
+  now / next 2 weeks, report roster with position + start date. Later manager
+  slices (1-1s, reviews, goals, training — see "Manager enablement" below) plug
+  their summary tiles into this page, so it is the section's center of gravity
+  from day one.
 - `/team/approvals`: pending requests where `team_member_id` is in
   `actor.directReportIds` (server-derived, never client input). Approve/reject
   actions re-derive the actor, SELECT the target row, assert the owner is a
@@ -173,6 +179,29 @@ Greenfield; smallest useful version:
   comments, no targeting in v1.
 
 ---
+
+## Manager enablement — the Round 2+ roadmap (decided 2026-07-11)
+
+Decision: **one portal, no separate manager app.** Managers are employees; the
+role is derived from `manager_id`; every manager feature is an employee feature
+scoped to `directReportIds`. The My Team section grows into a full manager
+workspace anchored on the PR 3 manager home. Target capabilities and how each
+maps onto the existing schema (per the design doc's scope table):
+
+| Capability | Backing | Notes |
+|---|---|---|
+| Team stats (1-1 cadence, performance, engagement) | derived | Aggregates over 1-1s, reviews, survey pulse, time off. Build last — it is a rollup of the features below and gets richer as each ships. |
+| 1-1 prep + **private** development notes | `one_on_ones`, `one_on_one_sessions` (exist, empty) | Design doc Slice 4. Shared agenda/notes visible to both parties; private notes in a separate structure readable ONLY by their author — not the report, and by default not other managers. |
+| Conduct performance reviews of reports | `performance_reviews` (exists, empty) | Design doc Slice 5. Manager drafts and finalizes; the reviewee sees finalized only. |
+| Team-level survey results | `surveys` + `survey_responses`/`answers` | Aggregates only, with an anonymity floor (suppress any cut below ~4 respondents so small teams cannot be de-anonymized). Anonymous surveys are never sliced by team. Needs a team attribution on responses (respondent's `team_member_id` or manager at submit time) — additive column, respecting the external-writer constraint. |
+| Set team goals | `goals` (exists, empty) | Design doc Slice 5. `owner_team_member_id` for individual goals; team goals owned by the manager and visible to all reports. |
+| Manage team training | greenfield | New tables (`trainings`, `training_assignments`); relates to `person_skills`. Manager assigns, report sees theirs under Me, completion feeds team stats. |
+
+Sequencing intent after this round: 1-1s first (highest manager-habit value,
+schema ready), then reviews + goals (design doc Slice 5), then team survey
+results, then training, with team stats accreting throughout. Each gets its own
+plan doc when picked up; privacy rows above (private notes, anonymity floor,
+finalized-only reviews) are binding constraints, not suggestions.
 
 ## Sequencing
 
