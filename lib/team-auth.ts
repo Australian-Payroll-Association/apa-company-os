@@ -28,6 +28,9 @@ export type TeamActor = {
   teamMemberScope: string[]; // team_members.id values this actor may read
   personScope: string[]; // people.id values this actor may read
   directReportIds: string[]; // team_members.id of direct reports (managers only)
+  // True if this same person is also an admin. Used only by the sidebar's
+  // Admin/Team view switcher — never grants extra scope within /team.
+  isAdmin: boolean;
 };
 
 // team_members.status values that grant portal access. Candidates (recruiting),
@@ -49,31 +52,20 @@ type GetActorResult =
   | { actor: TeamActor; redirectTo?: undefined }
   | { actor: null; redirectTo: "/admin" | "/team/login" };
 
-// Resolve the signed-in user to a team actor. Returns a redirect target instead
-// of an actor when the caller is not a portal user:
-//   - not signed in            -> /team/login
-//   - an admin (allowlist)     -> /admin (admins have no /team identity)
-//   - signed in but not a linked, active team member -> /team/login
-export async function getTeamActor(): Promise<GetActorResult> {
-  const supabase = createSessionClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const email = user?.email?.toLowerCase();
-  if (!user || !email) return { actor: null, redirectTo: "/team/login" };
+type TeamMembershipLookup = {
+  person: { id: string; full_name: string | null; first_name: string | null; preferred_name: string | null; email: string };
+  membership: { id: string; status: string };
+};
 
-  // Admins live in /admin. They keep full service-role access there and get no
-  // /team identity, so a plain employee can never reach the CRM and an admin is
-  // never accidentally scoped as an employee.
-  if (await isAdminEmail(email)) return { actor: null, redirectTo: "/admin" };
-
-  // Identity by auth_user_id, never by email.
+// Identity by auth_user_id, never by email. Shared by getTeamActor() and the
+// Admin sidebar's "Team" switch-view eligibility check.
+async function findActiveTeamMembership(authUserId: string): Promise<TeamMembershipLookup | null> {
   const { data: person } = await companyOs
     .from("people")
     .select("id, full_name, first_name, preferred_name, email")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", authUserId)
     .maybeSingle();
-  if (!person) return { actor: null, redirectTo: "/team/login" };
+  if (!person) return null;
 
   // Active employment record. A person may have several engagements; prefer an
   // 'active' one, else the first portal-eligible row.
@@ -84,7 +76,40 @@ export async function getTeamActor(): Promise<GetActorResult> {
     .in("status", PORTAL_STATUSES);
   const rows = (memberships ?? []) as { id: string; status: string }[];
   const membership = rows.find((r) => r.status === "active") ?? rows[0];
-  if (!membership) return { actor: null, redirectTo: "/team/login" };
+  if (!membership) return null;
+
+  return { person, membership };
+}
+
+// True if the signed-in admin also has a linked, active team_members record —
+// i.e. whether the Admin sidebar's "Team" view switch is live for them.
+export async function hasTeamAccess(authUserId: string): Promise<boolean> {
+  return Boolean(await findActiveTeamMembership(authUserId));
+}
+
+// Resolve the signed-in user to a team actor. Returns a redirect target instead
+// of an actor when the caller is not a portal user:
+//   - not signed in                                       -> /team/login
+//   - no linked, active team_members record, is an admin   -> /admin
+//   - no linked, active team_members record, not an admin  -> /team/login
+// An admin WITH a linked team_members record is a valid team actor — they
+// deliberately switched into /team via the sidebar and use their own team
+// scope, same as anyone else. Admin status never widens that scope.
+export async function getTeamActor(): Promise<GetActorResult> {
+  const supabase = createSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const email = user?.email?.toLowerCase();
+  if (!user || !email) return { actor: null, redirectTo: "/team/login" };
+
+  const found = await findActiveTeamMembership(user.id);
+  if (!found) {
+    if (await isAdminEmail(email)) return { actor: null, redirectTo: "/admin" };
+    return { actor: null, redirectTo: "/team/login" };
+  }
+  const { person, membership } = found;
+  const isAdmin = await isAdminEmail(email);
 
   // Manager iff at least one active team member reports to this one.
   const { data: reports } = await companyOs
@@ -109,6 +134,7 @@ export async function getTeamActor(): Promise<GetActorResult> {
       teamMemberScope,
       personScope,
       directReportIds,
+      isAdmin,
     },
   };
 }

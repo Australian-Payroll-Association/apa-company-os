@@ -18,7 +18,7 @@ export default async function TeamDashboardLayout({
 
   return (
     <div className="admin-shell">
-      <TeamSidebar name={actor.displayName} role={actor.role} />
+      <TeamSidebar name={actor.displayName} role={actor.role} isAdmin={actor.isAdmin} />
       <main className="admin-main">{children}</main>
     </div>
   );

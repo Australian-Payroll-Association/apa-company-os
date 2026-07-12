@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin-auth";
+import { hasTeamAccess } from "@/lib/team-auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import "../admin.css";
 
@@ -15,10 +16,11 @@ export default async function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAdmin();
+  const canSwitchToTeam = await hasTeamAccess(user.id);
 
   return (
     <div className="admin-shell">
-      <AdminSidebar user={user} />
+      <AdminSidebar user={user} canSwitchToTeam={canSwitchToTeam} />
       <main className="admin-main">{children}</main>
     </div>
   );

@@ -125,15 +125,15 @@ const NAV: NavGroup[] = [
   },
 ];
 
-// The three views a user can land in. These are SEPARATE apps: Admin is this
-// /admin console; Team and Manager live in the /team portal. The switcher
-// launches into them rather than re-scoping /admin. `current` marks where we are
-// now; the others are placeholders until per-user view access is wired.
-type View = { key: string; label: string; ico: string; current?: boolean };
+// The views a user can land in. Admin and Team are SEPARATE apps (/admin and
+// /team); the switcher navigates between them rather than re-scoping /admin.
+// `current` marks where we are now. "Team" is only live for admins who also
+// have a linked, active team_members record (see hasTeamAccess() in
+// lib/team-auth.ts) — everyone else sees it disabled.
+type View = { key: string; label: string; ico: string; href: string; current?: boolean };
 const VIEWS: View[] = [
-  { key: "admin", label: "Admin", ico: "◈", current: true },
-  { key: "manager", label: "Manager", ico: "☰" },
-  { key: "team", label: "Team", ico: "☷" },
+  { key: "admin", label: "Admin", ico: "◈", href: "/admin", current: true },
+  { key: "team", label: "Team", ico: "☷", href: "/team" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -155,8 +155,10 @@ function initials(email: string): string {
 
 export function AdminSidebar({
   user,
+  canSwitchToTeam,
 }: {
   user: { email: string };
+  canSwitchToTeam: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
@@ -281,31 +283,51 @@ export function AdminSidebar({
             </div>
 
             <div className="admin-profilemenu-label">Switch view</div>
-            {VIEWS.map((v) =>
-              v.current ? (
-                <span key={v.key} className="admin-profilemenu-item" role="menuitem" aria-current="true">
-                  <span className="admin-profilemenu-ico" aria-hidden>
-                    {v.ico}
+            {VIEWS.map((v) => {
+              if (v.current) {
+                return (
+                  <span key={v.key} className="admin-profilemenu-item" role="menuitem" aria-current="true">
+                    <span className="admin-profilemenu-ico" aria-hidden>
+                      {v.ico}
+                    </span>
+                    {v.label}
+                    <span className="admin-profilemenu-here">Current</span>
                   </span>
-                  {v.label}
-                  <span className="admin-profilemenu-here">Current</span>
-                </span>
-              ) : (
+                );
+              }
+              const live = v.key === "team" ? canSwitchToTeam : false;
+              if (live) {
+                return (
+                  <Link
+                    key={v.key}
+                    href={v.href}
+                    className="admin-profilemenu-item"
+                    role="menuitem"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    <span className="admin-profilemenu-ico" aria-hidden>
+                      {v.ico}
+                    </span>
+                    {v.label}
+                  </Link>
+                );
+              }
+              return (
                 <span
                   key={v.key}
                   className="admin-profilemenu-item is-disabled"
                   role="menuitem"
                   aria-disabled
-                  title="Switching views is coming soon"
+                  title="No linked team account"
                 >
                   <span className="admin-profilemenu-ico" aria-hidden>
                     {v.ico}
                   </span>
                   {v.label}
-                  <span className="admin-nav-badge">soon</span>
+                  <span className="admin-nav-badge">n/a</span>
                 </span>
-              ),
-            )}
+              );
+            })}
 
             <div className="admin-profilemenu-sep" />
 

@@ -34,16 +34,42 @@ const MY_TEAM: NavGroup = {
   ],
 };
 
+// Mirror of AdminSidebar's VIEWS: Admin and Team are separate apps, the
+// switcher navigates between them. "Admin" is only live for team members who
+// are also admins (see TeamActor.isAdmin in lib/team-auth.ts).
+type View = { key: string; label: string; ico: string; href: string; current?: boolean };
+const VIEWS: View[] = [
+  { key: "team", label: "Team", ico: "☷", href: "/team", current: true },
+  { key: "admin", label: "Admin", ico: "◈", href: "/admin" },
+];
+
 function isActive(pathname: string, href: string): boolean {
   if (href === "/team") return pathname === "/team" || pathname === "/team/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function TeamSidebar({ name, role }: { name: string; role: TeamRole }) {
+// "Dave Hajdu" -> "DH", "dave" -> "DA".
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+  return raw.toUpperCase();
+}
+
+export function TeamSidebar({
+  name,
+  role,
+  isAdmin,
+}: {
+  name: string;
+  role: TeamRole;
+  isAdmin: boolean;
+}) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const groups = role === "manager" ? [...ME, MY_TEAM] : ME;
+  const userInitials = initials(name);
 
   return (
     <>
@@ -63,9 +89,74 @@ export function TeamSidebar({ name, role }: { name: string; role: TeamRole }) {
 
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Team">
         <div className="admin-brand">
-          <span className="admin-brand-mark">E8</span>
-          Edge8 Workspace
+          <span className="admin-brand-lead">
+            <span className="admin-brand-mark">E8</span>
+            Edge8 Workspace
+          </span>
+          <span className="admin-brand-actions">
+            <button
+              type="button"
+              className="admin-avatarbtn"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              aria-label="Switch view"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+            >
+              {userInitials}
+            </button>
+          </span>
         </div>
+
+        {profileMenuOpen && (
+          <div className="admin-profilemenu" role="menu" aria-label="Switch view">
+            <div className="admin-profilemenu-label">Switch view</div>
+            {VIEWS.map((v) => {
+              if (v.current) {
+                return (
+                  <span key={v.key} className="admin-profilemenu-item" role="menuitem" aria-current="true">
+                    <span className="admin-profilemenu-ico" aria-hidden>
+                      {v.ico}
+                    </span>
+                    {v.label}
+                    <span className="admin-profilemenu-here">Current</span>
+                  </span>
+                );
+              }
+              const live = v.key === "admin" ? isAdmin : false;
+              if (live) {
+                return (
+                  <Link
+                    key={v.key}
+                    href={v.href}
+                    className="admin-profilemenu-item"
+                    role="menuitem"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    <span className="admin-profilemenu-ico" aria-hidden>
+                      {v.ico}
+                    </span>
+                    {v.label}
+                  </Link>
+                );
+              }
+              return (
+                <span
+                  key={v.key}
+                  className="admin-profilemenu-item is-disabled"
+                  role="menuitem"
+                  aria-disabled
+                  title="Not an admin"
+                >
+                  <span className="admin-profilemenu-ico" aria-hidden>
+                    {v.ico}
+                  </span>
+                  {v.label}
+                  <span className="admin-nav-badge">n/a</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
           {groups.map((group, gi) => (
