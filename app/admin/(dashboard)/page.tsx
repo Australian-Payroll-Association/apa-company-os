@@ -103,7 +103,9 @@ export default async function DashboardPage() {
       .gte("created_at", iso60)
       .limit(1000),
     companyOs.from("staff_assignments").select("companies(name)").eq("status", "active").limit(500),
-    companyOs.from("team_members").select("status, departments(name)").limit(500),
+    // departments needs the FK hint: departments.head_team_member_id points back
+    // at team_members, so a bare embed is ambiguous and PostgREST rejects it.
+    companyOs.from("team_members").select("status, departments!department_id(name)").limit(500),
     companyOs.from("job_requisitions").select("*", { count: "exact", head: true }).eq("status", "open"),
     companyOs.from("applications").select("status, applied_at, decided_at").limit(2000),
     companyOs
