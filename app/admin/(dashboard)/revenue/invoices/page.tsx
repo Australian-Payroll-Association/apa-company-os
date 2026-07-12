@@ -7,6 +7,8 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { INVOICE_SELECT, type InvoiceListRow } from "./invoice-shared";
+import { InvoicesShelfProvider, InvoiceShelfRow } from "./InvoicesShelf";
 
 export const dynamic = "force-dynamic";
 
@@ -18,23 +20,6 @@ export const metadata = {
 const PAGE_SIZES = [25, 50, 100];
 const SORTABLE = new Set(["doc_number", "txn_date", "due_date", "amount_cents", "balance_cents"]);
 const STATUSES = ["paid", "open", "overdue", "voided"] as const;
-
-type InvoiceListRow = {
-  id: string;
-  doc_number: string | null;
-  txn_date: string;
-  due_date: string | null;
-  currency: string;
-  amount_cents: number;
-  balance_cents: number;
-  status: string;
-  customer_name: string | null;
-  company_id: string;
-  companies: { name: string } | null;
-};
-
-const INVOICE_SELECT =
-  "id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, customer_name, company_id, companies(name)";
 
 export default async function InvoicesPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
@@ -135,29 +120,32 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         sub={`${total.toLocaleString()} ${total === 1 ? "invoice" : "invoices"} · ${formatCents(outstandingCents)} outstanding · synced from QuickBooks`}
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <DataTable
-        columns={columns}
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        pageSizeOptions={PAGE_SIZES}
-        sort={sort}
-        dir={dir}
-        basePath="/admin/revenue/invoices"
-        searchParams={searchParams}
-        searchPlaceholder="Search invoice # or billed-to name…"
-        emptyText="No invoices match."
-        filterBar={
-          <FilterBar
-            basePath="/admin/revenue/invoices"
-            searchParams={searchParams}
-            filters={[
-              { key: "status", label: "Status", options: STATUSES.map((s) => ({ value: s, label: humanize(s) })) },
-            ]}
-          />
-        }
-      />
+      <InvoicesShelfProvider>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZES}
+          sort={sort}
+          dir={dir}
+          basePath="/admin/revenue/invoices"
+          searchParams={searchParams}
+          searchPlaceholder="Search invoice # or billed-to name…"
+          emptyText="No invoices match."
+          filterBar={
+            <FilterBar
+              basePath="/admin/revenue/invoices"
+              searchParams={searchParams}
+              filters={[
+                { key: "status", label: "Status", options: STATUSES.map((s) => ({ value: s, label: humanize(s) })) },
+              ]}
+            />
+          }
+          renderRow={(row, cells) => <InvoiceShelfRow row={row}>{cells}</InvoiceShelfRow>}
+        />
+      </InvoicesShelfProvider>
     </>
   );
 }
