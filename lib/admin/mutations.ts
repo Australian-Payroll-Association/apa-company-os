@@ -3,13 +3,13 @@ import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "./audit";
 
 // Generic archive / restore / guarded-delete for the archivable CRM tables
-// (people, companies, deals). Each writes the audit trail; callers handle
+// (people, companies, deals, vendors). Each writes the audit trail; callers handle
 // revalidatePath and any entity-specific side effects. Archive is the safe,
 // reversible default; guardedDelete is the GDPR-style hard erasure.
 
 export type Result = { ok: true } | { ok: false; error: string };
 
-export type ArchivableTable = "people" | "companies" | "deals";
+export type ArchivableTable = "people" | "companies" | "deals" | "vendors";
 
 // Friendlier names for the relations that can block a hard delete.
 const REL_LABEL: Record<string, string> = {

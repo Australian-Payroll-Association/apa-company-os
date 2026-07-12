@@ -1,0 +1,181 @@
+"use client";
+
+import { useState } from "react";
+import { humanize } from "@/lib/admin/format";
+import { VENDOR_TYPES, type VendorType } from "./vendor-shared";
+import type { VendorInput } from "./actions";
+
+export type VendorFormValues = VendorInput;
+
+const EMPTY: VendorFormValues = {
+  type: "other",
+  name: "",
+  price_range: "",
+  address: "",
+  phone: "",
+  tax_id: "",
+  bank_info: "",
+  primary_contact_name: "",
+  primary_contact_email: "",
+  primary_contact_phone: "",
+  secondary_contact_name: "",
+  secondary_contact_email: "",
+  secondary_contact_phone: "",
+  rating: "",
+  url: "",
+  notes: "",
+};
+
+// Full vendor field set, shared by the "New vendor" page and the shelf's edit
+// mode. The caller owns submission (create vs update).
+export function VendorForm({
+  initial,
+  submitLabel,
+  onSubmit,
+}: {
+  initial?: Partial<VendorFormValues>;
+  submitLabel: string;
+  onSubmit: (values: VendorFormValues) => Promise<{ ok: true } | { ok: false; error: string }>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [form, setForm] = useState<VendorFormValues>({ ...EMPTY, ...initial });
+
+  function field<K extends keyof VendorFormValues>(key: K, value: VendorFormValues[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    const r = await onSubmit(form);
+    setSaving(false);
+    if (!r.ok) setMsg({ ok: false, text: r.error });
+  }
+
+  const two = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } as const;
+
+  return (
+    <form className="admin-form" onSubmit={save}>
+      {msg && (
+        <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>
+      )}
+      <div style={two}>
+        <div className="admin-field">
+          <label className="admin-label">Type</label>
+          <select className="admin-select" value={form.type} onChange={(e) => field("type", e.target.value as VendorType)}>
+            {VENDOR_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {humanize(t)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">Name</label>
+          <input className="admin-input" value={form.name} onChange={(e) => field("name", e.target.value)} required />
+        </div>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Price range</label>
+        <input
+          className="admin-input"
+          value={form.price_range}
+          onChange={(e) => field("price_range", e.target.value)}
+          placeholder="e.g. 1,900,000 VND/day"
+        />
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Address</label>
+        <input className="admin-input" value={form.address} onChange={(e) => field("address", e.target.value)} />
+      </div>
+      <div style={two}>
+        <div className="admin-field">
+          <label className="admin-label">Phone</label>
+          <input className="admin-input" value={form.phone} onChange={(e) => field("phone", e.target.value)} />
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">URL</label>
+          <input className="admin-input" value={form.url} onChange={(e) => field("url", e.target.value)} placeholder="https://…" />
+        </div>
+      </div>
+      <div style={two}>
+        <div className="admin-field">
+          <label className="admin-label">Tax ID</label>
+          <input className="admin-input" value={form.tax_id} onChange={(e) => field("tax_id", e.target.value)} />
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">Rating</label>
+          <input
+            className="admin-input"
+            value={form.rating}
+            onChange={(e) => field("rating", e.target.value)}
+            placeholder="e.g. Preferred / Ruled out"
+          />
+        </div>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Bank info</label>
+        <input className="admin-input" value={form.bank_info} onChange={(e) => field("bank_info", e.target.value)} />
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Primary contact</label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <input
+            className="admin-input"
+            value={form.primary_contact_name}
+            onChange={(e) => field("primary_contact_name", e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="admin-input"
+            type="email"
+            value={form.primary_contact_email}
+            onChange={(e) => field("primary_contact_email", e.target.value)}
+            placeholder="Email"
+          />
+          <input
+            className="admin-input"
+            value={form.primary_contact_phone}
+            onChange={(e) => field("primary_contact_phone", e.target.value)}
+            placeholder="Phone"
+          />
+        </div>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Secondary contact</label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <input
+            className="admin-input"
+            value={form.secondary_contact_name}
+            onChange={(e) => field("secondary_contact_name", e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="admin-input"
+            type="email"
+            value={form.secondary_contact_email}
+            onChange={(e) => field("secondary_contact_email", e.target.value)}
+            placeholder="Email"
+          />
+          <input
+            className="admin-input"
+            value={form.secondary_contact_phone}
+            onChange={(e) => field("secondary_contact_phone", e.target.value)}
+            placeholder="Phone"
+          />
+        </div>
+      </div>
+      <div className="admin-field">
+        <label className="admin-label">Notes</label>
+        <textarea className="admin-textarea" rows={4} value={form.notes} onChange={(e) => field("notes", e.target.value)} />
+      </div>
+      <div className="admin-form-actions">
+        <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
+          {saving ? "Saving…" : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
