@@ -36,6 +36,7 @@ export function statusTone(status: string | null | undefined): BadgeTone {
     case "cancelled":
     case "do_not_pursue":
     case "terminated":
+    case "overdue":
       return "err";
     case "pending":
     case "on_hold":

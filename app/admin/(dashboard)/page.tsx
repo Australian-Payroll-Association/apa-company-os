@@ -135,18 +135,19 @@ export default async function DashboardPage() {
     regsRes.error || surveysRes.error;
 
   // ── Revenue ────────────────────────────────────────────────────────────────
-  // "Cash collected" = paid QuickBooks invoices (bucketed by txn_date — the sync
-  // carries no paid-at timestamp) + paid Stripe orders. All USD.
+  // "Revenue" = all non-voided QuickBooks invoices by invoice date (accrual —
+  // open/overdue count when billed, not when paid; unpaid side is the AR card)
+  // + paid Stripe orders. All USD.
 
   const invoices = (invoicesRes.data as InvoiceRow[] | null) ?? [];
   const orders = (ordersRes.data as OrderRow[] | null) ?? [];
   const deals = (dealsRes.data as DealRow[] | null) ?? [];
 
-  const paidInvoices = invoices.filter((i) => i.status === "paid" && i.txn_date);
+  const revenueInvoices = invoices.filter((i) => i.txn_date);
   const paidOrders = orders.filter((o) => o.status === "paid");
 
   const cashBetween = (fromDate: string, toDate: string) =>
-    paidInvoices.reduce((s, i) => (i.txn_date! >= fromDate && i.txn_date! < toDate ? s + (i.amount_cents ?? 0) : s), 0) +
+    revenueInvoices.reduce((s, i) => (i.txn_date! >= fromDate && i.txn_date! < toDate ? s + (i.amount_cents ?? 0) : s), 0) +
     paidOrders.reduce((s, o) => {
       const d = o.created_at.slice(0, 10);
       return d >= fromDate && d < toDate ? s + (o.amount_usd_cents ?? 0) : s;
@@ -157,7 +158,7 @@ export default async function DashboardPage() {
   const cashPrev30 = cashBetween(date60, date30);
   const cashYtd = cashBetween(yearStart, tomorrow);
 
-  const openInvoices = invoices.filter((i) => i.status === "open");
+  const openInvoices = invoices.filter((i) => i.status === "open" || i.status === "overdue");
   const arOutstanding = openInvoices.reduce((s, i) => s + (i.balance_cents ?? 0), 0);
 
   const monthlyCash = MONTHS.slice(0, now.getUTCMonth() + 1).map((label, m) => {
@@ -271,8 +272,8 @@ export default async function DashboardPage() {
 
       {/* ── Headline ── */}
       <div className="mp-kpi-grid">
-        <MetricCard label="Cash collected · 30d" value={formatCents(cash30)} sub={vsPrior(cash30, cashPrev30, formatCents)} />
-        <MetricCard label="Cash collected · YTD" value={formatCents(cashYtd)} sub={`invoices + Stripe since Jan 1, ${year}`} />
+        <MetricCard label="Revenue · 30d" value={formatCents(cash30)} sub={vsPrior(cash30, cashPrev30, formatCents)} />
+        <MetricCard label="Revenue · YTD" value={formatCents(cashYtd)} sub={`invoices + Stripe since Jan 1, ${year}`} />
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${openDeals.length} open deals`} href="/admin/revenue/deals" />
         <MetricCard label="AR outstanding" value={formatCents(arOutstanding)} sub={`${openInvoices.length} open invoices`} />
       </div>
@@ -287,8 +288,8 @@ export default async function DashboardPage() {
       </div>
       <div className="admin-summary-grid" style={{ marginTop: 16 }}>
         <div className="admin-card admin-chart-card">
-          <div className="mp-kpi-label">Cash collected by month · {year}</div>
-          <BarChart data={monthlyCash} ariaLabel="Cash collected by month" formatValue={compactUsd} />
+          <div className="mp-kpi-label">Revenue by month · {year}</div>
+          <BarChart data={monthlyCash} ariaLabel="Revenue by month" formatValue={compactUsd} />
         </div>
         <div className="admin-card admin-chart-card">
           <div className="mp-kpi-label">Pipeline flow · last 30 days</div>

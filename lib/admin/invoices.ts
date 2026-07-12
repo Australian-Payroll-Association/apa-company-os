@@ -15,12 +15,13 @@ export type AdminInvoice = {
   balance_cents: number;
   status: string;
   memo: string | null;
+  customer_name: string | null;
 };
 
 export async function getInvoicesForCompany(companyId: string): Promise<AdminInvoice[]> {
   const { data } = await companyOs
     .from("invoices")
-    .select("id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, memo")
+    .select("id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, memo, customer_name")
     .eq("company_id", companyId)
     .order("txn_date", { ascending: false });
   return (data ?? []) as AdminInvoice[];

@@ -42,6 +42,7 @@ const NAV: NavGroup[] = [
         subheading: "Commerce",
         items: [
           { label: "Orders", href: "/admin/revenue/orders", ico: "⛁", enabled: true },
+          { label: "Invoices", href: "/admin/revenue/invoices", ico: "¤", enabled: true },
           { label: "AIO Pad", href: "/admin/revenue/aio-pad", ico: "⌂", enabled: true },
           { label: "Events", href: "/admin/revenue/events", ico: "✓", enabled: true },
           { label: "Products", href: "/admin/revenue/products", ico: "▦", enabled: true },

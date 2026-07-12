@@ -51,6 +51,7 @@ export function InvoicesTab({
             <thead>
               <tr>
                 <th>Invoice</th>
+                <th>Billed to</th>
                 <th>Date</th>
                 <th>Due</th>
                 <th>Amount</th>
@@ -62,6 +63,7 @@ export function InvoicesTab({
               {invoices.map((inv) => (
                 <tr key={inv.id}>
                   <td>{inv.doc_number || "—"}</td>
+                  <td>{inv.customer_name || <span className="admin-cell-muted">—</span>}</td>
                   <td>{formatDate(inv.txn_date)}</td>
                   <td>{inv.due_date ? formatDate(inv.due_date) : "—"}</td>
                   <td className="admin-cell-mono">{formatCents(inv.amount_cents, inv.currency)}</td>
