@@ -10,11 +10,15 @@ export function BarChart({
   data,
   ariaLabel,
   emptyText = "No data yet.",
+  formatValue,
 }: {
   data: Array<{ label: string; value: number }>;
   ariaLabel: string;
   emptyText?: string;
+  // Renders the direct label next to each bar (e.g. money). Defaults to the raw number.
+  formatValue?: (value: number) => string;
 }) {
+  const fmt = formatValue ?? ((n: number) => String(n));
   const max = Math.max(...data.map((d) => d.value));
   if (max <= 0) {
     return <div className="admin-empty" style={{ padding: "32px 16px" }}>{emptyText}</div>;
@@ -40,7 +44,7 @@ export function BarChart({
             </text>
             {w > 0 && (
               <rect x={LABEL_W} y={y + 7} width={w} height={16} rx={3} fill="var(--admin-accent)">
-                <title>{`${d.label}: ${d.value}`}</title>
+                <title>{`${d.label}: ${fmt(d.value)}`}</title>
               </rect>
             )}
             <text
@@ -50,7 +54,7 @@ export function BarChart({
               fill="var(--admin-ink)"
               style={{ fontVariantNumeric: "tabular-nums" }}
             >
-              {d.value}
+              {fmt(d.value)}
             </text>
           </g>
         );
