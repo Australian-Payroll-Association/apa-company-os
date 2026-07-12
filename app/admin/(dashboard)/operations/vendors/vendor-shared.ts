@@ -3,6 +3,10 @@
 export const VENDOR_TYPES = ["car", "tour", "travel_agency", "conference_room", "other"] as const;
 export type VendorType = (typeof VENDOR_TYPES)[number];
 
+// Stored as the display string; "" / null = unrated.
+export const VENDOR_RATINGS = ["Preferred", "Average", "Poor Experience", "To Consider"] as const;
+export type VendorRating = (typeof VENDOR_RATINGS)[number];
+
 export type VendorRow = {
   id: string;
   type: string;

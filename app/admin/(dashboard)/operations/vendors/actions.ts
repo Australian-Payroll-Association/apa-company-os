@@ -5,7 +5,11 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { archiveRecord, restoreRecord, type Result } from "@/lib/admin/mutations";
-import { VENDOR_TYPES, type VendorType } from "./vendor-shared";
+import { VENDOR_RATINGS, VENDOR_TYPES, type VendorType } from "./vendor-shared";
+
+function validRating(rating: string | undefined): boolean {
+  return rating === undefined || rating.trim() === "" || (VENDOR_RATINGS as readonly string[]).includes(rating);
+}
 
 export type VendorInput = {
   type: VendorType;
@@ -46,6 +50,7 @@ export async function createVendor(input: VendorInput): Promise<Result & { id?: 
   const name = input.name?.trim();
   if (!name) return { ok: false, error: "Vendor name is required." };
   if (!VENDOR_TYPES.includes(input.type)) return { ok: false, error: "Invalid vendor type." };
+  if (!validRating(input.rating)) return { ok: false, error: "Invalid rating." };
 
   const row = { ...clean(input), name, type: input.type };
   const { data, error } = await companyOs.from("vendors").insert(row).select("id").single();
@@ -62,6 +67,7 @@ export async function updateVendor(id: string, patch: Partial<VendorInput>): Pro
   if (patch.type !== undefined && !VENDOR_TYPES.includes(patch.type)) {
     return { ok: false, error: "Invalid vendor type." };
   }
+  if (!validRating(patch.rating)) return { ok: false, error: "Invalid rating." };
   const updates = { ...clean(patch), updated_at: new Date().toISOString() };
   if ("name" in updates && !updates.name) {
     return { ok: false, error: "Vendor name can't be empty." };

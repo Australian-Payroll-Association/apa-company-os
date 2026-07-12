@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { humanize } from "@/lib/admin/format";
-import { VENDOR_TYPES, type VendorType } from "./vendor-shared";
+import { VENDOR_RATINGS, VENDOR_TYPES, type VendorType } from "./vendor-shared";
 import type { VendorInput } from "./actions";
 
 export type VendorFormValues = VendorInput;
@@ -107,12 +107,14 @@ export function VendorForm({
         </div>
         <div className="admin-field">
           <label className="admin-label">Rating</label>
-          <input
-            className="admin-input"
-            value={form.rating}
-            onChange={(e) => field("rating", e.target.value)}
-            placeholder="e.g. Preferred / Ruled out"
-          />
+          <select className="admin-select" value={form.rating} onChange={(e) => field("rating", e.target.value)}>
+            <option value="">—</option>
+            {VENDOR_RATINGS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="admin-field">

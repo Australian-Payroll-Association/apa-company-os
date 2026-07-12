@@ -21,10 +21,18 @@ const PAGE_SIZES = [25, 50, 100];
 const SORTABLE = new Set(["name", "type", "rating", "created_at"]);
 
 function ratingTone(rating: string | null): BadgeTone {
-  const r = (rating ?? "").toLowerCase();
-  if (r.startsWith("preferred")) return "ok";
-  if (r.startsWith("ruled out")) return "err";
-  return "neutral";
+  switch (rating) {
+    case "Preferred":
+      return "ok";
+    case "Average":
+      return "info";
+    case "To Consider":
+      return "warn";
+    case "Poor Experience":
+      return "err";
+    default:
+      return "neutral";
+  }
 }
 
 export default async function VendorsPage({ searchParams }: { searchParams: SearchParamsObj }) {
