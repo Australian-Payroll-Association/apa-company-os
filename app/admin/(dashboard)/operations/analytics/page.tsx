@@ -41,14 +41,13 @@ export default async function AnalyticsPage() {
               <span className="admin-pill-val">{overview.totals.visitors.toLocaleString()}</span>
             </div>
           </div>
-          <div className="admin-summary-grid">
+          <div
+            className="admin-summary-grid"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
             <div className="admin-card admin-chart-card">
               <div className="mp-kpi-label">Daily page views</div>
               <BarChart data={overview.daily} ariaLabel="Daily page views" />
-            </div>
-            <div className="admin-card admin-chart-card">
-              <div className="mp-kpi-label">Top pages</div>
-              <BarChart data={overview.topPages} ariaLabel="Top pages by page views" />
             </div>
             <div className="admin-card admin-chart-card">
               <div className="mp-kpi-label">Top referrers</div>
@@ -58,6 +57,10 @@ export default async function AnalyticsPage() {
                 emptyText="No referrer data yet."
               />
             </div>
+          </div>
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">Top pages</div>
+            <BarChart data={overview.topPages} ariaLabel="Top pages by page views" stacked />
           </div>
         </div>
       )}

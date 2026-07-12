@@ -6,17 +6,28 @@ const LABEL_W = 90;
 const CHART_W = 320;
 const BAR_MAX = CHART_W - LABEL_W - 40;
 
+// Stacked variant: each label sits on its own line above a full-width bar, for
+// long labels (e.g. page paths) that would collide with the bars in the inline
+// layout. A wider, landscape viewBox keeps a full-row chart from rendering tall.
+const STACK_ROW_H = 38;
+const STACK_CHART_W = 680;
+const STACK_BAR_MAX = STACK_CHART_W - 60;
+
 export function BarChart({
   data,
   ariaLabel,
   emptyText = "No data yet.",
   formatValue,
+  stacked = false,
 }: {
   data: Array<{ label: string; value: number }>;
   ariaLabel: string;
   emptyText?: string;
   // Renders the direct label next to each bar (e.g. money). Defaults to the raw number.
   formatValue?: (value: number) => string;
+  // Puts each label on its own line above a full-width bar — use for long labels
+  // (page paths) that would otherwise overlap the bars in the inline layout.
+  stacked?: boolean;
 }) {
   const fmt = formatValue ?? ((n: number) => String(n));
   const max = Math.max(...data.map((d) => d.value));
@@ -24,32 +35,40 @@ export function BarChart({
     return <div className="admin-empty" style={{ padding: "32px 16px" }}>{emptyText}</div>;
   }
 
-  const height = data.length * ROW_H;
+  const rowH = stacked ? STACK_ROW_H : ROW_H;
+  const chartW = stacked ? STACK_CHART_W : CHART_W;
+  const barMax = stacked ? STACK_BAR_MAX : BAR_MAX;
+  const barX = stacked ? 0 : LABEL_W;
+  const height = data.length * rowH;
   return (
     <svg
       className="admin-chart"
-      viewBox={`0 0 ${CHART_W} ${height}`}
+      viewBox={`0 0 ${chartW} ${height}`}
       role="img"
       aria-label={ariaLabel}
-      style={{ width: "100%", height: "auto" }}
+      style={{ width: "100%", height: "auto", maxWidth: stacked ? 840 : undefined }}
     >
       <title>{ariaLabel}</title>
       {data.map((d, i) => {
-        const w = d.value > 0 ? Math.max(2, (d.value / max) * BAR_MAX) : 0;
-        const y = i * ROW_H;
+        const w = d.value > 0 ? Math.max(2, (d.value / max) * barMax) : 0;
+        const y = i * rowH;
+        // Inline layout centers label + bar + value on one line; stacked drops the
+        // label onto its own line above the bar.
+        const barY = stacked ? y + 20 : y + 7;
+        const labelY = stacked ? y + 13 : y + 19;
         return (
           <g key={d.label}>
-            <text x={0} y={y + 19} fontSize={12} fill="var(--admin-ink-2)">
+            <text x={0} y={labelY} fontSize={12} fill="var(--admin-ink-2)">
               {d.label}
             </text>
             {w > 0 && (
-              <rect x={LABEL_W} y={y + 7} width={w} height={16} rx={3} fill="var(--admin-accent)">
+              <rect x={barX} y={barY} width={w} height={16} rx={3} fill="var(--admin-accent)">
                 <title>{`${d.label}: ${fmt(d.value)}`}</title>
               </rect>
             )}
             <text
-              x={LABEL_W + w + 7}
-              y={y + 19}
+              x={barX + w + 7}
+              y={barY + 12}
               fontSize={12}
               fill="var(--admin-ink)"
               style={{ fontVariantNumeric: "tabular-nums" }}
