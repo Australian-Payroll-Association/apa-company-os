@@ -31,9 +31,13 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const statusParam = firstParam(searchParams.status);
 
-  const filters: Record<string, string> = {};
+  // Voided invoices are hidden unless explicitly filtered to — they stay
+  // reachable via the Voided option in the status filter.
+  const filters: Record<string, string | string[]> = {};
   if (statusParam && (STATUSES as readonly string[]).includes(statusParam)) {
     filters.status = statusParam;
+  } else {
+    filters.status = STATUSES.filter((s) => s !== "voided");
   }
 
   const [{ rows, total, pageSize, error }, outstandingRes] = await Promise.all([
