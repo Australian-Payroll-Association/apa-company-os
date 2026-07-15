@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge, statusTone } from "@/components/admin/Badge";
+import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { formatDate, humanize } from "@/lib/admin/format";
 
 export type RankRow = {
@@ -34,7 +35,13 @@ export function RankTable({
 }) {
   const [family, setFamily] = useState(families[0]?.key ?? "");
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) m.set(r.family, (m.get(r.family) ?? 0) + 1);
+    return m;
+  }, [rows]);
 
   const famRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,36 +56,36 @@ export function RankTable({
       );
   }, [rows, family, query]);
 
-  const counts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows) m.set(r.family, (m.get(r.family) ?? 0) + 1);
-    return m;
-  }, [rows]);
+  const selected = openId ? famRows.find((r) => r.applicationId === openId) ?? null : null;
 
   return (
     <>
-      <div className="admin-toolbar" style={{ gap: 10, flexWrap: "wrap" }}>
+      {/* Family tabs — the one switcher across the whole page */}
+      <div className="admin-tabs" role="tablist">
         {families.map((f) => (
           <button
             key={f.key}
-            type="button"
-            className="admin-pagebtn"
-            aria-pressed={family === f.key}
-            style={family === f.key ? { fontWeight: 600, textDecoration: "underline" } : undefined}
+            role="tab"
+            aria-selected={family === f.key}
+            className={`admin-tab${family === f.key ? " is-active" : ""}`}
             onClick={() => {
               setFamily(f.key);
-              setOpen(null);
+              setOpenId(null);
             }}
           >
             {f.label} ({counts.get(f.key) ?? 0})
           </button>
         ))}
+      </div>
+
+      <div className="admin-toolbar" style={{ gap: 10, flexWrap: "wrap" }}>
         <input
           className="admin-input"
-          style={{ marginLeft: "auto", maxWidth: 240 }}
+          style={{ maxWidth: 260 }}
           placeholder="Search name, email, req…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search candidates"
         />
       </div>
 
@@ -94,22 +101,30 @@ export function RankTable({
                 <th style={{ textAlign: "right" }}>Recruiter</th>
                 <th>Status</th>
                 <th>Applied</th>
-                <th>Resume</th>
               </tr>
             </thead>
             <tbody>
-              {famRows.length === 0 && (
+              {famRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={7}>
                     <div className="admin-empty">No candidates in this family match.</div>
                   </td>
                 </tr>
-              )}
-              {famRows.map((r, i) => (
-                <Fragment key={`${r.family}:${r.personId}`}>
+              ) : (
+                famRows.map((r, i) => (
                   <tr
+                    key={`${r.family}:${r.personId}`}
                     className="is-clickable"
-                    onClick={() => setOpen(open === r.applicationId ? null : r.applicationId)}
+                    onClick={() => setOpenId(r.applicationId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setOpenId(r.applicationId);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-haspopup="dialog"
                   >
                     <td className="admin-cell-mono">{r.rating != null ? i + 1 : "—"}</td>
                     <td>
@@ -123,55 +138,123 @@ export function RankTable({
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                       {r.recruiterRating ?? <span className="admin-cell-muted">—</span>}
                     </td>
-                    <td>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</td>
-                    <td>{r.appliedAt ? formatDate(r.appliedAt) : <span className="admin-cell-muted">—</span>}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      {r.resumeDocumentId ? (
-                        <a href={`/admin/talent/resume/${r.resumeDocumentId}`} target="_blank" rel="noreferrer">
-                          View
-                        </a>
+                    <td>
+                      {r.status ? (
+                        <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge>
                       ) : (
                         <span className="admin-cell-muted">—</span>
                       )}
                     </td>
+                    <td>{r.appliedAt ? formatDate(r.appliedAt) : <span className="admin-cell-muted">—</span>}</td>
                   </tr>
-                  {open === r.applicationId && (
-                    <tr>
-                      <td colSpan={8} style={{ background: "var(--admin-bg-subtle, transparent)" }}>
-                        {r.overview ? (
-                          <div style={{ padding: "10px 6px", maxWidth: 900 }}>
-                            <p style={{ margin: "0 0 8px" }}>{r.overview}</p>
-                            {r.strengths.length > 0 && (
-                              <ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>
-                                {r.strengths.map((s, j) => (
-                                  <li key={j}>{s}</li>
-                                ))}
-                              </ul>
-                            )}
-                            {r.gaps.length > 0 && (
-                              <p className="admin-cell-muted" style={{ margin: 0 }}>
-                                Gaps: {r.gaps.join(" · ")}
-                              </p>
-                            )}
-                            <p style={{ margin: "8px 0 0" }}>
-                              <Link href={`/admin/contacts/${r.personId}`}>Open person record →</Link>
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="admin-empty">
-                            Not yet AI-screened for this family
-                            {r.resumeDocumentId ? "" : " (no resume on file)"}.
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <DetailDrawer
+        open={!!selected}
+        onClose={() => setOpenId(null)}
+        eyebrow={
+          selected
+            ? `${families.find((f) => f.key === selected.family)?.label ?? "Candidate"}${
+                selected.rating != null ? ` · AI fit ${selected.rating.toFixed(1)}/5` : ""
+              }`
+            : "Candidate"
+        }
+        title={selected?.name ?? "Candidate"}
+        action={
+          selected?.resumeDocumentId ? (
+            <a
+              className="admin-btn admin-btn--sm"
+              href={`/admin/talent/resume/${selected.resumeDocumentId}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Resume ↗
+            </a>
+          ) : undefined
+        }
+      >
+        {selected && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {selected.status && <Badge tone={statusTone(selected.status)}>{humanize(selected.status)}</Badge>}
+              {selected.recruiterRating && <Badge>Recruiter {selected.recruiterRating}</Badge>}
+              {selected.appliedAt && (
+                <span className="admin-cell-muted" style={{ fontSize: 13 }}>
+                  Applied {formatDate(selected.appliedAt)}
+                </span>
+              )}
+            </div>
+
+            {selected.reqTitles.length > 0 && (
+              <div>
+                <div className="admin-label" style={{ marginBottom: 4 }}>Applied for</div>
+                <div>{selected.reqTitles.join(", ")}</div>
+              </div>
+            )}
+
+            {selected.overview ? (
+              <>
+                <div>
+                  <div className="admin-label" style={{ marginBottom: 4 }}>AI screen — overview</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{selected.overview}</div>
+                </div>
+                {selected.strengths.length > 0 && (
+                  <div>
+                    <div className="admin-label" style={{ marginBottom: 4 }}>Strengths</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                      {selected.strengths.map((s, j) => (
+                        <li key={j}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selected.gaps.length > 0 && (
+                  <div>
+                    <div className="admin-label" style={{ marginBottom: 4 }}>Gaps</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                      {selected.gaps.map((g, j) => (
+                        <li key={j}>{g}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="admin-empty">
+                Not yet AI-screened for this family
+                {selected.resumeDocumentId ? "" : " (no resume on file)"}.
+              </div>
+            )}
+
+            <div>
+              <div className="admin-label" style={{ marginBottom: 4 }}>Contact</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {selected.email ? <a href={`mailto:${selected.email}`}>{selected.email}</a> : null}
+                {selected.phone && <span>{selected.phone}</span>}
+                {selected.linkedinUrl && (
+                  <a href={selected.linkedinUrl} target="_blank" rel="noreferrer">
+                    LinkedIn ↗
+                  </a>
+                )}
+                {!selected.email && !selected.phone && !selected.linkedinUrl && (
+                  <span className="admin-cell-muted">No contact details on file.</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 16, paddingTop: 4 }}>
+              <Link href={`/admin/contacts/${selected.personId}`} className="admin-btn">
+                Open person record →
+              </Link>
+            </div>
+          </div>
+        )}
+      </DetailDrawer>
     </>
   );
 }
