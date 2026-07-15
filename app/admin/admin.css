@@ -1296,3 +1296,128 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   border-radius: var(--admin-radius);
 }
 .pat-toast-host { position: static; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* ─── Admin assistant (chat widget) ───────────────────── */
+.chatw-fab {
+  position: fixed;
+  right: 22px; bottom: 22px;
+  z-index: 39;
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--admin-radius-pill);
+  background: var(--admin-accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(40, 123, 232, 0.35);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.chatw-fab:hover { background: var(--admin-accent-strong); }
+.chatw-fab:active { transform: scale(0.96); }
+
+/* The panel reuses .admin-drawer (fixed right slide-in) but is a bit wider and
+   lays out as head / scrolling messages / pinned composer. */
+.chatw-panel { width: min(500px, 96vw); }
+.chatw-head-actions { display: flex; align-items: center; gap: 10px; }
+.chatw-newchat {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 4px 9px;
+  font-size: 12px; color: var(--admin-ink-2);
+  cursor: pointer;
+}
+.chatw-newchat:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+
+.chatw-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--admin-bg);
+}
+
+.chatw-empty { color: var(--admin-ink-2); font-size: 13.5px; line-height: 1.55; }
+.chatw-empty ul { margin: 8px 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.chatw-empty li { color: var(--admin-muted); }
+.chatw-empty-note { margin-top: 10px; font-size: 12px; color: var(--admin-faint); }
+
+.chatw-msg {
+  font-size: 13.5px; line-height: 1.55;
+  border-radius: var(--admin-radius);
+  padding: 10px 13px;
+  max-width: 92%;
+  word-wrap: break-word;
+}
+.chatw-msg--user {
+  align-self: flex-end;
+  background: var(--admin-accent);
+  color: #fff;
+  border-bottom-right-radius: var(--admin-radius-xs);
+  white-space: pre-wrap;
+}
+.chatw-msg--bot {
+  align-self: flex-start;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  border: 1px solid var(--admin-line);
+  border-bottom-left-radius: var(--admin-radius-xs);
+}
+.chatw-msg--bot p { margin: 0 0 8px; }
+.chatw-msg--bot p:last-child { margin-bottom: 0; }
+.chatw-msg--bot ul { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.chatw-msg--bot ul:last-child { margin-bottom: 0; }
+.chatw-msg--bot strong { font-weight: 600; }
+.chatw-msg--bot code {
+  font-family: var(--admin-font-mono);
+  font-size: 12px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-xs);
+  padding: 1px 4px;
+}
+.chatw-msg--error {
+  align-self: flex-start;
+  background: #fdecec;
+  color: #a12622;
+  border: 1px solid #f4c7c4;
+  font-size: 13px;
+}
+
+.chatw-toolchip {
+  align-self: flex-start;
+  font-size: 11.5px;
+  color: var(--admin-muted);
+  font-family: var(--admin-font-mono);
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-pill);
+  padding: 3px 10px;
+}
+.chatw-typing { align-self: flex-start; font-size: 12.5px; color: var(--admin-muted); padding: 2px 4px; }
+
+.chatw-composer {
+  display: flex; gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+}
+.chatw-composer input {
+  flex: 1;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 9px 11px;
+  font: inherit; font-size: 13.5px;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+}
+.chatw-composer input:focus { outline: none; border-color: var(--admin-accent); box-shadow: var(--admin-focus-ring); }
+.chatw-send {
+  border: 0;
+  border-radius: var(--admin-radius-sm);
+  padding: 0 16px;
+  background: var(--admin-accent);
+  color: #fff; font-weight: 600; font-size: 13.5px;
+  cursor: pointer;
+}
+.chatw-send:hover:not(:disabled) { background: var(--admin-accent-strong); }
+.chatw-send:disabled { opacity: 0.5; cursor: not-allowed; }
