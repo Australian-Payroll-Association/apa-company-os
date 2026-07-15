@@ -19,6 +19,7 @@ type Jr = { title: string | null; metadata: { role_family?: string } | null };
 type RawApp = {
   id: string;
   status: string | null;
+  rating: number | null;
   applied_at: string | null;
   resume_document_id: string | null;
   person_id: string | null;
@@ -40,7 +41,7 @@ export default async function RankPage() {
   const { data, error } = await companyOs
     .from("applications")
     .select(
-      "id, status, applied_at, resume_document_id, person_id, metadata, people!person_id(id, full_name, email, phone, linkedin_url), job_requisitions(title, metadata)",
+      "id, status, rating, applied_at, resume_document_id, person_id, metadata, people!person_id(id, full_name, email, phone, linkedin_url), job_requisitions(title, metadata)",
     )
     .not("job_requisitions.metadata->>role_family", "is", null)
     .limit(2000);
@@ -68,6 +69,7 @@ export default async function RankPage() {
       status: r.status,
       appliedAt: r.applied_at,
       resumeDocumentId: r.resume_document_id,
+      recruiterStars: r.rating,
       rating: screen?.family === family ? screen.rating : null,
       overview: screen?.family === family ? screen.overview : null,
       strengths: screen?.family === family ? screen.strengths : [],
