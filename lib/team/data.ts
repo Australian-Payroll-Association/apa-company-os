@@ -15,6 +15,7 @@ import type { TeamActor } from "@/lib/team-auth";
 type ScopeKind = "team_member" | "person";
 const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   time_off: { column: "team_member_id", scope: "team_member" },
+  ideas: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {

@@ -1,0 +1,147 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { companyOs } from "@/lib/supabase";
+import { IDEA_OFFICES } from "@/lib/ideas";
+
+// Ideas Backlog plan generation: reads a submitted idea (the first four Ds of
+// the 5D framework), asks Claude — writing as Dan Shipper — for a product plan
+// and an office classification, and writes the result onto the idea row.
+// Called from the /team submit action and from admin retry — it must never
+// throw. Same shape as lib/resume-screen.ts.
+
+const MODEL = process.env.IDEAS_CLAUDE_MODEL || "claude-sonnet-5";
+
+const PLAN_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["office", "plan_markdown"],
+  properties: {
+    office: {
+      type: "string",
+      enum: [...IDEA_OFFICES],
+      description:
+        "Which of the Four Outcomes this idea primarily drives, mapped to its office: " +
+        "increased revenue -> 'revenue'; higher-performing people (capability, performance, onboarding) -> 'talent'; " +
+        "cheaper operations (time, cost, error rate of a repeating process) -> 'operations'; " +
+        "valuable innovation (new capacity for work the team could not do before) -> 'innovation'. Pick exactly one.",
+    },
+    plan_markdown: {
+      type: "string",
+      description:
+        "The full product plan in Markdown. Sections, in order: a one-line pitch; 'The problem' (sharpened restatement); " +
+        "'Program type' (Packaged AI, Automated Workflow, or Agentic Workflow, with one sentence on why, and what simpler " +
+        "type to start with if they picked too big); 'The workflow' (numbered steps from trigger to output, marking where " +
+        "AI does the work and where a human stays in the loop); 'Data it needs' (what information, where it lives, what is " +
+        "missing); 'FAST goal' (a Frequently discussed, Ambitious, Specific, Transparent goal with a real number and the " +
+        "ROI in plain terms); 'First slice' (the smallest version worth building in week one); 'Open questions' (2-4 things " +
+        "to resolve before building). Use ## headings. No preamble before the pitch line.",
+    },
+  },
+} as const;
+
+const PLAN_SYSTEM = `You are Dan Shipper — writer of Every, product thinker, and operator who turns half-formed ideas into products people actually build. An Edge8 employee has just submitted an AI program idea through the company's Ideas Backlog, structured around the 5D framework they are learning (Define the problem, Discover what AI needs, Design the program, Determine success, Deploy). Your job is to turn their raw answers into a product plan that is concrete enough to act on and encouraging enough that they submit their next idea too.
+
+How to write it:
+- Problem-first. Sharpen their problem statement before proposing anything. If they described a solution instead of a problem, infer the underlying problem and name it.
+- Use the 5D vocabulary they are learning: program types (Packaged AI, Automated Workflow, Agentic Workflow), FAST goals (Frequently discussed, Ambitious, Specific, Transparent), and the four ROI channels (time saved, cost reduced, quality improved, speed increased).
+- Recommend the SIMPLEST program type that solves the problem. Most ideas should start as Packaged AI; agentic workflows require a documented, proven workflow first. If their idea is really an agentic program, say so — and name the packaged/automated stepping stone to build first.
+- Be specific with numbers. If they gave a cost or time figure, build the FAST goal around it; if they did not, propose a measurable target and mark it as an assumption to verify.
+- Be direct about gaps (missing data, undocumented process) the way a good PM would — as the next thing to fix, not a reason to stop.
+- Keep it tight: the whole plan should read in under three minutes. Write in second person ("you"), warm but not gushing.
+
+Ground everything in what they actually wrote. Do not invent team details, tools, or systems they did not mention.`;
+
+type Ok = { ok: true };
+type Err = { ok: false; error: string };
+
+async function markFailed(ideaId: string, error: string): Promise<Err> {
+  await companyOs
+    .from("ideas")
+    .update({ ai_error: error.slice(0, 500), updated_at: new Date().toISOString() })
+    .eq("id", ideaId);
+  return { ok: false, error };
+}
+
+export async function generateIdeaPlan(ideaId: string): Promise<Ok | Err> {
+  try {
+    return await runGeneration(ideaId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[idea-plan] ${ideaId} failed:`, msg);
+    return markFailed(ideaId, msg);
+  }
+}
+
+async function runGeneration(ideaId: string): Promise<Ok | Err> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return markFailed(ideaId, "ANTHROPIC_API_KEY is not configured.");
+  }
+
+  const { data: idea, error: ideaErr } = await companyOs
+    .from("ideas")
+    .select("id, title, problem, data_needed, workflow, roi, people:people!person_id(full_name, preferred_name)")
+    .eq("id", ideaId)
+    .maybeSingle();
+  if (ideaErr || !idea) return markFailed(ideaId, ideaErr?.message ?? "Idea not found.");
+
+  type Name = { full_name: string | null; preferred_name: string | null };
+  const personRaw = (idea as { people: Name | Name[] | null }).people;
+  const person = Array.isArray(personRaw) ? personRaw[0] ?? null : personRaw;
+  const submitter = person?.preferred_name || person?.full_name || "an Edge8 team member";
+
+  const anthropic = new Anthropic();
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 8000,
+    system: PLAN_SYSTEM,
+    output_config: { format: { type: "json_schema", schema: PLAN_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: `# Idea submitted by ${submitter}
+
+## Title
+${idea.title}
+
+## Define — the problem
+${idea.problem}
+
+## Discover — the data it needs
+${idea.data_needed}
+
+## Design — the workflow
+${idea.workflow}
+
+## Determine — the expected ROI
+${idea.roi}
+
+Turn this into a product plan and classify it into one office.`,
+      },
+    ],
+  });
+
+  if (response.stop_reason === "refusal") {
+    return markFailed(ideaId, "The model declined to generate a plan for this idea.");
+  }
+  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
+  if (!textBlock) return markFailed(ideaId, "Model returned no text output.");
+
+  const parsed = JSON.parse(textBlock.text) as { office: string; plan_markdown: string };
+  const office = (IDEA_OFFICES as readonly string[]).includes(parsed.office) ? parsed.office : null;
+  if (!office || !parsed.plan_markdown?.trim()) {
+    return markFailed(ideaId, "Model output was missing the office or the plan.");
+  }
+
+  const { error: upErr } = await companyOs
+    .from("ideas")
+    .update({
+      office,
+      ai_plan: parsed.plan_markdown,
+      ai_model: MODEL,
+      ai_error: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ideaId);
+  if (upErr) return markFailed(ideaId, upErr.message);
+
+  return { ok: true };
+}

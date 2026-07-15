@@ -53,9 +53,11 @@ export default async function TeamHome() {
       <div className="admin-card" style={{ padding: "18px 20px" }}>
         <h2 className="admin-card-title">Your workspace is growing</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
-          <Link href="/team/time-off">Time Off</Link>, <Link href="/team/profile">your profile</Link>,
-          and the <Link href="/team/directory">team directory</Link> are live. The items marked
-          "soon" in the sidebar will switch on as each one ships.
+          <Link href="/team/time-off">Time Off</Link>, <Link href="/team/ideas">Ideas</Link>,{" "}
+          <Link href="/team/profile">your profile</Link>, and the{" "}
+          <Link href="/team/directory">team directory</Link> are live. Got a workflow AI should
+          own? <Link href="/team/ideas/new">Submit the idea</Link> and get a product plan back in
+          seconds. The items marked "soon" in the sidebar will switch on as each one ships.
         </p>
       </div>
     </>

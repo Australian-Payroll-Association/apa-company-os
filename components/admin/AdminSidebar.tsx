@@ -101,7 +101,7 @@ const NAV: NavGroup[] = [
     items: [
       {
         subheading: "Ideas",
-        items: [{ label: "Idea backlog", href: "/admin/innovation/ideas", ico: "✦" }],
+        items: [{ label: "Idea backlog", href: "/admin/innovation/ideas", ico: "✦", enabled: true }],
       },
     ],
   },
