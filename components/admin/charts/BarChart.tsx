@@ -5,6 +5,9 @@ const ROW_H = 30;
 const LABEL_W = 90;
 const CHART_W = 320;
 const BAR_MAX = CHART_W - LABEL_W - 40;
+// Longest label that fits the 90px inline column at 12px before running under
+// the bars; longer labels are cut to this and ellipsized.
+const LABEL_MAX_CHARS = 13;
 
 // Stacked variant: each label sits on its own line above a full-width bar, for
 // long labels (e.g. page paths) that would collide with the bars in the inline
@@ -56,10 +59,15 @@ export function BarChart({
         // label onto its own line above the bar.
         const barY = stacked ? y + 20 : y + 7;
         const labelY = stacked ? y + 13 : y + 19;
+        const shownLabel =
+          !stacked && d.label.length > LABEL_MAX_CHARS
+            ? `${d.label.slice(0, LABEL_MAX_CHARS).trimEnd()}…`
+            : d.label;
         return (
           <g key={d.label}>
             <text x={0} y={labelY} fontSize={12} fill="var(--admin-ink-2)">
-              {d.label}
+              <title>{d.label}</title>
+              {shownLabel}
             </text>
             {w > 0 && (
               <rect x={barX} y={barY} width={w} height={16} rx={3} fill="var(--admin-accent)">
