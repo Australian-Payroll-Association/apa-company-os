@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>AI Platform Program · Titan Recruitment | Edge8</title>
+<meta name="description" content="A staged program for Titan Recruitment: own the data layer under RDB and Mercury, stand up the dashboard shell, build guided workflows priced per feature, and open the business-systems track.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI Platform Program · Titan Recruitment | Edge8">
+<meta property="og:description" content="Own the data layer, stand up the dashboard shell, build guided workflows priced per feature, and open the business-systems track.">
+<meta property="og:image" content="https://www.edge8.ai/social.jpg">
+<meta property="og:url" content="https://www.edge8.ai/proposals/titan-recruitment-proposal.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Platform Program · Titan Recruitment | Edge8">
+<meta name="twitter:description" content="Own the data layer, stand up the dashboard shell, build guided workflows priced per feature, and open the business-systems track.">
+<meta name="twitter:image" content="https://www.edge8.ai/social.jpg">
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--navy);
+    background:var(--mist);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:840px;
+    margin:0 auto;
+    background:var(--white);
+  }
+  header{
+    background:var(--navy);
+    color:var(--white);
+    padding:56px 56px 48px;
+  }
+  .eyebrow{
+    font-size:13px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--mint);
+    font-weight:600;
+    margin-bottom:18px;
+  }
+  header h1{
+    font-size:34px;
+    line-height:1.2;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  header p.sub{
+    font-size:17px;
+    color:var(--mist);
+    max-width:640px;
+  }
+  .meta{
+    margin-top:30px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:28px;
+    font-size:13px;
+    color:var(--mist);
+  }
+  .meta div span{
+    display:block;
+    color:var(--mint);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:3px;
+  }
+  section{padding:44px 56px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{
+    font-size:13px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--blue);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  h3{
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:18px;
+    color:var(--navy);
+  }
+  p{margin-bottom:16px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li{
+    position:relative;
+    padding-left:24px;
+    margin-bottom:10px;
+    font-size:16px;
+  }
+  ul li::before{
+    content:"";
+    position:absolute;
+    left:0;top:11px;
+    width:8px;height:8px;
+    background:var(--mint);
+    border-radius:50%;
+  }
+  .cost-table{
+    width:100%;
+    border-collapse:collapse;
+    margin:8px 0 4px;
+    font-size:15px;
+  }
+  .cost-table th{
+    text-align:left;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--blue);
+    padding:0 0 12px;
+    border-bottom:2px solid var(--mist);
+  }
+  .cost-table th.num,.cost-table td.num{text-align:right;}
+  .cost-table td{
+    padding:14px 0;
+    border-bottom:1px solid var(--mist);
+    vertical-align:top;
+  }
+  .cost-table td .label{font-weight:600;}
+  .cost-table td .note{display:block;font-size:13px;color:#5a6478;margin-top:2px;}
+  .cost-table tr.total td{
+    border-bottom:none;
+    border-top:2px solid var(--navy);
+    font-weight:700;
+    font-size:17px;
+    padding-top:16px;
+  }
+  .callout{
+    background:var(--navy);
+    color:var(--white);
+    padding:34px 36px;
+    border-radius:10px;
+    margin:6px 0;
+  }
+  .callout .q{
+    font-size:22px;
+    font-weight:600;
+    line-height:1.4;
+  }
+  .callout .q .hl{color:var(--mint);}
+  .callout .tag{
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mint);font-weight:600;margin-bottom:14px;display:block;
+  }
+  .leverage{
+    display:flex;align-items:center;gap:20px;
+    background:var(--mist);border-left:4px solid var(--blue);
+    border-radius:8px;padding:16px 22px;margin:14px 0 0;
+  }
+  .leverage .mult{
+    flex:0 0 auto;font-size:38px;font-weight:800;color:var(--blue);
+    line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .leverage p{margin:0;font-size:15px;}
+  .phase{
+    display:flex;
+    gap:22px;
+    padding:24px 0;
+    border-bottom:1px solid var(--mist);
+  }
+  .phase:last-child{border-bottom:none;}
+  .phase .num{
+    flex:0 0 52px;
+    height:52px;
+    background:var(--mist);
+    color:var(--navy);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;
+  }
+  .phase.key .num{background:var(--blue);color:var(--white);}
+  .phase .body h4{font-size:19px;font-weight:700;margin-bottom:6px;}
+  .phase .body .role{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--pink);font-weight:700;margin-bottom:8px;
+  }
+  .phase .body p{margin-bottom:0;font-size:15px;}
+  .split{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:6px;
+  }
+  .box{
+    border:1px solid var(--mist);
+    border-radius:10px;
+    padding:24px;
+  }
+  .box.emph{border-color:var(--blue);border-width:2px;}
+  .box h4{font-size:17px;font-weight:700;margin-bottom:6px;}
+  .box p{font-size:14px;margin-bottom:12px;}
+  .box ul li{font-size:14px;margin-bottom:8px;}
+  .next-step{
+    background:var(--mint);
+    color:var(--navy);
+    padding:30px 36px;
+    border-radius:10px;
+  }
+  .next-step h3{margin-bottom:8px;}
+  .next-step p{margin-bottom:0;font-size:16px;}
+  footer{
+    background:var(--navy);
+    color:var(--mist);
+    padding:30px 56px;
+    font-size:13px;
+  }
+  footer strong{color:var(--white);}
+  .disclaimer{font-size:13px;color:#5a6478;margin-top:10px;}
+  a.more{
+    color:var(--blue);font-weight:650;text-decoration:none;
+    border-bottom:1px solid rgba(40,123,232,.35);
+    white-space:nowrap;
+  }
+  a.more:hover{border-bottom-color:var(--blue);}
+  @media (max-width:620px){
+    header,section,footer{padding-left:28px;padding-right:28px;}
+    .split{grid-template-columns:1fr;}
+    header h1{font-size:27px;}
+  }
+  @media print{
+    body{background:var(--white);}
+    .page{max-width:100%;}
+    .callout,.next-step,.box,.phase .num{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Edge8 &nbsp;·&nbsp; Proposal</div>
+    <h1>An AI platform program for Titan Recruitment</h1>
+    <p class="sub">You are mid-transition: RDB on the way out, Mercury on the way in, and a clear ambition to build the intelligent layer neither of them will ever give you. Here is how we would sequence it so the work you do now survives the migration, with the cost of each piece.</p>
+    <div class="meta">
+      <div><span>Prepared for</span>Craig Van Heurck &amp; Dave Hogan</div>
+      <div><span>Prepared by</span>Dave Hajdu, Edge8</div>
+      <div><span>Date</span>14 July 2026</div>
+      <div><span>Status</span>For discussion</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>The starting point</h2>
+    <h3>Twenty-five years of tribal knowledge, trapped in a remote desktop</h3>
+    <p>Twenty-five seats across Perth and Queensland, around 380 engineers under contract at any one time, permanent and contract placements into the resources sector. The engine underneath is RDB: remote desktop, licenses you own outright, no vendor support left, and a full-time person keeping it alive. The decision to move to Mercury is weeks away, with go-live targeted for November, possibly February.</p>
+    <p>You were clear that Mercury is a three-year transition, not a destination. It buys robustness, the Microsoft integrations, and the LinkedIn hooks, and you will absorb the seat cost for that. What it will not give you is the layer you actually described on the call: guided workflows that pull a consultant through the process, normalized CV summaries instead of forty hours of resume scanning, interview transcripts mined for the qualitative signal that makes a placement stick. That layer you intend to build, and you want a partner who is still there after the project ships, not a vendor who does one job and disappears.</p>
+  </section>
+
+  <section>
+    <h2>How we would look at it</h2>
+    <h3>Two moves, and a track that should not wait</h3>
+    <p>This mirrors what we talked through. The project is two moves in sequence: the foundation, then the workflows built on it. The business-systems work Craig raised is not a later move, it runs in parallel from the start.</p>
+
+    <div class="phase key">
+      <div class="num">1</div>
+      <div class="body">
+        <div class="role">Move one &nbsp;·&nbsp; the foundation: your data layer and the dashboard shell</div>
+        <h4>A database you own, with the dashboard already standing on it</h4>
+        <p>We never treat a third-party app as the central store. We stand up a database you own, map what lives in RDB today, and build one-way sync into it. When Mercury goes live, the sync repoints to Mercury's API and everything you have built keeps working. Your data is backed up, portable, and queryable from day one, and the "what do we do to get our data out" question in your Mercury contract stops being theoretical. We start from our company database template that covers roughly 80% of the shape, then model the last 20% around recruitment: candidates, vacancies, placements, contractors, clients. On top of it, in the same eight weeks, we deploy the dashboard shell: a Next.js/React application, browser-based login, secured, with the first views of your live data. Dave's instinct on the stack is right, and it is the same one we build on daily. This whole move is one fixed-price engagement, and it lands inside the six-to-eight-week window you set.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">2</div>
+      <div class="body">
+        <div class="role">Move two &nbsp;·&nbsp; guided workflows, priced per feature</div>
+        <h4>Your workflow map becomes a build list we quote in tokens</h4>
+        <p>You are documenting every workflow and task next week, then gap-analysing Mercury. Send us that scope of works and we return an estimate per feature in human tokens, so you choose what gets built and in what order, each one dropping into the shell from move one instead of becoming another standalone tool. The early candidates from the call: CV intake that normalizes every resume into the fifteen-line view your consultants actually want, stack-ranked per vacancy. Interview and client transcripts mined into structured, qualitative candidate and vacancy records. Advert quality checks before anything goes live. And the one Dave called the nirvana: matching that reads the soft data, the micromanager flags and the FIFO fit, not just the keywords. That is a data problem before it is an AI problem, which is why it is move two and not move one.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">&#8741;</div>
+      <div class="body">
+        <div class="role">In parallel &nbsp;·&nbsp; the business-systems track, with Francine</div>
+        <h4>The low-hanging fruit that should not wait for December</h4>
+        <p>Craig named it on the call: marketing running through one part-time person doing LinkedIn posts by hand, rec-support work that lands back on his desk, and no reason any of it should wait for the CRM project. We run our Four Offices of the Future workshop with Craig, Francine and the key leaders: a working session that turns the ideas in everyone's heads into a ranked roadmap across revenue, talent, operations and innovation. The marketing automations that come out of it, content pipelines, outreach, reporting, are things we have already built for other clients; what takes the work is the context behind your voice and your market, and that is exactly what the workshop captures. This track shares the same database as move one, so nothing is built twice.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why the order</h2>
+    <div class="callout">
+      <span class="tag">The part most people skip</span>
+      <p class="q">Stanford looked at the successful AI programs and found <span class="hl">around 77% of the work is not AI</span>. It is centralising data and fixing workflows. Build the dashboard on a database you do not own and you rebuild it twice: once when RDB dies, again when the Mercury contract is up. Build it on <span class="hl">a data layer you own</span> and the migration underneath becomes a detail.</p>
+    </div>
+    <p style="margin-top:24px;">Craig's worry is the right one: nobody at Titan wants to spend their life maintaining tech. That is an argument for this order, not against it. Scrapers break because they chase someone else's website. A one-way sync into your own database is the boring, stable kind of plumbing, and everything downstream of it is yours to keep, not ours to ransom.</p>
+  </section>
+
+  <section>
+    <h2>Timing</h2>
+    <h3>Built around your Mercury decision, not blocked by it</h3>
+    <ul>
+      <li><strong>Now:</strong> you run the workflow-mapping day and finalise Mercury. We review the RDB API quality in parallel, since that decides whether the first sync reads RDB or waits for Mercury.</li>
+      <li><strong>On your scope of works:</strong> we return per-feature estimates in human tokens, with a straight answer on anything we think is not worth building.</li>
+      <li><strong>Weeks 1 to 8:</strong> data layer stood up, RDB mapped and synced, dashboard shell live with first views. This is the six-to-eight-week target from the call.</li>
+      <li><strong>From there:</strong> workflows ship one at a time off the ranked list, and the shell simply repoints when Mercury goes live in November.</li>
+      <li><strong>In parallel:</strong> the Four Offices workshop opens the business-systems track with Francine, so marketing automation does not queue behind the CRM project.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The investment</h2>
+    <h3>Each piece priced on its own, so you choose the entry point</h3>
+    <p>Nothing here is all-or-nothing. The numbers below are in Australian dollars.</p>
+    <table class="cost-table">
+      <thead>
+        <tr><th>Piece</th><th>What it covers</th><th class="num">Price (AUD)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="label">Data layer &middot; AI Program Jumpstart</span></td>
+          <td>8 weeks. Your RDB data mapped, your own database stood up with the recruitment modules modelled, the dashboard shell deployed, and 2 to 4 automations built. Full refund if the Phase I plan does not convince you.</td>
+          <td class="num"><strong>$15,000</strong><span class="note">up front &middot; money-back gate</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Guided workflows &middot; human tokens</span></td>
+          <td>Your scope of works quoted per feature and built in metered blocks. You see time spent, AI tokens used, and pull requests shipped in the tracker as we go.</td>
+          <td class="num"><strong>$3,000</strong><span class="note">per 40-token pack</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Four Offices of the Future workshop</span></td>
+          <td>Working session with Craig, Francine and key leaders. Output is a ranked automation roadmap across revenue, talent, operations and innovation, and the starting scope for the business-systems track.</td>
+          <td class="num"><strong>from $10,500</strong><span class="note">on-site, Perth</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Dedicated AI engineer</span></td>
+          <td>When the roadmap is big enough: an engineer staffed exclusively to Titan on a one-year contract, sitting inside our engineering team for code review, range and culture.</td>
+          <td class="num"><strong>$3,000 &ndash; $6,000</strong><span class="note">per month</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Running costs</span></td>
+          <td>Your own Supabase database and Vercel hosting. The system is yours, this is all it costs to keep on.</td>
+          <td class="num">~$70 / month</td>
+        </tr>
+        <tr class="total">
+          <td>Indicative first phase<span class="note">Jumpstart + initial token packs against the scope of works, plus the workshop if the business-systems track starts now</span></td>
+          <td class="num">~$21k to $32k</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="leverage">
+      <span class="mult">4x</span>
+      <p><strong>Human tokens are leveraged with AI.</strong> An expert hour paired with Claude routinely produces around four times the output of unaided work, so every token goes further than a billed hour could.</p>
+    </div>
+    <p class="disclaimer">Firm per-feature numbers follow your scope of works; we will tell you plainly if something is not worth building. Claude usage is billed to your own account, usage-based. The Jumpstart refund applies to the full $15,000 if the Phase I implementation plan does not convince you. Tokens have no expiry and no monthly fee.</p>
+  </section>
+
+  <section>
+    <h2>What you walk away owning</h2>
+    <div class="split">
+      <div class="box emph">
+        <h4>Yours to keep</h4>
+        <ul>
+          <li>Your own central database, synced from RDB now and Mercury later</li>
+          <li>The dashboard and every workflow built on it, no platform you rent from us</li>
+          <li>Portability: leave Mercury one day and your data and tools come with you</li>
+          <li>The accounts underneath: Supabase, Vercel, Claude, in Titan's name</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>Ours to carry</h4>
+        <ul>
+          <li>The Phase I risk, refundable if the plan does not convince you</li>
+          <li>The API and sync plumbing, including the honest read on RDB's API quality</li>
+          <li>The engineering range on tap: data, back end, front end, design</li>
+          <li>The automation patterns we have already built for recruitment and marketing</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:18px;color:#5a6478;">Our aim is a partner relationship on the timeline you described: consistent and reliable through the Mercury transition and past it, with Titan's own people doing more themselves each quarter. And if hands-on appeals, the co-development retreats in Saigon Craig asked about run from $10,500 for three days, one on one with our engineers.</p>
+  </section>
+
+  <section>
+    <div class="next-step">
+      <h3>Next step</h3>
+      <p>Run your workflow-mapping day and send the scope of works; we return per-feature estimates in tokens within the week. If the shape here feels right, we start the Jumpstart in parallel so the data layer and dashboard shell are standing by the time the first workflows are priced. This page is written to be shared, so pass it to Francine for the business-systems track.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>Edge8</strong> &nbsp;·&nbsp; AI consulting &amp; staffing &nbsp;·&nbsp; David Hajdu &amp; Quan Chau</p>
+    <p style="margin-top:14px;">The stack underneath is the same one we run our own companies on: Claude as the brain, Supabase for the database you own outright, Vercel to put it on the web. Nothing exotic, sized to you.</p>
+  </footer>
+
+</div>
+</body>
+</html>
