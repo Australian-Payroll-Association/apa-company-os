@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { screenApplication } from "@/lib/resume-screen";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -31,6 +32,43 @@ export async function moveApplicationStage(
 
   revalidatePath(`/admin/talent/jobs/${jobReqId}`);
   return { ok: true };
+}
+
+// ─── AI resume screen ────────────────────────────────────────────────────────
+
+// Run (or re-run) the AI screen for one application. Synchronous by design —
+// the admin clicked a button and wants the result on refresh.
+export async function rescanApplication(applicationId: string, jobReqId: string): Promise<Result> {
+  await requireAdmin();
+  const res = await screenApplication(applicationId);
+  revalidatePath(`/admin/talent/jobs/${jobReqId}`);
+  return res.ok ? { ok: true } : { ok: false, error: res.error };
+}
+
+// Backfill: screen every application on this req that has never been scanned
+// or previously failed. Runs 3 at a time to stay inside the function window.
+export async function scanUnscannedApplications(
+  jobReqId: string,
+): Promise<{ ok: true; scanned: number; failed: number } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const { data, error } = await companyOs
+    .from("applications")
+    .select("id")
+    .eq("job_requisition_id", jobReqId)
+    .or("ai_screen_status.is.null,ai_screen_status.eq.failed");
+  if (error) return { ok: false, error: error.message };
+
+  const ids = (data ?? []).map((r) => r.id as string);
+  let scanned = 0;
+  let failed = 0;
+  for (let i = 0; i < ids.length; i += 3) {
+    const results = await Promise.all(ids.slice(i, i + 3).map((id) => screenApplication(id)));
+    for (const r of results) r.ok ? scanned++ : failed++;
+  }
+
+  revalidatePath(`/admin/talent/jobs/${jobReqId}`);
+  return { ok: true, scanned, failed };
 }
 
 // ─── Public posting ──────────────────────────────────────────────────────────

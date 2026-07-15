@@ -6,8 +6,10 @@ import {
   attachApplicationResume,
 } from '@/lib/company-os'
 import { notifyOps } from '@/lib/lark'
+import { screenApplication } from '@/lib/resume-screen'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
+import { waitUntil } from '@vercel/functions'
 
 export const runtime = 'nodejs'
 
@@ -126,6 +128,10 @@ export async function POST(req: NextRequest) {
       console.error('Resume document error:', doc.error)
       return NextResponse.json({ error: 'Failed to save resume' }, { status: 500 })
     }
+
+    // 3) AI resume screen runs after the response is sent; the applicant never
+    // waits on it. Failures land in ai_screen_status for admin re-scan.
+    waitUntil(screenApplication(application.id))
 
     // 4) Signed URL for recruiter convenience (7 days)
     const { data: signed } = await supabase.storage

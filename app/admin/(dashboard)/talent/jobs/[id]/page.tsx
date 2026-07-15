@@ -7,6 +7,8 @@ import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 import { JobReqBoard, type AppCard } from "./JobReqBoard";
 import { JobPostingEditor } from "./JobPostingEditor";
+import { AiRanking, type AiRankRow } from "./AiRanking";
+import type { AiScreenSummary } from "@/lib/resume-screen";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +51,12 @@ type AppRow = {
   rating: number | null;
   applied_at: string | null;
   person_id: string | null;
+  resume_document_id: string | null;
+  ai_rating: number | null;
+  ai_screen_status: string | null;
+  ai_screen_error: string | null;
+  ai_screened_at: string | null;
+  ai_summary: AiScreenSummary | null;
   people: P | P[] | null;
 };
 
@@ -69,7 +77,9 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
     companyOs.from("application_stages").select("id, name, position, is_terminal").eq("job_requisition_id", id).order("position"),
     companyOs
       .from("applications")
-      .select("id, current_stage_id, status, rating, applied_at, person_id, people!person_id(full_name, email, candidate_profile(headline))")
+      .select(
+        "id, current_stage_id, status, rating, applied_at, person_id, resume_document_id, ai_rating, ai_screen_status, ai_screen_error, ai_screened_at, ai_summary, people!person_id(full_name, email, candidate_profile(headline))",
+      )
       .eq("job_requisition_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -90,6 +100,23 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
       status: a.status,
       rating: a.rating,
       appliedAt: a.applied_at,
+    };
+  });
+
+  const stageName = new Map(stages.map((s) => [s.id, s.name]));
+  const aiRows: AiRankRow[] = ((appsRes.data ?? []) as AppRow[]).map((a) => {
+    const p = one(a.people);
+    return {
+      id: a.id,
+      candidateName: p?.full_name ?? p?.email ?? null,
+      personId: a.person_id,
+      stageName: a.current_stage_id ? stageName.get(a.current_stage_id) ?? null : null,
+      aiRating: a.ai_rating,
+      aiStatus: a.ai_screen_status,
+      aiError: a.ai_screen_error,
+      screenedAt: a.ai_screened_at,
+      summary: a.ai_summary,
+      resumeDocumentId: a.resume_document_id,
     };
   });
 
@@ -125,6 +152,8 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
         Hiring pipeline · {cards.length} {cards.length === 1 ? "applicant" : "applicants"}
       </div>
       <JobReqBoard jobReqId={id} columns={columns} initialCards={cards} />
+
+      <AiRanking jobReqId={id} rows={aiRows} />
 
       <JobPostingEditor
         reqId={id}
