@@ -18,6 +18,13 @@ import postgres from "postgres";
 const MAX_ROWS = 200;
 const MAX_QUERY_CHARS = 8_000;
 
+// Schema-qualified references the assistant is never allowed to make. Matches a
+// blocked schema name immediately followed by a dot + identifier (so a column
+// like `auth_user_id` or an unrelated word is not caught). information_schema
+// and pg_catalog are intentionally allowed — the model uses them to introspect.
+const BLOCKED_SCHEMA =
+  /\b(?:auth|storage|vault|cron|net|extensions|realtime|private|supabase_migrations|company_os_archive|agents)\s*\.\s*"?[a-z_]/i;
+
 // Module-level singleton. CHATBOT_DB_URL points at the Supavisor transaction
 // pooler (port 6543) as chatbot_reader; prepare:false is required in
 // transaction-pool mode.
@@ -54,6 +61,14 @@ export async function runReadOnlyQuery(query: string): Promise<QueryResult> {
   }
   if (!/^\s*(select|with)\b/i.test(q)) {
     return { ok: false, error: "Only SELECT queries are allowed" };
+  }
+  // Belt-and-suspenders on top of the grants: reject references to schemas the
+  // assistant must never touch. chatbot_reader already cannot reach most of
+  // these, but Supabase grants the pg_net queue tables (schema `net`) to PUBLIC,
+  // so this app-layer check is what keeps outbound-request data out of reach —
+  // and it also blocks a prompt-injection steering the model off company_os.
+  if (BLOCKED_SCHEMA.test(q)) {
+    return { ok: false, error: "Queries may only reference the company_os schema." };
   }
 
   try {
