@@ -24,8 +24,7 @@ export default function WorkflowsPage() {
             <p className="wf-hero-sub">
               The operating workflows we run Edge8 on, organized around our four offices: Revenue, Talent, Operations,
               and Innovation. Real systems documented end to end: who does what, when it happens, and where AI does the
-              heavy lifting. Everything here is running in production today, and everything here is something we can
-              build for you.
+              heavy lifting. This is how we run Edge8, and everything here is something we can build for you.
             </p>
           </div>
         </div>

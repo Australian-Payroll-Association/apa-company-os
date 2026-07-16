@@ -117,6 +117,15 @@ export const allWorkflows: Workflow[] = [
     steps: 5,
   },
   {
+    slug: 'sales-call-intelligence',
+    title: 'Sales Call Intelligence',
+    category: 'Revenue',
+    excerpt:
+      'Every discovery and closing call is classified, structured into the CRM as JSON, summarized for the client and the rep, and rolled up monthly for the manager. The deal moves stage on the outcome.',
+    date: '2026-07-16',
+    steps: 7,
+  },
+  {
     slug: 'certification',
     title: 'Challenge-Based Certification',
     category: 'Innovation',
