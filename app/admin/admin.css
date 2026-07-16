@@ -534,6 +534,43 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   .admin-skeleton-bar { animation: none; }
 }
 
+/* ─── Team portal glance strip ────────────────────────
+   One quiet, hairline-divided card for the employee's personal facts. Values
+   stay at body scale on purpose — this is a glance, not a dashboard KPI. */
+.team-glance {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  margin-bottom: 8px;
+}
+.team-glance-cell {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.team-glance-cell + .team-glance-cell { border-left: 1px solid var(--admin-line-soft); }
+.team-glance-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-muted);
+}
+.team-glance-value { font-size: 15px; font-weight: 500; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-glance-note { font-size: 12.5px; color: var(--admin-muted); }
+.team-glance-note a { color: var(--admin-accent); text-decoration: none; }
+.team-glance-note a:hover { text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 720px) {
+  .team-glance { flex-direction: column; }
+  .team-glance-cell + .team-glance-cell { border-left: 0; border-top: 1px solid var(--admin-line-soft); }
+}
+
 /* ─── Team portal home hub ────────────────────────────
    Card grid on /team home: every employee touchpoint, shipped or not. Live
    items are links; unshipped ones render muted with a "Soon" pill so the page

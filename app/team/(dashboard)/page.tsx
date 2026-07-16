@@ -1,7 +1,6 @@
 import { requireTeamMember } from "@/lib/team-auth";
 import { getOwnProfile, teamRead } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { formatDate, humanize } from "@/lib/admin/format";
 import Link from "next/link";
 
@@ -93,26 +92,47 @@ export default async function TeamHome() {
     .limit(1);
   const nextLeave = ((leaveRows ?? []) as unknown as NextLeave[])[0] ?? null;
 
+  // The company runs on Saigon time; server renders in UTC, so pin the zone
+  // rather than showing the wrong day to everyone at 6am.
+  const now = new Date();
+  const dateLine = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(now);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Ho_Chi_Minh", hour: "numeric", hour12: false }).format(now),
+  );
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const heroSub =
+    [profile?.departmentName, profile?.positionTitle].filter(Boolean).join(" · ") ||
+    (actor.role === "manager" ? "Manager workspace" : "Team workspace");
+
   return (
     <>
-      <PageHead
-        eyebrow="Workspace"
-        title={`Welcome, ${actor.displayName}`}
-        sub={actor.role === "manager" ? "Manager workspace" : "Team workspace"}
-      />
+      <PageHead eyebrow={dateLine} title={`${greeting}, ${actor.displayName}`} sub={heroSub} />
 
-      <div className="mp-kpi-grid" style={{ marginBottom: 4 }}>
-        <MetricCard
-          label="Next time off"
-          value={nextLeave ? formatDate(nextLeave.start_date) : "None scheduled"}
-          sub={nextLeave ? `${humanize(nextLeave.leave_type)} · ${nextLeave.status}` : "Request time off soon"}
-        />
-        <MetricCard label="Department" value={profile?.departmentName || "—"} sub={profile?.positionTitle || undefined} />
-        <MetricCard
-          label="Manager"
-          value={profile?.managerName || "—"}
-          sub={profile?.start_date ? `Started ${formatDate(profile.start_date)}` : undefined}
-        />
+      <div className="team-glance">
+        <div className="team-glance-cell">
+          <span className="team-glance-label">Next time off</span>
+          <span className="team-glance-value">{nextLeave ? formatDate(nextLeave.start_date) : "None scheduled"}</span>
+          <span className="team-glance-note">
+            {nextLeave ? (
+              `${humanize(nextLeave.leave_type)} · ${nextLeave.status}`
+            ) : (
+              <Link href="/team/time-off">Request time off →</Link>
+            )}
+          </span>
+        </div>
+        <div className="team-glance-cell">
+          <span className="team-glance-label">Manager</span>
+          <span className="team-glance-value">{profile?.managerName || "—"}</span>
+        </div>
+        <div className="team-glance-cell">
+          <span className="team-glance-label">With Edge8 since</span>
+          <span className="team-glance-value">{profile?.start_date ? formatDate(profile.start_date) : "—"}</span>
+        </div>
       </div>
 
       <h2 className="team-hub-heading">Your workspace</h2>
