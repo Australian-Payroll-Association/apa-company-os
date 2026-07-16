@@ -204,6 +204,15 @@ export default function MethodPage() {
               </div>
             ))}
           </div>
+          <div className="wf-frameworks-cta">
+            <div>
+              <h3>Prompt frameworks are dead</h3>
+              <p>Learn to apply real, tested academic and business frameworks to the problems you are trying to solve.</p>
+            </div>
+            <a href="https://www.ai-officer.com/100-business-frameworks" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+              Explore 100 Business Frameworks →
+            </a>
+          </div>
         </div>
       </section>
 

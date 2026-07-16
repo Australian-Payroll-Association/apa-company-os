@@ -450,6 +450,32 @@
 .wf-stage-active { border-color: var(--blue); background: rgba(40, 123, 232, 0.06); }
 .wf-stage-arrow { font-size: 18px; color: var(--grey-light); }
 
+/* ─── FRAMEWORKS CTA (method page) ─────────────────── */
+.wf-frameworks-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 28px;
+  background: var(--dark);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+.wf-frameworks-cta h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+.wf-frameworks-cta p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  max-width: 480px;
+}
+
 /* ─── BACK / CTA FOOTER ────────────────────────────── */
 .wf-detail-foot {
   display: flex;
