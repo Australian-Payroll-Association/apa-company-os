@@ -53,20 +53,22 @@ function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean
 function OrgNode({
   entry,
   map,
-  isRoot,
+  depth,
 }: {
   entry: OrgEntry;
   map: Map<string | null, OrgEntry[]>;
-  isRoot?: boolean;
+  depth: number;
 }) {
   const kids = map.get(entry.id) ?? [];
   return (
     <li className="team-org-node">
-      <OrgCard entry={entry} isRoot={isRoot} reports={kids.length ? countReports(entry.id, map) : 0} />
+      <OrgCard entry={entry} isRoot={depth === 0} reports={kids.length ? countReports(entry.id, map) : 0} />
       {kids.length > 0 && (
-        <ul className="team-org-children">
+        // Levels 1–2 fan out horizontally; level 3+ stacks vertically so the
+        // chart stays readable at full-team width.
+        <ul className={depth >= 1 ? "is-stack" : undefined}>
           {kids.map((k) => (
-            <OrgNode key={k.id} entry={k} map={map} />
+            <OrgNode key={k.id} entry={k} map={map} depth={depth + 1} />
           ))}
         </ul>
       )}
@@ -94,7 +96,7 @@ export default async function TeamOrgPage() {
       <div className="team-org-wrap">
         <ul className="team-org">
           {roots.map((r) => (
-            <OrgNode key={r.id} entry={r} map={map} isRoot />
+            <OrgNode key={r.id} entry={r} map={map} depth={0} />
           ))}
         </ul>
       </div>

@@ -635,6 +635,67 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .team-org > li::before,
 .team-org > li::after { display: none; }
 
+/* ── Stacked levels (3rd level and deeper) ──
+   Leaf teams render as a vertical ladder: the parent stem jogs left onto a
+   spine, and each card hangs off the spine on a short stub. Keeps the chart
+   narrow — one column per manager instead of one per person. */
+.team-org ul.is-stack {
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 14px;
+}
+.team-org ul.is-stack::before { height: 14px; }
+/* Jog from the parent's center stem across to the spine. */
+.team-org ul.is-stack::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 50%;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org .is-stack li {
+  align-items: flex-start;
+  padding: 10px 0 0 28px;
+}
+/* Spine segment spanning this row… */
+.team-org .is-stack li::before {
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  right: auto;
+  width: 0;
+  height: auto;
+  border: 0;
+  border-left: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* …and the stub from spine to card. */
+.team-org .is-stack li::after {
+  top: 32px;
+  left: 14px;
+  right: auto;
+  width: 14px;
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* Spine ends at the last card with a rounded elbow. */
+.team-org .is-stack li:last-child::before {
+  bottom: auto;
+  height: 32px;
+  width: 14px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  border-right: 0;
+  border-radius: 0 0 0 8px;
+}
+.team-org .is-stack li:last-child::after { display: none; }
+.team-org .is-stack li:only-child { padding-top: 10px; }
+.team-org .is-stack li:only-child::before,
+.team-org .is-stack li:only-child::after { display: block; }
+.team-org .is-stack li:only-child::after { display: none; }
+
 .team-org-card {
   display: flex;
   flex-direction: column;
