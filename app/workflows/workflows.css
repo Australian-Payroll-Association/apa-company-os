@@ -390,6 +390,66 @@
 }
 .wf-problem svg { width: 20px; height: 20px; stroke: var(--wf-red); display: block; margin-bottom: 10px; }
 
+/* ─── SEVEN ELEMENTS / CENTAUR MAP ─────────────────── */
+.wf-elements {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin-top: 36px;
+}
+.wf-element {
+  background: var(--white);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.wf-element-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.wf-element-name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey-mid);
+}
+.wf-assign {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 40px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.wf-assign-machine { background: rgba(40, 123, 232, 0.12); color: var(--blue); }
+.wf-assign-human { background: rgba(16, 16, 20, 0.08); color: var(--dark); }
+.wf-assign-both { background: rgba(111, 242, 193, 0.28); color: #0E8A5F; }
+.wf-element-desc { font-size: 13.5px; color: var(--body-text); line-height: 1.55; }
+
+/* ─── STAGE GATES (method page) ────────────────────── */
+.wf-stages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 32px;
+}
+.wf-stage {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1.5px solid var(--tint-deep);
+  border-radius: 14px;
+  padding: 14px 22px;
+}
+.wf-stage strong { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--dark); }
+.wf-stage span { font-size: 12.5px; color: var(--grey-mid); }
+.wf-stage-active { border-color: var(--blue); background: rgba(40, 123, 232, 0.06); }
+.wf-stage-arrow { font-size: 18px; color: var(--grey-light); }
+
 /* ─── BACK / CTA FOOTER ────────────────────────────── */
 .wf-detail-foot {
   display: flex;

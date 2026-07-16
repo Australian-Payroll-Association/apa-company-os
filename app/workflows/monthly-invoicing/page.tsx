@@ -1,5 +1,15 @@
 import type { Metadata } from 'next'
-import { WorkflowHero, StepCards, DetailFooter } from '../ui'
+import { WorkflowHero, StepCards, SevenElements, DetailFooter, type WorkflowElement } from '../ui'
+
+const ELEMENTS: WorkflowElement[] = [
+  { name: 'Trigger', assignment: 'machine', desc: 'The calendar. The 31st arrives every month whether anyone feels like invoicing or not.' },
+  { name: 'Inputs', assignment: 'machine', desc: 'The client list, agreed terms, and billing history, all living in QuickBooks.' },
+  { name: 'Decision', assignment: 'human', desc: 'The exceptions: which client gets card payments enabled, and what gets escalated versus tolerated.' },
+  { name: 'Routing', assignment: 'machine', desc: 'QuickBooks routes reminders to clients approaching their due date, automatically.' },
+  { name: 'Output', assignment: 'both', desc: 'Invoices created by a human on the 31st, dated forward to the 1st by rule.' },
+  { name: 'Delivery', assignment: 'machine', desc: 'Invoices and reminders reach clients through QuickBooks the day they are created.' },
+  { name: 'Measurement', assignment: 'both', desc: 'Paid versus due on the 20th. Anything past due becomes an escalation list, never a shrug.' },
+]
 
 const title = 'Monthly Invoicing | Edge8 Workflows'
 const description =
@@ -167,6 +177,7 @@ export default function MonthlyInvoicingWorkflowPage() {
       {/* Rules */}
       <section className="section">
         <div className="container">
+          <SevenElements elements={ELEMENTS} />
           <div className="wf-info-grid">
             <div className="wf-info-card">
               <h3>The standing rules</h3>

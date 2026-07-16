@@ -1,5 +1,15 @@
 import type { Metadata } from 'next'
-import { WorkflowHero, FlowRail, StepCards, DetailFooter } from '../ui'
+import { WorkflowHero, FlowRail, StepCards, SevenElements, DetailFooter, type WorkflowElement } from '../ui'
+
+const ELEMENTS: WorkflowElement[] = [
+  { name: 'Trigger', assignment: 'human', desc: 'The weekly content schedule or an ad hoc idea. Content starts with a human wanting to say something.' },
+  { name: 'Inputs', assignment: 'both', desc: 'The approved draft, the photos, and the site style guide that governs how every post is built.' },
+  { name: 'Decision', assignment: 'human', desc: 'The approval gate, one explicit sentence: “Photos are in. Build the post.” Nothing ships without it.' },
+  { name: 'Routing', assignment: 'machine', desc: 'Post type determines image placement rules: listicles get inline images, narratives get a hero.' },
+  { name: 'Output', assignment: 'machine', desc: 'Optimized WebP images, a built post page, and an updated blog index, identical in structure every time.' },
+  { name: 'Delivery', assignment: 'machine', desc: 'Changes staged in git and deployed through the pipeline. The post is live without a manual upload.' },
+  { name: 'Measurement', assignment: 'machine', desc: 'The publish log: slug, images, commit hash, and issues, one entry per post, forever traceable.' },
+]
 
 const title = 'How We Publish | Edge8 Workflows'
 const description =
@@ -125,6 +135,7 @@ export default function BlogPublishingWorkflowPage() {
       {/* Quality gates */}
       <section className="section">
         <div className="container">
+          <SevenElements elements={ELEMENTS} />
           <div className="wf-info-grid">
             <div className="wf-info-card">
               <h3>Quality gates before anything ships</h3>

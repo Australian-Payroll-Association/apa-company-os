@@ -64,6 +64,13 @@ export function GET() {
 
   lines.push('## Workflows')
   lines.push(link('/workflows/', 'Workflows', 'The operating workflows Edge8 runs on, documented end to end.'))
+  lines.push(
+    link(
+      '/workflows/method/',
+      'How We Design Workflows',
+      'The Edge8 method: 5D program brief, seven workflow elements, the Centaur Map, the New Hire Test, and three stage gates.'
+    )
+  )
   for (const w of allWorkflows) {
     lines.push(`- [${w.title}](${BASE}/workflows/${w.slug}/): ${w.excerpt}`)
   }

@@ -1,5 +1,15 @@
 import type { Metadata } from 'next'
-import { WorkflowHero, ActorChip, StepCards, DetailFooter, type Actor } from '../ui'
+import { WorkflowHero, ActorChip, StepCards, SevenElements, DetailFooter, type Actor, type WorkflowElement } from '../ui'
+
+const ELEMENTS: WorkflowElement[] = [
+  { name: 'Trigger', assignment: 'human', desc: 'An admin creates a written work request. No verbal assignments, so there is always a record.' },
+  { name: 'Inputs', assignment: 'both', desc: 'The request scope from the admin; the estimate, actual hours, explanation, and proof link from the contractor.' },
+  { name: 'Decision', assignment: 'human', desc: 'Two human gates: approve the estimate before work starts, approve the payment after it ships.' },
+  { name: 'Routing', assignment: 'machine', desc: 'Every response triggers a Lark message and an email, looping the request until it is approved or closed.' },
+  { name: 'Output', assignment: 'machine', desc: 'A monthly payment request per contractor, with estimates, actuals, and proof attached.' },
+  { name: 'Delivery', assignment: 'machine', desc: 'One admin page listing every payment request, plus notifications back to the contractor on each outcome.' },
+  { name: 'Measurement', assignment: 'machine', desc: 'Estimates versus actuals per contractor over time, the number that makes the next estimate honest.' },
+]
 
 const title = 'Contractor Hours + Payment | Edge8 Workflows'
 const description =
@@ -274,6 +284,7 @@ export default function ContractorPaymentsWorkflowPage() {
       {/* Rules */}
       <section className="section">
         <div className="container">
+          <SevenElements elements={ELEMENTS} />
           <div className="wf-info-grid">
             <div className="wf-info-card">
               <h3>The standing rules</h3>

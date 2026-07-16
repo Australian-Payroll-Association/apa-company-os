@@ -119,11 +119,56 @@ export function StepCards({ steps }: { steps: DetailStep[] }) {
   )
 }
 
+export type WorkflowElement = {
+  name: string
+  assignment: 'human' | 'machine' | 'both'
+  desc: string
+}
+
+const ASSIGN_LABELS = { human: 'Human', machine: 'Machine', both: 'Both' } as const
+
+export function ElementsGrid({ elements }: { elements: WorkflowElement[] }) {
+  return (
+    <div className="wf-elements">
+      {elements.map((el, i) => (
+        <div key={el.name} className="wf-element">
+          <div className="wf-element-head">
+            <span className="wf-element-name">
+              {String(i + 1).padStart(2, '0')} {el.name}
+            </span>
+            <span className={`wf-assign wf-assign-${el.assignment}`}>{ASSIGN_LABELS[el.assignment]}</span>
+          </div>
+          <p className="wf-element-desc">{el.desc}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function SevenElements({ elements }: { elements: WorkflowElement[] }) {
+  return (
+    <>
+      <span className="section-label">Workflow anatomy</span>
+      <h2 className="section-title" style={{ fontSize: 34 }}>
+        The seven elements
+      </h2>
+      <p className="section-sub" style={{ marginTop: 12 }}>
+        Every workflow we document has the same anatomy: seven elements, each assigned to a human, a machine, or both.
+        This is the Centaur Map from <Link href="/workflows/method">our workflow design method</Link>.
+      </p>
+      <ElementsGrid elements={elements} />
+    </>
+  )
+}
+
 export function DetailFooter() {
   return (
     <div className="wf-detail-foot">
       <Link href="/workflows" className="wf-back">
         ← All workflows
+      </Link>
+      <Link href="/workflows/method" className="wf-back">
+        How we design workflows →
       </Link>
       <Link href="/contact" className="btn btn-secondary">
         Build this with Edge8 →

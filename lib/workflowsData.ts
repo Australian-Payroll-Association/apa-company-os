@@ -44,4 +44,85 @@ export const allWorkflows: Workflow[] = [
     date: '2026-07-16',
     steps: 7,
   },
+  {
+    slug: 'ai-resume-screen',
+    title: 'AI Resume Screen + Talent Rank',
+    category: 'Talent',
+    excerpt:
+      'Every application is read and scored by AI, stack-ranked per role family, then rated by a human recruiter. Two gates, no resume unread.',
+    date: '2026-07-16',
+    steps: 6,
+  },
+  {
+    slug: 'time-off',
+    title: 'Time Off',
+    category: 'Operations',
+    excerpt:
+      'Leave requests move from the team portal to an admin decision to an updated balance without a single chat message.',
+    date: '2026-07-16',
+    steps: 5,
+  },
+  {
+    slug: 'lead-capture',
+    title: 'Lead Capture to CRM',
+    category: 'Revenue',
+    excerpt:
+      'From a form submission to a customer record: a spam gate filters the noise, and every real inquiry becomes a tracked lead.',
+    date: '2026-07-16',
+    steps: 6,
+  },
+  {
+    slug: 'event-registration',
+    title: 'Event Registration',
+    category: 'Revenue',
+    excerpt:
+      'Admin creates an event, the public signs up, Stripe takes payment, a webhook confirms the seat. No human in the middle.',
+    date: '2026-07-16',
+    steps: 5,
+  },
+  {
+    slug: 'invoice-sync',
+    title: 'QuickBooks Invoice Sync',
+    category: 'Revenue',
+    excerpt:
+      'A weekly sync pulls every invoice out of QuickBooks and maps it to the CRM, so revenue truth lives in one place.',
+    date: '2026-07-16',
+    steps: 4,
+  },
+  {
+    slug: 'monthly-pnl',
+    title: 'Monthly P&L',
+    category: 'Operations',
+    excerpt:
+      'Invoices and expenses sync from QuickBooks all month, then close into a published P&L days after month end.',
+    date: '2026-07-16',
+    steps: 4,
+  },
+  {
+    slug: 'surveys',
+    title: 'Survey Collection',
+    category: 'Operations',
+    excerpt:
+      'Create a survey, share one link, and watch responses land in the admin in real time. Feedback without the spreadsheet.',
+    date: '2026-07-16',
+    steps: 4,
+  },
+  {
+    slug: 'ideas-backlog',
+    title: 'Ideas Backlog',
+    category: 'Innovation',
+    excerpt:
+      'Anyone on the team submits an idea through the 5D framework, AI turns it into a full product plan, and admins triage a ready backlog.',
+    date: '2026-07-16',
+    steps: 5,
+  },
+  {
+    slug: 'certification',
+    title: 'Challenge-Based Certification',
+    category: 'Innovation',
+    excerpt:
+      'Certification earned through submitted proof of real work, challenge by challenge. Attendance proves nothing; artifacts do.',
+    date: '2026-07-16',
+    steps: 5,
+  },
 ]

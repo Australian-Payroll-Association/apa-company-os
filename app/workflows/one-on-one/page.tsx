@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { WorkflowHero, FlowRail, StepCards, DetailFooter } from '../ui'
+import { WorkflowHero, FlowRail, StepCards, SevenElements, DetailFooter, type WorkflowElement } from '../ui'
 
 const title = '1-1 Leadership Workflow | Edge8'
 const description =
@@ -12,6 +12,16 @@ export const metadata: Metadata = {
   openGraph: { title, description, url: '/workflows/one-on-one/', type: 'website' },
   twitter: { card: 'summary_large_image', title, description },
 }
+
+const ELEMENTS: WorkflowElement[] = [
+  { name: 'Trigger', assignment: 'machine', desc: 'The biweekly cadence itself. The calendar starts the loop; nobody has to remember to prepare.' },
+  { name: 'Inputs', assignment: 'machine', desc: 'Prior meeting notes, the person’s goals and OKRs, and the leader’s coaching docs, gathered automatically.' },
+  { name: 'Decision', assignment: 'both', desc: 'What this conversation should focus on. AI proposes tailored questions; the human decides in the room.' },
+  { name: 'Routing', assignment: 'machine', desc: 'Commitments extracted from the meeting are assigned to their owner and queued for the mid-cycle check.' },
+  { name: 'Output', assignment: 'machine', desc: 'A prep doc before, a summary and commitment log after, a trend report monthly.' },
+  { name: 'Delivery', assignment: 'machine', desc: 'Docs land where the leader works, and check-in nudges arrive without being sent by anyone.' },
+  { name: 'Measurement', assignment: 'machine', desc: 'Follow-through rate on commitments and growth patterns across months and quarters.' },
+]
 
 const PROBLEMS = [
   'Preparation is inconsistent. Some 1-1s get thought, most get winged.',
@@ -161,6 +171,7 @@ export default function OneOnOneWorkflowPage() {
       {/* Inputs and outputs */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="container">
+          <SevenElements elements={ELEMENTS} />
           <div className="wf-info-grid">
             <div className="wf-info-card">
               <h3>What feeds the system</h3>
