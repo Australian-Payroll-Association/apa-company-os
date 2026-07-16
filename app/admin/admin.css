@@ -571,6 +571,38 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   .team-glance-cell + .team-glance-cell { border-left: 0; border-top: 1px solid var(--admin-line-soft); }
 }
 
+/* ─── Team portal org chart ───────────────────────────
+   Reporting tree as nested lists: hairline left borders for descent, quiet
+   cards per person. No box-drawing connectors — indentation carries it. */
+.team-org { list-style: none; margin: 0; padding: 0; }
+.team-org-children {
+  list-style: none;
+  margin: 0 0 0 14px;
+  padding: 0 0 0 20px;
+  border-left: 1px solid var(--admin-line);
+}
+.team-org-node { padding-top: 10px; }
+.team-org-card {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow);
+  padding: 10px 14px;
+  min-width: 220px;
+  max-width: 100%;
+}
+.team-org-card.is-root { border-color: var(--admin-accent); }
+.team-org-name { font-weight: 600; font-size: 13.5px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-org-meta { font-size: 12px; color: var(--admin-muted); overflow-wrap: anywhere; }
+.team-org-independents { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 720px) {
+  .team-org-children { margin-left: 8px; padding-left: 12px; }
+  .team-org-card { min-width: 0; width: 100%; }
+}
+
 /* ─── Team portal home hub ────────────────────────────
    Card grid on /team home: every employee touchpoint, shipped or not. Live
    items are links; unshipped ones render muted with a "Soon" pill so the page

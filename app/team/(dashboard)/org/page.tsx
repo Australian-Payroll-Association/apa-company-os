@@ -1,0 +1,107 @@
+import { requireTeamMember } from "@/lib/team-auth";
+import { getOrgChart, type OrgEntry } from "@/lib/team/data";
+import { PageHead } from "@/components/admin/PageHead";
+
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Org Chart",
+  description: "How Edge8 fits together: the reporting tree, live from the directory.",
+};
+
+// /team/org — the reporting tree, read-only and company-visible like the
+// directory. Built entirely from team_members.manager_id: roots are people
+// with no manager; roots without reports render separately as independent
+// contractors rather than as one-person trees.
+function childrenOf(entries: OrgEntry[]): Map<string | null, OrgEntry[]> {
+  const ids = new Set(entries.map((e) => e.id));
+  const map = new Map<string | null, OrgEntry[]>();
+  for (const e of entries) {
+    // A manager outside the roster (e.g. departed) would orphan the subtree —
+    // surface it at the top level rather than dropping it silently.
+    const key = e.managerId && ids.has(e.managerId) ? e.managerId : null;
+    map.set(key, [...(map.get(key) ?? []), e]);
+  }
+  return map;
+}
+
+function countReports(id: string, map: Map<string | null, OrgEntry[]>): number {
+  const kids = map.get(id) ?? [];
+  return kids.length + kids.reduce((n, k) => n + countReports(k.id, map), 0);
+}
+
+function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean; reports?: number }) {
+  const meta = [entry.positionTitle, entry.departmentName].filter(Boolean).join(" · ");
+  return (
+    <div className={`team-org-card${isRoot ? " is-root" : ""}`}>
+      <span className="team-org-name">{entry.name}</span>
+      {(meta || reports) && (
+        <span className="team-org-meta">
+          {meta || "—"}
+          {reports ? ` · ${reports} ${reports === 1 ? "report" : "reports"}` : ""}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function OrgNode({
+  entry,
+  map,
+  isRoot,
+}: {
+  entry: OrgEntry;
+  map: Map<string | null, OrgEntry[]>;
+  isRoot?: boolean;
+}) {
+  const kids = map.get(entry.id) ?? [];
+  return (
+    <li className="team-org-node">
+      <OrgCard entry={entry} isRoot={isRoot} reports={kids.length ? countReports(entry.id, map) : 0} />
+      {kids.length > 0 && (
+        <ul className="team-org-children">
+          {kids.map((k) => (
+            <OrgNode key={k.id} entry={k} map={map} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+export default async function TeamOrgPage() {
+  await requireTeamMember();
+  const entries = await getOrgChart();
+  const map = childrenOf(entries);
+
+  const top = map.get(null) ?? [];
+  const roots = top.filter((e) => (map.get(e.id) ?? []).length > 0);
+  const independents = top.filter((e) => (map.get(e.id) ?? []).length === 0);
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Company"
+        title="Org Chart"
+        sub={`${entries.length} people · live from the directory`}
+      />
+
+      <ul className="team-org">
+        {roots.map((r) => (
+          <OrgNode key={r.id} entry={r} map={map} isRoot />
+        ))}
+      </ul>
+
+      {independents.length > 0 && (
+        <>
+          <h2 className="team-hub-heading">Independent contractors</h2>
+          <div className="team-org-independents">
+            {independents.map((e) => (
+              <OrgCard key={e.id} entry={e} />
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}

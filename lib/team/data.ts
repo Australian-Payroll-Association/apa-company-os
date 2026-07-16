@@ -239,6 +239,45 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// The org chart: same audience and safe column list as the directory (names,
+// roles, departments — no contact details), plus manager_id and employment_type
+// so the page can assemble the reporting tree and label contractors.
+export type OrgEntry = {
+  id: string;
+  name: string;
+  positionTitle: string | null;
+  departmentName: string | null;
+  employmentType: string | null;
+  managerId: string | null;
+};
+
+export async function getOrgChart(): Promise<OrgEntry[]> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select(
+      "id, manager_id, employment_type, " +
+        "people:people!person_id(full_name, preferred_name), " +
+        "departments:departments!department_id(name), " +
+        "positions:positions!position_id(title)",
+    )
+    .in("status", DIRECTORY_STATUSES);
+  type Name = { full_name: string | null; preferred_name: string | null };
+  const entries = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
+    const person = one(r.people as Name | Name[] | null);
+    const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
+    const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
+    return {
+      id: r.id as string,
+      name: nameOf(person) ?? "—",
+      positionTitle: pos?.title ?? null,
+      departmentName: dept?.name ?? null,
+      employmentType: (r.employment_type as string | null) ?? null,
+      managerId: (r.manager_id as string | null) ?? null,
+    };
+  });
+  return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // Self-scoped profile update: writes ONLY the actor's own people row (filtered
 // on actor.personId from the JWT-derived actor, never client input) and ONLY
 // the fields an employee may edit about themselves. Employment fields, names

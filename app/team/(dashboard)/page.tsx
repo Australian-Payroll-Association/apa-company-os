@@ -36,6 +36,12 @@ const HUB_LIVE: HubItem[] = [
     href: "/team/directory",
   },
   {
+    title: "Org Chart",
+    sub: "How Edge8 fits together — who reports to whom, at a glance.",
+    ico: "⌥",
+    href: "/team/org",
+  },
+  {
     title: "Ideas & Innovation",
     sub: "Submit a workflow AI should own; get a product plan back in seconds.",
     ico: "✦",

@@ -22,6 +22,7 @@ const ME: NavGroup[] = [
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
       { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
       { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
+      { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
     ],
   },
 ];
