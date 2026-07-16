@@ -63,15 +63,32 @@ function nameOf(p: ManagerName | null): string | null {
   return p ? p.preferred_name || p.full_name : null;
 }
 
+// Resolve a manager's person record from a team_members id. Deliberately a
+// separate lookup: embedding `team_members!manager_id` on the self-referencing
+// FK is ambiguous, and PostgREST resolves it in the REVERSE direction (rows
+// whose manager_id points at you — your reports), so the "manager" came back
+// as the first direct report. Bit us on the /team home card; never re-embed.
+type ManagerPerson = ManagerName & { email: string | null };
+async function getManagerPerson(managerId: string | null): Promise<ManagerPerson | null> {
+  if (!managerId) return null;
+  const { data } = await companyOs
+    .from("team_members")
+    .select("people:people!person_id(full_name, preferred_name, email)")
+    .eq("id", managerId)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as unknown as Record<string, unknown>;
+  return one(r.people as ManagerPerson | ManagerPerson[] | null);
+}
+
 export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null> {
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, employee_number, employment_type, work_location, status, start_date, " +
+      "id, employee_number, employment_type, work_location, status, start_date, manager_id, " +
         "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone), " +
         "departments:departments!department_id(name), " +
-        "positions:positions!position_id(title), " +
-        "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
+        "positions:positions!position_id(title)",
     )
     .eq("id", actor.teamMemberId)
     .maybeSingle();
@@ -79,7 +96,7 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
   const r = data as unknown as Record<string, unknown>;
   const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
   const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
-  const mgr = one(r.manager as { people: ManagerName | ManagerName[] | null } | { people: ManagerName | ManagerName[] | null }[] | null);
+  const mgr = await getManagerPerson((r.manager_id as string | null) ?? null);
   return {
     id: r.id as string,
     employee_number: (r.employee_number as string | null) ?? null,
@@ -90,7 +107,7 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     person: one(r.people as PersonLite | PersonLite[] | null),
     departmentName: dept?.name ?? null,
     positionTitle: pos?.title ?? null,
-    managerName: nameOf(one(mgr?.people ?? null)),
+    managerName: nameOf(mgr),
   };
 }
 
@@ -179,16 +196,11 @@ export type ManagerContact = { email: string; displayName: string };
 export async function getManagerContact(actor: TeamActor): Promise<ManagerContact | null> {
   const { data } = await companyOs
     .from("team_members")
-    .select(
-      "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name, email))",
-    )
+    .select("manager_id")
     .eq("id", actor.teamMemberId)
     .maybeSingle();
-  if (!data) return null;
-  const r = data as unknown as Record<string, unknown>;
-  type PersonEmail = { full_name: string | null; preferred_name: string | null; email: string | null };
-  const mgr = one(r.manager as { people: PersonEmail | PersonEmail[] | null } | { people: PersonEmail | PersonEmail[] | null }[] | null);
-  const person = one(mgr?.people ?? null);
+  const managerId = ((data as unknown as { manager_id: string | null } | null)?.manager_id) ?? null;
+  const person = await getManagerPerson(managerId);
   if (!person?.email) return null;
   return { email: person.email, displayName: person.preferred_name || person.full_name || person.email };
 }
@@ -214,28 +226,30 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, work_location, " +
+      "id, work_location, manager_id, " +
         "people:people!person_id(full_name, preferred_name), " +
         "departments:departments!department_id(name), " +
-        "positions:positions!position_id(title), " +
-        "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
+        "positions:positions!position_id(title)",
     )
     .in("status", DIRECTORY_STATUSES);
   type Name = { full_name: string | null; preferred_name: string | null };
-  const entries = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
-    const person = one(r.people as Name | Name[] | null);
-    const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
-    const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
-    const mgr = one(r.manager as { people: Name | Name[] | null } | { people: Name | Name[] | null }[] | null);
-    return {
-      id: r.id as string,
-      name: nameOf(person) ?? "—",
-      positionTitle: pos?.title ?? null,
-      departmentName: dept?.name ?? null,
-      location: (r.work_location as string | null) ?? null,
-      managerName: nameOf(one(mgr?.people ?? null)),
-    };
-  });
+  const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    managerId: (r.manager_id as string | null) ?? null,
+    name: nameOf(one(r.people as Name | Name[] | null)) ?? "—",
+    positionTitle:
+      one(r.positions as { title: string | null } | { title: string | null }[] | null)?.title ?? null,
+    departmentName:
+      one(r.departments as { name: string | null } | { name: string | null }[] | null)?.name ?? null,
+    location: (r.work_location as string | null) ?? null,
+  }));
+  // Managers are directory rows themselves — resolve names in-memory instead of
+  // via the ambiguous self-referencing embed (see getManagerPerson).
+  const nameById = new Map(rows.map((r) => [r.id, r.name]));
+  const entries = rows.map(({ managerId, ...r }) => ({
+    ...r,
+    managerName: (managerId && nameById.get(managerId)) || null,
+  }));
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
