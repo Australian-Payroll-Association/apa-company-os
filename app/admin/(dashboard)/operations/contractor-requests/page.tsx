@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { companyOs } from "@/lib/supabase";
 import { listEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -54,6 +55,19 @@ export default async function ContractorRequestsPage({ searchParams }: { searchP
       filters,
     },
   );
+
+  // ?open=<id> deep link (from the contractor shelf): fetch that request and
+  // auto-open its drawer, whether or not it's on the current page of rows.
+  const openId = firstParam(searchParams.open);
+  let initialRow: RequestRow | null = null;
+  if (openId && /^[0-9a-f-]{36}$/i.test(openId)) {
+    const { data } = await companyOs
+      .from("contractor_work_requests")
+      .select(REQUEST_SELECT)
+      .eq("id", openId)
+      .maybeSingle();
+    initialRow = (data as unknown as RequestRow) ?? null;
+  }
 
   const columns: Column<RequestRow>[] = [
     {
@@ -115,7 +129,7 @@ export default async function ContractorRequestsPage({ searchParams }: { searchP
         }
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <RequestsShelfProvider>
+      <RequestsShelfProvider initialRow={initialRow}>
         <DataTable
           columns={columns}
           rows={rows}

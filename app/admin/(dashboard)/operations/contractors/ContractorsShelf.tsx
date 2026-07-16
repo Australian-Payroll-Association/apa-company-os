@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -11,9 +12,16 @@ import {
   type ReactNode,
 } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
-import { formatCents, formatDate, humanize } from "@/lib/admin/format";
+import { Badge } from "@/components/admin/Badge";
+import { formatCents, formatDate, humanize, timeAgo } from "@/lib/admin/format";
+import {
+  WORK_REQUEST_STATUS_LABEL,
+  workRequestTone,
+  formatHours,
+  type WorkRequestStatus,
+} from "@/lib/admin/contractors";
 import type { ContractorRow } from "./contractor-shared";
-import { updateContractorRates } from "./actions";
+import { listContractorWorkRequests, updateContractorRates, type ContractorWorkItem } from "./actions";
 
 // Client-owned shelf for the contractors roster (vendors pattern): one drawer
 // at the provider level, rows push the selected contractor into context.
@@ -78,6 +86,76 @@ function kv(label: string, value: ReactNode) {
 
 const toDollars = (cents: number | null) => (cents === null ? "" : String(cents / 100));
 
+// Compact, clickable work-request list: needs-attention first, each row
+// deep-links into the Work Requests page (?open= auto-opens that shelf).
+function WorkRequestsSection({ personId }: { personId: string }) {
+  const [items, setItems] = useState<ContractorWorkItem[] | null>(null);
+
+  useEffect(() => {
+    setItems(null);
+    let live = true;
+    listContractorWorkRequests(personId).then((r) => {
+      if (live) setItems(r);
+    });
+    return () => {
+      live = false;
+    };
+  }, [personId]);
+
+  return (
+    <section>
+      <div className="admin-shelf-heading">
+        Work requests
+        <Link
+          href={`/admin/operations/contractor-requests/new?person=${personId}`}
+          className="admin-btn admin-btn--primary"
+        >
+          New request
+        </Link>
+      </div>
+      {items === null ? (
+        <div className="admin-cell-muted">Loading…</div>
+      ) : items.length === 0 ? (
+        <div className="admin-cell-muted">No work requests yet.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {items.map((i) => (
+            <Link
+              key={i.id}
+              href={`/admin/operations/contractor-requests?open=${i.id}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 10px",
+                border: "1px solid var(--admin-line, #e2e8f0)",
+                borderRadius: 8,
+                textDecoration: "none",
+                color: "inherit",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>
+                {i.title}
+              </span>
+              <span className="admin-cell-mono admin-cell-muted" style={{ flexShrink: 0, fontSize: 12 }}>
+                {i.actual_hours !== null
+                  ? formatHours(i.actual_hours)
+                  : i.estimated_hours !== null
+                    ? `est ${formatHours(i.estimated_hours)}`
+                    : timeAgo(i.created_at)}
+              </span>
+              <Badge tone={workRequestTone(i.status)}>
+                {WORK_REQUEST_STATUS_LABEL[i.status as WorkRequestStatus] ?? humanize(i.status)}
+              </Badge>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ContractorShelfBody({ row }: { row: ContractorRow }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -130,6 +208,8 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
           {kv("Start date", formatDate(row.start_date))}
         </dl>
       </section>
+
+      <WorkRequestsSection personId={row.person_id} />
 
       <section>
         <div className="admin-shelf-heading">

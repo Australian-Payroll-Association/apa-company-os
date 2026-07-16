@@ -6,11 +6,13 @@ import { createWorkRequest } from "../actions";
 
 export function NewRequestForm({
   contractors,
+  defaultPersonId,
 }: {
   contractors: { personId: string; label: string; hasRate: boolean }[];
+  defaultPersonId?: string;
 }) {
   const router = useRouter();
-  const [personId, setPersonId] = useState(contractors[0]?.personId ?? "");
+  const [personId, setPersonId] = useState(defaultPersonId ?? contractors[0]?.personId ?? "");
   const [title, setTitle] = useState("");
   const [brief, setBrief] = useState("");
   const [saving, setSaving] = useState(false);

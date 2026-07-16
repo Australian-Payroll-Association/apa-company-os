@@ -11,6 +11,37 @@ function refresh() {
   revalidatePath("/admin/operations/contractors");
 }
 
+export type ContractorWorkItem = {
+  id: string;
+  title: string;
+  status: string;
+  estimated_hours: number | string | null;
+  actual_hours: number | string | null;
+  created_at: string;
+};
+
+// Statuses waiting on an admin float to the top of the shelf list.
+const NEEDS_ATTENTION = ["estimate_submitted", "work_submitted"];
+const IN_FLIGHT = ["draft", "awaiting_estimate", "changes_requested", "approved"];
+
+// Recent work requests for one contractor, lazy-loaded by the shelf.
+// Sorted needs-attention → in-flight → closed, newest first within each.
+export async function listContractorWorkRequests(personId: string): Promise<ContractorWorkItem[]> {
+  await requireAdmin();
+  const { data, error } = await companyOs
+    .from("contractor_work_requests")
+    .select("id, title, status, estimated_hours, actual_hours, created_at")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: false })
+    .limit(15);
+  if (error) {
+    console.error("[contractors] work requests load failed:", error.message);
+    return [];
+  }
+  const rank = (s: string) => (NEEDS_ATTENTION.includes(s) ? 0 : IN_FLIGHT.includes(s) ? 1 : 2);
+  return ((data ?? []) as ContractorWorkItem[]).sort((a, b) => rank(a.status) - rank(b.status));
+}
+
 // Update a contractor's hourly + overtime rate. Effective-dated: the current
 // compensation rows are superseded (is_current=false, effective_to=today),
 // never mutated, so rate history stays queryable.

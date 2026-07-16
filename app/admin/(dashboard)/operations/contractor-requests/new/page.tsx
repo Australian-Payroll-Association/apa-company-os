@@ -1,4 +1,5 @@
 import { PageHead } from "@/components/admin/PageHead";
+import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { listContractors } from "../../contractors/data";
 import { NewRequestForm } from "./NewRequestForm";
 
@@ -9,8 +10,9 @@ export const metadata = {
   description: "Send a work request to a contractor.",
 };
 
-export default async function NewWorkRequestPage() {
+export default async function NewWorkRequestPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const { rows, error } = await listContractors();
+  const preselect = firstParam(searchParams.person);
   const contractors = rows
     .filter((r) => r.status === "active")
     .map((r) => ({ personId: r.person_id, label: r.full_name || r.email, hasRate: r.hourly_rate_cents !== null }));
@@ -24,7 +26,10 @@ export default async function NewWorkRequestPage() {
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
       <div style={{ maxWidth: 640 }}>
-        <NewRequestForm contractors={contractors} />
+        <NewRequestForm
+          contractors={contractors}
+          defaultPersonId={contractors.some((c) => c.personId === preselect) ? preselect : undefined}
+        />
       </div>
     </>
   );

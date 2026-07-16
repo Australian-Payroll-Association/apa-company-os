@@ -25,19 +25,44 @@ import { cancelWorkRequest, decideEstimate, decideWork, listRequestEvents, sendW
 
 const ShelfContext = createContext<{ open: (row: RequestRow) => void } | null>(null);
 
-export function RequestsShelfProvider({ children }: { children: ReactNode }) {
-  const [selected, setSelected] = useState<RequestRow | null>(null);
+// `initialRow` supports ?open=<id> deep links (e.g. from the contractor
+// shelf): the page fetches that request server-side and the drawer opens on
+// mount. Closing strips the param so a refresh doesn't reopen it.
+export function RequestsShelfProvider({
+  children,
+  initialRow,
+}: {
+  children: ReactNode;
+  initialRow?: RequestRow | null;
+}) {
+  const [selected, setSelected] = useState<RequestRow | null>(initialRow ?? null);
+  const router = useRouter();
+
+  // Soft navigations don't re-run useState's initializer — follow ?open when
+  // it points at a different request.
+  useEffect(() => {
+    if (initialRow) setSelected(initialRow);
+  }, [initialRow?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function close() {
+    setSelected(null);
+    if (initialRow) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      router.replace(url.pathname + url.search);
+    }
+  }
 
   return (
     <ShelfContext.Provider value={{ open: setSelected }}>
       {children}
       <DetailDrawer
         open={!!selected}
-        onClose={() => setSelected(null)}
+        onClose={close}
         eyebrow="Work request"
         title={selected?.title ?? ""}
       >
-        {selected && <RequestShelfBody row={selected} onClose={() => setSelected(null)} />}
+        {selected && <RequestShelfBody row={selected} onClose={close} />}
       </DetailDrawer>
     </ShelfContext.Provider>
   );
