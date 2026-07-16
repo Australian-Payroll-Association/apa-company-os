@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/team/(dashboard)/actions";
@@ -72,6 +72,13 @@ export function TeamSidebar({
   const groups = role === "manager" ? [...ME, MY_TEAM] : ME;
   const userInitials = initials(name);
 
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setProfileMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileMenuOpen]);
+
   return (
     <>
       <div className="admin-mobilebar">
@@ -108,6 +115,9 @@ export function TeamSidebar({
           </span>
         </div>
 
+        {profileMenuOpen && (
+          <div className="admin-profilemenu-backdrop" onClick={() => setProfileMenuOpen(false)} />
+        )}
         {profileMenuOpen && (
           <div className="admin-profilemenu" role="menu" aria-label="Switch view">
             <div className="admin-profilemenu-label">Switch view</div>

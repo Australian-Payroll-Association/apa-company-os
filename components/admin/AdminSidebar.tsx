@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/admin/(dashboard)/actions";
@@ -176,6 +176,13 @@ export function AdminSidebar({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const userInitials = initials(user.email);
 
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setProfileMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileMenuOpen]);
+
   function toggle(key: string) {
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
   }
@@ -283,6 +290,9 @@ export function AdminSidebar({
           </span>
         </div>
 
+        {profileMenuOpen && (
+          <div className="admin-profilemenu-backdrop" onClick={() => setProfileMenuOpen(false)} />
+        )}
         {profileMenuOpen && (
           <div className="admin-profilemenu" role="menu" aria-label="Profile and views">
             <div className="admin-profilemenu-head">

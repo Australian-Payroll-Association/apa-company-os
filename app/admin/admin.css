@@ -214,14 +214,32 @@
 .admin-brandmenu li > button:hover { background: rgba(255, 255, 255, 0.08); }
 .admin-brandmenu li > button[aria-current="true"] { color: #fff; font-weight: 600; }
 
+/* Overlay popover anchored below the brand row — absolute so opening it never
+   shifts the nav below (the old in-flow version pushed the whole nav down). */
 .admin-profilemenu {
-  margin: -2px 12px 10px;
+  position: absolute;
+  top: 52px;
+  left: 12px;
+  right: 12px;
+  z-index: 40;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #111e42;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--admin-radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  animation: admin-profilemenu-in 0.14s ease-out;
+}
+/* Invisible click-catcher so tapping anywhere else dismisses the menu. */
+.admin-profilemenu-backdrop { position: fixed; inset: 0; z-index: 39; }
+@keyframes admin-profilemenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-profilemenu { animation: none; }
 }
 .admin-profilemenu-head { display: flex; align-items: center; gap: 9px; padding: 4px 6px 8px; }
 .admin-profilemenu-email { font-size: 12px; color: var(--admin-sidebar-muted); word-break: break-all; line-height: 1.3; }
@@ -233,7 +251,9 @@
   display: flex; align-items: center; gap: 9px;
   padding: 7px 9px; border-radius: 6px;
   font-size: 13px; color: var(--admin-sidebar-ink);
+  text-decoration: none;
 }
+a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 .admin-profilemenu-item[aria-current="true"] { background: rgba(255, 255, 255, 0.08); color: #fff; }
 .admin-profilemenu-item.is-disabled { opacity: 0.5; cursor: not-allowed; }
 .admin-profilemenu-ico { width: 16px; text-align: center; opacity: 0.85; }
@@ -495,6 +515,75 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .mp-kpi-label { font-size: 12.5px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .mp-kpi-val { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin-top: 6px; color: var(--admin-ink); overflow-wrap: anywhere; }
 .mp-kpi-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 2px; overflow-wrap: anywhere; }
+
+/* ─── Route loading skeleton (loading.tsx boundaries) ─────
+   Instant feedback while force-dynamic pages render server-side; without it a
+   navigation (e.g. the Admin ↔ Team switcher) feels dead for the roundtrip. */
+.admin-skeleton-bar {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--admin-line-soft) 25%, var(--admin-line) 50%, var(--admin-line-soft) 75%);
+  background-size: 200% 100%;
+  animation: admin-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes admin-skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton-bar { animation: none; }
+}
+
+/* ─── Team portal home hub ────────────────────────────
+   Card grid on /team home: every employee touchpoint, shipped or not. Live
+   items are links; unshipped ones render muted with a "Soon" pill so the page
+   shows the full destination from day one. */
+.team-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 16px;
+}
+.team-hub-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.team-hub-card.is-soon { background: var(--admin-surface-2); box-shadow: none; }
+.team-hub-card.is-soon .team-hub-ico { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
+.team-hub-card.is-soon .team-hub-title { color: var(--admin-ink-2); }
+.team-hub-ico {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid; place-items: center;
+  font-size: 15px;
+}
+.team-hub-title {
+  font-weight: 600; font-size: 14px; color: var(--admin-ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.team-hub-soon {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  background: var(--admin-muted-bg); color: var(--admin-muted-ink);
+  padding: 2px 8px; border-radius: var(--admin-radius-pill);
+}
+.team-hub-sub { font-size: 12.5px; color: var(--admin-muted); line-height: 1.5; }
+.team-hub-heading {
+  font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--admin-muted);
+  margin: 26px 0 12px;
+}
 
 /* ─── Badges / pills ──────────────────────────────── */
 .admin-badge {
