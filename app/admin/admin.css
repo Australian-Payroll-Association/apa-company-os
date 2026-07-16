@@ -802,6 +802,19 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
 }
 .team-avatar-err { font-size: 11.5px; color: var(--admin-err-ink); max-width: 160px; text-align: center; }
 
+/* ─── Directory name cell (avatar + name) ─────────────── */
+.dir-name { display: inline-flex; align-items: center; gap: 10px; }
+.dir-avatar {
+  width: 28px; height: 28px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px;
+  overflow: hidden;
+}
+.dir-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
 /* ─── /team/profile ───────────────────────────────────── */
 .team-profile-head {
   display: flex;

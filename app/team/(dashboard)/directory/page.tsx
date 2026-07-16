@@ -9,6 +9,13 @@ export const metadata = {
   description: "Who's who at Edge8: roles, departments, and reporting lines.",
 };
 
+// "Đặng Phương Mai" -> "PM", "Dave" -> "DA".
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const raw = parts.length >= 2 ? parts[parts.length - 2][0] + parts[parts.length - 1][0] : name.slice(0, 2);
+  return raw.toUpperCase();
+}
+
 // /team/directory — read-only, company-visible roster. getDirectory() returns a
 // FIXED safe column list (names/roles only — no contact details, and never the
 // team_directory view, which carries leave balances).
@@ -41,7 +48,19 @@ export default async function TeamDirectoryPage() {
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id}>
-                  <td className="admin-cell-strong">{e.name}</td>
+                  <td className="admin-cell-strong">
+                    <span className="dir-name">
+                      <span className="dir-avatar" aria-hidden>
+                        {e.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.avatarUrl} alt="" />
+                        ) : (
+                          <span>{initials(e.name)}</span>
+                        )}
+                      </span>
+                      {e.name}
+                    </span>
+                  </td>
                   <td>{e.positionTitle || <span className="admin-cell-muted">—</span>}</td>
                   <td>{e.departmentName || <span className="admin-cell-muted">—</span>}</td>
                   <td>{e.location || <span className="admin-cell-muted">—</span>}</td>

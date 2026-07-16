@@ -247,6 +247,7 @@ const DIRECTORY_STATUSES = ["active", "on_leave", "notice"];
 export type DirectoryEntry = {
   id: string;
   name: string;
+  avatarUrl: string | null;
   positionTitle: string | null;
   departmentName: string | null;
   location: string | null;
@@ -258,16 +259,17 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
     .from("team_members")
     .select(
       "id, work_location, manager_id, " +
-        "people:people!person_id(full_name, preferred_name), " +
+        "people:people!person_id(full_name, preferred_name, avatar_url), " +
         "departments:departments!department_id(name), " +
         "positions:positions!position_id(title)",
     )
     .in("status", DIRECTORY_STATUSES);
-  type Name = { full_name: string | null; preferred_name: string | null };
+  type Name = { full_name: string | null; preferred_name: string | null; avatar_url?: string | null };
   const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
     id: r.id as string,
     managerId: (r.manager_id as string | null) ?? null,
     name: nameOf(one(r.people as Name | Name[] | null)) ?? "—",
+    avatarUrl: one(r.people as Name | Name[] | null)?.avatar_url ?? null,
     positionTitle:
       one(r.positions as { title: string | null } | { title: string | null }[] | null)?.title ?? null,
     departmentName:
