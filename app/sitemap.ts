@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { allPosts } from '@/lib/postData'
 import { allCaseStudies } from '@/lib/caseStudies'
+import { allWorkflows } from '@/lib/workflowsData'
 
 const BASE = 'https://www.edge8.ai'
 
@@ -22,6 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/your-first-ai-hire/', priority: 0.9, changeFrequency: 'monthly' },
     { path: '/blog/', priority: 0.8, changeFrequency: 'daily' },
     { path: '/careers/', priority: 0.7, changeFrequency: 'weekly' },
+    { path: '/workflows/', priority: 0.7, changeFrequency: 'monthly' },
   ]
 
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map(({ path, priority, changeFrequency }) => ({
@@ -45,5 +47,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticEntries, ...caseStudyEntries, ...postEntries]
+  const workflowEntries: MetadataRoute.Sitemap = allWorkflows.map((w) => ({
+    url: `${BASE}/workflows/${w.slug}/`,
+    lastModified: new Date(w.date),
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
+
+  return [...staticEntries, ...caseStudyEntries, ...postEntries, ...workflowEntries]
 }

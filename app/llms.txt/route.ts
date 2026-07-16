@@ -1,5 +1,6 @@
 import { allPosts } from '@/lib/postData'
 import { allCaseStudies } from '@/lib/caseStudies'
+import { allWorkflows } from '@/lib/workflowsData'
 
 const BASE = 'https://www.edge8.ai'
 
@@ -59,6 +60,13 @@ export function GET() {
 
   lines.push('## Company')
   for (const c of COMPANY) lines.push(link(c.path, c.name, c.desc))
+  lines.push('')
+
+  lines.push('## Workflows')
+  lines.push(link('/workflows/', 'Workflows', 'The operating workflows Edge8 runs on, documented end to end.'))
+  for (const w of allWorkflows) {
+    lines.push(`- [${w.title}](${BASE}/workflows/${w.slug}/): ${w.excerpt}`)
+  }
   lines.push('')
 
   for (const cat of CATEGORY_ORDER) {
