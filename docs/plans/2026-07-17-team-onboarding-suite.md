@@ -1,5 +1,7 @@
 # Team Onboarding Suite — Development Plan
 
+Status: shipped in PR #269; redeployed 2026-07-17 (the #269 merge missed its Vercel build).
+
 Date: 2026-07-17
 Branch: `feat/team-onboarding-suite`
 Context: the data foundation (people_sensitive, probation fields, Airtable import) shipped in PR #268 + DB import. This plan builds the features on top so the team can be onboarded.
