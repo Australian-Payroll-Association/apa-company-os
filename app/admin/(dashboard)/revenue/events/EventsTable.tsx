@@ -24,6 +24,7 @@ export type EventRow = {
   archivedAt: string | null;
   tiers: EventTierRow[];
   attendees: EventAttendee[];
+  effectiveAttendees: number;
   registeredCount: number;
   totalCount: number;
   fromUsdCents: number;
@@ -154,6 +155,7 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
                 <th>Location</th>
                 <th>Dates</th>
                 <th style={{ textAlign: "right" }}>Registered</th>
+                <th style={{ textAlign: "right" }}>Attendees</th>
                 <th style={{ textAlign: "right" }}>From</th>
                 <th style={{ textAlign: "right" }}>Collected</th>
                 <th>Status</th>
@@ -162,7 +164,7 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="admin-empty">No events match.</div>
                   </td>
                 </tr>
@@ -192,6 +194,9 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
                       {r.totalCount > r.registeredCount
                         ? `${r.registeredCount} (${r.totalCount} incl. other)`
                         : String(r.registeredCount)}
+                    </td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                      {r.effectiveAttendees > 0 ? r.effectiveAttendees : <span className="admin-cell-muted">—</span>}
                     </td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                       {r.tiers.length === 0 ? "Free" : formatCents(r.fromUsdCents, "usd")}

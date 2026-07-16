@@ -22,6 +22,7 @@ import {
   moveEventMedia,
   removeEventMedia,
   restoreEvent,
+  setEventTalks,
   setTierActive,
   updateEvent,
   uploadEventImage,
@@ -57,9 +58,11 @@ export type EventSettingsData = {
   feedbackSurveyId: string | null;
   archivedAt: string | null;
   totalRegistrations: number;
+  attendeeCountOverride: number | null;
 };
 
 export type SurveyOption = { id: string; name: string };
+export type TalkOption = { id: string; title: string };
 
 const toDateInput = (v: string | null) => (v ? v.slice(0, 10) : "");
 
@@ -70,10 +73,14 @@ export function EventSettings({
   event,
   tiers,
   surveys,
+  talks,
+  selectedTalkIds,
 }: {
   event: EventSettingsData;
   tiers: SettingsTier[];
   surveys: SurveyOption[];
+  talks: TalkOption[];
+  selectedTalkIds: string[];
 }) {
   const router = useRouter();
 
@@ -90,6 +97,8 @@ export function EventSettings({
   const [blurb, setBlurb] = useState(event.blurb ?? "");
   const [description, setDescription] = useState(event.description ?? "");
   const [surveyId, setSurveyId] = useState(event.feedbackSurveyId ?? "");
+  const [attendeeOverride, setAttendeeOverride] = useState(event.attendeeCountOverride?.toString() ?? "");
+  const [talkIds, setTalkIds] = useState<string[]>(selectedTalkIds);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -103,6 +112,11 @@ export function EventSettings({
     if (cap !== null && (!Number.isFinite(cap) || cap < 0)) {
       setSaving(false);
       return setMsg({ ok: false, text: "Capacity must be a non-negative number, or blank for uncapped." });
+    }
+    const override = attendeeOverride.trim() === "" ? null : Number(attendeeOverride);
+    if (override !== null && (!Number.isInteger(override) || override < 0)) {
+      setSaving(false);
+      return setMsg({ ok: false, text: "Attendee count must be a non-negative whole number, or blank to count registrations." });
     }
     const r = await updateEvent(event.id, {
       title: title.trim(),
@@ -118,9 +132,15 @@ export function EventSettings({
       blurb: blurb || null,
       description: description || null,
       feedback_survey_id: surveyId || null,
+      attendee_count_override: override,
     });
+    if (!r.ok) {
+      setSaving(false);
+      return setMsg({ ok: false, text: r.error });
+    }
+    const t = await setEventTalks(event.id, talkIds);
     setSaving(false);
-    if (!r.ok) return setMsg({ ok: false, text: r.error });
+    if (!t.ok) return setMsg({ ok: false, text: t.error });
     setMsg({ ok: true, text: "Saved." });
     router.refresh();
   }
@@ -210,6 +230,41 @@ export function EventSettings({
           <label className="admin-label">Capacity</label>
           <input className="admin-input" type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Uncapped" />
         </div>
+        <div className="admin-field">
+          <label className="admin-label">Attendee count (override)</label>
+          <input
+            className="admin-input"
+            type="number"
+            min={0}
+            value={attendeeOverride}
+            onChange={(e) => setAttendeeOverride(e.target.value)}
+            placeholder="Count registrations"
+          />
+          <div className="admin-hint">
+            For engagements with no signups (client keynotes and workshops), enter the headcount here. Blank = derive
+            from registrations. Feeds the public workshop attendees counter.
+          </div>
+        </div>
+        {talks.length > 0 && (
+          <div className="admin-field">
+            <label className="admin-label">Talks covered</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {talks.map((t) => (
+                <label key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={talkIds.includes(t.id)}
+                    onChange={(e) =>
+                      setTalkIds((prev) => (e.target.checked ? [...prev, t.id] : prev.filter((id) => id !== t.id)))
+                    }
+                  />
+                  {t.title}
+                </label>
+              ))}
+            </div>
+            <div className="admin-hint">Which keynote/workshop products this event covered. Pick all that apply.</div>
+          </div>
+        )}
         <div className="admin-field">
           <label className="admin-label">Feedback survey</label>
           <select className="admin-select" value={surveyId} onChange={(e) => setSurveyId(e.target.value)}>
