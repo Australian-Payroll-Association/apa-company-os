@@ -58,11 +58,14 @@ export default function MethodPage() {
             </div>
             <h1 className="section-title">How We Design Workflows</h1>
             <p className="wf-hero-sub">
-              Every page in this section follows one method: plan the program with the 5Ds, document the workflow in
-              seven elements, assign each element to a human or a machine, test the document, then ship through three
-              stage gates. It is the same method we teach in the AI Officer certification, applied to our own company.
+              We ground every workflow in validated business and academic frameworks, not prompt tricks. From that
+              foundation, one method carries each page in this section: plan the program with the 5Ds, document the
+              workflow in seven elements, assign each element to a human or a machine, test the document, then ship
+              through three stage gates. It is the same method we teach in the AI Officer certification, applied to
+              our own company.
             </p>
             <div className="wf-hero-meta">
+              <span className="wf-meta-chip">Grounding <strong>Validated frameworks</strong></span>
               <span className="wf-meta-chip">Planning <strong>5D Brief</strong></span>
               <span className="wf-meta-chip">Anatomy <strong>7 elements</strong></span>
               <span className="wf-meta-chip">Assignment <strong>Centaur Map</strong></span>
