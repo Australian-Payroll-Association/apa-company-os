@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/trip-passport-cleanup", "schedule": "0 3 * * *" }
+    { "path": "/api/trip-passport-cleanup", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/contractor-payments", "schedule": "0 6 1 * *" }
   ],
   "redirects": [
     {

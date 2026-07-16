@@ -81,6 +81,14 @@ const NAV: NavGroup[] = [
         ],
       },
       {
+        subheading: "Contractors",
+        items: [
+          { label: "Work Requests", href: "/admin/operations/contractor-requests", ico: "✎", enabled: true },
+          { label: "Contractors", href: "/admin/operations/contractors", ico: "⚒", enabled: true },
+          { label: "Payments", href: "/admin/operations/contractor-payments", ico: "$", enabled: true },
+        ],
+      },
+      {
         subheading: "Workplace",
         items: [
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
