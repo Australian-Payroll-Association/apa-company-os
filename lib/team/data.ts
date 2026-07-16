@@ -40,8 +40,20 @@ type PersonLite = {
   phone: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  avatar_url: string | null;
+  metadata: Record<string, unknown> | null;
 };
 type ManagerName = { full_name: string | null; preferred_name: string | null };
+// The employee-safe slice of people.metadata (populated from the Airtable
+// import). Full DOB / bank / ID live in people_sensitive, never here.
+export type ProfileExtras = {
+  hometown: string | null;
+  education: string | null;
+  hobbies: string[];
+  personalEmail: string | null;
+  birthMonth: number | null;
+  birthDay: number | null;
+};
 export type OwnProfile = {
   id: string;
   employee_number: string | null;
@@ -50,10 +62,26 @@ export type OwnProfile = {
   status: string | null;
   start_date: string | null;
   person: PersonLite | null;
+  avatarUrl: string | null;
   departmentName: string | null;
   positionTitle: string | null;
   managerName: string | null;
+  extras: ProfileExtras;
 };
+
+function extrasOf(metadata: Record<string, unknown> | null): ProfileExtras {
+  const m = metadata ?? {};
+  const asStr = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+  const asNum = (v: unknown): number | null => (typeof v === "number" ? v : null);
+  return {
+    hometown: asStr(m.hometown),
+    education: asStr(m.education),
+    hobbies: Array.isArray(m.hobbies) ? (m.hobbies as unknown[]).filter((h): h is string => typeof h === "string") : [],
+    personalEmail: asStr(m.personal_email),
+    birthMonth: asNum(m.birth_month),
+    birthDay: asNum(m.birth_day),
+  };
+}
 
 // PostgREST returns to-one embeds as an object, but can surface arrays; normalize.
 const one = <T,>(e: T | T[] | null | undefined): T | null =>
@@ -86,7 +114,7 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     .from("team_members")
     .select(
       "id, employee_number, employment_type, work_location, status, start_date, manager_id, " +
-        "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone), " +
+        "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone, avatar_url, metadata), " +
         "departments:departments!department_id(name), " +
         "positions:positions!position_id(title)",
     )
@@ -97,6 +125,7 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
   const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
   const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
   const mgr = await getManagerPerson((r.manager_id as string | null) ?? null);
+  const person = one(r.people as PersonLite | PersonLite[] | null);
   return {
     id: r.id as string,
     employee_number: (r.employee_number as string | null) ?? null,
@@ -104,10 +133,12 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     work_location: (r.work_location as string | null) ?? null,
     status: (r.status as string | null) ?? null,
     start_date: (r.start_date as string | null) ?? null,
-    person: one(r.people as PersonLite | PersonLite[] | null),
+    person,
+    avatarUrl: person?.avatar_url ?? null,
     departmentName: dept?.name ?? null,
     positionTitle: pos?.title ?? null,
     managerName: nameOf(mgr),
+    extras: extrasOf(person?.metadata ?? null),
   };
 }
 

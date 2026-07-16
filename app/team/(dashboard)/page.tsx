@@ -2,6 +2,8 @@ import { requireTeamMember } from "@/lib/team-auth";
 import { getOwnProfile, teamRead } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { formatDate, humanize } from "@/lib/admin/format";
+import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
+import { setOnboardingDone } from "./actions";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -115,6 +117,10 @@ export default async function TeamHome() {
     [profile?.departmentName, profile?.positionTitle].filter(Boolean).join(" · ") ||
     (actor.role === "manager" ? "Manager workspace" : "Team workspace");
 
+  const onboardingDone = Boolean(
+    (profile?.person?.metadata as Record<string, unknown> | null)?.onboarding_completed_at,
+  );
+
   return (
     <>
       <PageHead eyebrow={dateLine} title={`${greeting}, ${actor.displayName}`} sub={heroSub} />
@@ -154,6 +160,12 @@ export default async function TeamHome() {
           <HubCard key={item.title} item={item} />
         ))}
       </div>
+
+      <OnboardingWalkthrough
+        name={actor.displayName.split(/\s+/)[0]}
+        startOpen={!onboardingDone}
+        onFinish={setOnboardingDone}
+      />
     </>
   );
 }

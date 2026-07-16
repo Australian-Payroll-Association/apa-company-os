@@ -1,0 +1,133 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { SensitiveInput, SensitiveRow } from "@/lib/admin/people-sensitive";
+
+type SaveResult = { ok: true; message: string } | { ok: false; error: string };
+
+type FieldDef = { key: keyof SensitiveInput; label: string; type: "text" | "date" | "area" };
+const FIELDS: FieldDef[] = [
+  { key: "date_of_birth", label: "Date of birth", type: "date" },
+  { key: "national_id_number", label: "National ID number", type: "text" },
+  { key: "national_id_issue_date", label: "ID issue date", type: "date" },
+  { key: "national_id_issue_place", label: "ID issue place", type: "text" },
+  { key: "marital_status", label: "Marital status", type: "text" },
+  { key: "permanent_address", label: "Permanent address", type: "area" },
+  { key: "current_address", label: "Current address", type: "area" },
+  { key: "bank_name", label: "Bank", type: "text" },
+  { key: "bank_account_number", label: "Bank account number", type: "text" },
+  { key: "bank_branch", label: "Bank branch", type: "text" },
+  { key: "tax_code", label: "Tax code (PIT)", type: "text" },
+  { key: "social_insurance_number", label: "Social insurance number", type: "text" },
+  { key: "notes", label: "Notes", type: "area" },
+];
+
+// Restricted PII card. PII stays hidden behind a reveal click (shoulder-surfing
+// guard); an Edit toggle turns the fields into inputs. Reads/writes go through
+// the admin-only, audited action passed by the server page.
+export function SensitiveDetails({
+  row,
+  hasIdImages,
+  action,
+}: {
+  row: SensitiveRow | null;
+  hasIdImages: boolean;
+  action: (input: SensitiveInput) => Promise<SaveResult>;
+}) {
+  const router = useRouter();
+  const [revealed, setRevealed] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+
+  const initial = () => {
+    const v: Record<string, string> = {};
+    for (const f of FIELDS) v[f.key] = (row?.[f.key] as string | null) ?? "";
+    return v;
+  };
+  const [values, setValues] = useState<Record<string, string>>(initial);
+
+  function save() {
+    setBanner(null);
+    const input: SensitiveInput = {};
+    for (const f of FIELDS) input[f.key] = values[f.key].trim() ? values[f.key].trim() : null;
+    startTransition(async () => {
+      const res = await action(input);
+      if (res.ok) {
+        setBanner({ tone: "ok", text: "Saved." });
+        setEditing(false);
+        router.refresh();
+      } else {
+        setBanner({ tone: "err", text: res.error });
+      }
+    });
+  }
+
+  if (!revealed) {
+    return (
+      <div className="admin-card admin-section-card">
+        <h2 className="admin-card-title">Sensitive details</h2>
+        <p className="admin-page-sub" style={{ marginTop: 0 }}>
+          Legal and payroll PII — national ID, bank, tax. Access is logged.
+        </p>
+        <button className="admin-btn" onClick={() => setRevealed(true)}>Reveal</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-card admin-section-card">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <h2 className="admin-card-title" style={{ margin: 0 }}>Sensitive details</h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          {!editing && <button className="admin-btn admin-btn--sm" onClick={() => setRevealed(false)}>Hide</button>}
+          {editing ? (
+            <>
+              <button className="admin-btn admin-btn--sm" onClick={() => { setEditing(false); setValues(initial()); }} disabled={pending}>Cancel</button>
+              <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={save} disabled={pending}>
+                {pending ? "Saving…" : "Save"}
+              </button>
+            </>
+          ) : (
+            <button className="admin-btn admin-btn--sm" onClick={() => setEditing(true)}>Edit</button>
+          )}
+        </div>
+      </div>
+
+      {banner && (
+        <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`} style={{ marginTop: 12 }}>
+          {banner.text}
+        </div>
+      )}
+
+      {editing ? (
+        <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+          {FIELDS.map((f) => (
+            <div className="admin-field" key={f.key}>
+              <label className="admin-label" htmlFor={`sd-${f.key}`}>{f.label}</label>
+              {f.type === "area" ? (
+                <textarea id={`sd-${f.key}`} className="admin-input" rows={2}
+                  value={values[f.key]} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} />
+              ) : (
+                <input id={`sd-${f.key}`} className="admin-input" type={f.type === "date" ? "date" : "text"}
+                  value={values[f.key]} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <dl className="admin-kv" style={{ marginTop: 14 }}>
+          {FIELDS.map((f) => (
+            <div style={{ display: "contents" }} key={f.key}>
+              <dt>{f.label}</dt>
+              <dd>{(row?.[f.key] as string | null) || "—"}</dd>
+            </div>
+          ))}
+          <dt>ID card images</dt>
+          <dd>{hasIdImages ? "On file" : <span className="admin-cell-muted">Not uploaded</span>}</dd>
+        </dl>
+      )}
+    </div>
+  );
+}

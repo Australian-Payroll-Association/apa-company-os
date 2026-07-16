@@ -3,6 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
 import { updateOwnContact } from "@/lib/team/data";
+import { setPersonAvatar, type AvatarResult } from "@/lib/avatars";
+
+// Self-service avatar: writes ONLY the actor's own person row (personId comes
+// from the JWT-derived actor, never the client).
+export async function saveOwnAvatar(formData: FormData): Promise<AvatarResult> {
+  const actor = await requireTeamMember();
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file received." };
+  const res = await setPersonAvatar(actor.personId, file);
+  if (res.ok) {
+    revalidatePath("/team/profile");
+    revalidatePath("/team");
+  }
+  return res;
+}
 
 // Self-service profile edit. The actor comes from requireTeamMember() and
 // updateOwnContact writes only their own people row with a fixed field

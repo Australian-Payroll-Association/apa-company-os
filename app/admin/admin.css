@@ -778,6 +778,95 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   margin: 26px 0 12px;
 }
 
+/* ─── Avatar (upload widget + display) ────────────────── */
+.team-avatar-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+.team-avatar {
+  position: relative;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.5px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-avatar.is-editable { cursor: pointer; }
+.team-avatar.is-editable:hover .team-avatar-edit { opacity: 1; }
+.team-avatar-edit {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(4, 16, 45, 0.45);
+  color: #fff; font-size: 18px;
+  opacity: 0; transition: opacity var(--transition);
+}
+.team-avatar-err { font-size: 11.5px; color: var(--admin-err-ink); max-width: 160px; text-align: center; }
+
+/* ─── /team/profile ───────────────────────────────────── */
+.team-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.team-profile-head-text { min-width: 0; flex: 1; }
+.team-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start; /* top-align every card regardless of height */
+}
+.team-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.team-chip {
+  font-size: 12px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  padding: 3px 10px;
+  border-radius: var(--admin-radius-pill);
+}
+
+/* ─── Onboarding walkthrough ───────────────────────────── */
+.team-tour-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(4, 16, 45, 0.55);
+  animation: team-tour-fade 0.16s ease-out;
+}
+@keyframes team-tour-fade { from { opacity: 0; } to { opacity: 1; } }
+.team-tour-card {
+  width: 100%; max-width: 440px;
+  background: var(--admin-surface);
+  border-radius: 16px;
+  box-shadow: var(--admin-shadow-modal);
+  padding: 28px 26px 20px;
+  text-align: center;
+}
+.team-tour-ico {
+  width: 52px; height: 52px; margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--admin-accent-soft); color: var(--admin-accent);
+  display: grid; place-items: center; font-size: 24px;
+}
+.team-tour-title { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--admin-ink); margin: 0 0 8px; }
+.team-tour-body { color: var(--admin-ink-2); font-size: 14px; line-height: 1.55; margin: 0 auto 16px; max-width: 360px; }
+.team-tour-cta { display: inline-flex; margin-bottom: 6px; text-decoration: none; }
+.team-tour-dots { display: flex; justify-content: center; gap: 6px; margin: 16px 0; }
+.team-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--admin-line-strong); }
+.team-tour-dot.is-on { background: var(--admin-accent); }
+.team-tour-nav { display: flex; align-items: center; justify-content: space-between; }
+.team-tour-skip {
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 13px;
+  cursor: pointer; padding: 6px; min-width: 40px; text-align: left;
+}
+.team-tour-skip:hover { color: var(--admin-ink-2); }
+.team-tour-replay {
+  display: inline-flex; margin-top: 26px;
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 0;
+}
+.team-tour-replay:hover { color: var(--admin-accent); }
+
 /* ─── Badges / pills ──────────────────────────────── */
 .admin-badge {
   display: inline-flex;

@@ -7,8 +7,46 @@ import { requireAdmin, isAdminEmail } from "@/lib/admin-auth";
 import { PORTAL_STATUSES } from "@/lib/team-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { sendTransactionalEmail } from "@/lib/email";
+import { setPersonAvatar, type AvatarResult } from "@/lib/avatars";
+import { upsertPeopleSensitive, type SensitiveInput } from "@/lib/admin/people-sensitive";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
+
+// Admin sets a team member's photo. Bound to a personId in the page, so the
+// AvatarUpload component only sends the file. Gated by requireAdmin + audited.
+export async function adminSetPersonAvatar(
+  personId: string,
+  formData: FormData,
+): Promise<AvatarResult> {
+  const admin = await requireAdmin();
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file received." };
+  const res = await setPersonAvatar(personId, file);
+  if (res.ok) {
+    await recordAudit({
+      table: "people",
+      recordId: personId,
+      operation: "update",
+      actor: admin.email,
+      context: { field: "avatar_url", via: "admin" },
+    });
+    revalidatePath("/admin/talent/team");
+  }
+  return res;
+}
+
+// Admin edits the restricted PII record. Gated by requireAdmin; the upsert
+// records its own audit row with the admin's email.
+export async function saveSensitiveDetails(
+  personId: string,
+  input: SensitiveInput,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const res = await upsertPeopleSensitive(personId, input, admin.email);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/admin/talent/team");
+  return { ok: true, message: "Saved." };
+}
 
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the
 // people.auth_user_id link intact so access can be restored by re-inviting.
