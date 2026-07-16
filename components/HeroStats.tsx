@@ -17,11 +17,13 @@ const STATS = [
     target: 16,
     label: 'Leadership Teams',
     sub: 'certified to run AI on their own',
+    href: '/training-and-certification',
   },
   {
     target: 46,
     label: 'Applications Launched',
     sub: 'launched by 11 clients in the last 3 months',
+    href: '/#case-studies',
   },
   {
     target: ATTENDEES_FALLBACK,
