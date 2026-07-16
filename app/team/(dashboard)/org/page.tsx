@@ -36,18 +36,16 @@ function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean
   const isContractor = entry.employmentType === "contract";
   return (
     <div className={`team-org-card${isRoot ? " is-root" : ""}`}>
-      <span className="team-org-namerow">
-        <span className="team-org-name">{entry.name}</span>
-        <span className={`team-org-badge ${isContractor ? "is-contract" : "is-fte"}`}>
-          {isContractor ? "Contractor" : "FTE"}
-        </span>
-      </span>
+      <span className="team-org-name">{entry.name}</span>
       {(meta || reports) && (
         <span className="team-org-meta">
           {meta || "—"}
           {reports ? ` · ${reports} ${reports === 1 ? "report" : "reports"}` : ""}
         </span>
       )}
+      <span className={`team-org-badge ${isContractor ? "is-contract" : "is-fte"}`}>
+        {isContractor ? "Contractor" : "FTE"}
+      </span>
     </div>
   );
 }
@@ -93,11 +91,13 @@ export default async function TeamOrgPage() {
         sub={`${entries.length} people · live from the directory`}
       />
 
-      <ul className="team-org">
-        {roots.map((r) => (
-          <OrgNode key={r.id} entry={r} map={map} isRoot />
-        ))}
-      </ul>
+      <div className="team-org-wrap">
+        <ul className="team-org">
+          {roots.map((r) => (
+            <OrgNode key={r.id} entry={r} map={map} isRoot />
+          ))}
+        </ul>
+      </div>
 
       {independents.length > 0 && (
         <>

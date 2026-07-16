@@ -572,49 +572,99 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 }
 
 /* ─── Team portal org chart ───────────────────────────
-   Reporting tree as nested lists: hairline left borders for descent, quiet
-   cards per person. No box-drawing connectors — indentation carries it. */
-.team-org { list-style: none; margin: 0; padding: 0; }
-.team-org-children {
+   Classic top-down hierarchy: centered cards per level, hairline connectors
+   drawn with li/ul pseudo-elements (top rails + center drop lines). The whole
+   chart scrolls horizontally inside .team-org-wrap — wide levels are the
+   nature of org charts, the page never stretches. */
+.team-org-wrap { overflow-x: auto; padding: 4px 2px 16px; }
+.team-org,
+.team-org ul {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   list-style: none;
-  margin: 0 0 0 14px;
-  padding: 0 0 0 20px;
-  border-left: 1px solid var(--admin-line);
+  margin: 0;
+  padding: 0;
 }
-.team-org-node { padding-top: 10px; }
-.team-org-card {
-  display: inline-flex;
+.team-org ul { position: relative; padding-top: 26px; }
+/* Stem dropping from a parent card to its children's rail. */
+.team-org ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 26px;
+  border-left: 1px solid var(--admin-line-strong);
+}
+.team-org li {
+  display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  position: relative;
+  padding: 26px 7px 0;
+}
+/* Rails: ::before = left half of the top rail, ::after = right half plus this
+   node's own drop line down to its card. */
+.team-org li::before,
+.team-org li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 26px;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--admin-line-strong);
+}
+/* Outer edges of the rail stop at the first/last child; the last child keeps
+   its drop line via border-right on the left-half box. */
+.team-org li:first-child::before { border-top: 0; }
+.team-org li:last-child::after { border-top: 0; border-left: 0; }
+.team-org li:last-child::before { border-right: 1px solid var(--admin-line-strong); border-radius: 0 8px 0 0; }
+.team-org li:first-child::after { border-radius: 8px 0 0 0; }
+/* An only child needs no rail — the parent stem reaches its card directly. */
+.team-org li:only-child { padding-top: 0; }
+.team-org li:only-child::before,
+.team-org li:only-child::after { display: none; }
+/* Roots (top-level) hang from nothing. */
+.team-org > li { padding-top: 0; }
+.team-org > li::before,
+.team-org > li::after { display: none; }
+
+.team-org-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
   background: var(--admin-surface);
   border: 1px solid var(--admin-line);
   border-radius: 10px;
   box-shadow: var(--admin-shadow);
   padding: 10px 14px;
-  min-width: 220px;
-  max-width: 100%;
+  min-width: 150px;
+  max-width: 200px;
 }
 .team-org-card.is-root { border-color: var(--admin-accent); }
-.team-org-namerow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.team-org-name { font-weight: 600; font-size: 13.5px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-org-name { font-weight: 600; font-size: 13px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-org-meta { font-size: 11.5px; color: var(--admin-muted); overflow-wrap: anywhere; line-height: 1.4; }
 /* Employment badges — blue for FTE, orange for contractor. */
 .team-org-badge {
-  flex: 0 0 auto;
-  font-size: 10px;
+  margin-top: 3px;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  padding: 2px 8px;
+  padding: 1px 8px;
   border-radius: var(--admin-radius-pill);
 }
 .team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
 .team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
-.team-org-meta { font-size: 12px; color: var(--admin-muted); overflow-wrap: anywhere; }
 .team-org-independents { display: flex; flex-wrap: wrap; gap: 10px; }
-@media (max-width: 720px) {
-  .team-org-children { margin-left: 8px; padding-left: 12px; }
-  .team-org-card { min-width: 0; width: 100%; }
-}
 
 /* ─── Team portal home hub ────────────────────────────
    Card grid on /team home: every employee touchpoint, shipped or not. Live
