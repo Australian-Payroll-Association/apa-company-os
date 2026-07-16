@@ -595,7 +595,20 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   max-width: 100%;
 }
 .team-org-card.is-root { border-color: var(--admin-accent); }
+.team-org-namerow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .team-org-name { font-weight: 600; font-size: 13.5px; color: var(--admin-ink); overflow-wrap: anywhere; }
+/* Employment badges — blue for FTE, orange for contractor. */
+.team-org-badge {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: var(--admin-radius-pill);
+}
+.team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
+.team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
 .team-org-meta { font-size: 12px; color: var(--admin-muted); overflow-wrap: anywhere; }
 .team-org-independents { display: flex; flex-wrap: wrap; gap: 10px; }
 @media (max-width: 720px) {

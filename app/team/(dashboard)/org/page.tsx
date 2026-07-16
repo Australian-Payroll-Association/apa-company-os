@@ -32,9 +32,16 @@ function countReports(id: string, map: Map<string | null, OrgEntry[]>): number {
 
 function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean; reports?: number }) {
   const meta = [entry.positionTitle, entry.departmentName].filter(Boolean).join(" · ");
+  // Blue badge / orange badge, the Microsoft way: FTE blue, contractor orange.
+  const isContractor = entry.employmentType === "contract";
   return (
     <div className={`team-org-card${isRoot ? " is-root" : ""}`}>
-      <span className="team-org-name">{entry.name}</span>
+      <span className="team-org-namerow">
+        <span className="team-org-name">{entry.name}</span>
+        <span className={`team-org-badge ${isContractor ? "is-contract" : "is-fte"}`}>
+          {isContractor ? "Contractor" : "FTE"}
+        </span>
+      </span>
       {(meta || reports) && (
         <span className="team-org-meta">
           {meta || "—"}
