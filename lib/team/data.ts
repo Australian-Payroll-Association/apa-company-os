@@ -7,6 +7,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
+import type { SensitiveRow } from "@/lib/admin/people-sensitive";
 
 // Tables /team may read, and the column + scope each is filtered on. A table not
 // listed here cannot be read from /team. Expand this deliberately, one table per
@@ -38,6 +39,7 @@ type PersonLite = {
   preferred_name: string | null;
   email: string;
   phone: string | null;
+  gender: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   avatar_url: string | null;
@@ -61,6 +63,8 @@ export type OwnProfile = {
   work_location: string | null;
   status: string | null;
   start_date: string | null;
+  employmentStage: string | null;
+  probationEndsOn: string | null;
   person: PersonLite | null;
   avatarUrl: string | null;
   departmentName: string | null;
@@ -113,8 +117,8 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, employee_number, employment_type, work_location, status, start_date, manager_id, " +
-        "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone, avatar_url, metadata), " +
+      "id, employee_number, employment_type, work_location, status, start_date, manager_id, employment_stage, probation_ends_on, " +
+        "people:people!person_id(full_name, preferred_name, email, phone, gender, emergency_contact_name, emergency_contact_phone, avatar_url, metadata), " +
         "departments:departments!department_id(name), " +
         "positions:positions!position_id(title)",
     )
@@ -133,6 +137,8 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     work_location: (r.work_location as string | null) ?? null,
     status: (r.status as string | null) ?? null,
     start_date: (r.start_date as string | null) ?? null,
+    employmentStage: (r.employment_stage as string | null) ?? null,
+    probationEndsOn: (r.probation_ends_on as string | null) ?? null,
     person,
     avatarUrl: person?.avatar_url ?? null,
     departmentName: dept?.name ?? null,
@@ -325,28 +331,80 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Self-scoped profile update: writes ONLY the actor's own people row (filtered
-// on actor.personId from the JWT-derived actor, never client input) and ONLY
-// the fields an employee may edit about themselves. Employment fields, names
-// used for payroll (full_name), and email are admin-managed; widening this
-// allowlist is a security decision, not a convenience.
-const OWN_EDITABLE_FIELDS = [
+// Self-scoped profile writes. Every function here is filtered on
+// actor.personId (from the JWT-derived actor, never client input) and touches
+// ONLY the fields an employee may edit about themselves. Employment fields,
+// full_name (used for payroll), and the company email stay admin-managed;
+// widening these allowlists is a security decision, not a convenience.
+
+// people columns the employee may self-edit.
+const OWN_PEOPLE_COLUMNS = [
   "preferred_name",
   "phone",
+  "gender",
   "emergency_contact_name",
   "emergency_contact_phone",
 ] as const;
-export type OwnEditableField = (typeof OWN_EDITABLE_FIELDS)[number];
+type OwnPeopleColumn = (typeof OWN_PEOPLE_COLUMNS)[number];
+// people.metadata keys the employee may self-edit (birth_month/day are derived
+// from the full DOB, which itself lives in the restricted people_sensitive).
+const OWN_METADATA_KEYS = [
+  "personal_email",
+  "hometown",
+  "education",
+  "hobbies",
+  "birth_month",
+  "birth_day",
+] as const;
+type OwnMetadataKey = (typeof OWN_METADATA_KEYS)[number];
 
-export async function updateOwnContact(
+// Merge-write the actor's own people columns + metadata. metadata is read then
+// merged (the JS client can't do a jsonb `||`), so empty/null keys are removed
+// rather than written as nulls, keeping the blob tidy.
+export async function updateOwnBasics(
   actor: TeamActor,
-  fields: Partial<Record<OwnEditableField, string | null>>,
+  columns: Partial<Record<OwnPeopleColumn, string | null>>,
+  metadata: Partial<Record<OwnMetadataKey, unknown>>,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const patch: Record<string, string | null> = {};
-  for (const key of OWN_EDITABLE_FIELDS) {
-    if (key in fields) patch[key] = fields[key] ?? null;
+  const { data: current } = await companyOs
+    .from("people")
+    .select("metadata")
+    .eq("id", actor.personId)
+    .maybeSingle();
+  const baseMeta = ((current as { metadata: Record<string, unknown> | null } | null)?.metadata) ?? {};
+  const nextMeta: Record<string, unknown> = { ...baseMeta };
+  for (const k of OWN_METADATA_KEYS) {
+    if (!(k in metadata)) continue;
+    const v = metadata[k];
+    const empty = v == null || v === "" || (Array.isArray(v) && v.length === 0);
+    if (empty) delete nextMeta[k];
+    else nextMeta[k] = v;
   }
-  if (Object.keys(patch).length === 0) return { ok: false, error: "Nothing to update." };
+  const patch: Record<string, unknown> = { metadata: nextMeta, updated_at: new Date().toISOString() };
+  for (const c of OWN_PEOPLE_COLUMNS) {
+    if (c in columns) patch[c] = columns[c] ?? null;
+  }
   const { error } = await companyOs.from("people").update(patch).eq("id", actor.personId);
   return { ok: !error, error: error?.message ?? null };
+}
+
+// The actor's own restricted PII row (self-scoped). Returns null if none yet.
+export async function getOwnSensitive(actor: TeamActor): Promise<SensitiveRow | null> {
+  const { data } = await companyOs
+    .from("people_sensitive")
+    .select("*")
+    .eq("person_id", actor.personId)
+    .maybeSingle();
+  return (data as SensitiveRow | null) ?? null;
+}
+
+// The actor's own company email — for the audit actor label and bank-change
+// alert. Fetched server-side; never trust a client-supplied email as identity.
+export async function getOwnEmail(actor: TeamActor): Promise<string | null> {
+  const { data } = await companyOs
+    .from("people")
+    .select("email")
+    .eq("id", actor.personId)
+    .maybeSingle();
+  return (data as { email: string } | null)?.email ?? null;
 }

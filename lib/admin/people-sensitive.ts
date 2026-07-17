@@ -51,7 +51,7 @@ function clean(field: SensitiveField, value: string | null | undefined): string 
   return v;
 }
 
-export type UpsertResult = { ok: true } | { ok: false; error: string };
+export type UpsertResult = { ok: true; changed: SensitiveField[] } | { ok: false; error: string };
 
 export async function upsertPeopleSensitive(
   personId: string,
@@ -85,7 +85,7 @@ export async function upsertPeopleSensitive(
   // Audit the FIELD NAMES that changed — never the values.
   const changed = Object.keys(patch).filter(
     (k) => String(oldRow?.[k] ?? "") !== String(patch[k] ?? ""),
-  );
+  ) as SensitiveField[];
   if (changed.length > 0) {
     await recordAudit({
       table: "people_sensitive",
@@ -95,5 +95,5 @@ export async function upsertPeopleSensitive(
       context: { fields_changed: changed },
     });
   }
-  return { ok: true };
+  return { ok: true, changed };
 }

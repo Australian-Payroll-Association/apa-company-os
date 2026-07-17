@@ -117,3 +117,32 @@ export async function sendOfflineReservedEmail(opts: {
     replyTo: "quan@edge8.ai",
   });
 }
+
+// Fraud tripwire: whenever bank details on someone's own record change, both
+// the employee and HR get told, so a payroll-diversion attempt can't happen
+// quietly. Values are never included — only that a change happened.
+export async function sendBankChangeAlert(opts: {
+  employeeName: string;
+  employeeEmail: string;
+}): Promise<void> {
+  const hrEmail = process.env.HR_ALERT_EMAIL || "dave@edge8.ai";
+  const when = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date());
+  const html = `
+    <p>Heads up — the bank details on ${opts.employeeName}'s Edge8 profile were just changed.</p>
+    <p style="color:#64748b;font-size:13px;">${when} (Saigon time)</p>
+    <p>If this wasn't expected, review it in the admin People area and confirm with ${opts.employeeName} directly before the next payroll run.</p>
+    <p>Edge8 OS</p>
+  `.trim();
+
+  // De-duped recipient list: employee always, plus HR (unless they're the same).
+  const to = Array.from(new Set([opts.employeeEmail, hrEmail].filter(Boolean)));
+  await sendTransactionalEmail({
+    to,
+    subject: `Bank details changed — ${opts.employeeName}`,
+    html,
+  });
+}
