@@ -831,8 +831,8 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   white-space: nowrap;
 }
 
-/* Profile is one readable column, not a wall of side-by-side cards. */
-.team-profile { max-width: 640px; }
+/* Profile is one readable column, not a wall of side-by-side cards. Full page
+   width like every other /team page; the field grids inside keep it readable. */
 .team-profile-stack { display: flex; flex-direction: column; gap: 14px; }
 /* Spacing between cards comes from the flex gap alone; cancel the global
    adjacent-card margin so every gap in the column is an even 14px. */

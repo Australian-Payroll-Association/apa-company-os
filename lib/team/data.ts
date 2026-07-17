@@ -271,17 +271,21 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
     )
     .in("status", DIRECTORY_STATUSES);
   type Name = { full_name: string | null; preferred_name: string | null; avatar_url?: string | null };
-  const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+  const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
+    const person = one(r.people as Name | Name[] | null);
+    return {
     id: r.id as string,
     managerId: (r.manager_id as string | null) ?? null,
-    name: nameOf(one(r.people as Name | Name[] | null)) ?? "—",
-    avatarUrl: one(r.people as Name | Name[] | null)?.avatar_url ?? null,
+    // The directory shows the full legal name (fall back to nickname/email).
+    name: person?.full_name || person?.preferred_name || "—",
+    avatarUrl: person?.avatar_url ?? null,
     positionTitle:
       one(r.positions as { title: string | null } | { title: string | null }[] | null)?.title ?? null,
     departmentName:
       one(r.departments as { name: string | null } | { name: string | null }[] | null)?.name ?? null,
     location: (r.work_location as string | null) ?? null,
-  }));
+    };
+  });
   // Managers are directory rows themselves — resolve names in-memory instead of
   // via the ambiguous self-referencing embed (see getManagerPerson).
   const nameById = new Map(rows.map((r) => [r.id, r.name]));
