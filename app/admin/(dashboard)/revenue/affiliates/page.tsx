@@ -1,139 +1,95 @@
-import Link from "next/link";
-import { companyOs } from "@/lib/supabase";
-import { listEntity, countEntity } from "@/lib/admin/query";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
-import { formatDate, humanize } from "@/lib/admin/format";
-import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { formatCents } from "@/lib/admin/format";
+import { getAffiliateGroups } from "@/lib/admin/affiliates";
+import { AffiliatesShelfProvider, AffiliateShelfRow } from "./AffiliatesShelf";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Affiliates",
-  description: "Referral partners and their commissions.",
+  description: "Referral partners, their referred deals, and commission owed.",
 };
 
-// Revenue office: affiliate / referral partners. Each links to its person 360.
-// No FilterBar: program_type and active are single-valued today, so a dropdown would
-// be dead weight — search + sort cover it.
-type P = { full_name: string | null; email: string };
-type Affiliate = {
-  id: string;
-  code: string;
-  program_type: string | null;
-  rate: number | null;
-  stripe_coupon_id: string | null;
-  active: boolean | null;
-  notes: string | null;
-  created_at: string;
-  person_id: string | null;
-  people: P | P[] | null;
-};
+// Revenue office: affiliate / referral partners, ONE ROW PER PERSON (a person
+// may hold several codes). The shelf shows their codes, referred deals pulled
+// live from the CRM (deals.affiliate_id or deals.referrer_id), and commissions
+// with their redemption status (20% work credit / 10% cash). Small table, so no
+// pagination/search — the grouped fetch aggregates everything in one pass.
+export default async function AffiliatesPage() {
+  const groups = await getAffiliateGroups();
 
-const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
-const PAGE_SIZE = 25;
-const SORTABLE = new Set(["code", "program_type", "rate", "active", "created_at"]);
-
-export default async function AffiliatesPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
-  const q = firstParam(searchParams.q) ?? "";
-  const sortParam = firstParam(searchParams.sort);
-  const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
-  const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
-
-  const [{ rows, total, pageSize, error }, activeCount, couponRes] = await Promise.all([
-    listEntity<Affiliate>(
-      "affiliates",
-      "id, code, program_type, rate, stripe_coupon_id, active, notes, created_at, person_id, people(full_name, email)",
-      { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["code", "notes"], sort, dir },
-    ),
-    countEntity("affiliates", { active: true }),
-    companyOs.from("affiliates").select("*", { count: "exact", head: true }).not("stripe_coupon_id", "is", null),
-  ]);
-
-  const couponCount = couponRes.count ?? 0;
-
-  const columns: Column<Affiliate>[] = [
-    { key: "code", header: "Code", sortable: true, cell: (r) => <span className="admin-cell-strong admin-cell-mono">{r.code}</span> },
-    {
-      key: "person",
-      header: "Contact",
-      cell: (r) => {
-        const p = one(r.people);
-        const label = p?.full_name || p?.email;
-        return <span className={label ? "admin-cell-strong" : "admin-cell-muted"}>{label || "—"}</span>;
-      },
-    },
-    { key: "program_type", header: "Program", sortable: true, cell: (r) => (r.program_type ? <Badge>{humanize(r.program_type)}</Badge> : <span className="admin-cell-muted">—</span>) },
-    { key: "rate", header: "Rate", sortable: true, align: "right", className: "admin-cell-mono", cell: (r) => (r.rate != null ? String(r.rate) : <span className="admin-cell-muted">—</span>) },
-    { key: "coupon", header: "Coupon", cell: (r) => (r.stripe_coupon_id ? <span className="admin-cell-mono">{r.stripe_coupon_id}</span> : <span className="admin-cell-muted">—</span>) },
-    { key: "active", header: "Active", sortable: true, cell: (r) => (r.active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>) },
-    { key: "created_at", header: "Added", sortable: true, cell: (r) => formatDate(r.created_at) },
-  ];
+  const activeCount = groups.filter((g) => g.active).length;
+  const openPipeline = groups.reduce((s, g) => s + g.referredOpenPipelineCents, 0);
+  const unpaid = groups.reduce((s, g) => s + g.unpaidCents, 0);
+  const pending = groups.reduce((s, g) => s + g.pendingCount, 0);
 
   return (
     <>
-      <PageHead eyebrow="Revenue" title="Affiliates" sub={`${total.toLocaleString()} ${total === 1 ? "affiliate" : "affiliates"}`} />
-      {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
+      <PageHead
+        eyebrow="Revenue"
+        title="Affiliates"
+        sub={`${groups.length} ${groups.length === 1 ? "affiliate" : "affiliates"}`}
+      />
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Active affiliates" value={activeCount} sub={`of ${total.toLocaleString()} codes`} />
-        <MetricCard label="With Stripe coupon" value={couponCount} sub="linked discount code" />
+        <MetricCard label="Active affiliates" value={activeCount} sub={`of ${groups.length} people`} />
+        <MetricCard label="Referred pipeline" value={formatCents(openPipeline, "usd")} sub="open referred deals" />
+        <MetricCard label="Unpaid commission" value={formatCents(unpaid, "usd")} sub="redeemed, not paid out" />
+        <MetricCard label="Pending choice" value={pending} sub="commissions awaiting redemption" />
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        sort={sort}
-        dir={dir}
-        basePath="/admin/revenue/affiliates"
-        searchParams={searchParams}
-        searchPlaceholder="Search code or notes…"
-        emptyText="No affiliates match."
-        getRowPreview={(r) => {
-          const p = one(r.people);
-          return {
-            eyebrow: "Affiliate",
-            title: r.code,
-            body: (
-              <>
-                <dl className="admin-kv">
-                  <dt>Contact</dt>
-                  <dd>{p?.full_name || p?.email || "—"}</dd>
-                  <dt>Program</dt>
-                  <dd>{r.program_type ? <Badge>{humanize(r.program_type)}</Badge> : "—"}</dd>
-                  <dt>Rate</dt>
-                  <dd className="admin-cell-mono">{r.rate != null ? String(r.rate) : "—"}</dd>
-                  <dt>Coupon</dt>
-                  <dd className="admin-cell-mono">{r.stripe_coupon_id || "—"}</dd>
-                  <dt>Active</dt>
-                  <dd>{r.active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>}</dd>
-                  {r.notes ? (
-                    <>
-                      <dt>Notes</dt>
-                      <dd>{r.notes}</dd>
-                    </>
-                  ) : null}
-                  <dt>Created</dt>
-                  <dd>{formatDate(r.created_at)}</dd>
-                </dl>
-                {r.person_id && (
-                  <div style={{ marginTop: 16 }}>
-                    <Link href={`/admin/contacts/${r.person_id}`} className="admin-btn admin-btn--primary">
-                      Open contact
-                    </Link>
-                  </div>
-                )}
-              </>
-            ),
-          };
-        }}
-      />
+      <AffiliatesShelfProvider>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Affiliate</th>
+                <th>Codes</th>
+                <th style={{ textAlign: "right" }}>Referred deals</th>
+                <th style={{ textAlign: "right" }}>Referred pipeline</th>
+                <th style={{ textAlign: "right" }}>Unpaid</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="admin-cell-muted" style={{ textAlign: "center", padding: 24 }}>
+                    No affiliates yet.
+                  </td>
+                </tr>
+              ) : (
+                groups.map((g) => (
+                  <AffiliateShelfRow row={g} key={g.personId}>
+                    <td>
+                      <span className="admin-cell-strong">{g.fullName || g.email}</span>
+                      {g.fullName && <div className="admin-cell-muted">{g.email}</div>}
+                    </td>
+                    <td className="admin-cell-mono">
+                      {g.codes.filter((c) => c.active).map((c) => c.code).join(", ") || <span className="admin-cell-muted">—</span>}
+                    </td>
+                    <td style={{ textAlign: "right" }}>{g.referredDealCount || <span className="admin-cell-muted">0</span>}</td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                      {g.referredOpenPipelineCents ? formatCents(g.referredOpenPipelineCents, "usd") : <span className="admin-cell-muted">—</span>}
+                    </td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                      {g.unpaidCents ? formatCents(g.unpaidCents, "usd") : <span className="admin-cell-muted">—</span>}
+                    </td>
+                    <td>
+                      <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
+                        {g.active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>}
+                        {g.pendingCount > 0 && <Badge tone="warn">{g.pendingCount} pending</Badge>}
+                      </span>
+                    </td>
+                  </AffiliateShelfRow>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </AffiliatesShelfProvider>
     </>
   );
 }
