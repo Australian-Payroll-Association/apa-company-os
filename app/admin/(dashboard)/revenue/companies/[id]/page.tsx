@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCompany360 } from "@/lib/admin/companies";
+import { getCompany360, getCompanyReferredBy } from "@/lib/admin/companies";
 import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
 import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/staff-assignments";
 import { getInvoicesForCompany, getQboCustomerIds } from "@/lib/admin/invoices";
 import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
@@ -27,17 +28,32 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people } = data;
   const name = company.name || "(no name)";
-  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds] =
+  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy] =
     await Promise.all([
       getPortalMembershipsForCompany(company.id),
       getAssignmentsForCompany(company.id),
       listActiveTeamMembers(),
       getInvoicesForCompany(company.id),
       getQboCustomerIds(company.id),
+      getCompanyReferredBy(company.id),
     ]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
+
+  // At-a-glance figures for the summary strip.
+  const OPEN = new Set(["open", "new_lead", "contacted", "discovery", "proposal"]);
+  const dealValueCents = deals.reduce((s, d) => s + (d.amount_usd_cents ?? d.amount_cents ?? 0), 0);
+  const openValueCents = deals.reduce(
+    (s, d) => s + (OPEN.has((d.status || "").toLowerCase()) ? d.amount_usd_cents ?? d.amount_cents ?? 0 : 0),
+    0,
+  );
+  const lastActivity = deals.reduce<string | null>(
+    (latest, d) => (!latest || d.created_at > latest ? d.created_at : latest),
+    null,
+  );
+  const affiliateContacts = people.filter((p) => p.affiliateActive);
+  const hasReferralContext = referredBy.length > 0 || affiliateContacts.length > 0;
 
   const tabs: TabDef[] = [
     {
@@ -148,6 +164,46 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         }
       />
 
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard label="Stage" value={humanize(company.lifecycle_stage) || "—"} sub={`Added ${formatDate(company.created_at)}`} />
+        <MetricCard label="Deals" value={deals.length} sub={dealValueCents ? `${formatCents(dealValueCents, "usd")} total` : "no value yet"} />
+        <MetricCard label="Open pipeline" value={openValueCents ? formatCents(openValueCents, "usd") : "—"} sub={lastActivity ? `last deal ${formatDate(lastActivity)}` : "no deals"} />
+        <MetricCard label="People" value={people.length} sub={`${activeMemberCount} with portal`} />
+        <MetricCard label="Invoices" value={invoices.length} sub={invoices.length ? "in QuickBooks" : "none synced"} />
+      </div>
+
+      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+        <div className="admin-shelf-heading" style={{ marginBottom: 8 }}>Referral &amp; affiliates</div>
+        {hasReferralContext ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            {referredBy.length > 0 && (
+              <div>
+                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 2 }}>Referred by</div>
+                <div className="admin-cell-strong">{referredBy.join(", ")}</div>
+              </div>
+            )}
+            {affiliateContacts.length > 0 && (
+              <div>
+                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>Affiliate contacts</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {affiliateContacts.map((p) => (
+                    <Link key={p.id} href={`/admin/contacts/${p.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {p.full_name || p.email}
+                      {p.affiliateCode && <Badge tone="ok">{p.affiliateCode}</Badge>}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="admin-cell-muted">
+            No referral link. Any contact here can be made an affiliate from the{" "}
+            <Link href="/admin/revenue/affiliates">Affiliates</Link> page or the company shelf.
+          </div>
+        )}
+      </div>
+
       <div className="admin-360">
         <div>
           <div className="admin-card admin-section-card">
@@ -166,29 +222,6 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
               showNotes
             />
           </div>
-          <div className="admin-card admin-section-card">
-            <dl className="admin-kv">
-              <dt>Website</dt>
-              <dd>
-                {company.website ? (
-                  <a href={company.website} target="_blank" rel="noreferrer">
-                    {company.website}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </dd>
-              <dt>Industry</dt>
-              <dd>{company.industry || "—"}</dd>
-              <dt>Size</dt>
-              <dd>{company.size_band || "—"}</dd>
-              <dt>Country</dt>
-              <dd>{company.country || "—"}</dd>
-              <dt>Added</dt>
-              <dd>{formatDate(company.created_at)}</dd>
-            </dl>
-          </div>
-
           <AssignedStaffCard
             companyId={company.id}
             assignments={assignments}

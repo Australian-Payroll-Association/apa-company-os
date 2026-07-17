@@ -94,3 +94,28 @@ export async function getCompany360(id: string): Promise<Company360 | null> {
     people,
   };
 }
+
+// Who referred this company's deals — resolved from both referral paths on
+// deals (referrer_id = a person; affiliate_id = a code). Distinct display
+// names, for the "Referred by" line on the company profile.
+export async function getCompanyReferredBy(companyId: string): Promise<string[]> {
+  const rows = await safe(
+    companyOs.from("deals").select("referrer_id, affiliate_id").eq("company_id", companyId),
+  );
+  const referrerIds = [...new Set(rows.map((r) => (r as { referrer_id: string | null }).referrer_id).filter(Boolean) as string[])];
+  const affiliateIds = [...new Set(rows.map((r) => (r as { affiliate_id: string | null }).affiliate_id).filter(Boolean) as string[])];
+
+  const names = new Set<string>();
+  if (referrerIds.length) {
+    const people = await safe(companyOs.from("people").select("full_name, email").in("id", referrerIds));
+    for (const p of people as Array<{ full_name: string | null; email: string }>) names.add(p.full_name || p.email);
+  }
+  if (affiliateIds.length) {
+    const affs = await safe(companyOs.from("affiliates").select("code, people(full_name, email)").in("id", affiliateIds));
+    for (const a of affs as Array<{ code: string; people: Embedded<{ full_name: string | null; email: string }> }>) {
+      const p = one(a.people);
+      names.add(p?.full_name || p?.email || a.code);
+    }
+  }
+  return [...names];
+}
