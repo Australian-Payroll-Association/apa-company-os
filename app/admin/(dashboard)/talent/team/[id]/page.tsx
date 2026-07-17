@@ -5,6 +5,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { AvatarUpload } from "@/components/team/AvatarUpload";
 import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
@@ -103,6 +104,11 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   ]);
   const avatarUrl = (avatarRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
 
+  const portalStatus = portalStatusOf(
+    m.auth_user_id,
+    m.auth_user_id ? await getSignedInAuthUserIds([m.auth_user_id]) : new Set<string>(),
+  );
+
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;
   const total = num(m.total_days);
@@ -188,7 +194,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
             <h2 className="admin-card-title">Portal access</h2>
             <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
             {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} provisioned={!!m.auth_user_id} full />
+              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
             ) : (
               <span className="admin-cell-muted">No linked person record.</span>
             )}
