@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { GalleryPhoto } from "@/lib/gallery";
+import { GALLERY_CATEGORIES, type GalleryPhoto } from "@/lib/gallery";
 import { createGalleryUpload, recordGalleryUpload, saveGalleryPhoto, removeGalleryPhoto } from "@/app/admin/(dashboard)/operations/gallery/actions";
 
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
@@ -20,25 +20,23 @@ type QueueItem = {
   error?: string;
 };
 
-// Drag-and-drop gallery uploader: drop (or browse) any number of photos, watch
-// each one's progress bar, then they drop into the editable grid below. Uploads
-// stream to /api/admin/gallery/upload via XHR (server actions can't report
-// upload progress), three at a time.
+// Drag-and-drop gallery uploader (direct-to-storage, real progress) with a
+// per-batch category and a category filter over the saved-photo grid.
 export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
   const [drag, setDrag] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [uploadCategory, setUploadCategory] = useState("");
+  const [filter, setFilter] = useState("");
 
   function update(id: number, patch: Partial<QueueItem>) {
     setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
 
-  // Direct-to-storage: get a signed upload URL, PUT the file to it (with a real
-  // progress bar), then record the row. The file never touches our server, so
-  // there's no size limit in the way.
-  async function uploadOne(item: QueueItem): Promise<void> {
+  // Direct-to-storage: signed upload URL -> PUT the file (progress) -> record.
+  async function uploadOne(item: QueueItem, category: string): Promise<void> {
     const signed = await createGalleryUpload(item.file.type);
     if (!signed.ok) {
       update(item.id, { status: "error", error: signed.error });
@@ -49,7 +47,6 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
       xhr.open("PUT", signed.signedUrl);
       if (SUPABASE_ANON) xhr.setRequestHeader("apikey", SUPABASE_ANON);
       xhr.setRequestHeader("x-upsert", "false");
-      // Reserve the last slice of the bar for the record step.
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) update(item.id, { progress: (e.loaded / e.total) * 0.95 });
       };
@@ -60,7 +57,6 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
             : { ok: false, error: `Upload failed (${xhr.status}).` },
         );
       xhr.onerror = () => resolve({ ok: false, error: "Network error." });
-      // Supabase signed upload expects multipart with the file under an empty key.
       const fd = new FormData();
       fd.append("cacheControl", "3600");
       fd.append("", item.file);
@@ -70,13 +66,14 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
       update(item.id, { status: "error", error: put.error });
       return;
     }
-    const rec = await recordGalleryUpload(signed.path);
+    const rec = await recordGalleryUpload(signed.path, category);
     update(item.id, rec.ok ? { status: "done", progress: 1 } : { status: "error", error: rec.error });
   }
 
   async function addFiles(files: File[]) {
     const images = files.filter((f) => ACCEPT.includes(f.type));
     if (images.length === 0) return;
+    const category = uploadCategory; // snapshot for this batch
     const items: QueueItem[] = images.map((file) => ({
       id: nextId.current++,
       file,
@@ -87,13 +84,12 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
     }));
     setQueue((q) => [...items, ...q]);
 
-    // Upload three at a time.
     const pending = [...items];
     const worker = async () => {
       for (;;) {
         const it = pending.shift();
         if (!it) return;
-        await uploadOne(it);
+        await uploadOne(it, category);
       }
     };
     await Promise.all(Array.from({ length: Math.min(3, pending.length) }, worker));
@@ -117,9 +113,20 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
   }
 
   const uploading = queue.some((it) => it.status === "uploading");
+  const shown = filter ? photos.filter((p) => p.category === filter) : photos;
 
   return (
     <>
+      <div className="gallery-uploadbar">
+        <span className="admin-label" style={{ margin: 0 }}>Tag new uploads as</span>
+        <select className="admin-select" style={{ width: "auto" }} value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)}>
+          <option value="">Untagged</option>
+          {GALLERY_CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+
       <div
         className={`gallery-drop${drag ? " is-drag" : ""}`}
         role="button"
@@ -171,15 +178,25 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
         </div>
       )}
 
-      <div className="admin-toolbar" style={{ marginTop: 18 }}>
-        <span className="admin-cell-muted">{photos.length} {photos.length === 1 ? "photo" : "photos"}</span>
+      <div className="admin-tabs" role="tablist" aria-label="Category" style={{ marginTop: 18 }}>
+        <button type="button" className={`admin-tab${filter === "" ? " is-active" : ""}`} role="tab" aria-selected={filter === ""} onClick={() => setFilter("")}>
+          All ({photos.length})
+        </button>
+        {GALLERY_CATEGORIES.map((c) => {
+          const n = photos.filter((p) => p.category === c.key).length;
+          return (
+            <button key={c.key} type="button" className={`admin-tab${filter === c.key ? " is-active" : ""}`} role="tab" aria-selected={filter === c.key} onClick={() => setFilter(c.key)}>
+              {c.label} ({n})
+            </button>
+          );
+        })}
       </div>
 
-      {photos.length === 0 ? (
-        <div className="admin-empty">No photos yet. Drop the first one above.</div>
+      {shown.length === 0 ? (
+        <div className="admin-empty">{photos.length === 0 ? "No photos yet. Drop the first one above." : "No photos in this category yet."}</div>
       ) : (
         <div className="gallery-admin-grid">
-          {photos.map((p) => (
+          {shown.map((p) => (
             <PhotoCard key={p.id} photo={p} onChanged={() => router.refresh()} />
           ))}
         </div>
@@ -192,11 +209,18 @@ function PhotoCard({ photo, onChanged }: { photo: GalleryPhoto; onChanged: () =>
   const [pending, start] = useTransition();
   const [caption, setCaption] = useState(photo.caption ?? "");
   const [takenOn, setTakenOn] = useState(photo.taken_on ?? "");
+  const [category, setCategory] = useState<string>(photo.category ?? "");
 
-  function save() {
-    if (caption === (photo.caption ?? "") && takenOn === (photo.taken_on ?? "")) return;
+  function save(nextCategory = category) {
+    if (
+      caption === (photo.caption ?? "") &&
+      takenOn === (photo.taken_on ?? "") &&
+      nextCategory === (photo.category ?? "")
+    ) {
+      return;
+    }
     start(async () => {
-      await saveGalleryPhoto(photo.id, caption, takenOn);
+      await saveGalleryPhoto(photo.id, caption, takenOn, nextCategory);
       onChanged();
     });
   }
@@ -216,12 +240,28 @@ function PhotoCard({ photo, onChanged }: { photo: GalleryPhoto; onChanged: () =>
         className="admin-input gallery-admin-cap"
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
-        onBlur={save}
+        onBlur={() => save()}
         placeholder="Add a caption"
         disabled={pending}
       />
       <div className="gallery-admin-row">
-        <input className="admin-input" type="date" value={takenOn} onChange={(e) => setTakenOn(e.target.value)} onBlur={save} disabled={pending} />
+        <select
+          className="admin-select"
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            save(e.target.value);
+          }}
+          disabled={pending}
+        >
+          <option value="">Untagged</option>
+          {GALLERY_CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="gallery-admin-row">
+        <input className="admin-input" type="date" value={takenOn} onChange={(e) => setTakenOn(e.target.value)} onBlur={() => save()} disabled={pending} />
         <button className="admin-btn admin-btn--sm admin-btn--danger" onClick={del} disabled={pending}>Delete</button>
       </div>
     </div>

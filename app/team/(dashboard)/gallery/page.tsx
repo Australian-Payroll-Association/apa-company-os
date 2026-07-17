@@ -1,7 +1,7 @@
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import { listGalleryPhotos } from "@/lib/gallery";
-import { formatDate } from "@/lib/admin/format";
+import { GalleryBrowser } from "@/components/team/GalleryBrowser";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Gallery", description: "Photos from the Edge8 team." };
@@ -22,21 +22,7 @@ export default async function TeamGalleryPage() {
       {photos.length === 0 ? (
         <div className="admin-empty">No photos yet. Check back soon.</div>
       ) : (
-        <div className="gallery-masonry">
-          {photos.map((p) => (
-            <a key={p.id} className="gallery-tile" href={p.image_url} target="_blank" rel="noreferrer">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.image_url} alt={p.caption || "Team photo"} />
-              {(p.caption || p.taken_on) && (
-                <span className="gallery-tile-cap">
-                  {p.caption}
-                  {p.caption && p.taken_on ? " · " : ""}
-                  {p.taken_on ? formatDate(p.taken_on) : ""}
-                </span>
-              )}
-            </a>
-          ))}
-        </div>
+        <GalleryBrowser photos={photos} />
       )}
     </>
   );

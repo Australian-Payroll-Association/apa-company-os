@@ -949,6 +949,8 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   background: linear-gradient(transparent, rgba(4, 16, 45, 0.66));
 }
 
+.gallery-uploadbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
 /* Drag-and-drop uploader + per-file progress queue. */
 .gallery-drop {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;

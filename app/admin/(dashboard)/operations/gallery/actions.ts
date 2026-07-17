@@ -25,17 +25,22 @@ export async function createGalleryUpload(contentType: string) {
   return signedGalleryUpload(contentType);
 }
 
-// Step 2: record the object the client just uploaded.
-export async function recordGalleryUpload(path: string): Promise<Result> {
+// Step 2: record the object the client just uploaded, with its category.
+export async function recordGalleryUpload(path: string, category: string): Promise<Result> {
   const admin = await requireAdmin();
-  const res = await recordGalleryPhoto(path, admin.email);
+  const res = await recordGalleryPhoto(path, admin.email, category);
   if (res.ok) revalidate();
   return res;
 }
 
-export async function saveGalleryPhoto(id: string, caption: string, takenOn: string): Promise<Result> {
+export async function saveGalleryPhoto(
+  id: string,
+  caption: string,
+  takenOn: string,
+  category: string,
+): Promise<Result> {
   await requireAdmin();
-  const res = await updateGalleryPhoto(id, { caption, taken_on: takenOn });
+  const res = await updateGalleryPhoto(id, { caption, taken_on: takenOn, category });
   if (res.ok) revalidate();
   return res;
 }

@@ -7,16 +7,29 @@ import { supabase, companyOs } from "@/lib/supabase";
 
 const MIME_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
+// The three photo categories (null = untagged). One shared source of truth.
+export const GALLERY_CATEGORIES = [
+  { key: "workshops", label: "Workshops" },
+  { key: "clients", label: "Clients" },
+  { key: "team", label: "Team" },
+] as const;
+export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number]["key"];
+const CATEGORY_KEYS = new Set<string>(GALLERY_CATEGORIES.map((c) => c.key));
+export function cleanCategory(v: string | null | undefined): GalleryCategory | null {
+  return v && CATEGORY_KEYS.has(v) ? (v as GalleryCategory) : null;
+}
+
 export type GalleryPhoto = {
   id: string;
   image_url: string;
   caption: string | null;
   taken_on: string | null;
+  category: GalleryCategory | null;
   created_at: string;
 };
 export type Result = { ok: true } | { ok: false; error: string };
 
-const SELECT = "id, image_url, caption, taken_on, created_at";
+const SELECT = "id, image_url, caption, taken_on, category, created_at";
 
 // Newest upload first.
 export async function listGalleryPhotos(): Promise<GalleryPhoto[]> {
@@ -73,11 +86,15 @@ export async function signedGalleryUpload(
 
 // Step 2: once the object is in the bucket, record it. The bucket is public, so
 // the row just stores its public URL.
-export async function recordGalleryPhoto(path: string, uploadedBy: string): Promise<Result> {
+export async function recordGalleryPhoto(
+  path: string,
+  uploadedBy: string,
+  category?: string | null,
+): Promise<Result> {
   const { data: pub } = supabase.storage.from("gallery").getPublicUrl(path);
   const { error } = await companyOs
     .from("gallery_photos")
-    .insert({ image_url: pub.publicUrl, storage_path: path, uploaded_by: uploadedBy });
+    .insert({ image_url: pub.publicUrl, storage_path: path, uploaded_by: uploadedBy, category: cleanCategory(category) });
   if (error) {
     await supabase.storage.from("gallery").remove([path]); // don't orphan the object
     return { ok: false, error: "Could not save the photo." };
@@ -87,11 +104,12 @@ export async function recordGalleryPhoto(path: string, uploadedBy: string): Prom
 
 export async function updateGalleryPhoto(
   id: string,
-  fields: { caption?: string | null; taken_on?: string | null },
+  fields: { caption?: string | null; taken_on?: string | null; category?: string | null },
 ): Promise<Result> {
   const patch: Record<string, unknown> = {};
   if ("caption" in fields) patch.caption = fields.caption?.trim() || null;
   if ("taken_on" in fields) patch.taken_on = fields.taken_on || null;
+  if ("category" in fields) patch.category = cleanCategory(fields.category);
   if (Object.keys(patch).length === 0) return { ok: true };
   const { error } = await companyOs.from("gallery_photos").update(patch).eq("id", id);
   return error ? { ok: false, error: "Could not save." } : { ok: true };
