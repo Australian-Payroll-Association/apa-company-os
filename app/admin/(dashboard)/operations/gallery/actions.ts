@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
-import { addGalleryPhoto, updateGalleryPhoto, deleteGalleryPhoto, type Result } from "@/lib/gallery";
+import {
+  signedGalleryUpload,
+  recordGalleryPhoto,
+  updateGalleryPhoto,
+  deleteGalleryPhoto,
+  type Result,
+} from "@/lib/gallery";
 
 // All gallery writes are admin-only. The team side is read-only.
 
@@ -12,11 +18,17 @@ function revalidate() {
   revalidatePath("/team");
 }
 
-export async function uploadGalleryPhoto(formData: FormData): Promise<Result> {
+// Step 1 of the direct-to-storage upload: hand the client a one-shot signed
+// upload URL. The file never passes through the server.
+export async function createGalleryUpload(contentType: string) {
+  await requireAdmin();
+  return signedGalleryUpload(contentType);
+}
+
+// Step 2: record the object the client just uploaded.
+export async function recordGalleryUpload(path: string): Promise<Result> {
   const admin = await requireAdmin();
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { ok: false, error: "No file received." };
-  const res = await addGalleryPhoto(file, admin.email);
+  const res = await recordGalleryPhoto(path, admin.email);
   if (res.ok) revalidate();
   return res;
 }

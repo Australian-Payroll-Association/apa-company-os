@@ -5,7 +5,6 @@
 
 import { supabase, companyOs } from "@/lib/supabase";
 
-export const GALLERY_MAX_BYTES = 10 * 1024 * 1024;
 const MIME_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export type GalleryPhoto = {
@@ -19,12 +18,11 @@ export type Result = { ok: true } | { ok: false; error: string };
 
 const SELECT = "id, image_url, caption, taken_on, created_at";
 
-// Newest first: by the optional "taken on" date, then upload time.
+// Newest upload first.
 export async function listGalleryPhotos(): Promise<GalleryPhoto[]> {
   const { data } = await companyOs
     .from("gallery_photos")
     .select(SELECT)
-    .order("taken_on", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   return (data ?? []) as GalleryPhoto[];
 }
@@ -58,22 +56,29 @@ export async function collageAvatars(limit: number): Promise<CollageAvatar[]> {
   return pool.slice(0, limit);
 }
 
-export async function addGalleryPhoto(file: File, uploadedBy: string): Promise<Result> {
-  const ext = MIME_EXT[file.type];
+// Photos upload straight from the browser to storage so there's no serverless
+// body limit and no file goes through our functions. Step 1: mint a one-shot
+// signed upload URL for a fresh path (service-role). The client PUTs the file
+// to it (with progress); then step 2 records the row.
+export async function signedGalleryUpload(
+  contentType: string,
+): Promise<{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }> {
+  const ext = MIME_EXT[contentType];
   if (!ext) return { ok: false, error: "Use a JPG, PNG, or WebP image." };
-  if (file.size > GALLERY_MAX_BYTES) return { ok: false, error: "Image is too large (max 10 MB)." };
-  if (file.size === 0) return { ok: false, error: "That file is empty." };
-
   const path = `photos/${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await supabase.storage.from("gallery").upload(path, buffer, { contentType: file.type });
-  if (upErr) return { ok: false, error: "Upload failed. Try again." };
+  const { data, error } = await supabase.storage.from("gallery").createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "Could not start the upload." };
+  return { ok: true, signedUrl: data.signedUrl, path };
+}
 
+// Step 2: once the object is in the bucket, record it. The bucket is public, so
+// the row just stores its public URL.
+export async function recordGalleryPhoto(path: string, uploadedBy: string): Promise<Result> {
   const { data: pub } = supabase.storage.from("gallery").getPublicUrl(path);
-  const { error: dbErr } = await companyOs
+  const { error } = await companyOs
     .from("gallery_photos")
     .insert({ image_url: pub.publicUrl, storage_path: path, uploaded_by: uploadedBy });
-  if (dbErr) {
+  if (error) {
     await supabase.storage.from("gallery").remove([path]); // don't orphan the object
     return { ok: false, error: "Could not save the photo." };
   }

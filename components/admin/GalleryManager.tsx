@@ -3,9 +3,12 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { GalleryPhoto } from "@/lib/gallery";
-import { saveGalleryPhoto, removeGalleryPhoto } from "@/app/admin/(dashboard)/operations/gallery/actions";
+import { createGalleryUpload, recordGalleryUpload, saveGalleryPhoto, removeGalleryPhoto } from "@/app/admin/(dashboard)/operations/gallery/actions";
 
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
+// Public anon key — mirrors what the supabase browser client sends; harmless if
+// the signed-upload endpoint doesn't require it. Absent only in odd env setups.
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 type QueueItem = {
   id: number;
@@ -32,34 +35,43 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
     setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
 
-  function uploadOne(item: QueueItem): Promise<void> {
-    return new Promise((resolve) => {
+  // Direct-to-storage: get a signed upload URL, PUT the file to it (with a real
+  // progress bar), then record the row. The file never touches our server, so
+  // there's no size limit in the way.
+  async function uploadOne(item: QueueItem): Promise<void> {
+    const signed = await createGalleryUpload(item.file.type);
+    if (!signed.ok) {
+      update(item.id, { status: "error", error: signed.error });
+      return;
+    }
+    const put = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/admin/gallery/upload");
+      xhr.open("PUT", signed.signedUrl);
+      if (SUPABASE_ANON) xhr.setRequestHeader("apikey", SUPABASE_ANON);
+      xhr.setRequestHeader("x-upsert", "false");
+      // Reserve the last slice of the bar for the record step.
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) update(item.id, { progress: e.loaded / e.total });
+        if (e.lengthComputable) update(item.id, { progress: (e.loaded / e.total) * 0.95 });
       };
-      xhr.onload = () => {
-        let ok = xhr.status >= 200 && xhr.status < 300;
-        let error = "Upload failed.";
-        try {
-          const j = JSON.parse(xhr.responseText);
-          ok = ok && j.ok;
-          if (j.error) error = j.error;
-        } catch {
-          /* keep default error */
-        }
-        update(item.id, ok ? { status: "done", progress: 1 } : { status: "error", error });
-        resolve();
-      };
-      xhr.onerror = () => {
-        update(item.id, { status: "error", error: "Network error." });
-        resolve();
-      };
+      xhr.onload = () =>
+        resolve(
+          xhr.status >= 200 && xhr.status < 300
+            ? { ok: true }
+            : { ok: false, error: `Upload failed (${xhr.status}).` },
+        );
+      xhr.onerror = () => resolve({ ok: false, error: "Network error." });
+      // Supabase signed upload expects multipart with the file under an empty key.
       const fd = new FormData();
-      fd.append("file", item.file);
+      fd.append("cacheControl", "3600");
+      fd.append("", item.file);
       xhr.send(fd);
     });
+    if (!put.ok) {
+      update(item.id, { status: "error", error: put.error });
+      return;
+    }
+    const rec = await recordGalleryUpload(signed.path);
+    update(item.id, rec.ok ? { status: "done", progress: 1 } : { status: "error", error: rec.error });
   }
 
   async function addFiles(files: File[]) {
@@ -123,7 +135,7 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
       >
         <span className="gallery-drop-ico" aria-hidden>⬆</span>
         <span className="gallery-drop-title">Drag photos here, or click to browse</span>
-        <span className="gallery-drop-sub">JPG, PNG, or WebP · up to 10 MB each</span>
+        <span className="gallery-drop-sub">JPG, PNG, or WebP · any size</span>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={onPick} />
       </div>
 
