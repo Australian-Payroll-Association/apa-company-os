@@ -95,6 +95,7 @@ const NAV: NavGroup[] = [
         subheading: "Workplace",
         items: [
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
+          { label: "Gallery", href: "/admin/operations/gallery", ico: "▦", enabled: true },
           { label: "Documents", href: "/admin/operations/documents", ico: "⎙" },
           { label: "Surveys", href: "/admin/operations/surveys", ico: "✎", enabled: true },
         ],

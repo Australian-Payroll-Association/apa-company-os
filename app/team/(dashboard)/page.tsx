@@ -3,6 +3,8 @@ import { getOwnProfile, teamRead } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
+import { TeamCollage } from "@/components/team/TeamCollage";
+import { recentGalleryPhotos, collageAvatars } from "@/lib/gallery";
 import { setOnboardingDone } from "./actions";
 import Link from "next/link";
 
@@ -86,6 +88,10 @@ function HubCard({ item }: { item: HubItem }) {
 export default async function TeamHome() {
   const actor = await requireTeamMember();
   const profile = await getOwnProfile(actor);
+  const [collagePhotos, collagePeople] = await Promise.all([
+    recentGalleryPhotos(5),
+    collageAvatars(10),
+  ]);
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: leaveRows } = await teamRead(
@@ -146,6 +152,8 @@ export default async function TeamHome() {
           <span className="team-glance-value">{profile?.start_date ? formatDate(profile.start_date) : "—"}</span>
         </div>
       </div>
+
+      <TeamCollage photos={collagePhotos} avatars={collagePeople} />
 
       <h2 className="team-hub-heading">Your workspace</h2>
       <div className="team-hub-grid">
