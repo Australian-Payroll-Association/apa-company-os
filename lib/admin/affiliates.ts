@@ -61,7 +61,7 @@ export type AffiliateGroup = Totals & {
   codes: AffiliateCode[];
   active: boolean; // holds at least one active code
   referredDealCount: number;
-  referredOpenPipelineCents: number;
+  referredOpenPipelineCents: number; // open referred deals
 };
 
 export type Affiliate360 = Totals & {

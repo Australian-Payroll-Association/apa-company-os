@@ -21,8 +21,11 @@ export default async function AffiliatesPage() {
   const groups = await getAffiliateGroups();
 
   const activeCount = groups.filter((g) => g.active).length;
-  const openPipeline = groups.reduce((s, g) => s + g.referredOpenPipelineCents, 0);
-  const unpaid = groups.reduce((s, g) => s + g.unpaidCents, 0);
+  const pipeline = groups.reduce((s, g) => s + g.referredOpenPipelineCents, 0);
+  // "Converted" = referred revenue that actually paid (the gross basis behind
+  // every commission), which stays consistent with Commissions awarded below.
+  const converted = groups.reduce((s, g) => s + g.accruedGrossCents, 0);
+  const commissionsAwarded = groups.reduce((s, g) => s + g.realizedCents, 0);
   const pending = groups.reduce((s, g) => s + g.pendingCount, 0);
 
   return (
@@ -34,10 +37,14 @@ export default async function AffiliatesPage() {
       />
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Active affiliates" value={activeCount} sub={`of ${groups.length} people`} />
-        <MetricCard label="Referred pipeline" value={formatCents(openPipeline, "usd")} sub="open referred deals" />
-        <MetricCard label="Unpaid commission" value={formatCents(unpaid, "usd")} sub="redeemed, not paid out" />
-        <MetricCard label="Pending choice" value={pending} sub="commissions awaiting redemption" />
+        <MetricCard label="Pipeline" value={formatCents(pipeline, "usd")} sub="open referred deals" />
+        <MetricCard label="Converted" value={formatCents(converted, "usd")} sub="referred revenue that paid" />
+        <MetricCard label="Commissions awarded" value={formatCents(commissionsAwarded, "usd")} sub="earned by affiliates" />
+        <MetricCard
+          label="Active affiliates"
+          value={activeCount}
+          sub={pending > 0 ? `${pending} commission${pending === 1 ? "" : "s"} pending choice` : `of ${groups.length} people`}
+        />
       </div>
 
       <AffiliatesShelfProvider>
