@@ -1175,6 +1175,12 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
 
 /* ─── Tabs ────────────────────────────────────────── */
 .admin-tabs {
+  /* globals.css ships `nav { position: fixed; top:0; ... }` for the marketing
+     navbar and it leaks in here; a bare <nav> would pin itself to the top of
+     the viewport over the sidebar. Opt out — these tabs are inline content. */
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--admin-line);
