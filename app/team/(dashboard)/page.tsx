@@ -4,7 +4,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
 import { TeamCollage } from "@/components/team/TeamCollage";
-import { recentGalleryPhotos, collageAvatars } from "@/lib/gallery";
+import { randomGalleryPhotos, collageAvatars } from "@/lib/gallery";
 import { setOnboardingDone } from "./actions";
 import Link from "next/link";
 
@@ -15,9 +15,9 @@ export const dynamic = "force-dynamic";
 type NextLeave = { start_date: string; end_date: string; leave_type: string; status: string };
 
 // The full employee workspace, designed end-state-first: every touchpoint an
-// employee will eventually reach lives here from day one. `href` present means
-// the slice has shipped; absent renders a muted "Soon" card. Flip items to live
-// by adding their route as each one ships.
+// employee will eventually reach lives here from day one. Shipped slices are
+// cards in HUB_LIVE; unshipped ones sit in HUB_SOON as a quiet pill row. Ship
+// an item by moving it to HUB_LIVE with its route as `href`.
 type HubItem = { title: string; sub: string; ico: string; href?: string };
 
 const HUB_LIVE: HubItem[] = [
@@ -63,34 +63,26 @@ const HUB_SOON: HubItem[] = [
 ];
 
 function HubCard({ item }: { item: HubItem }) {
-  const body = (
-    <>
+  if (!item.href) return null;
+  return (
+    <Link href={item.href} className="team-hub-card">
       <span className="team-hub-ico" aria-hidden>
         {item.ico}
       </span>
-      <span className="team-hub-title">
-        {item.title}
-        {!item.href && <span className="team-hub-soon">Soon</span>}
-      </span>
+      <span className="team-hub-title">{item.title}</span>
       <span className="team-hub-sub">{item.sub}</span>
-    </>
+    </Link>
   );
-  if (item.href) {
-    return (
-      <Link href={item.href} className="team-hub-card">
-        {body}
-      </Link>
-    );
-  }
-  return <div className="team-hub-card is-soon">{body}</div>;
 }
 
 export default async function TeamHome() {
   const actor = await requireTeamMember();
   const profile = await getOwnProfile(actor);
+  // Exactly four photos and four faces, drawn fresh on every load — a fixed
+  // composition with rotating content, not a wall of everything.
   const [collagePhotos, collagePeople] = await Promise.all([
-    recentGalleryPhotos(5),
-    collageAvatars(10),
+    randomGalleryPhotos(4),
+    collageAvatars(4),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -131,6 +123,10 @@ export default async function TeamHome() {
     <>
       <PageHead eyebrow={dateLine} title={`${greeting}, ${actor.displayName}`} sub={heroSub} />
 
+      {/* People first: the band of faces and moments sits directly under the
+          greeting, then the personal facts, then the tools. */}
+      <TeamCollage photos={collagePhotos} avatars={collagePeople} />
+
       <div className="team-glance">
         <div className="team-glance-cell">
           <span className="team-glance-label">Next time off</span>
@@ -153,8 +149,6 @@ export default async function TeamHome() {
         </div>
       </div>
 
-      <TeamCollage photos={collagePhotos} avatars={collagePeople} />
-
       <h2 className="team-hub-heading">Your workspace</h2>
       <div className="team-hub-grid">
         {HUB_LIVE.map((item) => (
@@ -162,10 +156,14 @@ export default async function TeamHome() {
         ))}
       </div>
 
+      {/* Coming features state the ambition without competing with the live
+          tools: one quiet row of pills instead of a second card grid. */}
       <h2 className="team-hub-heading">On the way</h2>
-      <div className="team-hub-grid">
+      <div className="team-soon-row">
         {HUB_SOON.map((item) => (
-          <HubCard key={item.title} item={item} />
+          <span key={item.title} className="team-soon-pill" title={item.sub}>
+            <span aria-hidden>{item.ico}</span> {item.title}
+          </span>
         ))}
       </div>
 

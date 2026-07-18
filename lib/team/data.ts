@@ -335,6 +335,71 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// A colleague's company-visible profile: the directory-safe fields plus the
+// get-to-know-you extras people self-edit (hometown, education, hobbies).
+// Deliberately NO contact details and nothing from people_sensitive — the same
+// boundary as the directory; widening it is a reviewed change, not a tweak.
+export type MemberProfile = {
+  id: string;
+  name: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  positionTitle: string | null;
+  departmentName: string | null;
+  workLocation: string | null;
+  employmentType: string | null;
+  startDate: string | null;
+  managerId: string | null;
+  managerName: string | null;
+  hometown: string | null;
+  education: string | null;
+  hobbies: string[];
+};
+
+export async function getMemberProfile(teamMemberId: string): Promise<MemberProfile | null> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select(
+      "id, manager_id, employment_type, work_location, start_date, " +
+        "people:people!person_id(full_name, preferred_name, avatar_url, metadata), " +
+        "departments:departments!department_id(name), " +
+        "positions:positions!position_id(title)",
+    )
+    .eq("id", teamMemberId)
+    .in("status", DIRECTORY_STATUSES)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as unknown as Record<string, unknown>;
+  type Person = {
+    full_name: string | null;
+    preferred_name: string | null;
+    avatar_url: string | null;
+    metadata: Record<string, unknown> | null;
+  };
+  const person = one(r.people as Person | Person[] | null);
+  const extras = extrasOf(person?.metadata ?? null);
+  const managerId = (r.manager_id as string | null) ?? null;
+  const mgr = await getManagerPerson(managerId);
+  return {
+    id: r.id as string,
+    name: nameOf(person) ?? "—",
+    fullName: person?.full_name ?? null,
+    avatarUrl: person?.avatar_url ?? null,
+    positionTitle:
+      one(r.positions as { title: string | null } | { title: string | null }[] | null)?.title ?? null,
+    departmentName:
+      one(r.departments as { name: string | null } | { name: string | null }[] | null)?.name ?? null,
+    workLocation: (r.work_location as string | null) ?? null,
+    employmentType: (r.employment_type as string | null) ?? null,
+    startDate: (r.start_date as string | null) ?? null,
+    managerId,
+    managerName: nameOf(mgr),
+    hometown: extras.hometown,
+    education: extras.education,
+    hobbies: extras.hobbies,
+  };
+}
+
 // Self-scoped profile writes. Every function here is filtered on
 // actor.personId (from the JWT-derived actor, never client input) and touches
 // ONLY the fields an employee may edit about themselves. Employment fields,

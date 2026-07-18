@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { DirectoryEntry } from "@/lib/team/data";
 
@@ -141,7 +142,7 @@ export function DirectoryTable({ entries }: { entries: DirectoryEntry[] }) {
                 rows.map((e) => (
                   <tr key={e.id}>
                     <td className="admin-cell-strong">
-                      <span className="dir-name">
+                      <Link href={`/team/directory/${e.id}`} className="dir-name">
                         <span className="dir-avatar" aria-hidden>
                           {e.avatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -151,7 +152,7 @@ export function DirectoryTable({ entries }: { entries: DirectoryEntry[] }) {
                           )}
                         </span>
                         {e.name}
-                      </span>
+                      </Link>
                     </td>
                     <td>{e.positionTitle || <span className="admin-cell-muted">—</span>}</td>
                     <td>{e.departmentName || <span className="admin-cell-muted">—</span>}</td>

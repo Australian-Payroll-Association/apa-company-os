@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getOrgChart, type OrgEntry } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
@@ -35,7 +36,7 @@ function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean
   // Blue badge / orange badge, the Microsoft way: FTE blue, contractor orange.
   const isContractor = entry.employmentType === "contract";
   return (
-    <div className={`team-org-card${isRoot ? " is-root" : ""}`}>
+    <Link href={`/team/directory/${entry.id}`} className={`team-org-card${isRoot ? " is-root" : ""}`}>
       <span className="team-org-name">{entry.name}</span>
       {(meta || reports) && (
         <span className="team-org-meta">
@@ -46,7 +47,7 @@ function OrgCard({ entry, isRoot, reports }: { entry: OrgEntry; isRoot?: boolean
       <span className={`team-org-badge ${isContractor ? "is-contract" : "is-fte"}`}>
         {isContractor ? "Contractor" : "FTE"}
       </span>
-    </div>
+    </Link>
   );
 }
 

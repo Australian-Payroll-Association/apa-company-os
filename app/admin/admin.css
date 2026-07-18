@@ -730,6 +730,12 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   max-width: 200px;
 }
 .team-org-card.is-root { border-color: var(--admin-accent); }
+/* Cards link to the member's profile — inherit ink, lift on hover. */
+a.team-org-card {
+  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
 .team-org-name { font-weight: 600; font-size: 13px; color: var(--admin-ink); overflow-wrap: anywhere; }
 .team-org-meta { font-size: 11.5px; color: var(--admin-muted); overflow-wrap: anywhere; line-height: 1.4; }
 /* Employment badges — blue for FTE, orange for contractor. */
@@ -770,9 +776,6 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   transition: border-color var(--transition), transform var(--transition);
 }
 a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
-.team-hub-card.is-soon { background: var(--admin-surface-2); box-shadow: none; }
-.team-hub-card.is-soon .team-hub-ico { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
-.team-hub-card.is-soon .team-hub-title { color: var(--admin-ink-2); }
 .team-hub-ico {
   width: 32px; height: 32px;
   border-radius: 9px;
@@ -785,12 +788,15 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   font-weight: 600; font-size: 14px; color: var(--admin-ink);
   display: flex; align-items: center; gap: 8px;
 }
-.team-hub-soon {
-  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-  background: var(--admin-muted-bg); color: var(--admin-muted-ink);
-  padding: 2px 8px; border-radius: var(--admin-radius-pill);
-}
 .team-hub-sub { font-size: 12.5px; color: var(--admin-muted); line-height: 1.5; }
+/* Coming features: one quiet pill row (hover a pill for its description). */
+.team-soon-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.team-soon-pill {
+  font-size: 12px; font-weight: 500;
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg);
+  padding: 4px 12px; border-radius: var(--admin-radius-pill);
+  white-space: nowrap;
+}
 .team-hub-heading {
   font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--admin-muted);
@@ -823,6 +829,9 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
 
 /* ─── Directory name cell (avatar + name) ─────────────── */
 .dir-name { display: inline-flex; align-items: center; gap: 10px; }
+/* Name links to the member's profile — ink at rest, accent on hover. */
+a.dir-name { color: var(--admin-ink); }
+a.dir-name:hover { color: var(--admin-accent); }
 .dir-avatar {
   width: 28px; height: 28px; flex: 0 0 auto;
   border-radius: 50%;
@@ -911,24 +920,31 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
 @media (max-width: 640px) { .team-id-slots { grid-template-columns: 1fr; } }
 
 /* ─── Gallery + home collage ──────────────────────────────
-   The home band interleaves recent photos (rounded rects) with team avatars
-   (circles); the gallery pages use a CSS-columns masonry. */
+   The home band alternates four photos (rounded rects, → gallery) with four
+   team faces (circles, → profile), centered on one axis so the rhythm reads
+   as a single composition; the gallery pages use a CSS-columns masonry. */
 .team-collage {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 22px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
 }
 .team-collage-photo {
   position: relative;
-  width: 150px;
-  height: 98px;
-  border-radius: 12px;
+  width: 180px;
+  height: 120px;
+  border-radius: 14px;
   overflow: hidden;
   flex: 0 0 auto;
   background: var(--admin-line-soft);
 }
-.team-collage-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.team-collage-photo img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform var(--transition);
+}
+a.team-collage-photo:hover img { transform: scale(1.04); }
 .team-collage-cap {
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -938,14 +954,17 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .team-collage-avatar {
-  width: 56px; height: 56px; flex: 0 0 auto;
+  width: 72px; height: 72px; flex: 0 0 auto;
   border-radius: 50%;
   background: var(--admin-accent);
   color: #fff;
   display: grid; place-items: center;
-  font-size: 15px; font-weight: 700;
+  font-size: 18px; font-weight: 700;
   overflow: hidden;
 }
+/* Faces are links to profiles now — keep initials white, ring on hover. */
+a.team-collage-avatar { color: #fff; transition: box-shadow var(--transition); }
+a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 0 0 1.5px var(--admin-accent); }
 .team-collage-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Masonry photo wall (team browse) — CSS columns keep it dependency-free. */
