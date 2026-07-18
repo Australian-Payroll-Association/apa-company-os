@@ -229,13 +229,8 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
           />
         ) : (
           <dl className="admin-kv">
-            <dt>Category</dt>
-            <dd>
-              {(company?.industry_normalized ?? row.industry_normalized) || "—"}
-              {(company?.industry ?? row.industry) && (
-                <span className="admin-cell-muted"> · {company?.industry ?? row.industry}</span>
-              )}
-            </dd>
+            <dt>Industry</dt>
+            <dd>{(company?.industry_normalized ?? row.industry_normalized) || "—"}</dd>
             <dt>Size</dt>
             <dd>{(company?.size_band ?? row.size_band) || "—"}</dd>
             <dt>Lifecycle</dt>

@@ -212,7 +212,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                 id: company.id,
                 name: company.name,
                 domain: company.domain,
-                industry: company.industry,
+                industry_normalized: company.industry_normalized,
                 size_band: company.size_band,
                 country: company.country,
                 website: company.website,
