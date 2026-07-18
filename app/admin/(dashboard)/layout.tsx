@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { hasTeamAccess } from "@/lib/team-auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminChatWidget } from "@/components/admin/AdminChatWidget";
+import { isPrivilegedChatUser } from "@/lib/admin-chat/privileged";
 import "../admin.css";
 
 export const metadata: Metadata = {
@@ -23,7 +24,7 @@ export default async function AdminDashboardLayout({
     <div className="admin-shell">
       <AdminSidebar user={user} canSwitchToTeam={canSwitchToTeam} />
       <main className="admin-main">{children}</main>
-      <AdminChatWidget />
+      <AdminChatWidget canWrite={isPrivilegedChatUser(user.email)} />
     </div>
   );
 }

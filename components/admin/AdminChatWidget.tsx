@@ -11,15 +11,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+type ApprovalStatus = "pending" | "approved" | "declined";
+
 type DisplayItem =
   | { kind: "user"; text: string }
   | { kind: "bot"; text: string; streaming?: boolean }
-  | { kind: "tool"; detail: string }
+  | { kind: "tool"; detail: string; name?: string }
+  | {
+      kind: "approval";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+      status: ApprovalStatus;
+    }
   | { kind: "error"; text: string };
 
 type SseEvent =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; detail: string }
+  | { type: "approval"; id: string; name: string; input: Record<string, unknown> }
   | { type: "error"; error: string }
   | { type: "done"; messages: unknown[] };
 
@@ -80,7 +90,75 @@ function BotText({ text }: { text: string }) {
   return <>{out}</>;
 }
 
-export function AdminChatWidget() {
+const CHIP_LABELS: Record<string, string> = {
+  execute_write: "Changed the database",
+  send_email: "Sent the email",
+};
+
+// Approval card for a pending execute_write / send_email tool call. Nothing
+// runs server-side until Approve is clicked.
+function ApprovalCard({
+  item,
+  disabled,
+  onDecide,
+}: {
+  item: Extract<DisplayItem, { kind: "approval" }>;
+  disabled: boolean;
+  onDecide: (id: string, approved: boolean) => void;
+}) {
+  const isEmail = item.name === "send_email";
+  const statusLabel =
+    item.status === "approved" ? "Approved" : item.status === "declined" ? "Cancelled" : null;
+  return (
+    <div className="chatw-approval">
+      <div className="chatw-approval-title">
+        {isEmail ? "Send this email?" : "Run this change?"}
+      </div>
+      {isEmail ? (
+        <div className="chatw-approval-email">
+          <div>
+            <span className="chatw-approval-label">To</span> {String(item.input.to ?? "")}
+          </div>
+          <div>
+            <span className="chatw-approval-label">Subject</span>{" "}
+            {String(item.input.subject ?? "")}
+          </div>
+          <pre>{String(item.input.body ?? "")}</pre>
+        </div>
+      ) : (
+        <pre className="chatw-approval-sql">{String(item.input.sql ?? "")}</pre>
+      )}
+      {statusLabel ? (
+        <div
+          className={`chatw-approval-status chatw-approval-status--${item.status}`}
+        >
+          {statusLabel}
+        </div>
+      ) : (
+        <div className="chatw-approval-actions">
+          <button
+            type="button"
+            className="chatw-approve"
+            disabled={disabled}
+            onClick={() => onDecide(item.id, true)}
+          >
+            {isEmail ? "Approve & send" : "Approve & run"}
+          </button>
+          <button
+            type="button"
+            className="chatw-decline"
+            disabled={disabled}
+            onClick={() => onDecide(item.id, false)}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<DisplayItem[]>(() => loadSaved().items);
   const [messages, setMessages] = useState<unknown[]>(() => loadSaved().messages);
@@ -118,17 +196,19 @@ export function AdminChatWidget() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [items, open]);
 
-  const runTurn = useCallback(
-    async (text: string) => {
+  // Shared POST + SSE pump for both new user turns and approval decisions.
+  // Returns whether the stream completed (reached `done`).
+  const runRequest = useCallback(
+    async (payload: {
+      messages: unknown[];
+      decision?: { toolUseId: string; approved: boolean };
+    }): Promise<boolean> => {
       setPending(true);
-      setItems((prev) => [...prev, { kind: "user", text }]);
-      const nextMessages = [...messages, { role: "user", content: text }];
-
       try {
         const res = await fetch("/api/admin/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: nextMessages }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok || !res.body) {
           const errBody = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -136,7 +216,7 @@ export function AdminChatWidget() {
             ...prev,
             { kind: "error", text: errBody?.error ?? `Request failed (${res.status})` },
           ]);
-          return;
+          return false;
         }
 
         const reader = res.body.getReader();
@@ -156,7 +236,18 @@ export function AdminChatWidget() {
           } else if (event.type === "tool") {
             setItems((prev) => [
               ...prev.map((it) => (it.kind === "bot" ? { ...it, streaming: false } : it)),
-              { kind: "tool", detail: event.detail },
+              { kind: "tool", detail: event.detail, name: event.name },
+            ]);
+          } else if (event.type === "approval") {
+            setItems((prev) => [
+              ...prev.map((it) => (it.kind === "bot" ? { ...it, streaming: false } : it)),
+              {
+                kind: "approval",
+                id: event.id,
+                name: event.name,
+                input: event.input,
+                status: "pending",
+              },
             ]);
           } else if (event.type === "error") {
             setItems((prev) => [...prev, { kind: "error", text: event.error }]);
@@ -188,25 +279,59 @@ export function AdminChatWidget() {
         if (!gotDone) {
           setItems((prev) => [...prev, { kind: "error", text: "Response interrupted. Try again." }]);
         }
+        return gotDone;
       } catch {
         setItems((prev) => [
           ...prev,
           { kind: "error", text: "Could not reach the assistant. Try again." },
         ]);
+        return false;
       } finally {
         setItems((prev) => prev.map((it) => (it.kind === "bot" ? { ...it, streaming: false } : it)));
         setPending(false);
       }
     },
-    [messages],
+    [],
+  );
+
+  const runTurn = useCallback(
+    (text: string) => {
+      setItems((prev) => [...prev, { kind: "user", text }]);
+      void runRequest({ messages: [...messages, { role: "user", content: text }] });
+    },
+    [messages, runRequest],
+  );
+
+  // Approve/Cancel a pending write or email. Optimistically resolve the card;
+  // if the request never completes, put it back so the action can be retried.
+  const decide = useCallback(
+    async (id: string, approved: boolean) => {
+      const status = approved ? ("approved" as const) : ("declined" as const);
+      setItems((prev) =>
+        prev.map((it) => (it.kind === "approval" && it.id === id ? { ...it, status } : it)),
+      );
+      const ok = await runRequest({ messages, decision: { toolUseId: id, approved } });
+      if (!ok) {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.kind === "approval" && it.id === id ? { ...it, status: "pending" } : it,
+          ),
+        );
+      }
+    },
+    [messages, runRequest],
+  );
+
+  const hasPendingApproval = items.some(
+    (it) => it.kind === "approval" && it.status === "pending",
   );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
-    if (!text || pending) return;
+    if (!text || pending || hasPendingApproval) return;
     setInput("");
-    void runTurn(text);
+    runTurn(text);
   }
 
   function newChat() {
@@ -284,7 +409,11 @@ export function AdminChatWidget() {
                     <li>Who is on vacation next week?</li>
                     <li>Top 5 unpaid invoices by balance.</li>
                   </ul>
-                  <p className="chatw-empty-note">Read-only. The assistant never changes data.</p>
+                  <p className="chatw-empty-note">
+                    {canWrite
+                      ? "It can also update records and send emails — every change and every email needs your approval first."
+                      : "Read-only. The assistant never changes data."}
+                  </p>
                 </div>
               )}
 
@@ -306,8 +435,13 @@ export function AdminChatWidget() {
                 if (item.kind === "tool") {
                   return (
                     <div key={i} className="chatw-toolchip" title={item.detail}>
-                      Queried the database
+                      {CHIP_LABELS[item.name ?? ""] ?? "Queried the database"}
                     </div>
+                  );
+                }
+                if (item.kind === "approval") {
+                  return (
+                    <ApprovalCard key={i} item={item} disabled={pending} onDecide={decide} />
                   );
                 }
                 return (
@@ -326,11 +460,19 @@ export function AdminChatWidget() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about the business…"
-                disabled={pending}
+                placeholder={
+                  hasPendingApproval
+                    ? "Approve or cancel the pending action first…"
+                    : "Ask about the business…"
+                }
+                disabled={pending || hasPendingApproval}
                 aria-label="Message the admin assistant"
               />
-              <button type="submit" className="chatw-send" disabled={pending || !input.trim()}>
+              <button
+                type="submit"
+                className="chatw-send"
+                disabled={pending || hasPendingApproval || !input.trim()}
+              >
                 Send
               </button>
             </form>

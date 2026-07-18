@@ -1972,6 +1972,68 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
 }
 .chatw-typing { align-self: flex-start; font-size: 12.5px; color: var(--admin-muted); padding: 2px 4px; }
 
+/* Approval card for pending execute_write / send_email actions */
+.chatw-approval {
+  align-self: stretch;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface-2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chatw-approval-title { font-size: 13px; font-weight: 600; color: var(--admin-ink); }
+.chatw-approval-sql,
+.chatw-approval-email pre {
+  margin: 0;
+  font-family: var(--admin-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-sm);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.chatw-approval-email { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--admin-ink); }
+.chatw-approval-email pre { font-family: inherit; }
+.chatw-approval-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  margin-right: 6px;
+}
+.chatw-approval-actions { display: flex; gap: 8px; }
+.chatw-approve,
+.chatw-decline {
+  height: 34px;
+  border-radius: var(--admin-radius-sm);
+  padding: 0 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chatw-approve { border: 0; background: var(--admin-accent); color: #fff; }
+.chatw-approve:hover:not(:disabled) { background: var(--admin-accent-strong); }
+.chatw-decline {
+  border: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+  color: var(--admin-ink-2);
+}
+.chatw-decline:hover:not(:disabled) { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-approve:disabled,
+.chatw-decline:disabled { opacity: 0.5; cursor: not-allowed; }
+.chatw-approval-status { font-size: 12px; font-weight: 600; }
+.chatw-approval-status--approved { color: var(--admin-accent-strong); }
+.chatw-approval-status--declined { color: var(--admin-muted); }
+
 .chatw-composer {
   display: flex;
   /* Beat marketing globals.css `form { flex-direction: column }`, which would
