@@ -331,5 +331,5 @@
 }
 
 .videoLink:hover {
-  text-decoration: underline;
+  color: var(--link-hover);
 }
