@@ -76,6 +76,8 @@ export default function Footer() {
         <div className="footer-bottom">
           <div className="footer-copy">© 2026 by Edge8. All rights reserved.</div>
           <div className="footer-bottom-links">
+            <Link href="/legal/privacy">Privacy Policy</Link>
+            <Link href="/legal/eula">Terms of Service</Link>
             <a href="/llms.txt" title="Site map for LLMs and AI search engines">llms.txt</a>
           </div>
         </div>
