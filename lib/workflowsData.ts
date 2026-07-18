@@ -90,6 +90,15 @@ export const allWorkflows: Workflow[] = [
     steps: 4,
   },
   {
+    slug: 'monthly-expenses',
+    title: 'Monthly Expense Entry',
+    category: 'Operations',
+    excerpt:
+      'Bank transactions become a categorized finance sheet, the sheet becomes QuickBooks entries, and the P&L confirms the month. Every expense entered, every pass-through billed.',
+    date: '2026-07-18',
+    steps: 8,
+  },
+  {
     slug: 'monthly-pnl',
     title: 'Monthly P&L',
     category: 'Operations',
