@@ -211,10 +211,10 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
 
       <section>
         <div className="admin-shelf-heading">
-          Enriched info
+          Company details
           {company && !editing && (
-            <button type="button" className="admin-btn" onClick={() => setEditing(true)}>
-              Edit
+            <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setEditing(true)}>
+              Edit details
             </button>
           )}
         </div>

@@ -22,5 +22,10 @@ export const INDUSTRY_CATEGORIES = [
 
 export const SIZE_BANDS = ["0-50", "51-250", "251-5000", "5000+"] as const;
 
+// Deal/company priority. Matches the values used across the Revenue office
+// (companies list FilterBar, deals) — stored lowercase.
+export const PRIORITY_LEVELS = ["high", "medium", "low"] as const;
+
 export type IndustryCategory = (typeof INDUSTRY_CATEGORIES)[number];
 export type SizeBand = (typeof SIZE_BANDS)[number];
+export type PriorityLevel = (typeof PRIORITY_LEVELS)[number];

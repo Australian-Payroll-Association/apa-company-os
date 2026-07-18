@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
+import { INDUSTRY_CATEGORIES, SIZE_BANDS, PRIORITY_LEVELS } from "@/lib/admin/company-enums";
+import { COUNTRIES } from "@/lib/admin/countries";
+import { humanize } from "@/lib/admin/format";
 import { updateCompany, type CompanyPatch } from "./actions";
 
 export type EditableCompany = {
@@ -116,11 +118,25 @@ export function CompanyEditForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
           <label className="admin-label">Country</label>
-          <input className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)} />
+          <select className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)}>
+            <option value="">—</option>
+            {/* Preserve an existing value that isn't in the canonical list. */}
+            {form.country && !(COUNTRIES as readonly string[]).includes(form.country) && (
+              <option value={form.country}>{form.country}</option>
+            )}
+            {COUNTRIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div className="admin-field">
           <label className="admin-label">Priority</label>
-          <input className="admin-input" value={form.priority} onChange={(e) => field("priority", e.target.value)} placeholder="low / medium / high" />
+          <select className="admin-input" value={form.priority} onChange={(e) => field("priority", e.target.value)}>
+            <option value="">—</option>
+            {PRIORITY_LEVELS.map((p) => (
+              <option key={p} value={p}>{humanize(p)}</option>
+            ))}
+          </select>
         </div>
       </div>
       {showNotes && (
