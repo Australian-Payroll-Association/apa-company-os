@@ -161,6 +161,7 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
   const [editing, setEditing] = useState(false);
   const [hourly, setHourly] = useState(toDollars(row.hourly_rate_cents));
   const [overtime, setOvertime] = useState(toDollars(row.overtime_rate_cents));
+  const [billable, setBillable] = useState(toDollars(row.billable_rate_cents));
   const [currency, setCurrency] = useState(row.currency || "usd");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -170,20 +171,32 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
     setEditing(false);
     setHourly(toDollars(row.hourly_rate_cents));
     setOvertime(toDollars(row.overtime_rate_cents));
+    setBillable(toDollars(row.billable_rate_cents));
     setCurrency(row.currency || "usd");
     setReason("");
     setError(null);
   }, [row]);
 
+  // Default 100% markup: prefill billable at 2x hourly when unset (USD only —
+  // billable is always billed in USD, so a VND hourly can't derive it).
+  function startEditing() {
+    if (!billable && hourly && currency === "usd") {
+      setBillable(String(Number(hourly) * 2));
+    }
+    setEditing(true);
+  }
+
   function save() {
     setError(null);
     const h = Math.round(Number(hourly) * 100);
     const o = Math.round(Number(overtime) * 100);
+    const b = Math.round(Number(billable) * 100);
     startTransition(async () => {
       const r = await updateContractorRates({
         teamMemberId: row.team_member_id,
         hourlyRateCents: h,
         overtimeRateCents: o,
+        billableRateCents: b,
         currency,
         changeReason: reason,
       });
@@ -215,7 +228,7 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
         <div className="admin-shelf-heading">
           Pay rates
           {!editing && (
-            <button type="button" className="admin-btn" onClick={() => setEditing(true)}>
+            <button type="button" className="admin-btn" onClick={startEditing}>
               Edit rates
             </button>
           )}
@@ -250,6 +263,16 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
               </select>
             </label>
             <label className="admin-field">
+              <span>Billable rate — what clients are invoiced (USD)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={billable}
+                onChange={(e) => setBillable(e.target.value)}
+              />
+            </label>
+            <label className="admin-field">
               <span>Change reason (optional)</span>
               <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Annual review" />
             </label>
@@ -269,6 +292,10 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
             {kv(
               "Overtime",
               row.overtime_rate_cents !== null ? `${formatCents(row.overtime_rate_cents, row.currency)}/h` : "Not set",
+            )}
+            {kv(
+              "Billable (client)",
+              row.billable_rate_cents !== null ? `${formatCents(row.billable_rate_cents, "usd")}/h` : "Not set",
             )}
           </dl>
         )}

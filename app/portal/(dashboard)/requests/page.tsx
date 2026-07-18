@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { requirePortalMember } from "@/lib/portal-auth";
+import {
+  listPortalInquiriesForActor,
+  listWorkRequestsForActor,
+} from "@/lib/portal/work-requests";
+import { getTokenBalance } from "@/lib/portal/tokens";
+import { PageHead } from "@/components/admin/PageHead";
+import { Badge, statusTone } from "@/components/admin/Badge";
+import { formatDate, humanize } from "@/lib/admin/format";
+import {
+  WORK_REQUEST_STATUS_LABEL,
+  workRequestTone,
+  formatHours,
+  type WorkRequestStatus,
+} from "@/lib/admin/contractors";
+import { GeneralRequest } from "./GeneralRequest";
+
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Requests",
+  description: "Request work from your Edge8 team.",
+};
+
+// Statuses waiting on the CLIENT float a call-to-action.
+const NEEDS_CLIENT = ["estimate_submitted", "work_submitted"];
+
+export default async function PortalRequestsPage() {
+  const actor = await requirePortalMember();
+  const [requests, inquiries, tokens] = await Promise.all([
+    listWorkRequestsForActor(actor),
+    listPortalInquiriesForActor(actor),
+    getTokenBalance(actor),
+  ]);
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Client Portal"
+        title="Requests"
+        sub="Three ways to get work moving: ask us anything, brief a contractor directly, or top up human tokens."
+      />
+
+      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+            Not sure who you need? Describe it and the Edge8 team will pick it up.
+          </p>
+          <GeneralRequest />
+        </div>
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Project for a contractor</h2>
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+            Brief a contractor directly. They estimate the hours, you approve, work starts.
+          </p>
+          <Link href="/portal/requests/new" className="admin-btn admin-btn--primary">
+            New project request
+          </Link>
+        </div>
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Human tokens</h2>
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+            {tokens.balanceTokens > 0
+              ? `You have ${tokens.balanceTokens} tokens (1 token = 1 hour of skilled work).`
+              : "Pre-buy packs of skilled hours: 40 tokens per pack, $2,000."}
+          </p>
+          <Link href="/portal/tokens" className="admin-btn">
+            {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Project requests</h2>
+        {requests.length === 0 ? (
+          <div className="admin-empty">No project requests yet.</div>
+        ) : (
+          <div className="admin-list">
+            {requests.map((r) => (
+              <Link
+                key={r.id}
+                href={`/portal/requests/${r.id}`}
+                className="admin-list-row"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{r.title}</div>
+                  <div className="admin-list-sub">
+                    {r.contractorName ?? "Contractor"} · {formatDate(r.createdAt)}
+                    {r.estimatedHours !== null && ` · est ${formatHours(r.estimatedHours)}`}
+                    {r.actualHours !== null && ` · delivered ${formatHours(r.actualHours)}`}
+                  </div>
+                </div>
+                <div className="admin-list-aside" style={{ alignItems: "flex-end" }}>
+                  {NEEDS_CLIENT.includes(r.status) && <Badge tone="warn">Your review needed</Badge>}
+                  <Badge tone={workRequestTone(r.status)}>
+                    {WORK_REQUEST_STATUS_LABEL[r.status as WorkRequestStatus] ?? humanize(r.status)}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {inquiries.length > 0 && (
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Recent general requests</h2>
+          <div className="admin-list">
+            {inquiries.map((i) => (
+              <div className="admin-list-row" key={i.id}>
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{i.subject || "General request"}</div>
+                  <div className="admin-list-sub">{formatDate(i.createdAt)}</div>
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone={statusTone(i.status)}>{i.status === "new_lead" ? "Received" : humanize(i.status)}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

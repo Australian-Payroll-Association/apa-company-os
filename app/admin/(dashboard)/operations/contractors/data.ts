@@ -29,20 +29,26 @@ export async function listContractors(): Promise<{ rows: ContractorRow[]; error:
   if (error) return { rows: [], error: error.message };
 
   const ids = (tms ?? []).map((t) => t.id);
-  const rateByTm = new Map<string, { hourly: number | null; overtime: number | null; currency: string }>();
+  const rateByTm = new Map<
+    string,
+    { hourly: number | null; overtime: number | null; billable: number | null; currency: string }
+  >();
   if (ids.length > 0) {
     const { data: comps, error: cErr } = await companyOs
       .from("compensation")
       .select("team_member_id, comp_type, amount_cents, currency")
       .in("team_member_id", ids)
-      .in("comp_type", ["hourly", "overtime"])
+      .in("comp_type", ["hourly", "overtime", "billable"])
       .eq("is_current", true);
     if (cErr) return { rows: [], error: cErr.message };
     for (const c of comps ?? []) {
-      const cur = rateByTm.get(c.team_member_id) ?? { hourly: null, overtime: null, currency: "usd" };
+      const cur =
+        rateByTm.get(c.team_member_id) ?? { hourly: null, overtime: null, billable: null, currency: "usd" };
       if (c.comp_type === "hourly") cur.hourly = num(c.amount_cents);
       if (c.comp_type === "overtime") cur.overtime = num(c.amount_cents);
-      cur.currency = c.currency || "usd";
+      if (c.comp_type === "billable") cur.billable = num(c.amount_cents);
+      // billable is always usd; the roster currency reflects the internal rates
+      if (c.comp_type !== "billable") cur.currency = c.currency || "usd";
       rateByTm.set(c.team_member_id, cur);
     }
   }
@@ -63,6 +69,7 @@ export async function listContractors(): Promise<{ rows: ContractorRow[]; error:
       position: one(tm.positions)?.title ?? null,
       hourly_rate_cents: rates?.hourly ?? null,
       overtime_rate_cents: rates?.overtime ?? null,
+      billable_rate_cents: rates?.billable ?? null,
       currency: rates?.currency ?? "usd",
     };
   });

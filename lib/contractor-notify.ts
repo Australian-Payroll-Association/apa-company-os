@@ -130,6 +130,58 @@ export async function sendPaymentEmail(opts: {
   });
 }
 
+// Client-facing sends for portal-origin requests: the client (not admin) is
+// the decider, so they get pinged when the contractor's estimate or finished
+// work is waiting on them in /portal/requests.
+export async function sendClientEstimateReadyEmail(opts: {
+  to: string;
+  name: string | null;
+  title: string;
+  contractorName: string | null;
+  estimatedHours: number;
+  url: string; // /portal/requests/<id>
+}): Promise<boolean> {
+  const who = opts.contractorName ? `${opts.contractorName} has` : "We've";
+  const html = `
+    <p>Hi ${firstName(opts.name)},</p>
+    <p>${who} estimated your request <strong>${opts.title}</strong> at <strong>${opts.estimatedHours} hours</strong>.</p>
+    <p>Review the plan and approve it in your portal to get the work started:</p>
+    ${btn(opts.url, "Review estimate")}
+    <p style="margin-top:24px;">Reply to this email if anything is unclear.</p>
+    <p>Dave and the Edge8 team</p>
+  `.trim();
+  return sendTransactionalEmail({
+    to: opts.to,
+    subject: `Estimate ready: ${opts.title}`,
+    html,
+    replyTo: "dave@edge8.co",
+  });
+}
+
+export async function sendClientWorkReadyEmail(opts: {
+  to: string;
+  name: string | null;
+  title: string;
+  contractorName: string | null;
+  url: string; // /portal/requests/<id>
+}): Promise<boolean> {
+  const who = opts.contractorName ? `${opts.contractorName} has` : "We've";
+  const html = `
+    <p>Hi ${firstName(opts.name)},</p>
+    <p>${who} finished the work on <strong>${opts.title}</strong>.</p>
+    <p>Review the result in your portal and accept it (or request a revision):</p>
+    ${btn(opts.url, "Review work")}
+    <p style="margin-top:24px;">Reply to this email if anything is unclear.</p>
+    <p>Dave and the Edge8 team</p>
+  `.trim();
+  return sendTransactionalEmail({
+    to: opts.to,
+    subject: `Work ready for review: ${opts.title}`,
+    html,
+    replyTo: "dave@edge8.co",
+  });
+}
+
 // Admin-facing ping (existing ops Lark channel; best-effort).
 export async function pingOps(text: string): Promise<void> {
   await notifyOps(text);
