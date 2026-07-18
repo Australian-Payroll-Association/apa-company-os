@@ -5,6 +5,7 @@
 import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "@/lib/admin/audit";
 import { sendTransactionalEmail } from "@/lib/email";
+import { invitePortalMemberCore, resendPortalLinkCore } from "@/lib/admin/portal-invite";
 import { runApprovedWrite } from "./db";
 
 export type ActionOutcome = {
@@ -45,6 +46,35 @@ export async function performApprovedWrite(
     }),
     chipDetail: sql,
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function performApprovedPortalInvite(
+  input: Record<string, unknown>,
+  adminEmail: string,
+): Promise<ActionOutcome> {
+  const action = input.action === "resend_link" ? "resend_link" : "invite";
+  const personId = typeof input.person_id === "string" ? input.person_id : "";
+  const companyId = typeof input.company_id === "string" ? input.company_id : "";
+  const chipDetail = typeof input.summary === "string" ? input.summary : personId;
+
+  if (!UUID_RE.test(personId) || !UUID_RE.test(companyId)) {
+    return {
+      ok: false,
+      resultForModel: "person_id and company_id must be UUIDs from the database.",
+      chipDetail,
+    };
+  }
+
+  const res =
+    action === "invite"
+      ? await invitePortalMemberCore(personId, companyId, adminEmail, "admin_chatbot")
+      : await resendPortalLinkCore(personId, companyId, adminEmail, "admin_chatbot");
+
+  return res.ok
+    ? { ok: true, resultForModel: JSON.stringify({ done: true, message: res.message }), chipDetail }
+    : { ok: false, resultForModel: res.error, chipDetail };
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

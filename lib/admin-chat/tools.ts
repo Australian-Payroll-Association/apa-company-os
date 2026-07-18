@@ -74,8 +74,45 @@ export const EMAIL_TOOL: Anthropic.Tool = {
   },
 };
 
-export const PRIVILEGED_TOOL_NAMES = new Set([WRITE_TOOL.name, EMAIL_TOOL.name]);
+export const PORTAL_TOOL: Anthropic.Tool = {
+  name: "invite_portal_member",
+  description:
+    "Provision client-portal access for a CRM contact — the same flow as the " +
+    "admin UI's Invite/Resend buttons. action 'invite' ensures the " +
+    "portal_members row for (person, company), mints or relinks their auth " +
+    "account, and emails the invite; it also reactivates revoked access and " +
+    "completes half-provisioned members (active membership but " +
+    "people.auth_user_id is null). action 'resend_link' emails a fresh " +
+    "sign-in link to someone whose auth account already exists. First query " +
+    "the database for the person, their company link (person_companies), " +
+    "portal_members status, and people.auth_user_id — then pick the action: " +
+    "'invite' when auth_user_id is null or access was revoked, 'resend_link' " +
+    "when they have an account but need a new link. The admin must approve " +
+    "before anything is sent. Call this tool on its own, never alongside " +
+    "other tool calls.",
+  input_schema: {
+    type: "object",
+    properties: {
+      action: { type: "string", enum: ["invite", "resend_link"] },
+      person_id: { type: "string", description: "company_os.people.id (UUID)." },
+      company_id: { type: "string", description: "company_os.companies.id (UUID)." },
+      summary: {
+        type: "string",
+        description:
+          "One human-readable line shown on the approval card, e.g. " +
+          "\"Invite Jane Doe (jane@acme.com) to the Acme Inc portal\".",
+      },
+    },
+    required: ["action", "person_id", "company_id", "summary"],
+  },
+};
+
+export const PRIVILEGED_TOOL_NAMES = new Set([
+  WRITE_TOOL.name,
+  EMAIL_TOOL.name,
+  PORTAL_TOOL.name,
+]);
 
 export function chatbotTools(opts: { canWrite: boolean }): Anthropic.Tool[] {
-  return opts.canWrite ? [QUERY_TOOL, WRITE_TOOL, EMAIL_TOOL] : [QUERY_TOOL];
+  return opts.canWrite ? [QUERY_TOOL, WRITE_TOOL, EMAIL_TOOL, PORTAL_TOOL] : [QUERY_TOOL];
 }

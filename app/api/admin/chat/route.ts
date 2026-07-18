@@ -23,7 +23,11 @@ import { runReadOnlyQuery } from "@/lib/admin-chat/db";
 import { chatbotTools, PRIVILEGED_TOOL_NAMES } from "@/lib/admin-chat/tools";
 import { buildSystemPrompt } from "@/lib/admin-chat/system-prompt";
 import { isPrivilegedChatUser } from "@/lib/admin-chat/privileged";
-import { performApprovedWrite, performApprovedEmail } from "@/lib/admin-chat/actions";
+import {
+  performApprovedWrite,
+  performApprovedEmail,
+  performApprovedPortalInvite,
+} from "@/lib/admin-chat/actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,9 +99,9 @@ async function runPrivilegedTool(
   adminEmail: string,
 ): Promise<{ ok: boolean; resultForModel: string; chipDetail: string }> {
   const input = tu.input as Record<string, unknown>;
-  return tu.name === "execute_write"
-    ? performApprovedWrite(input, adminEmail)
-    : performApprovedEmail(input, adminEmail);
+  if (tu.name === "execute_write") return performApprovedWrite(input, adminEmail);
+  if (tu.name === "invite_portal_member") return performApprovedPortalInvite(input, adminEmail);
+  return performApprovedEmail(input, adminEmail);
 }
 
 export async function POST(request: NextRequest) {

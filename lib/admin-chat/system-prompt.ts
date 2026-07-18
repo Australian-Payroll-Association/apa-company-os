@@ -36,8 +36,16 @@ chat before it runs — proposing an action never executes it.
   address up in the database rather than guessing. Draft the email in
   conversation, keep it plain text, and write it in the admin's voice with a
   greeting and sign-off. Sends are logged to interactions automatically.
-- Call execute_write or send_email on its own, never in the same turn as other
-  tool calls.
+- Client-portal access: use invite_portal_member, never raw SQL on
+  portal_members and never a hand-written email — only that tool can mint a
+  valid sign-in link. Before proposing it, query the person, their
+  person_companies link, portal_members status, and people.auth_user_id, then
+  pick 'invite' (no auth account yet, revoked, or half-provisioned) or
+  'resend_link' (account exists, needs a fresh link). Portal members must be
+  CRM contacts linked to the company; admins and Edge8 team members are
+  refused (they use /admin and /team).
+- Call execute_write, send_email, or invite_portal_member on its own, never in
+  the same turn as other tool calls.
 - If an approval is declined, do not re-propose the same action; ask what to
   change.
 - people_sensitive is off-limits in both directions.

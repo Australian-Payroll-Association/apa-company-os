@@ -93,6 +93,7 @@ function BotText({ text }: { text: string }) {
 const CHIP_LABELS: Record<string, string> = {
   execute_write: "Changed the database",
   send_email: "Sent the email",
+  invite_portal_member: "Portal access provisioned",
 };
 
 // Approval card for a pending execute_write / send_email tool call. Nothing
@@ -107,12 +108,19 @@ function ApprovalCard({
   onDecide: (id: string, approved: boolean) => void;
 }) {
   const isEmail = item.name === "send_email";
+  const isPortal = item.name === "invite_portal_member";
   const statusLabel =
     item.status === "approved" ? "Approved" : item.status === "declined" ? "Cancelled" : null;
   return (
     <div className="chatw-approval">
       <div className="chatw-approval-title">
-        {isEmail ? "Send this email?" : "Run this change?"}
+        {isEmail
+          ? "Send this email?"
+          : isPortal
+            ? item.input.action === "resend_link"
+              ? "Send a fresh portal sign-in link?"
+              : "Send this portal invite?"
+            : "Run this change?"}
       </div>
       {isEmail ? (
         <div className="chatw-approval-email">
@@ -124,6 +132,10 @@ function ApprovalCard({
             {String(item.input.subject ?? "")}
           </div>
           <pre>{String(item.input.body ?? "")}</pre>
+        </div>
+      ) : isPortal ? (
+        <div className="chatw-approval-email">
+          <div>{String(item.input.summary ?? "")}</div>
         </div>
       ) : (
         <pre className="chatw-approval-sql">{String(item.input.sql ?? "")}</pre>
@@ -142,7 +154,7 @@ function ApprovalCard({
             disabled={disabled}
             onClick={() => onDecide(item.id, true)}
           >
-            {isEmail ? "Approve & send" : "Approve & run"}
+            {isEmail || isPortal ? "Approve & send" : "Approve & run"}
           </button>
           <button
             type="button"
