@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Edge8 Company OS · Data Model</title>
+<style>html,body{margin:0;background:#eef1f5}</style>
+</head>
+<body>
+
+<style>
+  :root{
+    --paper:#eef1f5; --panel:#ffffff; --panel-2:#f7f9fb;
+    --ink:#0d1826; --ink-2:#3a4c63; --ink-3:#788698; --ink-4:#9aa7b8;
+    --line:#e3e8ef; --line-2:#d2dae4;
+    --accent:#0f7b8a; --accent-deep:#0a5a66;
+    --hub:#c68a2e;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  .wrap{
+    max-width:1180px;margin:0 auto;padding:40px 24px 72px;
+    font-family:var(--sans);color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;line-height:1.5;
+  }
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent-deep);margin:0 0 10px}
+  h1.title{font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.05;margin:0;
+    font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+  .subtitle{color:var(--ink-2);margin:12px 0 0;max-width:60ch;font-size:1rem}
+  .subtitle code{font-family:var(--mono);font-size:.9em;background:#dfe5ee;
+    padding:1px 6px;border-radius:4px;color:var(--accent-deep)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--line-2);border:1px solid var(--line-2);border-radius:12px;
+    overflow:hidden;margin:30px 0 0}
+  .stat{background:var(--panel);padding:18px 20px}
+  .stat b{display:block;font-family:var(--mono);font-size:1.75rem;font-weight:600;
+    letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat span{font-size:.74rem;color:var(--ink-3);text-transform:uppercase;
+    letter-spacing:.08em}
+
+  section{margin-top:56px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin:0 0 6px}
+  .sec-head h2{font-size:1.28rem;font-weight:700;margin:0;letter-spacing:-.01em}
+  .sec-num{font-family:var(--mono);font-size:.78rem;color:var(--accent);
+    font-weight:600}
+  .sec-lede{color:var(--ink-2);margin:0 0 26px;max-width:70ch;font-size:.94rem}
+
+  /* backbone bars */
+  .backbone{display:grid;grid-template-columns:1.15fr .85fr;gap:38px;align-items:start}
+  @media(max-width:760px){.backbone{grid-template-columns:1fr}}
+  .bars{display:flex;flex-direction:column;gap:11px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px}
+  .bar-row{display:grid;grid-template-columns:120px 1fr 34px;align-items:center;gap:14px}
+  .bar-name{font-family:var(--mono);font-size:.82rem;color:var(--ink)}
+  .bar-track{height:9px;background:#e9edf3;border-radius:5px;overflow:hidden}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#2aa0af);
+    border-radius:5px}
+  .bar-val{font-family:var(--mono);font-size:.8rem;color:var(--hub);text-align:right;
+    font-weight:700;font-variant-numeric:tabular-nums}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;padding:18px 20px;font-size:.9rem;color:var(--ink-2)}
+  .note strong{color:var(--ink)}
+  .note code{font-family:var(--mono);font-size:.85em;color:var(--accent-deep)}
+
+  /* diagram */
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:22px 20px;overflow-x:auto}
+  .diagram svg{min-width:640px;display:block}
+
+  /* domain cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(322px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 4px;overflow:hidden;display:flex;flex-direction:column}
+  .card-h{display:flex;align-items:center;gap:9px;padding:15px 18px 12px;
+    border-bottom:1px solid var(--line)}
+  .card-h .dot{width:10px;height:10px;border-radius:50%;flex:none;
+    background:hsl(var(--h) 48% 48%)}
+  .card-h h3{font-size:.98rem;font-weight:700;margin:0;flex:1}
+  .card-meta{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);
+    text-align:right;white-space:nowrap}
+  .tlist{list-style:none;margin:0;padding:8px 18px 4px;
+    display:flex;flex-direction:column;gap:1px;flex:1}
+  .tlist li{display:flex;align-items:center;justify-content:space-between;
+    padding:2.5px 0;border-bottom:1px dotted #eef1f5}
+  .tlist li:last-child{border-bottom:none}
+  .tlist code{font-family:var(--mono);font-size:.745rem;color:var(--ink-2)}
+  .tlist .rc{font-family:var(--mono);font-size:.68rem;color:var(--ink-4);
+    font-variant-numeric:tabular-nums}
+  .card-f{display:flex;flex-wrap:wrap;align-items:center;gap:5px;
+    padding:11px 18px 14px;border-top:1px solid var(--line);background:var(--panel-2)}
+  .fk-label{font-size:.64rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-4);margin-right:3px}
+  .chip{font-family:var(--mono);font-size:.68rem;color:var(--ink-2);
+    background:#eef2f7;border:1px solid var(--line-2);border-radius:5px;
+    padding:1.5px 6px;display:inline-flex;align-items:center;gap:4px}
+  .chip i{font-style:normal;color:var(--hub);font-weight:700;font-size:.9em}
+  .chip-none{color:var(--ink-4);font-style:italic;background:transparent;border-style:dashed}
+
+  /* footer / how-to */
+  .howto{margin-top:56px;background:#0d1826;color:#c6d2e0;border-radius:16px;
+    padding:34px 34px;display:grid;grid-template-columns:1fr 1fr;gap:30px}
+  @media(max-width:680px){.howto{grid-template-columns:1fr;padding:26px 22px}
+    .stats{grid-template-columns:repeat(2,1fr)}}
+  .howto h2{color:#fff;font-size:1.12rem;margin:0 0 12px;grid-column:1/-1}
+  .howto h4{color:#fff;font-size:.92rem;margin:0 0 8px;
+    font-family:var(--mono);font-weight:600}
+  .howto p{margin:0 0 8px;font-size:.87rem;line-height:1.55}
+  .howto code{font-family:var(--mono);font-size:.85em;background:#1c2b3e;
+    padding:1.5px 6px;border-radius:4px;color:#7fd4df}
+  .howto a{color:#5fc6d4;text-decoration:none;border-bottom:1px solid #2c6570}
+  .howto ol{margin:6px 0 0;padding-left:20px;font-size:.85rem}
+  .howto ol li{margin-bottom:5px}
+  .prov{margin-top:26px;font-family:var(--mono);font-size:.7rem;color:var(--ink-4);
+    text-align:center;letter-spacing:.04em}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Database Model · Supabase</p>
+    <h1 class="title">Edge8 Company OS</h1>
+    <p class="subtitle">The full data model of the <code>company_os</code> schema — one Postgres database running CRM, recruiting, HR, time-off, commerce, content and an AI-app platform, all hung off a shared people-and-brands backbone.</p>
+    <div class="stats">
+      <div class="stat"><b>98</b><span>Tables</span></div>
+      <div class="stat"><b>248</b><span>Foreign keys</span></div>
+      <div class="stat"><b>15</b><span>Domains</span></div>
+      <div class="stat"><b>4,749</b><span>Rows today</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>The backbone</h2></div>
+    <p class="sec-lede">Five tables anchor everything. <code style="font-family:var(--mono)">people</code> is the gravitational center — 58 of the 98 tables carry a foreign key back to it. Understand these five and the rest of the schema is just modules plugging into them.</p>
+    <div class="backbone">
+      <div class="bars"><div class="bar-row">
+      <code class="bar-name">people</code>
+      <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+      <span class="bar-val">58</span>
+    </div><div class="bar-row">
+      <code class="bar-name">brands</code>
+      <div class="bar-track"><div class="bar-fill" style="width:56.9%"></div></div>
+      <span class="bar-val">33</span>
+    </div><div class="bar-row">
+      <code class="bar-name">companies</code>
+      <div class="bar-track"><div class="bar-fill" style="width:10.3%"></div></div>
+      <span class="bar-val">6</span>
+    </div><div class="bar-row">
+      <code class="bar-name">legal_entities</code>
+      <div class="bar-track"><div class="bar-fill" style="width:37.9%"></div></div>
+      <span class="bar-val">22</span>
+    </div><div class="bar-row">
+      <code class="bar-name">team_members</code>
+      <div class="bar-track"><div class="bar-fill" style="width:34.5%"></div></div>
+      <span class="bar-val">20</span>
+    </div></div>
+      <div class="note"><strong>Read it as a hub-and-spoke.</strong> A person is the same row whether they show up as a CRM lead, a job candidate, a customer on an order, or a team member taking leave. <code>legal_entities → brands</code> sets the org structure at the top; <code>team_members</code> is the internal-staff spine that HR, Time&nbsp;Off and Recruiting all reference.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>How the domains attach</h2></div>
+    <p class="sec-lede">Each curve is one or more foreign keys from a domain into a backbone table — thicker means more links. This is the connective tissue: notice CRM and Content lean hardest on <code style="font-family:var(--mono)">people</code>, while Time&nbsp;Off and HR route entirely through <code style="font-family:var(--mono)">team_members</code>.</p>
+    <div class="diagram"><svg viewBox="0 0 940 588" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How each domain attaches to the backbone tables" width="100%">
+<g><path d="M 250.0 404.0 C 470.0 404.0 470.0 390.0 690.0 390.0" fill="none" stroke="hsl(210 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 390.0 690.0 390.0" fill="none" stroke="hsl(210 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 166.0 690.0 166.0" fill="none" stroke="hsl(350 46% 50%)" stroke-width="9.15" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 166.0 690.0 166.0" fill="none" stroke="hsl(350 46% 50%)" stroke-width="18.35" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 294.0 C 470.0 294.0 470.0 166.0 690.0 166.0" fill="none" stroke="hsl(350 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 166.0 690.0 166.0" fill="none" stroke="hsl(350 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 70.0 690.0 70.0" fill="none" stroke="hsl(22 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 70.0 690.0 70.0" fill="none" stroke="hsl(22 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 262.0 690.0 262.0" fill="none" stroke="hsl(40 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 262.0 690.0 262.0" fill="none" stroke="hsl(40 46% 50%)" stroke-width="5.70" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 262.0 690.0 262.0" fill="none" stroke="hsl(40 46% 50%)" stroke-width="5.70" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 422.0 690.0 422.0" fill="none" stroke="hsl(150 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 422.0 690.0 422.0" fill="none" stroke="hsl(150 46% 50%)" stroke-width="5.70" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 294.0 C 470.0 294.0 470.0 422.0 690.0 422.0" fill="none" stroke="hsl(150 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 422.0 690.0 422.0" fill="none" stroke="hsl(150 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 514.0 C 470.0 514.0 470.0 422.0 690.0 422.0" fill="none" stroke="hsl(150 46% 50%)" stroke-width="6.85" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 514.0 C 470.0 514.0 470.0 486.0 690.0 486.0" fill="none" stroke="hsl(172 46% 50%)" stroke-width="10.30" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 486.0 690.0 486.0" fill="none" stroke="hsl(172 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 486.0 690.0 486.0" fill="none" stroke="hsl(172 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 514.0 C 470.0 514.0 470.0 518.0 690.0 518.0" fill="none" stroke="hsl(194 46% 50%)" stroke-width="4.55" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 230.0 690.0 230.0" fill="none" stroke="hsl(258 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 230.0 690.0 230.0" fill="none" stroke="hsl(258 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 230.0 690.0 230.0" fill="none" stroke="hsl(258 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 102.0 690.0 102.0" fill="none" stroke="hsl(322 46% 50%)" stroke-width="8.00" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 102.0 690.0 102.0" fill="none" stroke="hsl(322 46% 50%)" stroke-width="5.70" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 102.0 690.0 102.0" fill="none" stroke="hsl(322 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 134.0 690.0 134.0" fill="none" stroke="hsl(292 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 134.0 690.0 134.0" fill="none" stroke="hsl(292 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 294.0 690.0 294.0" fill="none" stroke="hsl(232 46% 50%)" stroke-width="5.70" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 294.0 690.0 294.0" fill="none" stroke="hsl(232 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 294.0 690.0 294.0" fill="none" stroke="hsl(232 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 294.0 C 470.0 294.0 470.0 294.0 690.0 294.0" fill="none" stroke="hsl(232 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 198.0 690.0 198.0" fill="none" stroke="hsl(276 46% 50%)" stroke-width="8.00" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 198.0 690.0 198.0" fill="none" stroke="hsl(276 46% 50%)" stroke-width="4.55" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 198.0 690.0 198.0" fill="none" stroke="hsl(276 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 326.0 690.0 326.0" fill="none" stroke="hsl(100 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 326.0 690.0 326.0" fill="none" stroke="hsl(100 46% 50%)" stroke-width="3.40" stroke-opacity="0.37" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 326.0 690.0 326.0" fill="none" stroke="hsl(100 46% 50%)" stroke-width="4.55" stroke-opacity="0.44" stroke-linecap="round"/><path d="M 250.0 184.0 C 470.0 184.0 470.0 454.0 690.0 454.0" fill="none" stroke="hsl(128 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/><path d="M 250.0 404.0 C 470.0 404.0 470.0 454.0 690.0 454.0" fill="none" stroke="hsl(128 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 74.0 C 470.0 74.0 470.0 358.0 690.0 358.0" fill="none" stroke="hsl(216 46% 50%)" stroke-width="2.25" stroke-opacity="0.30" stroke-linecap="round"/><path d="M 250.0 514.0 C 470.0 514.0 470.0 358.0 690.0 358.0" fill="none" stroke="hsl(216 46% 50%)" stroke-width="1.10" stroke-opacity="0.23" stroke-linecap="round"/></g>
+<rect x="118.0" y="59.0" width="132" height="30" rx="7" fill="#0d1826"/>
+<text x="131.0" y="74.5" fill="#fff" font-family="ui-monospace,monospace" font-size="12.5" dominant-baseline="middle" font-weight="600">people</text>
+<text x="237.0" y="74.5" fill="#c68a2e" font-family="ui-monospace,monospace" font-size="11" text-anchor="end" dominant-baseline="middle" font-weight="700">58</text>
+<circle cx="250.0" cy="74.0" r="3.2" fill="#0d1826"/>
+<rect x="118.0" y="169.0" width="132" height="30" rx="7" fill="#0d1826"/>
+<text x="131.0" y="184.5" fill="#fff" font-family="ui-monospace,monospace" font-size="12.5" dominant-baseline="middle" font-weight="600">brands</text>
+<text x="237.0" y="184.5" fill="#c68a2e" font-family="ui-monospace,monospace" font-size="11" text-anchor="end" dominant-baseline="middle" font-weight="700">33</text>
+<circle cx="250.0" cy="184.0" r="3.2" fill="#0d1826"/>
+<rect x="118.0" y="279.0" width="132" height="30" rx="7" fill="#0d1826"/>
+<text x="131.0" y="294.5" fill="#fff" font-family="ui-monospace,monospace" font-size="12.5" dominant-baseline="middle" font-weight="600">companies</text>
+<text x="237.0" y="294.5" fill="#c68a2e" font-family="ui-monospace,monospace" font-size="11" text-anchor="end" dominant-baseline="middle" font-weight="700">6</text>
+<circle cx="250.0" cy="294.0" r="3.2" fill="#0d1826"/>
+<rect x="118.0" y="389.0" width="132" height="30" rx="7" fill="#0d1826"/>
+<text x="131.0" y="404.5" fill="#fff" font-family="ui-monospace,monospace" font-size="12.5" dominant-baseline="middle" font-weight="600">legal_entities</text>
+<text x="237.0" y="404.5" fill="#c68a2e" font-family="ui-monospace,monospace" font-size="11" text-anchor="end" dominant-baseline="middle" font-weight="700">22</text>
+<circle cx="250.0" cy="404.0" r="3.2" fill="#0d1826"/>
+<rect x="118.0" y="499.0" width="132" height="30" rx="7" fill="#0d1826"/>
+<text x="131.0" y="514.5" fill="#fff" font-family="ui-monospace,monospace" font-size="12.5" dominant-baseline="middle" font-weight="600">team_members</text>
+<text x="237.0" y="514.5" fill="#c68a2e" font-family="ui-monospace,monospace" font-size="11" text-anchor="end" dominant-baseline="middle" font-weight="700">20</text>
+<circle cx="250.0" cy="514.0" r="3.2" fill="#0d1826"/>
+<text x="118.0" y="32.0" fill="#7c8aa0" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="0.12em">BACKBONE · REFERENCED BY (N) TABLES</text>
+<text x="690.0" y="32.0" fill="#7c8aa0" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="0.12em">DOMAINS</text>
+<circle cx="690.0" cy="70.0" r="4.4" fill="hsl(22 48% 48%)"/>
+<text x="703.0" y="70.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Affiliates</text>
+<text x="791.0" y="70.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">3 tbl</text>
+<circle cx="690.0" cy="102.0" r="4.4" fill="hsl(322 48% 48%)"/>
+<text x="703.0" y="102.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Content & Marketing</text>
+<text x="857.6" y="102.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">9 tbl</text>
+<circle cx="690.0" cy="134.0" r="4.4" fill="hsl(292 48% 48%)"/>
+<text x="703.0" y="134.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Surveys</text>
+<text x="768.8" y="134.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">4 tbl</text>
+<circle cx="690.0" cy="166.0" r="4.4" fill="hsl(350 48% 48%)"/>
+<text x="703.0" y="166.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">CRM</text>
+<text x="739.2" y="166.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">15 tbl</text>
+<circle cx="690.0" cy="198.0" r="4.4" fill="hsl(276 48% 48%)"/>
+<text x="703.0" y="198.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">AI Platform</text>
+<text x="798.4" y="198.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">8 tbl</text>
+<circle cx="690.0" cy="230.0" r="4.4" fill="hsl(258 48% 48%)"/>
+<text x="703.0" y="230.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Meetings</text>
+<text x="776.2" y="230.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">4 tbl</text>
+<circle cx="690.0" cy="262.0" r="4.4" fill="hsl(40 48% 48%)"/>
+<text x="703.0" y="262.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Commerce</text>
+<text x="776.2" y="262.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">6 tbl</text>
+<circle cx="690.0" cy="294.0" r="4.4" fill="hsl(232 48% 48%)"/>
+<text x="703.0" y="294.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Projects & Delivery</text>
+<text x="857.6" y="294.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">6 tbl</text>
+<circle cx="690.0" cy="326.0" r="4.4" fill="hsl(100 48% 48%)"/>
+<text x="703.0" y="326.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">IP & Knowledge</text>
+<text x="820.6" y="326.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">5 tbl</text>
+<circle cx="690.0" cy="358.0" r="4.4" fill="hsl(216 48% 48%)"/>
+<text x="703.0" y="358.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">System</text>
+<text x="761.4" y="358.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">5 tbl</text>
+<circle cx="690.0" cy="390.0" r="4.4" fill="hsl(210 48% 48%)"/>
+<text x="703.0" y="390.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Org & Foundation</text>
+<text x="835.4" y="390.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">5 tbl</text>
+<circle cx="690.0" cy="422.0" r="4.4" fill="hsl(150 48% 48%)"/>
+<text x="703.0" y="422.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">ATS / Recruiting</text>
+<text x="835.4" y="422.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">14 tbl</text>
+<circle cx="690.0" cy="454.0" r="4.4" fill="hsl(128 48% 48%)"/>
+<text x="703.0" y="454.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Finance</text>
+<text x="768.8" y="454.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">2 tbl</text>
+<circle cx="690.0" cy="486.0" r="4.4" fill="hsl(172 48% 48%)"/>
+<text x="703.0" y="486.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">HR / People Ops</text>
+<text x="828.0" y="486.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">7 tbl</text>
+<circle cx="690.0" cy="518.0" r="4.4" fill="hsl(194 48% 48%)"/>
+<text x="703.0" y="518.5" fill="#26374d" font-family="system-ui,-apple-system,sans-serif" font-size="12.5" dominant-baseline="middle" font-weight="600">Time Off</text>
+<text x="776.2" y="518.5" fill="#98a6b8" font-family="ui-monospace,monospace" font-size="10.5" dominant-baseline="middle">5 tbl</text>
+</svg></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>The 15 domains</h2></div>
+    <p class="sec-lede">Every table, grouped by function and ordered by how much data lives there today. The chips on each card show which backbone tables it points at, and how many times.</p>
+    <div class="grid"><article class="card" style="--h:194">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Time Off</h3>
+        <span class="card-meta">5 tables · 1,747 rows</span>
+      </header>
+      <ul class="tlist"><li><code>dayoff_snapshot</code><span class="rc">1,405</span></li><li><code>time_off</code><span class="rc">288</span></li><li><code>leave_adjustments</code><span class="rc">52</span></li><li><code>leave_policies</code><span class="rc">2</span></li><li><code>holidays</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">team_members<i>4</i></code></footer>
+    </article><article class="card" style="--h:350">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>CRM</h3>
+        <span class="card-meta">15 tables · 1,343 rows</span>
+      </header>
+      <ul class="tlist"><li><code>people</code><span class="rc">559</span></li><li><code>person_brands</code><span class="rc">150</span></li><li><code>interactions</code><span class="rc">143</span></li><li><code>deals</code><span class="rc">126</span></li><li><code>companies</code><span class="rc">121</span></li><li><code>person_companies</code><span class="rc">120</span></li><li><code>inquiries</code><span class="rc">108</span></li><li><code>service_lines</code><span class="rc">8</span></li><li><code>pipeline_stages</code><span class="rc">6</span></li><li><code>pipelines</code><span class="rc">1</span></li><li><code>lifecycle_transitions</code><span class="rc">1</span></li><li><code>person_relationships</code><span class="rc">0</span></li><li><code>person_qualifications</code><span class="rc">0</span></li><li><code>touchpoints</code><span class="rc">0</span></li><li><code>campaigns</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>16</i></code><code class="chip">brands<i>8</i></code><code class="chip">companies<i>3</i></code><code class="chip">legal_entities<i>2</i></code></footer>
+    </article><article class="card" style="--h:150">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>ATS / Recruiting</h3>
+        <span class="card-meta">14 tables · 1,011 rows</span>
+      </header>
+      <ul class="tlist"><li><code>applications</code><span class="rc">286</span></li><li><code>candidates</code><span class="rc">285</span></li><li><code>application_stage_log</code><span class="rc">263</span></li><li><code>application_stages</code><span class="rc">101</span></li><li><code>job_requisitions</code><span class="rc">52</span></li><li><code>positions</code><span class="rc">24</span></li><li><code>stage_templates</code><span class="rc">0</span></li><li><code>stage_template_stages</code><span class="rc">0</span></li><li><code>offers</code><span class="rc">0</span></li><li><code>interviews</code><span class="rc">0</span></li><li><code>interview_interviewers</code><span class="rc">0</span></li><li><code>interview_scorecards</code><span class="rc">0</span></li><li><code>scorecard_scores</code><span class="rc">0</span></li><li><code>onboarding_tasks</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>5</i></code><code class="chip">brands<i>1</i></code><code class="chip">companies<i>2</i></code><code class="chip">legal_entities<i>3</i></code><code class="chip">team_members<i>6</i></code></footer>
+    </article><article class="card" style="--h:258">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Meetings</h3>
+        <span class="card-meta">4 tables · 357 rows</span>
+      </header>
+      <ul class="tlist"><li><code>meetings</code><span class="rc">357</span></li><li><code>meeting_participants</code><span class="rc">0</span></li><li><code>meeting_action_items</code><span class="rc">0</span></li><li><code>meeting_links</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>3</i></code><code class="chip">brands<i>1</i></code><code class="chip">legal_entities<i>1</i></code></footer>
+    </article><article class="card" style="--h:216">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>System</h3>
+        <span class="card-meta">5 tables · 117 rows</span>
+      </header>
+      <ul class="tlist"><li><code>audit_log</code><span class="rc">117</span></li><li><code>tags</code><span class="rc">0</span></li><li><code>taggables</code><span class="rc">0</span></li><li><code>skills</code><span class="rc">0</span></li><li><code>person_skills</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>2</i></code><code class="chip">team_members<i>1</i></code></footer>
+    </article><article class="card" style="--h:172">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>HR / People Ops</h3>
+        <span class="card-meta">7 tables · 54 rows</span>
+      </header>
+      <ul class="tlist"><li><code>team_members</code><span class="rc">46</span></li><li><code>departments</code><span class="rc">8</span></li><li><code>compensation</code><span class="rc">0</span></li><li><code>performance_reviews</code><span class="rc">0</span></li><li><code>one_on_ones</code><span class="rc">0</span></li><li><code>one_on_one_sessions</code><span class="rc">0</span></li><li><code>goals</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>1</i></code><code class="chip">legal_entities<i>3</i></code><code class="chip">team_members<i>9</i></code></footer>
+    </article><article class="card" style="--h:40">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Commerce</h3>
+        <span class="card-meta">6 tables · 46 rows</span>
+      </header>
+      <ul class="tlist"><li><code>products</code><span class="rc">23</span></li><li><code>orders</code><span class="rc">11</span></li><li><code>event_registrations</code><span class="rc">5</span></li><li><code>bookings</code><span class="rc">4</span></li><li><code>availability_blocks</code><span class="rc">3</span></li><li><code>subscriptions</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>5</i></code><code class="chip">brands<i>5</i></code><code class="chip">legal_entities<i>2</i></code></footer>
+    </article><article class="card" style="--h:292">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Surveys</h3>
+        <span class="card-meta">4 tables · 32 rows</span>
+      </header>
+      <ul class="tlist"><li><code>survey_answers</code><span class="rc">18</span></li><li><code>survey_fields</code><span class="rc">6</span></li><li><code>survey_responses</code><span class="rc">6</span></li><li><code>surveys</code><span class="rc">2</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>1</i></code><code class="chip">brands<i>2</i></code></footer>
+    </article><article class="card" style="--h:210">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Org & Foundation</h3>
+        <span class="card-meta">5 tables · 24 rows</span>
+      </header>
+      <ul class="tlist"><li><code>integration_sources</code><span class="rc">10</span></li><li><code>brands</code><span class="rc">5</span></li><li><code>company_profile</code><span class="rc">4</span></li><li><code>legal_entities</code><span class="rc">3</span></li><li><code>admins</code><span class="rc">2</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>1</i></code><code class="chip">legal_entities<i>1</i></code></footer>
+    </article><article class="card" style="--h:22">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Affiliates</h3>
+        <span class="card-meta">3 tables · 11 rows</span>
+      </header>
+      <ul class="tlist"><li><code>affiliates</code><span class="rc">10</span></li><li><code>affiliate_commissions</code><span class="rc">1</span></li><li><code>affiliate_payouts</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>1</i></code><code class="chip">brands<i>1</i></code></footer>
+    </article><article class="card" style="--h:100">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>IP & Knowledge</h3>
+        <span class="card-meta">5 tables · 7 rows</span>
+      </header>
+      <ul class="tlist"><li><code>documents</code><span class="rc">7</span></li><li><code>ip_assets</code><span class="rc">0</span></li><li><code>ip_asset_versions</code><span class="rc">0</span></li><li><code>ip_asset_usages</code><span class="rc">0</span></li><li><code>research_notes</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>4</i></code><code class="chip">brands<i>3</i></code><code class="chip">legal_entities<i>3</i></code></footer>
+    </article><article class="card" style="--h:322">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Content & Marketing</h3>
+        <span class="card-meta">9 tables · 0 rows</span>
+      </header>
+      <ul class="tlist"><li><code>content_pillars</code><span class="rc">0</span></li><li><code>content_channels</code><span class="rc">0</span></li><li><code>content_items</code><span class="rc">0</span></li><li><code>content_ideas</code><span class="rc">0</span></li><li><code>content_media</code><span class="rc">0</span></li><li><code>content_schedules</code><span class="rc">0</span></li><li><code>pillar_channels</code><span class="rc">0</span></li><li><code>brand_voices</code><span class="rc">0</span></li><li><code>platform_identities</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>7</i></code><code class="chip">brands<i>5</i></code><code class="chip">legal_entities<i>1</i></code></footer>
+    </article><article class="card" style="--h:232">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Projects & Delivery</h3>
+        <span class="card-meta">6 tables · 0 rows</span>
+      </header>
+      <ul class="tlist"><li><code>projects</code><span class="rc">0</span></li><li><code>project_members</code><span class="rc">0</span></li><li><code>milestones</code><span class="rc">0</span></li><li><code>tasks</code><span class="rc">0</span></li><li><code>epics</code><span class="rc">0</span></li><li><code>epic_items</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>5</i></code><code class="chip">brands<i>2</i></code><code class="chip">companies<i>1</i></code><code class="chip">legal_entities<i>2</i></code></footer>
+    </article><article class="card" style="--h:276">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>AI Platform</h3>
+        <span class="card-meta">8 tables · 0 rows</span>
+      </header>
+      <ul class="tlist"><li><code>apps</code><span class="rc">0</span></li><li><code>app_environments</code><span class="rc">0</span></li><li><code>app_members</code><span class="rc">0</span></li><li><code>agents_registry</code><span class="rc">0</span></li><li><code>prompts</code><span class="rc">0</span></li><li><code>prompt_versions</code><span class="rc">0</span></li><li><code>experiments</code><span class="rc">0</span></li><li><code>tools</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">people<i>7</i></code><code class="chip">brands<i>4</i></code><code class="chip">legal_entities<i>2</i></code></footer>
+    </article><article class="card" style="--h:128">
+      <header class="card-h">
+        <span class="dot"></span>
+        <h3>Finance</h3>
+        <span class="card-meta">2 tables · 0 rows</span>
+      </header>
+      <ul class="tlist"><li><code>vendors</code><span class="rc">0</span></li><li><code>expenses</code><span class="rc">0</span></li></ul>
+      <footer class="card-f"><span class="fk-label">attaches to</span><code class="chip">brands<i>1</i></code><code class="chip">legal_entities<i>2</i></code></footer>
+    </article></div>
+  </section>
+
+  <div class="howto">
+    <h2>Get the full interactive ERD</h2>
+    <div>
+      <h4>Option A — dbdiagram.io (recommended)</h4>
+      <p>I generated a complete <code>.dbml</code> file with all 98 tables and every relationship. It gives you a draggable, exportable ERD in about 20 seconds.</p>
+      <ol>
+        <li>Open <a href="https://dbdiagram.io/d">dbdiagram.io/d</a></li>
+        <li>Paste the contents of <code>docs/plans/edge8-company-os.dbml</code></li>
+        <li>Export to PNG / PDF / SQL, or share a link</li>
+      </ol>
+    </div>
+    <div>
+      <h4>Option B — Supabase's built-in tool</h4>
+      <p>Yes, Supabase ships one: <strong>Database → Schema Visualizer</strong> in the dashboard (also the diagram toggle in the Table Editor). It auto-draws the ERD per schema straight from the live database.</p>
+      <p style="color:#8b9bad">Handy for a quick look, but it's read-only inside the dashboard and awkward to share or export — which is why the DBML route above is usually nicer for docs.</p>
+    </div>
+  </div>
+
+  <p class="prov">Generated from the live schema · project “Edge8 Company Database” · schema company_os · 2026-07-07</p>
+</div>
+
+</body>
+</html>

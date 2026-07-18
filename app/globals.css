@@ -42,11 +42,43 @@
   --radius-sm: 20px;
   --radius-btn: 40px;
   --transition: 0.2s ease;
+
+  /* Link color system — resolved per-context (see dark-surface override below).
+     --blue-bright is used as the default on dark backgrounds because #287BE8
+     falls just under 4.5:1 contrast on #101014; #3B8CF5 clears it. */
+  --link: var(--blue);
+  --link-hover: #1D6AD4;
+  --link-on-dark: var(--blue-bright);
+  --link-on-dark-hover: #6FADFB;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-a { transition: color 0.2s ease; }
+a { color: var(--link); text-decoration: none; transition: color 0.2s ease; }
+a:hover { color: var(--link-hover); }
+
+/* Dark-background sections swap link tokens to the higher-contrast variant. */
+.hero,
+.shift-payoff,
+.mental,
+.engage-transparency,
+.blog-hero,
+.post-hero,
+.sidebar-cta,
+.stat-pullquote,
+.approach-callout,
+.track-record,
+.careers-hero,
+.careers-cta-section,
+.apply-page,
+.rt-price-box,
+.rt-total,
+.dropdown,
+footer {
+  --link: var(--link-on-dark);
+  --link-hover: var(--link-on-dark-hover);
+}
+
 h1, h2, h3, h4, h5, h6 { font-weight: 400; }
 .nav-logo img { width: auto; }
 .footer-logo img { width: auto; }
@@ -1579,8 +1611,8 @@ a.hero-stat:hover .hero-stat-label { color: var(--blue); }
 .post-body p { margin-bottom: 22px; }
 .post-body strong { font-weight: 500; color: var(--dark); }
 .post-body em { font-style: italic; }
-.post-body a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
-.post-body a:hover { color: var(--blue-bright); }
+.post-body a { color: var(--blue); text-decoration: none; }
+.post-body a:hover { color: var(--link-hover); }
 .post-body blockquote { border-left: 3px solid var(--blue); padding: 16px 24px; margin: 32px 0; background: rgba(40,123,232,0.05); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .post-body blockquote p { margin: 0; font-style: italic; }
 .post-body ul, .post-body ol { padding-left: 28px; margin-bottom: 22px; }
@@ -1687,7 +1719,7 @@ a.hero-stat:hover .hero-stat-label { color: var(--blue); }
 }
 .contact-hero-foot { font-size: 14px; color: var(--grey-mid); margin-top: 16px; }
 .contact-hero-foot a { color: var(--blue); text-decoration: none; }
-.contact-hero-foot a:hover { text-decoration: underline; }
+.contact-hero-foot a:hover { color: var(--link-hover); }
 
 /* form card */
 .contact-form {
@@ -3180,7 +3212,8 @@ footer {
 .xp-people a:hover .nm { color: var(--blue); }
 .xp-people a:hover .ar { transform: translateX(3px); }
 .xp-teamnote { font-size: 14px; color: var(--grey-mid); }
-.xp-teamnote a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.xp-teamnote a { color: var(--blue); text-decoration: none; }
+.xp-teamnote a:hover { color: var(--link-hover); }
 .xp-readmore {
   display: inline-flex; align-items: center; gap: 8px; width: fit-content;
   font-size: 14px; font-weight: 600; color: var(--blue); margin-top: 4px;
@@ -3255,7 +3288,8 @@ footer {
 }
 .xp-body { display: flex; flex-direction: column; gap: 18px; }
 .xp-body p { font-size: 17px; line-height: 1.75; color: var(--body-text); }
-.xp-body a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.xp-body a { color: var(--blue); text-decoration: none; }
+.xp-body a:hover { color: var(--link-hover); }
 .xp-aside {
   font-size: 15px; font-style: italic; color: var(--grey-mid);
   border-left: 2px solid var(--blue); padding-left: 16px;
@@ -3321,7 +3355,8 @@ footer {
 .xp-team-list { list-style: none; padding: 0; margin: 16px 0 0; display: flex; flex-direction: column; gap: 12px; }
 .xp-team-list li { font-size: 16px; line-height: 1.6; color: var(--body-text); }
 .xp-team-list .nm { color: var(--dark); font-weight: 600; }
-.xp-team-list a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.xp-team-list a { color: var(--blue); text-decoration: none; }
+.xp-team-list a:hover { color: var(--link-hover); }
 
 /* ─── AIO Pad section (place page) ─── */
 .xp-aiopad { margin-top: 72px; padding-top: 56px; border-top: 1px solid var(--card-border); }
@@ -3371,7 +3406,8 @@ footer {
   color: var(--dark); margin-top: 4px;
 }
 .reserve-subtitle { margin-top: 14px; font-size: 16px; line-height: 1.6; color: var(--grey-mid); max-width: 580px; }
-.reserve-inline-link { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.reserve-inline-link { color: var(--blue); text-decoration: none; }
+.reserve-inline-link:hover { color: var(--link-hover); }
 
 .reserve-body .reserve-container { padding-top: 48px; padding-bottom: 80px; }
 .reserve-grid { display: grid; grid-template-columns: 1fr 460px; gap: 56px; align-items: start; }

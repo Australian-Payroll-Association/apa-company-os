@@ -54,6 +54,8 @@
   --admin-accent: #287be8;
   --admin-accent-strong: #1d6ad4;         /* hover / pressed, darkens */
   --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
+  --admin-accent-on-dark: #3b8cf5;        /* links on dark surfaces, e.g. the sidebar */
+  --admin-accent-on-dark-strong: #6fadfb; /* hover, lightens */
   --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
 
   /* Categorical accents (badges, section themes) */
@@ -101,6 +103,17 @@
   --admin-muted-bg: #eef0f6; --admin-muted-ink: #5c6178;
 }
 
+.admin-shell a,
+.admin-auth a {
+  color: var(--admin-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.admin-shell a:hover,
+.admin-auth a:hover {
+  color: var(--admin-accent-strong);
+}
+
 .admin-shell {
   display: flex;
   min-height: 100vh;
@@ -114,6 +127,12 @@
 }
 
 /* ─── Sidebar ─────────────────────────────────────── */
+.admin-sidebar a {
+  color: var(--admin-accent-on-dark);
+}
+.admin-sidebar a:hover {
+  color: var(--admin-accent-on-dark-strong);
+}
 .admin-sidebar {
   position: sticky;
   top: 0;
@@ -1270,7 +1289,7 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   cursor: pointer;
   text-decoration: none;
 }
-.admin-auth-link:hover { text-decoration: underline; }
+.admin-auth-link:hover { color: var(--admin-accent-strong); }
 
 /* key/value detail rows */
 .admin-kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13.5px; }

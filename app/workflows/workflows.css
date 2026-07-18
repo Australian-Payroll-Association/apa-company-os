@@ -7,6 +7,13 @@
   --wf-amber: #E89B28;
 }
 
+/* Dark-background sections use the higher-contrast link tokens (see globals.css). */
+.wf-hero,
+.wf-frameworks-cta {
+  --link: var(--link-on-dark);
+  --link-hover: var(--link-on-dark-hover);
+}
+
 /* ─── HERO ─────────────────────────────────────────── */
 .wf-hero {
   background: var(--dark);

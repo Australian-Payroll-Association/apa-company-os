@@ -1,0 +1,1599 @@
+// Edge8 Company OS -- schema company_os (post brand/legal-entity removal)
+// 97 tables, 190 FK relationships. Generated from live schema.
+// Paste into https://dbdiagram.io/d for the full interactive ERD.
+
+Table legal_entities {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  legal_name text
+  country text
+  entity_type text
+  base_currency text [not null]
+  tax_id text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '3 rows'
+}
+
+Table brands {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  primary_domain text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '5 rows'
+}
+
+Table integration_sources {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  kind text
+  base_url text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  Note: '10 rows'
+}
+
+Table company_profile {
+  id uuid [pk]
+  label text [not null, unique]
+  content text
+  updated_by uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '4 rows'
+}
+
+Table admins {
+  id uuid [pk]
+  email text [not null]
+  display_name text
+  created_at timestamptz [not null]
+  created_by text
+  Note: '3 rows'
+}
+
+Table people {
+  id uuid [pk]
+  email citext [not null, unique]
+  full_name text
+  first_name text
+  last_name text
+  preferred_name text
+  phone text
+  avatar_url text
+  country text
+  timezone text
+  is_team_member boolean [not null]
+  do_not_contact boolean [not null]
+  owner_id uuid [ref: > people.id]
+  source text
+  auth_user_id uuid [unique]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  gender text
+  persona text
+  linkedin_url text
+  city text
+  state_province text
+  metadata jsonb [not null]
+  lifecycle_stage text [not null]
+  lead_status text
+  lead_sla_due_at timestamptz
+  lead_attempt_count int [not null]
+  disqualified_reason text
+  archived_at timestamptz
+  archived_by text
+  Note: '559 rows'
+}
+
+Table companies {
+  id uuid [pk]
+  name text [not null]
+  domain citext
+  industry text
+  size_band text
+  country text
+  website text
+  owner_id uuid [ref: > people.id]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  priority text
+  billing_address text
+  metadata jsonb [not null]
+  archived_at timestamptz
+  archived_by text
+  Note: '121 rows'
+}
+
+Table person_companies {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  company_id uuid [not null, ref: > companies.id]
+  role text [not null]
+  title text
+  is_primary boolean [not null]
+  ownership_pct numeric
+  start_date date
+  end_date date
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '120 rows'
+}
+
+Table person_relationships {
+  id uuid [pk]
+  from_person_id uuid [not null, ref: > people.id]
+  to_person_id uuid [not null, ref: > people.id]
+  relationship_type text [not null]
+  notes text
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table person_qualifications {
+  id uuid [pk]
+  person_id uuid [not null, unique, ref: > people.id]
+  goal text
+  plan text
+  challenge text
+  timeline text
+  budget text
+  authority text
+  captured_by uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table deals {
+  id uuid [pk]
+  pipeline_id uuid [not null, ref: > pipelines.id]
+  stage_id uuid [ref: > pipeline_stages.id]
+  title text [not null]
+  person_id uuid [ref: > people.id]
+  company_id uuid [ref: > companies.id]
+  amount_cents bigint [not null]
+  currency text [not null]
+  status text [not null]
+  probability int
+  owner_id uuid [ref: > people.id]
+  affiliate_id uuid [ref: > affiliates.id]
+  source text
+  expected_close_date date
+  closed_at timestamptz
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  service_line_id uuid [ref: > service_lines.id]
+  next_step text
+  next_step_date date
+  handoff_status text [not null]
+  handoff_rejected_reason text
+  handoff_note text
+  handoff_decided_at timestamptz
+  lost_reason text
+  archived_at timestamptz
+  archived_by text
+  amount_usd_cents bigint
+  fx_rate numeric
+  fx_rate_fetched_at timestamptz
+  proposal_url text
+  contract_url text
+  Note: '126 rows'
+}
+
+Table pipelines {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  kind text [not null]
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '1 rows'
+}
+
+Table pipeline_stages {
+  id uuid [pk]
+  pipeline_id uuid [not null, ref: > pipelines.id]
+  name text [not null]
+  position int [not null]
+  is_won boolean [not null]
+  is_lost boolean [not null]
+  created_at timestamptz [not null]
+  Note: '6 rows'
+}
+
+Table service_lines {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  business_unit text [not null]
+  description text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  Note: '8 rows'
+}
+
+Table interactions {
+  id uuid [pk]
+  kind text [not null]
+  subject text
+  body text
+  occurred_at timestamptz [not null]
+  owner_id uuid [ref: > people.id]
+  person_id uuid [ref: > people.id]
+  company_id uuid [ref: > companies.id]
+  subject_type text
+  subject_id uuid
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  Note: '143 rows'
+}
+
+Table touchpoints {
+  id uuid [pk]
+  person_id uuid [ref: > people.id]
+  affiliate_id uuid [ref: > affiliates.id]
+  campaign_id uuid [ref: > campaigns.id]
+  code text
+  source_site text
+  channel text
+  utm jsonb [not null]
+  landing_path text
+  referrer text
+  visitor_id text
+  user_agent text
+  ip inet
+  occurred_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table campaigns {
+  id uuid [pk]
+  name text [not null]
+  channel text
+  status text [not null]
+  starts_at timestamptz
+  ends_at timestamptz
+  budget_cents bigint
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table inquiries {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  type text [not null]
+  subject text
+  message text
+  source text
+  source_site text
+  status text [not null]
+  deal_id uuid [ref: > deals.id]
+  affiliate_id uuid [ref: > affiliates.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  Note: '108 rows'
+}
+
+Table lifecycle_transitions {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  from_stage text
+  to_stage text
+  from_status text
+  to_status text
+  reason text
+  note text
+  changed_by uuid [ref: > people.id]
+  occurred_at timestamptz [not null]
+  Note: '1 rows'
+}
+
+Table affiliates {
+  id uuid [pk]
+  code citext [not null, unique]
+  person_id uuid [ref: > people.id]
+  program_type text [not null]
+  rate numeric [not null]
+  stripe_coupon_id text
+  active boolean [not null]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '10 rows'
+}
+
+Table affiliate_commissions {
+  id uuid [pk]
+  affiliate_id uuid [not null, ref: > affiliates.id]
+  order_id uuid [ref: > orders.id]
+  source_event text [not null]
+  source_ref text
+  gross_cents bigint [not null]
+  rate numeric [not null]
+  commission_cents bigint [not null]
+  payout_id uuid [ref: > affiliate_payouts.id]
+  notes text
+  created_at timestamptz [not null]
+  Note: '1 rows'
+}
+
+Table affiliate_payouts {
+  id uuid [pk]
+  affiliate_id uuid [not null, ref: > affiliates.id]
+  amount_cents bigint [not null]
+  method text
+  reference text
+  paid_at timestamptz
+  notes text
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table products {
+  id uuid [pk]
+  type text [not null]
+  slug text [not null, unique]
+  title text [not null]
+  subtitle text
+  description text
+  date_start timestamptz
+  date_end timestamptz
+  location text
+  capacity int
+  cohort_slug text
+  tier text
+  payment_method_local_vn boolean [not null]
+  stripe_product_id text [unique]
+  stripe_price_id text [unique]
+  amount_cents int [not null]
+  currency text [not null]
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  service_line_id uuid [ref: > service_lines.id]
+  amount_usd_cents bigint
+  Note: '23 rows'
+}
+
+Table orders {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  product_id uuid [ref: > products.id]
+  payment_method text [not null]
+  stripe_session_id text [unique]
+  stripe_payment_intent_id text
+  stripe_customer_id text
+  amount_cents bigint [not null]
+  tax_cents bigint [not null]
+  currency text [not null]
+  status text [not null]
+  seat_hold_expires_at timestamptz
+  refunded_cents bigint [not null]
+  affiliate_id uuid [ref: > affiliates.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  amount_usd_cents bigint
+  Note: '11 rows'
+}
+
+Table bookings {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  product_id uuid [ref: > products.id]
+  order_id uuid [ref: > orders.id]
+  kind text [not null]
+  start_date date
+  end_date date
+  party_size int
+  amount_cents bigint [not null]
+  currency text [not null]
+  status text [not null]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  amount_usd_cents bigint
+  Note: '4 rows'
+}
+
+Table subscriptions {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  product_id uuid [ref: > products.id]
+  stripe_customer_id text
+  stripe_subscription_id text [unique]
+  status text [not null]
+  current_period_end timestamptz
+  cancel_at_period_end boolean [not null]
+  affiliate_id uuid [ref: > affiliates.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table event_registrations {
+  id uuid [pk]
+  order_id uuid [ref: > orders.id]
+  product_id uuid [ref: > products.id]
+  person_id uuid [not null, ref: > people.id]
+  attendee_name text
+  attendee_email citext
+  status text [not null]
+  created_at timestamptz [not null]
+  Note: '5 rows'
+}
+
+Table availability_blocks {
+  id uuid [pk]
+  start_date date [not null]
+  end_date date [not null]
+  source text [not null]
+  person_id uuid [ref: > people.id]
+  inquiry_id uuid [ref: > inquiries.id]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '3 rows'
+}
+
+Table candidates {
+  id uuid [pk]
+  person_id uuid [not null, unique, ref: > people.id]
+  headline text
+  current_company_id uuid [ref: > companies.id]
+  current_title text
+  resume_document_id uuid [ref: > documents.id]
+  linkedin_url text
+  portfolio_url text
+  desired_salary_cents bigint
+  currency text
+  availability text
+  pool_status text [not null]
+  owner_recruiter_id uuid [ref: > team_members.id]
+  notes text
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '285 rows'
+}
+
+Table applications {
+  id uuid [pk]
+  candidate_id uuid [not null, ref: > candidates.id]
+  job_requisition_id uuid [not null, ref: > job_requisitions.id]
+  current_stage_id uuid [ref: > application_stages.id]
+  source text [not null]
+  source_detail text
+  referrer_person_id uuid [ref: > people.id]
+  status text [not null]
+  rejection_reason text
+  applied_at timestamptz [not null]
+  decided_at timestamptz
+  rating int
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  resume_assessment text
+  Note: '286 rows'
+}
+
+Table application_stages {
+  id uuid [pk]
+  job_requisition_id uuid [not null, ref: > job_requisitions.id]
+  name text [not null]
+  stage_kind text [not null]
+  position int [not null]
+  is_terminal boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '101 rows'
+}
+
+Table application_stage_log {
+  id uuid [pk]
+  application_id uuid [not null, ref: > applications.id]
+  from_stage_id uuid [ref: > application_stages.id]
+  to_stage_id uuid [ref: > application_stages.id]
+  moved_by uuid [ref: > team_members.id]
+  note text
+  moved_at timestamptz [not null]
+  Note: '263 rows'
+}
+
+Table stage_templates {
+  id uuid [pk]
+  slug text [not null]
+  name text [not null]
+  description text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table stage_template_stages {
+  id uuid [pk]
+  stage_template_id uuid [not null, ref: > stage_templates.id]
+  name text [not null]
+  stage_kind text [not null]
+  position int [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table job_requisitions {
+  id uuid [pk]
+  client_company_id uuid [ref: > companies.id]
+  department_id uuid [ref: > departments.id]
+  position_id uuid [ref: > positions.id]
+  stage_template_id uuid [ref: > stage_templates.id]
+  title text [not null]
+  headcount int [not null]
+  employment_type text [not null]
+  location text
+  remote_policy text
+  salary_min_cents bigint
+  salary_max_cents bigint
+  currency text [not null]
+  hiring_manager_id uuid [ref: > people.id]
+  recruiter_id uuid [ref: > team_members.id]
+  status text [not null]
+  opened_at timestamptz
+  closed_at timestamptz
+  description text
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  candidate_ranking text
+  requirements text
+  responsibilities text
+  full_jd text
+  Note: '52 rows'
+}
+
+Table positions {
+  id uuid [pk]
+  department_id uuid [ref: > departments.id]
+  slug text
+  title text [not null]
+  level text
+  employment_type text [not null]
+  is_people_manager boolean [not null]
+  description text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '24 rows'
+}
+
+Table offers {
+  id uuid [pk]
+  application_id uuid [not null, ref: > applications.id]
+  position_id uuid [ref: > positions.id]
+  amount_cents bigint [not null]
+  currency text [not null]
+  pay_period text [not null]
+  bonus_cents bigint
+  equity_note text
+  start_date date
+  expires_at timestamptz
+  status text [not null]
+  approved_by uuid [ref: > team_members.id]
+  contract_document_id uuid [ref: > documents.id]
+  sent_at timestamptz
+  responded_at timestamptz
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table interviews {
+  id uuid [pk]
+  application_id uuid [not null, ref: > applications.id]
+  application_stage_id uuid [ref: > application_stages.id]
+  meeting_id uuid [ref: > meetings.id]
+  title text
+  mode text [not null]
+  scheduled_at timestamptz
+  duration_minutes int
+  location text
+  status text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table interview_interviewers {
+  id uuid [pk]
+  interview_id uuid [not null, ref: > interviews.id]
+  interviewer_id uuid [not null, ref: > people.id]
+  role text [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table interview_scorecards {
+  id uuid [pk]
+  interview_id uuid [not null, ref: > interviews.id]
+  interviewer_id uuid [not null, ref: > people.id]
+  recommendation text
+  overall_score numeric
+  summary text
+  submitted_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table scorecard_scores {
+  id uuid [pk]
+  scorecard_id uuid [not null, ref: > interview_scorecards.id]
+  criterion text [not null]
+  score numeric
+  weight numeric [not null]
+  comment text
+  position int [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table onboarding_tasks {
+  id uuid [pk]
+  team_member_id uuid [ref: > team_members.id]
+  application_id uuid [ref: > applications.id]
+  title text [not null]
+  description text
+  category text
+  assignee_id uuid [ref: > team_members.id]
+  status text [not null]
+  due_date date
+  completed_at timestamptz
+  position int [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table team_members {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  department_id uuid [ref: > departments.id]
+  position_id uuid [ref: > positions.id]
+  manager_id uuid [ref: > team_members.id]
+  employee_number text
+  employment_type text [not null]
+  work_location text
+  status text [not null]
+  start_date date
+  end_date date
+  termination_reason text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  leave_policy_id uuid [ref: > leave_policies.id]
+  dayoff_employee_id int [unique]
+  Note: '46 rows'
+}
+
+Table departments {
+  id uuid [pk]
+  parent_department_id uuid [ref: > departments.id]
+  slug text [not null]
+  name text [not null]
+  description text
+  head_team_member_id uuid [ref: > team_members.id]
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '8 rows'
+}
+
+Table compensation {
+  id uuid [pk]
+  team_member_id uuid [not null, ref: > team_members.id]
+  comp_type text [not null]
+  amount_cents bigint [not null]
+  currency text [not null]
+  pay_period text [not null]
+  effective_from date [not null]
+  effective_to date
+  is_current boolean [not null]
+  change_reason text
+  approved_by uuid [ref: > team_members.id]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table performance_reviews {
+  id uuid [pk]
+  team_member_id uuid [not null, ref: > team_members.id]
+  reviewer_id uuid [ref: > team_members.id]
+  cycle_label text
+  review_type text [not null]
+  period_start date
+  period_end date
+  overall_rating text
+  rating_scale text
+  summary text
+  status text [not null]
+  submitted_at timestamptz
+  acknowledged_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table one_on_ones {
+  id uuid [pk]
+  manager_id uuid [not null, ref: > team_members.id]
+  report_id uuid [not null, ref: > team_members.id]
+  cadence text [not null]
+  status text [not null]
+  next_scheduled_at timestamptz
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table one_on_one_sessions {
+  id uuid [pk]
+  one_on_one_id uuid [not null, ref: > one_on_ones.id]
+  meeting_id uuid [not null, ref: > meetings.id]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table goals {
+  id uuid [pk]
+  parent_goal_id uuid [ref: > goals.id]
+  goal_type text [not null]
+  owner_team_member_id uuid [ref: > team_members.id]
+  department_id uuid [ref: > departments.id]
+  cycle_label text
+  title text [not null]
+  description text
+  metric_unit text
+  start_value numeric
+  target_value numeric
+  current_value numeric
+  progress_pct numeric [not null]
+  status text [not null]
+  due_date date
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table time_off {
+  id uuid [pk]
+  team_member_id uuid [not null, ref: > team_members.id]
+  leave_type text [not null]
+  status text [not null]
+  start_date date [not null]
+  end_date date [not null]
+  is_half_day boolean [not null]
+  hours numeric
+  reason text
+  approved_by uuid [ref: > team_members.id]
+  approved_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  external_source text
+  external_id text
+  days numeric
+  manager_note text
+  requested_at timestamptz
+  Note: '288 rows'
+}
+
+Table leave_policies {
+  id uuid [pk]
+  dayoff_id int [unique]
+  name text [not null]
+  rules jsonb [not null]
+  source jsonb
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '2 rows'
+}
+
+Table leave_adjustments {
+  id uuid [pk]
+  team_member_id uuid [not null, ref: > team_members.id]
+  leave_type text [not null]
+  delta_days numeric [not null]
+  kind text [not null]
+  reason text
+  effective_date date [not null]
+  source text
+  external_key text
+  created_by uuid [ref: > team_members.id]
+  created_at timestamptz [not null]
+  Note: '52 rows'
+}
+
+Table holidays {
+  id uuid [pk]
+  date date [not null]
+  name text [not null]
+  country text
+  is_company_closure boolean [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table dayoff_snapshot {
+  id uuid [pk]
+  endpoint text [not null]
+  params jsonb [not null]
+  dayoff_id text
+  payload jsonb [not null]
+  fetched_at timestamptz [not null]
+  Note: '1405 rows'
+}
+
+Table meetings {
+  id uuid [pk]
+  source text [not null]
+  external_id text
+  title text
+  meeting_type text
+  summary text
+  summary_encrypted boolean [not null]
+  summary_ciphertext text
+  transcript_url text
+  recording_url text
+  minutes_url text
+  owner_id uuid [ref: > people.id]
+  started_at timestamptz
+  ended_at timestamptz
+  duration_seconds int
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '357 rows'
+}
+
+Table meeting_participants {
+  id uuid [pk]
+  meeting_id uuid [not null, ref: > meetings.id]
+  person_id uuid [ref: > people.id]
+  external_email citext
+  display_name text
+  role text [not null]
+  attended boolean [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table meeting_action_items {
+  id uuid [pk]
+  meeting_id uuid [not null, ref: > meetings.id]
+  title text [not null]
+  detail text
+  assignee_id uuid [ref: > people.id]
+  due_date date
+  status text [not null]
+  task_id uuid [ref: > tasks.id]
+  position int [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table meeting_links {
+  id uuid [pk]
+  meeting_id uuid [not null, ref: > meetings.id]
+  entity_type text [not null]
+  entity_id uuid [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_pillars {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  primary_keyword text
+  intent text
+  authority_url text
+  est_monthly_volume int
+  strategic_pct numeric
+  description text
+  owner_id uuid [ref: > people.id]
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_channels {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  channel_type text [not null]
+  integration_source_id uuid [ref: > integration_sources.id]
+  platform_identity_id uuid [ref: > platform_identities.id]
+  config jsonb [not null]
+  url text
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_items {
+  id uuid [pk]
+  idea_id uuid [ref: > content_ideas.id]
+  channel_id uuid [not null, ref: > content_channels.id]
+  content_type text [not null]
+  title text
+  excerpt text
+  body_markdown text
+  status text [not null]
+  generation_status text [not null]
+  seo_title_tag text
+  meta_description text
+  slug text
+  long_tail_keyword text
+  canonical_url text
+  published_url text
+  published_at timestamptz
+  prompt_version_id uuid [ref: > prompt_versions.id]
+  created_by uuid [ref: > people.id]
+  owner_id uuid [ref: > people.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_ideas {
+  id uuid [pk]
+  title text [not null]
+  summary text
+  pillar_id uuid [ref: > content_pillars.id]
+  status text [not null]
+  source text [not null]
+  source_meeting_id uuid [ref: > meetings.id]
+  source_interaction_id uuid [ref: > interactions.id]
+  source_research_note_id uuid [ref: > research_notes.id]
+  created_by uuid [ref: > people.id]
+  owner_id uuid [ref: > people.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_media {
+  id uuid [pk]
+  content_id uuid [not null, ref: > content_items.id]
+  document_id uuid [not null, ref: > documents.id]
+  position int [not null]
+  role text [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table content_schedules {
+  id uuid [pk]
+  content_id uuid [not null, ref: > content_items.id]
+  channel_id uuid [not null, ref: > content_channels.id]
+  scheduled_for timestamptz [not null]
+  status text [not null]
+  published_at timestamptz
+  external_post_id text
+  failure_reason text
+  created_by uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table pillar_channels {
+  id uuid [pk]
+  pillar_id uuid [not null, ref: > content_pillars.id]
+  channel_id uuid [not null, ref: > content_channels.id]
+  prompt text
+  is_primary boolean [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table platform_identities {
+  id uuid [pk]
+  source_id uuid [not null, ref: > integration_sources.id]
+  person_id uuid [ref: > people.id]
+  entity_type text
+  entity_id uuid
+  external_id text [not null]
+  external_email citext
+  role text
+  raw jsonb [not null]
+  synced_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table surveys {
+  id uuid [pk]
+  slug text [not null]
+  name text [not null]
+  description text
+  status text [not null]
+  intro_text text
+  thank_you_text text
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '2 rows'
+}
+
+Table survey_fields {
+  id uuid [pk]
+  survey_id uuid [not null, ref: > surveys.id]
+  position int [not null]
+  type text [not null]
+  label text [not null]
+  help_text text
+  required boolean [not null]
+  config jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '6 rows'
+}
+
+Table survey_responses {
+  id uuid [pk]
+  survey_id uuid [not null, ref: > surveys.id]
+  person_id uuid [ref: > people.id]
+  cohort_slug text
+  respondent_name text
+  respondent_email text
+  submitted_at timestamptz [not null]
+  created_at timestamptz [not null]
+  Note: '6 rows'
+}
+
+Table survey_answers {
+  id uuid [pk]
+  response_id uuid [not null, ref: > survey_responses.id]
+  field_id uuid [not null, ref: > survey_fields.id]
+  value text
+  value_json jsonb
+  created_at timestamptz [not null]
+  Note: '18 rows'
+}
+
+Table projects {
+  id uuid [pk]
+  name text [not null]
+  slug text [unique]
+  client_company_id uuid [ref: > companies.id]
+  deal_id uuid [ref: > deals.id]
+  status text [not null]
+  owner_id uuid [ref: > people.id]
+  start_date date
+  due_date date
+  completed_at timestamptz
+  description text
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table project_members {
+  id uuid [pk]
+  project_id uuid [not null, ref: > projects.id]
+  person_id uuid [not null, ref: > people.id]
+  role text
+  allocation_pct numeric
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table milestones {
+  id uuid [pk]
+  project_id uuid [not null, ref: > projects.id]
+  name text [not null]
+  due_date date
+  status text [not null]
+  position int [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table tasks {
+  id uuid [pk]
+  title text [not null]
+  description text
+  project_id uuid [ref: > projects.id]
+  parent_task_id uuid [ref: > tasks.id]
+  assignee_id uuid [ref: > people.id]
+  created_by uuid [ref: > people.id]
+  status text [not null]
+  priority text [not null]
+  due_date date
+  completed_at timestamptz
+  subject_type text
+  subject_id uuid
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table epics {
+  id uuid [pk]
+  slug text [not null, unique]
+  title text [not null]
+  problem_statement text
+  outcome text
+  status text [not null]
+  priority text [not null]
+  app_id uuid [ref: > apps.id]
+  owner_id uuid [ref: > people.id]
+  target_quarter text
+  started_at timestamptz
+  shipped_at timestamptz
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table epic_items {
+  id uuid [pk]
+  epic_id uuid [not null, ref: > epics.id]
+  title text [not null]
+  detail text
+  status text [not null]
+  position int [not null]
+  task_id uuid [ref: > tasks.id]
+  subject_type text
+  subject_id uuid
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table apps {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  surface text [not null]
+  app_type text [not null]
+  status text [not null]
+  owner_id uuid [ref: > people.id]
+  integration_source_id uuid [ref: > integration_sources.id]
+  repo_url text
+  repo_provider text
+  production_url text
+  staging_url text
+  description text
+  tech_stack jsonb [not null]
+  is_internal_tool boolean [not null]
+  launched_at timestamptz
+  sunset_at timestamptz
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table app_environments {
+  id uuid [pk]
+  app_id uuid [not null, ref: > apps.id]
+  name text [not null]
+  url text
+  hosting text
+  secret_ref text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table app_members {
+  id uuid [pk]
+  app_id uuid [not null, ref: > apps.id]
+  person_id uuid [not null, ref: > people.id]
+  role text [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table agents_registry {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  role text
+  model text
+  app_id uuid [ref: > apps.id]
+  default_prompt_id uuid [ref: > prompts.id]
+  config jsonb [not null]
+  active boolean [not null]
+  owner_id uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table prompts {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  category text
+  agent_id uuid [ref: > agents_registry.id]
+  current_version_id uuid [ref: > prompt_versions.id]
+  owner_id uuid [ref: > people.id]
+  active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table prompt_versions {
+  id uuid [pk]
+  prompt_id uuid [not null, ref: > prompts.id]
+  version int [not null]
+  body text [not null]
+  variables jsonb [not null]
+  changelog text
+  created_by uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table experiments {
+  id uuid [pk]
+  slug text [not null, unique]
+  title text [not null]
+  kind text [not null]
+  hypothesis text
+  success_metric text
+  status text [not null]
+  result text [not null]
+  result_notes text
+  app_id uuid [ref: > apps.id]
+  owner_id uuid [ref: > people.id]
+  started_at timestamptz
+  ended_at timestamptz
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table tools {
+  id uuid [pk]
+  name text [not null]
+  vendor_id uuid [ref: > vendors.id]
+  category text
+  monthly_cost_cents bigint
+  currency text [not null]
+  billing_cycle text
+  renewal_date date
+  owner_id uuid [ref: > people.id]
+  status text [not null]
+  replace_target boolean [not null]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table ip_assets {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  asset_type text [not null]
+  summary text
+  status text [not null]
+  owner_id uuid [ref: > people.id]
+  current_version_id uuid [ref: > ip_asset_versions.id]
+  canonical_document_id uuid [ref: > documents.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table ip_asset_versions {
+  id uuid [pk]
+  ip_asset_id uuid [not null, ref: > ip_assets.id]
+  version int [not null]
+  body_markdown text [not null]
+  changelog text
+  created_by uuid [ref: > people.id]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table ip_asset_usages {
+  id uuid [pk]
+  ip_asset_id uuid [not null, ref: > ip_assets.id]
+  subject_type text [not null]
+  subject_id uuid [not null]
+  note text
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table research_notes {
+  id uuid [pk]
+  title text [not null]
+  body_markdown text
+  topic text
+  status text [not null]
+  owner_id uuid [ref: > people.id]
+  related_ip_asset_id uuid [ref: > ip_assets.id]
+  source_meeting_id uuid [ref: > meetings.id]
+  source_interaction_id uuid [ref: > interactions.id]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table documents {
+  id uuid [pk]
+  title text
+  storage_path text [not null]
+  mime_type text
+  byte_size bigint
+  uploaded_by uuid [ref: > people.id]
+  entity_type text
+  entity_id uuid
+  created_at timestamptz [not null]
+  Note: '7 rows'
+}
+
+Table vendors {
+  id uuid [pk]
+  name text [not null]
+  category text
+  status text [not null]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table expenses {
+  id uuid [pk]
+  vendor_id uuid [ref: > vendors.id]
+  amount_cents bigint [not null]
+  currency text [not null]
+  category text
+  incurred_on date
+  description text
+  paid boolean [not null]
+  metadata jsonb [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table fx_rates {
+  currency text [pk]
+  rate_to_usd numeric [not null]
+  updated_at timestamptz [not null]
+  Note: '2 rows'
+}
+
+Table audit_log {
+  id uuid [pk]
+  actor_person_id uuid [ref: > people.id]
+  actor_label text
+  table_name text [not null]
+  record_id uuid
+  operation text [not null]
+  old_data jsonb
+  new_data jsonb
+  context jsonb [not null]
+  changed_at timestamptz [not null]
+  Note: '120 rows'
+}
+
+Table tags {
+  id uuid [pk]
+  slug text [not null, unique]
+  label text [not null]
+  color text
+  kind text
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table taggables {
+  id uuid [pk]
+  tag_id uuid [not null, ref: > tags.id]
+  entity_type text [not null]
+  entity_id uuid [not null]
+  created_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table skills {
+  id uuid [pk]
+  slug text [not null, unique]
+  name text [not null]
+  category text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+Table person_skills {
+  id uuid [pk]
+  person_id uuid [not null, ref: > people.id]
+  skill_id uuid [not null, ref: > skills.id]
+  proficiency text [not null]
+  years numeric
+  is_primary boolean [not null]
+  verified_by uuid [ref: > team_members.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  Note: '0 rows'
+}
+
+TableGroup "Org & Foundation" {
+  legal_entities
+  brands
+  integration_sources
+  company_profile
+  admins
+}
+
+TableGroup "CRM" {
+  people
+  companies
+  person_companies
+  person_relationships
+  person_qualifications
+  deals
+  pipelines
+  pipeline_stages
+  service_lines
+  interactions
+  touchpoints
+  campaigns
+  inquiries
+  lifecycle_transitions
+}
+
+TableGroup "Affiliates" {
+  affiliates
+  affiliate_commissions
+  affiliate_payouts
+}
+
+TableGroup "Commerce" {
+  products
+  orders
+  bookings
+  subscriptions
+  event_registrations
+  availability_blocks
+}
+
+TableGroup "ATS / Recruiting" {
+  candidates
+  applications
+  application_stages
+  application_stage_log
+  stage_templates
+  stage_template_stages
+  job_requisitions
+  positions
+  offers
+  interviews
+  interview_interviewers
+  interview_scorecards
+  scorecard_scores
+  onboarding_tasks
+}
+
+TableGroup "HR / People Ops" {
+  team_members
+  departments
+  compensation
+  performance_reviews
+  one_on_ones
+  one_on_one_sessions
+  goals
+}
+
+TableGroup "Time Off" {
+  time_off
+  leave_policies
+  leave_adjustments
+  holidays
+  dayoff_snapshot
+}
+
+TableGroup "Meetings" {
+  meetings
+  meeting_participants
+  meeting_action_items
+  meeting_links
+}
+
+TableGroup "Content & Marketing" {
+  content_pillars
+  content_channels
+  content_items
+  content_ideas
+  content_media
+  content_schedules
+  pillar_channels
+  platform_identities
+}
+
+TableGroup "Surveys" {
+  surveys
+  survey_fields
+  survey_responses
+  survey_answers
+}
+
+TableGroup "Projects & Delivery" {
+  projects
+  project_members
+  milestones
+  tasks
+  epics
+  epic_items
+}
+
+TableGroup "AI Platform" {
+  apps
+  app_environments
+  app_members
+  agents_registry
+  prompts
+  prompt_versions
+  experiments
+  tools
+}
+
+TableGroup "IP & Knowledge" {
+  ip_assets
+  ip_asset_versions
+  ip_asset_usages
+  research_notes
+  documents
+}
+
+TableGroup "Finance" {
+  vendors
+  expenses
+  fx_rates
+}
+
+TableGroup "System" {
+  audit_log
+  tags
+  taggables
+  skills
+  person_skills
+}
