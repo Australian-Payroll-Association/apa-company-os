@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPerson360 } from "@/lib/admin/contacts";
+import { getAffiliate360 } from "@/lib/admin/affiliates";
 import { getPortalMembershipsForPerson } from "@/lib/admin/portal";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
+import { ContactAffiliatePanel } from "./ContactAffiliatePanel";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
@@ -27,7 +29,11 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   if (!data) notFound();
 
   const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
-  const portalMemberships = await getPortalMembershipsForPerson(params.id);
+  const [portalMemberships, affiliate] = await Promise.all([
+    getPortalMembershipsForPerson(params.id),
+    getAffiliate360(params.id),
+  ]);
+  const isAffiliate = !!affiliate && affiliate.codes.length > 0;
   const membershipByCompany = new Map(
     portalMemberships.filter((m) => m.company_id).map((m) => [m.company_id as string, m]),
   );
@@ -352,6 +358,17 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               <dd>{formatDate(person.created_at)}</dd>
             </dl>
           </div>
+        </div>
+
+        {/* Main column carries the relationship content so its height matches the
+            sidebar: Activity, then the affiliate panel, then portal + danger. */}
+        <div className="admin-360-main">
+          <div className="admin-card admin-section-card">
+            <Tabs tabs={tabs} />
+          </div>
+
+          {isAffiliate && affiliate && <ContactAffiliatePanel affiliate={affiliate} />}
+
           {!person.is_team_member && companies.length > 0 && (
             <div className="admin-card admin-section-card">
               <h2 className="admin-card-title">Client portal</h2>
@@ -373,6 +390,7 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               </div>
             </div>
           )}
+
           <div className="admin-card admin-section-card">
             <PersonDangerZone
               personId={person.id}
@@ -380,10 +398,6 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               archived={!!person.archived_at}
             />
           </div>
-        </div>
-
-        <div className="admin-card admin-section-card">
-          <Tabs tabs={tabs} />
         </div>
       </div>
     </>

@@ -6,6 +6,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,12 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   ]);
   const { rows, total, pageSize, error } = list;
 
+  // Portal status per row needs auth.users.last_sign_in_at; fetch the signed-in
+  // set once for the visible rows so the Portal column can show invited vs
+  // signed in without a lookup per cell.
+  const authIds = rows.map((r) => one(r.people)?.auth_user_id).filter((x): x is string => !!x);
+  const signedIn = await getSignedInAuthUserIds(authIds);
+
   const columns: Column<TeamMember>[] = [
     {
       key: "name",
@@ -83,7 +90,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       header: "Portal",
       cell: (r) =>
         r.person_id ? (
-          <InvitePortalButton teamMemberId={r.id} provisioned={!!one(r.people)?.auth_user_id} />
+          <InvitePortalButton teamMemberId={r.id} status={portalStatusOf(one(r.people)?.auth_user_id, signedIn)} />
         ) : (
           <span className="admin-cell-muted">—</span>
         ),

@@ -228,6 +228,7 @@ export type EventPatch = {
   description?: string | null;
   cover_image_url?: string | null;
   feedback_survey_id?: string | null;
+  attendee_count_override?: number | null;
 };
 
 export async function updateEvent(eventId: string, patch: EventPatch): Promise<Result> {
@@ -288,6 +289,13 @@ export async function updateEvent(eventId: string, patch: EventPatch): Promise<R
     updates.feedback_survey_id = patch.feedback_survey_id;
   }
   if (patch.notes !== undefined) updates.notes = patch.notes?.trim() || null;
+  if (patch.attendee_count_override !== undefined) {
+    const v = patch.attendee_count_override;
+    if (v !== null && (!Number.isInteger(v) || v < 0)) {
+      return { ok: false, error: "Attendee count must be a non-negative whole number, or blank to count registrations." };
+    }
+    updates.attendee_count_override = v;
+  }
 
   if (Object.keys(updates).length === 0) return { ok: true };
 
@@ -302,6 +310,42 @@ export async function updateEvent(eventId: string, patch: EventPatch): Promise<R
     actor: admin.email,
     newData: updates,
     context: { via: "events_shelf" },
+  });
+  refresh();
+  return { ok: true };
+}
+
+// ─── Talk tags ──────────────────────────────────────────────────────────────
+// Replaces the event's talk set (company_os.event_talks) with the given talk
+// ids. Talks are the keynote/workshop catalog (company_os.talks).
+
+export async function setEventTalks(eventId: string, talkIds: string[]): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const unique = Array.from(new Set(talkIds));
+  if (unique.length > 0) {
+    const { data: valid, error: vErr } = await companyOs.from("talks").select("id").in("id", unique);
+    if (vErr) return { ok: false, error: vErr.message };
+    if ((valid ?? []).length !== unique.length) return { ok: false, error: "One of those talks no longer exists." };
+  }
+
+  const { error: delErr } = await companyOs.from("event_talks").delete().eq("event_id", eventId);
+  if (delErr) return { ok: false, error: delErr.message };
+
+  if (unique.length > 0) {
+    const { error: insErr } = await companyOs
+      .from("event_talks")
+      .insert(unique.map((talk_id) => ({ event_id: eventId, talk_id })));
+    if (insErr) return { ok: false, error: insErr.message };
+  }
+
+  await recordAudit({
+    table: "event_talks",
+    recordId: eventId,
+    operation: "update",
+    actor: admin.email,
+    newData: { talk_ids: unique },
+    context: { via: "event_settings" },
   });
   refresh();
   return { ok: true };

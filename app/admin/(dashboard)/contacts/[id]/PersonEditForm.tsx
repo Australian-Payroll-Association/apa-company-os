@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updatePerson } from "../actions";
 import type { Person } from "@/lib/admin/contacts";
+import { COUNTRIES } from "@/lib/admin/countries";
 
 // Known persona values (company_os has no enum on people.persona). "" = Unset.
 const PERSONA_OPTIONS = [
@@ -68,7 +69,16 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved?: 
       </div>
       <div className="admin-field">
         <label className="admin-label">Country</label>
-        <input className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)} />
+        <select className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)}>
+          <option value="">—</option>
+          {/* Preserve an existing value that isn't in the canonical list. */}
+          {form.country && !(COUNTRIES as readonly string[]).includes(form.country) && (
+            <option value={form.country}>{form.country}</option>
+          )}
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
       <div className="admin-field">
         <label className="admin-label">LinkedIn</label>

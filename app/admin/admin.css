@@ -233,14 +233,32 @@
 .admin-brandmenu li > button:hover { background: rgba(255, 255, 255, 0.08); }
 .admin-brandmenu li > button[aria-current="true"] { color: #fff; font-weight: 600; }
 
+/* Overlay popover anchored below the brand row — absolute so opening it never
+   shifts the nav below (the old in-flow version pushed the whole nav down). */
 .admin-profilemenu {
-  margin: -2px 12px 10px;
+  position: absolute;
+  top: 52px;
+  left: 12px;
+  right: 12px;
+  z-index: 40;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #111e42;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--admin-radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  animation: admin-profilemenu-in 0.14s ease-out;
+}
+/* Invisible click-catcher so tapping anywhere else dismisses the menu. */
+.admin-profilemenu-backdrop { position: fixed; inset: 0; z-index: 39; }
+@keyframes admin-profilemenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-profilemenu { animation: none; }
 }
 .admin-profilemenu-head { display: flex; align-items: center; gap: 9px; padding: 4px 6px 8px; }
 .admin-profilemenu-email { font-size: 12px; color: var(--admin-sidebar-muted); word-break: break-all; line-height: 1.3; }
@@ -252,7 +270,9 @@
   display: flex; align-items: center; gap: 9px;
   padding: 7px 9px; border-radius: 6px;
   font-size: 13px; color: var(--admin-sidebar-ink);
+  text-decoration: none;
 }
+a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 .admin-profilemenu-item[aria-current="true"] { background: rgba(255, 255, 255, 0.08); color: #fff; }
 .admin-profilemenu-item.is-disabled { opacity: 0.5; cursor: not-allowed; }
 .admin-profilemenu-ico { width: 16px; text-align: center; opacity: 0.85; }
@@ -515,6 +535,538 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .mp-kpi-val { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin-top: 6px; color: var(--admin-ink); overflow-wrap: anywhere; }
 .mp-kpi-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 2px; overflow-wrap: anywhere; }
 
+/* ─── Route loading skeleton (loading.tsx boundaries) ─────
+   Instant feedback while force-dynamic pages render server-side; without it a
+   navigation (e.g. the Admin ↔ Team switcher) feels dead for the roundtrip. */
+.admin-skeleton-bar {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--admin-line-soft) 25%, var(--admin-line) 50%, var(--admin-line-soft) 75%);
+  background-size: 200% 100%;
+  animation: admin-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes admin-skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton-bar { animation: none; }
+}
+
+/* ─── Team portal glance strip ────────────────────────
+   One quiet, hairline-divided card for the employee's personal facts. Values
+   stay at body scale on purpose — this is a glance, not a dashboard KPI. */
+.team-glance {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  margin-bottom: 8px;
+}
+.team-glance-cell {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.team-glance-cell + .team-glance-cell { border-left: 1px solid var(--admin-line-soft); }
+.team-glance-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-muted);
+}
+.team-glance-value { font-size: 15px; font-weight: 500; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-glance-note { font-size: 12.5px; color: var(--admin-muted); }
+.team-glance-note a { color: var(--admin-accent); text-decoration: none; }
+.team-glance-note a:hover { text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 720px) {
+  .team-glance { flex-direction: column; }
+  .team-glance-cell + .team-glance-cell { border-left: 0; border-top: 1px solid var(--admin-line-soft); }
+}
+
+/* ─── Team portal org chart ───────────────────────────
+   Classic top-down hierarchy: centered cards per level, hairline connectors
+   drawn with li/ul pseudo-elements (top rails + center drop lines). The whole
+   chart scrolls horizontally inside .team-org-wrap — wide levels are the
+   nature of org charts, the page never stretches. */
+.team-org-wrap { overflow-x: auto; padding: 4px 2px 16px; }
+.team-org,
+.team-org ul {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.team-org ul { position: relative; padding-top: 26px; }
+/* Stem dropping from a parent card to its children's rail. */
+.team-org ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 26px;
+  border-left: 1px solid var(--admin-line-strong);
+}
+.team-org li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 26px 7px 0;
+}
+/* Rails: ::before = left half of the top rail, ::after = right half plus this
+   node's own drop line down to its card. */
+.team-org li::before,
+.team-org li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 26px;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--admin-line-strong);
+}
+/* Outer edges of the rail stop at the first/last child; the last child keeps
+   its drop line via border-right on the left-half box. */
+.team-org li:first-child::before { border-top: 0; }
+.team-org li:last-child::after { border-top: 0; border-left: 0; }
+.team-org li:last-child::before { border-right: 1px solid var(--admin-line-strong); border-radius: 0 8px 0 0; }
+.team-org li:first-child::after { border-radius: 8px 0 0 0; }
+/* An only child needs no rail — the parent stem reaches its card directly. */
+.team-org li:only-child { padding-top: 0; }
+.team-org li:only-child::before,
+.team-org li:only-child::after { display: none; }
+/* Roots (top-level) hang from nothing. */
+.team-org > li { padding-top: 0; }
+.team-org > li::before,
+.team-org > li::after { display: none; }
+
+/* ── Stacked levels (3rd level and deeper) ──
+   Leaf teams render as a vertical ladder: the parent stem jogs left onto a
+   spine, and each card hangs off the spine on a short stub. Keeps the chart
+   narrow — one column per manager instead of one per person. */
+.team-org ul.is-stack {
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 14px;
+}
+.team-org ul.is-stack::before { height: 14px; }
+/* Jog from the parent's center stem across to the spine. */
+.team-org ul.is-stack::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 50%;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org .is-stack li {
+  align-items: flex-start;
+  padding: 10px 0 0 28px;
+}
+/* Spine segment spanning this row… */
+.team-org .is-stack li::before {
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  right: auto;
+  width: 0;
+  height: auto;
+  border: 0;
+  border-left: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* …and the stub from spine to card. */
+.team-org .is-stack li::after {
+  top: 32px;
+  left: 14px;
+  right: auto;
+  width: 14px;
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* Spine ends at the last card with a rounded elbow. */
+.team-org .is-stack li:last-child::before {
+  bottom: auto;
+  height: 32px;
+  width: 14px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  border-right: 0;
+  border-radius: 0 0 0 8px;
+}
+.team-org .is-stack li:last-child::after { display: none; }
+.team-org .is-stack li:only-child { padding-top: 10px; }
+.team-org .is-stack li:only-child::before,
+.team-org .is-stack li:only-child::after { display: block; }
+.team-org .is-stack li:only-child::after { display: none; }
+
+.team-org-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow);
+  padding: 10px 14px;
+  min-width: 150px;
+  max-width: 200px;
+}
+.team-org-card.is-root { border-color: var(--admin-accent); }
+.team-org-name { font-weight: 600; font-size: 13px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-org-meta { font-size: 11.5px; color: var(--admin-muted); overflow-wrap: anywhere; line-height: 1.4; }
+/* Employment badges — blue for FTE, orange for contractor. */
+.team-org-badge {
+  margin-top: 3px;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1px 8px;
+  border-radius: var(--admin-radius-pill);
+}
+.team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
+.team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
+.team-org-independents { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ─── Team portal home hub ────────────────────────────
+   Card grid on /team home: every employee touchpoint, shipped or not. Live
+   items are links; unshipped ones render muted with a "Soon" pill so the page
+   shows the full destination from day one. */
+.team-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 16px;
+}
+.team-hub-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.team-hub-card.is-soon { background: var(--admin-surface-2); box-shadow: none; }
+.team-hub-card.is-soon .team-hub-ico { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
+.team-hub-card.is-soon .team-hub-title { color: var(--admin-ink-2); }
+.team-hub-ico {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid; place-items: center;
+  font-size: 15px;
+}
+.team-hub-title {
+  font-weight: 600; font-size: 14px; color: var(--admin-ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.team-hub-soon {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  background: var(--admin-muted-bg); color: var(--admin-muted-ink);
+  padding: 2px 8px; border-radius: var(--admin-radius-pill);
+}
+.team-hub-sub { font-size: 12.5px; color: var(--admin-muted); line-height: 1.5; }
+.team-hub-heading {
+  font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--admin-muted);
+  margin: 26px 0 12px;
+}
+
+/* ─── Avatar (upload widget + display) ────────────────── */
+.team-avatar-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+.team-avatar {
+  position: relative;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.5px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-avatar.is-editable { cursor: pointer; }
+.team-avatar.is-editable:hover .team-avatar-edit { opacity: 1; }
+.team-avatar-edit {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(4, 16, 45, 0.45);
+  color: #fff; font-size: 18px;
+  opacity: 0; transition: opacity var(--transition);
+}
+.team-avatar-err { font-size: 11.5px; color: var(--admin-err-ink); max-width: 160px; text-align: center; }
+
+/* ─── Directory name cell (avatar + name) ─────────────── */
+.dir-name { display: inline-flex; align-items: center; gap: 10px; }
+.dir-avatar {
+  width: 28px; height: 28px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px;
+  overflow: hidden;
+}
+.dir-avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* Directory: sort caret (faint until the column is active) + result count. */
+.team-dir-caret { font-size: 9px; opacity: 0.7; }
+.admin-th-sort:hover .team-dir-caret { opacity: 1; }
+.team-dir-count { margin-left: auto; font-size: 13px; color: var(--admin-muted); white-space: nowrap; }
+
+/* ─── /team/profile ───────────────────────────────────── */
+.team-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.team-profile-head-text { min-width: 0; flex: 1; }
+.team-profile-head-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.team-probation-chip {
+  font-size: 11.5px; font-weight: 600;
+  color: #854f0b; background: #faeeda;
+  padding: 3px 10px; border-radius: var(--admin-radius-pill);
+  white-space: nowrap;
+}
+
+/* Profile is one readable column, not a wall of side-by-side cards. Full page
+   width like every other /team page; the field grids inside keep it readable. */
+.team-profile-stack { display: flex; flex-direction: column; gap: 14px; }
+/* Spacing between cards comes from the flex gap alone; cancel the global
+   adjacent-card margin so every gap in the column is an even 14px. */
+.team-profile-stack .admin-section-card + .admin-section-card { margin-top: 0; }
+
+/* Field grids inside the editor: N-up on desktop (via --n), single on mobile. */
+.team-profile .admin-card-title { margin-bottom: 4px; }
+.tp-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.tp-row { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 12px; }
+.tp-row > .admin-field { margin: 0; min-width: 0; }
+.tp-fields > .admin-field { margin: 0; }
+@media (max-width: 640px) {
+  .tp-row { grid-template-columns: 1fr; }
+  .tp-row > .admin-field { grid-column: auto !important; }
+}
+
+.team-lock-title { display: flex; align-items: center; gap: 7px; }
+.team-lock { font-size: 12px; opacity: 0.6; }
+.team-profile-save { display: flex; justify-content: flex-end; margin-top: 2px; }
+
+.team-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.team-chip {
+  font-size: 12px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  padding: 3px 10px;
+  border-radius: var(--admin-radius-pill);
+}
+
+/* Chip input for hobbies: chips + an inline text field that adds on Enter. */
+.team-chipinput {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+  padding: 6px 8px; min-height: 40px; background: #fff;
+}
+.team-chip.is-editable { display: inline-flex; align-items: center; gap: 4px; }
+.team-chip-x { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.team-chipinput-field { flex: 1; min-width: 90px; border: 0; outline: none; font: inherit; font-size: 13.5px; background: transparent; padding: 3px 2px; }
+
+/* ID-card slots: two dashed drop targets, side by side. */
+.team-id-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.team-id-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-height: 96px; padding: 12px;
+  border: 1px dashed var(--admin-line-strong); border-radius: 10px;
+  background: #fff; cursor: pointer; color: var(--admin-muted);
+}
+.team-id-drop:hover { border-color: var(--admin-accent); }
+.team-id-drop.is-present { border-style: solid; padding: 8px; }
+.team-id-ico { font-size: 20px; }
+.team-id-thumb { max-height: 96px; max-width: 100%; border-radius: 6px; object-fit: cover; }
+.team-id-label { font-size: 12px; color: var(--admin-accent); font-weight: 500; }
+@media (max-width: 640px) { .team-id-slots { grid-template-columns: 1fr; } }
+
+/* ─── Gallery + home collage ──────────────────────────────
+   The home band interleaves recent photos (rounded rects) with team avatars
+   (circles); the gallery pages use a CSS-columns masonry. */
+.team-collage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.team-collage-photo {
+  position: relative;
+  width: 150px;
+  height: 98px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--admin-line-soft);
+}
+.team-collage-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.team-collage-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 12px 8px 5px;
+  font-size: 11px; font-weight: 600; color: #fff;
+  background: linear-gradient(transparent, rgba(4, 16, 45, 0.62));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.team-collage-avatar {
+  width: 56px; height: 56px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 700;
+  overflow: hidden;
+}
+.team-collage-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Masonry photo wall (team browse) — CSS columns keep it dependency-free. */
+.gallery-masonry { columns: 4 220px; column-gap: 12px; }
+.gallery-tile {
+  position: relative;
+  display: block;
+  break-inside: avoid;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--admin-line-soft);
+}
+.gallery-tile img { width: 100%; display: block; }
+.gallery-tile-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 22px 12px 9px;
+  font-size: 12px; font-weight: 600; color: #fff;
+  background: linear-gradient(transparent, rgba(4, 16, 45, 0.66));
+}
+
+.gallery-uploadbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
+/* Drag-and-drop uploader + per-file progress queue. */
+.gallery-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 30px 20px;
+  border: 2px dashed var(--admin-line-strong);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  color: var(--admin-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--transition), background var(--transition);
+}
+.gallery-drop:hover { border-color: var(--admin-accent); }
+.gallery-drop.is-drag { border-color: var(--admin-accent); background: var(--admin-accent-soft); color: var(--admin-accent-strong); }
+.gallery-drop-ico { font-size: 24px; }
+.gallery-drop-title { font-size: 14px; font-weight: 600; color: var(--admin-ink); }
+.gallery-drop-sub { font-size: 12px; }
+
+.gallery-queue { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.gallery-queue-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.gallery-queue-thumb { width: 42px; height: 42px; border-radius: 7px; object-fit: cover; flex: 0 0 auto; background: var(--admin-line-soft); }
+.gallery-queue-body { flex: 1; min-width: 0; }
+.gallery-queue-name { font-size: 13px; color: var(--admin-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+.gallery-queue-err { font-size: 12px; color: var(--admin-err-ink); }
+.gallery-bar { height: 5px; border-radius: 3px; background: var(--admin-line); overflow: hidden; }
+.gallery-bar-fill { height: 100%; background: var(--admin-accent); border-radius: 3px; transition: width 0.18s ease; }
+.gallery-bar-fill.is-done { background: var(--admin-ok-ink); }
+.gallery-queue-status { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--admin-muted); min-width: 34px; text-align: right; }
+.gallery-queue-status.is-done { color: var(--admin-ok-ink); }
+.gallery-queue-status.is-error { color: var(--admin-err-ink); }
+
+/* Admin management grid: image + caption + date + delete per card. */
+.gallery-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.gallery-admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--admin-shadow);
+}
+.gallery-admin-img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--admin-line-soft); }
+.gallery-admin-cap { border: 0; border-radius: 0; border-top: 1px solid var(--admin-line-soft); }
+.gallery-admin-row { display: flex; gap: 8px; padding: 8px; align-items: center; }
+.gallery-admin-row .admin-input { flex: 1; }
+
+/* ─── Onboarding walkthrough ───────────────────────────── */
+.team-tour-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(4, 16, 45, 0.55);
+  animation: team-tour-fade 0.16s ease-out;
+}
+@keyframes team-tour-fade { from { opacity: 0; } to { opacity: 1; } }
+.team-tour-card {
+  width: 100%; max-width: 440px;
+  background: var(--admin-surface);
+  border-radius: 16px;
+  box-shadow: var(--admin-shadow-modal);
+  padding: 28px 26px 20px;
+  text-align: center;
+}
+.team-tour-ico {
+  width: 52px; height: 52px; margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--admin-accent-soft); color: var(--admin-accent);
+  display: grid; place-items: center; font-size: 24px;
+}
+.team-tour-title { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--admin-ink); margin: 0 0 8px; }
+.team-tour-body { color: var(--admin-ink-2); font-size: 14px; line-height: 1.55; margin: 0 auto 16px; max-width: 360px; }
+.team-tour-cta { display: inline-flex; margin-bottom: 6px; text-decoration: none; }
+.team-tour-dots { display: flex; justify-content: center; gap: 6px; margin: 16px 0; }
+.team-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--admin-line-strong); }
+.team-tour-dot.is-on { background: var(--admin-accent); }
+.team-tour-nav { display: flex; align-items: center; justify-content: space-between; }
+.team-tour-skip {
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 13px;
+  cursor: pointer; padding: 6px; min-width: 40px; text-align: left;
+}
+.team-tour-skip:hover { color: var(--admin-ink-2); }
+.team-tour-replay {
+  display: inline-flex; margin-top: 26px;
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 0;
+}
+.team-tour-replay:hover { color: var(--admin-accent); }
+
 /* ─── Badges / pills ──────────────────────────────── */
 .admin-badge {
   display: inline-flex;
@@ -757,6 +1309,12 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 
 /* ─── Tabs ────────────────────────────────────────── */
 .admin-tabs {
+  /* globals.css ships `nav { position: fixed; top:0; ... }` for the marketing
+     navbar and it leaks in here; a bare <nav> would pin itself to the top of
+     the viewport over the sidebar. Opt out — these tabs are inline content. */
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--admin-line);

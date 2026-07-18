@@ -17,6 +17,7 @@ import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { Company360 } from "@/lib/admin/companies";
 import { CompanyEditForm } from "./CompanyEditForm";
 import { getCompanyShelf } from "./actions";
+import { activateAffiliate, deactivateAffiliate } from "../affiliates/actions";
 
 // Client-owned shelf for the companies list. One drawer lives at the provider
 // level; rows only push the selected company into context. Related data
@@ -90,6 +91,49 @@ export function CompanyShelfRow({ row, children }: { row: CompanyRow; children: 
   );
 }
 
+// Per-contact affiliate control inside the company shelf. Activating mints (or
+// reactivates) their referral code and pre-authorizes portal access; the
+// invite email stays held until sent explicitly from the Affiliates shelf.
+function AffiliateToggle({
+  person,
+  onChanged,
+}: {
+  person: Company360["people"][number];
+  onChanged: () => void;
+}) {
+  const [pending, start] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
+    setErr(null);
+    start(true);
+    void (async () => {
+      const r = await fn();
+      if (!r.ok) setErr(r.error ?? "Failed.");
+      else onChanged();
+      start(false);
+    })();
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+      {person.affiliateActive ? (
+        <>
+          <Badge tone="ok">Affiliate{person.affiliateCode ? ` · ${person.affiliateCode}` : ""}</Badge>
+          <button type="button" className="admin-btn admin-btn--sm" disabled={pending} onClick={() => run(() => deactivateAffiliate(person.id))}>
+            Deactivate
+          </button>
+        </>
+      ) : (
+        <button type="button" className="admin-btn admin-btn--sm" disabled={pending} onClick={() => run(() => activateAffiliate(person.id))}>
+          Make affiliate
+        </button>
+      )}
+      {err && <span className="admin-cell-muted" style={{ color: "var(--admin-err-ink)", fontSize: 12 }}>{err}</span>}
+    </div>
+  );
+}
+
 function CompanyShelfBody({ row }: { row: CompanyRow }) {
   const router = useRouter();
   const [data, setData] = useState<Company360 | null>(null);
@@ -128,6 +172,9 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
                   </div>
                   {p.full_name && <div className="admin-list-sub">{p.email}</div>}
                 </div>
+                <div className="admin-list-aside">
+                  <AffiliateToggle person={p} onChanged={() => void load()} />
+                </div>
               </div>
             ))}
           </div>
@@ -164,10 +211,10 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
 
       <section>
         <div className="admin-shelf-heading">
-          Enriched info
+          Company details
           {company && !editing && (
-            <button type="button" className="admin-btn" onClick={() => setEditing(true)}>
-              Edit
+            <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setEditing(true)}>
+              Edit details
             </button>
           )}
         </div>
@@ -182,13 +229,8 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
           />
         ) : (
           <dl className="admin-kv">
-            <dt>Category</dt>
-            <dd>
-              {(company?.industry_normalized ?? row.industry_normalized) || "—"}
-              {(company?.industry ?? row.industry) && (
-                <span className="admin-cell-muted"> · {company?.industry ?? row.industry}</span>
-              )}
-            </dd>
+            <dt>Industry</dt>
+            <dd>{(company?.industry_normalized ?? row.industry_normalized) || "—"}</dd>
             <dt>Size</dt>
             <dd>{(company?.size_band ?? row.size_band) || "—"}</dd>
             <dt>Lifecycle</dt>

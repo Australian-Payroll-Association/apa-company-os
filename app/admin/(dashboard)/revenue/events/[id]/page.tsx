@@ -40,6 +40,7 @@ type EventDbRow = {
   media: unknown;
   archived_at: string | null;
   feedback_survey_id: string | null;
+  attendee_count_override: number | null;
 };
 
 type TierDbRow = {
@@ -78,11 +79,11 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes, surveysRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes] = await Promise.all([
     companyOs
       .from("events")
       .select(
-        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id"
+        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override"
       )
       .eq("id", params.id)
       .maybeSingle(),
@@ -104,6 +105,8 @@ export default async function EventDetailPage({ params }: { params: { id: string
       .is("archived_at", null)
       .eq("status", "published")
       .order("name", { ascending: true }),
+    companyOs.from("talks").select("id, title").eq("active", true).order("sort_order", { ascending: true }),
+    companyOs.from("event_talks").select("talk_id").eq("event_id", params.id),
   ]);
 
   const event = eventRes.data as EventDbRow | null;
@@ -275,7 +278,14 @@ export default async function EventDetailPage({ params }: { params: { id: string
     feedbackSurveyId: event.feedback_survey_id,
     archivedAt: event.archived_at,
     totalRegistrations: registrations.length,
+    attendeeCountOverride: event.attendee_count_override,
   };
+
+  const talkOptions = ((talksRes.data ?? []) as { id: string; title: string }[]).map((t) => ({
+    id: t.id,
+    title: t.title,
+  }));
+  const selectedTalkIds = ((eventTalksRes.data ?? []) as { talk_id: string }[]).map((t) => t.talk_id);
 
   return (
     <>
@@ -291,7 +301,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           { key: "overview", label: "Overview", content: overview },
           { key: "roster", label: "Roster", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
           { key: "revenue", label: "Revenue", content: revenue },
-          { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} /> },
+          { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} talks={talkOptions} selectedTalkIds={selectedTalkIds} /> },
         ]}
       />
     </>

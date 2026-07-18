@@ -5,7 +5,12 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
+import { AvatarUpload } from "@/components/team/AvatarUpload";
+import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
+import { getPeopleSensitive } from "@/lib/admin/people-sensitive";
+import { adminSetPersonAvatar, saveSensitiveDetails } from "../actions";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
@@ -89,6 +94,21 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
     listAssignableCompanies(),
   ]);
 
+  // Avatar + restricted PII are keyed by person, and team_directory carries
+  // neither, so fetch them directly when the row has a linked person.
+  const [avatarRes, sensitive] = await Promise.all([
+    m.person_id
+      ? companyOs.from("people").select("avatar_url").eq("id", m.person_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
+  ]);
+  const avatarUrl = (avatarRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
+
+  const portalStatus = portalStatusOf(
+    m.auth_user_id,
+    m.auth_user_id ? await getSignedInAuthUserIds([m.auth_user_id]) : new Set<string>(),
+  );
+
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;
   const total = num(m.total_days);
@@ -97,14 +117,26 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
 
   return (
     <>
-      <PageHead
-        eyebrow={<Link href="/admin/talent/team">← Team</Link>}
-        title={name}
-        sub={[m.position_title, m.email].filter(Boolean).join(" · ")}
-        action={
-          m.status ? <Badge tone={statusTone(m.status)}>{humanize(m.status)}</Badge> : undefined
-        }
-      />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+        {m.person_id && (
+          <AvatarUpload
+            name={name}
+            avatarUrl={avatarUrl}
+            action={adminSetPersonAvatar.bind(null, m.person_id)}
+            size={60}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PageHead
+            eyebrow={<Link href="/admin/talent/team">← Team</Link>}
+            title={name}
+            sub={[m.position_title, m.email].filter(Boolean).join(" · ")}
+            action={
+              m.status ? <Badge tone={statusTone(m.status)}>{humanize(m.status)}</Badge> : undefined
+            }
+          />
+        </div>
+      </div>
 
       {total !== null && (
         <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
@@ -162,7 +194,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
             <h2 className="admin-card-title">Portal access</h2>
             <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
             {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} provisioned={!!m.auth_user_id} full />
+              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
             ) : (
               <span className="admin-cell-muted">No linked person record.</span>
             )}
@@ -264,6 +296,14 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               </div>
             )}
           </div>
+
+          {m.person_id && (
+            <SensitiveDetails
+              row={sensitive}
+              hasIdImages={!!(sensitive?.id_front_path || sensitive?.id_back_path || sensitive?.id_selfie_path)}
+              action={saveSensitiveDetails.bind(null, m.person_id)}
+            />
+          )}
         </div>
       </div>
     </>

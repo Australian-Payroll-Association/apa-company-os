@@ -21,12 +21,37 @@ type Proposal = {
 // One entry per proposal file under public/proposals/. Ordered newest first.
 const PROPOSALS: Proposal[] = [
   {
+    client: "Titan Recruitment",
+    kind: "AI Platform Program",
+    summary:
+      "A staged plan to keep 25 years of recruiting knowledge intact as Titan moves off RDB onto Mercury: own the data layer, stand up the dashboard shell, and build guided workflows priced per feature.",
+    date: "July 2026",
+    href: "/proposals/titan-recruitment-proposal.html",
+  },
+  {
+    client: "Westbridge & Momentum Wealth",
+    kind: "AI Program",
+    summary:
+      "A staged AI program: coach a lead who can run it, train the team to spot what AI should solve, and build the Company OS data foundation underneath.",
+    date: "July 2026",
+    href: "/proposals/westbridge-momentum-proposal.html",
+  },
+  {
     client: "Bstore",
     kind: "AI & Data Proposal",
     summary:
       "A two-track plan to take AI capability past Bstore's leadership team and turn two quarters of workflow mapping into a central database and working automations.",
     date: "July 2026",
     href: "/proposals/bstore-proposal.html",
+  },
+  {
+    client: "AI Program Jumpstart",
+    kind: "Fixed-Price Engagement",
+    summary:
+      "An 8-week, fixed-price engagement to install Company OS on a database you own: your data mapped, the modules you need turned on, and 2 to 4 automations built.",
+    date: "July 2026",
+    href: "/proposals/ai-program-jumpstart.html",
+    note: "Template",
   },
   {
     client: "Arca Wellness & Longevity",

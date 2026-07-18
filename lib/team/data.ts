@@ -7,6 +7,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
+import type { SensitiveRow } from "@/lib/admin/people-sensitive";
 
 // Tables /team may read, and the column + scope each is filtered on. A table not
 // listed here cannot be read from /team. Expand this deliberately, one table per
@@ -38,10 +39,23 @@ type PersonLite = {
   preferred_name: string | null;
   email: string;
   phone: string | null;
+  gender: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  avatar_url: string | null;
+  metadata: Record<string, unknown> | null;
 };
 type ManagerName = { full_name: string | null; preferred_name: string | null };
+// The employee-safe slice of people.metadata (populated from the Airtable
+// import). Full DOB / bank / ID live in people_sensitive, never here.
+export type ProfileExtras = {
+  hometown: string | null;
+  education: string | null;
+  hobbies: string[];
+  personalEmail: string | null;
+  birthMonth: number | null;
+  birthDay: number | null;
+};
 export type OwnProfile = {
   id: string;
   employee_number: string | null;
@@ -49,11 +63,29 @@ export type OwnProfile = {
   work_location: string | null;
   status: string | null;
   start_date: string | null;
+  employmentStage: string | null;
+  probationEndsOn: string | null;
   person: PersonLite | null;
+  avatarUrl: string | null;
   departmentName: string | null;
   positionTitle: string | null;
   managerName: string | null;
+  extras: ProfileExtras;
 };
+
+function extrasOf(metadata: Record<string, unknown> | null): ProfileExtras {
+  const m = metadata ?? {};
+  const asStr = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+  const asNum = (v: unknown): number | null => (typeof v === "number" ? v : null);
+  return {
+    hometown: asStr(m.hometown),
+    education: asStr(m.education),
+    hobbies: Array.isArray(m.hobbies) ? (m.hobbies as unknown[]).filter((h): h is string => typeof h === "string") : [],
+    personalEmail: asStr(m.personal_email),
+    birthMonth: asNum(m.birth_month),
+    birthDay: asNum(m.birth_day),
+  };
+}
 
 // PostgREST returns to-one embeds as an object, but can surface arrays; normalize.
 const one = <T,>(e: T | T[] | null | undefined): T | null =>
@@ -63,15 +95,32 @@ function nameOf(p: ManagerName | null): string | null {
   return p ? p.preferred_name || p.full_name : null;
 }
 
+// Resolve a manager's person record from a team_members id. Deliberately a
+// separate lookup: embedding `team_members!manager_id` on the self-referencing
+// FK is ambiguous, and PostgREST resolves it in the REVERSE direction (rows
+// whose manager_id points at you — your reports), so the "manager" came back
+// as the first direct report. Bit us on the /team home card; never re-embed.
+type ManagerPerson = ManagerName & { email: string | null };
+async function getManagerPerson(managerId: string | null): Promise<ManagerPerson | null> {
+  if (!managerId) return null;
+  const { data } = await companyOs
+    .from("team_members")
+    .select("people:people!person_id(full_name, preferred_name, email)")
+    .eq("id", managerId)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as unknown as Record<string, unknown>;
+  return one(r.people as ManagerPerson | ManagerPerson[] | null);
+}
+
 export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null> {
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, employee_number, employment_type, work_location, status, start_date, " +
-        "people:people!person_id(full_name, preferred_name, email, phone, emergency_contact_name, emergency_contact_phone), " +
+      "id, employee_number, employment_type, work_location, status, start_date, manager_id, employment_stage, probation_ends_on, " +
+        "people:people!person_id(full_name, preferred_name, email, phone, gender, emergency_contact_name, emergency_contact_phone, avatar_url, metadata), " +
         "departments:departments!department_id(name), " +
-        "positions:positions!position_id(title), " +
-        "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
+        "positions:positions!position_id(title)",
     )
     .eq("id", actor.teamMemberId)
     .maybeSingle();
@@ -79,7 +128,8 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
   const r = data as unknown as Record<string, unknown>;
   const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
   const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
-  const mgr = one(r.manager as { people: ManagerName | ManagerName[] | null } | { people: ManagerName | ManagerName[] | null }[] | null);
+  const mgr = await getManagerPerson((r.manager_id as string | null) ?? null);
+  const person = one(r.people as PersonLite | PersonLite[] | null);
   return {
     id: r.id as string,
     employee_number: (r.employee_number as string | null) ?? null,
@@ -87,10 +137,14 @@ export async function getOwnProfile(actor: TeamActor): Promise<OwnProfile | null
     work_location: (r.work_location as string | null) ?? null,
     status: (r.status as string | null) ?? null,
     start_date: (r.start_date as string | null) ?? null,
-    person: one(r.people as PersonLite | PersonLite[] | null),
+    employmentStage: (r.employment_stage as string | null) ?? null,
+    probationEndsOn: (r.probation_ends_on as string | null) ?? null,
+    person,
+    avatarUrl: person?.avatar_url ?? null,
     departmentName: dept?.name ?? null,
     positionTitle: pos?.title ?? null,
-    managerName: nameOf(one(mgr?.people ?? null)),
+    managerName: nameOf(mgr),
+    extras: extrasOf(person?.metadata ?? null),
   };
 }
 
@@ -179,16 +233,11 @@ export type ManagerContact = { email: string; displayName: string };
 export async function getManagerContact(actor: TeamActor): Promise<ManagerContact | null> {
   const { data } = await companyOs
     .from("team_members")
-    .select(
-      "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name, email))",
-    )
+    .select("manager_id")
     .eq("id", actor.teamMemberId)
     .maybeSingle();
-  if (!data) return null;
-  const r = data as unknown as Record<string, unknown>;
-  type PersonEmail = { full_name: string | null; preferred_name: string | null; email: string | null };
-  const mgr = one(r.manager as { people: PersonEmail | PersonEmail[] | null } | { people: PersonEmail | PersonEmail[] | null }[] | null);
-  const person = one(mgr?.people ?? null);
+  const managerId = ((data as unknown as { manager_id: string | null } | null)?.manager_id) ?? null;
+  const person = await getManagerPerson(managerId);
   if (!person?.email) return null;
   return { email: person.email, displayName: person.preferred_name || person.full_name || person.email };
 }
@@ -204,6 +253,7 @@ const DIRECTORY_STATUSES = ["active", "on_leave", "notice"];
 export type DirectoryEntry = {
   id: string;
   name: string;
+  avatarUrl: string | null;
   positionTitle: string | null;
   departmentName: string | null;
   location: string | null;
@@ -214,11 +264,58 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, work_location, " +
+      "id, work_location, manager_id, " +
+        "people:people!person_id(full_name, preferred_name, avatar_url), " +
+        "departments:departments!department_id(name), " +
+        "positions:positions!position_id(title)",
+    )
+    .in("status", DIRECTORY_STATUSES);
+  type Name = { full_name: string | null; preferred_name: string | null; avatar_url?: string | null };
+  const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
+    const person = one(r.people as Name | Name[] | null);
+    return {
+    id: r.id as string,
+    managerId: (r.manager_id as string | null) ?? null,
+    // The directory shows the full legal name (fall back to nickname/email).
+    name: person?.full_name || person?.preferred_name || "—",
+    avatarUrl: person?.avatar_url ?? null,
+    positionTitle:
+      one(r.positions as { title: string | null } | { title: string | null }[] | null)?.title ?? null,
+    departmentName:
+      one(r.departments as { name: string | null } | { name: string | null }[] | null)?.name ?? null,
+    location: (r.work_location as string | null) ?? null,
+    };
+  });
+  // Managers are directory rows themselves — resolve names in-memory instead of
+  // via the ambiguous self-referencing embed (see getManagerPerson).
+  const nameById = new Map(rows.map((r) => [r.id, r.name]));
+  const entries = rows.map(({ managerId, ...r }) => ({
+    ...r,
+    managerName: (managerId && nameById.get(managerId)) || null,
+  }));
+  return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// The org chart: same audience and safe column list as the directory (names,
+// roles, departments — no contact details), plus manager_id and employment_type
+// so the page can assemble the reporting tree and label contractors.
+export type OrgEntry = {
+  id: string;
+  name: string;
+  positionTitle: string | null;
+  departmentName: string | null;
+  employmentType: string | null;
+  managerId: string | null;
+};
+
+export async function getOrgChart(): Promise<OrgEntry[]> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select(
+      "id, manager_id, employment_type, " +
         "people:people!person_id(full_name, preferred_name), " +
         "departments:departments!department_id(name), " +
-        "positions:positions!position_id(title), " +
-        "manager:team_members!manager_id(people:people!person_id(full_name, preferred_name))",
+        "positions:positions!position_id(title)",
     )
     .in("status", DIRECTORY_STATUSES);
   type Name = { full_name: string | null; preferred_name: string | null };
@@ -226,41 +323,92 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
     const person = one(r.people as Name | Name[] | null);
     const dept = one(r.departments as { name: string | null } | { name: string | null }[] | null);
     const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
-    const mgr = one(r.manager as { people: Name | Name[] | null } | { people: Name | Name[] | null }[] | null);
     return {
       id: r.id as string,
       name: nameOf(person) ?? "—",
       positionTitle: pos?.title ?? null,
       departmentName: dept?.name ?? null,
-      location: (r.work_location as string | null) ?? null,
-      managerName: nameOf(one(mgr?.people ?? null)),
+      employmentType: (r.employment_type as string | null) ?? null,
+      managerId: (r.manager_id as string | null) ?? null,
     };
   });
   return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Self-scoped profile update: writes ONLY the actor's own people row (filtered
-// on actor.personId from the JWT-derived actor, never client input) and ONLY
-// the fields an employee may edit about themselves. Employment fields, names
-// used for payroll (full_name), and email are admin-managed; widening this
-// allowlist is a security decision, not a convenience.
-const OWN_EDITABLE_FIELDS = [
+// Self-scoped profile writes. Every function here is filtered on
+// actor.personId (from the JWT-derived actor, never client input) and touches
+// ONLY the fields an employee may edit about themselves. Employment fields,
+// full_name (used for payroll), and the company email stay admin-managed;
+// widening these allowlists is a security decision, not a convenience.
+
+// people columns the employee may self-edit.
+const OWN_PEOPLE_COLUMNS = [
   "preferred_name",
   "phone",
+  "gender",
   "emergency_contact_name",
   "emergency_contact_phone",
 ] as const;
-export type OwnEditableField = (typeof OWN_EDITABLE_FIELDS)[number];
+type OwnPeopleColumn = (typeof OWN_PEOPLE_COLUMNS)[number];
+// people.metadata keys the employee may self-edit (birth_month/day are derived
+// from the full DOB, which itself lives in the restricted people_sensitive).
+const OWN_METADATA_KEYS = [
+  "personal_email",
+  "hometown",
+  "education",
+  "hobbies",
+  "birth_month",
+  "birth_day",
+] as const;
+type OwnMetadataKey = (typeof OWN_METADATA_KEYS)[number];
 
-export async function updateOwnContact(
+// Merge-write the actor's own people columns + metadata. metadata is read then
+// merged (the JS client can't do a jsonb `||`), so empty/null keys are removed
+// rather than written as nulls, keeping the blob tidy.
+export async function updateOwnBasics(
   actor: TeamActor,
-  fields: Partial<Record<OwnEditableField, string | null>>,
+  columns: Partial<Record<OwnPeopleColumn, string | null>>,
+  metadata: Partial<Record<OwnMetadataKey, unknown>>,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const patch: Record<string, string | null> = {};
-  for (const key of OWN_EDITABLE_FIELDS) {
-    if (key in fields) patch[key] = fields[key] ?? null;
+  const { data: current } = await companyOs
+    .from("people")
+    .select("metadata")
+    .eq("id", actor.personId)
+    .maybeSingle();
+  const baseMeta = ((current as { metadata: Record<string, unknown> | null } | null)?.metadata) ?? {};
+  const nextMeta: Record<string, unknown> = { ...baseMeta };
+  for (const k of OWN_METADATA_KEYS) {
+    if (!(k in metadata)) continue;
+    const v = metadata[k];
+    const empty = v == null || v === "" || (Array.isArray(v) && v.length === 0);
+    if (empty) delete nextMeta[k];
+    else nextMeta[k] = v;
   }
-  if (Object.keys(patch).length === 0) return { ok: false, error: "Nothing to update." };
+  const patch: Record<string, unknown> = { metadata: nextMeta, updated_at: new Date().toISOString() };
+  for (const c of OWN_PEOPLE_COLUMNS) {
+    if (c in columns) patch[c] = columns[c] ?? null;
+  }
   const { error } = await companyOs.from("people").update(patch).eq("id", actor.personId);
   return { ok: !error, error: error?.message ?? null };
+}
+
+// The actor's own restricted PII row (self-scoped). Returns null if none yet.
+export async function getOwnSensitive(actor: TeamActor): Promise<SensitiveRow | null> {
+  const { data } = await companyOs
+    .from("people_sensitive")
+    .select("*")
+    .eq("person_id", actor.personId)
+    .maybeSingle();
+  return (data as SensitiveRow | null) ?? null;
+}
+
+// The actor's own company email — for the audit actor label and bank-change
+// alert. Fetched server-side; never trust a client-supplied email as identity.
+export async function getOwnEmail(actor: TeamActor): Promise<string | null> {
+  const { data } = await companyOs
+    .from("people")
+    .select("email")
+    .eq("id", actor.personId)
+    .maybeSingle();
+  return (data as { email: string } | null)?.email ?? null;
 }

@@ -35,6 +35,7 @@ type EventDbRow = {
   landing_path: string | null;
   notes: string | null;
   archived_at: string | null;
+  attendee_count_override: number | null;
 };
 
 type TierDbRow = {
@@ -74,10 +75,12 @@ export default async function EventsPage() {
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 
-  const [eventsRes, tiersRes, regsRes, monthRevenueRes] = await Promise.all([
+  const year = now.getUTCFullYear();
+
+  const [eventsRes, tiersRes, regsRes, monthRevenueRes, attendeesRes] = await Promise.all([
     companyOs
       .from("events")
-      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, archived_at")
+      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, archived_at, attendee_count_override")
       .order("starts_at", { ascending: false, nullsFirst: false }),
     companyOs
       .from("products")
@@ -96,7 +99,10 @@ export default async function EventsPage() {
       .not("event_id", "is", null)
       .in("status", ["registered", "attended", "confirmed"])
       .gte("orders.created_at", monthStart),
+    companyOs.rpc("workshop_attendees_total", { p_year: year }),
   ]);
+
+  const yearAttendees = typeof attendeesRes.data === "number" ? attendeesRes.data : null;
 
   const error = eventsRes.error?.message ?? tiersRes.error?.message ?? regsRes.error?.message ?? null;
 
@@ -173,6 +179,7 @@ export default async function EventsPage() {
       archivedAt: e.archived_at,
       tiers,
       attendees: attendeesByEvent.get(e.id) ?? [],
+      effectiveAttendees: e.attendee_count_override ?? counts.registered,
       registeredCount: counts.registered,
       totalCount: counts.total,
       fromUsdCents: fromCents,
@@ -204,6 +211,11 @@ export default async function EventsPage() {
         <MetricCard label="Revenue this Month" value={formatCents(revenueThisMonth, "usd")} sub="USD · registered+" />
         <MetricCard label="Open events" value={openEvents} sub={`of ${activeRows.length} scheduled`} />
         <MetricCard label="Registered" value={totalRegistered} sub="seats incl. guests" />
+        <MetricCard
+          label={`${year} Attendees`}
+          value={yearAttendees ?? "—"}
+          sub="of 1,000 goal · feeds home page"
+        />
       </div>
 
       <EventsTable rows={rows} />

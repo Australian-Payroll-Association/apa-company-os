@@ -8,6 +8,7 @@ import { formatCents } from "./admin/format";
 export const EVENT_TYPES = [
   "retreat",
   "workshop",
+  "keynote",
   "webinar",
   "micro_session",
   "dinner",

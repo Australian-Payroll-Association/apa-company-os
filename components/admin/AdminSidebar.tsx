@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/admin/(dashboard)/actions";
@@ -65,7 +65,10 @@ const NAV: NavGroup[] = [
       },
       {
         subheading: "People",
-        items: [{ label: "Team", href: "/admin/talent/team", ico: "☷", enabled: true }],
+        items: [
+          { label: "Team", href: "/admin/talent/team", ico: "☷", enabled: true },
+          { label: "Probation", href: "/admin/talent/probation", ico: "◔", enabled: true },
+        ],
       },
     ],
   },
@@ -81,9 +84,18 @@ const NAV: NavGroup[] = [
         ],
       },
       {
+        subheading: "Contractors",
+        items: [
+          { label: "Work Requests", href: "/admin/operations/contractor-requests", ico: "✎", enabled: true },
+          { label: "Contractors", href: "/admin/operations/contractors", ico: "⚒", enabled: true },
+          { label: "Payments", href: "/admin/operations/contractor-payments", ico: "$", enabled: true },
+        ],
+      },
+      {
         subheading: "Workplace",
         items: [
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
+          { label: "Gallery", href: "/admin/operations/gallery", ico: "▦", enabled: true },
           { label: "Documents", href: "/admin/operations/documents", ico: "⎙" },
           { label: "Surveys", href: "/admin/operations/surveys", ico: "✎", enabled: true },
         ],
@@ -167,6 +179,13 @@ export function AdminSidebar({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const userInitials = initials(user.email);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setProfileMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileMenuOpen]);
 
   function toggle(key: string) {
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
@@ -275,6 +294,9 @@ export function AdminSidebar({
           </span>
         </div>
 
+        {profileMenuOpen && (
+          <div className="admin-profilemenu-backdrop" onClick={() => setProfileMenuOpen(false)} />
+        )}
         {profileMenuOpen && (
           <div className="admin-profilemenu" role="menu" aria-label="Profile and views">
             <div className="admin-profilemenu-head">

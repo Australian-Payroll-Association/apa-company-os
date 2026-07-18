@@ -7,20 +7,22 @@ import {
   resendPortalInvite,
   revokePortalAccess,
 } from "@/app/admin/(dashboard)/talent/team/actions";
+import type { PortalStatus } from "@/lib/admin/portal-status";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
 
-// Talent > Team portal-access control. Not provisioned: an Invite button that
-// confirms first (it emails a real sign-in link). Provisioned: a "Portal ✓"
-// badge; with `full` (the member detail page) it adds Resend link and Revoke.
-// List rows omit `full` to stay compact.
+// Talent > Team portal-access control, three states:
+//   none    → an Invite button (confirms first — it emails a real sign-in link)
+//   invited → an "Invited" badge + a Resend link (they haven't signed in yet)
+//   active  → a "Signed in" badge
+// `full` (the member detail page) adds a Revoke button to the linked states.
 export function InvitePortalButton({
   teamMemberId,
-  provisioned,
+  status,
   full = false,
 }: {
   teamMemberId: string;
-  provisioned: boolean;
+  status: PortalStatus;
   full?: boolean;
 }) {
   const router = useRouter();
@@ -37,43 +39,65 @@ export function InvitePortalButton({
     });
   }
 
-  if (provisioned) {
-    if (!full) return <span className="admin-badge admin-badge--ok">Portal ✓</span>;
+  if (status === "none") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span className="admin-badge admin-badge--ok">Portal ✓</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         <button
           className="admin-btn admin-btn--sm"
           disabled={pending}
-          onClick={() => run("Email this person a fresh sign-in link?", resendPortalInvite)}
+          onClick={() => run("Send this person a portal sign-in invite by email?", inviteToPortal)}
         >
-          Resend link
-        </button>
-        <button
-          className="admin-btn admin-btn--sm admin-btn--danger"
-          disabled={pending}
-          onClick={() =>
-            run(
-              "Revoke portal access? They are signed out and blocked until re-invited.",
-              revokePortalAccess,
-            )
-          }
-        >
-          Revoke
+          {pending ? "Sending…" : "Invite"}
         </button>
         {msg && <span className="admin-cell-muted">{msg}</span>}
       </span>
     );
   }
 
+  const badge =
+    status === "active" ? (
+      <span className="admin-badge admin-badge--ok">Signed in</span>
+    ) : (
+      <span className="admin-badge admin-badge--info">Invited</span>
+    );
+
+  const resend = (
+    <button
+      className="admin-btn admin-btn--sm"
+      disabled={pending}
+      onClick={() => run("Email this person a fresh sign-in link?", resendPortalInvite)}
+    >
+      {pending ? "Sending…" : "Resend link"}
+    </button>
+  );
+
+  // Compact list row: badge, plus a Resend affordance for the invited (not-yet
+  // -signed-in) state so an admin can nudge them without opening the detail.
+  if (!full) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {badge}
+        {status === "invited" && resend}
+        {msg && <span className="admin-cell-muted">{msg}</span>}
+      </span>
+    );
+  }
+
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {badge}
+      {resend}
       <button
-        className="admin-btn admin-btn--sm"
+        className="admin-btn admin-btn--sm admin-btn--danger"
         disabled={pending}
-        onClick={() => run("Send this person a portal sign-in invite by email?", inviteToPortal)}
+        onClick={() =>
+          run(
+            "Revoke portal access? They are signed out and blocked until re-invited.",
+            revokePortalAccess,
+          )
+        }
       >
-        {pending ? "Sending…" : "Invite"}
+        Revoke
       </button>
       {msg && <span className="admin-cell-muted">{msg}</span>}
     </span>

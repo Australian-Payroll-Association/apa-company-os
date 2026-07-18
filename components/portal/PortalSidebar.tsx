@@ -16,6 +16,7 @@ export type PortalEntitlements = {
   timeOff: boolean;
   invoices: boolean;
   events: boolean;
+  referrals: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [
   { label: "Projects", href: "/portal/projects", ico: "⇉" },
   { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
   { label: "My Events", href: "/portal/events", ico: "▦", built: true, entitlementKey: "events" },
+  { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

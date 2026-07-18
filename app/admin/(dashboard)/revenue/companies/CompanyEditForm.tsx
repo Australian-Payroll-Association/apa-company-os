@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
+import { INDUSTRY_CATEGORIES, SIZE_BANDS, PRIORITY_LEVELS } from "@/lib/admin/company-enums";
+import { COUNTRIES } from "@/lib/admin/countries";
+import { humanize } from "@/lib/admin/format";
 import { updateCompany, type CompanyPatch } from "./actions";
 
 export type EditableCompany = {
   id: string;
   name: string | null;
   domain: string | null;
-  industry: string | null;
   industry_normalized?: string | null;
   size_band: string | null;
   country: string | null;
@@ -33,7 +34,6 @@ export function CompanyEditForm({
   const [form, setForm] = useState({
     name: company.name ?? "",
     domain: company.domain ?? "",
-    industry: company.industry ?? "",
     industry_normalized: company.industry_normalized ?? "",
     size_band: company.size_band ?? "",
     country: company.country ?? "",
@@ -53,7 +53,6 @@ export function CompanyEditForm({
     const patch: CompanyPatch = {
       name: form.name,
       domain: form.domain,
-      industry: form.industry,
       industry_normalized: form.industry_normalized,
       size_band: form.size_band,
       country: form.country,
@@ -89,19 +88,17 @@ export function CompanyEditForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
           <label className="admin-label">Industry</label>
-          <input className="admin-input" value={form.industry} onChange={(e) => field("industry", e.target.value)} />
-        </div>
-        <div className="admin-field">
-          <label className="admin-label">Category</label>
           <select className="admin-input" value={form.industry_normalized} onChange={(e) => field("industry_normalized", e.target.value)}>
             <option value="">—</option>
+            {/* Preserve a legacy value outside the canonical list rather than blank it. */}
+            {form.industry_normalized && !(INDUSTRY_CATEGORIES as readonly string[]).includes(form.industry_normalized) && (
+              <option value={form.industry_normalized}>{form.industry_normalized}</option>
+            )}
             {INDUSTRY_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
           <label className="admin-label">Size (employees)</label>
           <select className="admin-input" value={form.size_band} onChange={(e) => field("size_band", e.target.value)}>
@@ -111,16 +108,29 @@ export function CompanyEditForm({
             ))}
           </select>
         </div>
-        <div className="admin-field" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
           <label className="admin-label">Country</label>
-          <input className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)} />
+          <select className="admin-input" value={form.country} onChange={(e) => field("country", e.target.value)}>
+            <option value="">—</option>
+            {/* Preserve an existing value that isn't in the canonical list. */}
+            {form.country && !(COUNTRIES as readonly string[]).includes(form.country) && (
+              <option value={form.country}>{form.country}</option>
+            )}
+            {COUNTRIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div className="admin-field">
           <label className="admin-label">Priority</label>
-          <input className="admin-input" value={form.priority} onChange={(e) => field("priority", e.target.value)} placeholder="low / medium / high" />
+          <select className="admin-input" value={form.priority} onChange={(e) => field("priority", e.target.value)}>
+            <option value="">—</option>
+            {PRIORITY_LEVELS.map((p) => (
+              <option key={p} value={p}>{humanize(p)}</option>
+            ))}
+          </select>
         </div>
       </div>
       {showNotes && (
