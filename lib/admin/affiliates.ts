@@ -30,6 +30,7 @@ export type ReferredDeal = {
   currency: string;
   companyName: string | null;
   via: "code" | "referrer";
+  proposalUrl: string | null;
 };
 
 export type AffiliateCommission = {
@@ -211,7 +212,7 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
       : Promise.resolve({ data: [] }),
     companyOs
       .from("deals")
-      .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, companies(name)")
+      .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, proposal_url, companies(name)")
       .or(`referrer_id.eq.${personId}${codeIds.length ? `,affiliate_id.in.(${codeIds.join(",")})` : ""}`)
       .order("created_at", { ascending: false }),
   ]);
@@ -235,7 +236,7 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
     };
   });
 
-  const referredDeals: ReferredDeal[] = ((dealRows ?? []) as Array<{ id: string; title: string | null; status: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; referrer_id: string | null; affiliate_id: string | null; companies: Embedded<{ name: string | null }> }>).map((d) => {
+  const referredDeals: ReferredDeal[] = ((dealRows ?? []) as Array<{ id: string; title: string | null; status: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; referrer_id: string | null; affiliate_id: string | null; proposal_url: string | null; companies: Embedded<{ name: string | null }> }>).map((d) => {
     const { cents, currency } = dealAmount(d);
     return {
       id: d.id,
@@ -245,6 +246,7 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
       currency,
       companyName: one(d.companies)?.name ?? null,
       via: d.affiliate_id && codeById.has(d.affiliate_id) ? "code" : "referrer",
+      proposalUrl: d.proposal_url ?? null,
     };
   });
 

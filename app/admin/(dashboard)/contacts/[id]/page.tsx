@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPerson360 } from "@/lib/admin/contacts";
+import { getAffiliate360 } from "@/lib/admin/affiliates";
 import { getPortalMembershipsForPerson } from "@/lib/admin/portal";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
+import { ContactAffiliatePanel } from "./ContactAffiliatePanel";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
@@ -27,7 +29,11 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   if (!data) notFound();
 
   const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
-  const portalMemberships = await getPortalMembershipsForPerson(params.id);
+  const [portalMemberships, affiliate] = await Promise.all([
+    getPortalMembershipsForPerson(params.id),
+    getAffiliate360(params.id),
+  ]);
+  const isAffiliate = !!affiliate && affiliate.codes.length > 0;
   const membershipByCompany = new Map(
     portalMemberships.filter((m) => m.company_id).map((m) => [m.company_id as string, m]),
   );
@@ -382,8 +388,11 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
           </div>
         </div>
 
-        <div className="admin-card admin-section-card">
-          <Tabs tabs={tabs} />
+        <div className="admin-360-main">
+          {isAffiliate && affiliate && <ContactAffiliatePanel affiliate={affiliate} />}
+          <div className="admin-card admin-section-card">
+            <Tabs tabs={tabs} />
+          </div>
         </div>
       </div>
     </>
