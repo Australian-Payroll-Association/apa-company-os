@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { hasAssignedStaff } from "@/lib/portal/team";
 import { hasInvoices } from "@/lib/portal/invoices";
@@ -20,6 +21,9 @@ export default async function PortalDashboardLayout({
   children: React.ReactNode;
 }) {
   const actor = await requirePortalMember();
+  // Temp-password holders pick their own password before seeing any data. The
+  // target page lives in the (auth) group, outside this layout, so no loop.
+  if (actor.mustChangePassword) redirect("/portal/change-password");
   const companyName =
     actor.memberships.length === 1
       ? actor.memberships[0].companyName
