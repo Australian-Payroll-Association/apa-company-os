@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { pingOps } from "@/lib/contractor-notify";
+import { getSiteOrigin } from "@/lib/site-origin";
+import {
+  pingOps,
+  sendClientEstimateReadyEmail,
+  sendClientWorkReadyEmail,
+} from "@/lib/contractor-notify";
 
 // Contractor-facing actions on the public /work/[token] page. No admin gate:
 // the opaque access_token IS the credential (same bearer-link model as event
@@ -15,13 +20,17 @@ async function loadByToken(token: string) {
   if (!token || token.length < 8) return null;
   const { data, error } = await companyOs
     .from("contractor_work_requests")
-    .select("id, title, status, people!person_id(full_name, email)")
+    // Two people FKs on this table now — every embed needs an explicit hint.
+    .select(
+      "id, title, status, origin, people!person_id(full_name, email), requester:people!requested_by_person_id(full_name, email)",
+    )
     .eq("access_token", token)
     .maybeSingle();
   if (error || !data) return null;
-  const people = data.people;
-  const person = Array.isArray(people) ? people[0] ?? null : people;
-  return { ...data, person };
+  const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
+  const person = one(data.people);
+  const requester = one(data.requester as { full_name: string | null; email: string } | { full_name: string | null; email: string }[] | null);
+  return { ...data, person, requester };
 }
 
 function parseHours(v: unknown, label: string, { allowZero = false } = {}): number | { error: string } {
@@ -77,6 +86,17 @@ export async function submitEstimate(input: {
       req.person?.full_name ?? req.person?.email ?? "unknown"
     }, ${hours}h. Review: https://www.edge8.ai/admin/operations/contractor-requests`,
   );
+
+  if (req.origin === "portal" && req.requester?.email) {
+    await sendClientEstimateReadyEmail({
+      to: req.requester.email,
+      name: req.requester.full_name,
+      title: req.title,
+      contractorName: req.person?.full_name ?? null,
+      estimatedHours: hours,
+      url: `${getSiteOrigin()}/portal/requests/${req.id}`,
+    });
+  }
 
   revalidatePath(`/work/${input.token}`);
   return { ok: true };
@@ -135,6 +155,16 @@ export async function submitWork(input: {
       req.person?.full_name ?? req.person?.email ?? "unknown"
     }, ${hours}h${overtime > 0 ? ` + ${overtime}h OT` : ""}. Review: https://www.edge8.ai/admin/operations/contractor-requests`,
   );
+
+  if (req.origin === "portal" && req.requester?.email) {
+    await sendClientWorkReadyEmail({
+      to: req.requester.email,
+      name: req.requester.full_name,
+      title: req.title,
+      contractorName: req.person?.full_name ?? null,
+      url: `${getSiteOrigin()}/portal/requests/${req.id}`,
+    });
+  }
 
   revalidatePath(`/work/${input.token}`);
   return { ok: true };
