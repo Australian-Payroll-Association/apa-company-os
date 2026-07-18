@@ -54,8 +54,8 @@
   --admin-accent: #287be8;
   --admin-accent-strong: #1d6ad4;         /* hover / pressed, darkens */
   --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
-  --admin-accent-on-dark: #3b8cf5;        /* links on dark surfaces, e.g. the sidebar */
-  --admin-accent-on-dark-strong: #6fadfb; /* hover, lightens */
+  --admin-accent-on-dark: #ffffff;        /* links on dark surfaces, e.g. the sidebar */
+  --admin-accent-on-dark-strong: var(--mint); /* hover */
   --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
 
   /* Categorical accents (badges, section themes) */

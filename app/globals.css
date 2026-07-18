@@ -43,13 +43,11 @@
   --radius-btn: 40px;
   --transition: 0.2s ease;
 
-  /* Link color system — resolved per-context (see dark-surface override below).
-     --blue-bright is used as the default on dark backgrounds because #287BE8
-     falls just under 4.5:1 contrast on #101014; #3B8CF5 clears it. */
+  /* Link color system — resolved per-context (see dark-surface override below). */
   --link: var(--blue);
   --link-hover: #1D6AD4;
-  --link-on-dark: var(--blue-bright);
-  --link-on-dark-hover: #6FADFB;
+  --link-on-dark: var(--white);
+  --link-on-dark-hover: var(--mint);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
