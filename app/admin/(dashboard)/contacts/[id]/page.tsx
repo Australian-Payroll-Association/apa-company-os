@@ -358,6 +358,17 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               <dd>{formatDate(person.created_at)}</dd>
             </dl>
           </div>
+        </div>
+
+        {/* Main column carries the relationship content so its height matches the
+            sidebar: Activity, then the affiliate panel, then portal + danger. */}
+        <div className="admin-360-main">
+          <div className="admin-card admin-section-card">
+            <Tabs tabs={tabs} />
+          </div>
+
+          {isAffiliate && affiliate && <ContactAffiliatePanel affiliate={affiliate} />}
+
           {!person.is_team_member && companies.length > 0 && (
             <div className="admin-card admin-section-card">
               <h2 className="admin-card-title">Client portal</h2>
@@ -379,19 +390,13 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               </div>
             </div>
           )}
+
           <div className="admin-card admin-section-card">
             <PersonDangerZone
               personId={person.id}
               personName={name}
               archived={!!person.archived_at}
             />
-          </div>
-        </div>
-
-        <div className="admin-360-main">
-          {isAffiliate && affiliate && <ContactAffiliatePanel affiliate={affiliate} />}
-          <div className="admin-card admin-section-card">
-            <Tabs tabs={tabs} />
           </div>
         </div>
       </div>
