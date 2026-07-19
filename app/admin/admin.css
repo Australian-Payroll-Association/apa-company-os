@@ -443,6 +443,12 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
 .admin-btn--danger { color: var(--admin-err-ink); border-color: var(--admin-err-bg); }
 .admin-btn--danger:hover { background: var(--admin-err-bg); }
 .admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Anchors styled as buttons: `.admin-shell a` (0,1,1) outranks the plain
+   button classes (0,1,0), turning primary buttons accent-on-accent
+   (invisible). Restate each variant's color at anchor specificity. */
+a.admin-btn { color: var(--admin-ink); }
+a.admin-btn--primary { color: #fff; }
+a.admin-btn--danger { color: var(--admin-err-ink); }
 
 /* ─── Charts ──────────────────────────────────────── */
 /* Categorical palette, fixed order, CVD-validated against the light surface.
