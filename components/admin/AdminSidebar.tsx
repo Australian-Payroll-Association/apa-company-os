@@ -35,6 +35,7 @@ const NAV: NavGroup[] = [
           { label: "Leads", href: "/admin/revenue/leads", ico: "◉", enabled: true },
           { label: "Inquiries", href: "/admin/revenue/inquiries", ico: "☰", enabled: true },
           { label: "Companies", href: "/admin/revenue/companies", ico: "▣", enabled: true },
+          { label: "Clients", href: "/admin/revenue/clients", ico: "★", enabled: true },
           { label: "Contacts", href: "/admin/contacts", ico: "⚇", enabled: true },
         ],
       },
