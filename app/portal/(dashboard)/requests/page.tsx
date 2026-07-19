@@ -43,7 +43,7 @@ export default async function PortalRequestsPage() {
       />
 
       <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20, gridAutoRows: "1fr" }}>
-        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column", marginTop: 0 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
           <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             Not sure who you need? Describe it and the Edge8 team will pick it up.
@@ -52,7 +52,7 @@ export default async function PortalRequestsPage() {
             <GeneralRequest />
           </div>
         </div>
-        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column", marginTop: 0 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Project for a contractor</h2>
           <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             Brief a contractor directly. They estimate the hours, you approve, work starts.
@@ -63,7 +63,7 @@ export default async function PortalRequestsPage() {
             </Link>
           </div>
         </div>
-        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column", marginTop: 0 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Human tokens</h2>
           <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             {tokens.balanceTokens > 0
@@ -76,7 +76,7 @@ export default async function PortalRequestsPage() {
             </Link>
           </div>
         </div>
-        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column", marginTop: 0 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Build Your Team</h2>
           <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             Hire dedicated full-time team members in Vietnam. 10% off for teams of 3 or more.
