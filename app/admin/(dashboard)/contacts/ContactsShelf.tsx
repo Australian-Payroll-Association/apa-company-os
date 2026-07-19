@@ -126,7 +126,7 @@ function ContactShelfBody({ row }: { row: ContactRow }) {
         {editing && person ? (
           <PersonEditForm
             person={person}
-            onSaved={() => {
+            onDone={() => {
               setEditing(false);
               void load();
               router.refresh();

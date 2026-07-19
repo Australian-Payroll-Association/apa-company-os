@@ -221,7 +221,7 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
         {editing && company ? (
           <CompanyEditForm
             company={company}
-            onSaved={() => {
+            onDone={() => {
               setEditing(false);
               void load();
               router.refresh();

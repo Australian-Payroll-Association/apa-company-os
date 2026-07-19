@@ -94,11 +94,10 @@ function VendorShelfBody({ row, onClose }: { row: VendorRow; onClose: () => void
     setEditing(false);
   }, [row]);
 
-  async function save(values: VendorFormValues) {
-    const r = await updateVendor(vendor.id, values);
+  async function saveField(patch: Partial<VendorFormValues>) {
+    const r = await updateVendor(vendor.id, patch);
     if (r.ok) {
-      setVendor((v) => ({ ...v, ...values }));
-      setEditing(false);
+      setVendor((v) => ({ ...v, ...patch }));
       router.refresh();
     }
     return r;
@@ -108,12 +107,7 @@ function VendorShelfBody({ row, onClose }: { row: VendorRow; onClose: () => void
     return (
       <div className="admin-shelf-sections">
         <section>
-          <div className="admin-shelf-heading">
-            Edit vendor
-            <button type="button" className="admin-btn" onClick={() => setEditing(false)}>
-              Cancel
-            </button>
-          </div>
+          <div className="admin-shelf-heading">Edit vendor</div>
           <VendorForm
             initial={{
               type: (vendor.type as VendorFormValues["type"]) ?? "other",
@@ -133,8 +127,7 @@ function VendorShelfBody({ row, onClose }: { row: VendorRow; onClose: () => void
               url: vendor.url ?? "",
               notes: vendor.notes ?? "",
             }}
-            submitLabel="Save changes"
-            onSubmit={save}
+            autosave={{ onField: saveField, onDone: () => setEditing(false) }}
           />
         </section>
       </div>

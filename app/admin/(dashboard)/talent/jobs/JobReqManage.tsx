@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { useAutosave } from "@/components/admin/useAutosave";
+import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { closeJobReq, deleteJobReq, reopenJobReq, updateJobReq } from "./actions";
 
@@ -51,6 +53,17 @@ const CLOSE_OUTCOMES = [
 
 const CURRENCIES = ["usd", "eur", "gbp", "aud", "sgd", "vnd"];
 
+type JobReqFieldForm = {
+  title: string;
+  employmentType: string;
+  location: string;
+  remotePolicy: string;
+  salaryMin: string;
+  salaryMax: string;
+  currency: string;
+  description: string;
+};
+
 // Manage surface for one job req, rendered in the list row's side shelf:
 // every field visible, edit in place, close/reopen with an outcome, delete
 // when the req has no applications. The full page (hiring board + public
@@ -60,40 +73,50 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
   const isOpen = req.status === "open";
   const live = req.isPublic && isOpen;
 
-  const [title, setTitle] = useState(req.title);
-  const [employmentType, setEmploymentType] = useState(req.employmentType);
-  const [location, setLocation] = useState(req.location ?? "");
-  const [remotePolicy, setRemotePolicy] = useState(req.remotePolicy ?? "");
-  const [salaryMin, setSalaryMin] = useState(req.salaryMinCents != null ? String(req.salaryMinCents / 100) : "");
-  const [salaryMax, setSalaryMax] = useState(req.salaryMaxCents != null ? String(req.salaryMaxCents / 100) : "");
-  const [currency, setCurrency] = useState(req.currency.toLowerCase());
-  const [description, setDescription] = useState(req.description ?? "");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [closing, setClosing] = useState(false);
   const [outcome, setOutcome] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const { form, field, commit, status } = useAutosave<JobReqFieldForm>(
+    {
+      title: req.title,
+      employmentType: req.employmentType,
+      location: req.location ?? "",
+      remotePolicy: req.remotePolicy ?? "",
+      salaryMin: req.salaryMinCents != null ? String(req.salaryMinCents / 100) : "",
+      salaryMax: req.salaryMaxCents != null ? String(req.salaryMaxCents / 100) : "",
+      currency: req.currency.toLowerCase(),
+      description: req.description ?? "",
+    },
+    saveField,
+  );
+  const { title, employmentType, location, remotePolicy, salaryMin, salaryMax, currency, description } = form;
   const currencyOptions = CURRENCIES.includes(currency) ? CURRENCIES : [currency, ...CURRENCIES];
 
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-    const r = await updateJobReq(req.id, {
-      title,
-      employment_type: employmentType,
-      location: location || null,
-      remote_policy: remotePolicy || null,
-      salary_min: salaryMin.trim() === "" ? null : Number(salaryMin),
-      salary_max: salaryMax.trim() === "" ? null : Number(salaryMax),
-      currency,
-      description: description || null,
-    });
-    setSaving(false);
-    if (!r.ok) return setMsg({ ok: false, text: r.error });
-    setMsg({ ok: true, text: "Saved." });
-    router.refresh();
+  async function saveField(patch: Partial<JobReqFieldForm>) {
+    const [key, value] = Object.entries(patch)[0] as [keyof JobReqFieldForm, string];
+    switch (key) {
+      case "title":
+        return updateJobReq(req.id, { title: value });
+      case "employmentType":
+        return updateJobReq(req.id, { employment_type: value });
+      case "location":
+        return updateJobReq(req.id, { location: value || null });
+      case "remotePolicy":
+        return updateJobReq(req.id, { remote_policy: value || null });
+      case "salaryMin":
+        return updateJobReq(req.id, { salary_min: value.trim() === "" ? null : Number(value) });
+      case "salaryMax":
+        return updateJobReq(req.id, { salary_max: value.trim() === "" ? null : Number(value) });
+      case "currency":
+        return updateJobReq(req.id, { currency: value });
+      case "description":
+        return updateJobReq(req.id, { description: value || null });
+      default:
+        return { ok: true as const };
+    }
   }
 
   async function close() {
@@ -162,23 +185,31 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
         )}
       </dl>
 
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        {msg && <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>}
+      <div className="admin-form">
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+          <AutosaveIndicator status={status} />
+        </div>
 
         <div className="admin-field">
           <label className="admin-label">Title</label>
-          <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input
+            className="admin-input"
+            value={title}
+            onChange={(e) => field("title", e.target.value)}
+            onBlur={(e) => commit("title", e.target.value)}
+          />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Type</label>
-            <select className="admin-select" value={employmentType} onChange={(e) => setEmploymentType(e.target.value)}>
+            <select
+              className="admin-select"
+              value={employmentType}
+              onChange={(e) => {
+                field("employmentType", e.target.value);
+                commit("employmentType", e.target.value);
+              }}
+            >
               {EMPLOYMENT_OPTIONS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -188,7 +219,14 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
           </div>
           <div className="admin-field">
             <label className="admin-label">Remote policy</label>
-            <select className="admin-select" value={remotePolicy} onChange={(e) => setRemotePolicy(e.target.value)}>
+            <select
+              className="admin-select"
+              value={remotePolicy}
+              onChange={(e) => {
+                field("remotePolicy", e.target.value);
+                commit("remotePolicy", e.target.value);
+              }}
+            >
               {REMOTE_OPTIONS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -199,20 +237,50 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
         </div>
         <div className="admin-field">
           <label className="admin-label">Location</label>
-          <input className="admin-input" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <input
+            className="admin-input"
+            value={location}
+            onChange={(e) => field("location", e.target.value)}
+            onBlur={(e) => commit("location", e.target.value)}
+          />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Salary min</label>
-            <input className="admin-input" type="number" min="0" step="0.01" inputMode="decimal" value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} />
+            <input
+              className="admin-input"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={salaryMin}
+              onChange={(e) => field("salaryMin", e.target.value)}
+              onBlur={(e) => commit("salaryMin", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Salary max</label>
-            <input className="admin-input" type="number" min="0" step="0.01" inputMode="decimal" value={salaryMax} onChange={(e) => setSalaryMax(e.target.value)} />
+            <input
+              className="admin-input"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={salaryMax}
+              onChange={(e) => field("salaryMax", e.target.value)}
+              onBlur={(e) => commit("salaryMax", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Currency</label>
-            <select className="admin-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select
+              className="admin-select"
+              value={currency}
+              onChange={(e) => {
+                field("currency", e.target.value);
+                commit("currency", e.target.value);
+              }}
+            >
               {currencyOptions.map((c) => (
                 <option key={c} value={c}>
                   {c.toUpperCase()}
@@ -223,14 +291,16 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
         </div>
         <div className="admin-field">
           <label className="admin-label">Internal description</label>
-          <textarea className="admin-input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea
+            className="admin-input"
+            rows={4}
+            value={description}
+            onChange={(e) => field("description", e.target.value)}
+            onBlur={(e) => commit("description", e.target.value)}
+          />
         </div>
-        <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-      </form>
+        {status.state === "error" && <div className="admin-alert admin-alert--err">{status.error}</div>}
+      </div>
 
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Link href={`/admin/talent/jobs/${req.id}`} className="admin-btn">

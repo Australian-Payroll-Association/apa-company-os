@@ -8,6 +8,8 @@ import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { useAutosave } from "@/components/admin/useAutosave";
+import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import {
   addDealCommunication,
@@ -651,6 +653,19 @@ export function DealsBoard({
   );
 }
 
+type DealFieldForm = {
+  title: string;
+  amount: string;
+  currency: string;
+  probability: string;
+  expectedClose: string;
+  source: string;
+  nextStep: string;
+  nextStepDate: string;
+  proposalUrl: string;
+  contractUrl: string;
+};
+
 export function DealDetail({
   card,
   stages,
@@ -677,57 +692,87 @@ export function DealDetail({
   const [rejectingHandoff, setRejectingHandoff] = useState(false);
   const [handoffReason, setHandoffReason] = useState("");
   const [demoteReason, setDemoteReason] = useState("");
+  const [restoreErr, setRestoreErr] = useState<string | null>(null);
 
-  const [title, setTitle] = useState(card.title ?? "");
-  const [amount, setAmount] = useState(card.amountCents != null ? (card.amountCents / 100).toString() : "");
-  const [currency, setCurrency] = useState((card.currency ?? "usd").toLowerCase());
-  const [probability, setProbability] = useState(card.probability != null ? String(card.probability) : "");
-  const [expectedClose, setExpectedClose] = useState(card.expectedClose ?? "");
-  const [source, setSource] = useState(card.source ?? "");
-  const [nextStep, setNextStep] = useState(card.nextStep ?? "");
-  const [nextStepDate, setNextStepDate] = useState(card.nextStepDate ?? "");
-  const [proposalUrl, setProposalUrl] = useState(card.proposalUrl ?? "");
-  const [contractUrl, setContractUrl] = useState(card.contractUrl ?? "");
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const { form: dealForm, field: dealField, commit: dealCommit, status: dealStatus } = useAutosave<DealFieldForm>(
+    {
+      title: card.title ?? "",
+      amount: card.amountCents != null ? (card.amountCents / 100).toString() : "",
+      currency: (card.currency ?? "usd").toLowerCase(),
+      probability: card.probability != null ? String(card.probability) : "",
+      expectedClose: card.expectedClose ?? "",
+      source: card.source ?? "",
+      nextStep: card.nextStep ?? "",
+      nextStepDate: card.nextStepDate ?? "",
+      proposalUrl: card.proposalUrl ?? "",
+      contractUrl: card.contractUrl ?? "",
+    },
+    saveDealField,
+  );
+  const { title, amount, currency, probability, expectedClose, source, nextStep, nextStepDate, proposalUrl, contractUrl } = dealForm;
 
   const currencyOptions = CURRENCIES.includes(currency) ? CURRENCIES : [currency, ...CURRENCIES];
 
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-    const amt = amount.trim() === "" ? 0 : Number(amount);
-    const prob = probability.trim() === "" ? null : Number(probability);
-    const r = await updateDeal(card.id, {
-      title,
-      amount: amt,
-      currency,
-      probability: prob,
-      expected_close_date: expectedClose || null,
-      source: source.trim() || null,
-      next_step: nextStep.trim() || null,
-      next_step_date: nextStepDate || null,
-      proposal_url: proposalUrl.trim() || null,
-      contract_url: contractUrl.trim() || null,
-    });
-    setSaving(false);
-    if (!r.ok) {
-      setMsg({ ok: false, text: r.error });
-      return;
+  // Each blur/change commits exactly one field — map it to the DealPatch shape
+  // updateDeal expects and mirror the parsed value back onto the board's card.
+  async function saveDealField(patch: Partial<DealFieldForm>) {
+    const [key, value] = Object.entries(patch)[0] as [keyof DealFieldForm, string];
+    switch (key) {
+      case "title": {
+        const r = await updateDeal(card.id, { title: value });
+        if (r.ok) onPatch({ title: value.trim() });
+        return r;
+      }
+      case "amount": {
+        const amt = value.trim() === "" ? 0 : Number(value);
+        const r = await updateDeal(card.id, { amount: amt });
+        if (r.ok) onPatch({ amountCents: Math.round(amt * 100) });
+        return r;
+      }
+      case "currency": {
+        const r = await updateDeal(card.id, { currency: value });
+        if (r.ok) onPatch({ currency: value });
+        return r;
+      }
+      case "probability": {
+        const prob = value.trim() === "" ? null : Number(value);
+        const r = await updateDeal(card.id, { probability: prob });
+        if (r.ok) onPatch({ probability: prob });
+        return r;
+      }
+      case "expectedClose": {
+        const r = await updateDeal(card.id, { expected_close_date: value || null });
+        if (r.ok) onPatch({ expectedClose: value || null });
+        return r;
+      }
+      case "source": {
+        const r = await updateDeal(card.id, { source: value.trim() || null });
+        if (r.ok) onPatch({ source: value.trim() || null });
+        return r;
+      }
+      case "nextStep": {
+        const r = await updateDeal(card.id, { next_step: value.trim() || null });
+        if (r.ok) onPatch({ nextStep: value.trim() || null });
+        return r;
+      }
+      case "nextStepDate": {
+        const r = await updateDeal(card.id, { next_step_date: value || null });
+        if (r.ok) onPatch({ nextStepDate: value || null });
+        return r;
+      }
+      case "proposalUrl": {
+        const r = await updateDeal(card.id, { proposal_url: value.trim() || null });
+        if (r.ok) onPatch({ proposalUrl: value.trim() || null });
+        return r;
+      }
+      case "contractUrl": {
+        const r = await updateDeal(card.id, { contract_url: value.trim() || null });
+        if (r.ok) onPatch({ contractUrl: value.trim() || null });
+        return r;
+      }
+      default:
+        return { ok: true as const };
     }
-    setMsg({ ok: true, text: "Saved." });
-    onPatch({
-      title: title.trim(),
-      amountCents: Math.round(amt * 100),
-      currency,
-      probability: prob,
-      expectedClose: expectedClose || null,
-      source: source.trim() || null,
-      nextStep: nextStep.trim() || null,
-      nextStepDate: nextStepDate || null,
-      proposalUrl: proposalUrl.trim() || null,
-      contractUrl: contractUrl.trim() || null,
-    });
   }
 
   return (
@@ -932,28 +977,43 @@ export function DealDetail({
         onChange={(referrerId, referrerName) => onPatch({ referrerId, referrerName })}
       />
 
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        {msg && (
-          <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>
-        )}
+      <div className="admin-form">
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+          <AutosaveIndicator status={dealStatus} />
+        </div>
         <div className="admin-field">
           <label className="admin-label">Title</label>
-          <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input
+            className="admin-input"
+            value={title}
+            onChange={(e) => dealField("title", e.target.value)}
+            onBlur={(e) => dealCommit("title", e.target.value)}
+          />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Amount</label>
-            <input className="admin-input" type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <input
+              className="admin-input"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => dealField("amount", e.target.value)}
+              onBlur={(e) => dealCommit("amount", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Currency</label>
-            <select className="admin-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select
+              className="admin-select"
+              value={currency}
+              onChange={(e) => {
+                dealField("currency", e.target.value);
+                dealCommit("currency", e.target.value);
+              }}
+            >
               {currencyOptions.map((c) => (
                 <option key={c} value={c}>
                   {c.toUpperCase()}
@@ -965,39 +1025,84 @@ export function DealDetail({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Probability %</label>
-            <input className="admin-input" type="number" min="0" max="100" value={probability} onChange={(e) => setProbability(e.target.value)} />
+            <input
+              className="admin-input"
+              type="number"
+              min="0"
+              max="100"
+              value={probability}
+              onChange={(e) => dealField("probability", e.target.value)}
+              onBlur={(e) => dealCommit("probability", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Expected close</label>
-            <input className="admin-input" type="date" value={expectedClose} onChange={(e) => setExpectedClose(e.target.value)} />
+            <input
+              className="admin-input"
+              type="date"
+              value={expectedClose}
+              onChange={(e) => {
+                dealField("expectedClose", e.target.value);
+                dealCommit("expectedClose", e.target.value);
+              }}
+            />
           </div>
         </div>
         <div className="admin-field">
           <label className="admin-label">Source</label>
-          <input className="admin-input" value={source} onChange={(e) => setSource(e.target.value)} />
+          <input
+            className="admin-input"
+            value={source}
+            onChange={(e) => dealField("source", e.target.value)}
+            onBlur={(e) => dealCommit("source", e.target.value)}
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Next step</label>
-          <input className="admin-input" placeholder="What happens next?" value={nextStep} onChange={(e) => setNextStep(e.target.value)} />
+          <input
+            className="admin-input"
+            placeholder="What happens next?"
+            value={nextStep}
+            onChange={(e) => dealField("nextStep", e.target.value)}
+            onBlur={(e) => dealCommit("nextStep", e.target.value)}
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Next step date</label>
-          <input className="admin-input" type="date" value={nextStepDate} onChange={(e) => setNextStepDate(e.target.value)} />
+          <input
+            className="admin-input"
+            type="date"
+            value={nextStepDate}
+            onChange={(e) => {
+              dealField("nextStepDate", e.target.value);
+              dealCommit("nextStepDate", e.target.value);
+            }}
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Proposal link</label>
-          <input className="admin-input" type="url" placeholder="https://…" value={proposalUrl} onChange={(e) => setProposalUrl(e.target.value)} />
+          <input
+            className="admin-input"
+            type="url"
+            placeholder="https://…"
+            value={proposalUrl}
+            onChange={(e) => dealField("proposalUrl", e.target.value)}
+            onBlur={(e) => dealCommit("proposalUrl", e.target.value)}
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Contract link</label>
-          <input className="admin-input" type="url" placeholder="https://…" value={contractUrl} onChange={(e) => setContractUrl(e.target.value)} />
+          <input
+            className="admin-input"
+            type="url"
+            placeholder="https://…"
+            value={contractUrl}
+            onChange={(e) => dealField("contractUrl", e.target.value)}
+            onBlur={(e) => dealCommit("contractUrl", e.target.value)}
+          />
         </div>
-        <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-      </form>
+        {dealStatus.state === "error" && <div className="admin-alert admin-alert--err">{dealStatus.error}</div>}
+      </div>
 
       <DealCommunications dealId={card.id} />
 
@@ -1005,14 +1110,17 @@ export function DealDetail({
         <div className="admin-danger-zone-title">Danger zone</div>
         {archived ? (
           <div className="admin-danger-row">
-            <span className="admin-danger-row-text">This deal is archived and hidden from the board.</span>
+            <span className="admin-danger-row-text">
+              This deal is archived and hidden from the board.
+              {restoreErr && <div className="admin-alert admin-alert--err" style={{ marginTop: 6 }}>{restoreErr}</div>}
+            </span>
             <button
               type="button"
               className="admin-btn"
               onClick={async () => {
                 const r = await restoreDeal(card.id);
                 if (r.ok) onPatch({ archivedAt: null });
-                else setMsg({ ok: false, text: r.error });
+                else setRestoreErr(r.error);
               }}
             >
               Restore

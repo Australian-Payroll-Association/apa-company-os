@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { useAutosave } from "@/components/admin/useAutosave";
+import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { humanize } from "@/lib/admin/format";
 import {
   EVENT_TYPES,
@@ -66,6 +68,23 @@ export type TalkOption = { id: string; title: string };
 
 const toDateInput = (v: string | null) => (v ? v.slice(0, 10) : "");
 
+type EventFieldForm = {
+  title: string;
+  type: EventType;
+  status: EventStatus;
+  visibility: EventVisibility;
+  location: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: string;
+  landingPath: string;
+  notes: string;
+  blurb: string;
+  description: string;
+  surveyId: string;
+  attendeeOverride: string;
+};
+
 // Settings tab of the event page: everything editable in one place — event
 // fields (single-row write), the feedback-survey link, tickets, media, and
 // the reversible archive. The list-page shelf is a read-only summary.
@@ -84,88 +103,133 @@ export function EventSettings({
 }) {
   const router = useRouter();
 
-  const [title, setTitle] = useState(event.title);
-  const [type, setType] = useState<EventType>(event.type);
-  const [status, setStatus] = useState<EventStatus>(event.status);
-  const [visibility, setVisibility] = useState<EventVisibility>(event.visibility);
-  const [location, setLocation] = useState(event.location ?? "");
-  const [startsAt, setStartsAt] = useState(toDateInput(event.startsAt));
-  const [endsAt, setEndsAt] = useState(toDateInput(event.endsAt));
-  const [capacity, setCapacity] = useState(event.capacity?.toString() ?? "");
-  const [landingPath, setLandingPath] = useState(event.landingPath ?? "");
-  const [notes, setNotes] = useState(event.notes ?? "");
-  const [blurb, setBlurb] = useState(event.blurb ?? "");
-  const [description, setDescription] = useState(event.description ?? "");
-  const [surveyId, setSurveyId] = useState(event.feedbackSurveyId ?? "");
-  const [attendeeOverride, setAttendeeOverride] = useState(event.attendeeCountOverride?.toString() ?? "");
   const [talkIds, setTalkIds] = useState<string[]>(selectedTalkIds);
-  const [saving, setSaving] = useState(false);
+  const [talksErr, setTalksErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { form, field, commit, status: saveStatus } = useAutosave<EventFieldForm>(
+    {
+      title: event.title,
+      type: event.type,
+      status: event.status,
+      visibility: event.visibility,
+      location: event.location ?? "",
+      startsAt: toDateInput(event.startsAt),
+      endsAt: toDateInput(event.endsAt),
+      capacity: event.capacity?.toString() ?? "",
+      landingPath: event.landingPath ?? "",
+      notes: event.notes ?? "",
+      blurb: event.blurb ?? "",
+      description: event.description ?? "",
+      surveyId: event.feedbackSurveyId ?? "",
+      attendeeOverride: event.attendeeCountOverride?.toString() ?? "",
+    },
+    saveEventField,
+  );
+  const {
+    title,
+    type,
+    status,
+    visibility,
+    location,
+    startsAt,
+    endsAt,
+    capacity,
+    landingPath,
+    notes,
+    blurb,
+    description,
+    surveyId,
+    attendeeOverride,
+  } = form;
 
   const isArchived = !!event.archivedAt;
   const hasHistory = event.totalRegistrations > 0;
 
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-    const cap = capacity.trim() === "" ? null : Number(capacity);
-    if (cap !== null && (!Number.isFinite(cap) || cap < 0)) {
-      setSaving(false);
-      return setMsg({ ok: false, text: "Capacity must be a non-negative number, or blank for uncapped." });
+  async function saveEventField(patch: Partial<EventFieldForm>) {
+    const [key, value] = Object.entries(patch)[0] as [keyof EventFieldForm, string];
+    switch (key) {
+      case "title":
+        if (!value.trim()) return { ok: false as const, error: "Title is required." };
+        return updateEvent(event.id, { title: value.trim() });
+      case "type":
+        return updateEvent(event.id, { type: value as EventType });
+      case "status":
+        return updateEvent(event.id, { status: value as EventStatus });
+      case "visibility":
+        return updateEvent(event.id, { visibility: value as EventVisibility });
+      case "location":
+        return updateEvent(event.id, { location: value || null });
+      case "startsAt":
+        return updateEvent(event.id, { starts_at: value || null });
+      case "endsAt":
+        return updateEvent(event.id, { ends_at: value || null });
+      case "capacity": {
+        const cap = value.trim() === "" ? null : Number(value);
+        if (cap !== null && (!Number.isFinite(cap) || cap < 0)) {
+          return { ok: false as const, error: "Capacity must be a non-negative number, or blank for uncapped." };
+        }
+        return updateEvent(event.id, { capacity: cap });
+      }
+      case "landingPath":
+        return updateEvent(event.id, { landing_path: value || null });
+      case "notes":
+        return updateEvent(event.id, { notes: value || null });
+      case "blurb":
+        return updateEvent(event.id, { blurb: value || null });
+      case "description":
+        return updateEvent(event.id, { description: value || null });
+      case "surveyId":
+        return updateEvent(event.id, { feedback_survey_id: value || null });
+      case "attendeeOverride": {
+        const override = value.trim() === "" ? null : Number(value);
+        if (override !== null && (!Number.isInteger(override) || override < 0)) {
+          return {
+            ok: false as const,
+            error: "Attendee count must be a non-negative whole number, or blank to count registrations.",
+          };
+        }
+        return updateEvent(event.id, { attendee_count_override: override });
+      }
+      default:
+        return { ok: true as const };
     }
-    const override = attendeeOverride.trim() === "" ? null : Number(attendeeOverride);
-    if (override !== null && (!Number.isInteger(override) || override < 0)) {
-      setSaving(false);
-      return setMsg({ ok: false, text: "Attendee count must be a non-negative whole number, or blank to count registrations." });
-    }
-    const r = await updateEvent(event.id, {
-      title: title.trim(),
-      type,
-      status,
-      visibility,
-      location: location || null,
-      starts_at: startsAt || null,
-      ends_at: endsAt || null,
-      capacity: cap,
-      landing_path: landingPath || null,
-      notes: notes || null,
-      blurb: blurb || null,
-      description: description || null,
-      feedback_survey_id: surveyId || null,
-      attendee_count_override: override,
-    });
-    if (!r.ok) {
-      setSaving(false);
-      return setMsg({ ok: false, text: r.error });
-    }
-    const t = await setEventTalks(event.id, talkIds);
-    setSaving(false);
-    if (!t.ok) return setMsg({ ok: false, text: t.error });
-    setMsg({ ok: true, text: "Saved." });
-    router.refresh();
+  }
+
+  // Talks live in a separate junction table, so they save independently of
+  // the event fields above — no combined transaction needed.
+  async function toggleTalk(talkId: string, checked: boolean) {
+    const next = checked ? [...talkIds, talkId] : talkIds.filter((id) => id !== talkId);
+    setTalkIds(next);
+    setTalksErr(null);
+    const r = await setEventTalks(event.id, next);
+    if (!r.ok) setTalksErr(r.error);
   }
 
   return (
     <div style={{ maxWidth: 640 }}>
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        {msg && <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>}
+      <div className="admin-form">
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+          <AutosaveIndicator status={saveStatus} />
+        </div>
 
         <div className="admin-field">
           <label className="admin-label">Title</label>
-          <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <input
+            className="admin-input"
+            value={title}
+            onChange={(e) => field("title", e.target.value)}
+            onBlur={(e) => commit("title", e.target.value)}
+            required
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">One-line blurb</label>
           <input
             className="admin-input"
             value={blurb}
-            onChange={(e) => setBlurb(e.target.value)}
+            onChange={(e) => field("blurb", e.target.value)}
+            onBlur={(e) => commit("blurb", e.target.value)}
             placeholder="Shown on cards and link previews"
           />
         </div>
@@ -175,14 +239,22 @@ export function EventSettings({
             className="admin-input"
             rows={7}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => field("description", e.target.value)}
+            onBlur={(e) => commit("description", e.target.value)}
             placeholder="The long-form pitch shown on the signup page. Blank lines start a new paragraph."
           />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Type</label>
-            <select className="admin-select" value={type} onChange={(e) => setType(e.target.value as EventType)}>
+            <select
+              className="admin-select"
+              value={type}
+              onChange={(e) => {
+                field("type", e.target.value as EventType);
+                commit("type", e.target.value as EventType);
+              }}
+            >
               {EVENT_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {humanize(t)}
@@ -192,7 +264,14 @@ export function EventSettings({
           </div>
           <div className="admin-field">
             <label className="admin-label">Visibility</label>
-            <select className="admin-select" value={visibility} onChange={(e) => setVisibility(e.target.value as EventVisibility)}>
+            <select
+              className="admin-select"
+              value={visibility}
+              onChange={(e) => {
+                field("visibility", e.target.value as EventVisibility);
+                commit("visibility", e.target.value as EventVisibility);
+              }}
+            >
               {EVENT_VISIBILITIES.map((v) => (
                 <option key={v} value={v}>
                   {humanize(v)}
@@ -203,7 +282,14 @@ export function EventSettings({
         </div>
         <div className="admin-field">
           <label className="admin-label">Status</label>
-          <select className="admin-select" value={status} onChange={(e) => setStatus(e.target.value as EventStatus)}>
+          <select
+            className="admin-select"
+            value={status}
+            onChange={(e) => {
+              field("status", e.target.value as EventStatus);
+              commit("status", e.target.value as EventStatus);
+            }}
+          >
             {EVENT_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {humanize(s)}
@@ -214,21 +300,51 @@ export function EventSettings({
         </div>
         <div className="admin-field">
           <label className="admin-label">Location</label>
-          <input className="admin-input" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" />
+          <input
+            className="admin-input"
+            value={location}
+            onChange={(e) => field("location", e.target.value)}
+            onBlur={(e) => commit("location", e.target.value)}
+            placeholder="City, Country"
+          />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Start date</label>
-            <input className="admin-input" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+            <input
+              className="admin-input"
+              type="date"
+              value={startsAt}
+              onChange={(e) => {
+                field("startsAt", e.target.value);
+                commit("startsAt", e.target.value);
+              }}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">End date</label>
-            <input className="admin-input" type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+            <input
+              className="admin-input"
+              type="date"
+              value={endsAt}
+              onChange={(e) => {
+                field("endsAt", e.target.value);
+                commit("endsAt", e.target.value);
+              }}
+            />
           </div>
         </div>
         <div className="admin-field">
           <label className="admin-label">Capacity</label>
-          <input className="admin-input" type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Uncapped" />
+          <input
+            className="admin-input"
+            type="number"
+            min={0}
+            value={capacity}
+            onChange={(e) => field("capacity", e.target.value)}
+            onBlur={(e) => commit("capacity", e.target.value)}
+            placeholder="Uncapped"
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Attendee count (override)</label>
@@ -237,7 +353,8 @@ export function EventSettings({
             type="number"
             min={0}
             value={attendeeOverride}
-            onChange={(e) => setAttendeeOverride(e.target.value)}
+            onChange={(e) => field("attendeeOverride", e.target.value)}
+            onBlur={(e) => commit("attendeeOverride", e.target.value)}
             placeholder="Count registrations"
           />
           <div className="admin-hint">
@@ -254,20 +371,26 @@ export function EventSettings({
                   <input
                     type="checkbox"
                     checked={talkIds.includes(t.id)}
-                    onChange={(e) =>
-                      setTalkIds((prev) => (e.target.checked ? [...prev, t.id] : prev.filter((id) => id !== t.id)))
-                    }
+                    onChange={(e) => toggleTalk(t.id, e.target.checked)}
                   />
                   {t.title}
                 </label>
               ))}
             </div>
+            {talksErr && <div className="admin-alert admin-alert--err" style={{ marginTop: 6 }}>{talksErr}</div>}
             <div className="admin-hint">Which keynote/workshop products this event covered. Pick all that apply.</div>
           </div>
         )}
         <div className="admin-field">
           <label className="admin-label">Feedback survey</label>
-          <select className="admin-select" value={surveyId} onChange={(e) => setSurveyId(e.target.value)}>
+          <select
+            className="admin-select"
+            value={surveyId}
+            onChange={(e) => {
+              field("surveyId", e.target.value);
+              commit("surveyId", e.target.value);
+            }}
+          >
             <option value="">None</option>
             {surveys.map((s) => (
               <option key={s.id} value={s.id}>
@@ -282,18 +405,32 @@ export function EventSettings({
         </div>
         <div className="admin-field">
           <label className="admin-label">Bespoke landing page (optional)</label>
-          <input className="admin-input" value={landingPath} onChange={(e) => setLandingPath(e.target.value)} placeholder="/saigon-private" />
+          <input
+            className="admin-input"
+            value={landingPath}
+            onChange={(e) => field("landingPath", e.target.value)}
+            onBlur={(e) => commit("landingPath", e.target.value)}
+            placeholder="/saigon-private"
+          />
         </div>
         <div className="admin-field">
           <label className="admin-label">Notes</label>
-          <textarea className="admin-input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea
+            className="admin-input"
+            rows={3}
+            value={notes}
+            onChange={(e) => field("notes", e.target.value)}
+            onBlur={(e) => commit("notes", e.target.value)}
+          />
         </div>
-        <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+        {saveStatus.state === "error" && <div className="admin-alert admin-alert--err">{saveStatus.error}</div>}
+      </div>
+
+      {msg && (
+        <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`} style={{ marginTop: 16 }}>
+          {msg.text}
         </div>
-      </form>
+      )}
 
       <TiersSection eventId={event.id} tiers={tiers} onChanged={() => router.refresh()} setMsg={setMsg} />
       <MediaSection eventId={event.id} coverImageUrl={event.coverImageUrl} media={event.media} onChanged={() => router.refresh()} />
