@@ -9,7 +9,7 @@ import {
   decideEstimateForActor,
   decideWorkForActor,
 } from "@/lib/portal/work-requests";
-import { createHireRequestForActor } from "@/lib/portal/hire-requests";
+import { createTeamRequestForActor, type TeamCandidateInput } from "@/lib/portal/hire-requests";
 
 // Client-portal actions for work requests. requirePortalMember() gates
 // identity; every *ForActor helper re-checks company ownership before writing
@@ -43,14 +43,12 @@ export async function createProjectRequest(input: {
   return r;
 }
 
-export async function submitHireRequest(input: {
+export async function submitTeamRequest(input: {
   companyId: string;
-  positionId: string;
-  bracketId: string;
-  techStack: string[];
+  candidates: TeamCandidateInput[];
 }): Promise<Result & { id?: string }> {
   const actor = await requirePortalMember();
-  const r = await createHireRequestForActor(actor, input);
+  const r = await createTeamRequestForActor(actor, input);
   if (r.ok) refresh();
   return r;
 }
