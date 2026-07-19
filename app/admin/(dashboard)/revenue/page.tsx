@@ -125,9 +125,11 @@ export default async function SalesCockpitPage() {
       .lt("sla_due_at", nowIso),
     companyOs
       .from("deals")
-      .select("id", { count: "exact", head: true })
+      .select("amount_usd_cents")
       .eq("status", "won")
-      .is("archived_at", null),
+      .is("archived_at", null)
+      .gte("closed_at", "2026-01-01")
+      .lt("closed_at", "2027-01-01"),
   ]);
 
   const stages = (stagesRes.data as Stage[] | null) ?? [];
@@ -145,7 +147,10 @@ export default async function SalesCockpitPage() {
     }));
   const inquiries = (inqRes.data as InquiryRow[] | null) ?? [];
   const slaOverdue = overdueRes.count ?? 0;
-  const dealsClosed = wonRes.count ?? 0;
+  const dealsClosed = ((wonRes.data as { amount_usd_cents: number | null }[] | null) ?? []).reduce(
+    (s, d) => s + (d.amount_usd_cents ?? 0),
+    0,
+  );
   const err = stagesRes.error || dealsRes.error || leadsRes.error || inqRes.error;
 
   const openPipeline = deals.reduce((s, d) => s + (d.amount_usd_cents ?? 0), 0);
@@ -228,7 +233,7 @@ export default async function SalesCockpitPage() {
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${deals.length} open deals`} href="/admin/revenue/deals" />
-        <MetricCard label="Deals closed" value={dealsClosed} sub="won all-time" href="/admin/revenue/deals" />
+        <MetricCard label="Deals closed" value={formatCents(dealsClosed)} sub="won value, 2026" href="/admin/revenue/deals" />
         <MetricCard label="Leads to work" value={leads.length} sub={slaOverdue > 0 ? `${slaOverdue} SLA overdue` : "all inside SLA"} href="/admin/revenue/leads" />
         <MetricCard label="Inquiries to triage" value={inquiries.length} sub="contact-us, unworked" href="/admin/revenue/inquiries" />
         <MetricCard
