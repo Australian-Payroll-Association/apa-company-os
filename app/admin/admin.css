@@ -520,7 +520,7 @@ a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
 }
 .mp-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
   gap: 16px;
   margin-bottom: 28px;
 }
