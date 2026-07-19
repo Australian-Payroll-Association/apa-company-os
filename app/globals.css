@@ -3288,6 +3288,8 @@ footer {
 .xp-body p { font-size: 17px; line-height: 1.75; color: var(--body-text); }
 .xp-body a { color: var(--blue); text-decoration: none; }
 .xp-body a:hover { color: var(--link-hover); }
+.xp-body ul { display: flex; flex-direction: column; gap: 8px; padding-left: 22px; }
+.xp-body li { font-size: 17px; line-height: 1.75; color: var(--body-text); }
 .xp-aside {
   font-size: 15px; font-style: italic; color: var(--grey-mid);
   border-left: 2px solid var(--blue); padding-left: 16px;
