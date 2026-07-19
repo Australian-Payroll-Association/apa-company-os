@@ -45,13 +45,12 @@ export default async function PortalTokensPage({ searchParams }: { searchParams:
 
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Buy token packs</h2>
-        {actor.impersonation ? (
-          <p className="admin-page-sub" style={{ margin: 0 }}>
-            Purchasing is disabled while viewing as a client.
+        {actor.impersonation && (
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+            Viewing as client — checkout is disabled. This is what the client sees.
           </p>
-        ) : (
-          <TokenPurchaseCard />
         )}
+        <TokenPurchaseCard />
       </div>
 
       <div className="admin-card admin-section-card">
