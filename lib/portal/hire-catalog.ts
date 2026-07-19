@@ -67,23 +67,23 @@ export type HireTechGroup = { label: string; options: string[] };
 export const HIRE_TECH_GROUPS: HireTechGroup[] = [
   {
     label: "Database",
-    options: ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Vector DB (Pinecone, pgvector)"],
+    options: ["PostgreSQL", "pgvector", "Pinecone / Weaviate", "Redis", "MongoDB", "Snowflake / BigQuery"],
   },
   {
     label: "Front End",
-    options: ["React", "Next.js", "Vue", "Angular", "TypeScript"],
+    options: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Vercel AI SDK", "React Native"],
   },
   {
     label: "Back End",
-    options: ["Node.js", "Python", "Django / FastAPI", "Java / Spring", ".NET", "Go"],
+    options: ["Python / FastAPI", "Node.js / TypeScript", "LangChain / LlamaIndex", "RAG pipelines", "MCP / agent tooling", "Go"],
   },
   {
     label: "Preferred LLMs",
-    options: ["OpenAI (GPT)", "Anthropic (Claude)", "Google (Gemini)", "Meta (Llama)", "Mistral"],
+    options: ["OpenAI (GPT)", "Anthropic (Claude)", "Google (Gemini)", "Meta (Llama)", "Mistral", "Open-source / self-hosted"],
   },
   {
     label: "Cloud",
-    options: ["AWS", "Azure", "Google Cloud (GCP)", "Vercel", "On-premise"],
+    options: ["AWS", "Google Cloud (GCP)", "Azure", "Vercel", "Cloudflare", "Modal / Replicate"],
   },
 ];
 
