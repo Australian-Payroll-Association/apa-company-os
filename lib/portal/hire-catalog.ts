@@ -61,16 +61,33 @@ export function findBracket(
   return { position, bracket };
 }
 
-export const HIRE_TECH_STACK = [
-  "Python",
-  "PyTorch / TensorFlow",
-  "LLM APIs (OpenAI, Anthropic, etc.)",
-  "SQL & data warehousing",
-  "Cloud (AWS / Azure / GCP)",
-  "Docker / Kubernetes",
-  "React / Next.js",
-  "Workflow automation (n8n, Zapier)",
-] as const;
+// Tech stack the client can request, grouped into columns on the form.
+export type HireTechGroup = { label: string; options: string[] };
+
+export const HIRE_TECH_GROUPS: HireTechGroup[] = [
+  {
+    label: "Database",
+    options: ["PostgreSQL", "pgvector", "Pinecone / Weaviate", "Redis", "MongoDB", "Snowflake / BigQuery"],
+  },
+  {
+    label: "Front End",
+    options: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Vercel AI SDK", "React Native"],
+  },
+  {
+    label: "Back End",
+    options: ["Python / FastAPI", "Node.js / TypeScript", "LangChain / LlamaIndex", "RAG pipelines", "MCP / agent tooling", "Go"],
+  },
+  {
+    label: "Preferred LLMs",
+    options: ["OpenAI (GPT)", "Anthropic (Claude)", "Google (Gemini)", "Meta (Llama)", "Mistral", "Open-source / self-hosted"],
+  },
+  {
+    label: "Cloud",
+    options: ["AWS", "Google Cloud (GCP)", "Azure", "Vercel", "Cloudflare", "Modal / Replicate"],
+  },
+];
+
+export const HIRE_TECH_STACK = HIRE_TECH_GROUPS.flatMap((g) => g.options);
 
 export const HIRE_TERMS = [
   "1-year contract.",

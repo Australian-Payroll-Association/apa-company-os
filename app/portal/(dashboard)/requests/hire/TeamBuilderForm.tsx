@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   HIRE_POSITIONS,
-  HIRE_TECH_STACK,
+  HIRE_TECH_GROUPS,
   HIRE_TERMS,
   TEAM_DISCOUNT_MIN,
   TEAM_DISCOUNT_RATE,
@@ -193,13 +193,28 @@ export function TeamBuilderForm({ companies }: { companies: { id: string; name: 
             )}
 
             <div className="admin-field">
-              <span>What&rsquo;s your tech stack?</span>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-                {HIRE_TECH_STACK.map((t) => (
-                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
-                    <input type="checkbox" checked={c.techStack.includes(t)} onChange={() => toggleTech(c.key, t)} />
-                    {t}
-                  </label>
+              <span>Tech stack</span>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
+                {HIRE_TECH_GROUPS.map((g) => (
+                  <div key={g.label} style={{ display: "grid", gap: 8, alignContent: "start" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.4,
+                        color: "var(--admin-muted)",
+                      }}
+                    >
+                      {g.label}
+                    </div>
+                    {g.options.map((t) => (
+                      <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+                        <input type="checkbox" checked={c.techStack.includes(t)} onChange={() => toggleTech(c.key, t)} />
+                        {t}
+                      </label>
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
