@@ -42,56 +42,50 @@ export default async function PortalRequestsPage() {
         sub="Four ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, or top up human tokens."
       />
 
-      <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20 }}>
+      <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20, gridAutoRows: "1fr" }}>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
-          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             Not sure who you need? Describe it and the Edge8 team will pick it up.
           </p>
-          <div style={{ marginTop: "auto", paddingTop: 12 }}>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
             <GeneralRequest />
           </div>
         </div>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Project for a contractor</h2>
-          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             Brief a contractor directly. They estimate the hours, you approve, work starts.
           </p>
-          <Link
-            href="/portal/requests/new"
-            className="admin-btn admin-btn--primary"
-            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
-          >
-            New project request
-          </Link>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/requests/new" className="admin-btn admin-btn--primary">
+              New project request
+            </Link>
+          </div>
         </div>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Human tokens</h2>
-          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
             {tokens.balanceTokens > 0
               ? `You have ${tokens.balanceTokens} tokens (1 token = 1 hour of skilled work).`
               : "Pre-buy packs of skilled hours: 40 tokens per pack, $2,000."}
           </p>
-          <Link
-            href="/portal/tokens"
-            className="admin-btn"
-            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
-          >
-            {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
-          </Link>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/tokens" className="admin-btn">
+              {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
+            </Link>
+          </div>
         </div>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Build Your Team</h2>
-          <p className="admin-page-sub" style={{ marginTop: 0 }}>
-            Hire dedicated full-time team members in Vietnam. Pick roles and experience for a budget estimate. 10% off for 3 or more.
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
+            Hire dedicated full-time team members in Vietnam. 10% off for teams of 3 or more.
           </p>
-          <Link
-            href="/portal/requests/hire"
-            className="admin-btn admin-btn--primary"
-            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
-          >
-            Build your team
-          </Link>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/requests/hire" className="admin-btn admin-btn--primary">
+              Build your team
+            </Link>
+          </div>
         </div>
       </div>
 
