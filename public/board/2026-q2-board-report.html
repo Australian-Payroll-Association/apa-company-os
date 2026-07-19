@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Edge8 Q2 FY2026 Board Report</title>
+<style>
+  :root{
+    --navy:#0f2440; --navy2:#1c3a5e; --ink:#12202f; --slate:#5a6b7d;
+    --line:#dfe5ec; --bg:#f4f6f9; --card:#ffffff; --accent:#2f7d5b;
+    --accent-soft:#e7f2ec; --red:#b23a48; --red-soft:#fbe9eb; --gold:#b7791f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.5;}
+  .page{max-width:960px;margin:0 auto;padding:32px 28px 56px;}
+  header.rep{border-bottom:3px solid var(--navy);padding-bottom:16px;margin-bottom:22px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .brand{font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy2);}
+  h1{margin:6px 0 2px;font-size:26px;letter-spacing:-.01em;color:var(--navy);}
+  .sub{color:var(--slate);font-size:13px;}
+  .period{text-align:right;font-size:13px;color:var(--slate);}
+  .period b{color:var(--ink);display:block;font-size:15px;}
+  .lede{background:var(--navy);color:#eaf1f8;border-radius:12px;padding:16px 18px;margin:0 0 22px;
+    font-size:15px;line-height:1.55;}
+  .lede b{color:#fff;}
+  h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--navy2);
+    margin:30px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 6px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);}
+  .kpi .v{font-size:21px;font-weight:700;color:var(--navy);margin-top:3px;}
+  .kpi .d{font-size:12px;margin-top:2px;font-weight:600;}
+  .up{color:var(--accent);} .down{color:var(--red);}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13px;}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{background:#eef2f7;color:var(--navy2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  tbody tr:last-child td{border-bottom:none;}
+  tr.total td{font-weight:700;background:#f7f9fc;color:var(--navy);}
+  .pos{color:var(--accent);font-weight:600;} .neg{color:var(--red);font-weight:600;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .hcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 15px;
+    border-top:3px solid var(--accent);}
+  .hcard h3{margin:0 0 6px;font-size:14px;color:var(--navy);}
+  .hcard p{margin:0;font-size:12.5px;color:#33404d;line-height:1.5;}
+  .hcard .stat{font-size:13px;font-weight:700;color:var(--accent);}
+  .focus{background:var(--accent-soft);border:1px solid #cfe6da;border-left:4px solid var(--accent);
+    border-radius:10px;padding:15px 17px;}
+  .focus h3{margin:0 0 6px;color:#1f5b41;font-size:15px;}
+  .focus p{margin:0;font-size:13px;color:#25453a;}
+  .disc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin-bottom:14px;}
+  .disc h3{margin:0 0 8px;font-size:14px;color:var(--navy);}
+  .disc ul{margin:6px 0 0;padding-left:18px;}
+  .disc li{margin:4px 0;font-size:12.5px;color:#33404d;}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    padding:2px 8px;border-radius:20px;background:#eef2f7;color:var(--navy2);vertical-align:middle;margin-left:6px;}
+  .divcallout{background:var(--navy);color:#eaf1f8;border-radius:12px;padding:18px 20px;margin-top:12px;
+    display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;}
+  .divcallout .big{font-size:30px;font-weight:800;color:#fff;line-height:1;}
+  .divcallout .rng{font-size:12px;color:#b7c6d8;margin-top:4px;}
+  .divcallout p{margin:0;font-size:12.5px;max-width:520px;color:#cdd9e6;}
+  .note{font-size:11.5px;color:var(--slate);margin-top:8px;line-height:1.5;}
+  .flash{display:inline-block;background:var(--red-soft);color:var(--red);font-weight:700;font-size:12px;
+    padding:3px 10px;border-radius:20px;}
+  footer{margin-top:32px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:11px;color:var(--slate);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  @media print{body{background:#fff}.page{padding:0}.lede,.divcallout{-webkit-print-color-adjust:exact}}
+  @media(max-width:720px){.kpis,.cards3{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="rep">
+    <div>
+      <div class="brand">Edge8 &middot; Talent Edge LLC</div>
+      <h1>Board of Directors Report</h1>
+      <div class="sub">Prepared by Dave Hajdu, CEO &middot; Source: QuickBooks (accrual) + CRM pipeline</div>
+    </div>
+    <div class="period">
+      <b>Q2 FY2026</b>
+      Apr 1 – Jun 30, 2026
+    </div>
+  </header>
+
+  <div class="lede">
+    Q2 was the quarter the turnaround landed. The post-Q1 staff reduction flowed straight to the bottom line, and
+    expanded staffing plus a breakout AI Program quarter carried us from a Q1 loss to a clean profit:
+    <b>net income swung +$72.9K to +$54,257 (21.2% margin)</b>. July has already opened above $100K in revenue.
+  </div>
+
+  <h2>Quarter at a Glance</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Revenue</div><div class="v">$256.2K</div><div class="d up">+26.8% vs Q1</div></div>
+    <div class="kpi"><div class="l">Net Income</div><div class="v">$54.3K</div><div class="d up">+$72.9K swing</div></div>
+    <div class="kpi"><div class="l">Net Margin</div><div class="v">21.2%</div><div class="d up">+30.5 pts</div></div>
+    <div class="kpi"><div class="l">Contract Labor</div><div class="v">$159.9K</div><div class="d up">−15% (staff cut)</div></div>
+  </div>
+
+  <div class="grid2" style="margin-top:18px;align-items:start;">
+    <div>
+      <h2 style="margin-top:6px;">Q1 &rarr; Q2 Performance</h2>
+      <table>
+        <thead><tr><th>Metric</th><th>Q1 2026</th><th>Q2 2026</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Revenue</td><td>$202,019</td><td>$256,182</td><td class="pos">+26.8%</td></tr>
+          <tr><td>Operating expenses</td><td>$221,179</td><td>$216,414</td><td class="pos">−2.2%</td></tr>
+          <tr><td>Net operating income</td><td class="neg">−$19,160</td><td class="pos">+$39,768</td><td class="pos">+$58.9K</td></tr>
+          <tr class="total"><td>Net income</td><td class="neg">−$18,713</td><td class="pos">+$54,257</td><td class="pos">+$72.9K</td></tr>
+          <tr><td>Net margin</td><td class="neg">−9.3%</td><td class="pos">+21.2%</td><td class="pos">+30.5 pts</td></tr>
+        </tbody>
+      </table>
+      <div class="note">H1 FY2026 close: <b>$458,201 revenue</b>, <b>$35,544 net profit</b>.</div>
+    </div>
+    <div>
+      <h2 style="margin-top:6px;">Q2 Revenue by Line</h2>
+      <table>
+        <thead><tr><th>Segment</th><th>Q2</th><th>% Mix</th><th>vs Q1</th></tr></thead>
+        <tbody>
+          <tr><td>Global Staffing</td><td>$206,556</td><td>81%</td><td class="pos">+10%</td></tr>
+          <tr><td>AI Program</td><td>$37,898</td><td>15%</td><td class="pos">+8.4&times;</td></tr>
+          <tr><td>Pass-through</td><td>$10,208</td><td>4%</td><td>n/a</td></tr>
+          <tr><td>Branding</td><td>$1,520</td><td>1%</td><td>n/a</td></tr>
+          <tr class="total"><td>Total</td><td>$256,182</td><td>100%</td><td class="pos">+26.8%</td></tr>
+        </tbody>
+      </table>
+      <div class="note">Client concentration: On Target (Aym) = <b>52.5%</b> of Q2 sales; top 5 clients = <b>88%</b>.</div>
+    </div>
+  </div>
+
+  <h2>Three Highlights</h2>
+  <div class="cards3">
+    <div class="hcard">
+      <h3>1. Structural return to profit</h3>
+      <p><span class="stat">+$73K swing</span> to net income. The staff reduction cut contract labor 15%
+      ($188.5K &rarr; $159.9K) while revenue grew. Cost down and top line up in the same quarter, which is why
+      margin jumped 30 points.</p>
+    </div>
+    <div class="hcard">
+      <h3>2. AI Program breaks out</h3>
+      <p><span class="stat">$4.5K &rarr; $37.9K</span> (8.4&times;). Private retreats are taking off: Work Healthy,
+      Australian Payroll, DOXA and Grady Golf all contributed. Our highest-value, least headcount-dependent line.</p>
+    </div>
+    <div class="hcard">
+      <h3>3. Staffing expands as the base</h3>
+      <p><span class="stat">$206.6K (+10%)</span> with ~48% contribution margin after direct VN cost. The reliable
+      engine funding everything else. Top accounts: On Target, EO, Unlock, WareEase.</p>
+      <p style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);">
+      <b>New:</b> EO has verbally committed to more work on the events platform and other chapter-management tools,
+      a proposed <span class="stat">+$10K / month</span> expansion.</p>
+    </div>
+  </div>
+
+  <h2>Focus Area for Next Quarter</h2>
+  <div class="focus">
+    <h3>Reduce single-client concentration by scaling the high-margin AI Program</h3>
+    <p>On Target alone was <b>52.5%</b> of Q2 sales and the top 5 were 88%. That is the single biggest risk on the
+    page: one account slipping would erase the profit we just recovered. The AI Program is the natural hedge,
+    higher-margin, spread across many smaller clients, and already proving demand through the pipeline below. Q3 goal:
+    grow AI Program toward parity in the mix and broaden staffing so no client exceeds ~40% of revenue.</p>
+  </div>
+
+  <h2>Sales Pipeline <span class="tag">live from CRM &middot; as of Jul 18</span></h2>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px;">
+    <div class="kpi"><div class="l">Open Deals</div><div class="v">7</div></div>
+    <div class="kpi"><div class="l">Total Value</div><div class="v">$110.2K</div></div>
+    <div class="kpi"><div class="l">Weighted</div><div class="v">$66.4K</div><div class="d">probability-adj.</div></div>
+    <div class="kpi"><div class="l">Closing in Q3</div><div class="v">$81.2K</div><div class="d">5 of 7 deals</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Deal</th><th>Stage</th><th>Exp. Close</th><th>Value</th><th>Prob.</th><th>Weighted</th></tr></thead>
+    <tbody>
+      <tr><td>Work Healthy: production migration &amp; use-cases</td><td>Discovery</td><td>Q3 (TBD)</td><td>$35,000</td><td>75%</td><td>$26,250</td></tr>
+      <tr><td>Westbridge &amp; Momentum Wealth: AI Program</td><td>Proposal</td><td>Sep 30</td><td>$31,204</td><td>40%</td><td>$12,482</td></tr>
+      <tr><td>bStore: central DB + apps &amp; automation</td><td>Proposal</td><td>Aug 15</td><td>$15,000</td><td>66%</td><td>$9,900</td></tr>
+      <tr><td>Accord Plumbing: AI &amp; data automation</td><td>Proposal</td><td>Aug 15</td><td>$10,000</td><td>70%</td><td>$7,000</td></tr>
+      <tr><td>Briscoe Consulting: recruitment platform build</td><td>Discovery</td><td>Q3 (TBD)</td><td>$9,000</td><td>50%</td><td>$4,500</td></tr>
+      <tr><td>National Housing Blueprint: web app build</td><td>Proposal</td><td>Jul 21</td><td>$5,000</td><td>75%</td><td>$3,750</td></tr>
+      <tr><td>Rentwest: AI build + team training</td><td>Proposal</td><td>Aug 1</td><td>$5,000</td><td>50%</td><td>$2,500</td></tr>
+      <tr class="total"><td>Total open pipeline</td><td></td><td></td><td>$110,204</td><td></td><td>$66,382</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    Pipeline is almost entirely <b>AI Program / build work</b>, which is exactly the diversification the focus area calls for.
+    Five deals ($81.2K) are slated to close in Q3, feeding the H2 projection below. Not shown: the EO events-platform
+    expansion (verbal, ~$10K/mo) and staffing renewals, both recurring rather than deal-based.
+  </div>
+
+  <h2>H2 FY2026 Projection <span class="flash">July flash: revenue already &gt; $100K</span></h2>
+  <p style="font-size:12.5px;color:#33404d;margin:0 0 12px;">
+    Anchored on the Q2 exit run-rate (~$87K/mo), the July actual (already north of $100K, a step up), and the live CRM
+    pipeline above: <b>7 open deals, $110K total / $66.4K weighted</b>, weighted toward AI Program builds closing in Q3.
+  </p>
+  <table>
+    <thead><tr><th>Scenario</th><th>H2 Revenue</th><th>H2 Net Income</th><th>Dividend (50%)</th></tr></thead>
+    <tbody>
+      <tr><td>Conservative: July rate holds flat</td><td>~$585K</td><td>~$52K</td><td>~$26K</td></tr>
+      <tr class="total"><td>Base: light staffing growth + pipeline converts</td><td>~$620K</td><td>~$70K</td><td>~$35K</td></tr>
+      <tr><td>Upside: strong AI Program + pipeline beat</td><td>~$660K</td><td>~$92K</td><td>~$46K</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    Full-year base case: H1 $458K + H2 ~$620K = <b>~$1.08M revenue</b> (crosses the $1.0M mark), full-year net income
+    ~<b>$105K</b>. July's pace annualizes near a $1.2M run-rate, putting the $1.5M salary step-up within reach in 2027.
+    Assumptions: delivery ~62% of revenue, incremental CEO salary (~$42K for H2) absorbed, lumpy other income excluded (upside).
+  </div>
+
+  <h2>Discussion Items</h2>
+
+  <div class="disc">
+    <h3>1. CEO Compensation <span class="tag">effective H2 2026</span></h3>
+    <ul>
+      <li><b>Current:</b> $36,000 / year, well below cost of replacement for the role.</li>
+      <li><b>Proposed:</b> raise base to <b>$120,000 / year, effective H2 2026</b> (not retroactive to H1).</li>
+      <li><b>Step-ups</b> tied to annualized revenue, each sized at 10% of the growth between milestones:
+        at <b>$1.5M &rarr; $170K</b>; at <b>$2.0M &rarr; $220K</b> (pre-ratified, automatic on trigger).</li>
+      <li><b>Cash impact:</b> ~$42K incremental cost in H2, which draws on the same profit that funds the first dividend.</li>
+    </ul>
+  </div>
+
+  <div class="disc">
+    <h3>2. Dividend Policy <span class="tag">first payout on H2 profit</span></h3>
+    <ul>
+      <li><b>Proposed:</b> 50% of net profit as dividends, paid every six months, <b>first distribution based on H2 2026 profit</b>.</li>
+      <li>H1's $35,544 net profit is <b>retained</b>, not distributed. First payout is calculated on H2 net income at the close of H2.</li>
+      <li>H2 profit carries both the new $120K salary run-rate and the first 50% dividend, so the same pool serves both.</li>
+    </ul>
+    <div class="divcallout">
+      <div>
+        <div class="big">~$35,000</div>
+        <div class="rng">Base case &middot; range $26K – $46K &middot; matching ~$35K retained</div>
+      </div>
+      <p><b>First dividend, payable on H2 2026 profit.</b> Recommendation: approve the 50% policy in principle, but
+      consider capping the inaugural payout toward the conservative end (~$26K) to protect cash while client
+      concentration stays high and Q3 pipeline is still closing.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>Edge8 / Talent Edge LLC. Confidential, for the Board of Directors</span>
+    <span>Prepared July 18, 2026 &middot; Figures from QuickBooks (accrual) &amp; company CRM</span>
+  </footer>
+</div>
+
+</body>
+</html>
