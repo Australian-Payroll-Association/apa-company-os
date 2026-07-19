@@ -29,7 +29,9 @@ const NAV: NavItem[] = [
   { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
-  { label: "Projects", href: "/portal/projects", ico: "⇉" },
+  // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
+  // token/staff-based gating is refined later with the Human Token Tracker.
+  { label: "AI Programs", href: "/portal/projects", ico: "⇉", built: true },
   { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
   { label: "My Events", href: "/portal/events", ico: "▦", built: true, entitlementKey: "events" },
   { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },

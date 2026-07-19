@@ -39,7 +39,7 @@ export default async function PortalRequestsPage() {
       <PageHead
         eyebrow="Client Portal"
         title="Requests"
-        sub="Four ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, or top up human tokens."
+        sub="Five ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, top up human tokens, or plan an AI program."
       />
 
       <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20, gridAutoRows: "1fr" }}>
@@ -84,6 +84,17 @@ export default async function PortalRequestsPage() {
           <div style={{ marginTop: "auto", paddingTop: 16 }}>
             <Link href="/portal/requests/hire" className="admin-btn admin-btn--primary">
               Build your team
+            </Link>
+          </div>
+        </div>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Add AI Program Plan</h2>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 40 }}>
+            Plan an AI program: upload your documents, or build a 5Ds AI Program Brief with our guided assistant.
+          </p>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/projects/add" className="admin-btn admin-btn--primary">
+              Add AI Program Plan
             </Link>
           </div>
         </div>

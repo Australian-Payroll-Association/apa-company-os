@@ -1,0 +1,52 @@
+import Link from "next/link";
+import { requirePortalMember } from "@/lib/portal-auth";
+import { PageHead } from "@/components/admin/PageHead";
+
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Add AI Program Plan",
+  description: "Start a new AI program by uploading documents or building a plan.",
+};
+
+export default async function AddAiProgramPage() {
+  await requirePortalMember();
+  return (
+    <div style={{ maxWidth: 880 }}>
+      <PageHead
+        eyebrow="AI Programs"
+        title="Add AI Program Plan"
+        sub="Two ways to start a program. Build a plan from scratch with our guided assistant, or upload documents you already have."
+      />
+      <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ gridAutoRows: "1fr" }}>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Create a plan</h2>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 56 }}>
+            A guided assistant walks you through mapping your team&apos;s AI opportunities, picking one,
+            writing a problem statement and FAST goal, and assembling a 5Ds AI Program Brief you can save and download.
+          </p>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/projects/add/plan" className="admin-btn admin-btn--primary">
+              Build a plan
+            </Link>
+          </div>
+        </div>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Upload documents</h2>
+          <p className="admin-page-sub" style={{ margin: 0, minHeight: 56 }}>
+            Already have a brief, plan, or supporting material? Name the program and upload one or more files.
+            Everything stays private to your company.
+          </p>
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <Link href="/portal/projects/add/upload" className="admin-btn">
+              Upload documents
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: 18 }}>
+        <Link href="/portal/projects" className="admin-btn admin-btn--sm">← Back to AI Programs</Link>
+      </div>
+    </div>
+  );
+}
