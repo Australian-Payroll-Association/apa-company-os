@@ -104,7 +104,7 @@ export default async function SalesCockpitPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const [stagesRes, dealsRes, leadsRes, inqRes, overdueRes] = await Promise.all([
+  const [stagesRes, dealsRes, leadsRes, inqRes, overdueRes, wonRes] = await Promise.all([
     companyOs.from("pipeline_stages").select("id, name, is_won, is_lost").order("position"),
     dealsQuery,
     companyOs
@@ -123,6 +123,11 @@ export default async function SalesCockpitPage() {
       .is("people.archived_at", null)
       .not("sla_due_at", "is", null)
       .lt("sla_due_at", nowIso),
+    companyOs
+      .from("deals")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "won")
+      .is("archived_at", null),
   ]);
 
   const stages = (stagesRes.data as Stage[] | null) ?? [];
@@ -140,13 +145,10 @@ export default async function SalesCockpitPage() {
     }));
   const inquiries = (inqRes.data as InquiryRow[] | null) ?? [];
   const slaOverdue = overdueRes.count ?? 0;
+  const dealsClosed = wonRes.count ?? 0;
   const err = stagesRes.error || dealsRes.error || leadsRes.error || inqRes.error;
 
   const openPipeline = deals.reduce((s, d) => s + (d.amount_usd_cents ?? 0), 0);
-  const weighted = deals.reduce(
-    (s, d) => s + (d.amount_usd_cents ?? 0) * ((d.probability ?? 0) / 100),
-    0,
-  );
   const needsAttention = deals
     .map((d) => ({ d, gaps: dealGaps(d) }))
     .filter((x) => x.gaps.length > 0)
@@ -226,7 +228,7 @@ export default async function SalesCockpitPage() {
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${deals.length} open deals`} href="/admin/revenue/deals" />
-        <MetricCard label="Weighted" value={formatCents(Math.round(weighted))} sub="by probability" />
+        <MetricCard label="Deals closed" value={dealsClosed} sub="won all-time" href="/admin/revenue/deals" />
         <MetricCard label="Leads to work" value={leads.length} sub={slaOverdue > 0 ? `${slaOverdue} SLA overdue` : "all inside SLA"} href="/admin/revenue/leads" />
         <MetricCard label="Inquiries to triage" value={inquiries.length} sub="contact-us, unworked" href="/admin/revenue/inquiries" />
         <MetricCard
