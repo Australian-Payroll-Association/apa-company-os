@@ -20,6 +20,11 @@
       "source": "/proposals/shopify-engine-research.html",
       "destination": "/proposals/arca-wellness-proposal-2026-06-26.html",
       "permanent": true
+    },
+    {
+      "source": "/proposals/rentwest-how-it-works.html",
+      "destination": "/proposals/national-housing-how-it-works.html",
+      "permanent": true
     }
   ]
 }
