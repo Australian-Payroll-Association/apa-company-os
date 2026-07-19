@@ -43,30 +43,40 @@ export default async function PortalRequestsPage() {
       />
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <div className="admin-card admin-section-card">
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
           <p className="admin-page-sub" style={{ marginTop: 0 }}>
             Not sure who you need? Describe it and the Edge8 team will pick it up.
           </p>
-          <GeneralRequest />
+          <div style={{ marginTop: "auto", paddingTop: 12 }}>
+            <GeneralRequest />
+          </div>
         </div>
-        <div className="admin-card admin-section-card">
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Project for a contractor</h2>
           <p className="admin-page-sub" style={{ marginTop: 0 }}>
             Brief a contractor directly. They estimate the hours, you approve, work starts.
           </p>
-          <Link href="/portal/requests/new" className="admin-btn admin-btn--primary">
+          <Link
+            href="/portal/requests/new"
+            className="admin-btn admin-btn--primary"
+            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
+          >
             New project request
           </Link>
         </div>
-        <div className="admin-card admin-section-card">
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Human tokens</h2>
           <p className="admin-page-sub" style={{ marginTop: 0 }}>
             {tokens.balanceTokens > 0
               ? `You have ${tokens.balanceTokens} tokens (1 token = 1 hour of skilled work).`
               : "Pre-buy packs of skilled hours: 40 tokens per pack, $2,000."}
           </p>
-          <Link href="/portal/tokens" className="admin-btn">
+          <Link
+            href="/portal/tokens"
+            className="admin-btn"
+            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
+          >
             {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
           </Link>
         </div>
