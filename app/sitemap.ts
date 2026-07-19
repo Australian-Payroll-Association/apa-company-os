@@ -25,6 +25,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/careers/', priority: 0.7, changeFrequency: 'weekly' },
     { path: '/workflows/', priority: 0.7, changeFrequency: 'monthly' },
     { path: '/workflows/method/', priority: 0.7, changeFrequency: 'monthly' },
+    { path: '/legal/privacy/', priority: 0.3, changeFrequency: 'yearly' },
+    { path: '/legal/eula/', priority: 0.3, changeFrequency: 'yearly' },
   ]
 
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map(({ path, priority, changeFrequency }) => ({

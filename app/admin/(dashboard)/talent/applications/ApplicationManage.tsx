@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDate, humanize } from "@/lib/admin/format";
+import { useAutosave } from "@/components/admin/useAutosave";
+import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import {
   addApplicationNote,
   getApplicationNotes,
@@ -54,18 +56,29 @@ const STATUS_OPTIONS = [
 // Editable "manage" surface for one application, rendered inside the row's side
 // shelf (DetailDrawer). Two save scopes: application fields write applications;
 // the applicant profile writes people. Notes post individually to the thread.
+type AppFieldForm = {
+  stageId: string;
+  status: string;
+  rating: number | null;
+  rejectionReason: string;
+};
+
 export function ApplicationManage({ app }: { app: AppManageData }) {
   const router = useRouter();
 
-  // ── application-side state ──
-  const [stageId, setStageId] = useState(app.currentStageId ?? "");
-  const [status, setStatus] = useState(app.status ?? "active");
-  const [rating, setRating] = useState<number | null>(app.rating ?? null);
-  const [rejectionReason, setRejectionReason] = useState(app.rejectionReason ?? "");
   const [stages, setStages] = useState<StageOption[]>([]);
   const [stagesLoading, setStagesLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { form, field, commit, status: saveStatus } = useAutosave<AppFieldForm>(
+    {
+      stageId: app.currentStageId ?? "",
+      status: app.status ?? "active",
+      rating: app.rating ?? null,
+      rejectionReason: app.rejectionReason ?? "",
+    },
+    saveAppField,
+  );
+  const { stageId, status, rating, rejectionReason } = form;
 
   // Load this req's hiring stages when the shelf opens.
   useEffect(() => {
@@ -87,33 +100,27 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
   const showRejectionReason = status === "rejected" || rejectionReason.trim() !== "";
 
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-
-    const patch: Parameters<typeof updateApplication>[1] = {};
-    if (status !== (app.status ?? "active")) patch.status = status;
-    if (rating !== (app.rating ?? null)) patch.rating = rating;
-    if (rejectionReason.trim() !== (app.rejectionReason ?? "")) {
-      patch.rejection_reason = rejectionReason.trim() || null;
+  async function saveAppField(patch: Partial<AppFieldForm>) {
+    const [key, value] = Object.entries(patch)[0] as [keyof AppFieldForm, string | number | null];
+    let r;
+    switch (key) {
+      case "stageId":
+        r = await updateApplication(app.id, { current_stage_id: (value as string) || null });
+        break;
+      case "status":
+        r = await updateApplication(app.id, { status: value as string });
+        break;
+      case "rating":
+        r = await updateApplication(app.id, { rating: value as number | null });
+        break;
+      case "rejectionReason":
+        r = await updateApplication(app.id, { rejection_reason: (value as string).trim() || null });
+        break;
+      default:
+        return { ok: true as const };
     }
-    const nextStage = stageId || null;
-    if (nextStage !== (app.currentStageId ?? null)) patch.current_stage_id = nextStage;
-
-    if (Object.keys(patch).length === 0) {
-      setSaving(false);
-      setMsg({ ok: true, text: "Nothing changed." });
-      return;
-    }
-
-    const r = await updateApplication(app.id, patch);
-    setSaving(false);
-    if (!r.ok) {
-      setMsg({ ok: false, text: r.error });
-      return;
-    }
-    setMsg({ ok: true, text: "Saved." });
-    router.refresh();
+    if (r.ok) router.refresh();
+    return r;
   }
 
   return (
@@ -135,14 +142,10 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
         </dd>
       </dl>
 
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        {msg && <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>}
+      <div className="admin-form">
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+          <AutosaveIndicator status={saveStatus} />
+        </div>
 
         <div className="admin-field">
           <label className="admin-label">Stage</label>
@@ -152,7 +155,10 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
               aria-label="Hiring stage"
               value={stageId}
               disabled={stagesLoading}
-              onChange={(e) => setStageId(e.target.value)}
+              onChange={(e) => {
+                field("stageId", e.target.value);
+                commit("stageId", e.target.value);
+              }}
             >
               {stagesLoading && <option value={stageId}>{app.currentStageName || "Loading…"}</option>}
               {!stagesLoading && <option value="">No stage</option>}
@@ -172,7 +178,14 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Status</label>
-            <select className="admin-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select
+              className="admin-select"
+              value={status}
+              onChange={(e) => {
+                field("status", e.target.value);
+                commit("status", e.target.value);
+              }}
+            >
               {STATUS_OPTIONS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -182,7 +195,13 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
           </div>
           <div className="admin-field">
             <label className="admin-label">Rating</label>
-            <StarRating value={rating} onChange={setRating} />
+            <StarRating
+              value={rating}
+              onChange={(v) => {
+                field("rating", v);
+                commit("rating", v);
+              }}
+            />
           </div>
         </div>
 
@@ -193,17 +212,14 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
               className="admin-input"
               placeholder="Why was this candidate rejected?"
               value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
+              onChange={(e) => field("rejectionReason", e.target.value)}
+              onBlur={(e) => commit("rejectionReason", e.target.value)}
             />
           </div>
         )}
 
-        <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save application"}
-          </button>
-        </div>
-      </form>
+        {saveStatus.state === "error" && <div className="admin-alert admin-alert--err">{saveStatus.error}</div>}
+      </div>
 
       {(app.coverLetter || app.answers.length > 0) && (
         <div style={{ marginTop: 18 }}>
@@ -325,6 +341,15 @@ function ResumeField({
 // write to the candidate_profile satellite — never to the application.
 // do_not_hire is the recruiting flag — separate from the do_not_contact
 // consent opt-out, which is managed from Contact 360, not here.
+type ApplicantFieldForm = {
+  phone: string;
+  headline: string;
+  currentTitle: string;
+  linkedinUrl: string;
+  portfolioUrl: string;
+  doNotHire: boolean;
+};
+
 function ApplicantProfile(props: {
   personId: string;
   name: string | null;
@@ -336,72 +361,76 @@ function ApplicantProfile(props: {
   portfolioUrl: string | null;
   doNotHire: boolean;
 }) {
-  const router = useRouter();
-  const [phone, setPhone] = useState(props.phone ?? "");
-  const [headline, setHeadline] = useState(props.headline ?? "");
-  const [currentTitle, setCurrentTitle] = useState(props.currentTitle ?? "");
-  const [linkedinUrl, setLinkedinUrl] = useState(props.linkedinUrl ?? "");
-  const [portfolioUrl, setPortfolioUrl] = useState(props.portfolioUrl ?? "");
-  const [doNotHire, setDoNotHire] = useState(props.doNotHire);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const { form, field, commit, status } = useAutosave<ApplicantFieldForm>(
+    {
+      phone: props.phone ?? "",
+      headline: props.headline ?? "",
+      currentTitle: props.currentTitle ?? "",
+      linkedinUrl: props.linkedinUrl ?? "",
+      portfolioUrl: props.portfolioUrl ?? "",
+      doNotHire: props.doNotHire,
+    },
+    saveProfileField,
+  );
+  const { phone, headline, currentTitle, linkedinUrl, portfolioUrl, doNotHire } = form;
 
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-
-    const patch: Parameters<typeof updateApplicantProfile>[1] = {};
-    if (phone.trim() !== (props.phone ?? "")) patch.phone = phone.trim() || null;
-    if (headline.trim() !== (props.headline ?? "")) patch.headline = headline.trim() || null;
-    if (currentTitle.trim() !== (props.currentTitle ?? "")) patch.current_title = currentTitle.trim() || null;
-    if (linkedinUrl.trim() !== (props.linkedinUrl ?? "")) patch.linkedin_url = linkedinUrl.trim() || null;
-    if (portfolioUrl.trim() !== (props.portfolioUrl ?? "")) patch.portfolio_url = portfolioUrl.trim() || null;
-    if (doNotHire !== props.doNotHire) patch.do_not_hire = doNotHire;
-
-    if (Object.keys(patch).length === 0) {
-      setSaving(false);
-      setMsg({ ok: true, text: "Nothing changed." });
-      return;
+  async function saveProfileField(patch: Partial<ApplicantFieldForm>) {
+    const [key, value] = Object.entries(patch)[0] as [keyof ApplicantFieldForm, string | boolean];
+    switch (key) {
+      case "phone":
+        return updateApplicantProfile(props.personId, { phone: (value as string).trim() || null });
+      case "headline":
+        return updateApplicantProfile(props.personId, { headline: (value as string).trim() || null });
+      case "currentTitle":
+        return updateApplicantProfile(props.personId, { current_title: (value as string).trim() || null });
+      case "linkedinUrl":
+        return updateApplicantProfile(props.personId, { linkedin_url: (value as string).trim() || null });
+      case "portfolioUrl":
+        return updateApplicantProfile(props.personId, { portfolio_url: (value as string).trim() || null });
+      case "doNotHire":
+        return updateApplicantProfile(props.personId, { do_not_hire: value as boolean });
+      default:
+        return { ok: true as const };
     }
-
-    const r = await updateApplicantProfile(props.personId, patch);
-    setSaving(false);
-    if (!r.ok) {
-      setMsg({ ok: false, text: r.error });
-      return;
-    }
-    setMsg({ ok: true, text: "Profile saved." });
-    router.refresh();
   }
 
   return (
     <div style={{ marginTop: 18 }}>
-      <div className="admin-label" style={{ marginBottom: 6 }}>
-        Applicant — {props.name || props.email || "person"}
+      <div className="admin-label" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+        <span>Applicant — {props.name || props.email || "person"}</span>
+        <AutosaveIndicator status={status} />
       </div>
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        {msg && <div className={`admin-alert ${msg.ok ? "admin-alert--ok" : "admin-alert--err"}`}>{msg.text}</div>}
-
+      <div className="admin-form">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Headline</label>
-            <input className="admin-input" value={headline} onChange={(e) => setHeadline(e.target.value)} />
+            <input
+              className="admin-input"
+              value={headline}
+              onChange={(e) => field("headline", e.target.value)}
+              onBlur={(e) => commit("headline", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Current title</label>
-            <input className="admin-input" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} />
+            <input
+              className="admin-input"
+              value={currentTitle}
+              onChange={(e) => field("currentTitle", e.target.value)}
+              onBlur={(e) => commit("currentTitle", e.target.value)}
+            />
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Phone</label>
-            <input className="admin-input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input
+              className="admin-input"
+              type="tel"
+              value={phone}
+              onChange={(e) => field("phone", e.target.value)}
+              onBlur={(e) => commit("phone", e.target.value)}
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">LinkedIn</label>
@@ -410,7 +439,8 @@ function ApplicantProfile(props: {
               type="url"
               placeholder="https://linkedin.com/in/…"
               value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
+              onChange={(e) => field("linkedinUrl", e.target.value)}
+              onBlur={(e) => commit("linkedinUrl", e.target.value)}
             />
           </div>
         </div>
@@ -421,22 +451,26 @@ function ApplicantProfile(props: {
             type="url"
             placeholder="https://…"
             value={portfolioUrl}
-            onChange={(e) => setPortfolioUrl(e.target.value)}
+            onChange={(e) => field("portfolioUrl", e.target.value)}
+            onBlur={(e) => commit("portfolioUrl", e.target.value)}
           />
         </div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <input type="checkbox" checked={doNotHire} onChange={(e) => setDoNotHire(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={doNotHire}
+            onChange={(e) => {
+              field("doNotHire", e.target.checked);
+              commit("doNotHire", e.target.checked);
+            }}
+          />
           <span>
             Do not hire <span className="admin-cell-muted">(we would not consider this person again)</span>
           </span>
         </label>
 
-        <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Save profile"}
-          </button>
-        </div>
-      </form>
+        {status.state === "error" && <div className="admin-alert admin-alert--err">{status.error}</div>}
+      </div>
     </div>
   );
 }
