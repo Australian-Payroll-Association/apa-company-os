@@ -34,17 +34,18 @@
   --admin-accent-on-dark-strong: var(--mint); /* hover */
   --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
 
-  /* Categorical accents (badges, section themes) — from the data chart ramp */
-  --admin-accent-blue: var(--data-chart-1);
-  --admin-accent-green: var(--data-chart-3);
-  --admin-accent-pink: var(--data-chart-4);
-  --admin-accent-gold: #d4a017;
+  /* Office accents (badges, section themes) — four brand steps, no off-brand hues.
+     Legacy names (green/pink/gold) retained to avoid a codebase-wide rename. */
+  --admin-accent-blue: var(--data-chart-1);   /* brand blue    */
+  --admin-accent-green: var(--data-chart-3);  /* deep blue     */
+  --admin-accent-pink: var(--data-chart-4);   /* near-black    */
+  --admin-accent-gold: var(--data-chart-5);   /* gray          */
 
-  /* Navy chrome (sidebar) */
-  --admin-sidebar-bg: #04102d;
-  --admin-sidebar-strong: #eaf2ff;        /* office headers, the top-rank landmark */
-  --admin-sidebar-ink: #c4cade;
-  --admin-sidebar-muted: #6a739a;
+  /* Dark chrome (sidebar) — brand near-black, not navy */
+  --admin-sidebar-bg: var(--color-primary-dark);
+  --admin-sidebar-strong: #ffffff;        /* office headers, the top-rank landmark */
+  --admin-sidebar-ink: #c4c7cc;
+  --admin-sidebar-muted: #7c8189;
 
   /* Neutrals — re-rooted onto the data layer */
   --admin-bg: var(--data-canvas);
@@ -430,14 +431,14 @@ a.admin-btn--danger { color: var(--admin-err-ink); }
 /* Categorical palette, fixed order, CVD-validated against the light surface.
    Identity is never color-alone: legends carry label + count. */
 :root {
-  --admin-chart-1: #287be8;
-  --admin-chart-2: #e2662c;
-  --admin-chart-3: #1a9e74;
-  --admin-chart-4: #d1458b;
-  --admin-chart-5: #7c5cd6;
-  --admin-chart-6: #a87f10;
-  --admin-chart-7: #12a0b5;
-  --admin-chart-8: #b23a48;
+  --admin-chart-1: var(--data-chart-1);
+  --admin-chart-2: var(--data-chart-2);
+  --admin-chart-3: var(--data-chart-3);
+  --admin-chart-4: var(--data-chart-4);
+  --admin-chart-5: var(--data-chart-5);
+  --admin-chart-6: var(--data-chart-6);
+  --admin-chart-7: var(--data-chart-7);
+  --admin-chart-8: var(--color-input-border);
 }
 .admin-summary-grid {
   display: grid;

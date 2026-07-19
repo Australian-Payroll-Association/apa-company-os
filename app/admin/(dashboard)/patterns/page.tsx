@@ -86,34 +86,34 @@ export default function PatternsPage() {
           </div>
         </Section>
 
-        <Section title="Color — categorical accents" sub="For per-office themes, badges, and charts.">
+        <Section title="Color — office accents" sub="Four brand steps for per-office themes and badges. Legacy var names kept.">
           <div className="pat-swatches">
             <Swatch name="Blue" value="#287be8" varName="--admin-accent-blue" />
-            <Swatch name="Green" value="#1a9e74" varName="--admin-accent-green" />
-            <Swatch name="Pink" value="#d1458b" varName="--admin-accent-pink" />
-            <Swatch name="Gold" value="#d4a017" varName="--admin-accent-gold" />
+            <Swatch name="Deep blue" value="#1d6ad4" varName="--admin-accent-green" />
+            <Swatch name="Near-black" value="#101014" varName="--admin-accent-pink" />
+            <Swatch name="Gray" value="#9ca3af" varName="--admin-accent-gold" />
           </div>
         </Section>
 
         <Section title="Color — neutrals">
           <div className="pat-swatches">
-            <Swatch name="Ink" value="#1a1f36" varName="--admin-ink" />
-            <Swatch name="Ink 2" value="#4a5068" varName="--admin-ink-2" />
-            <Swatch name="Muted" value="#8b91ac" varName="--admin-muted" />
-            <Swatch name="Faint" value="#b0b6cc" varName="--admin-faint" />
-            <Swatch name="Line" value="#e4e7f0" varName="--admin-line" />
-            <Swatch name="Line soft" value="#eef0f6" varName="--admin-line-soft" />
-            <Swatch name="Background" value="#f4f6fa" varName="--admin-bg" />
+            <Swatch name="Ink" value="#101014" varName="--admin-ink" />
+            <Swatch name="Ink 2" value="#797c82" varName="--admin-ink-2" />
+            <Swatch name="Muted" value="#9ca3af" varName="--admin-muted" />
+            <Swatch name="Faint" value="#bcc1c7" varName="--admin-faint" />
+            <Swatch name="Line" value="#e6e6e6" varName="--admin-line" />
+            <Swatch name="Line soft" value="#f0f1f3" varName="--admin-line-soft" />
+            <Swatch name="Background" value="#f1f3f5" varName="--admin-bg" />
             <Swatch name="Surface" value="#ffffff" varName="--admin-surface" />
           </div>
         </Section>
 
         <Section title="Color — sidebar chrome">
           <div className="pat-swatches">
-            <Swatch name="Sidebar bg" value="#04102d" varName="--admin-sidebar-bg" />
-            <Swatch name="Sidebar strong" value="#eaf2ff" varName="--admin-sidebar-strong" />
-            <Swatch name="Sidebar ink" value="#c4cade" varName="--admin-sidebar-ink" />
-            <Swatch name="Sidebar muted" value="#6a739a" varName="--admin-sidebar-muted" />
+            <Swatch name="Sidebar bg" value="#101014" varName="--admin-sidebar-bg" />
+            <Swatch name="Sidebar strong" value="#ffffff" varName="--admin-sidebar-strong" />
+            <Swatch name="Sidebar ink" value="#c4c7cc" varName="--admin-sidebar-ink" />
+            <Swatch name="Sidebar muted" value="#7c8189" varName="--admin-sidebar-muted" />
           </div>
         </Section>
 

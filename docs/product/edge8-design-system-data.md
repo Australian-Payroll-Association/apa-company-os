@@ -90,17 +90,19 @@ Content cards (non-grid) keep Foundations' 20px.
 
 ### 5.2 New data-only tokens
 
-**Neutrals for data chrome** (cooler, denser than the marketing white/gray split):
+**Neutrals for data chrome** (brand grays — no navy tint):
 
 | Token | Value | Use |
 |---|---|---|
-| `--data-canvas` | `#f4f6fa` | App background behind panels |
+| `--data-canvas` | `#F1F3F5` | App background behind panels |
 | `--data-surface` | `#ffffff` | Panels, cards, table body |
-| `--data-surface-2` | `#fbfcfe` | Table head, zebra, insets |
-| `--data-line` | `#e4e7f0` | Default hairline (softer than Foundations input border) |
-| `--data-ink` | `#1a1f36` | Primary data text (near-black, cool) |
-| `--data-ink-2` | `#4a5068` | Secondary text |
-| `--data-muted` | `#8b91ac` | Tertiary / labels |
+| `--data-surface-2` | `#F5F6F8` | Table head, zebra, insets |
+| `--data-line` | `#E6E6E6` (brand card border) | Default hairline |
+| `--data-ink` | `#101014` (brand near-black) | Primary data text |
+| `--data-ink-2` | `#797c82` (brand body) | Secondary text |
+| `--data-muted` | `#9CA3AF` | Tertiary / labels |
+
+Dark chrome (sidebar) is brand near-black `#101014`, not navy.
 
 **Status pairs** (bg + ink), rooted so `info` = brand blue family:
 
@@ -111,11 +113,11 @@ Content cards (non-grid) keep Foundations' 20px.
 | `--data-err-*` | `#fde4e4` / `#b0332f` | Error |
 | `--data-info-*` | `#e2ecfd` / `#1d6ad4` | Info (brand-blue family) |
 
-**Categorical chart ramp** (CVD-checked, fixed order, chart-1 = brand blue). Identity is never color-alone; legends always carry label + value:
+**Categorical chart ramp** — brand only (blue family + mint + near-black + grays), fixed order, chart-1 = brand blue. Identity is never color-alone; legends always carry label + value:
 
-`--data-chart-1..7`: `#287be8 #e2662c #1a9e74 #d1458b #7c5cd6 #a87f10 #12a0b5`
+`--data-chart-1..7`: `#287BE8 #6FF2C1 #1D6AD4 #101014 #9CA3AF #3B8CF5 #6B7280`
 
-> These are promoted from the admin's existing, already-validated palette. The point is to make them the **single canonical definition** so the duplicated per-page hex maps (deals, inquiries, revenue, jobs) all import from here instead of redeclaring.
+> Legible to ~4 series; past that, hues necessarily converge — the honest cost of a two-hue brand. If a chart needs more distinct categories, split it or use small multiples rather than reaching for off-brand colors.
 
 ---
 
