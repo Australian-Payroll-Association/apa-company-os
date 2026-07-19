@@ -39,10 +39,10 @@ export default async function PortalRequestsPage() {
       <PageHead
         eyebrow="Client Portal"
         title="Requests"
-        sub="Three ways to get work moving: ask us anything, brief a contractor directly, or top up human tokens."
+        sub="Four ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, or top up human tokens."
       />
 
-      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+      <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20 }}>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
           <p className="admin-page-sub" style={{ marginTop: 0 }}>
@@ -78,6 +78,19 @@ export default async function PortalRequestsPage() {
             style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
           >
             {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
+          </Link>
+        </div>
+        <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Full-time hire — Vietnam</h2>
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>
+            Request a dedicated full-time team member. Pick a role and experience level for a rate estimate.
+          </p>
+          <Link
+            href="/portal/requests/hire"
+            className="admin-btn admin-btn--primary"
+            style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
+          >
+            Get a rate estimate
           </Link>
         </div>
       </div>
