@@ -21,19 +21,31 @@
 }
 
 :root {
-  --blue: #287BE8;
+  /* ── Canonical brand tokens (single source of truth) ── */
+  --color-primary-dark: #101014;
+  --color-primary-blue: #287BE8;
+  --color-primary-blue-hover: #1D6AD4;
+  --color-accent-mint: #6FF2C1;
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #EAEEF2;
+  --color-text-body: #797c82;
+  --color-card-border: #E6E6E6;
+  --color-input-border: #A8B2BD;
+
+  /* ── Shipping vars, now aliased to the canonical tokens above ── */
+  --blue: var(--color-primary-blue);
   --blue-bright: #3B8CF5;
   --blue-glow: rgba(40,123,232,0.15);
-  --mint: #6FF2C1;
-  --dark: #101014;
+  --mint: var(--color-accent-mint);
+  --dark: var(--color-primary-dark);
   --dark-card: #1A1A1F;
   --dark-border: rgba(234,238,242,0.1);
-  --white: #FFFFFF;
-  --tint: #EAEEF2;
+  --white: var(--color-bg-primary);
+  --tint: var(--color-bg-secondary);
   --tint-deep: #D4DAE4;
-  --body-text: #797c82;
-  --card-border: #E6E6E6;
-  --input-border: #A8B2BD;
+  --body-text: var(--color-text-body);
+  --card-border: var(--color-card-border);
+  --input-border: var(--color-input-border);
   --grey-mid: #6B7280;
   --grey-light: #9CA3AF;
   --font-display: 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
@@ -45,9 +57,61 @@
 
   /* Link color system — resolved per-context (see dark-surface override below). */
   --link: var(--blue);
-  --link-hover: #1D6AD4;
+  --link-hover: var(--color-primary-blue-hover);
   --link-on-dark: var(--white);
   --link-on-dark-hover: var(--mint);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     DATA LAYER — dense/data surfaces (admin, dashboards, portals).
+     Extends Foundations; see docs/product/edge8-design-system-data.md.
+     Rooted on the canonical tokens above; new values only where dense UI
+     genuinely needs them. SVN-Gilroy only — tabular-nums does numeric
+     alignment, no monospace. Shadows are for overlays only.
+     ══════════════════════════════════════════════════════════════════════ */
+  /* Type (compact steps on the same SVN-Gilroy ramp) */
+  --data-text-base: 13px;
+  --data-text-sm: 12px;
+  --data-text-lg: 15px;
+  --data-page-title: 26px;
+  --data-kpi: 28px;
+  /* Density */
+  --data-cell-pad: 8px 12px;
+  --data-row-h: 40px;
+  --data-gap: 8px;
+  --data-section-pad: 20px 24px;
+  /* Radius (content cards keep Foundations' 20px) */
+  --data-btn-radius: 8px;
+  --data-radius: 12px;
+  --data-radius-sm: 6px;
+  /* Neutrals (cool navy data chrome) */
+  --data-canvas: #f4f6fa;
+  --data-surface: var(--color-bg-primary);
+  --data-surface-2: #fbfcfe;
+  --data-line: #e4e7f0;
+  --data-line-soft: #eef0f6;
+  --data-line-strong: #d8dce8;
+  --data-ink: #1a1f36;
+  --data-ink-2: #4a5068;
+  --data-muted: #8b91ac;
+  --data-faint: #b0b6cc;
+  /* Status pairs (info = brand-blue family) */
+  --data-ok-bg: #d8f3e8;   --data-ok-ink: #157a5a;
+  --data-warn-bg: #fbf0cf; --data-warn-ink: #8a6a0f;
+  --data-err-bg: #fde4e4;  --data-err-ink: #b0332f;
+  --data-info-bg: #e2ecfd; --data-info-ink: var(--color-primary-blue-hover);
+  /* Categorical chart ramp (chart-1 = brand blue; CVD-checked, fixed order) */
+  --data-chart-1: var(--color-primary-blue);
+  --data-chart-2: #e2662c;
+  --data-chart-3: #1a9e74;
+  --data-chart-4: #d1458b;
+  --data-chart-5: #7c5cd6;
+  --data-chart-6: #a87f10;
+  --data-chart-7: #12a0b5;
+  /* Elevation — OVERLAYS ONLY (resting cards stay shadow-free per Foundations) */
+  --data-elevation-1: 0 1px 2px rgba(4,16,45,.06), 0 1px 3px rgba(4,16,45,.08);
+  --data-elevation-2: 0 6px 24px rgba(4,16,45,.10);
+  --data-elevation-drawer: -24px 0 80px rgba(4,16,45,.28);
+  --data-elevation-modal: 0 24px 80px rgba(4,16,45,.32);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

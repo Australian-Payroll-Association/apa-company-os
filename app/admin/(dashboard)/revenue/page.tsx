@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
+import { STAGE_WON, STAGE_LOST, STAGE_NEUTRAL } from "@/lib/admin/stageColors";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
@@ -163,7 +164,7 @@ export default async function SalesCockpitPage() {
   const dealStages: KanbanColumn[] = stages.map((s) => ({
     id: s.id,
     label: s.name,
-    accent: s.is_won ? "#1a9e74" : s.is_lost ? "#9ca3af" : "#6b7194",
+    accent: s.is_won ? STAGE_WON : s.is_lost ? STAGE_LOST : STAGE_NEUTRAL,
   }));
   const lostStageIds = stages.filter((s) => s.is_lost).map((s) => s.id);
 

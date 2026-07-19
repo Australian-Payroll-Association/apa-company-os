@@ -2,38 +2,14 @@
    so nothing collides with the marketing site (globals.css). Loaded after
    globals.css by both admin route-group layouts.
 
-   Design system: the "Admin Pattern Library". DM Sans for UI, JetBrains Mono for
-   numerics, a dense 13px scale, cool navy neutrals and navy-tinted shadows, plus
-   per-section accent theming. The token contract lives in the .admin-shell /
-   .admin-auth block below and the living reference renders at /admin/patterns. */
+   Design system: the Edge8 Data Layer, which extends the brand system for dense
+   surfaces (see docs/product/edge8-design-system-data.md). SVN-Gilroy brand-wide,
+   a dense 13px scale, cool navy neutrals and overlay-only shadows, plus per-section
+   accent theming. The tokens below re-root onto the canonical brand tokens in
+   globals.css; the living reference renders at /admin/patterns. */
 
-/* ─── Fonts (self-hosted woff2) ───────────────────────
-   DM Sans has no Vietnamese subset on Google Fonts, so the sans stack falls back
-   to SVN-Gilroy for the U+1EA0-1EF1 vowels. JetBrains Mono is numerics-only. */
-@font-face {
-  font-family: 'DM Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/dm-sans-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'DM Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/dm-sans-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+/* Fonts: SVN-Gilroy brand-wide, loaded once in globals.css. The data layer uses
+   no admin-only webfonts; numeric alignment uses tabular-nums, not a monospace. */
 
 /* :root is included so the token set still resolves for content portalled
    straight to <body> (e.g. PreviewRow's DetailDrawer, escaping the <table>
@@ -43,25 +19,25 @@
 .admin-shell,
 .admin-auth {
   /* Typography */
-  --admin-font-sans: 'DM Sans', 'SVN-Gilroy', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --admin-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  /* Bridge marketing's font vars to DM Sans inside admin, so every existing
-     rule that reads var(--font-display) / var(--font-body) follows automatically. */
-  --font-display: var(--admin-font-sans);
-  --font-body: var(--admin-font-sans);
+  /* SVN-Gilroy brand-wide. --font-display / --font-body are NOT overridden here,
+     so they inherit globals.css (SVN-Gilroy) and every rule reading them follows.
+     The mono var now resolves to SVN-Gilroy too; tabular-nums (.admin-cell-mono)
+     handles figure alignment. */
+  --admin-font-sans: var(--font-body);
+  --admin-font-mono: var(--font-body);
 
   /* Accent (default blue). Per-section themes override --admin-accent only. */
-  --admin-accent: #287be8;
-  --admin-accent-strong: #1d6ad4;         /* hover / pressed, darkens */
+  --admin-accent: var(--color-primary-blue);
+  --admin-accent-strong: var(--color-primary-blue-hover); /* hover / pressed */
   --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
-  --admin-accent-on-dark: #ffffff;        /* links on dark surfaces, e.g. the sidebar */
+  --admin-accent-on-dark: var(--color-bg-primary); /* links on dark surfaces */
   --admin-accent-on-dark-strong: var(--mint); /* hover */
   --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
 
-  /* Categorical accents (badges, section themes) */
-  --admin-accent-blue: #287be8;
-  --admin-accent-green: #1a9e74;
-  --admin-accent-pink: #d1458b;
+  /* Categorical accents (badges, section themes) — from the data chart ramp */
+  --admin-accent-blue: var(--data-chart-1);
+  --admin-accent-green: var(--data-chart-3);
+  --admin-accent-pink: var(--data-chart-4);
   --admin-accent-gold: #d4a017;
 
   /* Navy chrome (sidebar) */
@@ -70,37 +46,37 @@
   --admin-sidebar-ink: #c4cade;
   --admin-sidebar-muted: #6a739a;
 
-  /* Neutrals (cool navy) */
-  --admin-bg: #f4f6fa;
-  --admin-surface: #ffffff;
-  --admin-surface-2: #fbfcfe;             /* thead / zebra / insets */
-  --admin-ink: #1a1f36;                   /* primary text */
-  --admin-ink-2: #4a5068;                 /* secondary text */
-  --admin-muted: #8b91ac;                 /* tertiary / labels */
-  --admin-faint: #b0b6cc;                 /* disabled / hints */
-  --admin-line: #e4e7f0;
-  --admin-line-soft: #eef0f6;
-  --admin-line-strong: #d8dce8;
+  /* Neutrals — re-rooted onto the data layer */
+  --admin-bg: var(--data-canvas);
+  --admin-surface: var(--data-surface);
+  --admin-surface-2: var(--data-surface-2); /* thead / zebra / insets */
+  --admin-ink: var(--data-ink);           /* primary text */
+  --admin-ink-2: var(--data-ink-2);       /* secondary text */
+  --admin-muted: var(--data-muted);       /* tertiary / labels */
+  --admin-faint: var(--data-faint);       /* disabled / hints */
+  --admin-line: var(--data-line);
+  --admin-line-soft: var(--data-line-soft);
+  --admin-line-strong: var(--data-line-strong);
 
-  /* Radii */
-  --admin-radius: 12px;                   /* cards / surfaces */
-  --admin-radius-sm: 8px;                 /* buttons / inputs (default) */
-  --admin-radius-xs: 6px;                 /* chips / small controls */
+  /* Radii — re-rooted onto the data layer */
+  --admin-radius: var(--data-radius);     /* cards / surfaces */
+  --admin-radius-sm: var(--data-btn-radius); /* buttons / inputs (default) */
+  --admin-radius-xs: var(--data-radius-sm);  /* chips / small controls */
   --admin-radius-pill: 9999px;            /* badges / avatars */
 
-  /* Shadows (navy-tinted) */
-  --admin-shadow: 0 1px 2px rgba(4, 16, 45, 0.06), 0 1px 3px rgba(4, 16, 45, 0.08);
-  --admin-shadow-md: 0 6px 24px rgba(4, 16, 45, 0.10);
-  --admin-shadow-drawer: -24px 0 80px rgba(4, 16, 45, 0.28);
-  --admin-shadow-modal: 0 24px 80px rgba(4, 16, 45, 0.32);
+  /* Shadows — overlay elevation from the data layer (resting cards stay flat) */
+  --admin-shadow: var(--data-elevation-1);
+  --admin-shadow-md: var(--data-elevation-2);
+  --admin-shadow-drawer: var(--data-elevation-drawer);
+  --admin-shadow-modal: var(--data-elevation-modal);
 
-  /* Status tokens */
-  --admin-ok-bg: #d8f3e8; --admin-ok-ink: #157a5a;
-  --admin-warn-bg: #fbf0cf; --admin-warn-ink: #8a6a0f;
-  --admin-err-bg: #fde4e4; --admin-err-ink: #b0332f;
-  --admin-info-bg: #e2ecfd; --admin-info-ink: #1d6ad4;
+  /* Status tokens — re-rooted onto the data layer */
+  --admin-ok-bg: var(--data-ok-bg); --admin-ok-ink: var(--data-ok-ink);
+  --admin-warn-bg: var(--data-warn-bg); --admin-warn-ink: var(--data-warn-ink);
+  --admin-err-bg: var(--data-err-bg); --admin-err-ink: var(--data-err-ink);
+  --admin-info-bg: var(--data-info-bg); --admin-info-ink: var(--data-info-ink);
   --admin-pink-bg: #fbe6f1; --admin-pink-ink: #b03571;
-  --admin-muted-bg: #eef0f6; --admin-muted-ink: #5c6178;
+  --admin-muted-bg: var(--data-line-soft); --admin-muted-ink: #5c6178;
 }
 
 .admin-shell a,

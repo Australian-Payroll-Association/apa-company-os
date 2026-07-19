@@ -1,4 +1,13 @@
 import { companyOs } from "@/lib/supabase";
+import {
+  STAGE_LEAD,
+  STAGE_NEUTRAL,
+  STAGE_DISCOVERY,
+  STAGE_PROPOSAL,
+  STAGE_WON,
+  STAGE_LOST,
+  STAGE_HANDOFF,
+} from "@/lib/admin/stageColors";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
@@ -13,10 +22,10 @@ export const metadata = {
 };
 
 const STAGE_ACCENT: Record<number, string> = {
-  0: "var(--admin-accent)",
-  1: "#6b7194",
-  2: "#D1458B",
-  3: "#f59e0b",
+  0: STAGE_LEAD,
+  1: STAGE_NEUTRAL,
+  2: STAGE_DISCOVERY,
+  3: STAGE_PROPOSAL,
 };
 
 type Stage = { id: string; name: string; position: number; is_won: boolean; is_lost: boolean };
@@ -63,11 +72,11 @@ export default async function DealsPage() {
     .map((s) => ({ id: s.id, name: s.name }));
 
   const columns: KanbanColumn[] = [
-    { id: HANDOFF_COLUMN_ID, label: "New from SDR", accent: "#8b5cf6" },
+    { id: HANDOFF_COLUMN_ID, label: "New from SDR", accent: STAGE_HANDOFF },
     ...stageList.map((s) => ({
       id: s.id,
       label: s.name,
-      accent: s.is_won ? "#1a9e74" : s.is_lost ? "#9ca3af" : STAGE_ACCENT[s.position] ?? "#6b7194",
+      accent: s.is_won ? STAGE_WON : s.is_lost ? STAGE_LOST : STAGE_ACCENT[s.position] ?? STAGE_NEUTRAL,
     })),
   ];
   const firstStageId = stageList[0]?.id ?? "";

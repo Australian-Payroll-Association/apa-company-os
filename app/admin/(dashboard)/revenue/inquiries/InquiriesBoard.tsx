@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
+import {
+  STAGE_LEAD,
+  STAGE_NEUTRAL,
+  STAGE_DISCOVERY,
+  STAGE_PROPOSAL,
+  STAGE_WON,
+  STAGE_LOST,
+} from "@/lib/admin/stageColors";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { humanize, timeAgo } from "@/lib/admin/format";
@@ -23,12 +31,12 @@ export type InquiryCard = {
 };
 
 const COLUMNS: KanbanColumn[] = [
-  { id: "new_lead", label: "New lead", accent: "var(--admin-accent)" },
-  { id: "contacted", label: "Contacted", accent: "#6b7194" },
-  { id: "discovery", label: "Discovery", accent: "#D1458B" },
-  { id: "proposal", label: "Proposal", accent: "#f59e0b" },
-  { id: "won", label: "Won", accent: "#1a9e74" },
-  { id: "lost", label: "Lost", accent: "#9ca3af" },
+  { id: "new_lead", label: "New lead", accent: STAGE_LEAD },
+  { id: "contacted", label: "Contacted", accent: STAGE_NEUTRAL },
+  { id: "discovery", label: "Discovery", accent: STAGE_DISCOVERY },
+  { id: "proposal", label: "Proposal", accent: STAGE_PROPOSAL },
+  { id: "won", label: "Won", accent: STAGE_WON },
+  { id: "lost", label: "Lost", accent: STAGE_LOST },
 ];
 
 export function InquiriesBoard({ initialCards }: { initialCards: InquiryCard[] }) {
