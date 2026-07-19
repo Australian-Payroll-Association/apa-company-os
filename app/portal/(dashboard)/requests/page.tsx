@@ -35,7 +35,7 @@ export default async function PortalRequestsPage() {
   ]);
 
   return (
-    <>
+    <div style={{ maxWidth: 880 }}>
       <PageHead
         eyebrow="Client Portal"
         title="Requests"
@@ -81,16 +81,16 @@ export default async function PortalRequestsPage() {
           </Link>
         </div>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
-          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Full-time hire — Vietnam</h2>
+          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Build Your Team</h2>
           <p className="admin-page-sub" style={{ marginTop: 0 }}>
-            Request a dedicated full-time team member. Pick a role and experience level for a rate estimate.
+            Hire dedicated full-time team members in Vietnam. Pick roles and experience for a budget estimate. 10% off for 3 or more.
           </p>
           <Link
             href="/portal/requests/hire"
             className="admin-btn admin-btn--primary"
             style={{ marginTop: "auto", paddingTop: 12, alignSelf: "flex-start" }}
           >
-            Get a rate estimate
+            Build your team
           </Link>
         </div>
       </div>
@@ -146,6 +146,6 @@ export default async function PortalRequestsPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

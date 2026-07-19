@@ -1,12 +1,12 @@
 import { requirePortalMember } from "@/lib/portal-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { HireEstimatorForm } from "./HireEstimatorForm";
+import { TeamBuilderForm } from "./TeamBuilderForm";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Full-Time Hire — Vietnam",
-  description: "Estimate the rate for a full-time Edge8 team member based in Vietnam.",
+  title: "Build Your Team",
+  description: "Build a full-time team of Edge8 members based in Vietnam and estimate the budget.",
 };
 
 export default async function HireRequestPage() {
@@ -16,21 +16,19 @@ export default async function HireRequestPage() {
     .map((m) => ({ id: m.companyId as string, name: m.companyName ?? "Your company" }));
 
   return (
-    <>
+    <div style={{ maxWidth: 680 }}>
       <PageHead
         eyebrow="Client Portal · Requests"
-        title="Full-time hire — Vietnam"
-        sub="Pick a role and experience level for a rate estimate, then tell us the tech stack you need."
+        title="Build Your Team"
+        sub="Add each role you want, pick experience and tech stack, and see your estimated budget. Build a team of 3 or more for 10% off."
       />
-      <div style={{ maxWidth: 640 }}>
-        {companies.length === 0 ? (
-          <div className="admin-empty">
-            Your portal access isn&apos;t linked to a company yet — reply to your Edge8 contact to fix this.
-          </div>
-        ) : (
-          <HireEstimatorForm companies={companies} />
-        )}
-      </div>
-    </>
+      {companies.length === 0 ? (
+        <div className="admin-empty">
+          Your portal access isn&apos;t linked to a company yet. Reply to your Edge8 contact to fix this.
+        </div>
+      ) : (
+        <TeamBuilderForm companies={companies} />
+      )}
+    </div>
   );
 }
