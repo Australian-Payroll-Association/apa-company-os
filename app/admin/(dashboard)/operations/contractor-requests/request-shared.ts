@@ -1,8 +1,9 @@
 // Shared row type + select for the contractor work-requests list. The people
-// embed uses an explicit FK hint (two FKs would break a bare embed at runtime).
+// embeds use explicit FK hints (two people FKs would break a bare embed at
+// runtime); requester/client_company only exist on portal-origin rows.
 
 export const REQUEST_SELECT =
-  "id, person_id, title, brief, access_token, status, estimated_hours, plan_text, estimate_submitted_at, decided_by, decided_at, actual_hours, actual_overtime_hours, work_summary, work_link, work_submitted_at, accepted_by, accepted_at, payment_id, created_by, created_at, people!person_id(full_name, email)";
+  "id, person_id, title, brief, access_token, status, estimated_hours, plan_text, estimate_submitted_at, decided_by, decided_at, actual_hours, actual_overtime_hours, work_summary, work_link, work_submitted_at, accepted_by, accepted_at, payment_id, created_by, created_at, origin, client_company_id, requested_by_person_id, people!person_id(full_name, email), requester:people!requested_by_person_id(full_name, email), client_company:companies!client_company_id(name)";
 
 export type RequestRow = {
   id: string;
@@ -26,10 +27,18 @@ export type RequestRow = {
   payment_id: string | null;
   created_by: string;
   created_at: string;
+  origin: "admin" | "portal";
+  client_company_id: string | null;
+  requested_by_person_id: string | null;
   people:
     | { full_name: string | null; email: string }
     | { full_name: string | null; email: string }[]
     | null;
+  requester:
+    | { full_name: string | null; email: string }
+    | { full_name: string | null; email: string }[]
+    | null;
+  client_company: { name: string | null } | { name: string | null }[] | null;
 };
 
 export type RequestEventRow = {
@@ -45,3 +54,7 @@ export type RequestEventRow = {
 export const onePerson = (
   e: RequestRow["people"],
 ): { full_name: string | null; email: string } | null => (Array.isArray(e) ? e[0] ?? null : e);
+
+export const oneCompany = (
+  e: RequestRow["client_company"],
+): { name: string | null } | null => (Array.isArray(e) ? e[0] ?? null : e);

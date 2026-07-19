@@ -7,40 +7,20 @@ import { recordAudit } from "@/lib/admin/audit";
 import { newTicketCode } from "@/lib/events-server";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { workRequestPath } from "@/lib/admin/contractors";
-import { sendDecisionEmail, sendWorkRequestEmail } from "@/lib/contractor-notify";
+import { sendWorkRequestEmail } from "@/lib/contractor-notify";
+import {
+  addWorkEvent,
+  applyCancel,
+  applyEstimateDecision,
+  applyWorkDecision,
+  loadWorkRequest,
+} from "@/lib/work-requests";
 import type { RequestEventRow } from "./request-shared";
 
 type Result = { ok: true } | { ok: false; error: string };
 
 function refresh() {
   revalidatePath("/admin/operations/contractor-requests");
-}
-
-async function loadRequest(id: string) {
-  const { data, error } = await companyOs
-    .from("contractor_work_requests")
-    .select("id, person_id, title, status, access_token, people!person_id(full_name, email)")
-    .eq("id", id)
-    .maybeSingle();
-  if (error || !data) return null;
-  const people = data.people;
-  const person = Array.isArray(people) ? people[0] ?? null : people;
-  return { ...data, person };
-}
-
-async function addEvent(
-  requestId: string,
-  event: { actor_type: "admin" | "contractor" | "system"; actor?: string | null; type: string; body?: string | null; meta?: Record<string, unknown> },
-) {
-  const { error } = await companyOs.from("contractor_work_events").insert({
-    request_id: requestId,
-    actor_type: event.actor_type,
-    actor: event.actor ?? null,
-    type: event.type,
-    body: event.body ?? null,
-    meta: event.meta ?? {},
-  });
-  if (error) console.error("[contractor-requests] event insert failed:", error.message);
 }
 
 // Create a work request and (by default) send it straight to the contractor.
@@ -84,7 +64,7 @@ export async function createWorkRequest(input: {
     .single();
   if (error) return { ok: false, error: error.message };
 
-  await addEvent(data.id, { actor_type: "admin", actor: admin.email, type: "created", body: brief });
+  await addWorkEvent(data.id, { actor_type: "admin", actor: admin.email, type: "created", body: brief });
   await recordAudit({
     table: "contractor_work_requests",
     recordId: data.id,
@@ -116,8 +96,8 @@ export async function createWorkRequest(input: {
 
 // Send (or resend) the request email. Draft → awaiting_estimate.
 export async function sendWorkRequest(id: string): Promise<Result> {
-  const admin = await requireAdmin();
-  const req = await loadRequest(id);
+  await requireAdmin();
+  const req = await loadWorkRequest(id);
   if (!req) return { ok: false, error: "Request not found." };
   if (["rejected", "cancelled", "completed"].includes(req.status))
     return { ok: false, error: "This request is closed." };
@@ -144,35 +124,21 @@ export async function sendWorkRequest(id: string): Promise<Result> {
   return { ok: true };
 }
 
-// Approve / reject / request changes on a submitted estimate. Every decision
-// emails the contractor; "request changes" sends it back for a new estimate.
+// Approve / reject / request changes on a submitted estimate. Transition
+// logic (guards, event, contractor email) lives in lib/work-requests.ts,
+// shared with the portal's client-driven decisions.
 export async function decideEstimate(
   id: string,
   decision: "approved" | "rejected" | "changes_requested",
   note: string,
 ): Promise<Result> {
   const admin = await requireAdmin();
-  const req = await loadRequest(id);
+  const req = await loadWorkRequest(id);
   if (!req) return { ok: false, error: "Request not found." };
-  if (req.status !== "estimate_submitted")
-    return { ok: false, error: "Only submitted estimates can be decided." };
-  if (decision !== "approved" && !note.trim())
-    return { ok: false, error: "Add a note so the contractor knows why." };
 
-  const { error } = await companyOs
-    .from("contractor_work_requests")
-    .update({
-      status: decision,
-      decided_by: admin.email,
-      decided_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  const r = await applyEstimateDecision(req, decision, { actorType: "admin", email: admin.email }, note);
+  if (!r.ok) return r;
 
-  const eventType =
-    decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "info_requested";
-  await addEvent(id, { actor_type: "admin", actor: admin.email, type: eventType, body: note.trim() || null });
   await recordAudit({
     table: "contractor_work_requests",
     recordId: id,
@@ -181,66 +147,28 @@ export async function decideEstimate(
     newData: { status: decision, note: note.trim() || null },
   });
 
-  if (req.person?.email) {
-    await sendDecisionEmail({
-      to: req.person.email,
-      name: req.person.full_name,
-      title: req.title,
-      decision: decision === "changes_requested" ? "info_requested" : decision,
-      note,
-      url: `${getSiteOrigin()}${workRequestPath(req.access_token)}`,
-    });
-  }
-
   refresh();
   return { ok: true };
 }
 
-// Accept submitted work (→ completed, payable at month end) or send it back
-// for revision (→ approved, contractor resubmits).
+// Accept submitted work (→ completed, payable at month end; portal-origin
+// requests also get client-billed) or send it back for revision (→ approved,
+// contractor resubmits).
 export async function decideWork(id: string, decision: "accepted" | "revision", note: string): Promise<Result> {
   const admin = await requireAdmin();
-  const req = await loadRequest(id);
+  const req = await loadWorkRequest(id);
   if (!req) return { ok: false, error: "Request not found." };
-  if (req.status !== "work_submitted")
-    return { ok: false, error: "Only submitted work can be decided." };
-  if (decision === "revision" && !note.trim())
-    return { ok: false, error: "Add a note so the contractor knows what to revise." };
 
-  const patch =
-    decision === "accepted"
-      ? { status: "completed", accepted_by: admin.email, accepted_at: new Date().toISOString() }
-      : { status: "approved" };
-  const { error } = await companyOs
-    .from("contractor_work_requests")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  const r = await applyWorkDecision(req, decision, { actorType: "admin", email: admin.email }, note);
+  if (!r.ok) return r;
 
-  await addEvent(id, {
-    actor_type: "admin",
-    actor: admin.email,
-    type: decision === "accepted" ? "accepted" : "info_requested",
-    body: note.trim() || null,
-  });
   await recordAudit({
     table: "contractor_work_requests",
     recordId: id,
     operation: "update",
     actor: admin.email,
-    newData: { status: patch.status, note: note.trim() || null },
+    newData: { status: decision === "accepted" ? "completed" : "approved", note: note.trim() || null },
   });
-
-  if (req.person?.email) {
-    await sendDecisionEmail({
-      to: req.person.email,
-      name: req.person.full_name,
-      title: req.title,
-      decision: decision === "accepted" ? "accepted" : "revision_requested",
-      note,
-      url: `${getSiteOrigin()}${workRequestPath(req.access_token)}`,
-    });
-  }
 
   refresh();
   return { ok: true };
@@ -248,18 +176,12 @@ export async function decideWork(id: string, decision: "accepted" | "revision", 
 
 export async function cancelWorkRequest(id: string, note: string): Promise<Result> {
   const admin = await requireAdmin();
-  const req = await loadRequest(id);
+  const req = await loadWorkRequest(id);
   if (!req) return { ok: false, error: "Request not found." };
-  if (["rejected", "cancelled", "completed"].includes(req.status))
-    return { ok: false, error: "This request is already closed." };
 
-  const { error } = await companyOs
-    .from("contractor_work_requests")
-    .update({ status: "cancelled", updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  const r = await applyCancel(req, { actorType: "admin", email: admin.email }, note);
+  if (!r.ok) return r;
 
-  await addEvent(id, { actor_type: "admin", actor: admin.email, type: "cancelled", body: note.trim() || null });
   await recordAudit({
     table: "contractor_work_requests",
     recordId: id,
@@ -267,17 +189,6 @@ export async function cancelWorkRequest(id: string, note: string): Promise<Resul
     actor: admin.email,
     newData: { status: "cancelled" },
   });
-
-  if (req.person?.email && req.status !== "draft") {
-    await sendDecisionEmail({
-      to: req.person.email,
-      name: req.person.full_name,
-      title: req.title,
-      decision: "cancelled",
-      note,
-      url: `${getSiteOrigin()}${workRequestPath(req.access_token)}`,
-    });
-  }
 
   refresh();
   return { ok: true };

@@ -29,7 +29,7 @@ export const allWorkflows: Workflow[] = [
   {
     slug: 'monthly-invoicing',
     title: 'Monthly Invoicing',
-    category: 'Revenue',
+    category: 'Operations',
     excerpt:
       'One billing cycle, four dates, zero chasing. Created on the 31st, dated to the 1st, due on the 20th, escalated after.',
     date: '2026-03-20',
@@ -83,11 +83,20 @@ export const allWorkflows: Workflow[] = [
   {
     slug: 'invoice-sync',
     title: 'QuickBooks Invoice Sync',
-    category: 'Revenue',
+    category: 'Operations',
     excerpt:
       'A weekly sync pulls every invoice out of QuickBooks and maps it to the CRM, so revenue truth lives in one place.',
     date: '2026-07-16',
     steps: 4,
+  },
+  {
+    slug: 'monthly-expenses',
+    title: 'Monthly Expense Entry',
+    category: 'Operations',
+    excerpt:
+      'Bank transactions become a categorized finance sheet, the sheet becomes QuickBooks entries, and the P&L confirms the month. Every expense entered, every pass-through billed.',
+    date: '2026-07-18',
+    steps: 8,
   },
   {
     slug: 'monthly-pnl',
@@ -133,5 +142,14 @@ export const allWorkflows: Workflow[] = [
       'Certification earned through submitted proof of real work, challenge by challenge. Attendance proves nothing; artifacts do.',
     date: '2026-07-16',
     steps: 5,
+  },
+  {
+    slug: 'client-work-requests',
+    title: 'Client Work Requests',
+    category: 'Revenue',
+    excerpt:
+      'Clients brief a contractor in the portal, approve the estimate, and accept the finished work. The invoice sends itself the moment they do.',
+    date: '2026-07-18',
+    steps: 6,
   },
 ]

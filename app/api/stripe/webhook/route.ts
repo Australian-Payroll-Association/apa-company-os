@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 import { companyOs } from "@/lib/supabase";
-import { sendEventTicketEmail } from "@/lib/email";
+import { sendEventTicketEmail, sendTransactionalEmail } from "@/lib/email";
+import { notifyOps } from "@/lib/lark";
 import { formatEventDates, ticketPath } from "@/lib/events";
 import { getSiteOrigin } from "@/lib/site-origin";
 
@@ -91,6 +92,11 @@ async function handlePaid(session: Stripe.Checkout.Session) {
     console.warn("[stripe/webhook] no pending order for session", session.id);
   }
 
+  if (session.metadata?.type === "token_pack") {
+    await handleTokenPackPaid(session);
+    return;
+  }
+
   if (session.metadata?.type !== "event_registration") return;
   const registrationId = session.metadata.registration_id;
   if (!registrationId) return;
@@ -127,6 +133,67 @@ async function handlePaid(session: Stripe.Checkout.Session) {
   }
 }
 
+// Human-token pack paid: flip the purchase (guarded pending → paid, so
+// redeliveries no-op), then receipts — client email, accountant email, ops
+// Lark — only on the first flip.
+async function handleTokenPackPaid(session: Stripe.Checkout.Session) {
+  const purchaseId = session.metadata?.token_purchase_id;
+  if (!purchaseId) return;
+
+  const { data: purchase, error } = await companyOs
+    .from("token_purchases")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("id", purchaseId)
+    .eq("status", "pending")
+    .select("id, packs, tokens, amount_cents, company_id, person_id")
+    .maybeSingle();
+  if (error) {
+    console.error("[stripe/webhook] token purchase update failed:", error.message);
+    return;
+  }
+  if (!purchase) return; // redelivery — already flipped
+
+  const [{ data: person }, { data: company }] = await Promise.all([
+    companyOs.from("people").select("full_name, email").eq("id", purchase.person_id).maybeSingle(),
+    companyOs.from("companies").select("name").eq("id", purchase.company_id).maybeSingle(),
+  ]);
+
+  const amountLabel = `$${(purchase.amount_cents / 100).toLocaleString()}`;
+  const toEmail = session.customer_email || person?.email;
+  if (toEmail) {
+    const name = person?.full_name?.split(" ")[0] || "there";
+    await sendTransactionalEmail({
+      to: toEmail,
+      subject: `Your Edge8 human tokens: ${purchase.tokens} hours`,
+      html: `
+        <p>Hi ${name},</p>
+        <p>Thanks — your payment of <strong>${amountLabel}</strong> for ${purchase.packs} ${
+          purchase.packs === 1 ? "pack" : "packs"
+        } (<strong>${purchase.tokens} human tokens</strong>, 1 token = 1 hour of skilled work) is confirmed.</p>
+        <p>Your balance is live in your portal: ${getSiteOrigin()}/portal/tokens</p>
+        <p style="margin-top:24px;">Reply to this email any time to put them to work.</p>
+        <p>Dave and the Edge8 team</p>
+      `.trim(),
+      replyTo: "dave@edge8.co",
+    });
+  }
+  if (process.env.ACCOUNTING_EMAIL) {
+    await sendTransactionalEmail({
+      to: process.env.ACCOUNTING_EMAIL,
+      subject: `Token pack purchase: ${company?.name ?? "client"} — ${amountLabel}`,
+      html: `<p>${company?.name ?? "A client"} bought ${purchase.packs} human-token ${
+        purchase.packs === 1 ? "pack" : "packs"
+      } (${purchase.tokens} tokens) for ${amountLabel} via Stripe. Paid by ${toEmail ?? "unknown"}.</p>`,
+      replyTo: "dave@edge8.co",
+    });
+  }
+  await notifyOps(
+    `🪙 Token packs purchased: ${company?.name ?? "client"} — ${purchase.packs} ${
+      purchase.packs === 1 ? "pack" : "packs"
+    } / ${purchase.tokens} tokens, ${amountLabel}.`,
+  );
+}
+
 async function handleFailed(session: Stripe.Checkout.Session) {
   const { error: orderErr } = await companyOs
     .from("orders")
@@ -134,6 +201,19 @@ async function handleFailed(session: Stripe.Checkout.Session) {
     .eq("stripe_session_id", session.id)
     .eq("status", "pending");
   if (orderErr) console.error("[stripe/webhook] order expire failed:", orderErr.message);
+
+  if (session.metadata?.type === "token_pack") {
+    const purchaseId = session.metadata.token_purchase_id;
+    if (purchaseId) {
+      const { error } = await companyOs
+        .from("token_purchases")
+        .update({ status: "expired" })
+        .eq("id", purchaseId)
+        .eq("status", "pending");
+      if (error) console.error("[stripe/webhook] token purchase expire failed:", error.message);
+    }
+    return;
+  }
 
   if (session.metadata?.type !== "event_registration") return;
   const registrationId = session.metadata.registration_id;

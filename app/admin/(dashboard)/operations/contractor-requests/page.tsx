@@ -14,7 +14,7 @@ import {
   formatHours,
   type WorkRequestStatus,
 } from "@/lib/admin/contractors";
-import { REQUEST_SELECT, onePerson, type RequestRow } from "./request-shared";
+import { REQUEST_SELECT, onePerson, oneCompany, type RequestRow } from "./request-shared";
 import { RequestsShelfProvider, RequestShelfRow } from "./RequestsShelf";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +40,10 @@ export default async function ContractorRequestsPage({ searchParams }: { searchP
   const filters: Record<string, string> = {};
   if (statusParam && (WORK_REQUEST_STATUSES as readonly string[]).includes(statusParam)) {
     filters.status = statusParam;
+  }
+  const originParam = firstParam(searchParams.origin);
+  if (originParam && ["admin", "portal"].includes(originParam)) {
+    filters.origin = originParam;
   }
 
   const { rows, total, pageSize, error } = await listEntity<RequestRow>(
@@ -80,6 +84,16 @@ export default async function ContractorRequestsPage({ searchParams }: { searchP
       key: "contractor",
       header: "Contractor",
       cell: (r) => onePerson(r.people)?.full_name || onePerson(r.people)?.email || "—",
+    },
+    {
+      key: "origin",
+      header: "Origin",
+      cell: (r) =>
+        r.origin === "portal" ? (
+          <Badge tone="info">{oneCompany(r.client_company)?.name || "Portal"}</Badge>
+        ) : (
+          <span className="admin-cell-muted">Admin</span>
+        ),
     },
     {
       key: "status",
@@ -155,6 +169,14 @@ export default async function ContractorRequestsPage({ searchParams }: { searchP
                     value: s,
                     label: WORK_REQUEST_STATUS_LABEL[s],
                   })),
+                },
+                {
+                  key: "origin",
+                  label: "Origin",
+                  options: [
+                    { value: "admin", label: "Admin" },
+                    { value: "portal", label: "Portal (client)" },
+                  ],
                 },
               ]}
             />

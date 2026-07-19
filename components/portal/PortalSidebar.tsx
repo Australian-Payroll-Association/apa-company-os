@@ -24,6 +24,9 @@ type NavItem = { label: string; href: string; ico: string; built?: boolean; enti
 
 const NAV: NavItem[] = [
   { label: "Home", href: "/portal", ico: "◈", built: true },
+  // Requests has no entitlement key on purpose: being a portal member IS the
+  // entitlement to ask for work; all data inside is company-scoped anyway.
+  { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
   { label: "Projects", href: "/portal/projects", ico: "⇉" },

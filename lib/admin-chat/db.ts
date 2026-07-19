@@ -1,6 +1,6 @@
-// Server-only. Restricted SQL executor for the admin database assistant.
+// Server-only. Restricted SQL executors for the admin database assistant.
 //
-// Every query runs through the dedicated `chatbot_reader` Postgres role
+// Reads run through the dedicated `chatbot_reader` Postgres role
 // (supabase/migrations/20260715120000_admin_chatbot_reader.sql), which has
 // USAGE on company_os only and no write grants anywhere. Defense in depth,
 // each layer independently sufficient:
@@ -10,6 +10,14 @@
 //   4. the role's grants make writes, DDL, and other schemas impossible at the
 //      database layer regardless of the SQL text
 //   5. role-level statement_timeout of 5s
+//
+// Writes (privileged admins only, each statement individually approved in the
+// chat UI — see app/api/admin/chat/route.ts) run through `chatbot_writer`
+// (supabase/migrations/20260718200000_admin_chatbot_writer.sql): INSERT and
+// UPDATE on company_os only, no DELETE grant anywhere, people_sensitive
+// revoked, same 5s timeout. Validation here (single INSERT/UPDATE statement,
+// UPDATE must have WHERE) narrows what the model can even propose; the role's
+// grants remain the hard boundary.
 //
 // NEVER import from a client component.
 
@@ -25,10 +33,11 @@ const MAX_QUERY_CHARS = 8_000;
 const BLOCKED_SCHEMA =
   /\b(?:auth|storage|vault|cron|net|extensions|realtime|private|supabase_migrations|company_os_archive|agents)\s*\.\s*"?[a-z_]/i;
 
-// Module-level singleton. CHATBOT_DB_URL points at the Supavisor transaction
-// pooler (port 6543) as chatbot_reader; prepare:false is required in
+// Module-level singletons. Both URLs point at the Supavisor transaction
+// pooler (port 6543) as their respective roles; prepare:false is required in
 // transaction-pool mode.
 let client: ReturnType<typeof postgres> | null = null;
+let writeClient: ReturnType<typeof postgres> | null = null;
 
 function getClient(): ReturnType<typeof postgres> | null {
   if (client) return client;
@@ -39,6 +48,17 @@ function getClient(): ReturnType<typeof postgres> | null {
   }
   client = postgres(url, { max: 3, prepare: false, idle_timeout: 20 });
   return client;
+}
+
+function getWriteClient(): ReturnType<typeof postgres> | null {
+  if (writeClient) return writeClient;
+  const url = process.env.CHATBOT_WRITE_DB_URL;
+  if (!url) {
+    console.warn("admin-chat/db: CHATBOT_WRITE_DB_URL is not set; assistant writes disabled");
+    return null;
+  }
+  writeClient = postgres(url, { max: 2, prepare: false, idle_timeout: 20 });
+  return writeClient;
 }
 
 export type QueryResult =
@@ -87,5 +107,72 @@ export async function runReadOnlyQuery(query: string): Promise<QueryResult> {
     // Postgres errors go back verbatim: the model self-corrects on
     // "column ... does not exist" / "permission denied for ..." feedback.
     return { ok: false, error: (err as Error).message ?? "Query failed" };
+  }
+}
+
+const MAX_RETURNED_ROWS = 50;
+
+export type WriteResult =
+  | {
+      ok: true;
+      command: "insert" | "update";
+      affectedRows: number;
+      rows: Record<string, unknown>[];
+    }
+  | { ok: false; error: string };
+
+// Validates and runs one admin-approved INSERT or UPDATE as chatbot_writer.
+// Only ever called after the privileged admin clicked Approve in the chat UI.
+export async function runApprovedWrite(query: string): Promise<WriteResult> {
+  const sql = getWriteClient();
+  if (!sql) return { ok: false, error: "Database write access is not configured" };
+
+  let q = query.trim();
+  if (q.endsWith(";")) q = q.slice(0, -1).trimEnd();
+
+  if (!q) return { ok: false, error: "Empty statement" };
+  if (q.length > MAX_QUERY_CHARS) {
+    return { ok: false, error: `Statement too long (max ${MAX_QUERY_CHARS} chars)` };
+  }
+  if (q.includes(";")) {
+    return { ok: false, error: "Only a single statement is allowed (no semicolons)" };
+  }
+  const command = /^\s*insert\b/i.test(q)
+    ? ("insert" as const)
+    : /^\s*update\b/i.test(q)
+      ? ("update" as const)
+      : null;
+  if (!command) {
+    return {
+      ok: false,
+      error:
+        "Only a single INSERT or UPDATE statement is allowed. There is no DELETE: archive rows by setting archived_at instead.",
+    };
+  }
+  // No unqualified UPDATE: a missing WHERE would rewrite the whole table. This
+  // is an app-layer guard on the blast radius, not a security boundary.
+  if (command === "update" && !/\bwhere\b/i.test(q)) {
+    return { ok: false, error: "UPDATE must have a WHERE clause." };
+  }
+  if (BLOCKED_SCHEMA.test(q)) {
+    return { ok: false, error: "Statements may only reference the company_os schema." };
+  }
+  // The role has no grants on people_sensitive; reject by name too so the
+  // model gets a clear message instead of a bare permission error.
+  if (/\bpeople_sensitive\b/i.test(q)) {
+    return { ok: false, error: "people_sensitive is off-limits to the assistant." };
+  }
+
+  try {
+    const rows = await sql.unsafe(q);
+    return {
+      ok: true,
+      command,
+      // postgres.js exposes the DML-affected row count on the result array.
+      affectedRows: rows.count ?? rows.length,
+      rows: rows.slice(0, MAX_RETURNED_ROWS) as unknown as Record<string, unknown>[],
+    };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message ?? "Statement failed" };
   }
 }

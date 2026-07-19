@@ -2,7 +2,8 @@
   "crons": [
     { "path": "/api/trip-passport-cleanup", "schedule": "0 3 * * *" },
     { "path": "/api/cron/contractor-payments", "schedule": "0 6 1 * *" },
-    { "path": "/api/cron/probation-reviews", "schedule": "0 7 * * *" }
+    { "path": "/api/cron/probation-reviews", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/qbo-refresh", "schedule": "0 5 * * 1" }
   ],
   "redirects": [
     {

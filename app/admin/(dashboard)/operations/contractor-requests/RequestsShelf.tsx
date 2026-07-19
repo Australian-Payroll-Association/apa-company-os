@@ -20,7 +20,7 @@ import {
   formatHours,
   type WorkRequestStatus,
 } from "@/lib/admin/contractors";
-import { onePerson, type RequestEventRow, type RequestRow } from "./request-shared";
+import { onePerson, oneCompany, type RequestEventRow, type RequestRow } from "./request-shared";
 import { cancelWorkRequest, decideEstimate, decideWork, listRequestEvents, sendWorkRequest } from "./actions";
 
 const ShelfContext = createContext<{ open: (row: RequestRow) => void } | null>(null);
@@ -221,8 +221,17 @@ function RequestShelfBody({ row, onClose }: { row: RequestRow; onClose: () => vo
         <div className="admin-shelf-heading">Details</div>
         <dl className="admin-kv">
           {kv("Contractor", person?.full_name || person?.email)}
+          {kv(
+            "Requested by",
+            row.origin === "portal"
+              ? `${onePerson(row.requester)?.full_name || onePerson(row.requester)?.email || row.created_by} · ${
+                  oneCompany(row.client_company)?.name || "client"
+                } (portal)`
+              : null,
+          )}
           {kv("Status", <Badge tone={workRequestTone(status)}>{WORK_REQUEST_STATUS_LABEL[status] ?? status}</Badge>)}
           {kv("Created", `${formatDate(row.created_at)} by ${row.created_by}`)}
+          {kv("Decided by", row.decided_by && row.origin === "portal" ? row.decided_by : null)}
           {kv(
             "Contractor link",
             <a href={workRequestPath(row.access_token)} target="_blank" rel="noreferrer">

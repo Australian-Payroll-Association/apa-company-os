@@ -57,6 +57,10 @@ export type PortalActor = {
   // Set iff an admin is viewing this actor's portal via Assume. Every /portal
   // page renders a banner when this is present (app/portal/(dashboard)/layout.tsx).
   impersonation: PortalImpersonation | null;
+  // True when an admin set a temporary password on this account
+  // (user_metadata.must_change_password). The /portal layout forces a redirect
+  // to /portal/change-password until the user picks their own.
+  mustChangePassword: boolean;
 };
 
 function displayNameOf(p: {
@@ -124,6 +128,7 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
     companyScope: [company.id],
     memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: "member" }],
     impersonation: { adminEmail, sessionId: session.id, expiresAt: session.expires_at },
+    mustChangePassword: false,
   };
 }
 
@@ -193,6 +198,7 @@ export async function getPortalActor(): Promise<GetActorResult> {
       companyScope,
       memberships,
       impersonation: null,
+      mustChangePassword: user.user_metadata?.must_change_password === true,
     },
   };
 }

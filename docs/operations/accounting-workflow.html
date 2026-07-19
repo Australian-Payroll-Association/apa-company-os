@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monthly Expense Entry | Edge8 Workflows</title>
+<style>
+  :root {
+    --blue: #287BE8;
+    --blue-glow: rgba(40,123,232,0.15);
+    --mint: #6FF2C1;
+    --dark: #101014;
+    --white: #FFFFFF;
+    --tint: #EAEEF2;
+    --tint-deep: #D4DAE4;
+    --body-text: #797c82;
+    --card-border: #E6E6E6;
+    --grey-mid: #6B7280;
+    --grey-light: #9CA3AF;
+    --font-display: 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
+    --radius: 20px;
+    --wf-green: #2FBF71;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--white); color: var(--dark); font-family: var(--font-body); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+  a { color: var(--blue); text-decoration: none; transition: color 0.2s ease; }
+  a:hover { color: #1D6AD4; }
+  h1, h2 { font-weight: 400; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  .section { padding: 72px 0; }
+  .section-label { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--body-text); background: var(--tint); border-radius: 40px; padding: 4px 12px; margin-bottom: 16px; }
+  .section-title { font-family: var(--font-display); font-size: 34px; font-weight: 600; line-height: 1.2; color: var(--dark); }
+  .section-sub { font-size: 17px; color: var(--body-text); line-height: 1.7; max-width: 640px; margin-top: 12px; }
+
+  /* Hero */
+  .wf-hero { background: var(--dark); position: relative; overflow: hidden; padding: 96px 0 64px; }
+  .wf-hero::before { content: ''; position: absolute; top: -200px; right: -100px; width: 600px; height: 600px; background: radial-gradient(circle, var(--blue-glow) 0%, transparent 65%); pointer-events: none; }
+  .wf-hero-inner { position: relative; z-index: 1; }
+  .wf-hero .section-title { color: var(--white); font-size: 44px; max-width: 720px; }
+  .wf-hero-sub { font-size: 18px; color: rgba(255,255,255,0.7); margin-top: 16px; max-width: 640px; line-height: 1.7; }
+  .wf-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 20px; }
+  .wf-hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .wf-meta-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.18); border-radius: 40px; padding: 5px 14px; }
+  .wf-meta-chip strong { color: var(--mint); font-weight: 600; }
+
+  /* Actor chips */
+  .wf-actor { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; border-radius: 40px; padding: 3px 11px; white-space: nowrap; }
+  .wf-actor::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .wf-actor-human { background: rgba(16,16,20,0.08); color: var(--dark); }
+
+  /* Timeline diagram */
+  .wf-timeline { margin-top: 56px; position: relative; }
+  .wf-tl-track { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+  .wf-tl-track::before { content: ''; position: absolute; top: 34px; left: 12%; right: 12%; height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--blue) 0%, var(--blue) 66%, var(--wf-green) 100%); }
+  .wf-tl-stop { position: relative; text-align: center; padding: 0 10px; }
+  .wf-tl-day { width: 68px; height: 68px; border-radius: 50%; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: var(--white); border: 2px solid var(--blue); position: relative; z-index: 1; margin-bottom: 14px; }
+  .wf-tl-day strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--dark); line-height: 1; }
+  .wf-tl-day span { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--grey-light); margin-top: 2px; }
+  .wf-tl-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--dark); margin-bottom: 6px; }
+  .wf-tl-desc { font-size: 14px; color: var(--body-text); line-height: 1.55; max-width: 220px; margin: 0 auto; }
+
+  /* Step cards */
+  .wf-steps { display: flex; flex-direction: column; gap: 20px; margin-top: 40px; }
+  .wf-step { display: grid; grid-template-columns: 72px 1fr; gap: 24px; background: var(--white); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 32px; }
+  .wf-step-num { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1; color: var(--tint-deep); }
+  .wf-step-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .wf-step-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--dark); }
+  .wf-step-cadence { font-size: 13px; color: var(--grey-mid); }
+  .wf-step-body { font-size: 15px; color: var(--body-text); line-height: 1.7; }
+  .wf-step-body ul { margin: 10px 0 0; padding-left: 20px; }
+  .wf-step-body li { margin-bottom: 6px; }
+  .wf-step-body li::marker { color: var(--blue); }
+  .wf-step-body strong { color: var(--dark); font-weight: 600; }
+
+  /* Footer */
+  .wf-detail-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; margin-top: 64px; border-top: 1px solid var(--tint); padding-top: 32px; }
+  .wf-detail-foot a.wf-back { color: var(--grey-mid); font-size: 15px; }
+  .wf-detail-foot a.wf-back:hover { color: var(--blue); }
+
+  .tint-section { background: var(--tint); }
+
+  @media (max-width: 900px) {
+    .wf-hero .section-title { font-size: 34px; }
+    .wf-tl-track { grid-template-columns: 1fr; gap: 28px; }
+    .wf-tl-track::before { display: none; }
+    .wf-tl-stop { display: grid; grid-template-columns: 68px 1fr; gap: 18px; text-align: left; align-items: start; }
+    .wf-tl-day { margin-bottom: 0; }
+    .wf-tl-titlewrap { padding-top: 6px; }
+    .wf-tl-desc { margin: 0; max-width: none; }
+    .wf-step { grid-template-columns: 1fr; gap: 8px; padding: 24px; }
+    .wf-step-num { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- Hero -->
+  <section class="wf-hero">
+    <div class="container">
+      <div class="wf-hero-inner">
+        <div class="wf-breadcrumb">
+          <span>Workflows</span><span>/</span><span>Operations</span><span>/</span><span>Internal</span>
+        </div>
+        <h1 class="section-title">Monthly Expense Entry</h1>
+        <p class="wf-hero-sub">The steps to create every expense entry in QuickBooks each month: Vietnam bank transactions to the finance tracking sheet to QuickBooks, then the US sheet, then verification against the P&amp;L. For the rules, exceptions, and vendor treatments, see the <a href="accounting-training-guide.html" style="color: var(--mint);">training guide</a>.</p>
+        <div class="wf-hero-meta">
+          <span class="wf-meta-chip">Source of truth <strong>QuickBooks</strong></span>
+          <span class="wf-meta-chip">Payment account <strong>Checking 2058</strong></span>
+          <span class="wf-meta-chip">Cadence <strong>Monthly</strong></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Diagram -->
+  <section class="section" style="padding-bottom: 48px;">
+    <div class="container">
+      <span class="section-label">The cycle</span>
+      <h2 class="section-title">One close, four beats</h2>
+      <p class="section-sub">The close starts and ends with the P&amp;L. In between, expenses are entered in two passes: Vietnam first, then US.</p>
+      <div class="wf-timeline">
+        <div class="wf-tl-track">
+          <div class="wf-tl-stop">
+            <div class="wf-tl-day"><strong>1</strong><span>Orient</span></div>
+            <div class="wf-tl-titlewrap">
+              <div class="wf-tl-title">P&amp;L first</div>
+              <p class="wf-tl-desc">Run the P&amp;L and compare to prior months before entering anything.</p>
+            </div>
+          </div>
+          <div class="wf-tl-stop">
+            <div class="wf-tl-day"><strong>2</strong><span>Vietnam</span></div>
+            <div class="wf-tl-titlewrap">
+              <div class="wf-tl-title">Bank to sheet to QuickBooks</div>
+              <p class="wf-tl-desc">Break down the bank transactions, fill the finance tracking sheet, enter in QuickBooks.</p>
+            </div>
+          </div>
+          <div class="wf-tl-stop">
+            <div class="wf-tl-day"><strong>3</strong><span>US</span></div>
+            <div class="wf-tl-titlewrap">
+              <div class="wf-tl-title">One entry per vendor</div>
+              <p class="wf-tl-desc">Itemize the US expense sheet into QuickBooks, one expense entry per vendor.</p>
+            </div>
+          </div>
+          <div class="wf-tl-stop">
+            <div class="wf-tl-day"><strong>4</strong><span>Verify</span></div>
+            <div class="wf-tl-titlewrap">
+              <div class="wf-tl-title">Reconcile and spot check</div>
+              <p class="wf-tl-desc">Check pass-throughs against invoices, run the P&amp;L again, flag anything weird.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Steps -->
+  <section class="section tint-section">
+    <div class="container">
+      <span class="section-label" style="background: var(--white);">Step by step</span>
+      <h2 class="section-title">Creating the expense entries</h2>
+      <div class="wf-steps">
+
+        <div class="wf-step">
+          <div class="wf-step-num">01</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Run the P&amp;L first</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+              <span class="wf-step-cadence">Start of close</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Run the P&amp;L and compare the month to prior months. The business barely changes, so any line that moved is either real news or an entry error. Note every inconsistency to resolve during the close.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">02</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Break down the Vietnam bank transactions</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+            </div>
+            <div class="wf-step-body">
+              <p>From the Vietnam bank transactions, separate out:</p>
+              <ul>
+                <li><strong>Payroll</strong></li>
+                <li><strong>Social insurance</strong> payments</li>
+                <li><strong>PIT</strong> (personal income tax) payments</li>
+                <li>Everything remaining is <strong>other expenses</strong></li>
+              </ul>
+              <p style="margin-top: 10px;">Then label which expenses belong to <strong>AIO</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">03</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Fill in the finance tracking sheet</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Open the <a href="https://edge8company.sg.larksuite.com/wiki/D7KuwVxFEiXHxfkIhj8ldAeegcb?sheet=QAXynP">finance tracking sheet</a> and fill the columns: <strong>payroll</strong>, <strong>social insurance</strong>, <strong>PIT</strong>, <strong>other expenses</strong>. Then break up the Edge8 expenses:</p>
+              <ul>
+                <li><strong>Staffing</strong></li>
+                <li><strong>Operations</strong></li>
+                <li><strong>Edge8 expenses</strong></li>
+                <li><strong>Whatever is left over = AI program contractors</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">04</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">The AIO conversation</span>
+              <span class="wf-actor wf-actor-human">Human + Dave</span>
+              <span class="wf-step-cadence">Every month</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Agree the AIO expense allocation with Dave before entering it. This includes Dave's speaking fees. Do not enter AIO numbers without this conversation.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">05</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Create the Vietnam entries in QuickBooks</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+            </div>
+            <div class="wf-step-body">
+              <ul>
+                <li>One expense entry for the Vietnam total from the finance tracking sheet</li>
+                <li>One entry per Edge8 category: staffing, operations, Edge8 expenses, AI program contractors</li>
+                <li>All entries are direct payments from checking 2058</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">06</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Create the US entries in QuickBooks</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+              <span class="wf-step-cadence">Sheet from Dave</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Take the US expense sheet Dave provides and create <strong>one expense entry per vendor</strong>. Be careful to categorize <strong>Project Expenses (pass-through)</strong> vs <strong>direct expenses</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">07</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Check pass-throughs against invoices</span>
+              <span class="wf-actor wf-actor-human">Human</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Project Expenses must match invoices on pass-through income. Report every mismatch; do not absorb it. Invoices come from the monthly invoicing workflow, which runs separately.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-step">
+          <div class="wf-step-num">08</div>
+          <div>
+            <div class="wf-step-head">
+              <span class="wf-step-title">Run the P&amp;L again and spot check</span>
+              <span class="wf-actor wf-actor-human">Human + Dave</span>
+              <span class="wf-step-cadence">End of close</span>
+            </div>
+            <div class="wf-step-body">
+              <p>Run the P&amp;L and spot-check month-over-month consistency. Flag anything weird for a conversation with Dave; never fix silently.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="wf-detail-foot">
+        <a class="wf-back" href="accounting-training-guide.html">Training guide: rules, exceptions, and vendor treatments →</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

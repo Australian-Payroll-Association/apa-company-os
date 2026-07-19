@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/t/'],
+        disallow: ['/api/', '/t/', '/workflows/private/'],
       },
     ],
     sitemap: 'https://www.edge8.ai/sitemap.xml',

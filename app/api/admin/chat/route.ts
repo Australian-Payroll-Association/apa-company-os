@@ -1,19 +1,33 @@
-// Admin database assistant: streaming, read-only tool-use agent loop.
+// Admin database assistant: streaming tool-use agent loop.
 //
 // The client POSTs the full messages array (echoed back from the previous
 // turn's `done` event, plus the new user turn) — the server is stateless.
-// SSE events: {type: "text" | "tool" | "error" | "done"}. `done` carries the
-// updated messages array for the client to echo next turn.
+// SSE events: {type: "text" | "tool" | "approval" | "error" | "done"}. `done`
+// carries the updated messages array for the client to echo next turn.
 //
 // query_database executes immediately under the restricted chatbot_reader role
-// (lib/admin-chat/db.ts). There are no write tools: this assistant is read-only.
+// (lib/admin-chat/db.ts). Privileged admins (lib/admin-chat/privileged.ts)
+// also get execute_write and send_email — those NEVER execute inline. When the
+// model calls one, the turn ends with an `approval` event (the messages array
+// ends on that pending tool_use) and the widget shows Approve/Cancel. The next
+// POST carries `decision`; only then does the action run (or a declined
+// tool_result go back) and the loop continue. The approver and the request
+// author are the same authenticated privileged admin, so the client echoing
+// the pending tool_use back is not a trust problem — the tools' absence for
+// everyone else is enforced here by the isPrivilegedChatUser gate.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/admin-auth";
 import { runReadOnlyQuery } from "@/lib/admin-chat/db";
-import { chatbotTools } from "@/lib/admin-chat/tools";
+import { chatbotTools, PRIVILEGED_TOOL_NAMES } from "@/lib/admin-chat/tools";
 import { buildSystemPrompt } from "@/lib/admin-chat/system-prompt";
+import { isPrivilegedChatUser } from "@/lib/admin-chat/privileged";
+import {
+  performApprovedWrite,
+  performApprovedEmail,
+  performApprovedPortalInvite,
+} from "@/lib/admin-chat/actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,8 +41,11 @@ const MAX_MESSAGES = 24;
 type SseEvent =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; detail: string }
+  | { type: "approval"; id: string; name: string; input: Record<string, unknown> }
   | { type: "error"; error: string }
   | { type: "done"; messages: Anthropic.MessageParam[] };
+
+type Decision = { toolUseId: string; approved: boolean };
 
 // Cap the payload the client echoes back: blank out tool_result contents in
 // all but the last few messages (the model rarely needs old query rows), and
@@ -62,6 +79,31 @@ function trimMessages(messages: Anthropic.MessageParam[]): Anthropic.MessagePara
   return out;
 }
 
+// The pending privileged tool_use a decision refers to: the last message must
+// be an assistant turn whose ONLY tool_use is execute_write or send_email
+// (that is the exact shape the loop below pauses on).
+function getPendingToolUse(
+  messages: Anthropic.MessageParam[],
+): Anthropic.ToolUseBlock | null {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "assistant" || !Array.isArray(last.content)) return null;
+  const toolUses = last.content.filter(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  if (toolUses.length !== 1 || !PRIVILEGED_TOOL_NAMES.has(toolUses[0].name)) return null;
+  return toolUses[0];
+}
+
+async function runPrivilegedTool(
+  tu: Anthropic.ToolUseBlock,
+  adminEmail: string,
+): Promise<{ ok: boolean; resultForModel: string; chipDetail: string }> {
+  const input = tu.input as Record<string, unknown>;
+  if (tu.name === "execute_write") return performApprovedWrite(input, adminEmail);
+  if (tu.name === "invite_portal_member") return performApprovedPortalInvite(input, adminEmail);
+  return performApprovedEmail(input, adminEmail);
+}
+
 export async function POST(request: NextRequest) {
   const user = await getAdminUser();
   if (!user) {
@@ -74,7 +116,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { messages?: Anthropic.MessageParam[] };
+  let body: { messages?: Anthropic.MessageParam[]; decision?: Decision };
   try {
     body = await request.json();
   } catch {
@@ -85,8 +127,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "messages is required" }, { status: 400 });
   }
 
-  const tools = chatbotTools();
-  const system = buildSystemPrompt({ userEmail: user.email });
+  const canWrite = isPrivilegedChatUser(user.email);
+
+  // A decision must come from a privileged admin and match the pending
+  // tool_use at the tail of the conversation.
+  const decision = body.decision;
+  const pending = decision ? getPendingToolUse(messages) : null;
+  if (decision && (!canWrite || !pending || pending.id !== decision.toolUseId)) {
+    return NextResponse.json({ error: "No matching pending action" }, { status: 400 });
+  }
+
+  const tools = chatbotTools({ canWrite });
+  const system = buildSystemPrompt({ userEmail: user.email, canWrite });
   const client = new Anthropic();
   const encoder = new TextEncoder();
 
@@ -97,6 +149,32 @@ export async function POST(request: NextRequest) {
       };
 
       try {
+        // Resolve the pending approval first: run (or decline) the action and
+        // hand the tool_result to the model, then fall into the normal loop.
+        if (decision && pending) {
+          let result: Anthropic.ToolResultBlockParam;
+          if (decision.approved) {
+            const outcome = await runPrivilegedTool(pending, user.email);
+            if (outcome.ok) {
+              send({ type: "tool", name: pending.name, detail: outcome.chipDetail });
+            }
+            result = {
+              type: "tool_result",
+              tool_use_id: pending.id,
+              content: outcome.resultForModel,
+              is_error: !outcome.ok,
+            };
+          } else {
+            result = {
+              type: "tool_result",
+              tool_use_id: pending.id,
+              content:
+                "The admin declined this action. Do not retry it as-is; ask what they would like to change.",
+            };
+          }
+          messages.push({ role: "user", content: [result] });
+        }
+
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           const msgStream = client.messages.stream({
             model: MODEL,
@@ -115,6 +193,26 @@ export async function POST(request: NextRequest) {
           const toolUses = msg.content.filter(
             (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
           );
+
+          // A lone privileged tool call pauses the turn for approval. The
+          // pending tool_use stays unanswered at the tail of `messages`; the
+          // widget's Approve/Cancel POSTs the decision that resolves it.
+          if (
+            canWrite &&
+            toolUses.length === 1 &&
+            PRIVILEGED_TOOL_NAMES.has(toolUses[0].name)
+          ) {
+            const tu = toolUses[0];
+            send({
+              type: "approval",
+              id: tu.id,
+              name: tu.name,
+              input: tu.input as Record<string, unknown>,
+            });
+            send({ type: "done", messages: trimMessages(messages) });
+            return;
+          }
+
           const results: Anthropic.ToolResultBlockParam[] = [];
 
           for (const tu of toolUses) {
@@ -139,6 +237,15 @@ export async function POST(request: NextRequest) {
                     })
                   : res.error,
                 is_error: !res.ok,
+              });
+            } else if (canWrite && PRIVILEGED_TOOL_NAMES.has(tu.name)) {
+              // Reached only when the call came bundled with other tool calls
+              // (the lone-call case paused above).
+              results.push({
+                type: "tool_result",
+                tool_use_id: tu.id,
+                content: `${tu.name} must be the only tool call in a turn. Finish your reads first, then call it alone.`,
+                is_error: true,
               });
             } else {
               results.push({

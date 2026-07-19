@@ -40,19 +40,28 @@ export async function listGalleryPhotos(): Promise<GalleryPhoto[]> {
   return (data ?? []) as GalleryPhoto[];
 }
 
-export async function recentGalleryPhotos(limit: number): Promise<GalleryPhoto[]> {
-  const { data } = await companyOs
-    .from("gallery_photos")
-    .select(SELECT)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as GalleryPhoto[];
+// Fisher–Yates. The home page renders per-request (force-dynamic), so a plain
+// Math.random here is what makes the collage rotate on every load.
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// A fresh random draw from the whole gallery on every load. The table is small
+// (admin-curated), so shuffling in memory beats a DB-side random order.
+export async function randomGalleryPhotos(limit: number): Promise<GalleryPhoto[]> {
+  const { data } = await companyOs.from("gallery_photos").select(SELECT);
+  return shuffle((data ?? []) as GalleryPhoto[]).slice(0, limit);
 }
 
 export type CollageAvatar = { id: string; name: string; avatarUrl: string | null };
 
-// Current team members for the home collage; those with a photo come first so
-// the band is mostly faces, not initials.
+// A random draw of current team members for the home collage; members with a
+// photo fill the band first so it's faces, not initials.
 export async function collageAvatars(limit: number): Promise<CollageAvatar[]> {
   const { data } = await companyOs
     .from("team_members")
@@ -64,9 +73,9 @@ export async function collageAvatars(limit: number): Promise<CollageAvatar[]> {
     const p = Array.isArray(raw) ? raw[0] ?? null : raw;
     return { id: r.id as string, name: p?.preferred_name || p?.full_name || "?", avatarUrl: p?.avatar_url ?? null };
   });
-  const withAvatar = rows.filter((r) => r.avatarUrl);
-  const pool = withAvatar.length >= limit ? withAvatar : [...withAvatar, ...rows.filter((r) => !r.avatarUrl)];
-  return pool.slice(0, limit);
+  const withAvatar = shuffle(rows.filter((r) => r.avatarUrl));
+  const withoutAvatar = shuffle(rows.filter((r) => !r.avatarUrl));
+  return [...withAvatar, ...withoutAvatar].slice(0, limit);
 }
 
 // Photos upload straight from the browser to storage so there's no serverless

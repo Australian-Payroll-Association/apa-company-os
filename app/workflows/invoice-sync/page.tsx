@@ -28,7 +28,7 @@ export default function InvoiceSyncWorkflowPage() {
   return (
     <main>
       <WorkflowHero
-        category="Revenue"
+        category="Operations"
         title="QuickBooks Invoice Sync"
         tldr="A weekly sync pulls every invoice out of QuickBooks and maps it to the CRM, so revenue truth lives in one place. The books stay the source of truth; the CRM stays current without anyone copying numbers."
         meta={[

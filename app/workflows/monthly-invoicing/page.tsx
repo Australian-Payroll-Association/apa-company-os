@@ -27,7 +27,7 @@ export default function MonthlyInvoicingWorkflowPage() {
   return (
     <main>
       <WorkflowHero
-        category="Revenue"
+        category="Operations"
         title="Monthly Invoicing"
         tldr="One billing cycle, four dates, zero chasing. Invoices are created on the 31st, dated forward to the 1st, due on the 20th, and escalated the moment they slip."
         meta={[
