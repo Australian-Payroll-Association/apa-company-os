@@ -492,38 +492,38 @@ export default function HomePage() {
             <Link href="/blog" className="text-link">View All Posts →</Link>
           </div>
           <div className="blog-layout">
-            <Link href="/post/2026-ai-trends-5-game-changing-shifts-that-will-define-business-success" className="blog-featured reveal">
+            <Link href="/post/the-other-50-percent-of-leadership" className="blog-featured reveal">
               <div className="blog-featured-visual">
-                <Image src="/homepage/images/blog-posts/2026 AI Trends- 5 Game-Changing Shifts That Will Define Business Success.jpg" alt="2026 AI Trends: 5 Game-Changing Shifts That Will Define Business Success" width={600} height={338} />
+                <Image src="/blog/images/the-other-50-percent-of-leadership.webp" alt="The Other 50% of Leadership" width={600} height={338} />
               </div>
               <div className="blog-featured-body">
-                <h3 className="blog-featured-title">2026 AI Trends: 5 Game-Changing Shifts That Will Define Business Success</h3>
-                <p className="blog-excerpt">The companies that will win in 2026 are not the ones with the best AI tools. They are the ones with the best data. Five trends that will define the next year.</p>
+                <h3 className="blog-featured-title">The Other 50% of Leadership</h3>
+                <p className="blog-excerpt">AI-era leadership now needs a second skill set: workflow design, information architecture, and writing instructions for AI. Here is how to build it.</p>
                 <span className="blog-more">Read Article →</span>
               </div>
             </Link>
             <div className="blog-stack">
-              <Link href="/post/your-next-ai-hire-isnt-a-person" className="blog-item reveal">
-                <Image src="/homepage/images/blog-posts/Your Next AI Hire Isnt a Person.jpg" alt="Your Next AI Hire Isn't a Person" width={80} height={80} className="blog-item-thumb" />
+              <Link href="/post/ai-program-vs-ai-tool" className="blog-item reveal">
+                <Image src="/blog/images/ai-program-vs-ai-tool.webp" alt="AI Program vs AI Tool" width={80} height={80} className="blog-item-thumb" />
                 <div className="blog-item-body">
-                  <h4 className="blog-item-title">Your Next AI Hire Isn&apos;t a Person</h4>
-                  <p className="blog-item-excerpt">Most companies don&apos;t fail at AI because of the tech. They fail because no one owns it.</p>
+                  <h4 className="blog-item-title">AI Program vs AI Tool: I Built a Real One, and the Number Stung</h4>
+                  <p className="blog-item-excerpt">Most companies buy AI tools when they need an AI program built on their own data.</p>
                 </div>
                 <span className="blog-item-arrow">→</span>
               </Link>
-              <Link href="/post/why-smart-founders-are-already-planning-for-meta-ray-ban-glasses-even-when-demos-fail" className="blog-item reveal">
-                <Image src="/homepage/images/blog-posts/Why Smart Founders Are Already Planning for Meta Ray-Ban Glasses (Even When Demos Fail).jpg" alt="Meta Ray-Ban Glasses" width={80} height={80} className="blog-item-thumb" />
+              <Link href="/post/why-grok-4-s-success-proves-strategic-ai-planning-beats-first-mover-advantage" className="blog-item reveal">
+                <Image src="/blog/images/why-grok-4-s-success-proves-strategic-ai-planning-beats-first-mover-advantage.webp" alt="Why Grok 4's Success Proves Strategic AI Planning Beats First-Mover Advantage" width={80} height={80} className="blog-item-thumb" />
                 <div className="blog-item-body">
-                  <h4 className="blog-item-title">Why Smart Founders Are Already Planning for Meta Ray-Ban Glasses</h4>
-                  <p className="blog-item-excerpt">Technology always catches up. The question is whether you&apos;re truly ready when it does.</p>
+                  <h4 className="blog-item-title">Why Grok 4&apos;s Success Proves Strategic AI Planning Beats First-Mover Advantage</h4>
+                  <p className="blog-item-excerpt">Grok 4&apos;s breakthrough validates a fundamental principle: strategic patience beats early market entry.</p>
                 </div>
                 <span className="blog-item-arrow">→</span>
               </Link>
-              <Link href="/post/ai-in-data-migration-why-your-ai-program-is-really-a-data-problem" className="blog-item reveal">
-                <Image src="/homepage/images/blog-posts/AI in Data Migration- Why Your AI Program Is Really a Data Problem.jpg" alt="AI in Data Migration" width={80} height={80} className="blog-item-thumb" />
+              <Link href="/post/elon-musk-twitter-data-strategy-ai-play" className="blog-item reveal">
+                <Image src="/blog/images/elon-musk-twitter-data-strategy-ai-play.jpeg" alt="Elon Musk's Twitter Data Strategy: AI Lessons for Leaders" width={80} height={80} className="blog-item-thumb" />
                 <div className="blog-item-body">
-                  <h4 className="blog-item-title">AI in Data Migration: Why Your AI Program Is Really a Data Problem</h4>
-                  <p className="blog-item-excerpt">AI in Data Migration isn&apos;t a technology problem. It&apos;s a data strategy challenge.</p>
+                  <h4 className="blog-item-title">Elon Musk&apos;s Twitter Data Strategy: AI Lessons for Leaders</h4>
+                  <p className="blog-item-excerpt">Musk didn&apos;t buy a social platform. He bought the world&apos;s largest human-curated index of the web.</p>
                 </div>
                 <span className="blog-item-arrow">→</span>
               </Link>
