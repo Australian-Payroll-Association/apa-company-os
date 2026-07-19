@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works — Edge8 × Rentwest</title>
+<style>
+  :root {
+    --ink: #16263D;
+    --ink-soft: #3E4E62;
+    --muted: #647688;
+    --paper: #F4F6F8;
+    --surface: #FFFFFF;
+    --line: #E2E7EC;
+    --accent: #1C7A6B;
+    --accent-soft: #E5F1EE;
+    --accent-ink: #12564B;
+    --shadow: 0 1px 2px rgba(20,38,61,.05), 0 8px 24px rgba(20,38,61,.06);
+    --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E9EEF3;
+      --ink-soft: #B8C3CF;
+      --muted: #8A98A8;
+      --paper: #0D1521;
+      --surface: #16212E;
+      --line: #27333F;
+      --accent: #55C5AF;
+      --accent-soft: #143028;
+      --accent-ink: #83DBC8;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.32);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 68px 0 40px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 20px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(38px, 7vw, 60px); line-height: 1.02; letter-spacing: -.01em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+  .lede {
+    font-family: var(--font-display); font-size: clamp(18px, 2.6vw, 22px);
+    color: var(--ink-soft); max-width: 34em; margin: 0 0 28px; line-height: 1.45;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--muted);
+  }
+  .meta b { color: var(--ink-soft); font-weight: 500; }
+
+  .intro { padding: 40px 0 8px; font-size: 17px; color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---------- Section frame ---------- */
+  section { padding-top: 56px; }
+  .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+  }
+  h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(26px, 4vw, 34px); line-height: 1.1; letter-spacing: -.01em;
+    margin: 0 0 28px; text-wrap: balance;
+  }
+
+  /* ---------- Concerns ---------- */
+  .concerns { display: flex; flex-direction: column; gap: 16px; }
+  .concern {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 24px 26px; box-shadow: var(--shadow);
+  }
+  .concern-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
+  .num {
+    font-family: var(--font-mono); font-size: 13px; color: var(--accent);
+    font-weight: 600; flex: none; padding-top: 2px;
+  }
+  .concern-q {
+    font-family: var(--font-display); font-size: 20px; line-height: 1.3;
+    color: var(--ink); margin: 0; font-weight: 600;
+  }
+  .concern-who {
+    display: inline-block; font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+    margin-top: 6px;
+  }
+  .solution {
+    margin: 16px 0 0; padding-left: 18px; border-left: 2px solid var(--accent);
+  }
+  .solution .label {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent-ink); display: block; margin-bottom: 5px;
+  }
+  .solution p { margin: 0; color: var(--ink-soft); font-size: 16px; }
+  .solution p + p { margin-top: 10px; }
+  .solution strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Timeline ---------- */
+  .timeline { position: relative; list-style: none; margin: 8px 0 0; padding: 0; }
+  .timeline::before {
+    content: ""; position: absolute; left: 17px; top: 8px; bottom: 20px;
+    width: 2px; background: var(--line);
+  }
+  .stage {
+    position: relative; display: grid; grid-template-columns: 36px 1fr;
+    gap: 20px; padding-bottom: 34px;
+  }
+  .stage:last-child { padding-bottom: 0; }
+  .node {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--surface);
+    border: 2px solid var(--accent); color: var(--accent);
+    display: grid; place-items: center; font-family: var(--font-mono);
+    font-weight: 600; font-size: 14px; z-index: 1; box-shadow: var(--shadow);
+  }
+  .stage.start .node { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+  .stage-body { padding-top: 3px; }
+  .stage-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; margin-bottom: 4px; }
+  .stage-head h3 {
+    font-family: var(--font-display); font-size: 21px; font-weight: 600;
+    color: var(--ink); margin: 0; line-height: 1.2;
+  }
+  .week {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .04em;
+    color: var(--accent-ink); background: var(--accent-soft);
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .stage-note { color: var(--muted); font-size: 14.5px; margin: 0 0 10px; }
+  .substeps { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .substeps li { position: relative; padding-left: 20px; color: var(--ink-soft); font-size: 15.5px; }
+  .substeps li::before {
+    content: ""; position: absolute; left: 2px; top: 9px; width: 7px; height: 7px;
+    border-radius: 50%; border: 1.5px solid var(--accent); background: transparent;
+  }
+  .substeps li .hint { color: var(--muted); font-size: 13.5px; }
+
+  /* ---------- Closing ---------- */
+  .closing {
+    margin-top: 60px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 16px; padding: 34px 32px; box-shadow: var(--shadow);
+  }
+  .closing h2 { margin-bottom: 14px; }
+  .closing p { color: var(--ink-soft); margin: 0 0 12px; max-width: 58ch; }
+  .signoff {
+    margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line);
+    font-family: var(--font-mono); font-size: 13px; color: var(--muted);
+  }
+  .signoff b { color: var(--ink); font-weight: 500; }
+
+  @media (max-width: 540px) {
+    .concern { padding: 20px; }
+    .stage { gap: 14px; grid-template-columns: 32px 1fr; }
+    .node { width: 32px; height: 32px; font-size: 13px; }
+    .timeline::before { left: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Prepared for Rentwest</p>
+    <h1>How it works</h1>
+    <p class="lede">We build your production application in parallel with the business you run today, and over 90 days your team learns to run and extend it.</p>
+    <div class="meta">
+      <span>For <b>Ellen &amp; Kevin</b></span>
+      <span>From <b>Edge8</b></span>
+      <span><b>19 July 2026</b></span>
+    </div>
+  </header>
+
+  <p class="intro">You asked sharp questions when we met today. Here is exactly how we work, what we do, and what you own at the end. First the concerns you raised and how each one is solved. Then the plan, week by week.</p>
+
+  <section aria-labelledby="c-title">
+    <p class="kicker">What we heard, and how we solve it</p>
+    <h2 id="c-title">Your questions, answered</h2>
+
+    <div class="concerns">
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">01</span>
+          <div>
+            <p class="concern-q">How will we learn to build and make updates?</p>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>You get <strong>admin tools to update your own site</strong>, and you begin learning how to use <strong>Claude Code</strong> within your stack. To accelerate that, you can come to Vietnam for an <strong>Infinite Leverage Retreat</strong>.</p>
+        </div>
+      </article>
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">02</span>
+          <div>
+            <p class="concern-q">We are not technical.</p>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>We do the heavy lifting. We build a production-grade application and configure your full stack. Over <strong>90 days</strong> you learn to build workflows and turn them into new features for your clients, leaning on our team's human expertise to harden the code and make sure it is production ready.</p>
+        </div>
+      </article>
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">03</span>
+          <div>
+            <p class="concern-q">We are not a startup. This is an extension of our business.</p>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>Understood, and we build for exactly that. The new application is built <strong>in parallel</strong> while you keep working with what you have today. We onboard one customer first, then all of them. Once customers are on the platform, every change follows a strict <strong>Build, then Stage &amp; Review, then Deploy</strong> process. A standard <strong>SDLC (Software Delivery Life Cycle)</strong>.</p>
+        </div>
+      </article>
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">04</span>
+          <div>
+            <p class="concern-q">Are you throwing away our prototypes?</p>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>No. We fully leverage them. Your prototypes become the blueprint we use to write the <strong>production-quality code</strong>.</p>
+        </div>
+      </article>
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">05</span>
+          <div>
+            <p class="concern-q">Our business is complex.</p>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>We are confident here. We have handled complex problems at the highest levels. The complexity gets solved through a series of conversations and by exploring your prototypes. It gets <strong>better</strong> along the way, because your tribal knowledge is documented as we go.</p>
+        </div>
+      </article>
+
+      <article class="concern">
+        <div class="concern-head">
+          <span class="num">06</span>
+          <div>
+            <p class="concern-q">Different customers need different data fields.</p>
+            <span class="concern-who">Raised by Kevin</span>
+          </div>
+        </div>
+        <div class="solution">
+          <span class="label">Our solution</span>
+          <p>Agreed. We build a data model that solves <strong>80%</strong> up front, and as needs change we use Claude to extend it. This is exactly why it matters to have people with a solid database design background on the build.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section aria-labelledby="t-title">
+    <p class="kicker">The plan, week by week</p>
+    <h2 id="t-title">From signed deal to every customer live</h2>
+
+    <ol class="timeline">
+
+      <li class="stage start">
+        <div class="node">1</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Sign the deal</h3><span class="week">Start</span></div>
+          <p class="stage-note">We agree to work together and lock the dates.</p>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">2</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Discovery call</h3><span class="week">Week 1</span></div>
+          <p class="stage-note">We learn your business.</p>
+          <ul class="substeps">
+            <li><strong>Define</strong> the core problems to solve.</li>
+            <li><strong>Data.</strong> Figure out what information is needed to solve those problems.</li>
+            <li><strong>Design</strong> the workflows, making sure we have captured the jobs to be done. <span class="hint">(Harvard "Jobs to be Done" framework.)</span></li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">3</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Edge8 team plans</h3><span class="week">Week 1</span></div>
+          <ul class="substeps">
+            <li>Document the program plan.</li>
+            <li>Database design.</li>
+            <li>Workflow diagrams.</li>
+            <li>Review with Ellen and Kevin.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">4</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Scaffold the project</h3><span class="week">Week 2</span></div>
+          <ul class="substeps">
+            <li>Code repository. <span class="hint">GitHub</span></li>
+            <li>Code deployment. <span class="hint">Vercel</span></li>
+            <li>Database. <span class="hint">Supabase</span></li>
+            <li>Claude Code connection.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">5</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Edge8 team builds</h3><span class="week">Weeks 2 to 4</span></div>
+          <ul class="substeps">
+            <li>Rapidly develop the first prototype with daily builds.</li>
+            <li>Stakeholder review, then iterate.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">6</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Roll out customer one</h3><span class="week">1 to 2 weeks</span></div>
+          <ul class="substeps">
+            <li>Interview and observe the first customer in real use.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="stage">
+        <div class="node">7</div>
+        <div class="stage-body">
+          <div class="stage-head"><h3>Roll out the remaining customers</h3><span class="week">1 week</span></div>
+          <ul class="substeps">
+            <li>Bring the rest of your customers onto the platform.</li>
+          </ul>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <section class="closing" aria-labelledby="n-title">
+    <p class="kicker">What happens next</p>
+    <h2 id="n-title">You keep running. We start building.</h2>
+    <p>Nothing you rely on today changes. The moment the deal is signed, we book your Week 1 discovery call and lock your retreat dates. You keep serving your customers on what you have, while we build the production application alongside it.</p>
+    <p>By the end, you own a production-grade platform, a documented record of your business, and a team that can extend it.</p>
+    <p><strong>A note on timing.</strong> We currently have 7 proposals out. We can take <strong>1 new engagement in August</strong> and <strong>2 in September</strong>.</p>
+    <div class="signoff">Prepared by <b>Edge8</b> &middot; For <b>Rentwest</b> &middot; 19 July 2026</div>
+  </section>
+</div>
+
+</body>
+</html>
