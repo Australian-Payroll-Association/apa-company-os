@@ -2,7 +2,6 @@
 // ever called from app/api/admin/chat/route.ts AFTER the privileged admin
 // clicked Approve on the exact payload in the chat UI.
 
-import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "@/lib/admin/audit";
 import { sendTransactionalEmail } from "@/lib/email";
 import { invitePortalMemberCore, resendPortalLinkCore } from "@/lib/admin/portal-invite";
@@ -122,50 +121,22 @@ export async function performApprovedEmail(
     return fail(`Body is required (max ${MAX_BODY_CHARS} chars).`);
   }
 
+  // sendTransactionalEmail logs every accepted send to interactions (matched
+  // to the person by email); the metadata below marks it as chatbot-sent.
   const sent = await sendTransactionalEmail({
     to,
     subject,
     html: bodyToHtml(body),
     replyTo: adminEmail,
+    logMeta: { source: "admin_chatbot", sent_by: adminEmail },
   });
   if (!sent) {
     return fail("The email provider did not accept the send. Do not retry blindly.");
   }
 
-  // CRM trail: log the send as an outbound interaction, attached to the person
-  // if the address matches one. Best-effort — a logging failure never undoes a
-  // send that already happened.
-  let personId: string | null = null;
-  try {
-    const { data } = await companyOs
-      .from("people")
-      .select("id")
-      .eq("email", to)
-      .is("archived_at", null)
-      .maybeSingle();
-    personId = data?.id ?? null;
-    const { error } = await companyOs.from("interactions").insert({
-      kind: "email",
-      subject,
-      body,
-      person_id: personId,
-      occurred_at: new Date().toISOString(),
-      metadata: { source: "admin_chatbot", to, sent_by: adminEmail },
-    });
-    if (error) console.error("admin-chat: interaction log failed:", error.message);
-  } catch (err) {
-    console.error("admin-chat: interaction log failed:", err);
-  }
-
   return {
     ok: true,
-    resultForModel: JSON.stringify({
-      sent: true,
-      to,
-      subject,
-      loggedToInteractions: true,
-      matchedPersonId: personId,
-    }),
+    resultForModel: JSON.stringify({ sent: true, to, subject, loggedToInteractions: true }),
     chipDetail: to,
   };
 }

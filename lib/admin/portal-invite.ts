@@ -150,13 +150,35 @@ export async function invitePortalMemberCore(
       authUserId = existing.id;
       message = "Linked existing account and enabled portal access.";
     } else {
-      // Server-side invite → implicit-flow link (session in the URL hash);
-      // lands on /portal/callback, which reads the hash and establishes the
-      // session. See app/portal/(auth)/callback/page.tsx.
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(t.email, {
-        redirectTo: `${siteOrigin()}/portal/callback`,
+      // Mint the account and get the invite token WITHOUT letting Supabase
+      // email a raw one-time verify link: corporate email scanners prefetch
+      // links and consume the token before the person ever clicks (this
+      // burned the first Doxa invite). Instead we email our own message
+      // pointing at /portal/verify, which only redeems the token_hash when
+      // the recipient clicks the sign-in button on that page.
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: "invite",
+        email: t.email,
+        options: { redirectTo: `${siteOrigin()}/portal/callback` },
       });
-      if (error || !data?.user) return { ok: false, error: error?.message ?? "Invite failed to send." };
+      const tokenHash = data?.properties?.hashed_token;
+      if (error || !data?.user || !tokenHash) {
+        return { ok: false, error: error?.message ?? "Invite could not be created." };
+      }
+      const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=invite`;
+      const sent = await sendTransactionalEmail({
+        to: t.email,
+        subject: "Your Edge8 Client Portal access",
+        html: `
+          <p>Hi,</p>
+          <p>You've been given access to the <strong>Edge8 Client Portal</strong>.</p>
+          <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Open the Client Portal</a></p>
+          <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, request a fresh one at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a> or reply to this email.</p>
+          <p>Dave and the Edge8 team</p>
+        `.trim(),
+        logMeta: { source: "portal_invite" },
+      });
+      if (!sent) return { ok: false, error: "Invite created but the email failed to send." };
       authUserId = data.user.id;
       message = "Invite sent.";
     }
@@ -194,26 +216,31 @@ export async function resendPortalLinkCore(
 
   if (!t.authUserId) return { ok: false, error: "Not invited yet — use Invite instead." };
 
+  // token_hash + /portal/verify instead of the raw action_link: the raw link
+  // is a one-time GET that email security scanners consume before the person
+  // clicks. The verify page only redeems the token on a button press.
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email: t.email,
     options: { redirectTo: `${siteOrigin()}/portal/callback` },
   });
-  const actionLink = data?.properties?.action_link;
-  if (error || !actionLink) {
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) {
     return { ok: false, error: error?.message ?? "Could not generate a sign-in link." };
   }
+  const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=magiclink`;
 
-  await sendTransactionalEmail({
+  const sent = await sendTransactionalEmail({
     to: t.email,
     subject: "Your Edge8 Client Portal sign-in link",
     html: `
       <p>Here is your sign-in link for the Edge8 Client Portal:</p>
-      <p><a href="${actionLink}">Sign in to the Edge8 Client Portal</a></p>
-      <p>The link expires shortly. If it does, you can request a fresh one any
-      time at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a>.</p>
+      <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Sign in to the Client Portal</a></p>
+      <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, you can request a fresh one any time at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a>.</p>
     `,
+    logMeta: { source: "portal_resend" },
   });
+  if (!sent) return { ok: false, error: "The sign-in email failed to send." };
 
   await recordAudit({
     table: "portal_members",
