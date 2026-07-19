@@ -5,34 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How It Works — Edge8 × Rentwest</title>
 <style>
+  /* Edge8 brand palette — committed to light mode (Edge8 is a light-mode brand) */
   :root {
-    --ink: #16263D;
-    --ink-soft: #3E4E62;
-    --muted: #647688;
-    --paper: #F4F6F8;
-    --surface: #FFFFFF;
-    --line: #E2E7EC;
-    --accent: #1C7A6B;
-    --accent-soft: #E5F1EE;
-    --accent-ink: #12564B;
-    --shadow: 0 1px 2px rgba(20,38,61,.05), 0 8px 24px rgba(20,38,61,.06);
+    color-scheme: light;
+    --ink: #101014;          /* Near Black — headings, strong text */
+    --ink-soft: #3D4046;     /* body copy */
+    --muted: #797C82;        /* Body Gray — subtitles, captions, hints */
+    --paper: #EAEEF2;        /* Light Cool Gray — page ground */
+    --surface: #FFFFFF;      /* White — cards */
+    --line: #E6E6E6;         /* Card border */
+    --accent: #287BE8;       /* Electric Blue — links, structure, highlights */
+    --accent-soft: #E7F0FC;  /* Electric Blue wash */
+    --accent-ink: #1657AE;   /* text on blue wash */
+    --mint: #6FF2C1;         /* Mint Green — decorative badge accent only */
+    --mint-ink: #0C3A2B;     /* text on mint */
+    --shadow: 0 1px 2px rgba(16,16,20,.04), 0 8px 24px rgba(16,16,20,.06);
     --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #E9EEF3;
-      --ink-soft: #B8C3CF;
-      --muted: #8A98A8;
-      --paper: #0D1521;
-      --surface: #16212E;
-      --line: #27333F;
-      --accent: #55C5AF;
-      --accent-soft: #143028;
-      --accent-ink: #83DBC8;
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.32);
-    }
   }
 
   * { box-sizing: border-box; }
@@ -90,7 +80,7 @@
   /* ---------- Concerns ---------- */
   .concerns { display: flex; flex-direction: column; gap: 16px; }
   .concern {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
     padding: 24px 26px; box-shadow: var(--shadow);
   }
   .concern-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
@@ -144,7 +134,7 @@
   }
   .week {
     font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .04em;
-    color: var(--accent-ink); background: var(--accent-soft);
+    color: var(--mint-ink); background: var(--mint);
     padding: 3px 10px; border-radius: 999px; white-space: nowrap;
   }
   .stage-note { color: var(--muted); font-size: 14.5px; margin: 0 0 10px; }
@@ -159,7 +149,7 @@
   /* ---------- Closing ---------- */
   .closing {
     margin-top: 60px; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; padding: 34px 32px; box-shadow: var(--shadow);
+    border-radius: 20px; padding: 34px 32px; box-shadow: var(--shadow);
   }
   .closing h2 { margin-bottom: 14px; }
   .closing p { color: var(--ink-soft); margin: 0 0 12px; max-width: 58ch; }
@@ -173,7 +163,7 @@
   .stack-lede { font-size: 17px; color: var(--ink-soft); max-width: 60ch; margin: 0 0 24px; }
   .stack-fig {
     margin: 0; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; padding: 24px 20px; box-shadow: var(--shadow);
+    border-radius: 20px; padding: 24px 20px; box-shadow: var(--shadow);
   }
   .stack-fig svg { width: 100%; height: auto; display: block; }
   .stack-fig text { font-family: var(--font-sans); }
