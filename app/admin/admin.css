@@ -524,6 +524,12 @@ a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
   gap: 16px;
   margin-bottom: 28px;
 }
+/* Fixed 2-up variant for a small, known set of action cards (e.g. the portal
+   Requests page's 4 options) rather than however many fit at the 212px floor. */
+.mp-kpi-grid--2up { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 640px) {
+  .mp-kpi-grid--2up { grid-template-columns: 1fr; }
+}
 .mp-kpi {
   background: var(--admin-surface);
   border: 1px solid var(--admin-line);
