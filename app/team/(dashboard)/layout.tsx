@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireTeamMember } from "@/lib/team-auth";
 import { TeamSidebar } from "@/components/team/TeamSidebar";
+import { TeamChatWidget } from "@/components/team/TeamChatWidget";
 import "../../admin/admin.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default async function TeamDashboardLayout({
     <div className="admin-shell">
       <TeamSidebar name={actor.displayName} role={actor.role} isAdmin={actor.isAdmin} />
       <main className="admin-main">{children}</main>
+      <TeamChatWidget />
     </div>
   );
 }
