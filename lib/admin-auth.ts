@@ -51,17 +51,27 @@ export async function isAdminEmail(email: string | null | undefined): Promise<bo
 }
 
 // Returns the signed-in admin, or null if not signed in / not allowlisted.
-// Uses getUser() (revalidates the JWT against Supabase) — not getSession() — so
-// a forged or expired cookie cannot pass.
+//
+// Reads the session LOCALLY (getSession, no network hop). Authentication is
+// revalidated against GoTrue by middleware.ts, which runs auth.getUser() on
+// every matched /admin request (incl. RSC loads and server-action POSTs) and
+// bounces anything invalid to /admin/login BEFORE this gate runs — so a forged
+// or revoked cookie never reaches here. getSession() also returns null once the
+// JWT expires, so an expired cookie can't pass either. The authoritative
+// admins-table authorization check below is unchanged and still enforced here.
+//
+// COUPLING: this trusts middleware for the network revalidation. If the
+// middleware matcher stops covering an /admin path, or getUser() is removed from
+// it, restore getUser() here.
 //
 // Wrapped in React cache(): the admin layout, the page, and any server component
-// that calls requireAdmin() during one render share a single resolve instead of
-// each re-running getUser() (a network round-trip) + the admins lookup.
+// that calls requireAdmin() during one render share a single resolve.
 export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   const supabase = createSessionClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   const email = user?.email?.toLowerCase();
   if (!user || !email || !(await isAdminEmail(email))) return null;
   return { id: user.id, email };

@@ -140,9 +140,15 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
 //   - no active portal_members row     -> /portal/login
 export async function getPortalActor(): Promise<GetActorResult> {
   const supabase = createSessionClient();
+  // Local session read (no network hop). middleware.ts revalidates the JWT via
+  // auth.getUser() on every matched /portal request before this gate runs, so a
+  // forged/revoked cookie never reaches here; getSession() returns null once the
+  // token expires. Identity is matched on auth_user_id below. See getAdminUser()
+  // for the full rationale/coupling.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   const email = user?.email?.toLowerCase();
   if (!user || !email) return { actor: null, redirectTo: "/portal/login" };
 
