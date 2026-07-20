@@ -52,7 +52,7 @@ export async function sendDecisionEmail(opts: {
   to: string;
   name: string | null;
   title: string;
-  decision: "approved" | "rejected" | "info_requested" | "revision_requested" | "accepted" | "cancelled";
+  decision: "approved" | "rejected" | "info_requested" | "revision_requested" | "accepted" | "cancelled" | "scope_added";
   note?: string | null;
   url: string;
 }): Promise<boolean> {
@@ -61,6 +61,11 @@ export async function sendDecisionEmail(opts: {
       subject: `Approved: ${opts.title}`,
       body: "Your estimate was <strong>approved</strong> — you're good to start. When the work is done, submit your actual hours and a link to the result on the same page.",
       cta: "Open work request",
+    },
+    scope_added: {
+      subject: `New scope added: ${opts.title}`,
+      body: "The client added scope to this job. Review the added scope below (it's also appended to the brief on the page), then send back an updated estimate that covers the full, expanded scope.",
+      cta: "Update estimate",
     },
     rejected: {
       subject: `Not going ahead: ${opts.title}`,

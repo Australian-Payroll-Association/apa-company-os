@@ -64,6 +64,29 @@ export default function ClientWorkRequestsWorkflowPage() {
         </div>
       </section>
 
+      {/* The scope loop */}
+      <section className="section" style={{ paddingTop: 0, paddingBottom: 48 }}>
+        <div className="container">
+          <span className="section-label">A branch</span>
+          <h2 className="section-title" style={{ fontSize: 34 }}>
+            Adding scope, mid-flight
+          </h2>
+          <p className="section-sub" style={{ marginTop: 12 }}>
+            Work already underway and the client wants more? They add scope right on the same request. They never
+            touch the hours — the added scope goes back to the contractor to re-estimate, and the client approves
+            again before the extra work counts. Same request, same gate, still one invoice at the end.
+          </p>
+          <FlowRail
+            steps={[
+              { num: '3a', title: 'Client Adds Scope', cadence: 'While approved', actor: 'human', actorLabel: 'Client' },
+              { num: '3b', title: 'Contractor Re-Estimates', cadence: 'Same link', actor: 'contractor' },
+              { num: '3c', title: 'Client Approves Again', cadence: 'Same gate', actor: 'human', actorLabel: 'Client' },
+            ]}
+            repeatNote="Rejoins the main loop at ‘Work Submitted’. Scope can grow as many times as the client needs — every addition re-estimates and re-approves."
+          />
+        </div>
+      </section>
+
       {/* Step detail */}
       <section className="section" style={{ background: 'var(--tint)', padding: '72px 0' }}>
         <div className="container">
@@ -161,6 +184,7 @@ export default function ClientWorkRequestsWorkflowPage() {
               <h3>The standing rules</h3>
               <ul>
                 <li>The client decides twice; nothing starts and nothing bills without them</li>
+                <li>Scope can grow mid-flight — every addition re-estimates and re-approves before it counts</li>
                 <li>Our team sees every request but is never a required gate</li>
                 <li>Billing failures flag a human; they never block acceptance</li>
                 <li>Contractor pay runs on its own monthly cycle, untouched by this flow</li>

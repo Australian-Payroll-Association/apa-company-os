@@ -15,6 +15,7 @@ import {
   addWorkEvent,
   applyCancel,
   applyEstimateDecision,
+  applyScopeAddition,
   applyWorkDecision,
   loadWorkRequest,
   type WorkDecider,
@@ -284,6 +285,29 @@ export async function decideWorkForActor(
       operation: "update",
       actor: auditActor(actor),
       newData: { status: decision === "accepted" ? "completed" : "approved", via: "portal" },
+    });
+  }
+  return r;
+}
+
+// Add scope to an in-progress (approved) request. Shared state machine sends
+// it back to the contractor to re-estimate; billing still waits for the client
+// to accept the finished work.
+export async function addScopeForActor(
+  actor: PortalActor,
+  id: string,
+  scope: string,
+): Promise<WorkRequestResult> {
+  const req = await loadOwnedRequest(actor, id);
+  if (!req) return { ok: false, error: "Request not found." };
+  const r = await applyScopeAddition(req, decider(actor), scope);
+  if (r.ok) {
+    await recordAudit({
+      table: "contractor_work_requests",
+      recordId: id,
+      operation: "update",
+      actor: auditActor(actor),
+      newData: { status: "scope_added", via: "portal" },
     });
   }
   return r;

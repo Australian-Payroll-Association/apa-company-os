@@ -9,6 +9,7 @@ export const WORK_REQUEST_STATUSES = [
   "awaiting_estimate",
   "estimate_submitted",
   "changes_requested",
+  "scope_added",
   "approved",
   "rejected",
   "work_submitted",
@@ -22,6 +23,7 @@ export const WORK_REQUEST_STATUS_LABEL: Record<WorkRequestStatus, string> = {
   awaiting_estimate: "Awaiting estimate",
   estimate_submitted: "Estimate submitted",
   changes_requested: "Changes requested",
+  scope_added: "Scope added",
   approved: "Approved",
   rejected: "Rejected",
   work_submitted: "Work submitted",
@@ -42,6 +44,7 @@ export function workRequestTone(status: string): BadgeTone {
       return "warn";
     case "awaiting_estimate":
     case "changes_requested":
+    case "scope_added":
       return "info";
     default:
       return "neutral";

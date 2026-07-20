@@ -27,6 +27,7 @@ const EVENT_LABEL: Record<string, string> = {
   approved: "Estimate approved",
   rejected: "Request declined",
   info_requested: "Changes requested",
+  scope_added: "You added scope",
   work_submitted: "Work delivered",
   accepted: "Work accepted",
   message: "Update",

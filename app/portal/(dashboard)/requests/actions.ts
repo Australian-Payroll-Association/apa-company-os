@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePortalMember } from "@/lib/portal-auth";
 import {
+  addScopeForActor,
   cancelWorkRequestForActor,
   createPortalInquiryForActor,
   createWorkRequestForActor,
@@ -76,6 +77,13 @@ export async function decideWork(id: string, decision: "accepted" | "revision", 
 export async function cancelRequest(id: string, note: string): Promise<Result> {
   const actor = await requirePortalMember();
   const r = await cancelWorkRequestForActor(actor, id, note);
+  if (r.ok) refresh(id);
+  return r;
+}
+
+export async function addScope(id: string, scope: string): Promise<Result> {
+  const actor = await requirePortalMember();
+  const r = await addScopeForActor(actor, id, scope);
   if (r.ok) refresh(id);
   return r;
 }
