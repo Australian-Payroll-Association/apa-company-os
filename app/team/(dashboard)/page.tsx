@@ -4,9 +4,15 @@ import { PageHead } from "@/components/admin/PageHead";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
 import { TeamCollage } from "@/components/team/TeamCollage";
+import { StartHerePanel, bucketForRole } from "@/components/team/StartHerePanel";
 import { randomGalleryPhotos, collageAvatars } from "@/lib/gallery";
+import { allPosts } from "@/lib/postData";
 import { setOnboardingDone } from "./actions";
 import Link from "next/link";
+
+// The core teaching every new hire reads first; the rest of the "Start here"
+// panel is the newest posts by date.
+const CORE_TEACHING_SLUG = "the-other-50-percent-of-leadership";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +125,21 @@ export default async function TeamHome() {
     (profile?.person?.metadata as Record<string, unknown> | null)?.onboarding_completed_at,
   );
 
+  // The "Start here" panel is a first-use state, not a separate page: shown
+  // while the actor is in pre-boarding or probation (employment_stage), then it
+  // drops away once they are confirmed.
+  const isFirstUse =
+    profile?.employmentStage === "pre_boarding" || profile?.employmentStage === "probation";
+  const coreTeaching = allPosts.find((p) => p.slug === CORE_TEACHING_SLUG) ?? null;
+  const recentPosts = [...allPosts]
+    .filter((p) => p.slug !== CORE_TEACHING_SLUG)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 3);
+  const roleBucket = bucketForRole(
+    profile?.positionTitle ?? null,
+    profile?.departmentName ?? null,
+  );
+
   return (
     <>
       <PageHead eyebrow={dateLine} title={`${greeting}, ${actor.displayName}`} sub={heroSub} />
@@ -148,6 +169,14 @@ export default async function TeamHome() {
           <span className="team-glance-value">{profile?.start_date ? formatDate(profile.start_date) : "—"}</span>
         </div>
       </div>
+
+      {isFirstUse && coreTeaching && (
+        <StartHerePanel
+          coreTeaching={coreTeaching}
+          recentPosts={recentPosts}
+          roleBucket={roleBucket}
+        />
+      )}
 
       <h2 className="team-hub-heading">Your workspace</h2>
       <div className="team-hub-grid">
