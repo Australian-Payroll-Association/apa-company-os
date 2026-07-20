@@ -134,17 +134,22 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       .limit(1)
       .maybeSingle();
 
+    let teamMemberId: string | null = null;
     if (existingTm) {
+      teamMemberId = existingTm.id;
       const { error: tmErr } = await companyOs
         .from("team_members")
         .update({ employment_stage: "pre_boarding" })
         .eq("id", existingTm.id);
       if (tmErr) console.error("[onboarding] team_member stage update failed:", tmErr.message);
     } else {
-      const { error: tmErr } = await companyOs
+      const { data: inserted, error: tmErr } = await companyOs
         .from("team_members")
-        .insert({ person_id: personId, status: "pre_start", employment_stage: "pre_boarding" });
+        .insert({ person_id: personId, status: "pre_start", employment_stage: "pre_boarding" })
+        .select("id")
+        .single();
       if (tmErr) console.error("[onboarding] team_member insert failed:", tmErr.message);
+      teamMemberId = inserted?.id ?? null;
     }
     await recordAudit({
       table: "team_members",
@@ -159,9 +164,12 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
     //    addresses, so a direct hire with no application waits for a human.
     if (matchedApplicant) {
       await inviteToTeamPortal(personId, email);
-    } else {
-      await notifyOpsBackfill(personId, input.name, email);
     }
+
+    // 7) Always notify ops that a form came in, with a link straight to the
+    //    profile. No PII in the email itself — the details live behind the
+    //    admin auth wall on that page.
+    await notifyOpsOnboarding(teamMemberId, matchedApplicant);
   } catch (err) {
     console.error("[onboarding] processing failed:", err);
   }
@@ -193,19 +201,30 @@ async function inviteToTeamPortal(personId: string, email: string): Promise<void
   }
 }
 
-async function notifyOpsBackfill(
-  personId: string,
-  name: string | null,
-  email: string,
+// Ops notice on every submission. Deliberately carries NO personal data — no
+// name, email, or any of the restricted fields — only a link to the profile,
+// where the details sit behind admin auth. A direct hire (no application on
+// file) additionally asks ops to backfill the hiring record and send the invite.
+async function notifyOpsOnboarding(
+  teamMemberId: string | null,
+  matchedApplicant: boolean,
 ): Promise<void> {
+  const origin = getSiteOrigin();
+  const link = teamMemberId
+    ? `${origin}/admin/talent/team/${teamMemberId}`
+    : `${origin}/admin/talent/team`;
+  const backfillNote = matchedApplicant
+    ? ""
+    : `<p><strong>No application on file</strong> — this looks like a direct hire. Please backfill the hiring record (department, position, employee number) and send their portal invite from the profile.</p>`;
+
   await sendTransactionalEmail({
     to: OPS_EMAIL,
-    subject: `New onboarding submission — ${name ?? email}`,
+    subject: "New onboarding form submitted",
     html: `
-      <p>A new member completed onboarding but has <strong>no application on file</strong>, so this looks like a direct hire.</p>
-      <p><strong>${name ?? "(no name)"}</strong> &lt;${email}&gt; is now in <strong>pre-boarding</strong>.</p>
-      <p>Please backfill the hiring-side record (department, position, employee number) and send their portal invite from the Team admin when ready.</p>
-      <p style="color:#64748b;font-size:13px;">person_id: ${personId}</p>
+      <p>A new member just completed the onboarding form and is now in <strong>pre-boarding</strong>.</p>
+      ${backfillNote}
+      <p style="margin:20px 0;"><a href="${link}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Open their profile</a></p>
+      <p style="font-size:13px;color:#64748b;">Their details and ID documents are on the profile. Nothing sensitive is included in this email.</p>
     `,
     logMeta: { source: "onboarding" },
   });
