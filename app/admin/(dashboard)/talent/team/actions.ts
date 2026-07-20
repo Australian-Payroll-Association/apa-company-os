@@ -234,10 +234,10 @@ export async function resendPortalInvite(teamMemberId: string): Promise<Result> 
 
   await sendTransactionalEmail({
     to: t.email,
-    subject: "Your Edge8 Workspace sign-in link",
+    subject: "Your Edge8 AI Workspace sign-in link",
     html: `
-      <p>Here is your sign-in link for the Edge8 Workspace:</p>
-      <p><a href="${actionLink}">Sign in to Edge8 Workspace</a></p>
+      <p>Here is your sign-in link for the Edge8 AI Workspace:</p>
+      <p><a href="${actionLink}">Sign in to Edge8 AI Workspace</a></p>
       <p>The link expires shortly. If it does, you can request a fresh one any
       time at <a href="${siteOrigin()}/team/login">${siteOrigin()}/team/login</a>.</p>
     `,
