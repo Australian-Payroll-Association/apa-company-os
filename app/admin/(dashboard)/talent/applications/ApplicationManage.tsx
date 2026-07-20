@@ -8,12 +8,14 @@ import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import {
   addApplicationNote,
+  getApplicationExtras,
   getApplicationNotes,
   getApplicationStages,
   updateApplicantProfile,
   updateApplication,
   uploadApplicationResume,
   type AppNote,
+  type ApplicationExtras,
   type StageOption,
 } from "./actions";
 
@@ -30,8 +32,6 @@ export type AppManageData = {
   currentStageName: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
-  coverLetter: string | null;
-  answers: { q: string; a: string }[];
   resumeDocumentId: string | null;
   // person-side profile (edits write to people)
   email: string | null;
@@ -68,6 +68,7 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
   const [stages, setStages] = useState<StageOption[]>([]);
   const [stagesLoading, setStagesLoading] = useState(true);
+  const [extras, setExtras] = useState<ApplicationExtras | null>(null);
 
   const { form, field, commit, status: saveStatus } = useAutosave<AppFieldForm>(
     {
@@ -97,6 +98,20 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
       live = false;
     };
   }, [app.jobReqId]);
+
+  // Cover letter + answers are large columns kept out of the list payload; load
+  // them when the shelf opens (or switches to another application).
+  useEffect(() => {
+    let live = true;
+    setExtras(null);
+    getApplicationExtras(app.id).then((r) => {
+      if (!live) return;
+      if (r.ok) setExtras(r.extras);
+    });
+    return () => {
+      live = false;
+    };
+  }, [app.id]);
 
   const showRejectionReason = status === "rejected" || rejectionReason.trim() !== "";
 
@@ -221,19 +236,19 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
         {saveStatus.state === "error" && <div className="admin-alert admin-alert--err">{saveStatus.error}</div>}
       </div>
 
-      {(app.coverLetter || app.answers.length > 0) && (
+      {extras && (extras.coverLetter || extras.answers.length > 0) && (
         <div style={{ marginTop: 18 }}>
-          {app.coverLetter && (
+          {extras.coverLetter && (
             <div style={{ marginBottom: 12 }}>
               <div className="admin-label" style={{ marginBottom: 6 }}>
                 Cover letter
               </div>
               <div style={{ whiteSpace: "pre-wrap", borderLeft: "2px solid var(--admin-line-strong)", paddingLeft: 10 }}>
-                {app.coverLetter}
+                {extras.coverLetter}
               </div>
             </div>
           )}
-          {app.answers.map((x, i) => (
+          {extras.answers.map((x, i) => (
             <div key={i} style={{ marginBottom: 12 }}>
               <div className="admin-label" style={{ marginBottom: 6 }}>
                 {x.q}

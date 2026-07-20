@@ -43,6 +43,30 @@ export async function getApplicationStages(
   return { ok: true, stages };
 }
 
+export type ApplicationExtras = { coverLetter: string | null; answers: { q: string; a: string }[] };
+
+// Cover letter + free-form answers are large per-application columns shown only
+// in the manage drawer, so they load lazily on open instead of shipping with the
+// whole applications list (mirrors getApplicationStages / the lazy resume load).
+export async function getApplicationExtras(
+  applicationId: string,
+): Promise<{ ok: true; extras: ApplicationExtras } | { ok: false; error: string }> {
+  await requireAdmin();
+  const { data, error } = await companyOs
+    .from("applications")
+    .select("cover_letter, answers")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  return {
+    ok: true,
+    extras: {
+      coverLetter: (data?.cover_letter as string | null) ?? null,
+      answers: Array.isArray(data?.answers) ? (data.answers as { q: string; a: string }[]) : [],
+    },
+  };
+}
+
 // Only keys present in the patch are written. Rejection reason is its own field,
 // distinct from the notes thread. Moving onto a terminal stage stamps decided_at
 // (the recruiter still sets final status), mirroring moveApplicationStage.

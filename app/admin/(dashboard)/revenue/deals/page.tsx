@@ -12,7 +12,8 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents } from "@/lib/admin/format";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
-import { DealsBoard, HANDOFF_COLUMN_ID, type DealCard, type StageOption } from "./DealsBoard";
+import { DealsBoard, type DealCard, type StageOption } from "./DealsBoard";
+import { HANDOFF_COLUMN_ID } from "./constants";
 
 export const dynamic = "force-dynamic";
 

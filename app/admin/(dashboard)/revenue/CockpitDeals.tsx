@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, humanize } from "@/lib/admin/format";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
-import { DealDetail, type DealCard } from "./deals/DealsBoard";
+import type { DealCard } from "./deals/DealsBoard";
 import { moveDealStage, decideHandoff } from "./deals/actions";
+
+// The cockpit reuses the board's DealDetail drawer but never the board itself,
+// so load it lazily: this keeps @hello-pangea/dnd and the 1754-line DealsBoard
+// module out of the cockpit's first-load JS. The drawer only mounts on a click.
+const DealDetail = dynamic(() => import("./deals/DealsBoard").then((m) => m.DealDetail), {
+  loading: () => <div className="admin-empty">Loading…</div>,
+});
 
 export type CockpitDeal = {
   id: string;

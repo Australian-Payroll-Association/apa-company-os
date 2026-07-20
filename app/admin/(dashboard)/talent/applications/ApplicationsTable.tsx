@@ -27,8 +27,6 @@ export type AppRow = {
   rejectionReason: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
-  coverLetter: string | null;
-  answers: { q: string; a: string }[];
   resumeDocumentId: string | null;
 };
 
@@ -59,8 +57,6 @@ function toManageData(r: AppRow): AppManageData {
     currentStageName: r.stageName,
     appliedAt: r.appliedAt,
     decidedAt: r.decidedAt,
-    coverLetter: r.coverLetter,
-    answers: r.answers,
     resumeDocumentId: r.resumeDocumentId,
     email: r.email,
     phone: r.phone,

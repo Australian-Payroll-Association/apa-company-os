@@ -39,8 +39,6 @@ type RawApp = {
   decided_at: string | null;
   rejection_reason: string | null;
   current_stage_id: string | null;
-  cover_letter: string | null;
-  answers: { q: string; a: string }[] | null;
   resume_document_id: string | null;
   job_requisition_id: string | null;
   person_id: string | null;
@@ -56,7 +54,7 @@ export default async function ApplicationsPage() {
     companyOs
       .from("applications")
       .select(
-        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, cover_letter, answers, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions(title, status), application_stages(name)",
+        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions(title, status), application_stages(name)",
       )
       .order("created_at", { ascending: false })
       .limit(2000),
@@ -91,8 +89,6 @@ export default async function ApplicationsPage() {
       rejectionReason: r.rejection_reason,
       appliedAt: r.applied_at,
       decidedAt: r.decided_at,
-      coverLetter: r.cover_letter,
-      answers: Array.isArray(r.answers) ? r.answers : [],
       resumeDocumentId: r.resume_document_id,
     };
   });

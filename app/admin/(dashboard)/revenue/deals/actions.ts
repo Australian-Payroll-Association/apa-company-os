@@ -208,11 +208,10 @@ export async function reorderDeals(orderedIds: string[]): Promise<Result> {
   await requireAdmin();
   if (orderedIds.length === 0) return { ok: true };
 
-  const results = await Promise.all(
-    orderedIds.map((id, position) => companyOs.from("deals").update({ position }).eq("id", id)),
-  );
-  const failed = results.find((r) => r.error);
-  if (failed?.error) return { ok: false, error: failed.error.message };
+  // One set-based UPDATE (unnest ... WITH ORDINALITY) instead of one round-trip
+  // per card — a full-column drag was previously N HTTP calls.
+  const { error } = await companyOs.rpc("set_deal_positions", { p_ids: orderedIds, p_start: 0 });
+  if (error) return { ok: false, error: error.message };
 
   refresh();
   return { ok: true };
@@ -469,9 +468,8 @@ export async function bulkUpdateDeals(ids: string[], patch: BulkDealPatch): Prom
       .select("id", { count: "exact", head: true })
       .eq("stage_id", updates.stage_id as string)
       .not("id", "in", `(${ids.join(",")})`);
-    await Promise.all(
-      ids.map((id, i) => companyOs.from("deals").update({ position: (existing ?? 0) + i }).eq("id", id)),
-    );
+    // Append after the existing rows in one set-based call, not one per id.
+    await companyOs.rpc("set_deal_positions", { p_ids: ids, p_start: existing ?? 0 });
   }
 
   await recordAuditMany(

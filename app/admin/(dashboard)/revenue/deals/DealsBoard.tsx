@@ -31,8 +31,7 @@ import {
   type Communication,
   type PersonHit,
 } from "./actions";
-
-export const HANDOFF_COLUMN_ID = "handoff";
+import { HANDOFF_COLUMN_ID } from "./constants";
 
 export type StageOption = { id: string; name: string };
 

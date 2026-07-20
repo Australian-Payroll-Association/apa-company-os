@@ -7,7 +7,8 @@ import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
 import { ACTIVE_LEAD_STATUSES } from "@/lib/lifecycle";
 import { CockpitDeals } from "./CockpitDeals";
-import { HANDOFF_COLUMN_ID, type DealCard } from "./deals/DealsBoard";
+import type { DealCard } from "./deals/DealsBoard";
+import { HANDOFF_COLUMN_ID } from "./deals/constants";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 
 export const dynamic = "force-dynamic";
