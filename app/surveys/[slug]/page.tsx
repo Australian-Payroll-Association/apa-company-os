@@ -32,7 +32,7 @@ export default async function PublicSurveyPage({
   const { data } = await companyOs
     .from("surveys")
     .select(
-      "id, slug, name, description, status, is_anonymous, intro_text, thank_you_text, created_at, updated_at, archived_at",
+      "id, slug, name, description, status, is_anonymous, intro_text, thank_you_text, purpose, created_at, updated_at, archived_at",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -61,6 +61,12 @@ export default async function PublicSurveyPage({
   ]);
   const fields = (fieldsRes.data ?? []) as SurveyFieldRow[];
 
+  // Onboarding is for a new hire who is not in the system yet: their identity
+  // must come from what they type, never from whoever's browser session is
+  // active (a logged-in recruiter previewing the link, say). So always collect
+  // name + email and never attribute to the session actor.
+  const isOnboarding = survey.purpose === "onboarding";
+
   return (
     <main className={styles.page}>
       <SurveyRunner
@@ -70,8 +76,8 @@ export default async function PublicSurveyPage({
         thankYouText={survey.thank_you_text}
         isAnonymous={survey.is_anonymous}
         fields={fields}
-        actorName={survey.is_anonymous ? null : actor?.name ?? null}
-        needIdentity={!survey.is_anonymous && !actor}
+        actorName={isOnboarding || survey.is_anonymous ? null : actor?.name ?? null}
+        needIdentity={isOnboarding || (!survey.is_anonymous && !actor)}
         cohort={searchParams?.cohort ?? null}
       />
     </main>

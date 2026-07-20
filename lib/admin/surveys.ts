@@ -71,6 +71,7 @@ export type SurveyRow = {
   is_anonymous: boolean;
   intro_text: string | null;
   thank_you_text: string | null;
+  purpose: string | null;
   created_at: string;
   updated_at: string;
 };

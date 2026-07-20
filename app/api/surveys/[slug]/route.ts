@@ -52,8 +52,11 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     if (answerRows.length === 0)
       return NextResponse.json({ error: "The response is empty." }, { status: 400 });
 
-    // Identity.
-    const actor = await resolveSurveyActor();
+    // Identity. Onboarding is for a new hire not in the system, so we must
+    // resolve them by the email they TYPE, never by a logged-in session (a
+    // recruiter previewing the link would otherwise get mapped as the person).
+    const isOnboarding = surveyData.purpose === "onboarding";
+    const actor = isOnboarding ? null : await resolveSurveyActor();
     let personId: string | null = null;
     let respondentName: string | null = null;
     let respondentEmail: string | null = null;
