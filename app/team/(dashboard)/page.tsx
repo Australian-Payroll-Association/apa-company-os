@@ -14,6 +14,13 @@ import Link from "next/link";
 // panel is the newest posts by date.
 const CORE_TEACHING_SLUG = "the-other-50-percent-of-leadership";
 
+// People allowed to preview the first-use "Start here" panel after they are
+// confirmed (for review/demo). Keyed on the stable person_id like the rest of
+// /team, never on email (see lib/team-auth's identity model).
+const START_HERE_PREVIEW_PERSON_IDS = new Set<string>([
+  "a8bf026f-8c20-49c5-8a55-6fc5c580af64", // Dave Hajdu (dave@edge8.ai)
+]);
+
 export const dynamic = "force-dynamic";
 
 // Portal home. Everything here is self-scoped: the profile is fetched by the
@@ -129,7 +136,9 @@ export default async function TeamHome() {
   // while the actor is in pre-boarding or probation (employment_stage), then it
   // drops away once they are confirmed.
   const isFirstUse =
-    profile?.employmentStage === "pre_boarding" || profile?.employmentStage === "probation";
+    profile?.employmentStage === "pre_boarding" ||
+    profile?.employmentStage === "probation" ||
+    START_HERE_PREVIEW_PERSON_IDS.has(actor.personId);
   const coreTeaching = allPosts.find((p) => p.slug === CORE_TEACHING_SLUG) ?? null;
   const recentPosts = [...allPosts]
     .filter((p) => p.slug !== CORE_TEACHING_SLUG)
