@@ -161,4 +161,13 @@ export const allWorkflows: Workflow[] = [
     date: '2026-07-18',
     steps: 6,
   },
+  {
+    slug: 'performance',
+    title: 'How We Think About Speed',
+    category: 'Innovation',
+    excerpt:
+      'When the product feels slow, we measure before we optimize and prove the win after. A human sets the target and owns the risk; AI finds the real bottleneck and adversarially verifies every fix before it ships.',
+    date: '2026-07-20',
+    steps: 7,
+  },
 ]
