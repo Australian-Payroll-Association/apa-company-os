@@ -86,28 +86,24 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   const m = memberRes.data as DirectoryRow | null;
   if (!m) notFound();
 
-  // Survey responses are keyed by person, not team member. Skip the lookup when
-  // the directory row has no linked person (nothing could be attributed to it).
-  const surveyResponses = m.person_id ? await getPersonSurveyResponses(m.person_id) : [];
-  const [assignments, assignableCompanies] = await Promise.all([
-    getAssignmentsForTeamMember(m.id),
-    listAssignableCompanies(),
-  ]);
-
-  // Avatar + restricted PII are keyed by person, and team_directory carries
-  // neither, so fetch them directly when the row has a linked person.
-  const [avatarRes, sensitive] = await Promise.all([
-    m.person_id
-      ? companyOs.from("people").select("avatar_url").eq("id", m.person_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
-  ]);
+  // Everything below keys only on the now-known directory row (person_id /
+  // auth_user_id / team member id) and nothing depends on anything else here, so
+  // fire it all in one parallel wave instead of four serial ones. Survey
+  // responses, avatar, and PII are person-keyed — skipped when there's no linked
+  // person (nothing could be attributed to the row).
+  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds] =
+    await Promise.all([
+      m.person_id ? getPersonSurveyResponses(m.person_id) : Promise.resolve([]),
+      getAssignmentsForTeamMember(m.id),
+      listAssignableCompanies(),
+      m.person_id
+        ? companyOs.from("people").select("avatar_url").eq("id", m.person_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
+      m.auth_user_id ? getSignedInAuthUserIds([m.auth_user_id]) : Promise.resolve(new Set<string>()),
+    ]);
   const avatarUrl = (avatarRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
-
-  const portalStatus = portalStatusOf(
-    m.auth_user_id,
-    m.auth_user_id ? await getSignedInAuthUserIds([m.auth_user_id]) : new Set<string>(),
-  );
+  const portalStatus = portalStatusOf(m.auth_user_id, signedInIds);
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;

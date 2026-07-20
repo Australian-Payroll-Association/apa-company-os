@@ -70,12 +70,12 @@ async function safe<T>(p: PromiseLike<{ data: T[] | null; error: unknown }>): Pr
 }
 
 export async function getPerson360(id: string): Promise<Person360 | null> {
-  const personRes = await companyOs.from("people").select("*").eq("id", id).maybeSingle();
-  if (personRes.error || !personRes.data) return null;
-  const person = personRes.data as Person;
-
-  const [leadRows, profileRows, inquiries, deals, orders, bookings, applicationRows, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
+  // Fire the person lookup in the SAME batch as the related reads: none of them
+  // depend on the person row (they all key on the same `id`), so serializing the
+  // person query first was one wasted round-trip wave. Null-check after.
+  const [personRes, leadRows, profileRows, inquiries, deals, orders, bookings, applicationRows, documents, surveyResponses, interactions, participantRows, transitions, companyLinks] =
     await Promise.all([
+      companyOs.from("people").select("*").eq("id", id).maybeSingle(),
       safe(companyOs.from("lead").select("status, sla_due_at, attempt_count, disqualified_reason").eq("person_id", id)),
       safe(companyOs.from("candidate_profile").select("headline, current_title, portfolio_url, do_not_hire, pool_status").eq("person_id", id)),
       safe(companyOs.from("inquiries").select("id, type, subject, status, source, created_at, deal_id").eq("person_id", id).order("created_at", { ascending: false })),
@@ -90,6 +90,9 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
       safe(companyOs.from("lifecycle_transitions").select("id, from_stage, to_stage, from_status, to_status, reason, note, occurred_at").eq("person_id", id).order("occurred_at", { ascending: false }).limit(100)),
       safe(companyOs.from("person_companies").select("company_id, title, role, is_primary, companies(id, name)").eq("person_id", id).order("is_primary", { ascending: false })),
     ]);
+
+  if (personRes.error || !personRes.data) return null;
+  const person = personRes.data as Person;
 
   const applications: Person360["applications"] = (
     applicationRows as Array<{

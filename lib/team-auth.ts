@@ -10,6 +10,7 @@
 // lib/team/data.ts). Identity is matched on people.auth_user_id (the cryptographic
 // id from the JWT), NEVER on email, which is mutable/reusable.
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSessionClient } from "@/lib/supabase/server";
 import { companyOs } from "@/lib/supabase";
@@ -58,8 +59,9 @@ type TeamMembershipLookup = {
 };
 
 // Identity by auth_user_id, never by email. Shared by getTeamActor() and the
-// Admin sidebar's "Team" switch-view eligibility check.
-async function findActiveTeamMembership(authUserId: string): Promise<TeamMembershipLookup | null> {
+// Admin sidebar's "Team" switch-view eligibility check — wrapped in cache() so
+// those two callers in one render pass share a single people+team_members lookup.
+const findActiveTeamMembership = cache(async (authUserId: string): Promise<TeamMembershipLookup | null> => {
   const { data: person } = await companyOs
     .from("people")
     .select("id, full_name, first_name, preferred_name, email")
@@ -79,7 +81,7 @@ async function findActiveTeamMembership(authUserId: string): Promise<TeamMembers
   if (!membership) return null;
 
   return { person, membership };
-}
+});
 
 // True if the signed-in admin also has a linked, active team_members record —
 // i.e. whether the Admin sidebar's "Team" view switch is live for them.
@@ -95,7 +97,7 @@ export async function hasTeamAccess(authUserId: string): Promise<boolean> {
 // An admin WITH a linked team_members record is a valid team actor — they
 // deliberately switched into /team via the sidebar and use their own team
 // scope, same as anyone else. Admin status never widens that scope.
-export async function getTeamActor(): Promise<GetActorResult> {
+export const getTeamActor = cache(async (): Promise<GetActorResult> => {
   const supabase = createSessionClient();
   const {
     data: { user },
@@ -137,7 +139,7 @@ export async function getTeamActor(): Promise<GetActorResult> {
       isAdmin,
     },
   };
-}
+});
 
 // Gate for /team pages and server actions. Redirects when the caller has no
 // team identity. Call at the top of the /team layout and EVERY /team action.

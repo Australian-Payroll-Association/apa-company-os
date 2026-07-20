@@ -11,6 +11,7 @@
 // boundary. (The /team portal uses the same service-role + gate pattern via
 // requireTeamMember(); see lib/team-auth.ts.)
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSessionClient } from "@/lib/supabase/server";
 import { companyOs } from "@/lib/supabase";
@@ -52,7 +53,11 @@ export async function isAdminEmail(email: string | null | undefined): Promise<bo
 // Returns the signed-in admin, or null if not signed in / not allowlisted.
 // Uses getUser() (revalidates the JWT against Supabase) — not getSession() — so
 // a forged or expired cookie cannot pass.
-export async function getAdminUser(): Promise<AdminUser | null> {
+//
+// Wrapped in React cache(): the admin layout, the page, and any server component
+// that calls requireAdmin() during one render share a single resolve instead of
+// each re-running getUser() (a network round-trip) + the admins lookup.
+export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   const supabase = createSessionClient();
   const {
     data: { user },
@@ -60,7 +65,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
   const email = user?.email?.toLowerCase();
   if (!user || !email || !(await isAdminEmail(email))) return null;
   return { id: user.id, email };
-}
+});
 
 // Server-side gate. Call at the top of the admin layout and every server action.
 export async function requireAdmin(): Promise<AdminUser> {

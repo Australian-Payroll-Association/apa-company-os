@@ -25,14 +25,16 @@ function Empty({ text }: { text: string }) {
 }
 
 export default async function ContactDetailPage({ params }: { params: { id: string } }) {
-  const data = await getPerson360(params.id);
-  if (!data) notFound();
-
-  const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
-  const [portalMemberships, affiliate] = await Promise.all([
+  // All three loaders key only on the person id, so run them in one parallel
+  // wave instead of awaiting the 360 first and the portal/affiliate reads after.
+  const [data, portalMemberships, affiliate] = await Promise.all([
+    getPerson360(params.id),
     getPortalMembershipsForPerson(params.id),
     getAffiliate360(params.id),
   ]);
+  if (!data) notFound();
+
+  const { person, lead, candidateProfile, inquiries, deals, orders, bookings, applications, documents, surveyResponses, interactions, meetings, transitions, companies } = data;
   const isAffiliate = !!affiliate && affiliate.codes.length > 0;
   const membershipByCompany = new Map(
     portalMemberships.filter((m) => m.company_id).map((m) => [m.company_id as string, m]),
