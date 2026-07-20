@@ -162,13 +162,6 @@
 }
 .admin-avatarbtn:hover { filter: brightness(1.1); }
 .admin-avatarbtn--lg { width: 34px; height: 34px; font-size: 13px; }
-.admin-brand-mark {
-  width: 26px; height: 26px;
-  border-radius: 7px;
-  background: var(--admin-accent);
-  display: grid; place-items: center;
-  color: #fff; font-weight: 700; font-size: 13px;
-}
 .admin-brandbtn {
   margin: 0 12px 10px;
   padding: 8px 10px;

@@ -4,7 +4,7 @@ import { TeamSidebar } from "@/components/team/TeamSidebar";
 import "../../admin/admin.css";
 
 export const metadata: Metadata = {
-  title: { template: "%s · Edge8 Workspace", default: "Edge8 Workspace" },
+  title: { template: "%s · Edge8 AI Workspace", default: "Edge8 AI Workspace" },
   description: "Your Edge8 team workspace.",
   robots: { index: false, follow: false },
 };

@@ -52,7 +52,7 @@ export default function PortalAuthCallback() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          <span className="admin-brand-mark">E8</span> Edge8 Client Portal
+          Edge8 Client Portal
         </div>
         <p className="admin-auth-sub">
           {failed ? "That link was invalid or expired. Redirecting…" : "Signing you in…"}

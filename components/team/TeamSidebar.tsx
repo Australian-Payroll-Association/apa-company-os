@@ -91,8 +91,7 @@ export function TeamSidebar({
         >
           ☰
         </button>
-        <span className="admin-brand-mark">E8</span>
-        <strong>Edge8 Workspace</strong>
+        <strong>Edge8 AI Workspace</strong>
       </div>
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
@@ -100,8 +99,7 @@ export function TeamSidebar({
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Team">
         <div className="admin-brand">
           <span className="admin-brand-lead">
-            <span className="admin-brand-mark">E8</span>
-            Edge8 Workspace
+            Edge8 AI Workspace
           </span>
           <span className="admin-brand-actions">
             <button

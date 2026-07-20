@@ -73,7 +73,6 @@ export function PortalSidebar({
         >
           ☰
         </button>
-        <span className="admin-brand-mark">E8</span>
         <strong>Edge8 Client Portal</strong>
       </div>
 
@@ -81,7 +80,6 @@ export function PortalSidebar({
 
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
         <div className="admin-brand">
-          <span className="admin-brand-mark">E8</span>
           Edge8 Client Portal
         </div>
 

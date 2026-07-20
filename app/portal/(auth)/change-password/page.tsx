@@ -10,7 +10,7 @@ export default async function PortalChangePasswordPage() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          <span className="admin-brand-mark">E8</span> Edge8 Client Portal
+          Edge8 Client Portal
         </div>
         <p className="admin-auth-sub">
           You signed in with a temporary password. Choose your own to continue.

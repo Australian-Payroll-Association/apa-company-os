@@ -6,7 +6,7 @@ export default function AdminLoginPage() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          <span className="admin-brand-mark">E8</span> Edge8 OS
+          Edge8 OS
         </div>
         <p className="admin-auth-sub">Sign in to the Company OS.</p>
         <Suspense>
