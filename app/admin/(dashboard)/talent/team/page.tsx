@@ -31,7 +31,16 @@ type TeamMember = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 const PAGE_SIZE = 25;
-const SORTABLE = new Set(["start_date", "created_at", "employee_number", "employment_type", "work_location", "status"]);
+const SORTABLE = new Set(["name", "employee_number", "employment_type", "work_location", "status", "start_date", "portal", "created_at"]);
+
+// Some columns aren't direct team_members columns: Name and Portal live on the
+// joined `people` row. Map their sort key to the embedded-column ordering
+// expression PostgREST understands (order=people(<col>)). Everything else sorts
+// by its own key.
+const ORDER_COLUMN: Record<string, string> = {
+  name: "people(full_name)",
+  portal: "people(auth_user_id)",
+};
 
 // Segment tabs. `filter` is applied on top of search/sort. Order matters: the
 // first entry is the default when no (or an unknown) ?seg is present.
@@ -60,7 +69,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     listEntity<TeamMember>(
       "team_members",
       "id, employee_number, employment_type, work_location, status, start_date, created_at, person_id, people!person_id(full_name, email, auth_user_id)",
-      { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["employee_number"], sort, dir, filters: seg.filter },
+      { page, pageSize: PAGE_SIZE, search: q, searchColumns: ["employee_number"], sort: ORDER_COLUMN[sort] ?? sort, dir, filters: seg.filter },
     ),
     Promise.all(SEGMENTS.map((s) => countEntity("team_members", s.filter))),
   ]);
@@ -76,6 +85,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     {
       key: "name",
       header: "Name",
+      sortable: true,
       cell: (r) => {
         const p = one(r.people);
         return <span className="admin-cell-strong">{p?.full_name || p?.email || "View"}</span>;
@@ -89,6 +99,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     {
       key: "portal",
       header: "Portal",
+      sortable: true,
       cell: (r) =>
         r.person_id ? (
           <InvitePortalButton teamMemberId={r.id} status={portalStatusOf(one(r.people)?.auth_user_id, signedIn)} />
