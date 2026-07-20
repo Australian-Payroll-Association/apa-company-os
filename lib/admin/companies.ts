@@ -6,12 +6,11 @@ import { companyOs } from "@/lib/supabase";
 export type Company = {
   id: string;
   name: string | null;
-  domain: string | null;
+  website_url: string | null;
   industry: string | null;
   industry_normalized: string | null;
   size_band: string | null;
   country: string | null;
-  website: string | null;
   priority: string | null;
   lifecycle_stage: string;
   notes: string | null;

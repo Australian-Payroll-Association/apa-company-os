@@ -21,8 +21,8 @@ as "active" unless the user asks about archived records.
   do_not_contact, persona (job_seeker|prospect|employee|client|null), source,
   owner_id -> people.id, linkedin_url, gender, notes, metadata (jsonb),
   archived_at, created_at.
-- companies — id, name, domain (citext), industry, industry_normalized, size_band,
-  country, website, owner_id, priority, lifecycle_stage
+- companies — id, name, website_url (citext), industry, industry_normalized, size_band,
+  country, owner_id, priority, lifecycle_stage
   (none|lead|sql|opportunity|customer|evangelist), billing_address, notes,
   metadata, archived_at, created_at.
 - person_companies — person <-> company links: person_id, company_id, role, title,

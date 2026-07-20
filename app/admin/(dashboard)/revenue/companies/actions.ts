@@ -9,12 +9,11 @@ import { getCompany360, type Company360 } from "@/lib/admin/companies";
 
 export type CompanyPatch = {
   name?: string;
-  domain?: string;
+  website_url?: string;
   industry?: string;
   industry_normalized?: string;
   size_band?: string;
   country?: string;
-  website?: string;
   priority?: string;
   notes?: string;
 };

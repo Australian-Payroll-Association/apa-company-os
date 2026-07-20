@@ -28,12 +28,11 @@ import { activateAffiliate, deactivateAffiliate } from "../affiliates/actions";
 export type CompanyRow = {
   id: string;
   name: string | null;
-  domain: string | null;
+  website_url: string | null;
   industry: string | null;
   industry_normalized: string | null;
   size_band: string | null;
   country: string | null;
-  website: string | null;
   priority: string | null;
   archived_at: string | null;
   created_at: string;
@@ -237,8 +236,8 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
             <dd>{company ? humanize(company.lifecycle_stage) : "—"}</dd>
             <dt>Country</dt>
             <dd>{(company?.country ?? row.country) || "—"}</dd>
-            <dt>Website</dt>
-            <dd>{(company?.website ?? row.website) || "—"}</dd>
+            <dt>Website URL</dt>
+            <dd>{(company?.website_url ?? row.website_url) || "—"}</dd>
             <dt>Priority</dt>
             <dd>{row.priority ? <Badge>{humanize(row.priority)}</Badge> : "—"}</dd>
           </dl>

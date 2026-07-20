@@ -155,7 +155,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       <PageHead
         eyebrow={<Link href="/admin/revenue/companies">← Companies</Link>}
         title={name}
-        sub={company.domain || company.website || undefined}
+        sub={company.website_url || undefined}
         action={
           <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             {company.archived_at && <Badge tone="neutral">Archived</Badge>}
@@ -211,11 +211,10 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
               company={{
                 id: company.id,
                 name: company.name,
-                domain: company.domain,
+                website_url: company.website_url,
                 industry_normalized: company.industry_normalized,
                 size_band: company.size_band,
                 country: company.country,
-                website: company.website,
                 priority: company.priority,
                 notes: company.notes,
               }}

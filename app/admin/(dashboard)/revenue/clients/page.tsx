@@ -26,7 +26,7 @@ const BASE_PATH = "/admin/revenue/clients";
 // Raise-only lifecycle model: evangelist outranks customer, both are clients.
 const CLIENT_STAGES = ["customer", "evangelist"];
 const PAGE_SIZES = [25, 50, 100];
-const SORTABLE = new Set(["name", "domain", "industry_normalized", "size_band", "country", "priority", "created_at"]);
+const SORTABLE = new Set(["name", "website_url", "industry_normalized", "size_band", "country", "priority", "created_at"]);
 
 const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
@@ -60,12 +60,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
 
   const { rows, total, pageSize, error } = await listEntity<Company>(
     "companies",
-    "id, name, domain, industry, industry_normalized, size_band, country, website, priority, archived_at, created_at",
+    "id, name, website_url, industry, industry_normalized, size_band, country, priority, archived_at, created_at",
     {
       page,
       pageSize: pageSizeChoice,
       search: q,
-      searchColumns: ["name", "domain"],
+      searchColumns: ["name", "website_url"],
       sort,
       dir,
       excludeArchived: true,
@@ -80,7 +80,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
       sortable: true,
       cell: (r) => <span className="admin-cell-strong">{r.name || "(no name)"}</span>,
     },
-    { key: "domain", header: "Domain", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.domain || "—"}</span> },
+    { key: "website_url", header: "Website URL", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.website_url || "—"}</span> },
     {
       key: "industry_normalized",
       header: "Industry",
@@ -129,7 +129,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
           dir={dir}
           basePath={BASE_PATH}
           searchParams={searchParams}
-          searchPlaceholder="Search name or domain…"
+          searchPlaceholder="Search name or website…"
           emptyText={showInactive ? "No companies match." : "No active clients match."}
           filterBar={
             <FilterBar

@@ -24,7 +24,7 @@ export const metadata = {
 type Company = CompanyRow;
 
 const PAGE_SIZES = [25, 50, 100];
-const SORTABLE = new Set(["name", "domain", "industry_normalized", "size_band", "country", "priority", "created_at"]);
+const SORTABLE = new Set(["name", "website_url", "industry_normalized", "size_band", "country", "priority", "created_at"]);
 
 const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
@@ -57,12 +57,12 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
   const [{ rows, total, pageSize, error }, summary] = await Promise.all([
     listEntity<Company>(
       "companies",
-      "id, name, domain, industry, industry_normalized, size_band, country, website, priority, archived_at, created_at",
+      "id, name, website_url, industry, industry_normalized, size_band, country, priority, archived_at, created_at",
       {
         page,
         pageSize: pageSizeChoice,
         search: q,
-        searchColumns: ["name", "domain"],
+        searchColumns: ["name", "website_url"],
         sort,
         dir,
         excludeArchived: !showArchived,
@@ -79,7 +79,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
       sortable: true,
       cell: (r) => <span className="admin-cell-strong">{r.name || "(no name)"}</span>,
     },
-    { key: "domain", header: "Domain", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.domain || "—"}</span> },
+    { key: "website_url", header: "Website URL", sortable: true, cell: (r) => <span className="admin-cell-muted">{r.website_url || "—"}</span> },
     {
       key: "industry_normalized",
       header: "Industry",
@@ -173,7 +173,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
           dir={dir}
           basePath="/admin/revenue/companies"
           searchParams={searchParams}
-          searchPlaceholder="Search name or domain…"
+          searchPlaceholder="Search name or website…"
           emptyText="No companies match."
           filterBar={
             <FilterBar

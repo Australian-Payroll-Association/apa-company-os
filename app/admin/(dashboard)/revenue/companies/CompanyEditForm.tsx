@@ -10,11 +10,10 @@ import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 export type EditableCompany = {
   id: string;
   name: string | null;
-  domain: string | null;
+  website_url: string | null;
   industry_normalized?: string | null;
   size_band: string | null;
   country: string | null;
-  website: string | null;
   priority: string | null;
   notes?: string | null;
 };
@@ -34,11 +33,10 @@ export function CompanyEditForm({
   const { form, field, commit, status } = useAutosave(
     {
       name: company.name ?? "",
-      domain: company.domain ?? "",
+      website_url: company.website_url ?? "",
       industry_normalized: company.industry_normalized ?? "",
       size_band: company.size_band ?? "",
       country: company.country ?? "",
-      website: company.website ?? "",
       priority: company.priority ?? "",
       notes: company.notes ?? "",
     },
@@ -59,27 +57,15 @@ export function CompanyEditForm({
           onBlur={(e) => commit("name", e.target.value)}
         />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div className="admin-field">
-          <label className="admin-label">Domain</label>
-          <input
-            className="admin-input"
-            value={form.domain}
-            onChange={(e) => field("domain", e.target.value)}
-            onBlur={(e) => commit("domain", e.target.value)}
-            placeholder="acme.com"
-          />
-        </div>
-        <div className="admin-field">
-          <label className="admin-label">Website</label>
-          <input
-            className="admin-input"
-            value={form.website}
-            onChange={(e) => field("website", e.target.value)}
-            onBlur={(e) => commit("website", e.target.value)}
-            placeholder="https://…"
-          />
-        </div>
+      <div className="admin-field">
+        <label className="admin-label">Website URL</label>
+        <input
+          className="admin-input"
+          value={form.website_url}
+          onChange={(e) => field("website_url", e.target.value)}
+          onBlur={(e) => commit("website_url", e.target.value)}
+          placeholder="acme.com"
+        />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="admin-field">
