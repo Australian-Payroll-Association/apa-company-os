@@ -13,31 +13,21 @@ export type AssumableClient = {
 type Embedded<T> = T | T[] | null;
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
-async function distinctCompanyIds(table: string): Promise<Set<string>> {
-  const { data } = await companyOs.from(table).select("company_id");
-  return new Set(((data ?? []) as { company_id: string | null }[]).map((r) => r.company_id).filter((id): id is string => !!id));
-}
+// Mirrors the admin Clients list (app/admin/(dashboard)/revenue/clients): the
+// default set is active clients — lifecycle customer/evangelist, archived
+// excluded. `showInactive` drops the lifecycle filter to reveal every
+// non-archived company (leads, prospects, churned) so you can assume any of
+// them. "View as" still needs a linked contact; startAssumeSession enforces it.
+const CLIENT_STAGES = ["customer", "evangelist"];
 
-// "Active client" = any company the client portal already has data for:
-// dedicated staff, synced invoices, or an actual portal membership. Derived
-// from the portal's own tables rather than a separate flag, so this list
-// grows correctly as PR 5 (Projects) and real invites land, with nothing to
-// keep in sync by hand.
-export async function listAssumableClients(): Promise<AssumableClient[]> {
-  const [staffCompanyIds, invoiceCompanyIds, memberCompanyIds] = await Promise.all([
-    distinctCompanyIds("staff_assignments"),
-    distinctCompanyIds("invoices"),
-    distinctCompanyIds("portal_members"),
-  ]);
-  const companyIds = [...new Set([...staffCompanyIds, ...invoiceCompanyIds, ...memberCompanyIds])];
-  if (companyIds.length === 0) return [];
-
-  const { data } = await companyOs
+export async function listAssumableClients(showInactive = false): Promise<AssumableClient[]> {
+  let q = companyOs
     .from("companies")
     .select("id, name, person_companies(is_primary, people(full_name, email))")
-    .in("id", companyIds)
     .is("archived_at", null)
     .order("name", { ascending: true });
+  if (!showInactive) q = q.in("lifecycle_stage", CLIENT_STAGES);
+  const { data } = await q;
 
   type Row = {
     id: string;
