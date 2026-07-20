@@ -60,7 +60,7 @@ export const allWorkflows: Workflow[] = [
     excerpt:
       'A recruiter marks an applicant hired, and the new member walks themselves in: one form turns an applicant into an employee on probation with a portal account waiting.',
     date: '2026-07-20',
-    steps: 6,
+    steps: 7,
   },
   {
     slug: 'time-off',

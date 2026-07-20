@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 const ELEMENTS: WorkflowElement[] = [
   { name: 'Trigger', assignment: 'human', desc: 'A recruiter marks an applicant hired in the ATS. That single decision starts everything downstream.' },
-  { name: 'Inputs', assignment: 'both', desc: 'The record the applicant already built during hiring, plus the onboarding details only they can supply: contact, emergency, banking, and identity.' },
+  { name: 'Inputs', assignment: 'both', desc: 'The record the applicant already built during hiring, the onboarding details only they can supply, and the Lark @edge8.ai email the recruiter sets up and records into Edge8 OS.' },
   { name: 'Decision', assignment: 'human', desc: 'Two human calls: the recruiter decides to hire, and the new member decides to accept and complete their form.' },
   { name: 'Routing', assignment: 'machine', desc: 'The hire event emails the onboarding link, the submission finds the existing applicant instead of making a twin, and a portal invite goes out on its own. If there is no applicant on file, the operations team is notified to backfill it.' },
   { name: 'Output', assignment: 'machine', desc: 'One employee record on probation, promoted in place from the applicant, with a portal account ready to activate.' },
@@ -53,11 +53,12 @@ export default function NewMemberOnboardingWorkflowPage() {
           <FlowRail
             steps={[
               { num: '01', title: 'Recruiter Marks Hired', cadence: 'In the ATS', actor: 'human', actorLabel: 'Recruiter' },
-              { num: '02', title: 'Onboarding Email Sends', cadence: 'Automatic', actor: 'system' },
-              { num: '03', title: 'New Member Completes Form', cadence: 'Self-serve', actor: 'human', actorLabel: 'New member' },
-              { num: '04', title: 'Applicant Converts to Employee', cadence: 'On submit', actor: 'system' },
-              { num: '05', title: 'Portal Invite Sends', cadence: 'Same moment', actor: 'system' },
-              { num: '06', title: 'First Login to the Portal', cadence: 'Day one', actor: 'human', actorLabel: 'Employee' },
+              { num: '02', title: 'Recruiter Sets Up Lark Email', cadence: 'Manual, in parallel', actor: 'human', actorLabel: 'Recruiter' },
+              { num: '03', title: 'Onboarding Email Sends', cadence: 'Automatic', actor: 'system' },
+              { num: '04', title: 'New Member Completes Form', cadence: 'Self-serve', actor: 'human', actorLabel: 'New member' },
+              { num: '05', title: 'Applicant Converts to Employee', cadence: 'On submit', actor: 'system' },
+              { num: '06', title: 'Portal Invite Sends', cadence: 'Same moment', actor: 'system' },
+              { num: '07', title: 'First Login to the Portal', cadence: 'Day one', actor: 'human', actorLabel: 'Employee' },
             ]}
             repeatNote="Every new hire runs the same path. The recruiter starts it, the new member finishes it, and the machine handles the middle."
           />
@@ -90,6 +91,21 @@ export default function NewMemberOnboardingWorkflowPage() {
               },
               {
                 num: '02',
+                title: 'The recruiter sets up the Lark email and records it',
+                cadence: 'Manual, in parallel',
+                actor: 'human',
+                actorLabel: 'Recruiter',
+                body: (
+                  <p>
+                    Right after the hire, the recruiter creates the new member&rsquo;s <code>@edge8.ai</code> Lark
+                    account by hand and enters that email into Edge8 OS, so their company identity lives on their
+                    record. This runs alongside onboarding and never holds up the portal invite, which goes to their
+                    personal email. When a Lark provisioning API is available, this step automates too.
+                  </p>
+                ),
+              },
+              {
+                num: '03',
                 title: 'The onboarding email sends itself',
                 cadence: 'Automatic',
                 actor: 'system',
@@ -101,7 +117,7 @@ export default function NewMemberOnboardingWorkflowPage() {
                 ),
               },
               {
-                num: '03',
+                num: '04',
                 title: 'The new member completes the form',
                 cadence: 'Self-serve',
                 actor: 'human',
@@ -115,7 +131,7 @@ export default function NewMemberOnboardingWorkflowPage() {
                 ),
               },
               {
-                num: '04',
+                num: '05',
                 title: 'The applicant becomes an employee on probation',
                 cadence: 'On submit',
                 actor: 'system',
@@ -131,19 +147,20 @@ export default function NewMemberOnboardingWorkflowPage() {
                 ),
               },
               {
-                num: '05',
+                num: '06',
                 title: 'The portal invite sends',
                 cadence: 'Same moment',
                 actor: 'system',
                 body: (
                   <p>
-                    Completing the form triggers a portal invitation. The new employee sets a password and gets an
-                    account on the team portal, no admin ticket required.
+                    Completing the form triggers a portal invitation sent to their personal email. The new employee
+                    sets a password and gets an account on the team portal, no admin ticket required. Because the invite
+                    uses the personal address, it never waits on the Lark account.
                   </p>
                 ),
               },
               {
-                num: '06',
+                num: '07',
                 title: 'The employee logs in on day one',
                 cadence: 'Day one',
                 actor: 'human',
@@ -172,6 +189,7 @@ export default function NewMemberOnboardingWorkflowPage() {
                 <li>Only a hired applicant triggers onboarding; the recruiter owns that call</li>
                 <li>A submission promotes the existing record; it never creates a second one</li>
                 <li>A direct hire with no applicant on file still onboards; operations is notified to backfill it</li>
+                <li>The Lark @edge8.ai email is set up by hand after the hire and recorded in Edge8 OS; it never gates the portal invite</li>
                 <li>Banking and identity data live in the restricted store, out of the general record</li>
                 <li>The portal account is issued on completion, not by an admin request</li>
               </ul>

@@ -1,7 +1,7 @@
 # New Member Onboarding — Build Plan
 
 **Date:** 2026-07-20
-**Status:** Draft (not yet approved to build)
+**Status:** Spec complete — ready for Phase 0 (read-only audit)
 **Public workflow page:** `/workflows/new-member-onboarding` (showcase, shipped with this plan)
 
 Re-creates the Airtable onboarding form (`airtable.com/appqom87xbB1h7B94/.../form`) natively at
@@ -12,16 +12,18 @@ employee-on-probation with a portal account.
 
 ## The workflow we are building
 
-1. **Recruiter marks an applicant "Hired"** in the ATS (admin).
-2. That transition **sends an onboarding email** to the new hire with a link to the form.
-3. New hire opens **`/new-member-onboarding`** and completes it.
-4. On submit:
-   - Details are written to the DB.
-   - If the person already exists (as an applicant), they are **converted to an employee on probation** rather than duplicated.
+1. **Any admin marks an applicant "Hired"** in the ATS. This transition:
+   - **sends the onboarding email** to the new hire with a link to the form, and
+   - **flags the recruiter to manually create the Lark `@edge8.ai` email**, then **enter that email into Edge8 OS**
+     (an admin-editable `lark_email` field on the person record). Parallel track; no Lark provisioning API here.
+2. New hire opens **`/new-member-onboarding`** and completes it.
+3. On submit:
+   - Details are written to the DB (sensitive fields to `people_sensitive`, uploads to a private bucket).
+   - If the person already exists (matched on **personal email**), they are **converted to an employee on probation** (60-day default) rather than duplicated.
    - If **no matching applicant record exists** (e.g. a direct hire who never went through the ATS), we still create the employee-on-probation from the form, and **notify the operations team** (`mai@edge8.ai` for now) so she backfills the applicant / hiring-side information.
-   - A **portal invite** is sent so they can create an account and log into the employee portal (`/team`).
-5. New employee logs in and sees onboarding info, health insurance, and everything else we still need to build.
-6. Lark account creation is **out of scope for v1** (noted as a later phase).
+   - A **portal invite auto-sends to their personal email** (Supabase Auth via Resend). They log in with any email; no dependency on Lark.
+4. New employee logs in and sees onboarding info, health insurance, and everything else we still need to build.
+5. **Lark account** (`@edge8.ai`) is created manually by the recruiter (flagged at step 1) and its email is recorded into Edge8 OS via the `lark_email` field. Decoupled from the portal invite. Full automation is a later phase if/when a provisioning API is available.
 
 ---
 
@@ -53,6 +55,69 @@ the Resend helper, and the service-role client helper.
   `people` / `people_sensitive`. Bank details / gov IDs land only in `people_sensitive`.
 - **Token/link**: the onboarding email link must carry a single-use, expiring token tied to the person,
   so the form knows who is submitting without them logging in first.
+- **Lark email**: an admin-editable `lark_email` field on `people` (general, not sensitive) that the recruiter
+  fills in by hand after provisioning the `@edge8.ai` account. It does not gate anything in the automated flow.
+
+---
+
+## Form fields (from the Airtable form — Vietnam new-hire intake)
+
+Source form fields, in order. `S` = restricted PII, store in `people_sensitive` and keep out of the NL→SQL
+assistant. `G` = general, store on `people`. `F` = file upload to a **private** Storage bucket
+(store only the object path on `people_sensitive`, never a public URL). `Auto` = set by the system.
+
+| # | Field | Type | Store |
+|---|-------|------|-------|
+| 1 | Timestamp | datetime | Auto (submission time) |
+| 2 | Full Name | text | G |
+| 3 | Date of birth | date (mm/dd/yyyy) | S |
+| 4 | Place of birth | text | S |
+| 5 | Position | text | G |
+| 6 | Personal Email | email | G (also the applicant **match key**) |
+| 7 | Phone number | text | S |
+| 8 | Permanent address (per ID card) | text | S |
+| 9 | Current address | text | S |
+| 10 | ID card number (CCCD) | integer-string | S |
+| 11 | Place of issue (ID card) | text | S |
+| 12 | Native province (per ID card) | text | S |
+| 13 | Date of issue | date (mm/dd/yyyy) | S |
+| 14 | Marital status | select | S |
+| 15 | Graduated from | text | G |
+| 16 | Contact in emergency | text | S |
+| 17 | Bank account / bank name / branch | text (e.g. `0012000000 - Eximbank - CN Tân Bình`) | S |
+| 18 | PIT code (personal income tax) | integer-string | S |
+| 19 | Social Insurance number | text | S |
+| 20 | ID Front | file | F |
+| 21 | ID Back | file | F |
+| 22 | Selfie Image | file | F |
+| 23 | Fun Stuff | text (required) | G |
+| 24 | Employment Stage | select, default **Pre-boarding** | G (maps to onboarding/probation status) |
+
+Notes:
+- **ID number / PIT are "integer format" in Airtable but must be stored as strings** (leading zeros, length).
+  Validate as digit-only, do not cast to a number.
+- Keep the `0012000000 - Eximbank - branch` combined bank string as entered, but also parse into
+  account number / bank name / branch on `people_sensitive` if the audit shows columns for them.
+- The three uploads need a private bucket + service-role signed-URL access only (recruiter/ops + the person).
+  Confirm the bucket and RLS in Phase 0.
+- "Employment Stage: Pre-boarding" is the form's own stage marker; map it to our probation/onboarding status
+  rather than adding a parallel field.
+
+**Widget types (from the live form screenshots):**
+- Multi-line textareas: Full Name, Place of birth, Position, Permanent address, Current address, Place of
+  issue, Native province, Graduated from, Contact in emergency, Bank string, Social Insurance number.
+- Single-line inputs: Personal Email, Phone, ID card number, PIT Code.
+- Date pickers (mm/dd/yyyy): Date of birth, Date of issue.
+- File dropzones: ID Front, ID Back, Selfie Image.
+- **Marital status** is a select/dropdown. **Options: Single / Married.**
+- **Fun Stuff** = a **multi-select of interests** plus a **free-text box** ("Anything else? Tell us a fun fact
+  about you."). Maps to the existing `hobbies` field on `people`; store selected chips + the free text.
+  Proposed chip list (editable): Coffee or tea; Foodie / trying new restaurants; Cooking & baking; Traveling;
+  Photography; Reading; Gaming; Music & playing instruments; Karaoke / singing; Movies & series;
+  Football (soccer); Gym & fitness; Yoga & meditation; Hiking & the outdoors; Cycling / running;
+  Art, drawing & painting; Pets & animals; Board games & puzzles.
+- **Employment Stage** renders as a fixed "Pre-boarding" pill (single default, not user-editable).
+- We will not reproduce Airtable's "Do not submit passwords / Report malicious form" footer.
 
 ---
 
@@ -62,8 +127,9 @@ the Resend helper, and the service-role client helper.
 Map schema + existing patterns above. Output: a short findings note. *Check: findings written, open questions resolved.*
 
 **Phase 1 — Hire action + onboarding email.**
-Admin action on the job-req/applicant view: "Mark hired → send onboarding". Generates the tokened link,
-sends via Resend, stamps status. *Check: marking a test applicant hired sends the email with a valid link.*
+Admin action (any admin) on the job-req/applicant view: "Mark hired → send onboarding". Generates the tokened
+link, sends via Resend, stamps status, and flags the manual "create Lark account" task.
+*Check: marking a test applicant hired sends the email with a valid link and records the Lark task.*
 
 **Phase 2 — Public form.**
 Build `/new-member-onboarding` mirroring the Airtable fields, following the established public-form pattern.
@@ -76,9 +142,10 @@ employee-on-probation from the form instead of blocking, and email the operation
 now) that the hiring-side applicant info needs backfilling. *Check: matched submit converts the test
 applicant; unmatched submit creates the employee and sends the ops email; re-submit is safe.*
 
-**Phase 4 — Portal invite.**
-On successful submit, issue the Supabase Auth invite so the new employee can set a password and reach `/team`.
-*Check: invite email arrives, account can be created, `/team` loads for the new employee.*
+**Phase 4 — Portal invite (personal email).**
+On successful submit, issue the Supabase Auth invite to their **personal email** so the new employee can set a
+password and reach `/team`. No Lark dependency; login works with any email.
+*Check: invite email arrives at the personal address, account can be created, `/team` loads for the new employee.*
 
 **Phase 5 — Onboarding home (portal).**
 Minimal `/team` onboarding view showing their submitted info + placeholders for health insurance etc.
@@ -88,19 +155,23 @@ Minimal `/team` onboarding view showing their submitted info + placeholders for 
 
 ---
 
-## Open questions for Dave
+## Decisions (resolved)
 
-1. **Form fields:** I cannot read the Airtable form (auth-gated). Please paste the field list (labels, types,
-   required, any dropdown options), or confirm I should reproduce a standard new-hire set
-   (legal name, preferred name, DOB, personal email, phone, address, emergency contact, bank details,
-   national ID/tax, start date, T-shirt size, etc.).
-2. **Trigger owner:** who marks "hired" — any admin, or a specific recruiter role?
-3. **Existing applicant match:** match on email only, or email + name? (No-match behavior is decided: create a
-   fresh employee-on-probation and notify ops at `mai@edge8.ai` to backfill the applicant info. Confirm the
-   match key, and whether the ops notice should be email only or also a Lark message later.)
-4. **Probation length:** fixed default (e.g. 60/90 days) or set per-hire at the hire step?
-5. **Portal invite timing:** invite on form submit (as described), or immediately at "hired"?
-6. **Sensitive data:** confirm bank/gov-ID fields belong only in `people_sensitive` and stay out of the NL→SQL assistant.
+1. **Form fields:** ✅ Full list captured above (Vietnam new-hire intake). Marital status = Single / Married.
+   Fun Stuff = interest multi-select + free text.
+2. **Trigger owner:** ✅ Any admin can mark hired.
+3. **Applicant match:** ✅ Match on **personal email**. No match → create a fresh employee-on-probation and
+   notify ops (`mai@edge8.ai`) to backfill the applicant info.
+4. **Probation length:** ✅ 60 days by default; admin can change/extend later (not needed for v1).
+5. **Portal invite:** ✅ Auto-send on form submit, to the **personal email**. Login works with any email.
+6. **Lark:** ✅ `@edge8.ai` account created manually, flagged at the "mark hired" step, decoupled from the
+   portal invite. Full automation deferred (no provisioning API available here).
+7. **Sensitive data:** ✅ Bank / gov-ID / uploads live only in `people_sensitive` + a private Storage bucket,
+   out of the NL→SQL assistant.
+
+**Remaining to confirm during Phase 0 (audit-dependent, not blocking design):** exact column names for status /
+probation / the sensitive fields; the Storage bucket + RLS for ID uploads; whether the ops notice is email-only
+now (Lark message optional later).
 
 ---
 
