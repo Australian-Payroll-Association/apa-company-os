@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cancelRequest, decideEstimate, decideWork } from "../actions";
+import { addScope, cancelRequest, decideEstimate, decideWork } from "../actions";
 import type { WorkRequestStatus } from "@/lib/admin/contractors";
 
 // Status-driven decision panel for the client (admin RequestsShelf pattern):
@@ -75,7 +75,8 @@ const CANCELLABLE: WorkRequestStatus[] = ["awaiting_estimate", "estimate_submitt
 const STATUS_NOTE: Partial<Record<WorkRequestStatus, string>> = {
   awaiting_estimate: "Waiting on the contractor's estimate — you'll get an email when it's ready.",
   changes_requested: "The contractor is updating their estimate — you'll get an email when it's ready.",
-  approved: "Estimate approved — work is underway. You'll get an email when it's delivered.",
+  approved: "Estimate approved — work is underway. Need more done? Add scope below and the contractor will re-estimate.",
+  scope_added: "Your added scope was sent to the contractor to re-estimate — you'll get the updated estimate to approve.",
   completed: "Work accepted. Your invoice arrives by email from QuickBooks.",
   rejected: "You declined this request — nothing further happens.",
   cancelled: "This request was cancelled.",
@@ -83,10 +84,11 @@ const STATUS_NOTE: Partial<Record<WorkRequestStatus, string>> = {
 
 export function DecisionPanel({ id, status }: { id: string; status: WorkRequestStatus }) {
   const decidable = status === "estimate_submitted" || status === "work_submitted";
+  const addable = status === "approved";
   const cancellable = CANCELLABLE.includes(status);
   const note = STATUS_NOTE[status];
 
-  if (!decidable && !cancellable && !note) return null;
+  if (!decidable && !addable && !cancellable && !note) return null;
 
   return (
     <div className="admin-card admin-section-card">
@@ -95,7 +97,9 @@ export function DecisionPanel({ id, status }: { id: string; status: WorkRequestS
           ? "Your decision — approve this estimate?"
           : status === "work_submitted"
             ? "Your decision — accept the delivered work?"
-            : "Status"}
+            : status === "approved"
+              ? "Need more done?"
+              : "Status"}
       </h2>
       {note && <p className="admin-page-sub" style={{ marginTop: 0 }}>{note}</p>}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -137,6 +141,15 @@ export function DecisionPanel({ id, status }: { id: string; status: WorkRequestS
             />
           </>
         )}
+        {addable && (
+          <DecisionAction
+            label="Add scope"
+            primary
+            requireNote
+            placeholder="Describe the extra work you need — the contractor will re-estimate it"
+            onConfirm={(n) => addScope(id, n)}
+          />
+        )}
         {cancellable && (
           <DecisionAction
             label="Cancel request"
@@ -145,6 +158,12 @@ export function DecisionPanel({ id, status }: { id: string; status: WorkRequestS
           />
         )}
       </div>
+      {addable && (
+        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12.5 }}>
+          Adding scope sends the request back to the contractor for an updated estimate. Nothing extra is billed until
+          you accept the finished work.
+        </p>
+      )}
       {status === "estimate_submitted" && (
         <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12.5 }}>
           Approving means the contractor starts the work; you&apos;ll review and accept the result before

@@ -28,6 +28,7 @@ export type LoadedWorkRequest = {
   id: string;
   person_id: string;
   title: string;
+  brief: string;
   status: string;
   access_token: string;
   origin: "admin" | "portal";
@@ -40,7 +41,7 @@ export async function loadWorkRequest(id: string): Promise<LoadedWorkRequest | n
   const { data, error } = await companyOs
     .from("contractor_work_requests")
     .select(
-      "id, person_id, title, status, access_token, origin, client_company_id, requested_by_person_id, people!person_id(full_name, email)",
+      "id, person_id, title, brief, status, access_token, origin, client_company_id, requested_by_person_id, people!person_id(full_name, email)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -132,6 +133,63 @@ export async function applyEstimateDecision(
   return { ok: true };
 }
 
+// Add scope to an in-progress (approved) request. The extra scope is appended
+// to the brief and the request goes back to the contractor to re-estimate —
+// same estimate → approve → submit → accept → invoice loop as the original,
+// so nothing bills until the finished work is accepted. Both the client (via
+// portal) and admins call in here.
+export async function applyScopeAddition(
+  req: LoadedWorkRequest,
+  decider: WorkDecider,
+  scope: string,
+): Promise<WorkRequestResult> {
+  if (req.status !== "approved")
+    return { ok: false, error: "Scope can only be added while the work is approved and in progress." };
+  const text = scope.trim();
+  if (!text) return { ok: false, error: "Describe the extra scope you need." };
+
+  // Append to the brief so the contractor re-estimates against the full,
+  // current scope; the event log keeps each addition as its own record.
+  const stampedBrief = `${req.brief}\n\n— Added scope —\n${text}`;
+  const { error } = await companyOs
+    .from("contractor_work_requests")
+    .update({
+      status: "scope_added",
+      brief: stampedBrief,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", req.id)
+    .eq("status", "approved");
+  if (error) return { ok: false, error: error.message };
+
+  await addWorkEvent(req.id, {
+    actor_type: decider.actorType,
+    actor: decider.email,
+    type: "scope_added",
+    body: text,
+    meta: eventMeta(decider),
+  });
+
+  if (req.person?.email) {
+    await sendDecisionEmail({
+      to: req.person.email,
+      name: req.person.full_name,
+      title: req.title,
+      decision: "scope_added",
+      note: text,
+      url: contractorUrl(req),
+    });
+  }
+
+  if (decider.actorType === "client") {
+    await pingOps(
+      `🧑‍💼 Client added scope to "${req.title}" (${decider.email}) — contractor to re-estimate. Review: https://www.edge8.ai/admin/operations/contractor-requests?open=${req.id}`,
+    );
+  }
+
+  return { ok: true };
+}
+
 // Accept submitted work (→ completed; portal-origin requests then get billed
 // via runWorkRequestBilling) or send it back for revision (→ approved,
 // contractor resubmits).
@@ -204,7 +262,7 @@ export async function applyCancel(
     .from("contractor_work_requests")
     .update({ status: "cancelled", updated_at: new Date().toISOString() })
     .eq("id", req.id)
-    .in("status", ["draft", "awaiting_estimate", "estimate_submitted", "changes_requested", "approved", "work_submitted"]);
+    .in("status", ["draft", "awaiting_estimate", "estimate_submitted", "changes_requested", "scope_added", "approved", "work_submitted"]);
   if (error) return { ok: false, error: error.message };
 
   await addWorkEvent(req.id, {

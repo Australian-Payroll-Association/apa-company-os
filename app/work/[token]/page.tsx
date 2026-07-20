@@ -46,6 +46,7 @@ const EVENT_LABEL: Record<string, string> = {
   approved: "Estimate approved — go ahead",
   rejected: "Request closed (not approved)",
   info_requested: "Edge8 asked for changes",
+  scope_added: "New scope added",
   work_submitted: "You submitted your work",
   accepted: "Work accepted",
   message: "Note from Edge8",
@@ -84,8 +85,9 @@ export default async function WorkRequestPage({ params }: { params: { token: str
   // Admin notes are worth surfacing verbatim; contractor events already echo
   // the contractor's own text on the page above.
   const latestAdminNote = [...events].reverse().find((e) => e.actor_type === "admin" && e.body)?.body ?? null;
+  const latestScope = [...events].reverse().find((e) => e.type === "scope_added" && e.body)?.body ?? null;
 
-  const canEstimate = ["awaiting_estimate", "changes_requested"].includes(req.status);
+  const canEstimate = ["awaiting_estimate", "changes_requested", "scope_added"].includes(req.status);
   const canSubmitWork = req.status === "approved";
 
   return (
@@ -107,10 +109,18 @@ export default async function WorkRequestPage({ params }: { params: { token: str
           </div>
         )}
 
+        {req.status === "scope_added" && (
+          <div className={`${styles.notice} ${styles.noticeWarn}`}>
+            The client added scope to this job — please review the updated brief above and send back an estimate that
+            covers the full, expanded scope{latestScope ? ":" : "."}
+            {latestScope && <div className={styles.adminNote}>{latestScope}</div>}
+          </div>
+        )}
+
         {canEstimate && (
           <div className={styles.section}>
             <div className={styles.sectionHeading}>
-              {req.status === "changes_requested" ? "Update your estimate" : "Your estimate"}
+              {req.status === "awaiting_estimate" ? "Your estimate" : "Update your estimate"}
             </div>
             <EstimateForm token={token} />
           </div>

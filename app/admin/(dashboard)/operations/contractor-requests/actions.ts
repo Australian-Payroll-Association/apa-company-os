@@ -12,6 +12,7 @@ import {
   addWorkEvent,
   applyCancel,
   applyEstimateDecision,
+  applyScopeAddition,
   applyWorkDecision,
   loadWorkRequest,
 } from "@/lib/work-requests";
@@ -168,6 +169,28 @@ export async function decideWork(id: string, decision: "accepted" | "revision", 
     operation: "update",
     actor: admin.email,
     newData: { status: decision === "accepted" ? "completed" : "approved", note: note.trim() || null },
+  });
+
+  refresh();
+  return { ok: true };
+}
+
+// Add scope to an approved, in-progress request — sends it back to the
+// contractor to re-estimate (shared state machine in lib/work-requests.ts).
+export async function addScope(id: string, scope: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const req = await loadWorkRequest(id);
+  if (!req) return { ok: false, error: "Request not found." };
+
+  const r = await applyScopeAddition(req, { actorType: "admin", email: admin.email }, scope);
+  if (!r.ok) return r;
+
+  await recordAudit({
+    table: "contractor_work_requests",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    newData: { status: "scope_added", scope: scope.trim() },
   });
 
   refresh();

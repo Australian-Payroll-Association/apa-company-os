@@ -22,7 +22,7 @@ export type ContractorWorkItem = {
 
 // Statuses waiting on an admin float to the top of the shelf list.
 const NEEDS_ATTENTION = ["estimate_submitted", "work_submitted"];
-const IN_FLIGHT = ["draft", "awaiting_estimate", "changes_requested", "approved"];
+const IN_FLIGHT = ["draft", "awaiting_estimate", "changes_requested", "scope_added", "approved"];
 
 // Recent work requests for one contractor, lazy-loaded by the shelf.
 // Sorted needs-attention → in-flight → closed, newest first within each.
