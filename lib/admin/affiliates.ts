@@ -212,7 +212,7 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
       : Promise.resolve({ data: [] }),
     companyOs
       .from("deals")
-      .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, proposal_url, companies(name)")
+      .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, proposal_url, companies!company_id(name)")
       .or(`referrer_id.eq.${personId}${codeIds.length ? `,affiliate_id.in.(${codeIds.join(",")})` : ""}`)
       .order("created_at", { ascending: false }),
   ]);

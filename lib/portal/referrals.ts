@@ -77,7 +77,7 @@ export async function getReferralsForActor(actor: PortalActor): Promise<PortalRe
       : Promise.resolve({ data: [] }),
     companyOs
       .from("deals")
-      .select("id, title, status, referrer_id, affiliate_id, companies(name)")
+      .select("id, title, status, referrer_id, affiliate_id, companies!company_id(name)")
       .or(`referrer_id.eq.${actor.personId}${ids.length ? `,affiliate_id.in.(${ids.join(",")})` : ""}`)
       .order("created_at", { ascending: false }),
   ]);

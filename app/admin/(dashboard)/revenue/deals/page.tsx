@@ -87,7 +87,7 @@ export default async function DealsPage() {
   let query = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, position, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies(name), referrer:people!referrer_id(full_name, email)",
+      "id, title, stage_id, position, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email)",
     )
     .order("position", { ascending: true })
     .limit(500);
