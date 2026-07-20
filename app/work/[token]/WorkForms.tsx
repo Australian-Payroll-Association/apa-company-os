@@ -20,6 +20,13 @@ export function EstimateForm({ token }: { token: string }) {
     const r = await submitEstimate({ token, estimatedHours: Number(hours), plan, website });
     setSaving(false);
     if (!r.ok) {
+      // Stale tab: the request already moved past the estimate step. Pull the
+      // current state in rather than leaving the contractor on a dead end.
+      if (r.stale) {
+        setError("Your estimate was already approved — loading your next step…");
+        router.refresh();
+        return;
+      }
       setError(r.error);
       return;
     }
@@ -85,6 +92,13 @@ export function WorkSubmissionForm({ token }: { token: string }) {
     });
     setSaving(false);
     if (!r.ok) {
+      // Stale tab: the request already moved past the approved step. Refresh
+      // into whatever state it's in now instead of showing a dead end.
+      if (r.stale) {
+        setError("This request has already moved on — refreshing…");
+        router.refresh();
+        return;
+      }
       setError(r.error);
       return;
     }

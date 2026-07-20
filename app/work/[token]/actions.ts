@@ -14,7 +14,11 @@ import {
 // tickets). Every action re-validates the token and the allowed status server
 // side, so a stale form can't force an illegal transition.
 
-type Result = { ok: true } | { ok: false; error: string };
+// `stale` marks the case where the token/hours are fine but the request has
+// already moved past this step (e.g. a tab left open on the estimate screen
+// after the estimate was approved). The client uses it to refresh into the
+// current state instead of showing a dead-end error.
+type Result = { ok: true } | { ok: false; error: string; stale?: boolean };
 
 async function loadByToken(token: string) {
   if (!token || token.length < 8) return null;
@@ -51,15 +55,17 @@ export async function submitEstimate(input: {
 
   const req = await loadByToken(input.token);
   if (!req) return { ok: false, error: "This link is not valid." };
-  if (!["awaiting_estimate", "changes_requested"].includes(req.status))
-    return { ok: false, error: "This request is not open for an estimate right now." };
+  if (!["awaiting_estimate", "changes_requested", "scope_added"].includes(req.status))
+    return { ok: false, error: "This request is not open for an estimate right now.", stale: true };
 
   const hours = parseHours(input.estimatedHours, "Estimated hours");
   if (typeof hours !== "number") return { ok: false, error: hours.error };
   const plan = input.plan?.trim();
   if (!plan) return { ok: false, error: "Describe your plan to complete the work." };
 
-  const resubmit = req.status === "changes_requested";
+  // Anything other than a first-time estimate (changes requested, or scope
+  // added mid-flight) is a re-estimate.
+  const resubmit = req.status !== "awaiting_estimate";
   const { error } = await companyOs
     .from("contractor_work_requests")
     .update({
@@ -115,7 +121,7 @@ export async function submitWork(input: {
   const req = await loadByToken(input.token);
   if (!req) return { ok: false, error: "This link is not valid." };
   if (req.status !== "approved")
-    return { ok: false, error: "This request is not open for a work submission right now." };
+    return { ok: false, error: "This request is not open for a work submission right now.", stale: true };
 
   const hours = parseHours(input.actualHours, "Actual hours");
   if (typeof hours !== "number") return { ok: false, error: hours.error };

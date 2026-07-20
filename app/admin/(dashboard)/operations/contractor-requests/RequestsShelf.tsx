@@ -21,7 +21,7 @@ import {
   type WorkRequestStatus,
 } from "@/lib/admin/contractors";
 import { onePerson, oneCompany, type RequestEventRow, type RequestRow } from "./request-shared";
-import { cancelWorkRequest, decideEstimate, decideWork, listRequestEvents, sendWorkRequest } from "./actions";
+import { addScope, cancelWorkRequest, decideEstimate, decideWork, listRequestEvents, sendWorkRequest } from "./actions";
 
 const ShelfContext = createContext<{ open: (row: RequestRow) => void } | null>(null);
 
@@ -185,6 +185,7 @@ const EVENT_LABEL: Record<string, string> = {
   approved: "Estimate approved",
   rejected: "Request rejected",
   info_requested: "Changes requested",
+  scope_added: "Scope added",
   work_submitted: "Work submitted",
   accepted: "Work accepted",
   message: "Note",
@@ -343,6 +344,15 @@ function RequestShelfBody({ row, onClose }: { row: RequestRow; onClose: () => vo
                   onDone={done}
                 />
               </>
+            )}
+            {status === "approved" && (
+              <DecisionAction
+                label="Add scope"
+                requireNote
+                placeholder="Describe the extra scope — the contractor re-estimates (emailed to them)"
+                onConfirm={(note) => addScope(row.id, note)}
+                onDone={done}
+              />
             )}
             {open && (
               <DecisionAction
