@@ -35,9 +35,10 @@ const SORTABLE = new Set(["start_date", "created_at", "employee_number", "employ
 
 // Segment tabs. `filter` is applied on top of search/sort. Order matters: the
 // first entry is the default when no (or an unknown) ?seg is present.
-type SegKey = "current" | "past" | "contractors" | "all";
+type SegKey = "current" | "pre-start" | "past" | "contractors" | "all";
 const SEGMENTS: { key: SegKey; label: string; filter: NonNullable<Parameters<typeof countEntity>[1]> }[] = [
   { key: "current", label: "Current", filter: { status: "active" } },
+  { key: "pre-start", label: "Pre-Start", filter: { status: "pre_start" } },
   { key: "past", label: "Past", filter: { status: ["terminated", "alumni"] } },
   { key: "contractors", label: "Contractors", filter: { employment_type: "contract" } },
   { key: "all", label: "All", filter: {} },
@@ -125,7 +126,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
         basePath="/admin/talent/team"
         searchParams={searchParams}
         searchPlaceholder="Search employee #…"
-        emptyText={seg.key === "contractors" ? "No contractors yet." : "No team members match."}
+        emptyText={seg.key === "contractors" ? "No contractors yet." : seg.key === "pre-start" ? "No pre-start hires." : "No team members match."}
         getRowPreview={(r) => {
           const p = one(r.people);
           return {
