@@ -15,6 +15,8 @@ export const FIELD_TYPES = [
   "multi_choice",
   "rating",
   "yes_no",
+  "date",
+  "file",
 ] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
@@ -25,6 +27,8 @@ export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   multi_choice: "Multiple choice (pick many)",
   rating: "Rating scale",
   yes_no: "Yes / No",
+  date: "Date",
+  file: "File upload",
 };
 
 export const SURVEY_STATUSES = ["draft", "published", "closed"] as const;
@@ -43,12 +47,19 @@ export function surveyStatusTone(status: string | null | undefined): BadgeTone {
 
 // survey_fields.config. choices for the choice types; min/max (+ end labels)
 // for rating. A 0–10 rating renders NPS aggregates on the results page.
+// `file` fields carry an upload target (bucket/accept/max_bytes); any field can
+// carry `maps_to` — a "table.column" (or "people.metadata.a.b") destination that
+// a purpose-driven survey (e.g. onboarding) writes the answer into after submit.
 export type FieldConfig = {
   choices?: string[];
   min?: number;
   max?: number;
   min_label?: string;
   max_label?: string;
+  bucket?: string;
+  accept?: string[];
+  max_bytes?: number;
+  maps_to?: string;
 };
 
 export type SurveyRow = {
@@ -177,6 +188,23 @@ export function validateAnswer(field: SurveyFieldRow, raw: unknown): ValidatedAn
     case "yes_no": {
       if (typeof raw !== "boolean") return { ok: false, error: `"${field.label}" expects yes or no.` };
       return { ok: true, text: raw ? "Yes" : "No", json: raw };
+    }
+    case "date": {
+      if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()))
+        return { ok: false, error: `"${field.label}" expects a date (YYYY-MM-DD).` };
+      const d = raw.trim();
+      // Reject impossible dates (e.g. 2026-13-40) that pass the shape check.
+      if (Number.isNaN(new Date(`${d}T00:00:00Z`).getTime()))
+        return { ok: false, error: `"${field.label}" is not a real date.` };
+      return { ok: true, text: d, json: d };
+    }
+    case "file": {
+      // The runner uploads the file first (via /api/surveys/[slug]/upload) and
+      // submits the returned object path as the answer. We only see the path.
+      if (typeof raw !== "string" || raw.trim() === "")
+        return { ok: false, error: `"${field.label}" needs a file upload.` };
+      const path = raw.trim().slice(0, 500);
+      return { ok: true, text: path, json: path };
     }
     default:
       return { ok: false, error: `Unsupported question type "${field.type}".` };

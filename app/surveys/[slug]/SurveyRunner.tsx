@@ -46,6 +46,9 @@ export function SurveyRunner({
   const [respEmail, setRespEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploads, setUploads] = useState<
+    Record<string, { status: "uploading" | "done" | "error"; name?: string; error?: string }>
+  >({});
 
   const field = fields[qIndex];
 
@@ -59,6 +62,34 @@ export function SurveyRunner({
   function setAnswer(value: unknown) {
     setError(null);
     setAnswers((a) => ({ ...a, [field.id]: value }));
+  }
+
+  async function uploadFile(f: SurveyFieldRow, file: File) {
+    const maxBytes = f.config?.max_bytes ?? 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploads((u) => ({
+        ...u,
+        [f.id]: { status: "error", error: `File is too large (max ${Math.round(maxBytes / 1024 / 1024)} MB).` },
+      }));
+      return;
+    }
+    setError(null);
+    setUploads((u) => ({ ...u, [f.id]: { status: "uploading", name: file.name } }));
+    try {
+      const fd = new FormData();
+      fd.append("field_id", f.id);
+      fd.append("file", file);
+      const res = await fetch(`/api/surveys/${slug}/upload`, { method: "POST", body: fd });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.path) {
+        setUploads((u) => ({ ...u, [f.id]: { status: "error", error: body.error ?? "Upload failed." } }));
+        return;
+      }
+      setAnswers((a) => ({ ...a, [f.id]: body.path as string }));
+      setUploads((u) => ({ ...u, [f.id]: { status: "done", name: (body.name as string) ?? file.name } }));
+    } catch {
+      setUploads((u) => ({ ...u, [f.id]: { status: "error", error: "Upload failed. Try again." } }));
+    }
   }
 
   function validateCurrent(): string | null {
@@ -226,6 +257,38 @@ export function SurveyRunner({
               <span>{field.config?.max_label ?? ""}</span>
             </div>
           )}
+        </div>
+      );
+    }
+    if (type === "date") {
+      return (
+        <input
+          className={styles.input}
+          type="date"
+          value={typeof raw === "string" ? raw : ""}
+          onChange={(e) => setAnswer(e.target.value)}
+          onKeyDown={onEnter}
+          autoFocus
+        />
+      );
+    }
+    if (type === "file") {
+      const up = uploads[field.id];
+      const accept = (field.config?.accept ?? []).join(",");
+      return (
+        <div>
+          <input
+            className={styles.input}
+            type="file"
+            accept={accept || undefined}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadFile(field, file);
+            }}
+          />
+          {up?.status === "uploading" && <div className={styles.hint}>Uploading…</div>}
+          {up?.status === "done" && <div className={styles.hint}>✓ {up.name}</div>}
+          {up?.status === "error" && <div className={styles.error}>{up.error}</div>}
         </div>
       );
     }

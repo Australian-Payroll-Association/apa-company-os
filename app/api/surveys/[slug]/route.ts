@@ -4,6 +4,9 @@ import { getOrCreatePerson } from "@/lib/company-os";
 import { resolveSurveyActor } from "@/lib/survey-identity";
 import { notifyOps } from "@/lib/lark";
 import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
+import { processOnboardingSubmission } from "@/lib/onboarding";
+
+export const runtime = "nodejs";
 
 // Public survey submission. Unauthenticated by design; the server re-validates
 // every answer against the question set and resolves identity itself — the
@@ -19,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
     const { data: surveyData } = await companyOs
       .from("surveys")
-      .select("id, name, status, is_anonymous, archived_at")
+      .select("id, name, status, is_anonymous, archived_at, purpose")
       .eq("slug", params.slug)
       .maybeSingle();
     if (!surveyData || surveyData.archived_at)
@@ -118,6 +121,26 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       ? `anonymous (${kind})`
       : `${respondentName ?? "Unknown"}${respondentEmail ? ` <${respondentEmail}>` : ""} (${kind})`;
     void notifyOps(`📋 Survey response — ${surveyData.name}\n${who} · ${answerRows.length} answers`);
+
+    // Purpose-driven post-processing. Onboarding maps the answers into the CRM,
+    // moves the person to pre-boarding, and provisions the portal account. Runs
+    // after the response is safely saved; a failure here never fails the submit.
+    if (surveyData.purpose === "onboarding" && personId) {
+      const answers = new Map(
+        answerRows.map((a) => [a.field_id, (a.value_json ?? a.value) as string | string[] | number | boolean | null]),
+      );
+      try {
+        await processOnboardingSubmission({
+          personId,
+          email: respondentEmail ?? "",
+          name: respondentName,
+          fields,
+          answers,
+        });
+      } catch (err) {
+        console.error("[survey] onboarding post-process failed:", err);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

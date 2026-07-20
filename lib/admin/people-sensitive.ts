@@ -11,9 +11,11 @@ import { recordAudit } from "@/lib/admin/audit";
 // Every editable column. `notes` is free text; the rest map 1:1 to the table.
 export const SENSITIVE_FIELDS = [
   "date_of_birth",
+  "place_of_birth",
   "national_id_number",
   "national_id_issue_date",
   "national_id_issue_place",
+  "native_province",
   "permanent_address",
   "current_address",
   "marital_status",
