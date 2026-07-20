@@ -19,11 +19,17 @@ employee-on-probation with a portal account.
 2. New hire opens **`/new-member-onboarding`** and completes it.
 3. On submit:
    - Details are written to the DB (sensitive fields to `people_sensitive`, uploads to a private bucket).
-   - If the person already exists (matched on **personal email**), they are **converted to an employee on probation** (60-day default) rather than duplicated.
+   - If the person already exists (matched on **personal email**), the same record is **moved to pre-boarding** rather than duplicated (it is not made a full employee on the spot).
    - If **no matching applicant record exists** (e.g. a direct hire who never went through the ATS), we still create the employee-on-probation from the form, and **notify the operations team** (`mai@edge8.ai` for now) so she backfills the applicant / hiring-side information.
    - A **portal invite auto-sends to their personal email** (Supabase Auth via Resend). They log in with any email; no dependency on Lark.
 4. New employee logs in and sees onboarding info, health insurance, and everything else we still need to build.
-5. **Lark account** (`@edge8.ai`) is created manually by the recruiter (flagged at step 1) and its email is recorded into Edge8 OS via the `lark_email` field. Decoupled from the portal invite. Full automation is a later phase if/when a provisioning API is available.
+5. **Status lifecycle** (three stages on a clock):
+   - **Pre-boarding** — set automatically on form submit.
+   - **On probation** — Day 1 (their start date); 60-day default window.
+   - **Full-time employee with labor contract** — Day 60, only if they pass. This is a **human pass/fail decision**;
+     automating the Day 1 / Day 60 transitions is a later enhancement. v1 sets pre-boarding on submit and the admin
+     manages probation dates + the pass decision.
+6. **Lark account** (`@edge8.ai`) is created manually by the recruiter (flagged at step 1) and its email is recorded into Edge8 OS via the `lark_email` field. Decoupled from the portal invite. Full automation is a later phase if/when a provisioning API is available.
 
 ---
 
@@ -49,7 +55,10 @@ the Resend helper, and the service-role client helper.
 ## Data model (proposed — confirm against audit)
 
 - **Employment status** on `people`: reuse existing status/probation columns if present; otherwise add
-  `employment_status` (`applicant | hired | employee | ...`) + `probation_start` / `probation_end`.
+  `employment_status` (`applicant | hired | pre_boarding | probation | full_time`) + `probation_start` /
+  `probation_end` (default 60-day window). Lifecycle: submit → `pre_boarding`; Day 1 → `probation`;
+  Day 60 pass → `full_time` (with labor contract). Map the form's "Employment Stage: Pre-boarding" to `pre_boarding`.
+  The Day 1 / Day 60 transitions are admin-managed in v1 (automation later).
 - **Onboarding submission**: store structured form answers. Prefer a dedicated `company_os.onboarding_submissions`
   row (append-only, audit-friendly) linked to `person_id`, plus promoting the durable fields onto
   `people` / `people_sensitive`. Bank details / gov IDs land only in `people_sensitive`.
@@ -135,12 +144,12 @@ link, sends via Resend, stamps status, and flags the manual "create Lark account
 Build `/new-member-onboarding` mirroring the Airtable fields, following the established public-form pattern.
 Token resolves the person server-side. *Check: form renders, validates, rejects a bad/expired token.*
 
-**Phase 3 — Submit → convert (or create) + ops notification.**
-Server action writes submission, promotes durable fields, converts applicant → employee on probation
-(idempotent: re-submit updates, never duplicates). If no applicant record matches, create the
-employee-on-probation from the form instead of blocking, and email the operations team (`mai@edge8.ai` for
-now) that the hiring-side applicant info needs backfilling. *Check: matched submit converts the test
-applicant; unmatched submit creates the employee and sends the ops email; re-submit is safe.*
+**Phase 3 — Submit → pre-boarding (match or create) + ops notification.**
+Server action writes submission, promotes durable fields, moves the applicant to `pre_boarding`
+(idempotent: re-submit updates, never duplicates). If no applicant record matches, create the record in
+`pre_boarding` from the form instead of blocking, and email the operations team (`mai@edge8.ai` for now) that
+the hiring-side applicant info needs backfilling. *Check: matched submit moves the test applicant to
+pre-boarding; unmatched submit creates the record and sends the ops email; re-submit is safe.*
 
 **Phase 4 — Portal invite (personal email).**
 On successful submit, issue the Supabase Auth invite to their **personal email** so the new employee can set a
