@@ -55,10 +55,18 @@ the Resend helper, and the service-role client helper.
 ## Data model (proposed — confirm against audit)
 
 - **Employment status** on `people`: reuse existing status/probation columns if present; otherwise add
-  `employment_status` (`applicant | hired | pre_boarding | probation | full_time`) + `probation_start` /
-  `probation_end` (default 60-day window). Lifecycle: submit → `pre_boarding`; Day 1 → `probation`;
-  Day 60 pass → `full_time` (with labor contract). Map the form's "Employment Stage: Pre-boarding" to `pre_boarding`.
-  The Day 1 / Day 60 transitions are admin-managed in v1 (automation later).
+  `employment_status` with the happy path `applicant | hired | pre_boarding | probation | full_time` plus the
+  **off-ramp statuses** `declined_offer | rescinded | failed_probation`, and `probation_start` / `probation_end`
+  (default 60-day window). Lifecycle: submit → `pre_boarding`; Day 1 → `probation`; Day 60 pass → `full_time`
+  (with labor contract). Map the form's "Employment Stage: Pre-boarding" to `pre_boarding`. The Day 1 / Day 60
+  transitions are admin-managed in v1 (automation later).
+- **Off-ramps (recruiter-set, terminal):**
+  - `declined_offer` — hired but never accepted / never completed onboarding.
+  - `rescinded` — accepted then withdrew; recruiter **deactivates the portal account** (disable the Supabase Auth
+    user / ban) **and** marks the status. Needs an admin "deactivate account" action.
+  - `failed_probation` — did not pass the 60-day window.
+  - **None of these become alumni.** Alumni is a separate positive-exit state (someone who worked here and left in
+    good standing); keep the off-ramps out of it. (Label `rescinded` is provisional — confirm the exact wording.)
 - **Onboarding submission**: store structured form answers. Prefer a dedicated `company_os.onboarding_submissions`
   row (append-only, audit-friendly) linked to `person_id`, plus promoting the durable fields onto
   `people` / `people_sensitive`. Bank details / gov IDs land only in `people_sensitive`.
@@ -135,10 +143,13 @@ Notes:
 **Phase 0 — Audit (read-only).**
 Map schema + existing patterns above. Output: a short findings note. *Check: findings written, open questions resolved.*
 
-**Phase 1 — Hire action + onboarding email.**
+**Phase 1 — Hire action + onboarding email + status controls.**
 Admin action (any admin) on the job-req/applicant view: "Mark hired → send onboarding". Generates the tokened
-link, sends via Resend, stamps status, and flags the manual "create Lark account" task.
-*Check: marking a test applicant hired sends the email with a valid link and records the Lark task.*
+link, sends via Resend, stamps status, and flags the manual "create Lark account" task. Also exposes the
+recruiter-set **off-ramp statuses** (`declined_offer`, `rescinded`, `failed_probation`) and a **"deactivate
+portal account"** action used when an offer is rescinded. *Check: marking a test applicant hired sends the
+email with a valid link and records the Lark task; setting an off-ramp status updates the record, and
+deactivate disables the auth user.*
 
 **Phase 2 — Public form.**
 Build `/new-member-onboarding` mirroring the Airtable fields, following the established public-form pattern.

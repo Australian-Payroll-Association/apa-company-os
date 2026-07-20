@@ -200,6 +200,55 @@ export default function NewMemberOnboardingWorkflowPage() {
         </div>
       </section>
 
+      {/* Off-ramps */}
+      <section className="section" style={{ background: 'var(--tint)', padding: '72px 0' }}>
+        <div className="container">
+          <span className="section-label" style={{ background: 'var(--white)' }}>
+            When it does not work out
+          </span>
+          <h2 className="section-title" style={{ fontSize: 34 }}>
+            The off-ramps
+          </h2>
+          <p className="section-sub" style={{ marginTop: 12 }}>
+            Not every start finishes, and the record has to say so plainly. Three exit statuses close the loop, and
+            none of them turns into an alumni record.
+          </p>
+          <div className="wf-elements">
+            <div className="wf-element">
+              <div className="wf-element-head">
+                <span className="wf-element-name">Declined Offer</span>
+              </div>
+              <p className="wf-element-desc">
+                The hire never accepts and never completes onboarding. The recruiter marks the record Declined Offer
+                and it goes no further.
+              </p>
+            </div>
+            <div className="wf-element">
+              <div className="wf-element-head">
+                <span className="wf-element-name">Rescinded</span>
+              </div>
+              <p className="wf-element-desc">
+                They accepted, then changed their mind. The recruiter deactivates the portal account and marks the
+                record Rescinded, so the reversal is on the books.
+              </p>
+            </div>
+            <div className="wf-element">
+              <div className="wf-element-head">
+                <span className="wf-element-name">Failed Probation</span>
+              </div>
+              <p className="wf-element-desc">
+                They started but did not pass the 60-day window. The record is marked Failed Probation rather than
+                moving to full-time.
+              </p>
+            </div>
+          </div>
+          <p className="section-sub" style={{ marginTop: 24 }}>
+            None of these become alumni. Alumni is reserved for people who genuinely worked here and moved on, not
+            offers that fell through or probations that did not pass.
+          </p>
+        </div>
+      </section>
+
       {/* Anatomy + rules */}
       <section className="section">
         <div className="container">
@@ -211,6 +260,7 @@ export default function NewMemberOnboardingWorkflowPage() {
                 <li>Only a hired applicant triggers onboarding; the recruiter owns that call</li>
                 <li>A submission promotes the existing record; it never creates a second one</li>
                 <li>Completing the form means pre-boarding, not full employment: probation starts on day one, full-time comes at day sixty on a pass</li>
+                <li>Off-ramps are explicit: Declined Offer, Rescinded (account deactivated), and Failed Probation, and none of them become alumni</li>
                 <li>A direct hire with no applicant on file still onboards; operations is notified to backfill it</li>
                 <li>The Lark @edge8.ai email is set up by hand after the hire and recorded in Edge8 OS; it never gates the portal invite</li>
                 <li>Banking and identity data live in the restricted store, out of the general record</li>
