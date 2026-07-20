@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
@@ -5,7 +6,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { formatCents, formatDate } from "@/lib/admin/format";
-import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
+import { getAnalyticsTotals } from "@/lib/admin/vercel-analytics";
 
 // Read fresh on every request — this is live operational data.
 export const dynamic = "force-dynamic";
@@ -63,6 +64,40 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div className="mp-kpi-label" style={{ margin: "26px 0 10px" }}>{children}</div>;
 }
 
+// Two traffic tiles, fetched from the external Vercel Analytics API. Rendered in
+// its own async boundary so it streams in after the DB-backed dashboard shell
+// instead of gating first paint. getAnalyticsTotals() has a hard timeout, so a
+// hung upstream degrades to "—" rather than hanging the page.
+async function TrafficTiles() {
+  const analytics = await getAnalyticsTotals();
+  const traffic = "error" in analytics ? null : analytics.totals;
+  return (
+    <>
+      <MetricCard
+        label="Page views"
+        value={traffic ? traffic.pageviews.toLocaleString("en-US") : "—"}
+        sub="production, since Jul 11"
+        href="/admin/operations/analytics"
+      />
+      <MetricCard
+        label="Visitors"
+        value={traffic ? traffic.visitors.toLocaleString("en-US") : "—"}
+        sub="production, since Jul 11"
+        href="/admin/operations/analytics"
+      />
+    </>
+  );
+}
+
+function TrafficTilesFallback() {
+  return (
+    <>
+      <MetricCard label="Page views" value="…" sub="production, since Jul 11" href="/admin/operations/analytics" />
+      <MetricCard label="Visitors" value="…" sub="production, since Jul 11" href="/admin/operations/analytics" />
+    </>
+  );
+}
+
 export default async function DashboardPage() {
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -90,7 +125,6 @@ export default async function DashboardPage() {
     eventsRes,
     regsRes,
     surveysRes,
-    analytics,
   ] = await Promise.all([
     companyOs.from("invoices").select("txn_date, amount_cents, balance_cents, status").neq("status", "voided").limit(1000),
     companyOs.from("orders").select("created_at, amount_usd_cents, status").limit(1000),
@@ -126,7 +160,6 @@ export default async function DashboardPage() {
       .limit(4),
     companyOs.from("event_registrations").select("event_id, status").not("event_id", "is", null),
     companyOs.from("survey_responses").select("submitted_at").gte("submitted_at", iso60).limit(2000),
-    getAnalyticsOverview(),
   ]);
 
   const err =
@@ -254,8 +287,6 @@ export default async function DashboardPage() {
   const surveys30 = surveyDates.filter((d) => d >= iso30).length;
   const surveysPrev30 = surveyDates.filter((d) => d < iso30).length;
 
-  const traffic = "error" in analytics ? null : analytics.totals;
-
   return (
     <>
       <PageHead
@@ -330,18 +361,11 @@ export default async function DashboardPage() {
           href="/admin/operations/time-off"
         />
         <MetricCard label="Survey responses · 30d" value={surveys30} sub={vsPrior(surveys30, surveysPrev30)} href="/admin/operations/surveys" />
-        <MetricCard
-          label="Page views"
-          value={traffic ? traffic.pageviews.toLocaleString("en-US") : "—"}
-          sub="production, since Jul 11"
-          href="/admin/operations/analytics"
-        />
-        <MetricCard
-          label="Visitors"
-          value={traffic ? traffic.visitors.toLocaleString("en-US") : "—"}
-          sub="production, since Jul 11"
-          href="/admin/operations/analytics"
-        />
+        {/* Traffic tiles hit an external Vercel API — stream them so a slow/cold
+            analytics fetch never gates the DB-backed shell above. */}
+        <Suspense fallback={<TrafficTilesFallback />}>
+          <TrafficTiles />
+        </Suspense>
       </div>
       <div className="admin-summary-grid" style={{ marginTop: 16 }}>
         <div className="admin-card admin-chart-card">
