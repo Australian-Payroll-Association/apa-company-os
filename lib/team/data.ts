@@ -17,6 +17,8 @@ type ScopeKind = "team_member" | "person";
 const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   time_off: { column: "team_member_id", scope: "team_member" },
   ideas: { column: "person_id", scope: "person" },
+  onboarding_plans: { column: "team_member_id", scope: "team_member" },
+  onboarding_tasks: { column: "team_member_id", scope: "team_member" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {

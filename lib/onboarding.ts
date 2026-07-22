@@ -17,6 +17,7 @@ import { getSiteOrigin } from "@/lib/site-origin";
 import { sendTransactionalEmail } from "@/lib/email";
 import { recordAudit } from "@/lib/admin/audit";
 import { promoteSelfieToAvatar } from "@/lib/avatars";
+import { ensureJourney } from "@/lib/onboarding-cycle";
 import type { SurveyFieldRow } from "@/lib/admin/surveys";
 
 const OPS_EMAIL = "mai@edge8.ai";
@@ -191,18 +192,26 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       .limit(1)
       .maybeSingle();
 
+    let cycleMemberId: string | null = null;
     if (existingTm) {
       const { error: tmErr } = await companyOs
         .from("team_members")
         .update({ employment_stage: "pre_boarding" })
         .eq("id", existingTm.id);
       if (tmErr) console.error("[onboarding] team_member stage update failed:", tmErr.message);
+      else cycleMemberId = existingTm.id;
     } else {
-      const { error: tmErr } = await companyOs
+      const { data: newTm, error: tmErr } = await companyOs
         .from("team_members")
-        .insert({ person_id: personId, status: "pre_start", employment_stage: "pre_boarding" });
+        .insert({ person_id: personId, status: "pre_start", employment_stage: "pre_boarding" })
+        .select("id")
+        .maybeSingle();
       if (tmErr) console.error("[onboarding] team_member insert failed:", tmErr.message);
+      else cycleMemberId = (newTm as { id: string } | null)?.id ?? null;
     }
+    // Start the onboarding-cycle journey immediately (the daily cron would
+    // backfill it anyway; this puts the card on the manager's board today).
+    if (cycleMemberId) await ensureJourney(cycleMemberId);
     await recordAudit({
       table: "team_members",
       recordId: personId,

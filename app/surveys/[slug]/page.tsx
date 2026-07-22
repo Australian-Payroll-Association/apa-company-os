@@ -27,7 +27,7 @@ export default async function PublicSurveyPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams?: { cohort?: string };
+  searchParams?: { cohort?: string; subject?: string };
 }) {
   const { data } = await companyOs
     .from("surveys")
@@ -79,6 +79,7 @@ export default async function PublicSurveyPage({
         actorName={isOnboarding || survey.is_anonymous ? null : actor?.name ?? null}
         needIdentity={isOnboarding || (!survey.is_anonymous && !actor)}
         cohort={searchParams?.cohort ?? null}
+        subject={searchParams?.subject ?? null}
       />
     </main>
   );

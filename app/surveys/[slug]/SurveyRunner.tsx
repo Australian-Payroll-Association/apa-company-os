@@ -25,6 +25,7 @@ export function SurveyRunner({
   actorName,
   needIdentity,
   cohort,
+  subject,
 }: {
   slug: string;
   name: string;
@@ -38,6 +39,10 @@ export function SurveyRunner({
   // (/surveys/x?cohort=<event-slug>) — stamped onto the response so answers
   // stay attributable per event while the survey is shared across events.
   cohort?: string | null;
+  // Who the response is ABOUT (not who answers): a team_members id carried on
+  // review links (/surveys/x?subject=<id>) so the probation-review processor
+  // knows which report the manager is reviewing.
+  subject?: string | null;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [qIndex, setQIndex] = useState(0);
@@ -116,6 +121,7 @@ export function SurveyRunner({
           email: respEmail,
           answers,
           cohort: cohort ?? undefined,
+          subject: subject ?? undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));

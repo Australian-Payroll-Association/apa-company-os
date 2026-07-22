@@ -35,6 +35,35 @@ export async function adminSetPersonAvatar(
   return res;
 }
 
+// Admin sets the contract start date — the date the full-time labor contract
+// begins, distinct from start_date (the probation/Day 1 anchor). The 45-day
+// review's "extend probation 30 days" decision moves it automatically; this is
+// the manual override.
+// Plain <form action>, so it returns void; failures log server-side and the
+// page re-renders with the stored value either way.
+export async function saveContractStartDate(teamMemberId: string, formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const raw = formData.get("contract_start_date");
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+  const { error } = await companyOs
+    .from("team_members")
+    .update({ contract_start_date: value || null })
+    .eq("id", teamMemberId);
+  if (error) {
+    console.error("[talent] contract_start_date save failed:", error.message);
+    return;
+  }
+  await recordAudit({
+    table: "team_members",
+    recordId: teamMemberId,
+    operation: "update",
+    actor: admin.email,
+    context: { field: "contract_start_date", value: value || null },
+  });
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+}
+
 // Admin edits the restricted PII record. Gated by requireAdmin; the upsert
 // records its own audit row with the admin's email.
 export async function saveSensitiveDetails(

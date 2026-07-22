@@ -10,7 +10,7 @@ import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { AvatarUpload } from "@/components/team/AvatarUpload";
 import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
 import { getPeopleSensitive } from "@/lib/admin/people-sensitive";
-import { adminSetPersonAvatar, saveSensitiveDetails } from "../actions";
+import { adminSetPersonAvatar, saveSensitiveDetails, saveContractStartDate } from "../actions";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
@@ -91,7 +91,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   // fire it all in one parallel wave instead of four serial ones. Survey
   // responses, avatar, and PII are person-keyed — skipped when there's no linked
   // person (nothing could be attributed to the row).
-  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds] =
+  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes] =
     await Promise.all([
       m.person_id ? getPersonSurveyResponses(m.person_id) : Promise.resolve([]),
       getAssignmentsForTeamMember(m.id),
@@ -105,7 +105,17 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         : Promise.resolve({ data: null }),
       m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
       m.auth_user_id ? getSignedInAuthUserIds([m.auth_user_id]) : Promise.resolve(new Set<string>()),
+      companyOs
+        .from("team_members")
+        .select("employment_stage, probation_ends_on, contract_start_date")
+        .eq("id", params.id)
+        .maybeSingle(),
     ]);
+  const cycle = cycleRes.data as {
+    employment_stage: string | null;
+    probation_ends_on: string | null;
+    contract_start_date: string | null;
+  } | null;
   const person = avatarRes.data as {
     avatar_url: string | null;
     graduated_from: string | null;
@@ -192,6 +202,38 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               <dd>{m.location || "—"}</dd>
               <dt>Start date</dt>
               <dd>{m.start_date ? formatDate(m.start_date) : "—"}</dd>
+              {cycle?.employment_stage && (
+                <>
+                  <dt>Stage</dt>
+                  <dd>{humanize(cycle.employment_stage)}</dd>
+                </>
+              )}
+              {cycle?.probation_ends_on && (
+                <>
+                  <dt>Probation ends</dt>
+                  <dd>{formatDate(cycle.probation_ends_on)}</dd>
+                </>
+              )}
+              <dt>Contract start</dt>
+              <dd>
+                {/* Admin-editable: when the full-time labor contract begins. A
+                    probation extension moves it +30 automatically; this is the
+                    manual control. */}
+                <form
+                  action={saveContractStartDate.bind(null, m.id)}
+                  style={{ display: "flex", gap: 8, alignItems: "center" }}
+                >
+                  <input
+                    type="date"
+                    name="contract_start_date"
+                    defaultValue={cycle?.contract_start_date ?? ""}
+                    style={{ fontSize: 13 }}
+                  />
+                  <button type="submit" className="btn btn-secondary" style={{ padding: "4px 10px", fontSize: 12 }}>
+                    Save
+                  </button>
+                </form>
+              </dd>
               {m.end_date && (
                 <>
                   <dt>End date</dt>

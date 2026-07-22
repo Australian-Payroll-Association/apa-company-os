@@ -31,6 +31,7 @@ const ME: NavGroup[] = [
 const MY_TEAM: NavGroup = {
   label: "My Team",
   items: [
+    { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
     { label: "Approvals", href: "/team/approvals", ico: "✓" },
     { label: "Team calendar", href: "/team/calendar", ico: "▦" },
     { label: "My reports", href: "/team/reports", ico: "⇉" },
