@@ -17,9 +17,15 @@ export type AnalyticsBar = { label: string; value: number };
 
 // Time windows offered on the Analytics page. "all" reaches back to when Web
 // Analytics was enabled; the rolling windows count back from now.
-export type AnalyticsRange = "all" | "30d" | "90d";
+export type AnalyticsRange = "all" | "7d" | "30d" | "90d";
 
-const ROLLING_DAYS: Record<Exclude<AnalyticsRange, "all">, number> = { "30d": 30, "90d": 90 };
+const ROLLING_DAYS: Record<Exclude<AnalyticsRange, "all">, number> = { "7d": 7, "30d": 30, "90d": 90 };
+
+// The Vercel Web Analytics `by: day` aggregate rejects windows longer than 62
+// days ("Can only query up to 62 days"). Totals and top-N (by requestPath /
+// referrerHostname) allow up to 366 days, so only the daily series is clamped —
+// 61 days back yields 62 buckets, the confirmed ceiling.
+const MAX_DAILY_DAYS = 61;
 
 export type AnalyticsOverview = {
   totals: { pageviews: number; visitors: number };
@@ -92,6 +98,11 @@ export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promi
   }
 
   const sinceStr = sinceFor(range);
+  // Daily series is capped at the API's 62-day ceiling; the other three queries
+  // run the full window. For 7d/30d this equals sinceStr; only 90d/all-time clamp.
+  const dailySince = new Date(
+    Math.max(Date.parse(sinceStr), Date.now() - MAX_DAILY_DAYS * 24 * 60 * 60 * 1000),
+  ).toISOString();
   const untilStr = new Date().toISOString();
   const filter = "environment eq 'production'";
 
@@ -100,7 +111,7 @@ export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promi
       query<CountResponse>("visits/count", { since: sinceStr, until: untilStr, filter }, token),
       query<AggregateResponse>(
         "visits/aggregate",
-        { since: sinceStr, until: untilStr, by: "day", filter },
+        { since: dailySince, until: untilStr, by: "day", filter },
         token,
       ),
       query<AggregateResponse>(

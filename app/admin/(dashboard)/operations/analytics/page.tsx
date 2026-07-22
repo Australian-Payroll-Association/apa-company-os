@@ -9,13 +9,14 @@ export const dynamic = "force-dynamic";
 const VERCEL_ANALYTICS_URL = "https://vercel.com/edge8-ais-projects/edge8-web/analytics";
 
 const RANGES: { key: AnalyticsRange; label: string; sub: string }[] = [
-  { key: "all", label: "All time", sub: "since Jul 11, 2026" },
+  { key: "7d", label: "Last 7 days", sub: "rolling 7 days" },
   { key: "30d", label: "Last 30 days", sub: "rolling 30 days" },
   { key: "90d", label: "Last 90 days", sub: "rolling 90 days" },
+  { key: "all", label: "All time", sub: "since Jul 11, 2026" },
 ];
 
 function parseRange(value: string | undefined): AnalyticsRange {
-  return value === "30d" || value === "90d" ? value : "all";
+  return value === "7d" || value === "30d" || value === "90d" ? value : "all";
 }
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParamsObj }) {
