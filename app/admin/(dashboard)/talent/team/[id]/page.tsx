@@ -171,202 +171,198 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         </div>
       )}
 
-      <div className="admin-360">
-        <div>
+      <div className="tm-grid">
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Employment</h2>
+          <dl className="admin-kv">
+            <dt>Team</dt>
+            <dd>{m.team || "—"}</dd>
+            <dt>Department</dt>
+            <dd>{m.department_name || "—"}</dd>
+            <dt>Position</dt>
+            <dd>{m.position_title || "—"}</dd>
+            <dt>Approver</dt>
+            <dd>{m.manager_name || "—"}</dd>
+            <dt>Employment type</dt>
+            <dd>{m.employment_type ? humanize(m.employment_type) : "—"}</dd>
+            <dt>Employee #</dt>
+            <dd>{m.employee_number || "—"}</dd>
+            <dt>Location</dt>
+            <dd>{m.location || "—"}</dd>
+            <dt>Start date</dt>
+            <dd>{m.start_date ? formatDate(m.start_date) : "—"}</dd>
+            {m.end_date && (
+              <>
+                <dt>End date</dt>
+                <dd>{formatDate(m.end_date)}</dd>
+              </>
+            )}
+          </dl>
+        </div>
+
+        {hasPersonal && (
           <div className="admin-card admin-section-card">
-            <h2 className="admin-card-title">Employment</h2>
+            <h2 className="admin-card-title">Personal</h2>
             <dl className="admin-kv">
-              <dt>Team</dt>
-              <dd>{m.team || "—"}</dd>
-              <dt>Department</dt>
-              <dd>{m.department_name || "—"}</dd>
-              <dt>Position</dt>
-              <dd>{m.position_title || "—"}</dd>
-              <dt>Approver</dt>
-              <dd>{m.manager_name || "—"}</dd>
-              <dt>Employment type</dt>
-              <dd>{m.employment_type ? humanize(m.employment_type) : "—"}</dd>
-              <dt>Employee #</dt>
-              <dd>{m.employee_number || "—"}</dd>
-              <dt>Location</dt>
-              <dd>{m.location || "—"}</dd>
-              <dt>Start date</dt>
-              <dd>{m.start_date ? formatDate(m.start_date) : "—"}</dd>
-              {m.end_date && (
+              {graduatedFrom && (
                 <>
-                  <dt>End date</dt>
-                  <dd>{formatDate(m.end_date)}</dd>
+                  <dt>Graduated from</dt>
+                  <dd>{graduatedFrom}</dd>
+                </>
+              )}
+              {emergencyContact && (
+                <>
+                  <dt>Emergency contact</dt>
+                  <dd>{emergencyContact}</dd>
+                </>
+              )}
+              {hobbies.length > 0 && (
+                <>
+                  <dt>Interests</dt>
+                  <dd>{hobbies.join(", ")}</dd>
+                </>
+              )}
+              {funFact && (
+                <>
+                  <dt>Fun fact</dt>
+                  <dd>{funFact}</dd>
                 </>
               )}
             </dl>
           </div>
+        )}
 
-          {hasPersonal && (
-            <div className="admin-card admin-section-card">
-              <h2 className="admin-card-title">Personal</h2>
-              <dl className="admin-kv">
-                {graduatedFrom && (
-                  <>
-                    <dt>Graduated from</dt>
-                    <dd>{graduatedFrom}</dd>
-                  </>
-                )}
-                {emergencyContact && (
-                  <>
-                    <dt>Emergency contact</dt>
-                    <dd>{emergencyContact}</dd>
-                  </>
-                )}
-                {hobbies.length > 0 && (
-                  <>
-                    <dt>Interests</dt>
-                    <dd>{hobbies.join(", ")}</dd>
-                  </>
-                )}
-                {funFact && (
-                  <>
-                    <dt>Fun fact</dt>
-                    <dd>{funFact}</dd>
-                  </>
-                )}
-              </dl>
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Leave</h2>
+          <dl className="admin-kv">
+            <dt>Leave policy</dt>
+            <dd>{m.leave_policy || "—"}</dd>
+            <dt>Work schedule</dt>
+            <dd>{m.work_schedule || "—"}</dd>
+          </dl>
+        </div>
+
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Portal access</h2>
+          <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
+          {m.person_id ? (
+            <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
+          ) : (
+            <span className="admin-cell-muted">No linked person record.</span>
+          )}
+        </div>
+
+        <AssignmentsBlock
+          teamMemberId={m.id}
+          assignments={assignments}
+          companies={assignableCompanies}
+        />
+
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Time off ({requests.length})</h2>
+          {requests.length === 0 ? (
+            <div className="admin-empty">No time-off requests yet.</div>
+          ) : (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Dates</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((r) => {
+                    const days =
+                      num(r.days) ?? countWorkingDays(r.start_date, r.end_date, r.is_half_day);
+                    const range =
+                      r.start_date === r.end_date
+                        ? formatDate(r.start_date) + (r.is_half_day ? " (half)" : "")
+                        : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`;
+                    return (
+                      <tr key={r.id}>
+                        <td>
+                          {LEAVE_TYPE_LABEL[r.leave_type as keyof typeof LEAVE_TYPE_LABEL] ??
+                            humanize(r.leave_type)}
+                        </td>
+                        <td>{range}</td>
+                        <td>{days > 0 ? formatDays(days) : "—"}</td>
+                        <td>
+                          <Badge tone={leaveStatusTone(r.status)}>{humanize(r.status)}</Badge>
+                        </td>
+                        <td className="admin-cell-muted">{r.reason || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-
-          <div className="admin-card admin-section-card">
-            <h2 className="admin-card-title">Leave</h2>
-            <dl className="admin-kv">
-              <dt>Leave policy</dt>
-              <dd>{m.leave_policy || "—"}</dd>
-              <dt>Work schedule</dt>
-              <dd>{m.work_schedule || "—"}</dd>
-            </dl>
-          </div>
-
-          <div className="admin-card admin-section-card">
-            <h2 className="admin-card-title">Portal access</h2>
-            <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
-            {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
-            ) : (
-              <span className="admin-cell-muted">No linked person record.</span>
-            )}
-          </div>
-
-          <AssignmentsBlock
-            teamMemberId={m.id}
-            assignments={assignments}
-            companies={assignableCompanies}
-          />
         </div>
 
-        <div>
-          <div className="admin-card admin-section-card">
-            <h2 className="admin-card-title">Time off ({requests.length})</h2>
-            {requests.length === 0 ? (
-              <div className="admin-empty">No time-off requests yet.</div>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Dates</th>
-                      <th>Days</th>
-                      <th>Status</th>
-                      <th>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map((r) => {
-                      const days =
-                        num(r.days) ?? countWorkingDays(r.start_date, r.end_date, r.is_half_day);
-                      const range =
-                        r.start_date === r.end_date
-                          ? formatDate(r.start_date) + (r.is_half_day ? " (half)" : "")
-                          : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`;
-                      return (
-                        <tr key={r.id}>
-                          <td>
-                            {LEAVE_TYPE_LABEL[r.leave_type as keyof typeof LEAVE_TYPE_LABEL] ??
-                              humanize(r.leave_type)}
-                          </td>
-                          <td>{range}</td>
-                          <td>{days > 0 ? formatDays(days) : "—"}</td>
-                          <td>
-                            <Badge tone={leaveStatusTone(r.status)}>{humanize(r.status)}</Badge>
-                          </td>
-                          <td className="admin-cell-muted">{r.reason || "—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="admin-card admin-section-card">
-            <h2 className="admin-card-title">Survey responses ({surveyResponses.length})</h2>
-            {surveyResponses.length === 0 ? (
-              <div className="admin-empty">No survey responses yet.</div>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Survey</th>
-                      <th>Submitted</th>
-                      <th style={{ textAlign: "right" }}>Answered</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {surveyResponses.map((s) => (
-                      <PreviewRow
-                        key={s.id}
-                        title={s.surveyName}
-                        eyebrow={`Submitted ${formatDate(s.submittedAt)}`}
-                        preview={
-                          <div style={{ display: "grid", gap: 14 }}>
-                            {s.fields.map((f) => (
-                              <div key={f.fieldId}>
-                                <div className="admin-cell-muted">{f.label}</div>
-                                <div>
-                                  {f.sensitive ? (
-                                    <span className="admin-cell-muted">🔒 Hidden — see Sensitive details</span>
-                                  ) : (
-                                    f.value ?? "—"
-                                  )}
-                                </div>
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Survey responses ({surveyResponses.length})</h2>
+          {surveyResponses.length === 0 ? (
+            <div className="admin-empty">No survey responses yet.</div>
+          ) : (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Survey</th>
+                    <th>Submitted</th>
+                    <th style={{ textAlign: "right" }}>Answered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {surveyResponses.map((s) => (
+                    <PreviewRow
+                      key={s.id}
+                      title={s.surveyName}
+                      eyebrow={`Submitted ${formatDate(s.submittedAt)}`}
+                      preview={
+                        <div style={{ display: "grid", gap: 14 }}>
+                          {s.fields.map((f) => (
+                            <div key={f.fieldId}>
+                              <div className="admin-cell-muted">{f.label}</div>
+                              <div>
+                                {f.sensitive ? (
+                                  <span className="admin-cell-muted">🔒 Hidden — see Sensitive details</span>
+                                ) : (
+                                  f.value ?? "—"
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        }
-                      >
-                        <td className="admin-cell-strong">{s.surveyName}</td>
-                        <td title={formatDate(s.submittedAt)}>{formatDate(s.submittedAt)}</td>
-                        <td className="admin-cell-mono" style={{ textAlign: "right" }}>
-                          {s.answeredCount}/{s.fieldCount}
-                        </td>
-                      </PreviewRow>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {m.person_id && (
-            <SensitiveDetails
-              row={sensitive}
-              hasIdFront={!!sensitive?.id_front_path}
-              hasIdBack={!!sensitive?.id_back_path}
-              idImageBaseHref={`/admin/talent/team/${m.id}/id-image`}
-              selfieUrl={avatarUrl}
-              action={saveSensitiveDetails.bind(null, m.person_id)}
-            />
+                            </div>
+                          ))}
+                        </div>
+                      }
+                    >
+                      <td className="admin-cell-strong">{s.surveyName}</td>
+                      <td title={formatDate(s.submittedAt)}>{formatDate(s.submittedAt)}</td>
+                      <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                        {s.answeredCount}/{s.fieldCount}
+                      </td>
+                    </PreviewRow>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
+
+        {m.person_id && (
+          <SensitiveDetails
+            row={sensitive}
+            hasIdFront={!!sensitive?.id_front_path}
+            hasIdBack={!!sensitive?.id_back_path}
+            idImageBaseHref={`/admin/talent/team/${m.id}/id-image`}
+            selfieUrl={avatarUrl}
+            action={saveSensitiveDetails.bind(null, m.person_id)}
+          />
+        )}
       </div>
     </>
   );

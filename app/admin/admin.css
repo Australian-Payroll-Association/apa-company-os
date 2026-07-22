@@ -1485,6 +1485,18 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-list-aside { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 @media (max-width: 880px) { .admin-360 { grid-template-columns: 1fr; } }
 
+/* Team member profile cards: a balanced masonry (up to three ~360px columns) so
+   the cards pack to even heights instead of leaving a wide void when one side is
+   short — the fixed 308px + 1fr .admin-360 grid can't. Cards stay whole and space
+   with a bottom margin (not the +sibling top rule, which would push a column's
+   first card down). */
+.tm-grid { columns: 3 360px; column-gap: 20px; }
+.tm-grid > .admin-section-card {
+  margin: 0 0 16px;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
 /* ─── Shelf (drawer) sections ─────────────────────── */
 .admin-shelf-sections { display: flex; flex-direction: column; gap: 22px; }
 .admin-shelf-heading {
