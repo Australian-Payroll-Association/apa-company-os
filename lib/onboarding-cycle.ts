@@ -10,7 +10,7 @@
 // (bearer-authed), the survey post-submit processor, and /team reads that have
 // already been scoped by lib/team/data.ts.
 
-import { companyOs, supabase } from "@/lib/supabase";
+import { companyOs } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/email";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { recordAudit } from "@/lib/admin/audit";
@@ -88,7 +88,7 @@ export type CycleRow = {
   id: string;
   team_member_id: string;
   stage: CycleStage;
-  plan_path: string | null;
+  plan_url: string | null;
   plan_uploaded_at: string | null;
   day8_survey_sent_at: string | null;
   day8_response_id: string | null;
@@ -121,7 +121,7 @@ const displayName = (p: PersonEmbed | null): string =>
   p?.preferred_name || p?.full_name || p?.email || "—";
 
 const CYCLE_SELECT =
-  "id, team_member_id, stage, plan_path, plan_uploaded_at, day8_survey_sent_at, day8_response_id, " +
+  "id, team_member_id, stage, plan_url, plan_uploaded_at, day8_survey_sent_at, day8_response_id, " +
   "day45_email_sent_at, day45_response_id, decision, decision_at, day60_promoted_at, " +
   "day180_email_sent_at, completed_at, " +
   "team_members:team_members!team_member_id(id, person_id, start_date, manager_id, status, " +
@@ -137,7 +137,7 @@ function toCycleRow(raw: Record<string, unknown>): CycleRow {
     id: raw.id as string,
     team_member_id: raw.team_member_id as string,
     stage: (raw.stage as CycleStage) ?? "preboarding",
-    plan_path: (raw.plan_path as string | null) ?? null,
+    plan_url: (raw.plan_url as string | null) ?? null,
     plan_uploaded_at: (raw.plan_uploaded_at as string | null) ?? null,
     day8_survey_sent_at: (raw.day8_survey_sent_at as string | null) ?? null,
     day8_response_id: (raw.day8_response_id as string | null) ?? null,
@@ -372,16 +372,16 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
     // the review/decision flow.
     const alreadyFullTime = row.member.employmentStage === "full_time";
 
-    // 1) Plan-upload nag: the 7 days before Day 1, daily, deliberately
-    //    stateless — it repeats until the plan is uploaded.
-    if (d >= -6 && d <= 0 && !row.plan_path && manager?.email) {
+    // 1) Plan-link nag: the 7 days before Day 1, daily, deliberately
+    //    stateless — it repeats until the plan link is added.
+    if (d >= -6 && d <= 0 && !row.plan_url && manager?.email) {
       const ok = await sendTransactionalEmail({
         to: [manager.email, TALENT_DIRECTOR_EMAIL],
         subject: `Onboarding plan needed before Day 1: ${name}`,
         html:
-          `<p><strong>${name}</strong> starts on <strong>${start}</strong> (${1 - d} day${1 - d === 1 ? "" : "s"} away) and their onboarding plan is not uploaded yet.</p>` +
-          `<p>Every new hire needs their plan in place one week before Day 1. This reminder repeats daily until it is uploaded.</p>` +
-          `<p><a href="${boardLink}">Upload it on your Onboarding board</a></p>`,
+          `<p><strong>${name}</strong> starts on <strong>${start}</strong> (${1 - d} day${1 - d === 1 ? "" : "s"} away) and their onboarding plan link is not added yet.</p>` +
+          `<p>Every new hire needs their plan in place one week before Day 1. This reminder repeats daily until the link is added.</p>` +
+          `<p><a href="${boardLink}">Add it on your Onboarding board</a></p>`,
         logMeta: { source: "onboarding-cycle", kind: "plan_nag" },
       });
       if (ok) summary.planNags += 1;
@@ -668,64 +668,45 @@ export async function processProbationReview(input: {
   }
 }
 
-// ---- plan document storage --------------------------------------------------
-// Mirrors lib/id-documents.ts: private bucket, object path on the row, signed
-// URLs only. AUTHORIZATION IS THE CALLER'S JOB — the /team action asserts the
-// journey is in the manager's scope before calling either helper.
+// ---- plan link --------------------------------------------------------------
+// The plan is a link to wherever the manager wrote it (Google Doc, Lark doc,
+// Notion...), stored on the journey row. AUTHORIZATION IS THE CALLER'S JOB —
+// the /team action asserts the journey is in the manager's scope first.
 
-const PLAN_BUCKET = "onboarding-plans";
-export const PLAN_MAX_BYTES = 10 * 1024 * 1024;
+export function normalizePlanUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0 || trimmed.length > 2000) return null;
+  // Accept a pasted link with or without the scheme.
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (!url.hostname.includes(".")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
-const PLAN_MIME_EXT: Record<string, string> = {
-  "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-  "application/msword": "doc",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-export async function uploadPlanDocument(
+export async function savePlanLink(
   journeyId: string,
-  teamMemberId: string,
-  uploadedByTeamMemberId: string,
-  file: File,
+  url: string,
+  addedByTeamMemberId: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const ext = PLAN_MIME_EXT[file.type];
-  if (!ext) return { ok: false, error: "Use a PDF, Word doc, or image." };
-  if (file.size > PLAN_MAX_BYTES) return { ok: false, error: "File is too large (max 10 MB)." };
-  if (file.size === 0) return { ok: false, error: "That file is empty." };
+  const normalized = normalizePlanUrl(url);
+  if (!normalized) return { ok: false, error: "Paste a valid link (e.g. a Google Doc URL)." };
 
-  const folder = `plans/${teamMemberId}`;
-  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await supabase.storage
-    .from(PLAN_BUCKET)
-    .upload(path, buffer, { contentType: file.type });
-  if (upErr) return { ok: false, error: "Upload failed. Try again." };
-
-  const { error: dbErr } = await companyOs
+  const { error } = await companyOs
     .from("onboarding_plans")
     .update({
-      plan_path: path,
-      plan_uploaded_by: uploadedByTeamMemberId,
+      plan_url: normalized,
+      plan_uploaded_by: addedByTeamMemberId,
       plan_uploaded_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", journeyId);
-  if (dbErr) return { ok: false, error: "Could not save the plan." };
-
-  // Best-effort cleanup of previous plan versions; the new one is live.
-  const { data: existing } = await supabase.storage.from(PLAN_BUCKET).list(folder);
-  const stale = (existing ?? []).map((o) => `${folder}/${o.name}`).filter((p) => p !== path);
-  if (stale.length > 0) await supabase.storage.from(PLAN_BUCKET).remove(stale);
-
+  if (error) return { ok: false, error: "Could not save the plan link." };
   return { ok: true };
-}
-
-export async function signedPlanUrl(planPath: string): Promise<string | null> {
-  const { data } = await supabase.storage.from(PLAN_BUCKET).createSignedUrl(planPath, 60);
-  return data?.signedUrl ?? null;
 }
 
 // ---- Day 1 checklist + Day 8 score reads for the board ----------------------

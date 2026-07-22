@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
 
@@ -10,7 +10,7 @@ import { Badge } from "@/components/admin/Badge";
 // admin-gated ones (requireAdmin). The board itself never touches data.
 export type BoardActionResult = { ok: true } | { ok: false; error: string };
 export type BoardActions = {
-  uploadPlan: (journeyId: string, formData: FormData) => Promise<BoardActionResult>;
+  setPlanLink: (journeyId: string, url: string) => Promise<BoardActionResult>;
   toggleTask: (taskId: string, done: boolean) => Promise<BoardActionResult>;
 };
 
@@ -29,7 +29,7 @@ const STAGE_COLUMNS = [
 // targets — stages advance on the clock (daily cron + date math), so there is
 // deliberately NO drag-and-drop: a manager cannot move someone to "60 Day
 // Decision" and imply a promotion that never fired. All human actions live in
-// the card drawer: upload the plan, tick Day 1 activities, follow the review.
+// the card drawer: add the plan link, tick Day 1 activities, follow the review.
 // Reuses the admin kanban CSS (sap-*) the same way /team reuses PageHead.
 
 export type BoardCard = {
@@ -43,8 +43,8 @@ export type BoardCard = {
   dayNumber: number | null;
   probationEndsOn: string | null;
   contractStartDate: string | null;
-  planUploaded: boolean;
-  planUploadedAt: string | null;
+  planUrl: string | null;
+  planAddedAt: string | null;
   day8SurveySentAt: string | null;
   day8Score: number | null;
   day45EmailSentAt: string | null;
@@ -81,32 +81,65 @@ function dayLabel(card: BoardCard): string {
   return `Day ${card.dayNumber}`;
 }
 
-export function OnboardingCycleBoard({
-  cards,
-  actions,
-  planHrefBase,
-}: {
-  cards: BoardCard[];
-  actions: BoardActions;
-  // Route serving the signed plan download for this surface, e.g.
-  // "/team/onboarding/plan" or "/admin/talent/onboarding/plan".
-  planHrefBase: string;
-}) {
+function stageLabel(card: BoardCard): string {
+  if (card.complete) return "Complete";
+  return STAGE_COLUMNS.find((c) => c.key === card.columnId)?.label ?? card.columnId;
+}
+
+function Avatar({ card, size = 28 }: { card: BoardCard; size?: number }) {
+  return card.avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={card.avatarUrl}
+      alt=""
+      width={size}
+      height={size}
+      style={{ borderRadius: "50%", objectFit: "cover" }}
+    />
+  ) : (
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "var(--tint, #eef2f7)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      {card.name.slice(0, 1)}
+    </span>
+  );
+}
+
+export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; actions: BoardActions }) {
+  const [view, setView] = useState<"board" | "list">("board");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [linkDraft, setLinkDraft] = useState("");
   const [pending, startTransition] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const selected = cards.find((c) => c.id === selectedId) ?? null;
 
-  function submitPlan(card: BoardCard, file: File) {
+  function openCard(id: string) {
     setError(null);
-    const fd = new FormData();
-    fd.append("file", file);
+    setLinkDraft("");
+    setSelectedId(id);
+  }
+
+  function submitPlanLink(card: BoardCard) {
+    const url = linkDraft.trim();
+    if (!url) return;
+    setError(null);
     startTransition(async () => {
-      const res = await actions.uploadPlan(card.id, fd);
+      const res = await actions.setPlanLink(card.id, url);
       if (!res.ok) setError(res.error);
-      if (fileRef.current) fileRef.current.value = "";
+      else setLinkDraft("");
     });
   }
 
@@ -118,92 +151,185 @@ export function OnboardingCycleBoard({
     });
   }
 
+  // List order: furthest along first (stage order, then day number descending),
+  // completed journeys at the bottom.
+  const stageOrder = (c: BoardCard) =>
+    c.complete ? STAGE_COLUMNS.length : STAGE_COLUMNS.findIndex((s) => s.key === c.columnId);
+  const listCards = [...cards].sort(
+    (a, b) => stageOrder(b) - stageOrder(a) || (b.dayNumber ?? -999) - (a.dayNumber ?? -999),
+  );
+
   return (
     <>
-      <div className="sap-kanban">
-        {STAGE_COLUMNS.map((col) => {
-          const colCards = cards.filter((c) => c.columnId === col.key);
-          return (
-            <div className="sap-col" key={col.key}>
-              <div className="sap-col-head">
-                <span className="sap-col-dot" style={{ background: STAGE_ACCENTS[col.key] }} />
-                <span className="sap-col-label">{col.label}</span>
-                <span className="sap-col-count">{colCards.length}</span>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 6 }}>
+        <button
+          type="button"
+          className={`admin-btn${view === "board" ? " admin-btn--primary" : ""}`}
+          aria-pressed={view === "board"}
+          onClick={() => setView("board")}
+        >
+          Board
+        </button>
+        <button
+          type="button"
+          className={`admin-btn${view === "list" ? " admin-btn--primary" : ""}`}
+          aria-pressed={view === "list"}
+          onClick={() => setView("list")}
+        >
+          List
+        </button>
+      </div>
+
+      {view === "board" ? (
+        <div className="sap-kanban">
+          {STAGE_COLUMNS.map((col) => {
+            const colCards = cards.filter((c) => c.columnId === col.key);
+            return (
+              <div className="sap-col" key={col.key}>
+                <div className="sap-col-head">
+                  <span className="sap-col-dot" style={{ background: STAGE_ACCENTS[col.key] }} />
+                  <span className="sap-col-label">{col.label}</span>
+                  <span className="sap-col-count">{colCards.length}</span>
+                </div>
+                <div className="sap-col-body">
+                  {colCards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="sap-card"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openCard(card.id)}
+                      onKeyDown={(e) => e.key === "Enter" && openCard(card.id)}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Avatar card={card} />
+                        <div style={{ minWidth: 0 }}>
+                          <div className="admin-cell-strong" style={{ fontSize: 13 }}>
+                            {card.name}
+                          </div>
+                          <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                            {card.positionTitle ?? "—"}
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 6,
+                          marginTop: 8,
+                          fontSize: 11,
+                        }}
+                      >
+                        <Badge>{dayLabel(card)}</Badge>
+                        {!card.planUrl && !card.complete && <Badge tone="err">Plan missing</Badge>}
+                        {card.day8Score !== null && <Badge tone="info">Day 8: {card.day8Score}/5</Badge>}
+                        {card.decision && (
+                          <Badge tone={card.decision === "terminate" ? "err" : "ok"}>
+                            {DECISION_LABEL[card.decision] ?? card.decision}
+                          </Badge>
+                        )}
+                        {card.promotedAt && <Badge tone="ok">Full time ✓</Badge>}
+                        {card.complete && <Badge tone="ok">Cycle complete ✓</Badge>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="sap-col-body">
-                {colCards.map((card) => (
-                  <div
+            );
+          })}
+        </div>
+      ) : (
+        <div className="admin-table-wrap">
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Team member</th>
+                  <th>Stage</th>
+                  <th>Day</th>
+                  <th>Start date</th>
+                  <th>Plan</th>
+                  <th>Day 8</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listCards.map((card) => (
+                  <tr
                     key={card.id}
-                    className="sap-card"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedId(card.id)}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedId(card.id)}
+                    onClick={() => openCard(card.id)}
+                    style={{ cursor: "pointer" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {card.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={card.avatarUrl}
-                          alt=""
-                          width={28}
-                          height={28}
-                          style={{ borderRadius: "50%", objectFit: "cover" }}
-                        />
-                      ) : (
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Avatar card={card} size={24} />
+                        <div style={{ minWidth: 0 }}>
+                          <div className="admin-cell-strong">{card.name}</div>
+                          <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                            {card.positionTitle ?? "—"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         <span
                           aria-hidden
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 8,
+                            height: 8,
                             borderRadius: "50%",
-                            background: "var(--tint, #eef2f7)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 12,
-                            fontWeight: 600,
+                            background: card.complete ? "#16a34a" : STAGE_ACCENTS[card.columnId],
+                            flexShrink: 0,
                           }}
+                        />
+                        {stageLabel(card)}
+                      </span>
+                    </td>
+                    <td>{dayLabel(card)}</td>
+                    <td>{fmt(card.startDate)}</td>
+                    <td>
+                      {card.planUrl ? (
+                        <a
+                          href={card.planUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {card.name.slice(0, 1)}
-                        </span>
+                          View plan
+                        </a>
+                      ) : card.complete ? (
+                        <span className="admin-cell-muted">—</span>
+                      ) : (
+                        <Badge tone="err">Missing</Badge>
                       )}
-                      <div style={{ minWidth: 0 }}>
-                        <div className="admin-cell-strong" style={{ fontSize: 13 }}>
-                          {card.name}
-                        </div>
-                        <div className="admin-cell-muted" style={{ fontSize: 12 }}>
-                          {card.positionTitle ?? "—"}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
-                        marginTop: 8,
-                        fontSize: 11,
-                      }}
-                    >
-                      <Badge>{dayLabel(card)}</Badge>
-                      {!card.planUploaded && !card.complete && <Badge tone="err">Plan missing</Badge>}
-                      {card.day8Score !== null && <Badge tone="info">Day 8: {card.day8Score}/5</Badge>}
-                      {card.decision && (
+                    </td>
+                    <td>
+                      {card.day8Score !== null ? (
+                        `${card.day8Score}/5`
+                      ) : (
+                        <span className="admin-cell-muted">{card.day8SurveySentAt ? "Sent" : "—"}</span>
+                      )}
+                    </td>
+                    <td>
+                      {card.decision ? (
                         <Badge tone={card.decision === "terminate" ? "err" : "ok"}>
                           {DECISION_LABEL[card.decision] ?? card.decision}
                         </Badge>
+                      ) : card.promotedAt ? (
+                        <Badge tone="ok">Full time ✓</Badge>
+                      ) : (
+                        <span className="admin-cell-muted">—</span>
                       )}
-                      {card.promotedAt && <Badge tone="ok">Full time ✓</Badge>}
-                      {card.complete && <Badge tone="ok">Cycle complete ✓</Badge>}
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <DetailDrawer
         open={selected !== null}
@@ -234,29 +360,42 @@ export function OnboardingCycleBoard({
 
             <section>
               <h3 style={{ fontSize: 13, marginBottom: 8 }}>Onboarding plan</h3>
-              {selected.planUploaded ? (
+              {selected.planUrl ? (
                 <p style={{ fontSize: 13 }}>
-                  Uploaded {fmt(selected.planUploadedAt)} ·{" "}
-                  <a href={`${planHrefBase}/${selected.id}`} target="_blank" rel="noreferrer">
+                  Added {fmt(selected.planAddedAt)} ·{" "}
+                  <a href={selected.planUrl} target="_blank" rel="noreferrer">
                     View plan
                   </a>
                 </p>
               ) : (
                 <p style={{ fontSize: 13 }} className="admin-cell-muted">
-                  Not uploaded yet — due one week before Day 1. Daily reminders run until it is here.
+                  No link yet — due one week before Day 1. Daily reminders run until it is here.
                 </p>
               )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp"
-                disabled={pending}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f && selected) submitPlan(selected, f);
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitPlanLink(selected);
                 }}
-                style={{ marginTop: 8, fontSize: 13 }}
-              />
+                style={{ display: "flex", gap: 8, marginTop: 8 }}
+              >
+                <input
+                  type="url"
+                  className="admin-input"
+                  placeholder="Paste the plan link (Google Doc, Lark…)"
+                  value={linkDraft}
+                  disabled={pending}
+                  onChange={(e) => setLinkDraft(e.target.value)}
+                  style={{ flex: 1, fontSize: 13 }}
+                />
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={pending || linkDraft.trim().length === 0}
+                >
+                  {selected.planUrl ? "Replace" : "Save"}
+                </button>
+              </form>
             </section>
 
             <section>

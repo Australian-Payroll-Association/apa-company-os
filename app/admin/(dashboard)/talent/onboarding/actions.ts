@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "@/lib/admin/audit";
-import { uploadPlanDocument } from "@/lib/onboarding-cycle";
+import { savePlanLink } from "@/lib/onboarding-cycle";
 
 // Admin-side board actions. The admin mirror of the manager actions in
 // app/team/(dashboard)/onboarding/actions.ts — same operations, gated by
@@ -17,23 +17,19 @@ function refresh() {
   revalidatePath("/admin/talent/onboarding");
 }
 
-export async function adminUploadOnboardingPlan(journeyId: string, formData: FormData): Promise<Result> {
+export async function adminSetOnboardingPlanLink(journeyId: string, url: string): Promise<Result> {
   const admin = await requireAdmin();
   if (!journeyId) return { ok: false, error: "Missing journey." };
 
   const { data: journey } = await companyOs
     .from("onboarding_plans")
-    .select("team_member_id")
+    .select("id")
     .eq("id", journeyId)
     .maybeSingle();
-  const teamMemberId = (journey as { team_member_id: string } | null)?.team_member_id;
-  if (!teamMemberId) return { ok: false, error: "Journey not found." };
+  if (!journey) return { ok: false, error: "Journey not found." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { ok: false, error: "Pick a file to upload." };
-
-  // plan_uploaded_by references team_members; an admin uploading on a
-  // manager's behalf may not have one, so resolve their own membership if any.
+  // plan_uploaded_by references team_members; an admin adding the link on a
+  // manager's behalf may not have a membership row, so resolve their own if any.
   const { data: self } = await companyOs
     .from("people")
     .select("team_members:team_members!person_id(id)")
@@ -44,7 +40,7 @@ export async function adminUploadOnboardingPlan(journeyId: string, formData: For
     ? selfRow?.team_members[0]?.id ?? null
     : selfRow?.team_members?.id ?? null;
 
-  const res = await uploadPlanDocument(journeyId, teamMemberId, selfMembership ?? teamMemberId, file);
+  const res = await savePlanLink(journeyId, url, selfMembership);
   if (!res.ok) return res;
 
   await recordAudit({
@@ -52,7 +48,7 @@ export async function adminUploadOnboardingPlan(journeyId: string, formData: For
     recordId: journeyId,
     operation: "update",
     actor: admin.email,
-    context: { action: "plan_upload", via: "admin" },
+    context: { action: "plan_link_set", via: "admin" },
   });
   refresh();
   return { ok: true };

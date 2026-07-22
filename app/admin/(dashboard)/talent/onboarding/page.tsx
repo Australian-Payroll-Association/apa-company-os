@@ -12,7 +12,7 @@ import {
   backfillJourneys,
 } from "@/lib/onboarding-cycle";
 import { OnboardingCycleBoard, type BoardCard } from "@/components/onboarding/OnboardingCycleBoard";
-import { adminUploadOnboardingPlan, adminToggleDay1Task } from "./actions";
+import { adminSetOnboardingPlanLink, adminToggleDay1Task } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +57,8 @@ export default async function AdminOnboardingPage() {
       dayNumber: start ? cycleDay(start, today) : null,
       probationEndsOn: r.member.probationEndsOn ?? (start ? addDays(start, 59) : null),
       contractStartDate: r.member.contractStartDate,
-      planUploaded: Boolean(r.plan_path),
-      planUploadedAt: r.plan_uploaded_at,
+      planUrl: r.plan_url,
+      planAddedAt: r.plan_uploaded_at,
       day8SurveySentAt: r.day8_survey_sent_at,
       day8Score: r.day8_response_id ? scores.get(r.day8_response_id) ?? null : null,
       day45EmailSentAt: r.day45_email_sent_at,
@@ -84,8 +84,7 @@ export default async function AdminOnboardingPage() {
       ) : (
         <OnboardingCycleBoard
           cards={cards}
-          actions={{ uploadPlan: adminUploadOnboardingPlan, toggleTask: adminToggleDay1Task }}
-          planHrefBase="/admin/talent/onboarding/plan"
+          actions={{ setPlanLink: adminSetOnboardingPlanLink, toggleTask: adminToggleDay1Task }}
         />
       )}
     </>

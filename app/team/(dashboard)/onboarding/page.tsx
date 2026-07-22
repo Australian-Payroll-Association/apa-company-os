@@ -11,7 +11,7 @@ import {
   addDays,
 } from "@/lib/onboarding-cycle";
 import { OnboardingCycleBoard, type BoardCard } from "@/components/onboarding/OnboardingCycleBoard";
-import { uploadOnboardingPlan, toggleDay1Task } from "./actions";
+import { setOnboardingPlanLink, toggleDay1Task } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +56,8 @@ export default async function TeamOnboardingPage() {
       dayNumber: start ? cycleDay(start, today) : null,
       probationEndsOn: r.member.probationEndsOn ?? (start ? addDays(start, 59) : null),
       contractStartDate: r.member.contractStartDate,
-      planUploaded: Boolean(r.plan_path),
-      planUploadedAt: r.plan_uploaded_at,
+      planUrl: r.plan_url,
+      planAddedAt: r.plan_uploaded_at,
       day8SurveySentAt: r.day8_survey_sent_at,
       day8Score: r.day8_response_id ? scores.get(r.day8_response_id) ?? null : null,
       day45EmailSentAt: r.day45_email_sent_at,
@@ -83,8 +83,7 @@ export default async function TeamOnboardingPage() {
       ) : (
         <OnboardingCycleBoard
           cards={cards}
-          actions={{ uploadPlan: uploadOnboardingPlan, toggleTask: toggleDay1Task }}
-          planHrefBase="/team/onboarding/plan"
+          actions={{ setPlanLink: setOnboardingPlanLink, toggleTask: toggleDay1Task }}
         />
       )}
     </>

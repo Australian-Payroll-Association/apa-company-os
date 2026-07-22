@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
 import { assertInScope, teamUpdateInScope } from "@/lib/team/data";
-import { uploadPlanDocument } from "@/lib/onboarding-cycle";
+import { savePlanLink } from "@/lib/onboarding-cycle";
 
 // Onboarding-board actions for /team managers. Same discipline as the time-off
 // actions: requireTeamMember() plus the scoped helpers in lib/team/data.ts —
@@ -16,10 +16,10 @@ function refresh() {
   revalidatePath("/team/onboarding");
 }
 
-// Upload (or replace) a report's onboarding plan document. Managers only — an
+// Add (or replace) the link to a report's onboarding plan. Managers only — an
 // employee's own journey is in their scope too, but the plan is the manager's
-// deliverable, so the role gate keeps the upload on the right side.
-export async function uploadOnboardingPlan(journeyId: string, formData: FormData): Promise<Result> {
+// deliverable, so the role gate keeps it on the right side.
+export async function setOnboardingPlanLink(journeyId: string, url: string): Promise<Result> {
   const actor = await requireTeamMember();
   if (actor.role !== "manager") return { ok: false, error: "Managers only." };
   if (!journeyId) return { ok: false, error: "Missing journey." };
@@ -27,10 +27,7 @@ export async function uploadOnboardingPlan(journeyId: string, formData: FormData
   const ownerTeamMemberId = await assertInScope(actor, "onboarding_plans", journeyId);
   if (!ownerTeamMemberId) return { ok: false, error: "Journey not found." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { ok: false, error: "Pick a file to upload." };
-
-  const res = await uploadPlanDocument(journeyId, ownerTeamMemberId, actor.teamMemberId, file);
+  const res = await savePlanLink(journeyId, url, actor.teamMemberId);
   if (!res.ok) return res;
 
   refresh();
