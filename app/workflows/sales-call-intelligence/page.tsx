@@ -116,7 +116,7 @@ export default function SalesCallIntelligenceWorkflowPage() {
             The outcome decides the stage
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
-            Our pipeline runs New, Contacted, Discovery, Proposal, then Won or Lost. After every call, the extracted
+            Our pipeline runs New, Contacted, Discovery, Proposal, Contract Sent, then Won or Lost. After every call, the extracted
             outcome maps to a stage decision by rule. Every move appends to the lifecycle transition log, so the funnel
             math is always real.
           </p>
