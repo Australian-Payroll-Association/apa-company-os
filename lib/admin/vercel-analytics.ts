@@ -15,6 +15,12 @@ type AggregateResponse = { data: AggregateRow[] };
 
 export type AnalyticsBar = { label: string; value: number };
 
+// Time windows offered on the Analytics page. "all" reaches back to when Web
+// Analytics was enabled; the rolling windows count back from now.
+export type AnalyticsRange = "all" | "30d" | "90d";
+
+const ROLLING_DAYS: Record<Exclude<AnalyticsRange, "all">, number> = { "30d": 30, "90d": 90 };
+
 export type AnalyticsOverview = {
   totals: { pageviews: number; visitors: number };
   daily: AnalyticsBar[];
@@ -23,6 +29,14 @@ export type AnalyticsOverview = {
 };
 
 export type AnalyticsResult = AnalyticsOverview | { error: string };
+
+// Start of the requested window, never earlier than when tracking began — there
+// is no data before TRACKING_START, so a wider rolling window just clamps to it.
+function sinceFor(range: AnalyticsRange): string {
+  if (range === "all") return TRACKING_START;
+  const rollingStart = Date.now() - ROLLING_DAYS[range] * 24 * 60 * 60 * 1000;
+  return new Date(Math.max(rollingStart, Date.parse(TRACKING_START))).toISOString();
+}
 
 function buildUrl(path: string, params: Record<string, string>) {
   const url = new URL(`${API_BASE}/${path}`);
@@ -71,13 +85,13 @@ export async function getAnalyticsTotals(): Promise<
   }
 }
 
-export async function getAnalyticsOverview(): Promise<AnalyticsResult> {
+export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promise<AnalyticsResult> {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
   if (!token) {
     return { error: "VERCEL_ANALYTICS_TOKEN is not set. Add it as a project environment variable to enable this page." };
   }
 
-  const sinceStr = TRACKING_START;
+  const sinceStr = sinceFor(range);
   const untilStr = new Date().toISOString();
   const filter = "environment eq 'production'";
 

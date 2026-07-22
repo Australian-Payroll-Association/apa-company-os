@@ -1,20 +1,34 @@
+import Link from "next/link";
 import { PageHead } from "@/components/admin/PageHead";
 import { BarChart } from "@/components/admin/charts/BarChart";
-import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
+import { getAnalyticsOverview, type AnalyticsRange } from "@/lib/admin/vercel-analytics";
+import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 
 export const dynamic = "force-dynamic";
 
 const VERCEL_ANALYTICS_URL = "https://vercel.com/edge8-ais-projects/edge8-web/analytics";
 
-export default async function AnalyticsPage() {
-  const overview = await getAnalyticsOverview();
+const RANGES: { key: AnalyticsRange; label: string; sub: string }[] = [
+  { key: "all", label: "All time", sub: "since Jul 11, 2026" },
+  { key: "30d", label: "Last 30 days", sub: "rolling 30 days" },
+  { key: "90d", label: "Last 90 days", sub: "rolling 90 days" },
+];
+
+function parseRange(value: string | undefined): AnalyticsRange {
+  return value === "30d" || value === "90d" ? value : "all";
+}
+
+export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParamsObj }) {
+  const range = parseRange(firstParam(searchParams.range));
+  const active = RANGES.find((r) => r.key === range) ?? RANGES[0];
+  const overview = await getAnalyticsOverview(range);
 
   return (
     <div>
       <PageHead
         eyebrow="Operations"
         title="Analytics"
-        sub="Site traffic from Vercel Web Analytics, since Jul 11, 2026, production only."
+        sub={`Site traffic from Vercel Web Analytics, ${active.sub}, production only.`}
         action={
           <a
             href={VERCEL_ANALYTICS_URL}
@@ -26,6 +40,21 @@ export default async function AnalyticsPage() {
           </a>
         }
       />
+
+      <div className="admin-tabs" role="tablist" style={{ marginBottom: 14 }}>
+        {RANGES.map((r) => (
+          <Link
+            key={r.key}
+            href={r.key === "all" ? "/admin/operations/analytics" : `/admin/operations/analytics?range=${r.key}`}
+            role="tab"
+            aria-selected={r.key === range}
+            className={`admin-tab${r.key === range ? " is-active" : ""}`}
+            style={{ textDecoration: "none" }}
+          >
+            {r.label}
+          </Link>
+        ))}
+      </div>
 
       {"error" in overview ? (
         <div className="admin-alert admin-alert--err">{overview.error}</div>
