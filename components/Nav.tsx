@@ -8,6 +8,7 @@ import Image from 'next/image'
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
+  const [resourcesOpen, setResourcesOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
 
@@ -25,7 +26,10 @@ export default function Nav() {
 
   // Close dropdowns on outside click
   useEffect(() => {
-    const handler = () => setServicesOpen(false)
+    const handler = () => {
+      setServicesOpen(false)
+      setResourcesOpen(false)
+    }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
   }, [])
@@ -77,7 +81,26 @@ export default function Nav() {
 
               <li><Link href="/ai-programs">AI Programs</Link></li>
               <li><Link href="/saigon-private">Retreat</Link></li>
-              <li><Link href="/blog">Blog</Link></li>
+              <li
+                className={resourcesOpen ? 'open' : ''}
+                onMouseEnter={() => setResourcesOpen(true)}
+                onMouseLeave={() => setResourcesOpen(false)}
+              >
+                <button
+                  className="has-dropdown"
+                  aria-haspopup="true"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setResourcesOpen((v) => !v)
+                  }}
+                >
+                  Resources <span className="dropdown-icon">▾</span>
+                </button>
+                <div className="dropdown">
+                  <Link href="/blog">Blog</Link>
+                  <Link href="/workflows">Workflows</Link>
+                </div>
+              </li>
               <li><Link href="/about">About</Link></li>
               <li><Link href="/careers">Careers</Link></li>
             </ul>
@@ -111,7 +134,10 @@ export default function Nav() {
 
         <Link href="/ai-programs" onClick={() => setMenuOpen(false)}>AI Programs</Link>
         <Link href="/saigon-private" onClick={() => setMenuOpen(false)}>Retreat</Link>
-        <Link href="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
+        <MobileAccordion label="Resources" id="mobileResourcesAccordion">
+          <Link href="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
+          <Link href="/workflows" onClick={() => setMenuOpen(false)}>Workflows</Link>
+        </MobileAccordion>
         <Link href="/about" onClick={() => setMenuOpen(false)}>About</Link>
         <Link href="/careers" onClick={() => setMenuOpen(false)}>Careers</Link>
         <Link href={ctaHref} className="btn btn-primary" onClick={() => setMenuOpen(false)}>
