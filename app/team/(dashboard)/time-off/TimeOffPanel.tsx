@@ -28,7 +28,9 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 // Own-service mirror of the admin TimeOffBoard: same form/table shape, no
 // team-member picker (the actor is implicit), and every row shown here already
 // belongs to the signed-in employee (the page only ever fetches their own).
-export function TimeOffPanel({ rows }: { rows: OwnRequestRow[] }) {
+// `autoApprove` mirrors the actor's leave policy — display only; the server
+// action re-resolves the policy itself and ignores anything the client claims.
+export function TimeOffPanel({ rows, autoApprove }: { rows: OwnRequestRow[]; autoApprove: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
@@ -41,12 +43,17 @@ export function TimeOffPanel({ rows }: { rows: OwnRequestRow[] }) {
 
   const previewDays = countWorkingDays(startDate, endDate, isHalfDay);
 
-  function run(fn: () => Promise<{ ok: true } | { ok: false; error: string }>, okText: string) {
+  function run<R extends { ok: true } | { ok: false; error: string }>(
+    fn: () => Promise<R>,
+    okText: string | ((res: Extract<R, { ok: true }>) => string),
+  ) {
     setBanner(null);
     startTransition(async () => {
       const res = await fn();
       if (res.ok) {
-        setBanner({ tone: "ok", text: okText });
+        const text =
+          typeof okText === "string" ? okText : okText(res as Extract<R, { ok: true }>);
+        setBanner({ tone: "ok", text });
         router.refresh();
       } else {
         setBanner({ tone: "err", text: res.error });
@@ -58,7 +65,10 @@ export function TimeOffPanel({ rows }: { rows: OwnRequestRow[] }) {
     e.preventDefault();
     run(
       () => requestOwnTimeOff({ leaveType, startDate, endDate, isHalfDay, reason }),
-      "Request submitted.",
+      (res) =>
+        res.autoApproved
+          ? "Approved — your time off is booked."
+          : "Request submitted for approval.",
     );
     setReason("");
   }
@@ -73,6 +83,11 @@ export function TimeOffPanel({ rows }: { rows: OwnRequestRow[] }) {
 
       <div className="admin-card" style={{ marginBottom: 20 }}>
         <h2 className="admin-card-title">Request time off</h2>
+        <p className="admin-cell-muted" style={{ marginBottom: 12 }}>
+          {autoApprove
+            ? "Your policy approves time off automatically — your manager and ops are notified."
+            : "Requests are reviewed by ops before they're approved."}
+        </p>
         <form className="admin-form" onSubmit={submit}>
           <div className="admin-timeoff-grid">
             <div className="admin-field">

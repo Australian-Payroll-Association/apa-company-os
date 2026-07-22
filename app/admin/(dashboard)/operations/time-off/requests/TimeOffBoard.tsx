@@ -24,20 +24,35 @@ export type RequestRow = {
   endDate: string;
   isHalfDay: boolean;
   reason: string | null;
+  days: number;
+  requestedAt: string;
+  isAutoApproved: boolean;
 };
+
+export type LeaderRow = { id: string; name: string; days: number };
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+// Awareness-first board: upcoming/pending leave with decision controls is the
+// primary surface; the "log time off for someone" form is collapsed behind a
+// button because admins rarely file leave on someone's behalf.
 export function TimeOffBoard({
   members,
-  rows,
+  upcoming,
+  all,
+  topFive,
+  bottomFive,
 }: {
   members: MemberOption[];
-  rows: RequestRow[];
+  upcoming: RequestRow[];
+  all: RequestRow[];
+  topFive: LeaderRow[];
+  bottomFive: LeaderRow[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   const [memberId, setMemberId] = useState("");
   const [leaveType, setLeaveType] = useState<string>("vacation");
@@ -65,117 +80,13 @@ export function TimeOffBoard({
     e.preventDefault();
     run(
       () => createTimeOff({ teamMemberId: memberId, leaveType, startDate, endDate, isHalfDay, reason }),
-      "Request submitted.",
+      "Time off logged and approved.",
     );
     setReason("");
   }
 
-  return (
-    <div className="admin-timeoff">
-      {banner && (
-        <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>
-          {banner.text}
-        </div>
-      )}
-
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <h2 className="admin-card-title">Request time off</h2>
-        <form className="admin-form" onSubmit={submit}>
-          <div className="admin-timeoff-grid">
-            <div className="admin-field">
-              <label className="admin-label" htmlFor="to-member">Team member</label>
-              <select
-                id="to-member"
-                className="admin-select"
-                value={memberId}
-                onChange={(e) => setMemberId(e.target.value)}
-                required
-              >
-                <option value="">Select…</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="admin-field">
-              <label className="admin-label" htmlFor="to-type">Leave type</label>
-              <select
-                id="to-type"
-                className="admin-select"
-                value={leaveType}
-                onChange={(e) => setLeaveType(e.target.value)}
-              >
-                {LEAVE_TYPES.map((t) => (
-                  <option key={t} value={t}>{LEAVE_TYPE_LABEL[t]}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="admin-field">
-              <label className="admin-label" htmlFor="to-start">Start date</label>
-              <input
-                id="to-start"
-                className="admin-input"
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  if (endDate < e.target.value) setEndDate(e.target.value);
-                }}
-                required
-              />
-            </div>
-
-            <div className="admin-field">
-              <label className="admin-label" htmlFor="to-end">End date</label>
-              <input
-                id="to-end"
-                className="admin-input"
-                type="date"
-                value={endDate}
-                min={startDate}
-                disabled={isHalfDay}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <label className="admin-timeoff-check">
-            <input
-              type="checkbox"
-              checked={isHalfDay}
-              onChange={(e) => {
-                setIsHalfDay(e.target.checked);
-                if (e.target.checked) setEndDate(startDate);
-              }}
-            />
-            Half day
-          </label>
-
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="to-reason">Reason (optional)</label>
-            <textarea
-              id="to-reason"
-              className="admin-textarea"
-              rows={2}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </div>
-
-          <div className="admin-form-actions">
-            <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
-              {pending ? "Saving…" : "Submit request"}
-            </button>
-            {previewDays > 0 && (
-              <span className="admin-timeoff-preview">{formatDays(previewDays)} of leave</span>
-            )}
-          </div>
-        </form>
-      </div>
-
+  function requestsTable(rows: RequestRow[], emptyText: string) {
+    return (
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
@@ -185,6 +96,7 @@ export function TimeOffBoard({
               <th>Dates</th>
               <th>Days</th>
               <th>Status</th>
+              <th>Requested</th>
               <th>Reason</th>
               <th aria-label="Actions"></th>
             </tr>
@@ -192,11 +104,10 @@ export function TimeOffBoard({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="admin-cell-muted">No time off requests yet.</td>
+                <td colSpan={8} className="admin-cell-muted">{emptyText}</td>
               </tr>
             ) : (
               rows.map((r) => {
-                const days = countWorkingDays(r.startDate, r.endDate, r.isHalfDay);
                 const range =
                   r.startDate === r.endDate
                     ? formatDate(r.startDate) + (r.isHalfDay ? " (half)" : "")
@@ -206,8 +117,12 @@ export function TimeOffBoard({
                     <td className="admin-cell-strong">{r.memberName}</td>
                     <td>{LEAVE_TYPE_LABEL[r.leaveType as keyof typeof LEAVE_TYPE_LABEL] ?? r.leaveType}</td>
                     <td>{range}</td>
-                    <td>{days > 0 ? formatDays(days) : "—"}</td>
-                    <td><Badge tone={statusTone(r.status)}>{r.status}</Badge></td>
+                    <td>{r.days > 0 ? formatDays(r.days) : "—"}</td>
+                    <td>
+                      <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                      {r.isAutoApproved && <span className="admin-cell-muted"> auto</span>}
+                    </td>
+                    <td className="admin-cell-muted">{formatDate(r.requestedAt.slice(0, 10))}</td>
                     <td className="admin-cell-muted">{r.reason || "—"}</td>
                     <td>
                       <div className="admin-timeoff-actions">
@@ -229,14 +144,25 @@ export function TimeOffBoard({
                             </button>
                           </>
                         )}
-                        {(r.status === "requested" || r.status === "approved") && (
-                          <button
-                            className="admin-btn admin-btn--sm"
-                            disabled={pending}
-                            onClick={() => run(() => cancelTimeOff(r.id), "Request cancelled.")}
-                          >
-                            Cancel
-                          </button>
+                        {r.status === "approved" && (
+                          <>
+                            <button
+                              className="admin-btn admin-btn--sm admin-btn--danger"
+                              disabled={pending}
+                              title="Deny this leave — overrides an approval, including auto-approvals"
+                              onClick={() => run(() => decideTimeOff(r.id, "rejected"), "Leave denied.")}
+                            >
+                              Deny
+                            </button>
+                            <button
+                              className="admin-btn admin-btn--sm"
+                              disabled={pending}
+                              title="Withdraw without rejecting (e.g. plans changed)"
+                              onClick={() => run(() => cancelTimeOff(r.id), "Request cancelled.")}
+                            >
+                              Cancel
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -247,6 +173,168 @@ export function TimeOffBoard({
           </tbody>
         </table>
       </div>
+    );
+  }
+
+  function leaderCard(title: string, rows: LeaderRow[]) {
+    return (
+      <div className="admin-card">
+        <h2 className="admin-card-title">{title}</h2>
+        <table className="admin-table">
+          <tbody>
+            {rows.map((l) => (
+              <tr key={l.id}>
+                <td className="admin-cell-strong">{l.name}</td>
+                <td style={{ textAlign: "right" }}>{formatDays(l.days)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-timeoff">
+      {banner && (
+        <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>
+          {banner.text}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 12,
+        }}
+      >
+        <h2 className="admin-card-title" style={{ margin: 0 }}>Upcoming &amp; pending</h2>
+        <button className="admin-btn" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? "Hide form" : "Log time off"}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="admin-card" style={{ marginBottom: 20 }}>
+          <h2 className="admin-card-title">Log time off for someone</h2>
+          <p className="admin-cell-muted" style={{ marginBottom: 12 }}>
+            Logged entries are approved immediately — you are the approver.
+          </p>
+          <form className="admin-form" onSubmit={submit}>
+            <div className="admin-timeoff-grid">
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="to-member">Team member</label>
+                <select
+                  id="to-member"
+                  className="admin-select"
+                  value={memberId}
+                  onChange={(e) => setMemberId(e.target.value)}
+                  required
+                >
+                  <option value="">Select…</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="to-type">Leave type</label>
+                <select
+                  id="to-type"
+                  className="admin-select"
+                  value={leaveType}
+                  onChange={(e) => setLeaveType(e.target.value)}
+                >
+                  {LEAVE_TYPES.map((t) => (
+                    <option key={t} value={t}>{LEAVE_TYPE_LABEL[t]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="to-start">Start date</label>
+                <input
+                  id="to-start"
+                  className="admin-input"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (endDate < e.target.value) setEndDate(e.target.value);
+                  }}
+                  required
+                />
+              </div>
+
+              <div className="admin-field">
+                <label className="admin-label" htmlFor="to-end">End date</label>
+                <input
+                  id="to-end"
+                  className="admin-input"
+                  type="date"
+                  value={endDate}
+                  min={startDate}
+                  disabled={isHalfDay}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <label className="admin-timeoff-check">
+              <input
+                type="checkbox"
+                checked={isHalfDay}
+                onChange={(e) => {
+                  setIsHalfDay(e.target.checked);
+                  if (e.target.checked) setEndDate(startDate);
+                }}
+              />
+              Half day
+            </label>
+
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="to-reason">Reason (optional)</label>
+              <textarea
+                id="to-reason"
+                className="admin-textarea"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-form-actions">
+              <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
+                {pending ? "Saving…" : "Log time off"}
+              </button>
+              {previewDays > 0 && (
+                <span className="admin-timeoff-preview">{formatDays(previewDays)} of leave</span>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {requestsTable(upcoming, "No upcoming or pending leave.")}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 20,
+          margin: "20px 0",
+        }}
+      >
+        {leaderCard("Most time off — 2026", topFive)}
+        {leaderCard("Least time off — 2026", bottomFive)}
+      </div>
+
+      <h2 className="admin-card-title" style={{ marginBottom: 12 }}>All requests</h2>
+      {requestsTable(all, "No time off requests yet.")}
     </div>
   );
 }

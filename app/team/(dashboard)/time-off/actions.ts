@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
-import { teamInsertOwn, teamRead, teamUpdateInScope, getManagerContact } from "@/lib/team/data";
+import {
+  teamInsertOwn,
+  teamRead,
+  teamUpdateInScope,
+  getManagerContact,
+  getOwnApprovalPolicy,
+} from "@/lib/team/data";
 import { LEAVE_TYPES, LEAVE_TYPE_LABEL, countWorkingDays, formatDays, type LeaveType } from "@/lib/admin/time-off";
 import { formatDate } from "@/lib/admin/format";
 import { notifyOps } from "@/lib/lark";
@@ -16,6 +22,7 @@ import { sendTransactionalEmail } from "@/lib/email";
 // lib/team/data.ts, which force or verify actor.teamMemberId server-side.
 
 type Result = { ok: true } | { ok: false; error: string };
+type SubmitResult = { ok: true; autoApproved: boolean } | { ok: false; error: string };
 
 const LEAVE_TYPE_SET = new Set<string>(LEAVE_TYPES);
 
@@ -38,7 +45,7 @@ export async function requestOwnTimeOff(input: {
   endDate: string;
   isHalfDay: boolean;
   reason: string;
-}): Promise<Result> {
+}): Promise<SubmitResult> {
   const actor = await requireTeamMember();
 
   if (!LEAVE_TYPE_SET.has(input.leaveType)) return { ok: false, error: "Pick a leave type." };
@@ -48,11 +55,19 @@ export async function requestOwnTimeOff(input: {
   if (input.isHalfDay && input.startDate !== input.endDate)
     return { ok: false, error: "A half day must be a single date." };
 
+  // Approval mode follows the actor's leave policy (Edge8 Core Team
+  // auto-approves; On Target stays manual). Resolved server-side — the client
+  // never gets to pick its own approval path. Auto-approved rows are stamped
+  // approved_at with approved_by left null: "approved by policy, not a person"
+  // — the admin board renders that combination as "auto".
+  const policy = await getOwnApprovalPolicy(actor);
+
   // teamInsertOwn forces team_member_id = actor.teamMemberId — no id field is
   // accepted from the client here at all, so there is nothing to spoof.
   const { data, error } = await teamInsertOwn(actor, "time_off", {
     leave_type: input.leaveType as LeaveType,
-    status: "requested",
+    status: policy.autoApprove ? "approved" : "requested",
+    approved_at: policy.autoApprove ? new Date().toISOString() : null,
     start_date: input.startDate,
     end_date: input.endDate,
     is_half_day: input.isHalfDay,
@@ -70,7 +85,9 @@ export async function requestOwnTimeOff(input: {
       : `${formatDate(input.startDate)} → ${formatDate(input.endDate)}`;
 
   notifyOps(
-    `Time off requested: ${actor.displayName} — ${leaveLabel}, ${dateRange} (${formatDays(days)}).`,
+    policy.autoApprove
+      ? `Time off auto-approved: ${actor.displayName} — ${leaveLabel}, ${dateRange} (${formatDays(days)}).`
+      : `Time off requested: ${actor.displayName} — ${leaveLabel}, ${dateRange} (${formatDays(days)}). Needs approval.`,
   ).catch(() => {});
 
   getManagerContact(actor)
@@ -78,18 +95,26 @@ export async function requestOwnTimeOff(input: {
       if (!mgr) return undefined;
       return sendTransactionalEmail({
         to: mgr.email,
-        subject: `Time off request from ${actor.displayName}`,
-        html: `
+        subject: policy.autoApprove
+          ? `Time off: ${actor.displayName} — ${dateRange}`
+          : `Time off request from ${actor.displayName}`,
+        html: policy.autoApprove
+          ? `
+          <p>${escapeHtml(actor.displayName)} booked ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
+          ${input.reason.trim() ? `<p>Reason: ${escapeHtml(input.reason.trim())}</p>` : ""}
+          <p>Approved automatically under the ${escapeHtml(policy.policyName ?? "company")} policy — no action needed.</p>
+        `
+          : `
           <p>${escapeHtml(actor.displayName)} requested ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
           ${input.reason.trim() ? `<p>Reason: ${escapeHtml(input.reason.trim())}</p>` : ""}
-          <p>Review it in the workspace under My Team &gt; Approvals.</p>
+          <p>It is awaiting approval in the Edge8 admin under Operations &gt; Time Off.</p>
         `,
       });
     })
     .catch(() => {});
 
   refresh();
-  return { ok: true };
+  return { ok: true, autoApproved: policy.autoApprove };
 }
 
 export async function cancelOwnTimeOff(id: string): Promise<Result> {

@@ -1,5 +1,5 @@
 import { requireTeamMember } from "@/lib/team-auth";
-import { teamRead, getOwnLeaveSummary } from "@/lib/team/data";
+import { teamRead, getOwnLeaveSummary, getOwnApprovalPolicy } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { formatLeaveBalance } from "@/lib/admin/time-off";
@@ -18,8 +18,9 @@ export const metadata = {
 export default async function TeamTimeOffPage() {
   const actor = await requireTeamMember();
 
-  const [summary, requestsRes] = await Promise.all([
+  const [summary, approvalPolicy, requestsRes] = await Promise.all([
     getOwnLeaveSummary(actor),
+    getOwnApprovalPolicy(actor),
     teamRead(actor, "time_off", "id, leave_type, status, start_date, end_date, is_half_day, reason")
       .eq("team_member_id", actor.teamMemberId)
       .order("start_date", { ascending: false })
@@ -70,7 +71,7 @@ export default async function TeamTimeOffPage() {
         </div>
       )}
 
-      <TimeOffPanel rows={rows} />
+      <TimeOffPanel rows={rows} autoApprove={approvalPolicy.autoApprove} />
     </>
   );
 }

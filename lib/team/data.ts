@@ -225,6 +225,23 @@ export async function getOwnLeaveSummary(actor: TeamActor): Promise<OwnLeaveSumm
   return { policyName: r.leave_policy, totalDays: num(r.total_days), usedDays: num(r.used_days) };
 }
 
+// The actor's leave policy approval mode, read via team_members.leave_policy_id
+// (the FK, not team_directory's Day Off COALESCE — the decision must follow the
+// policy we assign, not the synced label). Self-scoped by actor.teamMemberId.
+// No policy on file means manual approval: auto-approve is opt-in per policy.
+export type OwnApprovalPolicy = { policyName: string | null; autoApprove: boolean };
+
+export async function getOwnApprovalPolicy(actor: TeamActor): Promise<OwnApprovalPolicy> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select("leave_policies:leave_policies!leave_policy_id(name, auto_approve)")
+    .eq("id", actor.teamMemberId)
+    .maybeSingle();
+  const r = data as unknown as Record<string, unknown> | null;
+  const lp = one((r?.leave_policies ?? null) as { name: string | null; auto_approve: boolean } | { name: string | null; auto_approve: boolean }[] | null);
+  return { policyName: lp?.name ?? null, autoApprove: lp?.auto_approve === true };
+}
+
 // The actor's manager's contact details, for notifying on a new time-off
 // request. Self-scoped by actor.teamMemberId; returns null if the actor has no
 // manager or the manager has no email on file.

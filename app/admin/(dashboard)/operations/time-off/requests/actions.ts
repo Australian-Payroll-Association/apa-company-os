@@ -39,7 +39,7 @@ export async function createTimeOff(input: {
   isHalfDay: boolean;
   reason: string;
 }): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   if (!input.teamMemberId) return { ok: false, error: "Pick a team member." };
   if (!LEAVE_TYPE_SET.has(input.leaveType)) return { ok: false, error: "Pick a leave type." };
@@ -49,10 +49,15 @@ export async function createTimeOff(input: {
   if (input.isHalfDay && input.startDate !== input.endDate)
     return { ok: false, error: "A half day must be a single date." };
 
+  // An admin logging leave IS the approval — inserting as "requested" only made
+  // the same admin approve their own entry a click later. Stamp the decision.
+  const approverId = await actingTeamMemberId(admin.email);
   const { error } = await companyOs.from("time_off").insert({
     team_member_id: input.teamMemberId,
     leave_type: input.leaveType as LeaveType,
-    status: "requested",
+    status: "approved",
+    approved_by: approverId,
+    approved_at: new Date().toISOString(),
     start_date: input.startDate,
     end_date: input.endDate,
     is_half_day: input.isHalfDay,
@@ -76,8 +81,12 @@ export async function decideTimeOff(
     .eq("id", id)
     .maybeSingle();
   if (rErr || !row) return { ok: false, error: rErr?.message ?? "Request not found." };
-  if (row.status !== "requested")
-    return { ok: false, error: "Only pending requests can be decided." };
+  // Approve only from pending; reject from pending OR approved — the latter is
+  // the admin override that denies auto-approved (or previously approved) leave.
+  if (decision === "approved" && row.status !== "requested")
+    return { ok: false, error: "Only pending requests can be approved." };
+  if (decision === "rejected" && row.status !== "requested" && row.status !== "approved")
+    return { ok: false, error: "Only pending or approved leave can be denied." };
 
   const approverId = await actingTeamMemberId(admin.email);
   const { error } = await companyOs
