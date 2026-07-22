@@ -63,6 +63,15 @@ export const allWorkflows: Workflow[] = [
     steps: 7,
   },
   {
+    slug: 'onboarding-plans',
+    title: 'Onboarding Plans',
+    category: 'Talent',
+    excerpt:
+      'Every new hire moves through six stages on a kanban board that runs itself: the system chases the plan, sends the surveys, and flips the status. Managers make one decision, at Day 45.',
+    date: '2026-07-22',
+    steps: 6,
+  },
+  {
     slug: 'time-off',
     title: 'Time Off',
     category: 'Operations',
