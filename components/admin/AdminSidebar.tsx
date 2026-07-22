@@ -57,18 +57,18 @@ const NAV: NavGroup[] = [
     collapsible: true,
     items: [
       {
+        subheading: "People",
+        items: [
+          { label: "Team", href: "/admin/talent/team", ico: "☷", enabled: true },
+          { label: "Probation", href: "/admin/talent/probation", ico: "◔", enabled: true },
+        ],
+      },
+      {
         subheading: "ATS",
         items: [
           { label: "Applications", href: "/admin/talent/applications", ico: "⇉", enabled: true },
           { label: "Job Reqs", href: "/admin/talent/jobs", ico: "▤", enabled: true },
           { label: "Rank", href: "/admin/talent/rank", ico: "↥", enabled: true },
-        ],
-      },
-      {
-        subheading: "People",
-        items: [
-          { label: "Team", href: "/admin/talent/team", ico: "☷", enabled: true },
-          { label: "Probation", href: "/admin/talent/probation", ico: "◔", enabled: true },
         ],
       },
     ],
