@@ -118,6 +118,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to link application' }, { status: 500 })
     }
 
+    // Tag the applicant as a job seeker so recruiter tooling (applicant status
+    // control, Contact 360) treats them as an applicant. Only fill an unset
+    // persona — never overwrite an existing prospect/client/employee who also
+    // happens to apply. Best-effort; a failure here must not fail the apply.
+    await companyOs
+      .from('people')
+      .update({ persona: 'job_seeker' })
+      .eq('id', person.id)
+      .is('persona', null)
+
     const doc = await attachApplicationResume(application.id, {
       storagePath,
       mimeType: resume.type || null,

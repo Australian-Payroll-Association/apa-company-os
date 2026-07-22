@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
+import { APPLICATION_STATUS_OPTIONS } from "@/lib/admin/application-status";
 import {
   addApplicationNote,
   getApplicationExtras,
@@ -42,16 +43,6 @@ export type AppManageData = {
   portfolioUrl: string | null;
   doNotHire: boolean;
 };
-
-const STATUS_OPTIONS = [
-  ["active", "Active"],
-  ["on_hold", "On hold"],
-  ["passive", "Passive"],
-  ["withdrawn", "Withdrawn"],
-  ["hired", "Hired"],
-  ["rejected", "Rejected"],
-  ["future_consideration", "Future consideration"],
-] as const;
 
 // Editable "manage" surface for one application, rendered inside the row's side
 // shelf (DetailDrawer). Two save scopes: application fields write applications;
@@ -201,7 +192,7 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
                 commit("status", e.target.value);
               }}
             >
-              {STATUS_OPTIONS.map(([v, l]) => (
+              {APPLICATION_STATUS_OPTIONS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
                 </option>

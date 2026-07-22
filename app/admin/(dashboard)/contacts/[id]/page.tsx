@@ -11,6 +11,7 @@ import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { PersonEditForm } from "./PersonEditForm";
 import { PersonDangerZone } from "./PersonDangerZone";
 import { PromoteButton } from "./PromoteButton";
+import { ApplicantStatusSelect } from "@/components/admin/ApplicantStatusSelect";
 import { formatCents, formatDate, humanize, timeAgo } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,11 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
     portalMemberships.filter((m) => m.company_id).map((m) => [m.company_id as string, m]),
   );
   const isCustomer = deals.some((d) => d.status === "won");
+  // Applicants are recruited, not sold to: for a job seeker we replace the
+  // "Promote to lead" sales action with a status control on their most recent
+  // application (applications come back newest-first from getPerson360).
+  const isApplicant = person.persona === "job_seeker";
+  const latestApplication = applications[0] ?? null;
   const primaryCompany = companies.find((c) => c.is_primary) ?? companies[0] ?? null;
   const name = person.full_name || person.preferred_name || person.email;
   const location = [person.city, person.state_province, person.country].filter(Boolean).join(", ");
@@ -320,7 +326,15 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
               <Badge tone="info">Lead · {humanize(lead.status)}</Badge>
             )}
             {person.persona && <Badge>{humanize(person.persona)}</Badge>}
-            {!person.do_not_contact &&
+            {isApplicant && latestApplication && (
+              <ApplicantStatusSelect
+                applicationId={latestApplication.id}
+                status={latestApplication.status}
+                label="Applicant status"
+              />
+            )}
+            {!isApplicant &&
+              !person.do_not_contact &&
               !person.is_team_member &&
               !isCustomer &&
               (!lead || ["unqualified", "nurture"].includes(lead.status)) && (

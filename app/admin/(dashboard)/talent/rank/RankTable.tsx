@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
+import { ApplicantStatusSelect } from "@/components/admin/ApplicantStatusSelect";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { updateApplication } from "../applications/actions";
 
@@ -246,14 +247,19 @@ export function RankTable({
       >
         {selected && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {selected.status && <Badge tone={statusTone(selected.status)}>{humanize(selected.status)}</Badge>}
-              {selected.appliedAt && (
-                <span className="admin-cell-muted" style={{ fontSize: 13 }}>
-                  Applied {formatDate(selected.appliedAt)}
-                </span>
-              )}
-            </div>
+            {selected.appliedAt && (
+              <div className="admin-cell-muted" style={{ fontSize: 13 }}>
+                Applied {formatDate(selected.appliedAt)}
+              </div>
+            )}
+
+            {/* Editable application status — same control as the applications and
+                contact surfaces (rank keeps its AI-screen layout below). */}
+            <ApplicantStatusSelect
+              applicationId={selected.applicationId}
+              status={selected.status}
+              label="Status"
+            />
 
             {/* Recruiter's own rating — editable, saves on click */}
             <div>
