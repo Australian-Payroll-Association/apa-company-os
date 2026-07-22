@@ -3,7 +3,16 @@
 import { useRef, useState, useTransition } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
-import { uploadOnboardingPlan, toggleDay1Task } from "./actions";
+
+// Server actions arrive as props so the same board serves two audiences with
+// two different gates: /team/onboarding passes manager-scoped actions
+// (requireTeamMember + scope assertions) and /admin/talent/onboarding passes
+// admin-gated ones (requireAdmin). The board itself never touches data.
+export type BoardActionResult = { ok: true } | { ok: false; error: string };
+export type BoardActions = {
+  uploadPlan: (journeyId: string, formData: FormData) => Promise<BoardActionResult>;
+  toggleTask: (taskId: string, done: boolean) => Promise<BoardActionResult>;
+};
 
 // Mirror of CYCLE_STAGES in lib/onboarding-cycle.ts — duplicated here because
 // that lib is server-only (service-role client) and this is a client component.
@@ -72,7 +81,17 @@ function dayLabel(card: BoardCard): string {
   return `Day ${card.dayNumber}`;
 }
 
-export function OnboardingBoard({ cards }: { cards: BoardCard[] }) {
+export function OnboardingCycleBoard({
+  cards,
+  actions,
+  planHrefBase,
+}: {
+  cards: BoardCard[];
+  actions: BoardActions;
+  // Route serving the signed plan download for this surface, e.g.
+  // "/team/onboarding/plan" or "/admin/talent/onboarding/plan".
+  planHrefBase: string;
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -85,7 +104,7 @@ export function OnboardingBoard({ cards }: { cards: BoardCard[] }) {
     const fd = new FormData();
     fd.append("file", file);
     startTransition(async () => {
-      const res = await uploadOnboardingPlan(card.id, fd);
+      const res = await actions.uploadPlan(card.id, fd);
       if (!res.ok) setError(res.error);
       if (fileRef.current) fileRef.current.value = "";
     });
@@ -94,7 +113,7 @@ export function OnboardingBoard({ cards }: { cards: BoardCard[] }) {
   function toggleTask(taskId: string, done: boolean) {
     setError(null);
     startTransition(async () => {
-      const res = await toggleDay1Task(taskId, done);
+      const res = await actions.toggleTask(taskId, done);
       if (!res.ok) setError(res.error);
     });
   }
@@ -218,7 +237,7 @@ export function OnboardingBoard({ cards }: { cards: BoardCard[] }) {
               {selected.planUploaded ? (
                 <p style={{ fontSize: 13 }}>
                   Uploaded {fmt(selected.planUploadedAt)} ·{" "}
-                  <a href={`/team/onboarding/plan/${selected.id}`} target="_blank" rel="noreferrer">
+                  <a href={`${planHrefBase}/${selected.id}`} target="_blank" rel="noreferrer">
                     View plan
                   </a>
                 </p>

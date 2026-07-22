@@ -60,6 +60,7 @@ const NAV: NavGroup[] = [
         subheading: "People",
         items: [
           { label: "Team", href: "/admin/talent/team", ico: "☷", enabled: true },
+          { label: "Onboarding", href: "/admin/talent/onboarding", ico: "◐", enabled: true },
           { label: "Probation", href: "/admin/talent/probation", ico: "◔", enabled: true },
         ],
       },

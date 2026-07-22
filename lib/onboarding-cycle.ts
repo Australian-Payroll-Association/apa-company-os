@@ -178,6 +178,12 @@ export async function getCycleRowsFor(teamMemberIds: string[]): Promise<CycleRow
   return loadCycleRows(teamMemberIds);
 }
 
+// Admin board read: every journey, company-wide. Callers must be behind
+// requireAdmin() — this is deliberately NOT reachable from /team code paths.
+export async function getAllCycleRows(): Promise<CycleRow[]> {
+  return loadCycleRows();
+}
+
 // ---- journey creation / backfill -------------------------------------------
 
 async function seedDay1Tasks(teamMemberId: string, dueDate: string | null): Promise<void> {
@@ -224,13 +230,16 @@ export async function ensureJourney(teamMemberId: string): Promise<void> {
   await seedDay1Tasks(teamMemberId, (tm as { start_date: string | null } | null)?.start_date ?? null);
 }
 
-// Every onboarding-stage member gets a journey — covers hires created by admins
-// (or before this feature shipped) that never passed through ensureJourney.
+// Every onboarding-stage member gets a journey, and so does ANYONE inside
+// their first 180 days regardless of stage (covers hires promoted before this
+// feature shipped, and admin-created rows that never passed ensureJourney) —
+// the cycle tracks the full first 180 days, not just probation.
 export async function backfillJourneys(): Promise<number> {
+  const cutoff = addDays(saigonToday(), -179);
   const { data } = await companyOs
     .from("team_members")
     .select("id")
-    .in("employment_stage", ["pre_boarding", "probation"])
+    .or(`employment_stage.in.(pre_boarding,probation),start_date.gte.${cutoff}`)
     .in("status", LIVE_STATUSES);
   const ids = ((data ?? []) as { id: string }[]).map((r) => r.id);
   if (ids.length === 0) return 0;
@@ -358,6 +367,10 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
     const manager = row.member.managerId ? managers.get(row.member.managerId) : undefined;
     const name = row.member.name;
     const boardLink = `${origin}/team/onboarding`;
+    // Someone already confirmed full time (promoted before this feature, or by
+    // an admin directly) rides the board to Day 180 but must never re-enter
+    // the review/decision flow.
+    const alreadyFullTime = row.member.employmentStage === "full_time";
 
     // 1) Plan-upload nag: the 7 days before Day 1, daily, deliberately
     //    stateless — it repeats until the plan is uploaded.
@@ -404,6 +417,7 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
       !row.day45_email_sent_at &&
       !row.decision &&
       !row.day60_promoted_at &&
+      !alreadyFullTime &&
       manager?.email
     ) {
       const ok = await sendTransactionalEmail({
@@ -428,6 +442,7 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
       todayISO >= addDays(probEnd, -5) &&
       !row.decision &&
       !row.day60_promoted_at &&
+      !alreadyFullTime &&
       manager?.email
     ) {
       const ok = await sendTransactionalEmail({
@@ -443,8 +458,11 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
     }
 
     // 5) Day 60 promotion: probation over + manager passed them -> full time,
-    //    congratulations to the hire, CC manager + recruiter.
-    if (todayISO >= probEnd && row.decision === "offer_full_time" && !row.day60_promoted_at) {
+    //    congratulations to the hire, CC manager + recruiter. Someone already
+    //    full time just gets the marker stamped quietly — no writes, no email.
+    if (alreadyFullTime && !row.day60_promoted_at) {
+      await patchJourney(row.id, { day60_promoted_at: new Date().toISOString() });
+    } else if (todayISO >= probEnd && row.decision === "offer_full_time" && !row.day60_promoted_at) {
       const statusPatch = row.member.status === "pre_start" ? { status: "active" } : {};
       const { error } = await companyOs
         .from("team_members")

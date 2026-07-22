@@ -1,35 +1,36 @@
-import { redirect } from "next/navigation";
-import { requireTeamMember } from "@/lib/team-auth";
+import Link from "next/link";
+import { requireAdmin } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import {
-  getCycleRowsFor,
+  getAllCycleRows,
   getDay1Tasks,
   getDay8Scores,
   computeStage,
   cycleDay,
   saigonToday,
   addDays,
+  backfillJourneys,
 } from "@/lib/onboarding-cycle";
 import { OnboardingCycleBoard, type BoardCard } from "@/components/onboarding/OnboardingCycleBoard";
-import { uploadOnboardingPlan, toggleDay1Task } from "./actions";
+import { adminUploadOnboardingPlan, adminToggleDay1Task } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Onboarding",
-  description: "Your reports' onboarding journeys, from pre-boarding to the 180-day stay interview.",
+  description: "Every employee inside their first 180 days, across all managers.",
 };
 
-// /team/onboarding — the Edge8 Onboarding Cycle board, manager-only (the
-// sidebar shows My Team only to managers; this guard covers direct URLs).
-// Every read is scoped to actor.teamMemberScope: a manager sees exactly their
-// own reports' journeys, nothing else.
-export default async function TeamOnboardingPage() {
-  const actor = await requireTeamMember();
-  if (actor.role !== "manager") redirect("/team");
+// Talent → Onboarding: the company-wide Onboarding Cycle board. Same board as
+// the manager view at /team/onboarding, but admin-gated and unscoped — every
+// journey, every manager. Loading the page also backfills journeys, so anyone
+// under 180 days who is missing a card gets one on the spot.
+export default async function AdminOnboardingPage() {
+  await requireAdmin();
 
+  await backfillJourneys();
   const today = saigonToday();
-  const rows = await getCycleRowsFor(actor.teamMemberScope);
+  const rows = await getAllCycleRows();
   const [tasks, scores] = await Promise.all([
     getDay1Tasks(rows.map((r) => r.team_member_id)),
     getDay8Scores(rows.map((r) => r.day8_response_id ?? "").filter(Boolean)),
@@ -72,19 +73,19 @@ export default async function TeamOnboardingPage() {
   return (
     <>
       <PageHead
+        eyebrow={<Link href="/admin/talent/team">← Team</Link>}
         title="Onboarding"
-        sub={`${cards.length} journey${cards.length === 1 ? "" : "s"} · the cycle runs itself — upload each plan before Day 1 and decide at the 45-day review`}
+        sub={`${cards.length} in the cycle · everyone inside their first 180 days, across all managers`}
       />
       {cards.length === 0 ? (
         <div className="admin-empty">
-          None of your reports are in onboarding right now. New hires appear here automatically from
-          pre-boarding through their 180-day stay interview.
+          Nobody is inside their first 180 days right now. New hires appear here automatically.
         </div>
       ) : (
         <OnboardingCycleBoard
           cards={cards}
-          actions={{ uploadPlan: uploadOnboardingPlan, toggleTask: toggleDay1Task }}
-          planHrefBase="/team/onboarding/plan"
+          actions={{ uploadPlan: adminUploadOnboardingPlan, toggleTask: adminToggleDay1Task }}
+          planHrefBase="/admin/talent/onboarding/plan"
         />
       )}
     </>
