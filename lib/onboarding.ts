@@ -16,9 +16,43 @@ import { companyOs, supabase } from "@/lib/supabase";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { sendTransactionalEmail } from "@/lib/email";
 import { recordAudit } from "@/lib/admin/audit";
+import { promoteSelfieToAvatar } from "@/lib/avatars";
 import type { SurveyFieldRow } from "@/lib/admin/surveys";
 
 const OPS_EMAIL = "mai@edge8.ai";
+
+// Onboarding collects bank details as one free-text line, usually
+// "<account> - <bank> - <branch>" (sometimes newline-separated, or just
+// "<account> - <bank>"). Split it so payroll gets a clean account number and
+// branch instead of everything crammed into the name. Conservative: only splits
+// when it finds a plausible digit-run account, otherwise returns {} and the raw
+// value is left untouched in bank_name. Exported so the backfill reuses it.
+export function splitBankDetails(raw: string): {
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_branch?: string;
+} {
+  const parts = raw
+    .replace(/[\n\r]+/g, " - ")
+    .split(/\s*[-–—]\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return {};
+
+  // The account number is the part that is essentially digits (≥6 of them).
+  const isAccount = (s: string) => s.replace(/\D/g, "").length >= 6 && /^[\d\s.]+$/.test(s);
+  const accIdx = parts.findIndex(isAccount);
+  if (accIdx < 0) return {};
+
+  const account = parts[accIdx].replace(/\s+/g, "");
+  const rest = parts.filter((_, i) => i !== accIdx);
+  const out: { bank_name?: string; bank_account_number?: string; bank_branch?: string } = {
+    bank_account_number: account,
+  };
+  if (rest.length >= 1) out.bank_name = rest[0];
+  if (rest.length >= 2) out.bank_branch = rest.slice(1).join(" - ");
+  return out;
+}
 
 type AnswerValue = string | string[] | number | boolean | null;
 
@@ -75,6 +109,22 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       }
     }
 
+    // The selfie is a public profile photo, not restricted PII: pull it out of
+    // the sensitive patch and promote it to the person's avatar after the writes.
+    const selfiePath = sensitivePatch.id_selfie_path ?? null;
+    delete sensitivePatch.id_selfie_path;
+
+    // Bank details come in as one line; split into account number + branch so
+    // payroll has clean fields rather than everything inside the bank name.
+    if (sensitivePatch.bank_name && !sensitivePatch.bank_account_number) {
+      const bank = splitBankDetails(sensitivePatch.bank_name);
+      if (bank.bank_account_number) {
+        sensitivePatch.bank_account_number = bank.bank_account_number;
+        if (bank.bank_name) sensitivePatch.bank_name = bank.bank_name;
+        if (bank.bank_branch) sensitivePatch.bank_branch = bank.bank_branch;
+      }
+    }
+
     // 2) Enrich `people` (getOrCreatePerson only set email/name, and never
     //    overwrites an existing person — so update explicitly). Merge metadata so
     //    we don't clobber onboarding_completed_at, fun_stuff, etc.
@@ -112,6 +162,13 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
           actor: "new-member-onboarding",
           context: { fields_changed: Object.keys(sensitivePatch) },
         });
+    }
+
+    // 3b) Selfie -> public avatar. Best-effort; the survey answer keeps the
+    //     record either way, so a storage hiccup never blocks the submission.
+    if (selfiePath) {
+      const ok = await promoteSelfieToAvatar(personId, selfiePath);
+      if (!ok) console.error("[onboarding] selfie -> avatar failed for", personId);
     }
 
     // 4) Did this person come through the hiring pipeline? Drives the invite +

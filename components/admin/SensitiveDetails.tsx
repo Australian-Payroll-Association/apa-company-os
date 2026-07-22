@@ -9,9 +9,11 @@ type SaveResult = { ok: true; message: string } | { ok: false; error: string };
 type FieldDef = { key: keyof SensitiveInput; label: string; type: "text" | "date" | "area" };
 const FIELDS: FieldDef[] = [
   { key: "date_of_birth", label: "Date of birth", type: "date" },
+  { key: "place_of_birth", label: "Place of birth", type: "text" },
   { key: "national_id_number", label: "National ID number", type: "text" },
   { key: "national_id_issue_date", label: "ID issue date", type: "date" },
   { key: "national_id_issue_place", label: "ID issue place", type: "text" },
+  { key: "native_province", label: "Native province", type: "text" },
   { key: "marital_status", label: "Marital status", type: "text" },
   { key: "permanent_address", label: "Permanent address", type: "area" },
   { key: "current_address", label: "Current address", type: "area" },

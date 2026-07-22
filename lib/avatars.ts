@@ -49,3 +49,46 @@ export async function setPersonAvatar(personId: string, file: File): Promise<Ava
 
   return { ok: true, url };
 }
+
+// Promote an onboarding selfie into the person's public avatar. The selfie is an
+// ordinary headshot, not restricted PII, so it belongs in the public `avatars`
+// bucket like every other profile photo — not left behind in the private
+// `id-documents` store. Copies the object across, points people.avatar_url at
+// the public URL, then drops the private original. Best-effort: returns false
+// (never throws) so an onboarding submit never fails on this step.
+export async function promoteSelfieToAvatar(
+  personId: string,
+  selfiePath: string,
+): Promise<boolean> {
+  try {
+    const { data: blob, error: dlErr } = await supabase.storage
+      .from("id-documents")
+      .download(selfiePath);
+    if (dlErr || !blob) return false;
+
+    const contentType = blob.type || "image/jpeg";
+    const ext = MIME_EXT[contentType] ?? "jpg";
+    const folder = `people/${personId}`;
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await blob.arrayBuffer());
+
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, buffer, { contentType });
+    if (upErr) return false;
+
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const { error: dbErr } = await companyOs
+      .from("people")
+      .update({ avatar_url: pub.publicUrl, updated_at: new Date().toISOString() })
+      .eq("id", personId);
+    if (dbErr) return false;
+
+    // The headshot now lives in public storage; remove the private copy.
+    await supabase.storage.from("id-documents").remove([selfiePath]);
+    return true;
+  } catch (err) {
+    console.error("[avatars] selfie promotion failed:", err);
+    return false;
+  }
+}
