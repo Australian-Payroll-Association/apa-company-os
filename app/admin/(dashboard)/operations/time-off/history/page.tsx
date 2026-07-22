@@ -10,11 +10,11 @@ import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Time Off — People",
+  title: "Time Off — History",
   description: "Team leave policies, work schedules, and balances.",
 };
 
-// Operations → Time Off → People. One row per team member with their approver,
+// Operations → Time Off → History. One row per team member with their approver,
 // team, location, leave policy, work schedule, and current-period balance. Data
 // comes from company_os.team_directory (normalized identity + synced Dayoff
 // facts). Read-only; clicking the row opens the shared Team Member profile.
@@ -34,7 +34,7 @@ type DirectoryRow = {
 
 const muted = <span className="admin-cell-muted">—</span>;
 
-export default async function TimeOffPeoplePage({ searchParams }: { searchParams: SearchParamsObj }) {
+export default async function TimeOffHistoryPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const view = firstParam(searchParams.view) === "deactivated" ? "deactivated" : "activated";
 
   const base = companyOs
@@ -52,13 +52,13 @@ export default async function TimeOffPeoplePage({ searchParams }: { searchParams
     <>
       <PageHead
         eyebrow="Operations · Time Off"
-        title="People"
+        title="History"
         sub="Leave policies, work schedules, and balances across the team."
       />
 
       <div className="admin-tabs" role="tablist">
         <Link
-          href="/admin/operations/time-off/people"
+          href="/admin/operations/time-off/history"
           role="tab"
           aria-selected={view === "activated"}
           className={`admin-tab${view === "activated" ? " is-active" : ""}`}
@@ -67,7 +67,7 @@ export default async function TimeOffPeoplePage({ searchParams }: { searchParams
           Activated
         </Link>
         <Link
-          href="/admin/operations/time-off/people?view=deactivated"
+          href="/admin/operations/time-off/history?view=deactivated"
           role="tab"
           aria-selected={view === "deactivated"}
           className={`admin-tab${view === "deactivated" ? " is-active" : ""}`}

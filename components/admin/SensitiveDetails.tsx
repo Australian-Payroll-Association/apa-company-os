@@ -9,9 +9,11 @@ type SaveResult = { ok: true; message: string } | { ok: false; error: string };
 type FieldDef = { key: keyof SensitiveInput; label: string; type: "text" | "date" | "area" };
 const FIELDS: FieldDef[] = [
   { key: "date_of_birth", label: "Date of birth", type: "date" },
+  { key: "place_of_birth", label: "Place of birth", type: "text" },
   { key: "national_id_number", label: "National ID number", type: "text" },
   { key: "national_id_issue_date", label: "ID issue date", type: "date" },
   { key: "national_id_issue_place", label: "ID issue place", type: "text" },
+  { key: "native_province", label: "Native province", type: "text" },
   { key: "marital_status", label: "Marital status", type: "text" },
   { key: "permanent_address", label: "Permanent address", type: "area" },
   { key: "current_address", label: "Current address", type: "area" },
@@ -23,16 +25,75 @@ const FIELDS: FieldDef[] = [
   { key: "notes", label: "Notes", type: "area" },
 ];
 
+// A clickable thumbnail of an identity image. The ID scans stream through the
+// admin-gated /id-image route (private bucket, per-request signed URL); the
+// selfie is the public avatar URL. A broken image (e.g. a PDF scan) falls back
+// to a plain link so HR can still open it.
+function ThumbLink({ href, label }: { href: string; label: string }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={`Open ${label}`}
+      style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 4, textDecoration: "none" }}
+    >
+      {broken ? (
+        <span
+          style={{
+            width: 88,
+            height: 56,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 6,
+            border: "1px solid var(--admin-line)",
+            background: "var(--admin-line-soft)",
+            fontSize: 11,
+          }}
+          className="admin-cell-muted"
+        >
+          Open
+        </span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={href}
+          alt={label}
+          onError={() => setBroken(true)}
+          style={{
+            width: 88,
+            height: 56,
+            objectFit: "cover",
+            borderRadius: 6,
+            border: "1px solid var(--admin-line)",
+            background: "var(--admin-line-soft)",
+          }}
+        />
+      )}
+      <span className="admin-cell-muted" style={{ fontSize: 11 }}>{label}</span>
+    </a>
+  );
+}
+
 // Restricted PII card. PII stays hidden behind a reveal click (shoulder-surfing
 // guard); an Edit toggle turns the fields into inputs. Reads/writes go through
-// the admin-only, audited action passed by the server page.
+// the admin-only, audited action passed by the server page. Identity images
+// (ID front/back + selfie) render as thumbnails HR can click to view full size.
 export function SensitiveDetails({
   row,
-  hasIdImages,
+  hasIdFront,
+  hasIdBack,
+  idImageBaseHref,
+  selfieUrl,
   action,
 }: {
   row: SensitiveRow | null;
-  hasIdImages: boolean;
+  hasIdFront: boolean;
+  hasIdBack: boolean;
+  idImageBaseHref: string;
+  selfieUrl: string | null;
   action: (input: SensitiveInput) => Promise<SaveResult>;
 }) {
   const router = useRouter();
@@ -124,8 +185,18 @@ export function SensitiveDetails({
               <dd>{(row?.[f.key] as string | null) || "—"}</dd>
             </div>
           ))}
-          <dt>ID card images</dt>
-          <dd>{hasIdImages ? "On file" : <span className="admin-cell-muted">Not uploaded</span>}</dd>
+          <dt>Identity images</dt>
+          <dd>
+            {hasIdFront || hasIdBack || selfieUrl ? (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {hasIdFront && <ThumbLink href={`${idImageBaseHref}/front`} label="ID front" />}
+                {hasIdBack && <ThumbLink href={`${idImageBaseHref}/back`} label="ID back" />}
+                {selfieUrl && <ThumbLink href={selfieUrl} label="Selfie" />}
+              </div>
+            ) : (
+              <span className="admin-cell-muted">Not uploaded</span>
+            )}
+          </dd>
         </dl>
       )}
     </div>

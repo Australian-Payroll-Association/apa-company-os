@@ -98,6 +98,28 @@ export function isNpsConfig(config: FieldConfig | null): boolean {
   return min === 0 && max === 10;
 }
 
+// The selfie collected at onboarding is an ordinary profile photo (it becomes
+// the person's public avatar), so it is deliberately NOT treated as sensitive —
+// unlike the ID-card scans, which are.
+export const SELFIE_MAPS_TO = "people_sensitive.id_selfie_path";
+
+// A field's answer destination, when the survey declares one (onboarding maps
+// each answer to a people/people_sensitive column). Ordinary surveys have none.
+export function surveyFieldMapsTo(field: Pick<SurveyFieldRow, "config">): string | null {
+  const m = field.config?.maps_to;
+  return typeof m === "string" && m.trim() ? m.trim() : null;
+}
+
+// Whether an answer is restricted PII that must not be shown in survey views.
+// Reuses the existing boundary — the `people_sensitive` store the NL->SQL
+// assistant is walled off from and the profile hides behind a reveal — rather
+// than a bespoke list. The selfie is exempt (it is a public profile photo).
+export function isSensitiveSurveyField(field: Pick<SurveyFieldRow, "config">): boolean {
+  const m = surveyFieldMapsTo(field);
+  if (!m || m === SELFIE_MAPS_TO) return false;
+  return m.startsWith("people_sensitive.");
+}
+
 export function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -246,7 +268,7 @@ export type PersonSurveyResponse = {
   submittedAt: string;
   answeredCount: number;
   fieldCount: number;
-  fields: { fieldId: string; label: string; value: string | null }[];
+  fields: { fieldId: string; label: string; value: string | null; sensitive: boolean }[];
 };
 
 export async function getPersonSurveyResponses(personId: string): Promise<PersonSurveyResponse[]> {
@@ -270,17 +292,24 @@ export async function getPersonSurveyResponses(personId: string): Promise<Person
   const [fieldsRes, answersRes] = await Promise.all([
     companyOs
       .from("survey_fields")
-      .select("id, survey_id, label")
+      .select("id, survey_id, label, config")
       .in("survey_id", surveyIds)
       .order("position", { ascending: true }),
     companyOs.from("survey_answers").select("response_id, field_id, value").in("response_id", responseIds),
   ]);
 
-  // Fields grouped by survey (kept in position order by the query above).
-  const fieldsBySurvey = new Map<string, { id: string; label: string }[]>();
-  for (const f of (fieldsRes.data ?? []) as Array<{ id: string; survey_id: string; label: string }>) {
+  // Fields grouped by survey (kept in position order by the query above). The
+  // sensitivity flag lets the profile hide restricted PII answers, so the
+  // side-car never re-exposes what the reveal-gated card guards.
+  const fieldsBySurvey = new Map<string, { id: string; label: string; sensitive: boolean }[]>();
+  for (const f of (fieldsRes.data ?? []) as Array<{
+    id: string;
+    survey_id: string;
+    label: string;
+    config: FieldConfig | null;
+  }>) {
     const arr = fieldsBySurvey.get(f.survey_id) ?? [];
-    arr.push({ id: f.id, label: f.label });
+    arr.push({ id: f.id, label: f.label, sensitive: isSensitiveSurveyField(f) });
     fieldsBySurvey.set(f.survey_id, arr);
   }
 
@@ -303,7 +332,12 @@ export async function getPersonSurveyResponses(personId: string): Promise<Person
       submittedAt: r.submitted_at ?? r.created_at,
       answeredCount: answers.size,
       fieldCount: fields.length,
-      fields: fields.map((f) => ({ fieldId: f.id, label: f.label, value: answers.get(f.id) ?? null })),
+      fields: fields.map((f) => ({
+        fieldId: f.id,
+        label: f.label,
+        value: answers.get(f.id) ?? null,
+        sensitive: f.sensitive,
+      })),
     };
   });
 }

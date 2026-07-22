@@ -9,6 +9,7 @@ import { formatDate, timeAgo } from "@/lib/admin/format";
 import {
   FIELD_TYPE_LABEL,
   isNpsConfig,
+  isSensitiveSurveyField,
   parseStoredAnswer,
   ratingBounds,
   surveyStatusTone,
@@ -39,6 +40,17 @@ type AnswerRow = {
   value: string | null;
   value_json: unknown;
 };
+
+// Restricted PII (any answer mapped into people_sensitive) is never rendered in
+// the survey view. It lives — reveal-gated and audited — on the employee profile
+// the respondent name links to. The selfie is exempt (it is a public avatar).
+function Redacted() {
+  return (
+    <span className="admin-cell-muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span aria-hidden>🔒</span> Hidden — see employee profile
+    </span>
+  );
+}
 
 function Bar({ pct }: { pct: number }) {
   return (
@@ -202,11 +214,30 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
 
   const teamCount = responses.filter((r) => r.respondent_kind === "team").length;
 
+  // Deep-link each linked respondent to their employee profile. Survey responses
+  // carry person_id, but the profile route keys on team_directory.id (a distinct
+  // id), so resolve that mapping once for every person in view. Anonymous surveys
+  // never link (they carry no person).
+  const personIds = [...new Set(responses.map((r) => r.person_id).filter((id): id is string => !!id))];
+  const profileHrefByPerson = new Map<string, string>();
+  if (!survey.is_anonymous && personIds.length > 0) {
+    const { data: dir } = await companyOs
+      .from("team_directory")
+      .select("id, person_id")
+      .in("person_id", personIds);
+    for (const row of (dir ?? []) as { id: string; person_id: string | null }[]) {
+      if (row.person_id) profileHrefByPerson.set(row.person_id, `/admin/talent/team/${row.id}`);
+    }
+  }
+
   function respondentLabel(r: ResponseRow): string {
     if (survey!.is_anonymous) return "Anonymous";
     const person = one(r.people);
     return person?.full_name || r.respondent_name || person?.email || r.respondent_email || "Unknown";
   }
+
+  const respondentHref = (r: ResponseRow): string | null =>
+    r.person_id ? profileHrefByPerson.get(r.person_id) ?? null : null;
 
   return (
     <>
@@ -241,6 +272,7 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
       ) : (
         <div style={{ display: "grid", gap: 20, marginBottom: 24 }}>
           {fields.map((f, i) => {
+            const sensitive = isSensitiveSurveyField(f);
             const rows = answersByField.get(f.id) ?? [];
             const values = rows
               .map((a) => parseStoredAnswer(f, a))
@@ -254,7 +286,13 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
                   {FIELD_TYPE_LABEL[f.type as FieldType] ?? f.type} · {values.length} answer
                   {values.length === 1 ? "" : "s"}
                 </div>
-                <FieldAggregate field={f} values={values} />
+                {sensitive ? (
+                  <Redacted />
+                ) : f.type === "file" ? (
+                  <div className="admin-cell-muted">{values.length} uploaded</div>
+                ) : (
+                  <FieldAggregate field={f} values={values} />
+                )}
               </div>
             );
           })}
@@ -284,10 +322,19 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
                 ) : (
                   responses.map((r) => {
                     const answers = answersByResponse.get(r.id);
+                    const href = respondentHref(r);
                     const cells = (
                       <>
                         <td title={formatDate(r.submitted_at)}>{timeAgo(r.submitted_at)}</td>
-                        <td className="admin-cell-strong">{respondentLabel(r)}</td>
+                        <td>
+                          {href ? (
+                            <Link href={href} className="admin-cell-strong" title="Open employee profile">
+                              {respondentLabel(r)}
+                            </Link>
+                          ) : (
+                            <span className="admin-cell-strong">{respondentLabel(r)}</span>
+                          )}
+                        </td>
                         <td>
                           <Badge tone={r.respondent_kind === "team" ? "info" : "neutral"}>
                             {r.respondent_kind ?? "external"}
@@ -305,12 +352,23 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
                         eyebrow={`Submitted ${formatDate(r.submitted_at)}`}
                         preview={
                           <div style={{ display: "grid", gap: 14 }}>
-                            {fields.map((f) => (
-                              <div key={f.id}>
-                                <div className="admin-cell-muted">{f.label}</div>
-                                <div>{answers?.get(f.id)?.value ?? "—"}</div>
-                              </div>
-                            ))}
+                            {fields.map((f) => {
+                              const value = answers?.get(f.id)?.value ?? null;
+                              return (
+                                <div key={f.id}>
+                                  <div className="admin-cell-muted">{f.label}</div>
+                                  <div>
+                                    {isSensitiveSurveyField(f) ? (
+                                      <Redacted />
+                                    ) : f.type === "file" ? (
+                                      value ? "Uploaded" : "—"
+                                    ) : (
+                                      value ?? "—"
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         }
                       >

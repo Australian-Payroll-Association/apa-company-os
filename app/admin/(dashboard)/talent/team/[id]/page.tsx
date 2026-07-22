@@ -97,13 +97,38 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
       getAssignmentsForTeamMember(m.id),
       listAssignableCompanies(),
       m.person_id
-        ? companyOs.from("people").select("avatar_url").eq("id", m.person_id).maybeSingle()
+        ? companyOs
+            .from("people")
+            .select("avatar_url, graduated_from, emergency_contact_name, emergency_contact_phone, metadata")
+            .eq("id", m.person_id)
+            .maybeSingle()
         : Promise.resolve({ data: null }),
       m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
       m.auth_user_id ? getSignedInAuthUserIds([m.auth_user_id]) : Promise.resolve(new Set<string>()),
     ]);
-  const avatarUrl = (avatarRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
+  const person = avatarRes.data as {
+    avatar_url: string | null;
+    graduated_from: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    metadata: Record<string, unknown> | null;
+  } | null;
+  const avatarUrl = person?.avatar_url ?? null;
   const portalStatus = portalStatusOf(m.auth_user_id, signedInIds);
+
+  // Personal details collected at onboarding (mapped onto `people`). Restricted
+  // PII stays in the Sensitive details card; this is the get-to-know-you slice.
+  const funStuff = (person?.metadata?.fun_stuff ?? null) as
+    | { interests?: unknown; note?: unknown }
+    | null;
+  const hobbies = Array.isArray(funStuff?.interests)
+    ? (funStuff!.interests as unknown[]).filter((h): h is string => typeof h === "string")
+    : [];
+  const funFact = typeof funStuff?.note === "string" && funStuff.note.trim() ? funStuff.note : null;
+  const graduatedFrom = person?.graduated_from || null;
+  const emergencyContact =
+    [person?.emergency_contact_name, person?.emergency_contact_phone].filter(Boolean).join(" · ") || null;
+  const hasPersonal = Boolean(graduatedFrom || emergencyContact || hobbies.length || funFact);
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
   const name = m.full_name || m.email;
@@ -175,6 +200,38 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               )}
             </dl>
           </div>
+
+          {hasPersonal && (
+            <div className="admin-card admin-section-card">
+              <h2 className="admin-card-title">Personal</h2>
+              <dl className="admin-kv">
+                {graduatedFrom && (
+                  <>
+                    <dt>Graduated from</dt>
+                    <dd>{graduatedFrom}</dd>
+                  </>
+                )}
+                {emergencyContact && (
+                  <>
+                    <dt>Emergency contact</dt>
+                    <dd>{emergencyContact}</dd>
+                  </>
+                )}
+                {hobbies.length > 0 && (
+                  <>
+                    <dt>Interests</dt>
+                    <dd>{hobbies.join(", ")}</dd>
+                  </>
+                )}
+                {funFact && (
+                  <>
+                    <dt>Fun fact</dt>
+                    <dd>{funFact}</dd>
+                  </>
+                )}
+              </dl>
+            </div>
+          )}
 
           <div className="admin-card admin-section-card">
             <h2 className="admin-card-title">Leave</h2>
@@ -274,7 +331,13 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
                             {s.fields.map((f) => (
                               <div key={f.fieldId}>
                                 <div className="admin-cell-muted">{f.label}</div>
-                                <div>{f.value ?? "—"}</div>
+                                <div>
+                                  {f.sensitive ? (
+                                    <span className="admin-cell-muted">🔒 Hidden — see Sensitive details</span>
+                                  ) : (
+                                    f.value ?? "—"
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -296,7 +359,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
           {m.person_id && (
             <SensitiveDetails
               row={sensitive}
-              hasIdImages={!!(sensitive?.id_front_path || sensitive?.id_back_path || sensitive?.id_selfie_path)}
+              hasIdFront={!!sensitive?.id_front_path}
+              hasIdBack={!!sensitive?.id_back_path}
+              idImageBaseHref={`/admin/talent/team/${m.id}/id-image`}
+              selfieUrl={avatarUrl}
               action={saveSensitiveDetails.bind(null, m.person_id)}
             />
           )}
