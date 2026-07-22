@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
 import { WorkflowHero, ActorChip, StepCards, SevenElements, DetailFooter, type Actor, type WorkflowElement } from '../ui'
 
-const title = 'Onboarding Plans | Edge8 Workflows'
+const title = 'Edge8 Onboarding Cycle | Edge8 Workflows'
 const description =
   'Every new hire moves through six onboarding stages on a kanban board that runs itself: the system chases the plan, sends the surveys, triggers the reviews, and flips the status. Humans hold the sessions and make the one call that matters.'
 
 export const metadata: Metadata = {
   title,
   description,
-  alternates: { canonical: '/workflows/onboarding-plans/' },
-  openGraph: { title, description, url: '/workflows/onboarding-plans/', type: 'website' },
+  alternates: { canonical: '/workflows/edge8-onboarding-cycle/' },
+  openGraph: { title, description, url: '/workflows/edge8-onboarding-cycle/', type: 'website' },
   twitter: { card: 'summary_large_image', title, description },
 }
 
@@ -89,12 +89,12 @@ const ELEMENTS: WorkflowElement[] = [
   { name: 'Measurement', assignment: 'machine', desc: 'On-time milestones per hire: plan uploaded before Day 1, survey answered, review decided, promotion on schedule.' },
 ]
 
-export default function OnboardingPlansWorkflowPage() {
+export default function Edge8OnboardingCycleWorkflowPage() {
   return (
     <main>
       <WorkflowHero
         category="Talent"
-        title="Onboarding Plans"
+        title="Edge8 Onboarding Cycle"
         tldr="Every new hire gets a kanban card that moves through six stages, from pre-boarding to a 180-day stay interview. The system chases the plan, sends the surveys, triggers the reviews, and flips the status. Humans hold the sessions and make one decision."
         meta={[
           { label: 'Stages', value: '6' },

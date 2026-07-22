@@ -63,8 +63,8 @@ export const allWorkflows: Workflow[] = [
     steps: 7,
   },
   {
-    slug: 'onboarding-plans',
-    title: 'Onboarding Plans',
+    slug: 'edge8-onboarding-cycle',
+    title: 'Edge8 Onboarding Cycle',
     category: 'Talent',
     excerpt:
       'Every new hire moves through six stages on a kanban board that runs itself: the system chases the plan, sends the surveys, and flips the status. Managers make one decision, at Day 45.',

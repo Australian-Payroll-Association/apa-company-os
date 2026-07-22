@@ -7,6 +7,16 @@
   ],
   "redirects": [
     {
+      "source": "/workflows/onboarding-plans",
+      "destination": "/workflows/edge8-onboarding-cycle",
+      "permanent": true
+    },
+    {
+      "source": "/workflows/onboarding-plans/",
+      "destination": "/workflows/edge8-onboarding-cycle/",
+      "permanent": true
+    },
+    {
       "source": "/ai-capabilities-audit",
       "destination": "/contact",
       "permanent": true
