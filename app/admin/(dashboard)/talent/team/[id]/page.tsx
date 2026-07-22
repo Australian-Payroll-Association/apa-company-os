@@ -359,7 +359,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
           {m.person_id && (
             <SensitiveDetails
               row={sensitive}
-              hasIdImages={!!(sensitive?.id_front_path || sensitive?.id_back_path)}
+              hasIdFront={!!sensitive?.id_front_path}
+              hasIdBack={!!sensitive?.id_back_path}
+              idImageBaseHref={`/admin/talent/team/${m.id}/id-image`}
+              selfieUrl={avatarUrl}
               action={saveSensitiveDetails.bind(null, m.person_id)}
             />
           )}
