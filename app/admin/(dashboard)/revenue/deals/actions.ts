@@ -28,6 +28,12 @@ const HANDOFF_REJECT_REASONS = new Set([
   "other",
 ]);
 
+// Moving a deal into this stage (contract out, awaiting payment) auto-sets its
+// forecast probability — the deal is effectively 90% sure by this point. It's the
+// only stage that touches probability on entry; every other stage leaves it alone.
+const CONTRACT_SENT_STAGE = "Contract Sent";
+const CONTRACT_SENT_PROBABILITY = 90;
+
 function refresh() {
   revalidatePath("/admin/revenue/deals");
   revalidatePath("/admin/revenue/leads");
@@ -105,7 +111,7 @@ export async function moveDealStage(
 
   const { data: stage, error: stageErr } = await companyOs
     .from("pipeline_stages")
-    .select("is_won, is_lost")
+    .select("name, is_won, is_lost")
     .eq("id", toStageId)
     .maybeSingle();
   if (stageErr || !stage) return { ok: false, error: stageErr?.message ?? "Unknown stage." };
@@ -119,6 +125,11 @@ export async function moveDealStage(
 
   const updates: Record<string, unknown> = { stage_id: toStageId, status, closed_at };
   if (stage.is_lost) updates.lost_reason = lostReason;
+  // Reaching "Contract Sent" bumps the deal to 90% (awaiting payment). Set only
+  // on entry so a rep's later manual override sticks.
+  if (!stage.is_won && !stage.is_lost && stage.name === CONTRACT_SENT_STAGE) {
+    updates.probability = CONTRACT_SENT_PROBABILITY;
+  }
 
   const { data: deal, error } = await companyOs
     .from("deals")

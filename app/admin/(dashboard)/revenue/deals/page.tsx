@@ -4,6 +4,7 @@ import {
   STAGE_NEUTRAL,
   STAGE_DISCOVERY,
   STAGE_PROPOSAL,
+  STAGE_CONTRACT,
   STAGE_WON,
   STAGE_LOST,
   STAGE_HANDOFF,
@@ -27,6 +28,7 @@ const STAGE_ACCENT: Record<number, string> = {
   1: STAGE_NEUTRAL,
   2: STAGE_DISCOVERY,
   3: STAGE_PROPOSAL,
+  4: STAGE_CONTRACT,
 };
 
 type Stage = { id: string; name: string; position: number; is_won: boolean; is_lost: boolean };
