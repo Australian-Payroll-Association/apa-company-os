@@ -24,6 +24,8 @@ export const STAGE_NEUTRAL = "#6b7194";
 export const STAGE_DISCOVERY = "#D1458B";
 /** Rotating in-progress accent — proposal (amber). */
 export const STAGE_PROPOSAL = "#f59e0b";
+/** Late in-progress accent — contract sent, awaiting payment (teal, near-won). */
+export const STAGE_CONTRACT = "#0ea5a4";
 /** "New from SDR" handoff column (violet). */
 export const STAGE_HANDOFF = "#8b5cf6";
 

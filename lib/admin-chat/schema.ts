@@ -41,7 +41,8 @@ as "active" unless the user asks about archived records.
   attempt_count, disqualified_reason, pinned_at. "Leads" = rows here.
 - pipelines (currently one: "Default sales", slug default-sales) +
   pipeline_stages — stages in order: 0 New, 1 Contacted, 2 Discovery, 3 Proposal,
-  4 Won (is_won), 5 Lost (is_lost). Join deals.stage_id -> pipeline_stages.id.
+  4 Contract Sent (awaiting payment, ~90% probability), 5 Won (is_won),
+  6 Lost (is_lost). Join deals.stage_id -> pipeline_stages.id.
 - deals — id, title, pipeline_id, stage_id, person_id, company_id,
   amount_cents + currency, amount_usd_cents + fx_rate (USD-normalized value),
   status (open|won|lost), probability, owner_id, service_line_id, source,
