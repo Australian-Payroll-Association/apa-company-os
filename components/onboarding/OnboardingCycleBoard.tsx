@@ -12,6 +12,9 @@ export type BoardActionResult = { ok: true } | { ok: false; error: string };
 export type BoardActions = {
   setPlanLink: (journeyId: string, url: string) => Promise<BoardActionResult>;
   toggleTask: (taskId: string, done: boolean) => Promise<BoardActionResult>;
+  // Admin-only: adjust the cycle's Day 1 (team_members.start_date). The /team
+  // surface omits it, so managers see the date read-only.
+  setStartDate?: (journeyId: string, date: string) => Promise<BoardActionResult>;
 };
 
 // Mirror of CYCLE_STAGES in lib/onboarding-cycle.ts — duplicated here because
@@ -140,6 +143,14 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
       const res = await actions.setPlanLink(card.id, url);
       if (!res.ok) setError(res.error);
       else setLinkDraft("");
+    });
+  }
+
+  function submitStartDate(card: BoardCard, date: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await actions.setStartDate!(card.id, date);
+      if (!res.ok) setError(res.error);
     });
   }
 
@@ -346,7 +357,23 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
               </div>
               <div>
                 <dt>Day 1</dt>
-                <dd>{fmt(selected.startDate)}</dd>
+                <dd>
+                  {actions.setStartDate ? (
+                    <input
+                      key={selected.id}
+                      type="date"
+                      className="admin-input"
+                      defaultValue={selected.startDate ?? ""}
+                      disabled={pending}
+                      onChange={(e) => {
+                        if (e.target.value) submitStartDate(selected, e.target.value);
+                      }}
+                      style={{ fontSize: 13, padding: "4px 8px", width: "auto" }}
+                    />
+                  ) : (
+                    fmt(selected.startDate)
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Probation ends</dt>

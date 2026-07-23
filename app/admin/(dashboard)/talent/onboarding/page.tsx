@@ -12,7 +12,7 @@ import {
   backfillJourneys,
 } from "@/lib/onboarding-cycle";
 import { OnboardingCycleBoard, type BoardCard } from "@/components/onboarding/OnboardingCycleBoard";
-import { adminSetOnboardingPlanLink, adminToggleDay1Task } from "./actions";
+import { adminSetOnboardingPlanLink, adminToggleDay1Task, adminSetOnboardingStartDate } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +84,11 @@ export default async function AdminOnboardingPage() {
       ) : (
         <OnboardingCycleBoard
           cards={cards}
-          actions={{ setPlanLink: adminSetOnboardingPlanLink, toggleTask: adminToggleDay1Task }}
+          actions={{
+            setPlanLink: adminSetOnboardingPlanLink,
+            toggleTask: adminToggleDay1Task,
+            setStartDate: adminSetOnboardingStartDate,
+          }}
         />
       )}
     </>
