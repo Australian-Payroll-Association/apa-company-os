@@ -12,7 +12,7 @@ import { updateApplication } from "../applications/actions";
 export type RankRow = {
   applicationId: string;
   personId: string;
-  family: string;
+  family: string | null; // null: applied only to reqs without a role family
   name: string;
   email: string | null;
   phone: string | null;
@@ -34,9 +34,11 @@ type SortKey = "ai" | "recruiter";
 
 export function RankTable({
   rows,
+  poolRows,
   families,
 }: {
-  rows: RankRow[];
+  rows: RankRow[]; // per-(family, person) rows for the family tabs
+  poolRows: RankRow[]; // one row per person for the All tab
   families: { key: string; label: string }[];
 }) {
   const router = useRouter();
@@ -57,14 +59,13 @@ export function RankTable({
 
   const counts = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) m.set(r.family, (m.get(r.family) ?? 0) + 1);
+    for (const r of rows) if (r.family) m.set(r.family, (m.get(r.family) ?? 0) + 1);
     return m;
   }, [rows]);
 
   const famRows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = rows
-      .filter((r) => !family || r.family === family)
+    const filtered = (family ? rows.filter((r) => r.family === family) : poolRows)
       .filter(
         (r) =>
           !q ||
@@ -83,7 +84,7 @@ export function RankTable({
       return sort.dir === "desc" ? bv - av : av - bv;
     });
     // recruiterOf depends on overrides; include it so the list re-sorts on edit.
-  }, [rows, family, query, sort, overrides]);
+  }, [rows, poolRows, family, query, sort, overrides]);
 
   const selected = openId ? famRows.find((r) => r.applicationId === openId) ?? null : null;
 
@@ -119,7 +120,7 @@ export function RankTable({
             setOpenId(null);
           }}
         >
-          All ({rows.length})
+          All ({poolRows.length})
         </button>
         {families.map((f) => (
           <button
@@ -212,7 +213,15 @@ export function RankTable({
                         <span className="admin-cell-strong">{r.name}</span>
                         {r.email && <div className="admin-cell-muted">{r.email}</div>}
                       </td>
-                      {family === "" && <td>{families.find((f) => f.key === r.family)?.label ?? r.family}</td>}
+                      {family === "" && (
+                        <td>
+                          {r.family ? (
+                            families.find((f) => f.key === r.family)?.label ?? r.family
+                          ) : (
+                            <span className="admin-cell-muted">—</span>
+                          )}
+                        </td>
+                      )}
                       <td>{r.reqTitles.join(", ") || <span className="admin-cell-muted">—</span>}</td>
                       <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                         {r.rating != null ? r.rating.toFixed(1) : <span className="admin-cell-muted">—</span>}
@@ -333,7 +342,7 @@ export function RankTable({
               </>
             ) : (
               <div className="admin-empty">
-                Not yet AI-screened for this family
+                {selected.family ? "Not yet AI-screened for this family" : "Not yet AI-screened"}
                 {selected.resumeDocumentId ? "" : " (no resume on file)"}.
               </div>
             )}

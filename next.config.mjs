@@ -11,6 +11,12 @@ const nextConfig = {
       { source: '/new-member-onboarding', destination: '/surveys/new-member-onboarding' },
     ]
   },
+  async redirects() {
+    return [
+      // The talent Rank page was renamed to Candidate Pool.
+      { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
+    ]
+  },
 }
 
 export default nextConfig
