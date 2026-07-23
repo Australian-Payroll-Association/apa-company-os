@@ -1,4 +1,3 @@
-import { countEntity } from "@/lib/admin/query";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -11,11 +10,11 @@ export const metadata = {
   description: "Job applications moving through the hiring pipeline.",
 };
 
-// Talent office: every application across all reqs, joined straight to the
+// Talent office: applications to OPEN job reqs only, joined straight to the
 // person (the candidates table is retired). Recruiting-profile fields live on
 // the candidate_profile satellite, embedded through the person. Rows load once
 // and the client table handles search, the job-req filter, paging, and the
-// manage shelf.
+// manage shelf. Closed reqs' applications live on the Candidate Pool page.
 type Cp = {
   headline: string | null;
   current_title: string | null;
@@ -35,6 +34,7 @@ type RawApp = {
   id: string;
   status: string | null;
   rating: number | null;
+  ai_rating: number | null;
   applied_at: string | null;
   decided_at: string | null;
   rejection_reason: string | null;
@@ -42,6 +42,7 @@ type RawApp = {
   resume_document_id: string | null;
   job_requisition_id: string | null;
   person_id: string | null;
+  metadata: { family_screen?: { rating?: number } } | null;
   people: P | P[] | null;
   job_requisitions: Jr | Jr[] | null;
   application_stages: St | St[] | null;
@@ -50,18 +51,16 @@ type RawApp = {
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
 export default async function ApplicationsPage() {
-  const [appsRes, activeCount, onHoldCount, hiredCount] = await Promise.all([
-    companyOs
-      .from("applications")
-      .select(
-        "id, status, rating, applied_at, decided_at, rejection_reason, current_stage_id, resume_document_id, job_requisition_id, person_id, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions(title, status), application_stages(name)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(2000),
-    countEntity("applications", { status: "active" }),
-    countEntity("applications", { status: "on_hold" }),
-    countEntity("applications", { status: "hired" }),
-  ]);
+  // Only applications whose req is still open — the inner join makes the
+  // status filter on the embedded req drop non-matching rows.
+  const appsRes = await companyOs
+    .from("applications")
+    .select(
+      "id, status, rating, ai_rating, applied_at, decided_at, rejection_reason, current_stage_id, resume_document_id, job_requisition_id, person_id, metadata, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions!inner(title, status), application_stages(name)",
+    )
+    .eq("job_requisitions.status", "open")
+    .order("created_at", { ascending: false })
+    .limit(2000);
 
   const error = appsRes.error?.message ?? null;
   const raw = (appsRes.data ?? []) as unknown as RawApp[];
@@ -86,6 +85,8 @@ export default async function ApplicationsPage() {
       currentStageId: r.current_stage_id,
       status: r.status,
       rating: r.rating,
+      // AI rating: family screen (Candidate Pool score) first, else the per-req screen.
+      aiRating: r.metadata?.family_screen?.rating ?? r.ai_rating,
       rejectionReason: r.rejection_reason,
       appliedAt: r.applied_at,
       decidedAt: r.decided_at,
@@ -98,7 +99,7 @@ export default async function ApplicationsPage() {
       <PageHead
         eyebrow="Talent"
         title="Applications"
-        sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "application" : "applications"}`}
+        sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "application" : "applications"} to open job reqs`}
       />
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
@@ -107,9 +108,9 @@ export default async function ApplicationsPage() {
       )}
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Active" value={activeCount} sub="in pipeline" />
-        <MetricCard label="On hold" value={onHoldCount} sub="parked" />
-        <MetricCard label="Hired" value={hiredCount} sub="closed won" />
+        <MetricCard label="Active" value={rows.filter((r) => r.status === "active").length} sub="in pipeline" />
+        <MetricCard label="On hold" value={rows.filter((r) => r.status === "on_hold").length} sub="parked" />
+        <MetricCard label="Hired" value={rows.filter((r) => r.status === "hired").length} sub="closed won" />
       </div>
 
       <ApplicationsTable rows={rows} />
