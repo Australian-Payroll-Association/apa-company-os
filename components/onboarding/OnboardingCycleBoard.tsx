@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
 
@@ -11,7 +12,12 @@ import { Badge } from "@/components/admin/Badge";
 export type BoardActionResult = { ok: true } | { ok: false; error: string };
 export type BoardActions = {
   setPlanLink: (journeyId: string, url: string) => Promise<BoardActionResult>;
+  uploadPlan: (journeyId: string, formData: FormData) => Promise<BoardActionResult>;
   toggleTask: (taskId: string, done: boolean) => Promise<BoardActionResult>;
+  // Move a journey to a stage — from a board drag or the drawer select. The
+  // stored stage is authoritative for display; the daily clock only ever
+  // advances it forward, so a manual move sticks.
+  setStage: (journeyId: string, stage: string) => Promise<BoardActionResult>;
   // Admin-only: adjust the cycle's Day 1 (team_members.start_date). The /team
   // surface omits it, so managers see the date read-only.
   setStartDate?: (journeyId: string, date: string) => Promise<BoardActionResult>;
@@ -28,13 +34,6 @@ const STAGE_COLUMNS = [
   { key: "day_180", label: "180 Day Stay Interview" },
 ] as const;
 
-// The Onboarding Cycle board. Columns are states of the calendar, not drag
-// targets — stages advance on the clock (daily cron + date math), so there is
-// deliberately NO drag-and-drop: a manager cannot move someone to "60 Day
-// Decision" and imply a promotion that never fired. All human actions live in
-// the card drawer: add the plan link, tick Day 1 activities, follow the review.
-// Reuses the admin kanban CSS (sap-*) the same way /team reuses PageHead.
-
 export type BoardCard = {
   id: string;
   columnId: string;
@@ -47,6 +46,7 @@ export type BoardCard = {
   probationEndsOn: string | null;
   contractStartDate: string | null;
   planUrl: string | null;
+  planHasFile: boolean;
   planAddedAt: string | null;
   day8SurveySentAt: string | null;
   day8Score: number | null;
@@ -73,6 +73,12 @@ const DECISION_LABEL: Record<string, string> = {
   terminate: "Terminate",
 };
 
+const COLUMNS: KanbanColumn[] = STAGE_COLUMNS.map((c) => ({
+  id: c.key,
+  label: c.label,
+  accent: STAGE_ACCENTS[c.key],
+}));
+
 function fmt(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -87,6 +93,10 @@ function dayLabel(card: BoardCard): string {
 function stageLabel(card: BoardCard): string {
   if (card.complete) return "Complete";
   return STAGE_COLUMNS.find((c) => c.key === card.columnId)?.label ?? card.columnId;
+}
+
+function planMissing(card: BoardCard): boolean {
+  return !card.planUrl && !card.planHasFile;
 }
 
 function Avatar({ card, size = 28 }: { card: BoardCard; size?: number }) {
@@ -120,19 +130,48 @@ function Avatar({ card, size = 28 }: { card: BoardCard; size?: number }) {
   );
 }
 
-export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; actions: BoardActions }) {
+export function OnboardingCycleBoard({
+  cards,
+  actions,
+  planHrefBase,
+}: {
+  cards: BoardCard[];
+  actions: BoardActions;
+  // Route serving the in-app plan view for this surface, e.g.
+  // "/team/onboarding/plan" or "/admin/talent/onboarding/plan".
+  planHrefBase: string;
+}) {
   const [view, setView] = useState<"board" | "list">("board");
+  // Local copy for optimistic drag moves; server state re-syncs via props.
+  const [localCards, setLocalCards] = useState(cards);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [linkDraft, setLinkDraft] = useState("");
   const [pending, startTransition] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const selected = cards.find((c) => c.id === selectedId) ?? null;
+  useEffect(() => setLocalCards(cards), [cards]);
+
+  const selected = localCards.find((c) => c.id === selectedId) ?? null;
 
   function openCard(id: string) {
     setError(null);
     setLinkDraft("");
     setSelectedId(id);
+  }
+
+  function moveStage(cardId: string, stage: string) {
+    setError(null);
+    setLocalCards((prev) =>
+      prev.map((c) => (c.id === cardId ? { ...c, columnId: stage, complete: false } : c)),
+    );
+    startTransition(async () => {
+      const res = await actions.setStage(cardId, stage);
+      if (!res.ok) {
+        setError(res.error);
+        setLocalCards(cards); // roll back to server truth
+      }
+    });
   }
 
   function submitPlanLink(card: BoardCard) {
@@ -143,6 +182,17 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
       const res = await actions.setPlanLink(card.id, url);
       if (!res.ok) setError(res.error);
       else setLinkDraft("");
+    });
+  }
+
+  function submitPlanFile(card: BoardCard, file: File) {
+    setError(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    startTransition(async () => {
+      const res = await actions.uploadPlan(card.id, fd);
+      if (!res.ok) setError(res.error);
+      if (fileRef.current) fileRef.current.value = "";
     });
   }
 
@@ -166,7 +216,7 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
   // completed journeys at the bottom.
   const stageOrder = (c: BoardCard) =>
     c.complete ? STAGE_COLUMNS.length : STAGE_COLUMNS.findIndex((s) => s.key === c.columnId);
-  const listCards = [...cards].sort(
+  const listCards = [...localCards].sort(
     (a, b) => stageOrder(b) - stageOrder(a) || (b.dayNumber ?? -999) - (a.dayNumber ?? -999),
   );
 
@@ -192,64 +242,39 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
       </div>
 
       {view === "board" ? (
-        <div className="sap-kanban">
-          {STAGE_COLUMNS.map((col) => {
-            const colCards = cards.filter((c) => c.columnId === col.key);
-            return (
-              <div className="sap-col" key={col.key}>
-                <div className="sap-col-head">
-                  <span className="sap-col-dot" style={{ background: STAGE_ACCENTS[col.key] }} />
-                  <span className="sap-col-label">{col.label}</span>
-                  <span className="sap-col-count">{colCards.length}</span>
-                </div>
-                <div className="sap-col-body">
-                  {colCards.map((card) => (
-                    <div
-                      key={card.id}
-                      className="sap-card"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => openCard(card.id)}
-                      onKeyDown={(e) => e.key === "Enter" && openCard(card.id)}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Avatar card={card} />
-                        <div style={{ minWidth: 0 }}>
-                          <div className="admin-cell-strong" style={{ fontSize: 13 }}>
-                            {card.name}
-                          </div>
-                          <div className="admin-cell-muted" style={{ fontSize: 12 }}>
-                            {card.positionTitle ?? "—"}
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: 6,
-                          marginTop: 8,
-                          fontSize: 11,
-                        }}
-                      >
-                        <Badge>{dayLabel(card)}</Badge>
-                        {!card.planUrl && !card.complete && <Badge tone="err">Plan missing</Badge>}
-                        {card.day8Score !== null && <Badge tone="info">Day 8: {card.day8Score}/5</Badge>}
-                        {card.decision && (
-                          <Badge tone={card.decision === "terminate" ? "err" : "ok"}>
-                            {DECISION_LABEL[card.decision] ?? card.decision}
-                          </Badge>
-                        )}
-                        {card.promotedAt && <Badge tone="ok">Full time ✓</Badge>}
-                        {card.complete && <Badge tone="ok">Cycle complete ✓</Badge>}
-                      </div>
-                    </div>
-                  ))}
+        <KanbanBoard
+          columns={COLUMNS}
+          cards={localCards}
+          onMove={(cardId, toColumnId) => moveStage(cardId, toColumnId)}
+          onCardClick={(card) => openCard(card.id)}
+          renderCard={(card) => (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Avatar card={card} />
+                <div style={{ minWidth: 0 }}>
+                  <div className="admin-cell-strong" style={{ fontSize: 13 }}>
+                    {card.name}
+                  </div>
+                  <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                    {card.positionTitle ?? "—"}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, fontSize: 11 }}>
+                <Badge>{dayLabel(card)}</Badge>
+                {planMissing(card) && !card.complete && <Badge tone="err">Plan missing</Badge>}
+                {card.day8Score !== null && <Badge tone="info">Day 8: {card.day8Score}/5</Badge>}
+                {card.decision && (
+                  <Badge tone={card.decision === "terminate" ? "err" : "ok"}>
+                    {DECISION_LABEL[card.decision] ?? card.decision}
+                  </Badge>
+                )}
+                {card.promotedAt && <Badge tone="ok">Full time ✓</Badge>}
+                {card.complete && <Badge tone="ok">Cycle complete ✓</Badge>}
+              </div>
+            </>
+          )}
+        />
       ) : (
         <div className="admin-table-wrap">
           <div className="admin-table-scroll">
@@ -267,11 +292,7 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
               </thead>
               <tbody>
                 {listCards.map((card) => (
-                  <tr
-                    key={card.id}
-                    onClick={() => openCard(card.id)}
-                    style={{ cursor: "pointer" }}
-                  >
+                  <tr key={card.id} onClick={() => openCard(card.id)} style={{ cursor: "pointer" }}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Avatar card={card} size={24} />
@@ -309,6 +330,15 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
                           onClick={(e) => e.stopPropagation()}
                         >
                           View plan
+                        </a>
+                      ) : card.planHasFile ? (
+                        <a
+                          href={`${planHrefBase}/${card.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Read plan
                         </a>
                       ) : card.complete ? (
                         <span className="admin-cell-muted">—</span>
@@ -352,6 +382,28 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
           <div style={{ display: "grid", gap: 20 }}>
             <dl className="admin-kv">
               <div>
+                <dt>Stage</dt>
+                <dd>
+                  <select
+                    key={selected.id}
+                    className="admin-select"
+                    value={selected.complete ? "complete" : selected.columnId}
+                    disabled={pending}
+                    onChange={(e) => {
+                      if (e.target.value !== "complete") moveStage(selected.id, e.target.value);
+                    }}
+                    style={{ fontSize: 13, padding: "4px 8px", width: "auto" }}
+                  >
+                    {STAGE_COLUMNS.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label}
+                      </option>
+                    ))}
+                    {selected.complete && <option value="complete">Complete</option>}
+                  </select>
+                </dd>
+              </div>
+              <div>
                 <dt>Position</dt>
                 <dd>{selected.positionTitle ?? "—"}</dd>
               </div>
@@ -394,9 +446,16 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
                     View plan
                   </a>
                 </p>
+              ) : selected.planHasFile ? (
+                <p style={{ fontSize: 13 }}>
+                  Added {fmt(selected.planAddedAt)} ·{" "}
+                  <a href={`${planHrefBase}/${selected.id}`} target="_blank" rel="noreferrer">
+                    Read plan
+                  </a>
+                </p>
               ) : (
                 <p style={{ fontSize: 13 }} className="admin-cell-muted">
-                  No link yet — due one week before Day 1. Daily reminders run until it is here.
+                  No plan yet — due one week before Day 1. Daily reminders run until it is here.
                 </p>
               )}
               <form
@@ -420,9 +479,23 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
                   className="admin-btn admin-btn--primary"
                   disabled={pending || linkDraft.trim().length === 0}
                 >
-                  {selected.planUrl ? "Replace" : "Save"}
+                  Save
                 </button>
               </form>
+              <p className="admin-cell-muted" style={{ fontSize: 12, margin: "10px 0 4px" }}>
+                …or upload the file — Markdown preferred, it reads right in the app:
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".md,.markdown,.pdf,.doc,.docx,image/jpeg,image/png,image/webp"
+                disabled={pending}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f && selected) submitPlanFile(selected, f);
+                }}
+                style={{ fontSize: 13 }}
+              />
             </section>
 
             <section>
@@ -472,7 +545,7 @@ export function OnboardingCycleBoard({ cards, actions }: { cards: BoardCard[]; a
                       ? `${DECISION_LABEL[selected.decision] ?? selected.decision} · ${fmt(selected.decisionAt)}`
                       : selected.day45EmailSentAt
                         ? `Review emailed ${fmt(selected.day45EmailSentAt)} · decision pending`
-                        : "Review emails you 15 days before probation ends"}
+                        : "Review emails the manager 15 days before probation ends"}
                   </dd>
                 </div>
                 <div>

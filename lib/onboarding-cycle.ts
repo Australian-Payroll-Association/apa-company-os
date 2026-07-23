@@ -10,7 +10,7 @@
 // (bearer-authed), the survey post-submit processor, and /team reads that have
 // already been scoped by lib/team/data.ts.
 
-import { companyOs } from "@/lib/supabase";
+import { companyOs, supabase } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/email";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { recordAudit } from "@/lib/admin/audit";
@@ -29,6 +29,16 @@ export const CYCLE_STAGES = [
   { key: "day_180", label: "180 Day Stay Interview" },
 ] as const;
 export type CycleStage = (typeof CYCLE_STAGES)[number]["key"] | "complete";
+
+const STAGE_ORDER: Record<CycleStage, number> = {
+  preboarding: 0,
+  day_1: 1,
+  day_8: 2,
+  day_45: 3,
+  day_60: 4,
+  day_180: 5,
+  complete: 6,
+};
 
 export type CycleDecision = "offer_full_time" | "extend_probation_30" | "terminate";
 
@@ -89,6 +99,7 @@ export type CycleRow = {
   team_member_id: string;
   stage: CycleStage;
   plan_url: string | null;
+  plan_path: string | null;
   plan_uploaded_at: string | null;
   day8_survey_sent_at: string | null;
   day8_response_id: string | null;
@@ -121,7 +132,7 @@ const displayName = (p: PersonEmbed | null): string =>
   p?.preferred_name || p?.full_name || p?.email || "—";
 
 const CYCLE_SELECT =
-  "id, team_member_id, stage, plan_url, plan_uploaded_at, day8_survey_sent_at, day8_response_id, " +
+  "id, team_member_id, stage, plan_url, plan_path, plan_uploaded_at, day8_survey_sent_at, day8_response_id, " +
   "day45_email_sent_at, day45_response_id, decision, decision_at, day60_promoted_at, " +
   "day180_email_sent_at, completed_at, " +
   "team_members:team_members!team_member_id(id, person_id, start_date, manager_id, status, " +
@@ -138,6 +149,7 @@ function toCycleRow(raw: Record<string, unknown>): CycleRow {
     team_member_id: raw.team_member_id as string,
     stage: (raw.stage as CycleStage) ?? "preboarding",
     plan_url: (raw.plan_url as string | null) ?? null,
+    plan_path: (raw.plan_path as string | null) ?? null,
     plan_uploaded_at: (raw.plan_uploaded_at as string | null) ?? null,
     day8_survey_sent_at: (raw.day8_survey_sent_at as string | null) ?? null,
     day8_response_id: (raw.day8_response_id as string | null) ?? null,
@@ -374,7 +386,7 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
 
     // 1) Plan-link nag: the 7 days before Day 1, daily, deliberately
     //    stateless — it repeats until the plan link is added.
-    if (d >= -6 && d <= 0 && !row.plan_url && manager?.email) {
+    if (d >= -6 && d <= 0 && !row.plan_url && !row.plan_path && manager?.email) {
       const ok = await sendTransactionalEmail({
         to: [manager.email, TALENT_DIRECTOR_EMAIL],
         subject: `Onboarding plan needed before Day 1: ${name}`,
@@ -521,9 +533,10 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
       }
     }
 
-    // Keep the stored stage in sync with the clock.
+    // Advance the stored stage with the clock — forward only, so a manual move
+    // (board drag or drawer select) is never fought backward by the cron.
     const stage = computeStage(row, todayISO);
-    if (stage !== row.stage) await patchJourney(row.id, { stage });
+    if (STAGE_ORDER[stage] > STAGE_ORDER[row.stage]) await patchJourney(row.id, { stage });
   }
 
   return summary;
@@ -668,10 +681,32 @@ export async function processProbationReview(input: {
   }
 }
 
-// ---- plan link --------------------------------------------------------------
-// The plan is a link to wherever the manager wrote it (Google Doc, Lark doc,
-// Notion...), stored on the journey row. AUTHORIZATION IS THE CALLER'S JOB —
-// the /team action asserts the journey is in the manager's scope first.
+// ---- manual stage moves -----------------------------------------------------
+// The stored stage is what the board and list display. Humans set it here (a
+// drag or the drawer select); the daily cron only advances it forward with the
+// clock, never backward, so a manual move sticks. Setting a stage re-opens a
+// completed journey. AUTHORIZATION IS THE CALLER'S JOB.
+
+export async function setJourneyStage(
+  journeyId: string,
+  stage: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!CYCLE_STAGES.some((s) => s.key === stage)) return { ok: false, error: "Unknown stage." };
+  const { error } = await companyOs
+    .from("onboarding_plans")
+    .update({ stage, completed_at: null, updated_at: new Date().toISOString() })
+    .eq("id", journeyId);
+  if (error) return { ok: false, error: "Could not move the stage." };
+  return { ok: true };
+}
+
+// ---- the plan: a pasted link OR an uploaded file ----------------------------
+// Managers either paste a link to wherever the plan lives (Google Doc, Lark
+// doc...) or upload the document itself — markdown preferred, because .md
+// renders readable inside the app (the plan/[id] viewer pages). Exactly one of
+// plan_url / plan_path is set at a time: saving one clears the other.
+// AUTHORIZATION IS THE CALLER'S JOB — the /team action asserts the journey is
+// in the manager's scope first.
 
 export function normalizePlanUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -700,6 +735,7 @@ export async function savePlanLink(
     .from("onboarding_plans")
     .update({
       plan_url: normalized,
+      plan_path: null,
       plan_uploaded_by: addedByTeamMemberId,
       plan_uploaded_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -707,6 +743,82 @@ export async function savePlanLink(
     .eq("id", journeyId);
   if (error) return { ok: false, error: "Could not save the plan link." };
   return { ok: true };
+}
+
+const PLAN_BUCKET = "onboarding-plans";
+export const PLAN_MAX_BYTES = 10 * 1024 * 1024;
+
+const PLAN_MIME_EXT: Record<string, string> = {
+  "text/markdown": "md",
+  "text/x-markdown": "md",
+  "application/pdf": "pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/msword": "doc",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+// Browsers report .md files inconsistently (text/plain, empty, octet-stream),
+// so the filename extension decides markdown; MIME covers the rest.
+function planExtFor(file: File): string | null {
+  if (/\.(md|markdown)$/i.test(file.name)) return "md";
+  return PLAN_MIME_EXT[file.type] ?? null;
+}
+
+export function isMarkdownPlan(path: string): boolean {
+  return path.toLowerCase().endsWith(".md");
+}
+
+export async function uploadPlanDocument(
+  journeyId: string,
+  teamMemberId: string,
+  uploadedByTeamMemberId: string | null,
+  file: File,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const ext = planExtFor(file);
+  if (!ext) return { ok: false, error: "Use a Markdown file (preferred), PDF, Word doc, or image." };
+  if (file.size > PLAN_MAX_BYTES) return { ok: false, error: "File is too large (max 10 MB)." };
+  if (file.size === 0) return { ok: false, error: "That file is empty." };
+
+  const folder = `plans/${teamMemberId}`;
+  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await supabase.storage
+    .from(PLAN_BUCKET)
+    .upload(path, buffer, { contentType: ext === "md" ? "text/markdown" : file.type });
+  if (upErr) return { ok: false, error: "Upload failed. Try again." };
+
+  const { error: dbErr } = await companyOs
+    .from("onboarding_plans")
+    .update({
+      plan_path: path,
+      plan_url: null,
+      plan_uploaded_by: uploadedByTeamMemberId,
+      plan_uploaded_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", journeyId);
+  if (dbErr) return { ok: false, error: "Could not save the plan." };
+
+  // Best-effort cleanup of previous plan versions; the new one is live.
+  const { data: existing } = await supabase.storage.from(PLAN_BUCKET).list(folder);
+  const stale = (existing ?? []).map((o) => `${folder}/${o.name}`).filter((p) => p !== path);
+  if (stale.length > 0) await supabase.storage.from(PLAN_BUCKET).remove(stale);
+
+  return { ok: true };
+}
+
+export async function signedPlanUrl(planPath: string): Promise<string | null> {
+  const { data } = await supabase.storage.from(PLAN_BUCKET).createSignedUrl(planPath, 60);
+  return data?.signedUrl ?? null;
+}
+
+export async function getPlanMarkdown(planPath: string): Promise<string | null> {
+  if (!isMarkdownPlan(planPath)) return null;
+  const { data } = await supabase.storage.from(PLAN_BUCKET).download(planPath);
+  if (!data) return null;
+  return await data.text();
 }
 
 // ---- Day 1 checklist + Day 8 score reads for the board ----------------------

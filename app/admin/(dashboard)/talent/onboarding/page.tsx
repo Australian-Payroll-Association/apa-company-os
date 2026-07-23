@@ -5,14 +5,19 @@ import {
   getAllCycleRows,
   getDay1Tasks,
   getDay8Scores,
-  computeStage,
   cycleDay,
   saigonToday,
   addDays,
   backfillJourneys,
 } from "@/lib/onboarding-cycle";
 import { OnboardingCycleBoard, type BoardCard } from "@/components/onboarding/OnboardingCycleBoard";
-import { adminSetOnboardingPlanLink, adminToggleDay1Task, adminSetOnboardingStartDate } from "./actions";
+import {
+  adminSetOnboardingPlanLink,
+  adminUploadOnboardingPlan,
+  adminMoveOnboardingStage,
+  adminToggleDay1Task,
+  adminSetOnboardingStartDate,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +49,13 @@ export default async function AdminOnboardingPage() {
   }
 
   const cards: BoardCard[] = rows.map((r) => {
-    const stage = computeStage(r, today);
     const start = r.member.startDate;
     return {
       id: r.id,
-      columnId: stage === "complete" ? "day_180" : stage,
-      complete: stage === "complete",
+      // The stored stage is authoritative: humans move it, the cron only
+      // advances it forward with the clock.
+      columnId: r.stage === "complete" ? "day_180" : r.stage,
+      complete: r.stage === "complete",
       name: r.member.name,
       avatarUrl: r.member.avatarUrl,
       positionTitle: r.member.positionTitle,
@@ -58,6 +64,7 @@ export default async function AdminOnboardingPage() {
       probationEndsOn: r.member.probationEndsOn ?? (start ? addDays(start, 59) : null),
       contractStartDate: r.member.contractStartDate,
       planUrl: r.plan_url,
+      planHasFile: Boolean(r.plan_path),
       planAddedAt: r.plan_uploaded_at,
       day8SurveySentAt: r.day8_survey_sent_at,
       day8Score: r.day8_response_id ? scores.get(r.day8_response_id) ?? null : null,
@@ -86,9 +93,12 @@ export default async function AdminOnboardingPage() {
           cards={cards}
           actions={{
             setPlanLink: adminSetOnboardingPlanLink,
+            uploadPlan: adminUploadOnboardingPlan,
+            setStage: adminMoveOnboardingStage,
             toggleTask: adminToggleDay1Task,
             setStartDate: adminSetOnboardingStartDate,
           }}
+          planHrefBase="/admin/talent/onboarding/plan"
         />
       )}
     </>

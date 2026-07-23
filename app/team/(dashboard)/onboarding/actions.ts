@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
 import { assertInScope, teamUpdateInScope } from "@/lib/team/data";
-import { savePlanLink } from "@/lib/onboarding-cycle";
+import { savePlanLink, uploadPlanDocument, setJourneyStage } from "@/lib/onboarding-cycle";
 
 // Onboarding-board actions for /team managers. Same discipline as the time-off
 // actions: requireTeamMember() plus the scoped helpers in lib/team/data.ts —
@@ -16,18 +16,53 @@ function refresh() {
   revalidatePath("/team/onboarding");
 }
 
-// Add (or replace) the link to a report's onboarding plan. Managers only — an
-// employee's own journey is in their scope too, but the plan is the manager's
-// deliverable, so the role gate keeps it on the right side.
-export async function setOnboardingPlanLink(journeyId: string, url: string): Promise<Result> {
+// The plan is the manager's deliverable, so these three are manager-gated even
+// though an employee's own journey is technically in their scope.
+async function requireManagerScope(journeyId: string) {
   const actor = await requireTeamMember();
-  if (actor.role !== "manager") return { ok: false, error: "Managers only." };
-  if (!journeyId) return { ok: false, error: "Missing journey." };
-
+  if (actor.role !== "manager") return { actor: null, ownerTeamMemberId: null };
+  if (!journeyId) return { actor, ownerTeamMemberId: null };
   const ownerTeamMemberId = await assertInScope(actor, "onboarding_plans", journeyId);
+  return { actor, ownerTeamMemberId };
+}
+
+// Add (or replace) the link to a report's onboarding plan.
+export async function setOnboardingPlanLink(journeyId: string, url: string): Promise<Result> {
+  const { actor, ownerTeamMemberId } = await requireManagerScope(journeyId);
+  if (!actor) return { ok: false, error: "Managers only." };
   if (!ownerTeamMemberId) return { ok: false, error: "Journey not found." };
 
   const res = await savePlanLink(journeyId, url, actor.teamMemberId);
+  if (!res.ok) return res;
+
+  refresh();
+  return { ok: true };
+}
+
+// Upload (or replace) the plan document itself — markdown preferred, it
+// renders readable at /team/onboarding/plan/[id].
+export async function uploadOnboardingPlan(journeyId: string, formData: FormData): Promise<Result> {
+  const { actor, ownerTeamMemberId } = await requireManagerScope(journeyId);
+  if (!actor) return { ok: false, error: "Managers only." };
+  if (!ownerTeamMemberId) return { ok: false, error: "Journey not found." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "Pick a file to upload." };
+
+  const res = await uploadPlanDocument(journeyId, ownerTeamMemberId, actor.teamMemberId, file);
+  if (!res.ok) return res;
+
+  refresh();
+  return { ok: true };
+}
+
+// Move a report's journey to another stage (board drag or drawer select).
+export async function moveOnboardingStage(journeyId: string, stage: string): Promise<Result> {
+  const { actor, ownerTeamMemberId } = await requireManagerScope(journeyId);
+  if (!actor) return { ok: false, error: "Managers only." };
+  if (!ownerTeamMemberId) return { ok: false, error: "Journey not found." };
+
+  const res = await setJourneyStage(journeyId, stage);
   if (!res.ok) return res;
 
   refresh();
