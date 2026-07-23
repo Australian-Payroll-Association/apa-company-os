@@ -221,6 +221,9 @@ async function seedDay1Tasks(teamMemberId: string, dueDate: string | null): Prom
 }
 
 // Create the journey (and Day 1 checklist) for a team member if none exists.
+// The stored stage is authoritative for display, so a new journey must seed it
+// from the clock immediately — never wait for the next cron pass (the board
+// would show everyone in Preboarding until morning; this bit us once).
 export async function ensureJourney(teamMemberId: string): Promise<void> {
   const { data: existing } = await companyOs
     .from("onboarding_plans")
@@ -240,6 +243,12 @@ export async function ensureJourney(teamMemberId: string): Promise<void> {
     .eq("id", teamMemberId)
     .maybeSingle();
   await seedDay1Tasks(teamMemberId, (tm as { start_date: string | null } | null)?.start_date ?? null);
+
+  const [row] = await loadCycleRows([teamMemberId]);
+  if (row) {
+    const stage = computeStage(row, saigonToday());
+    if (stage !== "complete" && stage !== row.stage) await patchJourney(row.id, { stage });
+  }
 }
 
 // Every onboarding-stage member gets a journey, and so does ANYONE inside
@@ -545,6 +554,9 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
 // ---- survey post-submit processors -----------------------------------------
 
 // Day 8: link the response to the journey so the board can show the score.
+// Only links to an EXISTING journey — anyone in the cycle already has one from
+// backfill. Creating journeys here put long-tenured staff on the board when
+// they merely tested the survey (this bit us once).
 export async function recordDay8Response(personId: string, responseId: string): Promise<void> {
   const { data: tm } = await companyOs
     .from("team_members")
@@ -555,7 +567,6 @@ export async function recordDay8Response(personId: string, responseId: string): 
     .maybeSingle();
   const teamMemberId = (tm as { id: string } | null)?.id;
   if (!teamMemberId) return;
-  await ensureJourney(teamMemberId);
   const { data: journey } = await companyOs
     .from("onboarding_plans")
     .select("id, day8_response_id")
