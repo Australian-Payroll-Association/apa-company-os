@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -100,6 +101,11 @@ export default async function ApplicationsPage() {
         eyebrow="Talent"
         title="Applications"
         sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "application" : "applications"} to open job reqs`}
+        action={
+          <Link href="/admin/talent/applications/new" className="admin-btn admin-btn--primary admin-btn--sm">
+            Add candidates
+          </Link>
+        }
       />
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>

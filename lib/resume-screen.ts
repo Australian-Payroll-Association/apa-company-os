@@ -77,8 +77,9 @@ async function markFailed(applicationId: string, error: string): Promise<Err> {
 
 // Resolve the resume into an Anthropic content block. PDFs go to the API
 // natively (handles scanned resumes too); .docx is extracted to text with
-// mammoth; legacy .doc has no reliable server-side extractor.
-async function resumeContentBlock(
+// mammoth; legacy .doc has no reliable server-side extractor. Exported for the
+// admin add-candidates intake, which extracts fields from the same bucket.
+export async function resumeContentBlock(
   storagePath: string,
   mimeType: string | null,
 ): Promise<{ ok: true; block: Anthropic.ContentBlockParam } | Err> {

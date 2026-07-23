@@ -62,14 +62,17 @@ export async function getOrCreatePerson(input: {
 // Get-or-create the application for (person, requisition). Sets the first
 // pipeline stage if the requisition has one. Cover letter is pasted text;
 // answers pair the requisition's questions with the applicant's responses,
-// snapshotted at apply time.
+// snapshotted at apply time. Source defaults to the careers site; recruiter
+// intake passes its own.
 export async function getOrCreateApplication(
   personId: string,
   jobRequisitionId: string,
   input: {
     coverLetter?: string | null;
     answers?: { q: string; a: string }[];
-    meta?: { job_slug?: string; job_title?: string };
+    meta?: Record<string, string>;
+    source?: string;
+    sourceDetail?: string;
   },
 ): Promise<Ok<{ id: string }> | Err> {
   const { data: stage } = await companyOs
@@ -84,8 +87,8 @@ export async function getOrCreateApplication(
     {
       person_id: personId,
       job_requisition_id: jobRequisitionId,
-      source: "career_site",
-      source_detail: "edge8.ai/careers",
+      source: input.source ?? "career_site",
+      source_detail: input.sourceDetail ?? "edge8.ai/careers",
       status: "active",
       current_stage_id: stage?.id ?? null,
       cover_letter: input.coverLetter?.trim() || null,
