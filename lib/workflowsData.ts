@@ -81,15 +81,6 @@ export const allWorkflows: Workflow[] = [
     steps: 5,
   },
   {
-    slug: 'lead-capture',
-    title: 'Lead Capture to CRM',
-    category: 'Revenue',
-    excerpt:
-      'From a form submission to a customer record: a spam gate filters the noise, and every real inquiry becomes a tracked lead.',
-    date: '2026-07-16',
-    steps: 6,
-  },
-  {
     slug: 'event-registration',
     title: 'Event Registration',
     category: 'Revenue',
@@ -168,6 +159,15 @@ export const allWorkflows: Workflow[] = [
     excerpt:
       'Clients brief a contractor in the portal, approve the estimate, and accept the finished work. The invoice sends itself the moment they do.',
     date: '2026-07-18',
+    steps: 6,
+  },
+  {
+    slug: 'lead-capture',
+    title: 'Lead Capture to CRM',
+    category: 'Revenue',
+    excerpt:
+      'From a form submission to a customer record: a spam gate filters the noise, and every real inquiry becomes a tracked lead.',
+    date: '2026-07-16',
     steps: 6,
   },
   {
