@@ -7,7 +7,7 @@ import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, humanize } from "@/lib/admin/format";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
-import type { DealCard } from "./deals/DealsBoard";
+import type { DealCard, MoveOpts } from "./deals/DealsBoard";
 import { moveDealStage, decideHandoff } from "./deals/actions";
 
 // The cockpit reuses the board's DealDetail drawer but never the board itself,
@@ -34,30 +34,55 @@ export function CockpitDeals({
   cards,
   stages,
   lostStageIds,
+  wonStageIds,
 }: {
   deals: CockpitDeal[];
   cards: DealCard[];
   stages: KanbanColumn[];
   lostStageIds: string[];
+  wonStageIds: string[];
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
   const selected = cards.find((c) => c.id === selectedId) ?? null;
   const lostSet = new Set(lostStageIds);
+  const wonSet = new Set(wonStageIds);
 
-  async function changeStage(cardId: string, toStageId: string, lostReason?: string) {
+  function close() {
+    setSelectedId(null);
+    setBanner(null);
+  }
+
+  async function changeStage(cardId: string, toStageId: string, opts?: MoveOpts) {
+    setBanner(null);
     const card = cards.find((c) => c.id === cardId);
     if (card?.handoffStatus === "pending") {
       const r = await decideHandoff(cardId, "accepted");
-      if (!r.ok) return;
+      if (!r.ok) {
+        setBanner(r.error);
+        return;
+      }
     }
-    await moveDealStage(cardId, toStageId, lostReason);
+    const r = await moveDealStage(cardId, toStageId, opts?.lostReason, opts?.wonAmount);
+    if (!r.ok) {
+      setBanner(r.error);
+      return;
+    }
+    // A won/lost deal leaves the open-pipeline cockpit — close the drawer so
+    // the move reads as done instead of silently snapping the select back.
+    if (wonSet.has(toStageId) || lostSet.has(toStageId)) close();
     router.refresh();
   }
 
   async function decide(cardId: string, decision: "accepted" | "rejected", rejectReason?: string) {
-    await decideHandoff(cardId, decision, rejectReason);
-    if (decision === "rejected") setSelectedId(null);
+    setBanner(null);
+    const r = await decideHandoff(cardId, decision, rejectReason);
+    if (!r.ok) {
+      setBanner(r.error);
+      return;
+    }
+    if (decision === "rejected") close();
     router.refresh();
   }
 
@@ -123,24 +148,32 @@ export function CockpitDeals({
 
       <DetailDrawer
         open={!!selected}
-        onClose={() => setSelectedId(null)}
+        onClose={close}
         eyebrow={selected ? humanize(selected.status ?? "") : ""}
         title={selected?.title || selected?.personName || "Deal"}
       >
         {selected && (
-          <DealDetail
-            card={selected}
-            stages={stages}
-            lostSet={lostSet}
-            onChangeStage={changeStage}
-            onDecideHandoff={decide}
-            onPatch={() => router.refresh()}
-            onRemove={() => {
-              setSelectedId(null);
-              router.refresh();
-            }}
-            onClose={() => setSelectedId(null)}
-          />
+          <>
+            {banner && (
+              <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
+                {banner}
+              </div>
+            )}
+            <DealDetail
+              card={selected}
+              stages={stages}
+              lostSet={lostSet}
+              wonSet={wonSet}
+              onChangeStage={changeStage}
+              onDecideHandoff={decide}
+              onPatch={() => router.refresh()}
+              onRemove={() => {
+                close();
+                router.refresh();
+              }}
+              onClose={close}
+            />
+          </>
         )}
       </DetailDrawer>
     </>

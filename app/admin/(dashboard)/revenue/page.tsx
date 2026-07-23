@@ -168,6 +168,7 @@ export default async function SalesCockpitPage() {
     accent: s.is_won ? STAGE_WON : s.is_lost ? STAGE_LOST : STAGE_NEUTRAL,
   }));
   const lostStageIds = stages.filter((s) => s.is_lost).map((s) => s.id);
+  const wonStageIds = stages.filter((s) => s.is_won).map((s) => s.id);
 
   // Full deal cards for the side car — the same shape the pipeline board uses, so
   // the cockpit opens the identical DealDetail shelf.
@@ -253,6 +254,7 @@ export default async function SalesCockpitPage() {
           cards={dealCards}
           stages={dealStages}
           lostStageIds={lostStageIds}
+          wonStageIds={wonStageIds}
         />
       </div>
 

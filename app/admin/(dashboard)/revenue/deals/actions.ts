@@ -101,11 +101,13 @@ async function syncPersonAfterClose(dealId: string, personId: string | null, won
 
 // Move a deal to a pipeline stage. Landing on a won/lost stage also flips the
 // deal's status and stamps closed_at, so the close-rate metrics stay truthful.
-// Losing a deal requires an enumerated reason.
+// Losing a deal requires an enumerated reason; winning one requires the final
+// deal amount (in the deal's own currency), so won revenue is never a guess.
 export async function moveDealStage(
   dealId: string,
   toStageId: string,
   lostReason?: string,
+  wonAmount?: number,
 ): Promise<Result> {
   await requireAdmin();
 
@@ -119,12 +121,34 @@ export async function moveDealStage(
   if (stage.is_lost && (!lostReason || !LOST_REASONS.has(lostReason))) {
     return { ok: false, error: "Losing a deal needs a reason." };
   }
+  if (stage.is_won && (wonAmount == null || !Number.isFinite(wonAmount) || wonAmount <= 0)) {
+    return { ok: false, error: "Marking a deal won needs the final deal amount." };
+  }
 
   const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";
   const closed_at = stage.is_won || stage.is_lost ? new Date().toISOString() : null;
 
   const updates: Record<string, unknown> = { stage_id: toStageId, status, closed_at };
   if (stage.is_lost) updates.lost_reason = lostReason;
+  if (stage.is_won && wonAmount != null) {
+    const cents = Math.round(wonAmount * 100);
+    updates.amount_cents = cents;
+    // Same best-effort USD normalization as updateDeal — a flaky FX lookup
+    // shouldn't block closing the deal.
+    const { data: existing } = await companyOs
+      .from("deals")
+      .select("currency")
+      .eq("id", dealId)
+      .maybeSingle();
+    try {
+      const fx = await convertToUsdCents(cents, existing?.currency ?? "usd");
+      updates.amount_usd_cents = fx.amountUsdCents;
+      updates.fx_rate = fx.rate;
+      updates.fx_rate_fetched_at = new Date().toISOString();
+    } catch (err) {
+      console.error(`FX conversion failed for deal ${dealId}:`, err);
+    }
+  }
   // Reaching "Contract Sent" bumps the deal to 90% (awaiting payment). Set only
   // on entry so a rep's later manual override sticks.
   if (!stage.is_won && !stage.is_lost && stage.name === CONTRACT_SENT_STAGE) {

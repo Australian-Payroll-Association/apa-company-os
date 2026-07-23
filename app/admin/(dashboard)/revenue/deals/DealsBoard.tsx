@@ -35,6 +35,10 @@ import { HANDOFF_COLUMN_ID } from "./constants";
 
 export type StageOption = { id: string; name: string };
 
+// Extra input a stage move may require: a reason when landing on a lost stage,
+// the final deal amount (in the deal's currency) when landing on a won one.
+export type MoveOpts = { lostReason?: string; wonAmount?: number };
+
 export type DealCard = {
   id: string;
   columnId: string;
@@ -156,11 +160,13 @@ export function DealsBoard({
   columns,
   initialCards,
   lostStageIds,
+  wonStageIds,
   stageOptions,
 }: {
   columns: KanbanColumn[];
   initialCards: DealCard[];
   lostStageIds: string[];
+  wonStageIds: string[];
   stageOptions: StageOption[];
 }) {
   const router = useRouter();
@@ -192,11 +198,16 @@ export function DealsBoard({
   const [pendingLost, setPendingLost] = useState<
     { cardId: string; toColumnId: string; toIndex?: number } | null
   >(null);
+  const [pendingWon, setPendingWon] = useState<
+    { cardId: string; toColumnId: string; toIndex?: number } | null
+  >(null);
+  const [wonAmount, setWonAmount] = useState("");
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [search, setSearch] = useState("");
 
   const lostSet = new Set(lostStageIds);
+  const wonSet = new Set(wonStageIds);
   const query = search.trim().toLowerCase();
   // Sort by position (not just filter) so a reorder's patched position values
   // are always reflected, regardless of the underlying array's insert order.
@@ -246,7 +257,7 @@ export function DealsBoard({
     return [...destBefore.slice(0, insertAt), moved, ...destBefore.slice(insertAt)];
   }
 
-  function applyMove(cardId: string, toColumnId: string, lostReason?: string, toIndex?: number) {
+  function applyMove(cardId: string, toColumnId: string, opts?: MoveOpts, toIndex?: number) {
     const prev = cards;
     const destOrdered = reorderColumn(prev, cardId, toColumnId, toIndex);
     const positionById = new Map(destOrdered.map((c, i) => [c.id, i]));
@@ -259,6 +270,7 @@ export function DealsBoard({
             stageId: toColumnId,
             position: positionById.get(c.id) ?? c.position,
             handoffStatus: c.handoffStatus === "pending" ? "accepted" : c.handoffStatus,
+            ...(opts?.wonAmount != null ? { amountCents: Math.round(opts.wonAmount * 100) } : {}),
           };
         }
         const pos = positionById.get(c.id);
@@ -270,9 +282,9 @@ export function DealsBoard({
     const chain =
       card?.handoffStatus === "pending"
         ? decideHandoff(cardId, "accepted").then((r) =>
-            r.ok ? moveDealStage(cardId, toColumnId, lostReason) : r,
+            r.ok ? moveDealStage(cardId, toColumnId, opts?.lostReason, opts?.wonAmount) : r,
           )
-        : moveDealStage(cardId, toColumnId, lostReason);
+        : moveDealStage(cardId, toColumnId, opts?.lostReason, opts?.wonAmount);
     chain
       .then((r) => (r.ok ? reorderDeals(destOrdered.map((c) => c.id)) : r))
       .then((r) => {
@@ -290,6 +302,12 @@ export function DealsBoard({
     if (lostSet.has(toColumnId)) {
       setPendingLost({ cardId, toColumnId, toIndex });
       setReason("");
+      return;
+    }
+    if (wonSet.has(toColumnId)) {
+      const card = cards.find((c) => c.id === cardId);
+      setPendingWon({ cardId, toColumnId, toIndex });
+      setWonAmount(card?.amountCents != null ? (card.amountCents / 100).toString() : "");
       return;
     }
     applyMove(cardId, toColumnId, undefined, toIndex);
@@ -437,13 +455,44 @@ export function DealsBoard({
             className="admin-btn admin-btn--danger"
             disabled={!reason}
             onClick={() => {
-              applyMove(pendingLost.cardId, pendingLost.toColumnId, reason, pendingLost.toIndex);
+              applyMove(pendingLost.cardId, pendingLost.toColumnId, { lostReason: reason }, pendingLost.toIndex);
               setPendingLost(null);
             }}
           >
             Mark lost
           </button>
           <button type="button" className="admin-btn" onClick={() => setPendingLost(null)}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {pendingWon && (
+        <div className="admin-alert" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span>Final deal amount ({(cards.find((c) => c.id === pendingWon.cardId)?.currency ?? "usd").toUpperCase()})</span>
+          <input
+            className="admin-input"
+            style={{ maxWidth: 140 }}
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            autoFocus
+            value={wonAmount}
+            onChange={(e) => setWonAmount(e.target.value)}
+          />
+          <button
+            type="button"
+            className="admin-btn admin-btn--primary"
+            disabled={!(Number(wonAmount) > 0)}
+            onClick={() => {
+              applyMove(pendingWon.cardId, pendingWon.toColumnId, { wonAmount: Number(wonAmount) }, pendingWon.toIndex);
+              setPendingWon(null);
+            }}
+          >
+            Mark won
+          </button>
+          <button type="button" className="admin-btn" onClick={() => setPendingWon(null)}>
             Cancel
           </button>
         </div>
@@ -640,6 +689,7 @@ export function DealsBoard({
             card={selected}
             stages={columns.filter((c) => c.id !== HANDOFF_COLUMN_ID)}
             lostSet={lostSet}
+            wonSet={wonSet}
             onChangeStage={applyMove}
             onDecideHandoff={decide}
             onPatch={(patch) => patchCard(selected.id, patch)}
@@ -669,6 +719,7 @@ export function DealDetail({
   card,
   stages,
   lostSet,
+  wonSet,
   onChangeStage,
   onDecideHandoff,
   onPatch,
@@ -678,7 +729,8 @@ export function DealDetail({
   card: DealCard;
   stages: KanbanColumn[];
   lostSet: Set<string>;
-  onChangeStage: (cardId: string, toStageId: string, lostReason?: string) => void;
+  wonSet: Set<string>;
+  onChangeStage: (cardId: string, toStageId: string, opts?: MoveOpts) => void;
   onDecideHandoff: (cardId: string, decision: "accepted" | "rejected", rejectReason?: string) => void;
   onPatch: (patch: Partial<DealCard>) => void;
   onRemove: () => void;
@@ -688,6 +740,8 @@ export function DealDetail({
   const pendingHandoff = card.handoffStatus === "pending";
   const [pendingLostStage, setPendingLostStage] = useState<string | null>(null);
   const [lostReason, setLostReason] = useState("");
+  const [pendingWonStage, setPendingWonStage] = useState<string | null>(null);
+  const [wonAmount, setWonAmount] = useState("");
   const [rejectingHandoff, setRejectingHandoff] = useState(false);
   const [handoffReason, setHandoffReason] = useState("");
   const [demoteReason, setDemoteReason] = useState("");
@@ -841,15 +895,21 @@ export function DealDetail({
         <select
           className="admin-input"
           aria-label="Deal stage"
-          value={pendingLostStage ?? (pendingHandoff ? "" : card.stageId ?? "")}
+          value={pendingLostStage ?? pendingWonStage ?? (pendingHandoff ? "" : card.stageId ?? "")}
           onChange={(e) => {
             const to = e.target.value;
             if (!to) return;
             if (lostSet.has(to)) {
               setPendingLostStage(to);
+              setPendingWonStage(null);
               setLostReason("");
+            } else if (wonSet.has(to)) {
+              setPendingWonStage(to);
+              setPendingLostStage(null);
+              setWonAmount(amount);
             } else {
               setPendingLostStage(null);
+              setPendingWonStage(null);
               onChangeStage(card.id, to);
             }
           }}
@@ -887,13 +947,46 @@ export function DealDetail({
                 className="admin-btn admin-btn--danger"
                 disabled={!lostReason}
                 onClick={() => {
-                  onChangeStage(card.id, pendingLostStage, lostReason);
+                  onChangeStage(card.id, pendingLostStage, { lostReason });
                   setPendingLostStage(null);
                 }}
               >
                 Mark lost
               </button>
               <button type="button" className="admin-btn" onClick={() => setPendingLostStage(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {pendingWonStage && (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="admin-field">
+              <label className="admin-label">Final deal amount ({currency.toUpperCase()})</label>
+              <input
+                className="admin-input"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                autoFocus
+                value={wonAmount}
+                onChange={(e) => setWonAmount(e.target.value)}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                disabled={!(Number(wonAmount) > 0)}
+                onClick={() => {
+                  onChangeStage(card.id, pendingWonStage, { wonAmount: Number(wonAmount) });
+                  setPendingWonStage(null);
+                }}
+              >
+                Mark won
+              </button>
+              <button type="button" className="admin-btn" onClick={() => setPendingWonStage(null)}>
                 Cancel
               </button>
             </div>

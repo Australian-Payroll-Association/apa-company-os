@@ -70,6 +70,7 @@ export default async function DealsPage() {
 
   const stageList = (stages as Stage[] | null) ?? [];
   const lostStageIds = stageList.filter((s) => s.is_lost).map((s) => s.id);
+  const wonStageIds = stageList.filter((s) => s.is_won).map((s) => s.id);
   const stageOptions: StageOption[] = stageList
     .filter((s) => !s.is_won && !s.is_lost)
     .map((s) => ({ id: s.id, name: s.name }));
@@ -173,6 +174,7 @@ export default async function DealsPage() {
         columns={columns}
         initialCards={cards}
         lostStageIds={lostStageIds}
+        wonStageIds={wonStageIds}
         stageOptions={stageOptions}
       />
     </>
