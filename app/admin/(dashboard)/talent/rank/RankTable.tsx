@@ -40,7 +40,8 @@ export function RankTable({
   families: { key: string; label: string }[];
 }) {
   const router = useRouter();
-  const [family, setFamily] = useState(families[0]?.key ?? "");
+  // "" = All: the whole pool across families, still ranked by AI fit.
+  const [family, setFamily] = useState("");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "ai", dir: "desc" });
@@ -63,7 +64,7 @@ export function RankTable({
   const famRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = rows
-      .filter((r) => r.family === family)
+      .filter((r) => !family || r.family === family)
       .filter(
         (r) =>
           !q ||
@@ -109,6 +110,17 @@ export function RankTable({
   return (
     <>
       <div className="admin-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={family === ""}
+          className={`admin-tab${family === "" ? " is-active" : ""}`}
+          onClick={() => {
+            setFamily("");
+            setOpenId(null);
+          }}
+        >
+          All ({rows.length})
+        </button>
         {families.map((f) => (
           <button
             key={f.key}
@@ -152,6 +164,7 @@ export function RankTable({
               <tr>
                 <th style={{ width: 44 }}>#</th>
                 <th>Candidate</th>
+                {family === "" && <th>Family</th>}
                 <th>Applied for</th>
                 <th style={{ textAlign: "right" }}>
                   <button type="button" className="admin-th-sort" onClick={() => onSort("ai")}>
@@ -170,8 +183,10 @@ export function RankTable({
             <tbody>
               {famRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
-                    <div className="admin-empty">No candidates in this family match.</div>
+                  <td colSpan={family === "" ? 8 : 7}>
+                    <div className="admin-empty">
+                      {family === "" ? "No candidates match." : "No candidates in this family match."}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -197,6 +212,7 @@ export function RankTable({
                         <span className="admin-cell-strong">{r.name}</span>
                         {r.email && <div className="admin-cell-muted">{r.email}</div>}
                       </td>
+                      {family === "" && <td>{families.find((f) => f.key === r.family)?.label ?? r.family}</td>}
                       <td>{r.reqTitles.join(", ") || <span className="admin-cell-muted">—</span>}</td>
                       <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                         {r.rating != null ? r.rating.toFixed(1) : <span className="admin-cell-muted">—</span>}

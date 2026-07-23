@@ -69,7 +69,7 @@ const NAV: NavGroup[] = [
         items: [
           { label: "Applications", href: "/admin/talent/applications", ico: "⇉", enabled: true },
           { label: "Job Reqs", href: "/admin/talent/jobs", ico: "▤", enabled: true },
-          { label: "Rank", href: "/admin/talent/rank", ico: "↥", enabled: true },
+          { label: "Candidate Pool", href: "/admin/talent/rank", ico: "↥", enabled: true },
         ],
       },
     ],

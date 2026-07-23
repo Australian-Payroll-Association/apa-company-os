@@ -24,6 +24,7 @@ export type AppRow = {
   currentStageId: string | null;
   status: string | null;
   rating: number | null;
+  aiRating: number | null; // AI fit 0-5: family screen first, else per-req screen
   rejectionReason: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
@@ -79,6 +80,8 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Mirrors the Candidate Pool table: rows rank by AI fit, toggling to recruiter rating.
+  const [sort, setSort] = useState<{ key: "ai" | "recruiter"; dir: "asc" | "desc" }>({ key: "ai", dir: "desc" });
 
   // Job reqs for the filter dropdown: only reqs that are still open — closed
   // roles' applications remain findable via search/status/stage.
@@ -110,7 +113,7 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const matched = rows.filter((r) => {
       if (reqFilter && r.jobReqId !== reqFilter) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (stageFilter && r.stageName !== stageFilter) return false;
@@ -119,7 +122,23 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
         (v) => (v ? v.toLowerCase().includes(query) : false),
       );
     });
-  }, [rows, reqFilter, statusFilter, stageFilter, query]);
+    const val = (r: AppRow) => (sort.key === "ai" ? r.aiRating : r.rating);
+    return [...matched].sort((a, b) => {
+      const av = val(a);
+      const bv = val(b);
+      // Unrated always sinks to the bottom, regardless of direction.
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return sort.dir === "desc" ? bv - av : av - bv;
+    });
+  }, [rows, reqFilter, statusFilter, stageFilter, query, sort]);
+
+  function onSort(key: "ai" | "recruiter") {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
+  }
+
+  const sortArrow = (key: "ai" | "recruiter") => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -219,23 +238,33 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
           <table className="admin-table">
             <thead>
               <tr>
+                <th style={{ width: 44 }}>#</th>
                 <th>Candidate</th>
                 <th>Job req</th>
                 <th>Stage</th>
+                <th style={{ textAlign: "right" }}>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("ai")}>
+                    AI fit{sortArrow("ai")}
+                  </button>
+                </th>
+                <th style={{ textAlign: "right" }}>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("recruiter")}>
+                    Recruiter{sortArrow("recruiter")}
+                  </button>
+                </th>
                 <th>Status</th>
-                <th style={{ textAlign: "right" }}>Rating</th>
                 <th>Applied</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={8}>
                     <div className="admin-empty">No applications match.</div>
                   </td>
                 </tr>
               ) : (
-                pageRows.map((r) => (
+                pageRows.map((r, i) => (
                   <tr
                     key={r.id}
                     className="is-clickable"
@@ -250,6 +279,7 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
                     role="button"
                     aria-haspopup="dialog"
                   >
+                    <td className="admin-cell-mono">{startIdx + i + 1}</td>
                     <td>
                       <span className={r.candidateName ? "admin-cell-strong" : "admin-cell-muted"}>
                         {r.candidateName || "—"}
@@ -257,15 +287,18 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
                     </td>
                     <td>{r.jobReqTitle || <span className="admin-cell-muted">—</span>}</td>
                     <td>{r.stageName || <span className="admin-cell-muted">—</span>}</td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                      {r.aiRating != null ? r.aiRating.toFixed(1) : <span className="admin-cell-muted">—</span>}
+                    </td>
+                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                      {r.rating != null ? `${r.rating}★` : <span className="admin-cell-muted">—</span>}
+                    </td>
                     <td>
                       {r.status ? (
                         <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge>
                       ) : (
                         <span className="admin-cell-muted">—</span>
                       )}
-                    </td>
-                    <td className="admin-cell-mono" style={{ textAlign: "right" }}>
-                      {r.rating != null ? `${r.rating}★` : <span className="admin-cell-muted">—</span>}
                     </td>
                     <td>{r.appliedAt ? formatDate(r.appliedAt) : <span className="admin-cell-muted">—</span>}</td>
                   </tr>

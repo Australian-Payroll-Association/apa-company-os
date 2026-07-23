@@ -6,11 +6,11 @@ import { RankTable, type RankRow } from "./RankTable";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Rank",
+  title: "Candidate Pool",
   description: "Candidates stack-ranked by AI screen within each role family.",
 };
 
-// Rank: every application whose req is tagged with a role_family, rated by
+// Candidate Pool: every application whose req is tagged with a role_family, rated by
 // the family AI screen (applications.metadata.family_screen) against one
 // ideal profile per family so scores compare across reqs. A person who
 // applied to several reqs in a family appears once with their best screen.
@@ -96,7 +96,7 @@ export default async function RankPage() {
     <>
       <PageHead
         eyebrow="Talent"
-        title="Rank"
+        title="Candidate Pool"
         sub={`${rows.length} candidates across ${ROLE_FAMILIES.length} role families · ${screened} AI-screened`}
       />
       {error && (
