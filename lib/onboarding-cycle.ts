@@ -254,13 +254,17 @@ export async function ensureJourney(teamMemberId: string): Promise<void> {
 // Every onboarding-stage member gets a journey, and so does ANYONE inside
 // their first 180 days regardless of stage (covers hires promoted before this
 // feature shipped, and admin-created rows that never passed ensureJourney) —
-// the cycle tracks the full first 180 days, not just probation.
+// the cycle tracks the full first 180 days, not just probation. Contractors
+// are excluded: the employee cycle does not apply to them, and imported
+// contractor rows carry noisy start_dates (a contractor of a year showed up
+// as a Day-7 hire; this bit us once).
 export async function backfillJourneys(): Promise<number> {
   const cutoff = addDays(saigonToday(), -179);
   const { data } = await companyOs
     .from("team_members")
     .select("id")
     .or(`employment_stage.in.(pre_boarding,probation),start_date.gte.${cutoff}`)
+    .neq("employment_type", "contract")
     .in("status", LIVE_STATUSES);
   const ids = ((data ?? []) as { id: string }[]).map((r) => r.id);
   if (ids.length === 0) return 0;
