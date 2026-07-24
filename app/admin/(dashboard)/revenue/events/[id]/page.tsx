@@ -12,6 +12,8 @@ import { getSiteOrigin } from "@/lib/site-origin";
 import { eventStatusBadge } from "../EventStatusBadge";
 import { RosterTab, type RosterRegistration, type RosterTier } from "./RosterTab";
 import { EventSettings, type EventSettingsData, type SettingsTier, type SurveyOption } from "./EventSettings";
+import { getEventPnlLines } from "@/lib/admin/event-pnl";
+import { PnlTab } from "./PnlTab";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +81,7 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes] = await Promise.all([
     companyOs
       .from("events")
       .select(
@@ -107,7 +109,17 @@ export default async function EventDetailPage({ params }: { params: { id: string
       .order("name", { ascending: true }),
     companyOs.from("talks").select("id, title").eq("active", true).order("sort_order", { ascending: true }),
     companyOs.from("event_talks").select("talk_id").eq("event_id", params.id),
+    getEventPnlLines(params.id),
+    companyOs
+      .from("team_directory")
+      .select("person_id, full_name")
+      .not("person_id", "is", null)
+      .order("full_name", { ascending: true }),
   ]);
+
+  const pnlPeople = ((peopleRes.data ?? []) as { person_id: string; full_name: string | null }[])
+    .filter((p) => p.person_id)
+    .map((p) => ({ id: p.person_id, name: p.full_name ?? "Unknown" }));
 
   const event = eventRes.data as EventDbRow | null;
   if (!event) notFound();
@@ -301,6 +313,18 @@ export default async function EventDetailPage({ params }: { params: { id: string
           { key: "overview", label: "Overview", content: overview },
           { key: "roster", label: "Roster", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
           { key: "revenue", label: "Revenue", content: revenue },
+          {
+            key: "pnl",
+            label: "P&L",
+            content: (
+              <PnlTab
+                eventId={event.id}
+                lines={pnlLines}
+                autoRevenueUsdCents={collectedUsdCents}
+                people={pnlPeople}
+              />
+            ),
+          },
           { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} talks={talkOptions} selectedTalkIds={selectedTalkIds} /> },
         ]}
       />
