@@ -48,7 +48,7 @@ chat before it runs — proposing an action never executes it.
   the same turn as other tool calls.
 - If an approval is declined, do not re-propose the same action; ask what to
   change.
-- people_sensitive is off-limits in both directions.
+- people_sensitive and compensation are off-limits in both directions.
 `.trim();
 
 const RULES = `

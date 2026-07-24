@@ -10,6 +10,7 @@ import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { AvatarUpload } from "@/components/team/AvatarUpload";
 import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
 import { getPeopleSensitive } from "@/lib/admin/people-sensitive";
+import { getSensitiveViewer } from "@/lib/admin-auth";
 import { adminSetPersonAvatar, saveSensitiveDetails, saveContractStartDate } from "../actions";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
@@ -86,6 +87,11 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   const m = memberRes.data as DirectoryRow | null;
   if (!m) notFound();
 
+  // Wages/PII are gated to Dave & Mai. A plain admin (My, Quan) never has the
+  // sensitive data fetched — not just hidden. Checked server-side here.
+  const viewer = await getSensitiveViewer();
+  const canSeePII = viewer?.canViewSensitive ?? false;
+
   // Everything below keys only on the now-known directory row (person_id /
   // auth_user_id / team member id) and nothing depends on anything else here, so
   // fire it all in one parallel wave instead of four serial ones. Survey
@@ -99,11 +105,15 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
       m.person_id
         ? companyOs
             .from("people")
-            .select("avatar_url, graduated_from, emergency_contact_name, emergency_contact_phone, metadata")
+            .select(
+              canSeePII
+                ? "avatar_url, graduated_from, emergency_contact_name, emergency_contact_phone, metadata"
+                : "avatar_url, graduated_from, metadata",
+            )
             .eq("id", m.person_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
+      canSeePII && m.person_id ? getPeopleSensitive(m.person_id) : Promise.resolve(null),
       m.auth_user_id ? getSignedInAuthUserIds([m.auth_user_id]) : Promise.resolve(new Set<string>()),
       companyOs
         .from("team_members")
@@ -136,8 +146,9 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
     : [];
   const funFact = typeof funStuff?.note === "string" && funStuff.note.trim() ? funStuff.note : null;
   const graduatedFrom = person?.graduated_from || null;
-  const emergencyContact =
-    [person?.emergency_contact_name, person?.emergency_contact_phone].filter(Boolean).join(" · ") || null;
+  const emergencyContact = canSeePII
+    ? [person?.emergency_contact_name, person?.emergency_contact_phone].filter(Boolean).join(" · ") || null
+    : null;
   const hasPersonal = Boolean(graduatedFrom || emergencyContact || hobbies.length || funFact);
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
@@ -398,7 +409,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
             )}
           </div>
 
-          {m.person_id && (
+          {m.person_id && canSeePII && (
             <SensitiveDetails
               row={sensitive}
               hasIdFront={!!sensitive?.id_front_path}
@@ -407,6 +418,12 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               selfieUrl={avatarUrl}
               action={saveSensitiveDetails.bind(null, m.person_id)}
             />
+          )}
+          {m.person_id && !canSeePII && (
+            <div className="admin-card admin-section-card">
+              <h2 className="admin-card-title">Sensitive details</h2>
+              <p className="admin-cell-muted">Restricted — visible to Dave and Mai only.</p>
+            </div>
           )}
         </div>
       </div>

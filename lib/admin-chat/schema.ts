@@ -107,8 +107,9 @@ as "active" unless the user asks about archived records.
   reason, approved_by, requested_at, external_source. 288 rows, mostly approved.
 - leave_policies, leave_adjustments (delta_days balance changes), holidays,
   dayoff_snapshot (raw sync payloads from the Day Off provider — usually skip).
-- compensation, performance_reviews, goals, one_on_ones, skills, person_skills —
-  HR scaffolding, currently empty.
+- performance_reviews, goals, one_on_ones, skills, person_skills — HR
+  scaffolding, currently empty. (compensation holds real pay data and is
+  off-limits in both directions, same as people_sensitive.)
 
 ### Events, meetings, surveys, content
 - events — id, slug, type, status, visibility, title, blurb, starts_at, ends_at,

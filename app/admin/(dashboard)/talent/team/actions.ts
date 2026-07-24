@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { supabase, companyOs } from "@/lib/supabase";
-import { requireAdmin, isAdminEmail } from "@/lib/admin-auth";
+import { requireAdmin, isAdminEmail, canViewSensitive } from "@/lib/admin-auth";
 import { PORTAL_STATUSES } from "@/lib/team-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { sendTransactionalEmail } from "@/lib/email";
@@ -64,13 +64,17 @@ export async function saveContractStartDate(teamMemberId: string, formData: Form
   revalidatePath(`/admin/talent/team/${teamMemberId}`);
 }
 
-// Admin edits the restricted PII record. Gated by requireAdmin; the upsert
-// records its own audit row with the admin's email.
+// Admin edits the restricted PII record. Gated by requireAdmin AND
+// canViewSensitive — PII is Dave & Mai only; a plain admin cannot write it. The
+// upsert records its own audit row with the admin's email.
 export async function saveSensitiveDetails(
   personId: string,
   input: SensitiveInput,
 ): Promise<Result> {
   const admin = await requireAdmin();
+  if (!(await canViewSensitive(admin.email))) {
+    return { ok: false, error: "Not authorized." };
+  }
   const res = await upsertPeopleSensitive(personId, input, admin.email);
   if (!res.ok) return { ok: false, error: res.error };
   revalidatePath("/admin/talent/team");

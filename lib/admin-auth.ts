@@ -83,3 +83,50 @@ export async function requireAdmin(): Promise<AdminUser> {
   if (!user) redirect("/admin/login");
   return user;
 }
+
+// ── Sensitive-data gate (wages + PII) ──────────────────────────────────────
+//
+// Being an admin is NOT enough to see confidential data. Compensation, PII
+// (people_sensitive, ID documents, bank details), and anything similarly
+// restricted is gated to a smaller set — Dave and Mai — checked SERVER-SIDE so
+// the data is never fetched for anyone else. Two sources, mirroring the admin
+// gate: a SENSITIVE_VIEWERS env allowlist (break-glass; covers env-only admins
+// like the owner, who has no admins row) checked first, then the
+// admins.can_view_sensitive column. Do NOT reuse ADMIN_ALLOWLIST — every admin
+// is in that.
+
+export function sensitiveEnvAllowlist(): Set<string> {
+  return new Set(
+    (process.env.SENSITIVE_VIEWERS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+// True if this email may view/edit wages and PII. Env allowlist first (no DB
+// hit), then admins.can_view_sensitive. A DB error counts as "not cleared" —
+// fail closed, never leak. Wrapped in cache() so one render resolves it once.
+export const canViewSensitive = cache(async (email: string | null | undefined): Promise<boolean> => {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return false;
+  if (sensitiveEnvAllowlist().has(normalized)) return true;
+  const { data, error } = await companyOs
+    .from("admins")
+    .select("can_view_sensitive")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (error) {
+    console.error("sensitive-viewer lookup failed:", error.message);
+    return false;
+  }
+  return Boolean(data?.can_view_sensitive);
+});
+
+// Convenience for server components/actions: the current admin plus whether
+// they're cleared for sensitive data. Returns null if not signed in.
+export async function getSensitiveViewer(): Promise<{ email: string; canViewSensitive: boolean } | null> {
+  const user = await getAdminUser();
+  if (!user) return null;
+  return { email: user.email, canViewSensitive: await canViewSensitive(user.email) };
+}

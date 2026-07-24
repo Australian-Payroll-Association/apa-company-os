@@ -12,6 +12,20 @@ export function formatCents(cents: number | string | null | undefined, currency 
   }).format(n / 100);
 }
 
+// Whole VND (NOT cents). VND is a zero-decimal currency; salary_vnd stores the
+// actual dong amount, so it must not go through formatCents (which divides by
+// 100). e.g. 45000000 -> "₫45,000,000".
+export function formatVndWhole(vnd: number | string | null | undefined): string {
+  if (vnd === null || vnd === undefined || vnd === "") return "—";
+  const n = typeof vnd === "string" ? Number(vnd) : vnd;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);

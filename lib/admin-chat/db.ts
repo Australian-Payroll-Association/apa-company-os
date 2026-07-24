@@ -33,6 +33,12 @@ const MAX_QUERY_CHARS = 8_000;
 const BLOCKED_SCHEMA =
   /\b(?:auth|storage|vault|cron|net|extensions|realtime|private|supabase_migrations|company_os_archive|agents)\s*\.\s*"?[a-z_]/i;
 
+// Confidential company_os tables the assistant must never read or write. The
+// DB grants already close these (no reader/writer policies + revoked grants),
+// but reject by name too so the model gets a clear message instead of a bare
+// permission error. people_sensitive = PII; compensation = real pay data.
+const BLOCKED_TABLES = /\b(?:people_sensitive|compensation)\b/i;
+
 // Module-level singletons. Both URLs point at the Supavisor transaction
 // pooler (port 6543) as their respective roles; prepare:false is required in
 // transaction-pool mode.
@@ -89,6 +95,9 @@ export async function runReadOnlyQuery(query: string): Promise<QueryResult> {
   // and it also blocks a prompt-injection steering the model off company_os.
   if (BLOCKED_SCHEMA.test(q)) {
     return { ok: false, error: "Queries may only reference the company_os schema." };
+  }
+  if (BLOCKED_TABLES.test(q)) {
+    return { ok: false, error: "people_sensitive and compensation are off-limits to the assistant." };
   }
 
   try {
@@ -157,10 +166,10 @@ export async function runApprovedWrite(query: string): Promise<WriteResult> {
   if (BLOCKED_SCHEMA.test(q)) {
     return { ok: false, error: "Statements may only reference the company_os schema." };
   }
-  // The role has no grants on people_sensitive; reject by name too so the
-  // model gets a clear message instead of a bare permission error.
-  if (/\bpeople_sensitive\b/i.test(q)) {
-    return { ok: false, error: "people_sensitive is off-limits to the assistant." };
+  // The role has no grants on people_sensitive or compensation; reject by name
+  // too so the model gets a clear message instead of a bare permission error.
+  if (BLOCKED_TABLES.test(q)) {
+    return { ok: false, error: "people_sensitive and compensation are off-limits to the assistant." };
   }
 
   try {
