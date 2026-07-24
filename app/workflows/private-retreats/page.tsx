@@ -55,7 +55,7 @@ export default function PrivateRetreatsWorkflowPage() {
   return (
     <main>
       <WorkflowHero
-        category="Revenue"
+        category="Operations"
         title="Private Retreats"
         tldr="A founder flies in and ships real AI programs alongside our team in a handful of days. People run the relationship and the room; the admin runs the money and the memory. The retreat record holds the plan, captures every cost as it lands, and shows profit the day the founder leaves."
         meta={[
