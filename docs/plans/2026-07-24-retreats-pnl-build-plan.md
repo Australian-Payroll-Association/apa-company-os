@@ -118,6 +118,8 @@ Phased, one branch, one PR, Dave merges (work locally, batch PRs). Verification 
 
 First action within 7 days: apply the phase 1 migration and open the branch. The workbook stops being edited the day phase 6 completes.
 
+**Build status (2026-07-24):** Phases 1–4 shipped and merged to main (PRs #380 migration, #381 data layer + sensitive gate, #382 P&L tab, #383 Compensation section). Software is live. Phases 5–6 are operational and handed off — see docs/operations/retreats-pnl-backfill-runbook.md: enter historical P&L and salaries through the live UI (the workbook's totals/staff cells are unsaved formulas, so there is nothing reliable to auto-import), and My & Mai close the Sydney retreat in-app. **One deploy step remains:** set `SENSITIVE_VIEWERS=dave@edge8.ai,mai@edge8.ai` in Vercel so Dave (an env-only admin, not an `admins` row) is cleared for wages/PII; Mai is already flagged in the DB.
+
 ### Definition of Done
 
 The program is done when all of the following are true:
