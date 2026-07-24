@@ -95,6 +95,12 @@ const NAV: NavGroup[] = [
         ],
       },
       {
+        subheading: "Retreats",
+        items: [
+          { label: "Retreats P&L", href: "/admin/operations/retreats", ico: "◇", enabled: true },
+        ],
+      },
+      {
         subheading: "Workplace",
         items: [
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
