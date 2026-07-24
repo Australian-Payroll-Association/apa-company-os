@@ -40,6 +40,51 @@ function dateRange(start: string | null, end: string | null): string {
   return `${s} → ${formatDate(end)}`;
 }
 
+type SortKey =
+  | "title"
+  | "type"
+  | "location"
+  | "dates"
+  | "registered"
+  | "attendees"
+  | "from"
+  | "collected"
+  | "status";
+
+// Numeric/date columns read best largest-first, so they default to descending.
+const NUMERIC_KEYS: SortKey[] = ["dates", "registered", "attendees", "from", "collected"];
+
+function sortValue(r: EventRow, k: SortKey): string | number {
+  switch (k) {
+    case "title":
+      return r.title.toLowerCase();
+    case "type":
+      return r.type;
+    case "location":
+      return (r.location ?? "").toLowerCase();
+    case "dates":
+      return r.startsAt ?? "";
+    case "registered":
+      return r.registeredCount;
+    case "attendees":
+      return r.effectiveAttendees;
+    case "from":
+      return r.tiers.length === 0 ? 0 : r.fromUsdCents;
+    case "collected":
+      return r.collectedUsdCents;
+    case "status":
+      return r.status;
+  }
+}
+
+function compareRows(a: EventRow, b: EventRow, k: SortKey, dir: "asc" | "desc"): number {
+  const av = sortValue(a, k);
+  const bv = sortValue(b, k);
+  const c =
+    typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
+  return dir === "asc" ? c : -c;
+}
+
 // Client-owned events table: rows + manage shelf live in one client tree so a
 // row click reliably opens the DetailDrawer (see components/admin/DataTable's
 // getRowPreview — a server-rendered preview injecting a client shelf never
@@ -52,6 +97,8 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const query = search.trim().toLowerCase();
   const filtered = useMemo(() => {
@@ -68,11 +115,60 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
     });
   }, [rows, statusFilter, typeFilter, query]);
 
-  const total = filtered.length;
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    return [...filtered].sort((a, b) => compareRows(a, b, sortKey, sortDir));
+  }, [filtered, sortKey, sortDir]);
+
+  const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const clampedPage = Math.min(page, totalPages);
   const startIdx = (clampedPage - 1) * pageSize;
-  const pageRows = filtered.slice(startIdx, startIdx + pageSize);
+  const pageRows = sorted.slice(startIdx, startIdx + pageSize);
+
+  function toggleSort(k: SortKey) {
+    if (sortKey === k) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(k);
+      setSortDir(NUMERIC_KEYS.includes(k) ? "desc" : "asc");
+    }
+    setPage(1);
+  }
+
+  function sortableTh(label: string, k: SortKey, align?: "right") {
+    const active = sortKey === k;
+    return (
+      <th
+        style={align === "right" ? { textAlign: "right" } : undefined}
+        aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(k)}
+          style={{
+            background: "none",
+            border: 0,
+            padding: 0,
+            margin: 0,
+            font: "inherit",
+            color: "inherit",
+            letterSpacing: "inherit",
+            textTransform: "inherit",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          {label}
+          <span aria-hidden style={{ opacity: active ? 0.9 : 0.35, fontSize: "0.9em" }}>
+            {active ? (sortDir === "desc" ? "↓" : "↑") : "↕"}
+          </span>
+        </button>
+      </th>
+    );
+  }
   const start = total === 0 ? 0 : startIdx + 1;
   const end = Math.min(startIdx + pageSize, total);
 
@@ -150,15 +246,15 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Type</th>
-                <th>Location</th>
-                <th>Dates</th>
-                <th style={{ textAlign: "right" }}>Registered</th>
-                <th style={{ textAlign: "right" }}>Attendees</th>
-                <th style={{ textAlign: "right" }}>From</th>
-                <th style={{ textAlign: "right" }}>Collected</th>
-                <th>Status</th>
+                {sortableTh("Event", "title")}
+                {sortableTh("Type", "type")}
+                {sortableTh("Location", "location")}
+                {sortableTh("Dates", "dates")}
+                {sortableTh("Registered", "registered", "right")}
+                {sortableTh("Attendees", "attendees", "right")}
+                {sortableTh("From", "from", "right")}
+                {sortableTh("Collected", "collected", "right")}
+                {sortableTh("Status", "status")}
               </tr>
             </thead>
             <tbody>

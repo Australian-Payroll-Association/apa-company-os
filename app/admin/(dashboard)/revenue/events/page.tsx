@@ -36,6 +36,7 @@ type EventDbRow = {
   notes: string | null;
   archived_at: string | null;
   attendee_count_override: number | null;
+  registered_count_override: number | null;
 };
 
 type TierDbRow = {
@@ -80,7 +81,7 @@ export default async function EventsPage() {
   const [eventsRes, tiersRes, regsRes, monthRevenueRes, attendeesRes] = await Promise.all([
     companyOs
       .from("events")
-      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, archived_at, attendee_count_override")
+      .select("id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, archived_at, attendee_count_override, registered_count_override")
       .order("starts_at", { ascending: false, nullsFirst: false }),
     companyOs
       .from("products")
@@ -180,7 +181,7 @@ export default async function EventsPage() {
       tiers,
       attendees: attendeesByEvent.get(e.id) ?? [],
       effectiveAttendees: e.attendee_count_override ?? counts.registered,
-      registeredCount: counts.registered,
+      registeredCount: e.registered_count_override ?? counts.registered,
       totalCount: counts.total,
       fromUsdCents: fromCents,
       collectedUsdCents: counts.collectedUsdCents,
