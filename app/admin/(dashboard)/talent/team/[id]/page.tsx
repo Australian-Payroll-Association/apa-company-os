@@ -11,7 +11,9 @@ import { AvatarUpload } from "@/components/team/AvatarUpload";
 import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
 import { getPeopleSensitive } from "@/lib/admin/people-sensitive";
 import { getSensitiveViewer } from "@/lib/admin-auth";
-import { adminSetPersonAvatar, saveSensitiveDetails, saveContractStartDate } from "../actions";
+import { getSalaryHistory } from "@/lib/admin/compensation";
+import { CompensationSection } from "./CompensationSection";
+import { adminSetPersonAvatar, saveSensitiveDetails, saveContractStartDate, saveSalaryChange } from "../actions";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
@@ -97,7 +99,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   // fire it all in one parallel wave instead of four serial ones. Survey
   // responses, avatar, and PII are person-keyed — skipped when there's no linked
   // person (nothing could be attributed to the row).
-  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes] =
+  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes, salaryHistory] =
     await Promise.all([
       m.person_id ? getPersonSurveyResponses(m.person_id) : Promise.resolve([]),
       getAssignmentsForTeamMember(m.id),
@@ -120,6 +122,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         .select("employment_stage, probation_ends_on, contract_start_date")
         .eq("id", params.id)
         .maybeSingle(),
+      canSeePII ? getSalaryHistory(m.id) : Promise.resolve([]),
     ]);
   const cycle = cycleRes.data as {
     employment_stage: string | null;
@@ -409,6 +412,13 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
             )}
           </div>
 
+          {canSeePII && (
+            <CompensationSection
+              history={salaryHistory}
+              startDate={m.start_date}
+              action={saveSalaryChange.bind(null, m.id)}
+            />
+          )}
           {m.person_id && canSeePII && (
             <SensitiveDetails
               row={sensitive}

@@ -9,6 +9,7 @@ import { recordAudit } from "@/lib/admin/audit";
 import { sendTransactionalEmail } from "@/lib/email";
 import { setPersonAvatar, type AvatarResult } from "@/lib/avatars";
 import { upsertPeopleSensitive, type SensitiveInput } from "@/lib/admin/people-sensitive";
+import { saveSalaryChange as recordSalaryChange } from "@/lib/admin/compensation";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
 
@@ -79,6 +80,45 @@ export async function saveSensitiveDetails(
   if (!res.ok) return { ok: false, error: res.error };
   revalidatePath("/admin/talent/team");
   return { ok: true, message: "Saved." };
+}
+
+// Add a salary change (Dave & Mai only). Append-only: the lib supersedes the
+// current salary row and inserts a new one. Audits the CHANGE (comp_type +
+// effective date) but NEVER the amount, so salaries never leak via audit_log.
+export async function saveSalaryChange(
+  teamMemberId: string,
+  input: { salaryVnd: number; salaryUsdCents: number; effectiveFrom: string; changeReason?: string | null },
+): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!(await canViewSensitive(admin.email))) {
+    return { ok: false, error: "Not authorized." };
+  }
+  const salaryVnd = Math.round(Number(input.salaryVnd));
+  const salaryUsdCents = Math.round(Number(input.salaryUsdCents));
+  if (!Number.isFinite(salaryVnd) || salaryVnd < 0 || !Number.isFinite(salaryUsdCents) || salaryUsdCents < 0) {
+    return { ok: false, error: "Enter a valid salary amount." };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom)) {
+    return { ok: false, error: "Enter a valid effective date." };
+  }
+  const res = await recordSalaryChange(teamMemberId, {
+    salaryVnd,
+    salaryUsdCents,
+    effectiveFrom: input.effectiveFrom,
+    changeReason: input.changeReason?.trim() || null,
+    approvedBy: admin.email,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  await recordAudit({
+    table: "compensation",
+    recordId: res.id,
+    operation: "insert",
+    actor: admin.email,
+    newData: { comp_type: "salary", effective_from: input.effectiveFrom },
+    context: { via: "team_compensation" },
+  });
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+  return { ok: true, message: "Salary change saved." };
 }
 
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the

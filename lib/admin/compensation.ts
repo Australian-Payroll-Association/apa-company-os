@@ -7,30 +7,11 @@
 // rows are never mutated in place, so the full wage history is preserved.
 
 import { companyOs } from "@/lib/supabase";
+import type { SalaryRow, SalaryChangeInput } from "./compensation-shared";
 
-// Fixed conversion rate for wages (per the plan). Not fetched — a constant, so
-// history stays reproducible regardless of live FX.
-export const FIXED_VND_PER_USD = 25500;
-
-export function vndToUsdCents(vnd: number): number {
-  return Math.round((vnd / FIXED_VND_PER_USD) * 100);
-}
-
-export function usdCentsToVnd(usdCents: number): number {
-  return Math.round((usdCents / 100) * FIXED_VND_PER_USD);
-}
-
-export type SalaryRow = {
-  id: string;
-  salaryVnd: number | null;
-  salaryUsdCents: number | null;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  isCurrent: boolean;
-  changeReason: string | null;
-  approvedBy: string | null;
-  createdAt: string;
-};
+// Pure types + the fixed-rate conversion live in ./compensation-shared
+// (client-safe) and are re-exported here so server callers keep one import.
+export * from "./compensation-shared";
 
 type Row = {
   id: string;
@@ -96,13 +77,6 @@ export async function getSalaryHistory(teamMemberId: string): Promise<SalaryRow[
   return (data as Row[]).map(mapRow);
 }
 
-export type SalaryChangeInput = {
-  salaryVnd: number;
-  salaryUsdCents: number;
-  effectiveFrom: string; // "YYYY-MM-DD"
-  changeReason?: string | null;
-  approvedBy: string;
-};
 
 // Append-only: close the current salary row(s), then insert the new one. The old
 // row keeps its amounts and gets effective_to = the new row's effective_from.
