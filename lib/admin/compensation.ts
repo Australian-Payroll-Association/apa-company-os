@@ -1,13 +1,13 @@
 // Server-only data layer for confidential employee salaries
-// (company_os.compensation, comp_type = 'salary'). CONFIDENTIAL: callers MUST
-// gate on canViewSensitive() before invoking any of this — authorization is the
-// caller's job. Salary is stored in BOTH native VND (salary_vnd, whole VND) and
-// USD (salary_usd_cents), converted at a FIXED 25,500 VND/USD (not live fx).
-// History is append-only: a change closes the current row and inserts a new one;
-// rows are never mutated in place, so the full wage history is preserved.
+// (company_os.compensation, comp_type = 'base_salary'). CONFIDENTIAL: callers
+// MUST gate on canViewSensitive() before invoking any of this — authorization
+// is the caller's job. Salary is stored in BOTH native VND (salary_vnd, whole
+// VND) and USD (salary_usd_cents), converted at a FIXED 25,500 VND/USD (not live
+// fx). History is append-only: a change closes the current row and inserts a new
+// one; rows are never mutated in place, so the full wage history is preserved.
 
 import { companyOs } from "@/lib/supabase";
-import type { SalaryRow, SalaryChangeInput } from "./compensation-shared";
+import { COMP_TYPE_SALARY, type SalaryRow, type SalaryChangeInput } from "./compensation-shared";
 
 // Pure types + the fixed-rate conversion live in ./compensation-shared
 // (client-safe) and are re-exported here so server callers keep one import.
@@ -21,7 +21,6 @@ type Row = {
   effective_to: string | null;
   is_current: boolean;
   change_reason: string | null;
-  approved_by: string | null;
   created_at: string;
 };
 
@@ -37,20 +36,19 @@ function mapRow(r: Row): SalaryRow {
     effectiveTo: r.effective_to,
     isCurrent: r.is_current,
     changeReason: r.change_reason,
-    approvedBy: r.approved_by,
     createdAt: r.created_at,
   };
 }
 
 const SALARY_COLS =
-  "id, salary_vnd, salary_usd_cents, effective_from, effective_to, is_current, change_reason, approved_by, created_at";
+  "id, salary_vnd, salary_usd_cents, effective_from, effective_to, is_current, change_reason, created_at";
 
 export async function getCurrentSalary(teamMemberId: string): Promise<SalaryRow | null> {
   const { data, error } = await companyOs
     .from("compensation")
     .select(SALARY_COLS)
     .eq("team_member_id", teamMemberId)
-    .eq("comp_type", "salary")
+    .eq("comp_type", COMP_TYPE_SALARY)
     .eq("is_current", true)
     .order("effective_from", { ascending: false })
     .limit(1)
@@ -67,7 +65,7 @@ export async function getSalaryHistory(teamMemberId: string): Promise<SalaryRow[
     .from("compensation")
     .select(SALARY_COLS)
     .eq("team_member_id", teamMemberId)
-    .eq("comp_type", "salary")
+    .eq("comp_type", COMP_TYPE_SALARY)
     .order("effective_from", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) {
@@ -77,9 +75,10 @@ export async function getSalaryHistory(teamMemberId: string): Promise<SalaryRow[
   return (data as Row[]).map(mapRow);
 }
 
-
 // Append-only: close the current salary row(s), then insert the new one. The old
 // row keeps its amounts and gets effective_to = the new row's effective_from.
+// The approver is recorded in the audit log by the caller (compensation.approved_by
+// is a uuid column, not an email, so we leave it null).
 export async function saveSalaryChange(
   teamMemberId: string,
   input: SalaryChangeInput,
@@ -90,7 +89,7 @@ export async function saveSalaryChange(
     .from("compensation")
     .update({ is_current: false, effective_to: input.effectiveFrom, updated_at: now })
     .eq("team_member_id", teamMemberId)
-    .eq("comp_type", "salary")
+    .eq("comp_type", COMP_TYPE_SALARY)
     .eq("is_current", true);
   if (closeErr) return { ok: false, error: closeErr.message };
 
@@ -98,7 +97,7 @@ export async function saveSalaryChange(
     .from("compensation")
     .insert({
       team_member_id: teamMemberId,
-      comp_type: "salary",
+      comp_type: COMP_TYPE_SALARY,
       pay_period: "monthly",
       // Generic columns kept consistent (USD) so non-salary readers see a value.
       amount_cents: input.salaryUsdCents,
@@ -109,7 +108,6 @@ export async function saveSalaryChange(
       effective_from: input.effectiveFrom,
       is_current: true,
       change_reason: input.changeReason ?? null,
-      approved_by: input.approvedBy,
     })
     .select("id")
     .single();

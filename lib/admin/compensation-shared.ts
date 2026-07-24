@@ -4,6 +4,10 @@
 // client bundle. Salary is stored in BOTH native VND and USD at a FIXED 25,500
 // VND/USD (a constant, not live fx, so history stays reproducible).
 
+// The compensation.comp_type value for a monthly base salary (an allowed value
+// in the compensation_comp_type_check constraint).
+export const COMP_TYPE_SALARY = "base_salary";
+
 export const FIXED_VND_PER_USD = 25500;
 
 export function vndToUsdCents(vnd: number): number {
@@ -22,7 +26,6 @@ export type SalaryRow = {
   effectiveTo: string | null;
   isCurrent: boolean;
   changeReason: string | null;
-  approvedBy: string | null;
   createdAt: string;
 };
 
@@ -31,5 +34,4 @@ export type SalaryChangeInput = {
   salaryUsdCents: number;
   effectiveFrom: string; // "YYYY-MM-DD"
   changeReason?: string | null;
-  approvedBy: string;
 };

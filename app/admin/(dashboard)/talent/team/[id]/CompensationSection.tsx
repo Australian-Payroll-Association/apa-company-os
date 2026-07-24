@@ -187,7 +187,6 @@ export function CompensationSection({
                 <th style={{ textAlign: "right" }}>VND</th>
                 <th style={{ textAlign: "right" }}>USD</th>
                 <th>Reason</th>
-                <th>Approved by</th>
               </tr>
             </thead>
             <tbody>
@@ -204,7 +203,6 @@ export function CompensationSection({
                     {formatCents(h.salaryUsdCents, "usd")}
                   </td>
                   <td>{h.changeReason ?? "—"}</td>
-                  <td className="admin-cell-muted">{h.approvedBy ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -106,7 +106,6 @@ export async function saveSalaryChange(
     salaryUsdCents,
     effectiveFrom: input.effectiveFrom,
     changeReason: input.changeReason?.trim() || null,
-    approvedBy: admin.email,
   });
   if (!res.ok) return { ok: false, error: res.error };
   await recordAudit({
