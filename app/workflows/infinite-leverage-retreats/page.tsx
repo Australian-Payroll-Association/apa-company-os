@@ -39,24 +39,24 @@ const ELEMENTS: WorkflowElement[] = [
   },
 ]
 
-const title = 'Private Retreats | Edge8 Workflows'
+const title = 'Infinite Leverage Retreats | Edge8 Workflows'
 const description =
-  'How Edge8 runs a private Infinite Leverage retreat: a founder ships real AI programs alongside the team in a few days, while the admin carries the money and the memory so profit is known the day it ends.'
+  'How Edge8 runs an Infinite Leverage retreat: a founder ships real AI programs alongside the team in a few days, while the admin carries the money and the memory so profit is known the day it ends.'
 
 export const metadata: Metadata = {
   title,
   description,
-  alternates: { canonical: '/workflows/private-retreats/' },
-  openGraph: { title, description, url: '/workflows/private-retreats/', type: 'website' },
+  alternates: { canonical: '/workflows/infinite-leverage-retreats/' },
+  openGraph: { title, description, url: '/workflows/infinite-leverage-retreats/', type: 'website' },
   twitter: { card: 'summary_large_image', title, description },
 }
 
-export default function PrivateRetreatsWorkflowPage() {
+export default function InfiniteLeverageRetreatsWorkflowPage() {
   return (
     <main>
       <WorkflowHero
         category="Operations"
-        title="Private Retreats"
+        title="Infinite Leverage Retreats"
         tldr="A founder flies in and ships real AI programs alongside our team in a handful of days. People run the relationship and the room; the admin runs the money and the memory. The retreat record holds the plan, captures every cost as it lands, and shows profit the day the founder leaves."
         meta={[
           { label: 'Cadence', value: 'Per retreat' },

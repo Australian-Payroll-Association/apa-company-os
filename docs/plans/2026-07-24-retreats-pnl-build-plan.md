@@ -13,7 +13,7 @@ Operations manages the P&L for Private and Public Infinite Leverage Retreats in 
 
 Problem statement: every retreat's profit is computed by hand in a fragile spreadsheet that scales badly as the program grows, and confidential wage data has no controlled home. We need both inside the admin app, on the existing Events module and employee records, with wage data restricted to Dave and Mai.
 
-Four Outcomes tag: **Cheaper Operations** (primary), with a side of Increased Revenue visibility (live per-retreat margin instead of after-the-fact accounting).
+Four Outcomes tag: **Cheaper Operations**. The whole return is time saved: up to 20 hours of manual accounting per retreat removed, and a dedicated accounting hire avoided as the program scales. (This is an operations process; the revenue side is the marketing and sale of retreats, a separate workflow.)
 
 ---
 
@@ -92,11 +92,12 @@ Do not reuse the `expenses` table: it is QuickBooks-sync territory (`source='qbo
 
 ## 4. ROI Determined
 
-Baseline: closing out one retreat's P&L today takes operations roughly a half day of spreadsheet work plus back-and-forth to reconcile Stripe payouts, and the Summary is stale between edits. Wage data currently has zero access control and zero history.
+Baseline: today one person spends **up to 20 hours per retreat** on accounting, entering costs by hand, reconciling Stripe and QuickBooks, converting VND and USD, and retyping the Summary. With four retreats booked for August and September and the program growing, that load compounds. Scaling it as-is would force a dedicated accounting hire, easily **$1,000/month ($12k/year)**. Wage data also currently has zero access control and zero history.
 
-FAST goal: **by 4 weeks after merge, every retreat from Sydney (Aug 27) onward has its P&L maintained entirely in the admin app, the workbook is retired, and profit per retreat is visible the day the retreat ends.** Measures:
+FAST goal: **by 4 weeks after merge, every retreat from Sydney (Aug 27) onward has its P&L maintained entirely in the admin app, and the up-to-20-hours of manual accounting per retreat drops to a couple of hours of light data entry.** Measures:
 
-- P&L close-out effort per retreat drops from ~4 hours to under 1 hour (no manual Stripe reconciliation, no formula surgery).
+- Accounting time per retreat: up to 20 hours → roughly 2. Revenue posts automatically from Stripe and QuickBooks, costs are captured live, totals compute, and the Summary is never retyped.
+- Avoided cost: no dedicated accounting hire as the program scales, roughly $1,000/month ($12k/year).
 - 100% of retreats (6 already in the DB, plus backfilled history) have a live P&L; Summary numbers are computed, not retyped.
 - Wage data: 100% of active staff have a salary row with history; access verified restricted to exactly 2 people.
 

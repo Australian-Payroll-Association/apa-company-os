@@ -171,8 +171,8 @@ export const allWorkflows: Workflow[] = [
     steps: 6,
   },
   {
-    slug: 'private-retreats',
-    title: 'Private Retreats',
+    slug: 'infinite-leverage-retreats',
+    title: 'Infinite Leverage Retreats',
     category: 'Operations',
     excerpt:
       'A founder ships real AI programs alongside the team in a few days. People run the room; the admin runs the money, capturing every cost live so profit is known the day the retreat ends.',
