@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Program Brief: Retreats P&amp;L</title>
+<style>
+  :root{
+    --navy:#0b2a4a; --ink:#12202e; --muted:#5a6b7b; --line:#e4e9ef;
+    --bg:#f6f8fb; --card:#ffffff; --accent:#0a7d6b; --accent-soft:#e6f4f1;
+    --blue:#1f6feb; --amber:#b7791f; --amber-soft:#fdf3e3;
+    --shadow:0 1px 2px rgba(16,32,46,.05),0 8px 24px rgba(16,32,46,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); padding:40px 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto}
+  header.brief{background:var(--navy);color:#fff;border-radius:16px;padding:32px 34px;box-shadow:var(--shadow)}
+  header.brief .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9fc3e8;font-weight:700}
+  header.brief h1{margin:8px 0 4px;font-size:30px;line-height:1.15;letter-spacing:-.01em}
+  header.brief .sub{color:#c7d6e6;font-size:15px;margin:0 0 18px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:#bcd0e4;border-top:1px solid rgba(255,255,255,.14);padding-top:14px}
+  .meta b{color:#fff;font-weight:600}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .pill{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.12);color:#eaf2fb;border:1px solid rgba(255,255,255,.18)}
+  .pill.out{background:var(--accent);border-color:transparent;color:#fff}
+  section.d{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin-top:18px;box-shadow:var(--shadow)}
+  .d-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .d-num{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--accent-soft);color:var(--accent);
+    font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
+  .d-head h2{margin:0;font-size:19px;letter-spacing:-.01em}
+  .d-head .tag{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
+  p{margin:0 0 12px}
+  .lead{color:var(--muted)}
+  .stmt{list-style:none;margin:0;padding:0;border-left:3px solid var(--accent);padding-left:16px}
+  .stmt li{margin:0 0 10px;padding:0}
+  .stmt .lbl{display:inline-block;min-width:78px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+  ul.clean{margin:6px 0 0;padding:0 0 0 2px;list-style:none}
+  ul.clean>li{position:relative;padding:8px 0 8px 22px;border-bottom:1px dashed var(--line)}
+  ul.clean>li:last-child{border-bottom:0}
+  ul.clean>li::before{content:"";position:absolute;left:2px;top:15px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  ul.clean b{font-weight:650}
+  .flow{display:flex;flex-direction:column;gap:0;margin:6px 0 4px}
+  .frow{display:flex;flex-wrap:wrap;gap:8px}
+  .fbox{flex:1 1 120px;min-width:120px;background:#f4f7fb;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.35}
+  .fbox .ft{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);display:block;margin-bottom:2px}
+  .fbox.acc{background:var(--accent-soft);border-color:#cfe9e3}
+  .fbox.lock{background:var(--amber-soft);border-color:#f0dcae}
+  .fbox.lock .ft{color:var(--amber)}
+  .farrow{align-self:center;color:var(--muted);font-size:18px;padding:6px 0;width:100%;text-align:center}
+  .fast{background:var(--navy);color:#eaf2fb;border-radius:12px;padding:18px 20px;margin-top:14px}
+  .fast .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9fc3e8;font-weight:700}
+  .fast p{color:#fff;margin:8px 0 0;font-size:16px;line-height:1.5}
+  .roi{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;font-weight:700;border-radius:8px;padding:8px 14px;font-size:15px}
+  .deploy{counter-reset:step;list-style:none;margin:0;padding:0}
+  .deploy li{position:relative;padding:12px 0 12px 42px;border-bottom:1px solid var(--line)}
+  .deploy li:last-child{border-bottom:0}
+  .deploy li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:11px;
+    width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;font-size:13px;
+    display:flex;align-items:center;justify-content:center}
+  .deploy b{font-weight:650}
+  .dod{margin:14px 0 0;padding:0;list-style:none;counter-reset:dod}
+  .dod li{position:relative;padding:9px 0 9px 34px;border-bottom:1px dashed var(--line);font-size:14.5px}
+  .dod li:last-child{border-bottom:0}
+  .dod li::before{counter-increment:dod;content:counter(dod);position:absolute;left:0;top:9px;width:22px;height:22px;
+    border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:12px;
+    display:flex;align-items:center;justify-content:center}
+  table.src{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  table.src th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px;border-bottom:2px solid var(--line)}
+  table.src td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.src td:first-child{font-weight:650;white-space:nowrap}
+  footer.src{margin-top:20px;padding:18px 22px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px;background:#fff}
+  footer.src b{color:var(--ink)}
+  .amber{background:var(--amber-soft);border:1px solid #f0dcae;border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13.5px;color:#6b4c15}
+  .h3{font-size:14px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:18px 0 6px}
+  @media (max-width:560px){
+    body{padding:20px 12px}
+    header.brief{padding:24px 20px}
+    header.brief h1{font-size:24px}
+    section.d{padding:20px 18px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brief">
+    <div class="kicker">AI Program Brief · 5Ds</div>
+    <h1>Infinite Leverage Retreats P&amp;L</h1>
+    <p class="sub">Move retreat profit-and-loss out of a fragile Excel workbook and onto the Events module in the Edge8 admin, with a confidential, history-preserving home for employee wages that only Dave and Mai can see.</p>
+    <div class="pills">
+      <span class="pill out">Outcome: Cheaper Operations</span>
+      <span class="pill out" style="background:var(--blue)">Secondary: Increased Revenue visibility</span>
+      <span class="pill">Type: Admin module extension</span>
+      <span class="pill">Difficulty: Medium</span>
+    </div>
+    <div class="meta">
+      <span><b>Owner:</b> Dave Hajdu</span>
+      <span><b>Users:</b> My &amp; Mai (Operations)</span>
+      <span><b>Date:</b> 2026-07-24</span>
+      <span><b>Workflow:</b> Retreat P&amp;L + wage records</span>
+    </div>
+  </header>
+
+  <!-- D1 -->
+  <section class="d">
+    <div class="d-head">
+      <div class="d-num">D1</div>
+      <h2>Definition of the Problem</h2>
+      <span class="tag">Who · Cost · Why now · Success</span>
+    </div>
+    <ul class="stmt">
+      <li><span class="lbl">Who</span> Operations (My and Mai), who run the P&amp;L for every Private and Public Infinite Leverage Retreat, and Dave, who needs live margin per retreat instead of after-the-fact accounting.</li>
+      <li><span class="lbl">Cost</span> Each retreat's profit is computed by hand in a shared workbook: one tab per retreat, hand-typed rate formulas, VND and USD mixed line by line, Stripe payments reconciled from notes, and a Summary tab that is retyped rather than computed. Close-out takes roughly half a day per retreat, and that cost repeats and grows with every retreat the program adds.</li>
+      <li><span class="lbl">Why now</span> Retreats are a fast-growing program: four are already booked across August and September, and today every one is run by hand in a shared workbook. Left as-is, each new retreat pulls more of the operations team's time into spreadsheet work. Putting a repeatable system around it now keeps that time on delivering retreats, not accounting for them.</li>
+      <li><span class="lbl">Success</span> Every retreat from Sydney (Aug 27) onward is managed entirely in the admin app with profit visible the day the retreat ends, and every employee wage lives in a controlled record, dual currency, full history, visible to exactly two people.</li>
+    </ul>
+  </section>
+
+  <!-- D2 -->
+  <section class="d">
+    <div class="d-head">
+      <div class="d-num">D2</div>
+      <h2>Datasources Needed</h2>
+      <span class="tag">What the program uses</span>
+    </div>
+    <p class="lead">Everything already exists in the company database or the two source workbooks. Nothing new is collected.</p>
+    <table class="src">
+      <tr><th>Source</th><th>Role</th></tr>
+      <tr><td>Retreats P&amp;L workbook</td><td>Historical retreat P&amp;Ls (10 tabs) for one-time backfill; the process being replaced.</td></tr>
+      <tr><td>MasterList (confidential)</td><td>Current gross salaries in VND for the one-time wage backfill. Values go to the database only, never the repo.</td></tr>
+      <tr><td>events</td><td>Retreats already exist as event records: Saigon (completed), Sydney Aug 27, Melbourne Aug 24, Saigon Aug 8 &amp; 9, EO Melbourne Sep 30.</td></tr>
+      <tr><td>orders + registrations</td><td>Stripe revenue for public retreats, already captured automatically at checkout.</td></tr>
+      <tr><td>QuickBooks invoices</td><td>Private retreat revenue. Every private retreat is billed under an <b>Infinite Leverage</b> product so all retreat invoices roll up in one place and match to the retreat's P&amp;L.</td></tr>
+      <tr><td>compensation</td><td>Existing rate table, extended to hold salary history.</td></tr>
+      <tr><td>fx rates</td><td>Live USD normalization for P&amp;L lines. Wages use a fixed 25,500 VND/USD instead.</td></tr>
+      <tr><td>Entered each use</td><td>P&amp;L line items (description, classification, estimated, actual, currency, payment status); wage changes (new salary, effective date, reason).</td></tr>
+    </table>
+  </section>
+
+  <!-- D3 -->
+  <section class="d">
+    <div class="d-head">
+      <div class="d-num">D3</div>
+      <h2>Diagram &amp; Documented Workflow</h2>
+      <span class="tag">Two workstreams, one system</span>
+    </div>
+
+    <div class="h3">Workstream A · Retreat P&amp;L on the Events module</div>
+    <div class="flow">
+      <div class="frow">
+        <div class="fbox"><span class="ft">Ops enters lines</span>Revenue &amp; expense line items per retreat, estimated vs actual, VND or USD</div>
+        <div class="fbox"><span class="ft">Stripe auto-revenue</span>Paid registrations appear as read-only revenue rows, no retyping</div>
+      </div>
+      <div class="farrow">↓</div>
+      <div class="frow">
+        <div class="fbox acc"><span class="ft">P&amp;L tab on the retreat</span>Grouped by classification: accommodation, staff, venue, transport, F&amp;B, visa, commission. Totals normalized to USD</div>
+      </div>
+      <div class="farrow">↓</div>
+      <div class="frow">
+        <div class="fbox acc"><span class="ft">Live profit</span>Total revenue, total expense, profit/(loss), estimated and actual, the day the retreat ends</div>
+      </div>
+    </div>
+    <ul class="clean">
+      <li><b>One new table</b> holds the P&amp;L lines, attached to the existing retreat event record. Nothing is duplicated from Stripe or QuickBooks.</li>
+      <li><b>Staff cost lines</b> are person + days at a flat $150/day (overridable). Real wages never appear in the P&amp;L, by design.</li>
+      <li><b>Estimated vs Actual vs Difference</b> per line, with payment status (unpaid, to be paid, paid), matching how the Sydney and Melbourne tabs work today.</li>
+    </ul>
+
+    <div class="h3">Workstream B · Confidential wage records</div>
+    <div class="flow">
+      <div class="frow">
+        <div class="fbox lock"><span class="ft">Dave / Mai only</span>Compensation section on each employee record. Other admins never fetch the data</div>
+        <div class="fbox lock"><span class="ft">Dual currency</span>Salary stored in VND and USD, converted at a fixed 25,500, both fields editable</div>
+        <div class="fbox lock"><span class="ft">Full history</span>Every change adds a new dated row with reason and approver. Nothing is overwritten</div>
+      </div>
+    </div>
+    <div class="amber"><b>Access rule:</b> wages and all PII (ID documents, bank details, personal contacts) are gated to Dave and Mai only. Being an admin is not enough; the check happens server-side and the data is never sent to anyone else's browser. Wage data is also invisible to the admin AI assistant.</div>
+  </section>
+
+  <!-- D4 -->
+  <section class="d">
+    <div class="d-head">
+      <div class="d-num">D4</div>
+      <h2>ROI Determined</h2>
+      <span class="tag">FAST goal + measures</span>
+    </div>
+    <div class="fast">
+      <div class="lbl">FAST goal</div>
+      <p>By 4 weeks after launch, every retreat from Sydney (Aug 27) onward has its P&amp;L maintained entirely in the admin app, the workbook is retired, and profit per retreat is visible the day the retreat ends.</p>
+    </div>
+    <span class="roi">Close-out effort: ~4 hours → under 1 hour per retreat</span>
+    <ul class="clean">
+      <li><b>100% of retreats</b> (6 scheduled + backfilled history) have a live P&amp;L; summary numbers are computed, never retyped.</li>
+      <li><b>Zero manual Stripe reconciliation.</b> Paid registrations flow in automatically.</li>
+      <li><b>100% of active staff</b> have a wage record with history; access verified restricted to exactly 2 people.</li>
+      <li><b>Handover-proof.</b> The process survives the workbook owner leaving, because the process is the product.</li>
+    </ul>
+  </section>
+
+  <!-- D5 -->
+  <section class="d">
+    <div class="d-head">
+      <div class="d-num">D5</div>
+      <h2>Deployment Plan</h2>
+      <span class="tag">6 phases · first action in 7 days</span>
+    </div>
+    <ol class="deploy">
+      <li><b>Database migration.</b> P&amp;L lines table, dual-currency wage columns, the Dave-and-Mai-only access flag. Verified with a smoke test before anything is built on top.</li>
+      <li><b>Data layer + access gate.</b> Server-side accessors; verified that a non-cleared admin gets no wage data at all.</li>
+      <li><b>P&amp;L tab</b> on the retreat detail page. Verified by type-check and production build.</li>
+      <li><b>Compensation section</b> on the employee record, rendered only for Dave and Mai.</li>
+      <li><b>Backfills.</b> Historical retreats imported from the workbook (totals must match per retreat); salaries imported from MasterList at 25,500.</li>
+      <li><b>Handover.</b> My and Mai run the Sydney retreat P&amp;L in the app; the workbook goes read-only.</li>
+    </ol>
+
+    <div class="h3">Definition of Done</div>
+    <ol class="dod">
+      <li>My and Mai can create, edit, and delete revenue and expense lines on any retreat, with estimated vs actual, VND or USD per line, and USD totals and profit computed automatically.</li>
+      <li>Stripe-paid registrations appear automatically as read-only revenue rows on public retreats.</li>
+      <li>Staff lines compute at $150/day from person + days, overridable.</li>
+      <li>All historical retreats exist in the system and each backfilled retreat's totals match the workbook.</li>
+      <li>Every active employee has a current salary row in both VND and USD (25,500 rate), and every change creates a new dated row so history is never lost.</li>
+      <li>Wage and PII surfaces return data only for Dave and Mai, verified by loading them as another admin and confirming nothing is fetched.</li>
+      <li>No salary value appears in the repo, logs, or commit history.</li>
+      <li>Type-check and production build pass; PR reviewed and merged by Dave.</li>
+      <li>One real retreat (Sydney, Aug 27) is closed out entirely in the app and the workbook is retired.</li>
+    </ol>
+  </section>
+
+  <footer class="src">
+    <b>Out of scope for v1:</b> fixed program expenses and all-up program P&amp;L · summary dashboard (revenue by stream, participants vs the 100 goal) · To Buy procurement list · QuickBooks reconciliation of retreat expenses · automatic Stripe fee capture · wage-based retreat costing.
+    <br /><br />
+    Built from: Infinite Leverage Retreats P&amp;L workbook (10 retreat tabs, Fixed Expenses, Ownership, To Buy), MasterList, and the live Edge8 company database. Full technical plan: docs/plans/2026-07-24-retreats-pnl-build-plan.md.
+  </footer>
+
+</div>
+</body>
+</html>

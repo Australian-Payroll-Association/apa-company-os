@@ -171,6 +171,15 @@ export const allWorkflows: Workflow[] = [
     steps: 6,
   },
   {
+    slug: 'private-retreats',
+    title: 'Private Retreats',
+    category: 'Revenue',
+    excerpt:
+      'A founder ships real AI programs alongside the team in a few days. People run the room; the admin runs the money, capturing every cost live so profit is known the day the retreat ends.',
+    date: '2026-07-24',
+    steps: 5,
+  },
+  {
     slug: 'performance',
     title: 'How We Think About Speed',
     category: 'Innovation',
