@@ -15,6 +15,7 @@ import {
   ConversationHistory,
   type LoadedConversation,
 } from "@/components/assistant/ConversationHistory";
+import { BotText } from "@/components/assistant/BotText";
 
 type DisplayItem =
   | { kind: "user"; text: string }
@@ -51,42 +52,6 @@ function loadSaved(): { items: DisplayItem[]; messages: unknown[]; conversationI
   } catch {
     return { items: [], messages: [], conversationId: null };
   }
-}
-
-// Minimal markdown: **bold**, `code`, "- " bullet lists, line breaks.
-function renderInline(text: string, keyBase: string): React.ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={`${keyBase}-${i}`}>{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
-      return <code key={`${keyBase}-${i}`}>{part.slice(1, -1)}</code>;
-    }
-    return part;
-  });
-}
-
-function BotText({ text }: { text: string }) {
-  const lines = text.split("\n");
-  const out: React.ReactNode[] = [];
-  let list: React.ReactNode[] = [];
-  const flush = (key: string) => {
-    if (list.length) {
-      out.push(<ul key={key}>{list}</ul>);
-      list = [];
-    }
-  };
-  lines.forEach((line, i) => {
-    if (/^\s*[-*] /.test(line)) {
-      list.push(<li key={`li-${i}`}>{renderInline(line.replace(/^\s*[-*] /, ""), `l${i}`)}</li>);
-    } else {
-      flush(`ul-${i}`);
-      if (line.trim()) out.push(<p key={`p-${i}`}>{renderInline(line, `t${i}`)}</p>);
-    }
-  });
-  flush("ul-end");
-  return <>{out}</>;
 }
 
 export function TeamChatWidget() {

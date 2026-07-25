@@ -2063,6 +2063,13 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .chatw-msg--bot ul { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .chatw-msg--bot ul:last-child { margin-bottom: 0; }
 .chatw-msg--bot strong { font-weight: 600; }
+.chatw-msg--bot a {
+  color: var(--admin-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+.chatw-msg--bot a:hover { color: var(--admin-accent); }
 .chatw-msg--bot code {
   font-family: var(--admin-font-mono);
   font-size: 12px;
