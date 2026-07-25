@@ -128,9 +128,9 @@ export default function PrivateRetreatsTrainingPage() {
                 <path d="M12 17h.01" />
                 <path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
               </svg>
-              <strong>The trap is assuming someone else has it.</strong> Quan leads the retreat, but he is new. My owns
-              execution: confirm the driver knows the pickup time, the engineers know their blocks, and the maid knows
-              her window. Verify, don&apos;t assume.
+              <strong>The trap is assuming someone else has it.</strong> Quan leads the retreat and My owns execution:
+              confirm the driver knows the pickup time, the engineers know their blocks, and the maid knows her window.
+              Verify, don&apos;t assume.
             </div>
           </div>
           <div className="wf-loop-note">
@@ -360,7 +360,7 @@ export default function PrivateRetreatsTrainingPage() {
                 </tr>
                 <tr>
                   <td>Fridge: drinks</td>
-                  <td>Water, 5 juices, 5 Diet Cokes, 5 cans of cà phê sữa đá.</td>
+                  <td>8 waters, 4 juices, 4 Diet Cokes, 4 cans of cà phê sữa đá.</td>
                 </tr>
                 <tr>
                   <td>Fridge: fruit</td>
@@ -493,9 +493,9 @@ export default function PrivateRetreatsTrainingPage() {
             Staff scheduling
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
-            Everyone who touches the retreat needs to be very clear on when they are working. Quan runs the retreat, but
-            he is new: he is in charge of the retreat, and My is in charge of execution. That means My makes sure the
-            engineers are there to work, the driver knows when to drive, and the maid knows when to clean.
+            Everyone who touches the retreat needs to be very clear on when they are working. Quan is in charge of the
+            retreat, and My is in charge of execution. That means My makes sure the engineers are there to work, the
+            driver knows when to drive, and the maid knows when to clean.
           </p>
           <div className="wf-table-wrap">
             <table className="wf-table">
@@ -511,8 +511,8 @@ export default function PrivateRetreatsTrainingPage() {
                   <td>Quan</td>
                   <td>Whole retreat</td>
                   <td>
-                    Retreat lead: owns the guest relationship and the room. He is new, so back him up rather than assume
-                    he has everything covered.
+                    Retreat lead: owns the guest relationship and the room. My handles the schedules below so Quan can
+                    stay focused on the guest.
                   </td>
                 </tr>
                 <tr>
@@ -635,7 +635,7 @@ export default function PrivateRetreatsTrainingPage() {
                 <li>The guest&apos;s flight changes and the VIP service or driver cannot move with it</li>
                 <li>No Lumiere room or co-working space is available for a block</li>
                 <li>A staffing gap appears that you cannot fill: an engineer, the driver, or the maid drops out</li>
-                <li>Anything about the guest&apos;s stay feels off and Quan is unsure how to handle it</li>
+                <li>Anything about the guest&apos;s stay feels off and needs Dave&apos;s call</li>
               </ul>
             </div>
           </div>
