@@ -14,11 +14,11 @@ export default function PrivateRetreatsTrainingPage() {
       <WorkflowHero
         category="Operations · Internal"
         title="Private Retreats Training Guide"
-        tldr="How to host a private retreat guest on the ground: from passport photos and the visa check two weeks out, to their last free afternoon and the post-event survey. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: pre-arrival, transport, check-in, the residence, the agenda, the staff, and the hospitality judgment calls. Quan is the retreat lead. You own execution."
+        tldr="How to host a private retreat guest on the ground: from passport photos and the visa check two weeks out, to their last free afternoon and the post-event survey. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: pre-arrival, transport, check-in, the residence, the agenda, the staff, and the hospitality judgment calls. Quan is the retreat lead. My owns execution."
         meta={[
           { label: 'Audience', value: 'Retreat ops' },
           { label: 'Lead', value: 'Quan' },
-          { label: 'Execution', value: 'You' },
+          { label: 'Execution', value: 'My' },
         ]}
       />
 
@@ -120,7 +120,7 @@ export default function PrivateRetreatsTrainingPage() {
                 <path d="M12 17h.01" />
                 <path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
               </svg>
-              <strong>The trap is assuming someone else has it.</strong> Quan leads the retreat, but he is new. You own
+              <strong>The trap is assuming someone else has it.</strong> Quan leads the retreat, but he is new. My owns
               execution: confirm the driver knows the pickup time, the engineers know their blocks, and the maid knows
               her window. Verify, don&apos;t assume.
             </div>
@@ -160,7 +160,7 @@ export default function PrivateRetreatsTrainingPage() {
                 title: 'Collect passport photos',
                 cadence: 'At booking',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Get a passport photo from every guest as soon as the retreat is confirmed. The visa and the
@@ -173,7 +173,7 @@ export default function PrivateRetreatsTrainingPage() {
                 title: 'Confirm the visa',
                 cadence: '2 weeks out',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Confirm every guest has their visa no later than two weeks before arrival. Watch the calendar for
@@ -202,9 +202,9 @@ export default function PrivateRetreatsTrainingPage() {
           </p>
           <FlowRail
             steps={[
-              { num: '01', title: 'Confirm flight details', cadence: 'Before travel', actor: 'human', actorLabel: 'You' },
-              { num: '02', title: 'Book VIP arrival service', cadence: 'Before travel', actor: 'human', actorLabel: 'You' },
-              { num: '03', title: 'Brief the driver', cadence: 'Day before', actor: 'human', actorLabel: 'You' },
+              { num: '01', title: 'Confirm flight details', cadence: 'Before travel', actor: 'human', actorLabel: 'My' },
+              { num: '02', title: 'Book VIP arrival service', cadence: 'Before travel', actor: 'human', actorLabel: 'My' },
+              { num: '03', title: 'Brief the driver', cadence: 'Day before', actor: 'human', actorLabel: 'My' },
               { num: '04', title: 'Pickup at the airport', cadence: 'Wheels-down', actor: 'human', actorLabel: 'Driver' },
               { num: '05', title: 'Transport to Lumiere', cadence: 'Arrival day', actor: 'human', actorLabel: 'Driver' },
             ]}
@@ -215,7 +215,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '01',
                 title: 'Confirm flight details',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Get the airline, flight number, and landing time from the guest before they travel. Recheck the
@@ -228,7 +228,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '02',
                 title: 'Book the VIP arrival service',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Every private retreat guest gets the VIP airport service: fast-track through immigration, escort
@@ -241,7 +241,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '03',
                 title: 'Brief the driver',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     The driver gets the flight number, landing time, guest name, and destination the day before. Confirm
@@ -286,7 +286,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '01',
                 title: 'Prepare the residence',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     The apartment is cleaned before arrival day, and the fridge and snack shelf are stocked to the
@@ -299,7 +299,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '02',
                 title: 'Prepare the access pack',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Before the guest lands, confirm three things are in hand: the physical keys, the door combination,
@@ -348,7 +348,7 @@ export default function PrivateRetreatsTrainingPage() {
               <tbody>
                 <tr>
                   <td>Cleaning</td>
-                  <td>Full clean before arrival day, confirmed with the maid, walked by you.</td>
+                  <td>Full clean before arrival day, confirmed with the maid, walked by My.</td>
                 </tr>
                 <tr>
                   <td>Fridge: drinks</td>
@@ -389,7 +389,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '01',
                 title: 'Send the pre-retreat survey',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Before the agenda is drafted, the guest completes a pre-retreat survey: where they are on their AI
@@ -402,7 +402,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '02',
                 title: 'Draft the agenda in blocks',
                 actor: 'human',
-                actorLabel: 'Quan + You',
+                actorLabel: 'Quan + My',
                 body: (
                   <p>
                     Build the trip agenda day by day, split into morning and afternoon blocks. Each block states what is
@@ -415,7 +415,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '03',
                 title: 'Map every block to a venue',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     For each block, decide the venue, and book a mix across the retreat: co-working space inside
@@ -429,7 +429,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '04',
                 title: 'Book the rooms',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     Make the actual bookings from the venue map: Lumiere meeting rooms reserved, co-working day passes or
@@ -441,7 +441,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '05',
                 title: 'Share the agenda',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     The guest gets the agenda for the trip so they always know what is next. The staff get it too,
@@ -453,7 +453,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '06',
                 title: 'Send the post-event survey',
                 actor: 'human',
-                actorLabel: 'You',
+                actorLabel: 'My',
                 body: (
                   <p>
                     After the retreat, collect feedback on the event itself plus the same capability and competency
@@ -486,7 +486,7 @@ export default function PrivateRetreatsTrainingPage() {
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
             Everyone who touches the retreat needs to be very clear on when they are working. Quan runs the retreat, but
-            he is new: he is in charge of the retreat, and you are in charge of execution. That means you make sure the
+            he is new: he is in charge of the retreat, and My is in charge of execution. That means My makes sure the
             engineers are there to work, the driver knows when to drive, and the maid knows when to clean.
           </p>
           <div className="wf-table-wrap">
@@ -508,7 +508,7 @@ export default function PrivateRetreatsTrainingPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td>You</td>
+                  <td>My</td>
                   <td>Whole retreat</td>
                   <td>
                     Execution owner: every schedule below is confirmed with the person on it, before the retreat and
