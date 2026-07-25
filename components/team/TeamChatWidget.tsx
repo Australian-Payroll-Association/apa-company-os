@@ -11,6 +11,10 @@
 // display items, both persisted to sessionStorage so a reload keeps the chat.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ConversationHistory,
+  type LoadedConversation,
+} from "@/components/assistant/ConversationHistory";
 
 type DisplayItem =
   | { kind: "user"; text: string }
@@ -22,7 +26,7 @@ type SseEvent =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; detail: string }
   | { type: "error"; error: string }
-  | { type: "done"; messages: unknown[] };
+  | { type: "done"; messages: unknown[]; conversationId?: string | null; title?: string | null };
 
 const STORAGE_KEY = "edge8-team-chat";
 
@@ -30,18 +34,22 @@ const STORAGE_KEY = "edge8-team-chat";
 // initializer (client-only via the window guard). Safe against hydration
 // mismatch because the panel is closed on first render, so restored content is
 // never in the server-rendered HTML.
-function loadSaved(): { items: DisplayItem[]; messages: unknown[] } {
-  if (typeof window === "undefined") return { items: [], messages: [] };
+function loadSaved(): { items: DisplayItem[]; messages: unknown[]; conversationId: string | null } {
+  if (typeof window === "undefined") return { items: [], messages: [], conversationId: null };
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { items: [], messages: [] };
-    const saved = JSON.parse(raw) as { items?: DisplayItem[]; messages?: unknown[] };
+    if (!raw) return { items: [], messages: [], conversationId: null };
+    const saved = JSON.parse(raw) as {
+      items?: DisplayItem[];
+      messages?: unknown[];
+      conversationId?: string | null;
+    };
     const items = (saved.items ?? []).map((it) =>
       it.kind === "bot" ? { ...it, streaming: false } : it,
     );
-    return { items, messages: saved.messages ?? [] };
+    return { items, messages: saved.messages ?? [], conversationId: saved.conversationId ?? null };
   } catch {
-    return { items: [], messages: [] };
+    return { items: [], messages: [], conversationId: null };
   }
 }
 
@@ -85,20 +93,24 @@ export function TeamChatWidget() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<DisplayItem[]>(() => loadSaved().items);
   const [messages, setMessages] = useState<unknown[]>(() => loadSaved().messages);
+  const [conversationId, setConversationId] = useState<string | null>(
+    () => loadSaved().conversationId,
+  );
+  const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Persist chat so it survives full page reloads (in-layout state already
-  // survives client navigations between /team pages).
+  // Persist the ACTIVE conversation so a full page reload restores it instantly
+  // (the DB is the source of truth for the list + cross-device loads).
   useEffect(() => {
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ items, messages }));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ items, messages, conversationId }));
     } catch {
       // storage full: chat still works, just won't survive a reload
     }
-  }, [items, messages]);
+  }, [items, messages, conversationId]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,14 +133,15 @@ export function TeamChatWidget() {
 
   const runTurn = useCallback(
     async (text: string) => {
-      setItems((prev) => [...prev, { kind: "user", text }]);
+      const nextItems: DisplayItem[] = [...items, { kind: "user", text }];
+      setItems(nextItems);
       const outgoing = [...messages, { role: "user", content: text }];
       setPending(true);
       try {
         const res = await fetch("/api/team/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: outgoing }),
+          body: JSON.stringify({ messages: outgoing, conversationId, displayItems: nextItems }),
         });
         if (!res.ok || !res.body) {
           const errBody = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -163,6 +176,7 @@ export function TeamChatWidget() {
           } else if (event.type === "done") {
             gotDone = true;
             setMessages(event.messages);
+            if (event.conversationId) setConversationId(event.conversationId);
           }
         };
 
@@ -198,7 +212,7 @@ export function TeamChatWidget() {
         setPending(false);
       }
     },
-    [messages],
+    [items, messages, conversationId],
   );
 
   function onSubmit(e: React.FormEvent) {
@@ -209,9 +223,24 @@ export function TeamChatWidget() {
     void runTurn(text);
   }
 
+  // Open a saved conversation from the history list: hydrate the transcript +
+  // display items (the DB is the source of truth) and return to the chat view.
+  const handleSelect = useCallback((conv: LoadedConversation) => {
+    setItems(
+      (conv.display_items as DisplayItem[]).map((it) =>
+        it.kind === "bot" ? { ...it, streaming: false } : it,
+      ),
+    );
+    setMessages(conv.messages);
+    setConversationId(conv.id);
+    setShowHistory(false);
+  }, []);
+
   function newChat() {
     setItems([]);
     setMessages([]);
+    setConversationId(null);
+    setShowHistory(false);
     try {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -258,7 +287,15 @@ export function TeamChatWidget() {
                 <h2 className="admin-drawer-title">Assistant</h2>
               </div>
               <div className="chatw-head-actions">
-                {items.length > 0 && (
+                <button
+                  type="button"
+                  className={`chatw-history-btn${showHistory ? " chatw-history-btn--active" : ""}`}
+                  aria-pressed={showHistory}
+                  onClick={() => setShowHistory((v) => !v)}
+                >
+                  {showHistory ? "Back" : "History"}
+                </button>
+                {(items.length > 0 || conversationId) && (
                   <button type="button" className="chatw-newchat" onClick={newChat}>
                     New chat
                   </button>
@@ -274,70 +311,81 @@ export function TeamChatWidget() {
               </div>
             </div>
 
-            <div className="chatw-msgs" ref={scrollRef}>
-              {items.length === 0 && (
-                <div className="chatw-empty">
-                  <p>Ask me anything about Edge8:</p>
-                  <ul>
-                    <li>What&apos;s our time-off policy?</li>
-                    <li>Who&apos;s out on vacation next week?</li>
-                    <li>Who&apos;s in the design team, and who do they report to?</li>
-                    <li>How much revenue have we invoiced this quarter?</li>
-                    <li>Which clients do we work with?</li>
-                  </ul>
-                  <p className="chatw-empty-note">
-                    Read-only. I look things up but never change anything, and I can&apos;t see
-                    payroll or private personal data.
-                  </p>
-                </div>
-              )}
-
-              {items.map((item, i) => {
-                if (item.kind === "user") {
-                  return (
-                    <div key={i} className="chatw-msg chatw-msg--user">
-                      {item.text}
-                    </div>
-                  );
-                }
-                if (item.kind === "bot") {
-                  return (
-                    <div key={i} className="chatw-msg chatw-msg--bot">
-                      <BotText text={item.text} />
-                    </div>
-                  );
-                }
-                if (item.kind === "tool") {
-                  return (
-                    <div key={i} className="chatw-toolchip" title={item.detail}>
-                      Looked it up
-                    </div>
-                  );
-                }
-                return (
-                  <div key={i} className="chatw-msg chatw-msg--error">
-                    {item.text}
-                  </div>
-                );
-              })}
-
-              {pending && <div className="chatw-typing">Thinking…</div>}
-            </div>
-
-            <form className="chatw-composer" onSubmit={onSubmit}>
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about Edge8…"
-                disabled={pending}
-                aria-label="Message the team assistant"
+            {showHistory ? (
+              <ConversationHistory
+                surface="team"
+                activeId={conversationId}
+                onSelect={handleSelect}
+                emptyHint="No saved conversations yet. Start chatting and they'll show up here."
               />
-              <button type="submit" className="chatw-send" disabled={pending || !input.trim()}>
-                Send
-              </button>
-            </form>
+            ) : (
+              <>
+                <div className="chatw-msgs" ref={scrollRef}>
+                  {items.length === 0 && (
+                    <div className="chatw-empty">
+                      <p>Ask me anything about Edge8:</p>
+                      <ul>
+                        <li>What&apos;s our time-off policy?</li>
+                        <li>Who&apos;s out on vacation next week?</li>
+                        <li>Who&apos;s in the design team, and who do they report to?</li>
+                        <li>How much revenue have we invoiced this quarter?</li>
+                        <li>Which clients do we work with?</li>
+                      </ul>
+                      <p className="chatw-empty-note">
+                        Read-only. I look things up but never change anything, and I can&apos;t see
+                        payroll or private personal data.
+                      </p>
+                    </div>
+                  )}
+
+                  {items.map((item, i) => {
+                    if (item.kind === "user") {
+                      return (
+                        <div key={i} className="chatw-msg chatw-msg--user">
+                          {item.text}
+                        </div>
+                      );
+                    }
+                    if (item.kind === "bot") {
+                      return (
+                        <div key={i} className="chatw-msg chatw-msg--bot">
+                          <BotText text={item.text} />
+                        </div>
+                      );
+                    }
+                    if (item.kind === "tool") {
+                      return (
+                        <div key={i} className="chatw-toolchip" title={item.detail}>
+                          Looked it up
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={i} className="chatw-msg chatw-msg--error">
+                        {item.text}
+                      </div>
+                    );
+                  })}
+
+                  {pending && <div className="chatw-typing">Thinking…</div>}
+                </div>
+
+                <form className="chatw-composer" onSubmit={onSubmit}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask about Edge8…"
+                    disabled={pending}
+                    aria-label="Message the team assistant"
+                  />
+                  <button type="submit" className="chatw-send" disabled={pending || !input.trim()}>
+                    Send
+                  </button>
+                </form>
+              </>
+            )}
           </aside>
         </div>
       )}

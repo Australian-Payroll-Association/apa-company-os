@@ -16,6 +16,8 @@ import { getTeamActor } from "@/lib/team-auth";
 import { runReadOnlyQuery } from "@/lib/team-chat/db";
 import { chatbotTools } from "@/lib/team-chat/tools";
 import { buildSystemPrompt } from "@/lib/team-chat/system-prompt";
+import { upsertConversation } from "@/lib/assistant-history/store";
+import { deriveTitle } from "@/lib/assistant-history/title";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +32,19 @@ type SseEvent =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; detail: string }
   | { type: "error"; error: string }
-  | { type: "done"; messages: Anthropic.MessageParam[] };
+  | {
+      type: "done";
+      messages: Anthropic.MessageParam[];
+      conversationId: string | null;
+      title: string | null;
+    };
+
+// Render items mirror the widget's DisplayItem shapes. The route builds this
+// turn's items as it streams (see below) so the full visual transcript can be
+// persisted alongside the (trimmed) model messages.
+type TurnItem =
+  | { kind: "bot"; text: string }
+  | { kind: "tool"; detail: string };
 
 // Cap the payload the client echoes back: blank out tool_result contents in all
 // but the last few messages (the model rarely needs old query rows), and drop
@@ -75,7 +89,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { messages?: Anthropic.MessageParam[] };
+  let body: {
+    messages?: Anthropic.MessageParam[];
+    conversationId?: string | null;
+    displayItems?: unknown[];
+  };
   try {
     body = await request.json();
   } catch {
@@ -85,6 +103,11 @@ export async function POST(request: NextRequest) {
   if (!messages?.length) {
     return NextResponse.json({ error: "messages is required" }, { status: 400 });
   }
+  // Which saved conversation this belongs to (null = start a fresh one), and the
+  // widget's complete visual history so far — the route appends this turn's items
+  // to it before persisting.
+  const conversationId = typeof body.conversationId === "string" ? body.conversationId : null;
+  const priorItems = Array.isArray(body.displayItems) ? body.displayItems : [];
 
   const tools = chatbotTools();
   const system = buildSystemPrompt({ userName: actor.displayName });
@@ -97,6 +120,48 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
+      // Accumulate this turn's display items in lock-step with the SSE events, so
+      // the persisted visual transcript matches what the widget renders. Streaming
+      // text deltas coalesce into one bot bubble until a tool chip breaks it.
+      const turnItems: TurnItem[] = [];
+      let currentBot: { kind: "bot"; text: string } | null = null;
+      const appendBotText = (delta: string) => {
+        if (currentBot) currentBot.text += delta;
+        else {
+          currentBot = { kind: "bot", text: delta };
+          turnItems.push(currentBot);
+        }
+      };
+
+      // Save on the `done` event: the transcript is fully assembled here, so this
+      // never depends on a second client call. Best-effort — a save failure must
+      // not break the reply, so it still emits `done` with the existing id.
+      const finishDone = async () => {
+        const displayItems = [...priorItems, ...turnItems];
+        const trimmed = trimMessages(messages);
+        const title = deriveTitle(displayItems);
+        let savedId = conversationId;
+        let savedTitle = title;
+        try {
+          const saved = await upsertConversation({
+            id: conversationId,
+            surface: "team",
+            authUserId: actor.authUserId,
+            personId: actor.personId,
+            title,
+            messages: trimmed,
+            displayItems,
+          });
+          if (saved) {
+            savedId = saved.id;
+            savedTitle = saved.title;
+          }
+        } catch (err) {
+          console.error("team chat persist:", err);
+        }
+        send({ type: "done", messages: trimmed, conversationId: savedId, title: savedTitle });
+      };
+
       try {
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           const msgStream = client.messages.stream({
@@ -107,7 +172,10 @@ export async function POST(request: NextRequest) {
             tools,
             messages,
           });
-          msgStream.on("text", (delta) => send({ type: "text", text: delta }));
+          msgStream.on("text", (delta) => {
+            send({ type: "text", text: delta });
+            appendBotText(delta);
+          });
           const msg = await msgStream.finalMessage();
 
           messages.push({ role: "assistant", content: msg.content });
@@ -122,11 +190,10 @@ export async function POST(request: NextRequest) {
             const input = tu.input as Record<string, unknown>;
             if (tu.name === "query_database") {
               const sql = typeof input.sql === "string" ? input.sql : "";
-              send({
-                type: "tool",
-                name: "query_database",
-                detail: sql.replace(/\s+/g, " ").slice(0, 120),
-              });
+              const detail = sql.replace(/\s+/g, " ").slice(0, 120);
+              send({ type: "tool", name: "query_database", detail });
+              currentBot = null; // a tool chip breaks the current bot bubble
+              turnItems.push({ kind: "tool", detail });
               const res = await runReadOnlyQuery(sql);
               results.push({
                 type: "tool_result",
@@ -153,7 +220,7 @@ export async function POST(request: NextRequest) {
           messages.push({ role: "user", content: results });
         }
 
-        send({ type: "done", messages: trimMessages(messages) });
+        await finishDone();
       } catch (err) {
         console.error("team chat route:", err);
         send({

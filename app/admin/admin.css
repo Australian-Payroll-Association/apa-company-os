@@ -2175,3 +2175,121 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 }
 .chatw-send:hover:not(:disabled) { background: var(--admin-accent-strong); }
 .chatw-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* History — the saved-conversation list; replaces the messages+composer area when
+   the History toggle is on. Shared by the admin and team widgets. */
+.chatw-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--admin-bg);
+}
+.chatw-history-note {
+  padding: 22px 20px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.chatw-history-note--error { color: #a12622; }
+.chatw-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chatw-history-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--admin-radius-sm);
+  padding: 4px 6px 4px 4px;
+}
+.chatw-history-row:hover { background: var(--admin-surface-2); }
+.chatw-history-row--active { background: var(--admin-surface-2); }
+.chatw-history-row--active .chatw-history-title { color: var(--admin-accent-strong); }
+.chatw-history-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
+  border: 0;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.chatw-history-open:disabled { cursor: default; opacity: 0.6; }
+.chatw-history-title {
+  font-size: 13px;
+  color: var(--admin-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chatw-history-time { font-size: 11px; color: var(--admin-faint); }
+.chatw-history-actions {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.chatw-history-row:hover .chatw-history-actions,
+.chatw-history-row:focus-within .chatw-history-actions { opacity: 1; }
+.chatw-history-icon {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--admin-ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chatw-history-icon:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-history-icon--danger:hover { border-color: #f4c7c4; color: #a12622; }
+.chatw-history-edit,
+.chatw-history-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 4px;
+}
+.chatw-history-confirm span { flex: 1 1 auto; font-size: 12.5px; color: var(--admin-ink-2); }
+.chatw-history-edit input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 30px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+}
+.chatw-history-edit input:focus {
+  outline: none;
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-focus-ring);
+}
+
+/* History toggle button in the panel header — matches the New chat button. */
+.chatw-history-btn {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 4px 9px;
+  font-size: 12px;
+  color: var(--admin-ink-2);
+  cursor: pointer;
+}
+.chatw-history-btn:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-history-btn--active {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent-strong);
+}

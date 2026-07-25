@@ -10,6 +10,10 @@
 // both persisted to sessionStorage so a full page reload keeps the chat.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ConversationHistory,
+  type LoadedConversation,
+} from "@/components/assistant/ConversationHistory";
 
 type ApprovalStatus = "pending" | "approved" | "declined";
 
@@ -31,7 +35,7 @@ type SseEvent =
   | { type: "tool"; name: string; detail: string }
   | { type: "approval"; id: string; name: string; input: Record<string, unknown> }
   | { type: "error"; error: string }
-  | { type: "done"; messages: unknown[] };
+  | { type: "done"; messages: unknown[]; conversationId?: string | null; title?: string | null };
 
 const STORAGE_KEY = "edge8-admin-chat";
 
@@ -39,18 +43,22 @@ const STORAGE_KEY = "edge8-admin-chat";
 // initializer (client-only via the window guard). Safe against hydration
 // mismatch because the panel is closed on first render, so restored content is
 // never in the server-rendered HTML.
-function loadSaved(): { items: DisplayItem[]; messages: unknown[] } {
-  if (typeof window === "undefined") return { items: [], messages: [] };
+function loadSaved(): { items: DisplayItem[]; messages: unknown[]; conversationId: string | null } {
+  if (typeof window === "undefined") return { items: [], messages: [], conversationId: null };
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { items: [], messages: [] };
-    const saved = JSON.parse(raw) as { items?: DisplayItem[]; messages?: unknown[] };
+    if (!raw) return { items: [], messages: [], conversationId: null };
+    const saved = JSON.parse(raw) as {
+      items?: DisplayItem[];
+      messages?: unknown[];
+      conversationId?: string | null;
+    };
     const items = (saved.items ?? []).map((it) =>
       it.kind === "bot" ? { ...it, streaming: false } : it,
     );
-    return { items, messages: saved.messages ?? [] };
+    return { items, messages: saved.messages ?? [], conversationId: saved.conversationId ?? null };
   } catch {
-    return { items: [], messages: [] };
+    return { items: [], messages: [], conversationId: null };
   }
 }
 
@@ -174,20 +182,24 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<DisplayItem[]>(() => loadSaved().items);
   const [messages, setMessages] = useState<unknown[]>(() => loadSaved().messages);
+  const [conversationId, setConversationId] = useState<string | null>(
+    () => loadSaved().conversationId,
+  );
+  const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Persist chat so it survives full page reloads (in-layout state already
-  // survives client navigations between admin pages).
+  // Persist the ACTIVE conversation so a full page reload restores it instantly
+  // (the DB is the source of truth for the list + cross-device loads).
   useEffect(() => {
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ items, messages }));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ items, messages, conversationId }));
     } catch {
       // storage full: chat still works, just won't survive a reload
     }
-  }, [items, messages]);
+  }, [items, messages, conversationId]);
 
   useEffect(() => {
     if (!open) return;
@@ -214,13 +226,14 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
     async (payload: {
       messages: unknown[];
       decision?: { toolUseId: string; approved: boolean };
+      displayItems: DisplayItem[];
     }): Promise<boolean> => {
       setPending(true);
       try {
         const res = await fetch("/api/admin/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, conversationId }),
         });
         if (!res.ok || !res.body) {
           const errBody = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -266,6 +279,7 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
           } else if (event.type === "done") {
             gotDone = true;
             setMessages(event.messages);
+            if (event.conversationId) setConversationId(event.conversationId);
           }
         };
 
@@ -303,15 +317,19 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
         setPending(false);
       }
     },
-    [],
+    [conversationId],
   );
 
   const runTurn = useCallback(
     (text: string) => {
-      setItems((prev) => [...prev, { kind: "user", text }]);
-      void runRequest({ messages: [...messages, { role: "user", content: text }] });
+      const nextItems: DisplayItem[] = [...items, { kind: "user", text }];
+      setItems(nextItems);
+      void runRequest({
+        messages: [...messages, { role: "user", content: text }],
+        displayItems: nextItems,
+      });
     },
-    [messages, runRequest],
+    [items, messages, runRequest],
   );
 
   // Approve/Cancel a pending write or email. Optimistically resolve the card;
@@ -319,10 +337,15 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
   const decide = useCallback(
     async (id: string, approved: boolean) => {
       const status = approved ? ("approved" as const) : ("declined" as const);
-      setItems((prev) =>
-        prev.map((it) => (it.kind === "approval" && it.id === id ? { ...it, status } : it)),
+      const nextItems = items.map((it) =>
+        it.kind === "approval" && it.id === id ? { ...it, status } : it,
       );
-      const ok = await runRequest({ messages, decision: { toolUseId: id, approved } });
+      setItems(nextItems);
+      const ok = await runRequest({
+        messages,
+        decision: { toolUseId: id, approved },
+        displayItems: nextItems,
+      });
       if (!ok) {
         setItems((prev) =>
           prev.map((it) =>
@@ -331,7 +354,7 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
         );
       }
     },
-    [messages, runRequest],
+    [items, messages, runRequest],
   );
 
   const hasPendingApproval = items.some(
@@ -346,9 +369,24 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
     runTurn(text);
   }
 
+  // Open a saved conversation from the history list: hydrate the transcript +
+  // display items (the DB is the source of truth) and return to the chat view.
+  const handleSelect = useCallback((conv: LoadedConversation) => {
+    setItems(
+      (conv.display_items as DisplayItem[]).map((it) =>
+        it.kind === "bot" ? { ...it, streaming: false } : it,
+      ),
+    );
+    setMessages(conv.messages);
+    setConversationId(conv.id);
+    setShowHistory(false);
+  }, []);
+
   function newChat() {
     setItems([]);
     setMessages([]);
+    setConversationId(null);
+    setShowHistory(false);
     try {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -395,7 +433,15 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
                 <h2 className="admin-drawer-title">Assistant</h2>
               </div>
               <div className="chatw-head-actions">
-                {items.length > 0 && (
+                <button
+                  type="button"
+                  className={`chatw-history-btn${showHistory ? " chatw-history-btn--active" : ""}`}
+                  aria-pressed={showHistory}
+                  onClick={() => setShowHistory((v) => !v)}
+                >
+                  {showHistory ? "Back" : "History"}
+                </button>
+                {(items.length > 0 || conversationId) && (
                   <button type="button" className="chatw-newchat" onClick={newChat}>
                     New chat
                   </button>
@@ -411,83 +457,94 @@ export function AdminChatWidget({ canWrite = false }: { canWrite?: boolean }) {
               </div>
             </div>
 
-            <div className="chatw-msgs" ref={scrollRef}>
-              {items.length === 0 && (
-                <div className="chatw-empty">
-                  <p>Ask anything about the Company OS data:</p>
-                  <ul>
-                    <li>How many open deals do we have, and what is their total USD value?</li>
-                    <li>Which job requisitions are open and how many applicants each?</li>
-                    <li>Who is on vacation next week?</li>
-                    <li>Top 5 unpaid invoices by balance.</li>
-                  </ul>
-                  <p className="chatw-empty-note">
-                    {canWrite
-                      ? "It can also update records and send emails — every change and every email needs your approval first."
-                      : "Read-only. The assistant never changes data."}
-                  </p>
-                </div>
-              )}
-
-              {items.map((item, i) => {
-                if (item.kind === "user") {
-                  return (
-                    <div key={i} className="chatw-msg chatw-msg--user">
-                      {item.text}
-                    </div>
-                  );
-                }
-                if (item.kind === "bot") {
-                  return (
-                    <div key={i} className="chatw-msg chatw-msg--bot">
-                      <BotText text={item.text} />
-                    </div>
-                  );
-                }
-                if (item.kind === "tool") {
-                  return (
-                    <div key={i} className="chatw-toolchip" title={item.detail}>
-                      {CHIP_LABELS[item.name ?? ""] ?? "Queried the database"}
-                    </div>
-                  );
-                }
-                if (item.kind === "approval") {
-                  return (
-                    <ApprovalCard key={i} item={item} disabled={pending} onDecide={decide} />
-                  );
-                }
-                return (
-                  <div key={i} className="chatw-msg chatw-msg--error">
-                    {item.text}
-                  </div>
-                );
-              })}
-
-              {pending && <div className="chatw-typing">Thinking…</div>}
-            </div>
-
-            <form className="chatw-composer" onSubmit={onSubmit}>
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  hasPendingApproval
-                    ? "Approve or cancel the pending action first…"
-                    : "Ask about the business…"
-                }
-                disabled={pending || hasPendingApproval}
-                aria-label="Message the admin assistant"
+            {showHistory ? (
+              <ConversationHistory
+                surface="admin"
+                activeId={conversationId}
+                onSelect={handleSelect}
+                emptyHint="No saved conversations yet. Start chatting and they'll show up here."
               />
-              <button
-                type="submit"
-                className="chatw-send"
-                disabled={pending || hasPendingApproval || !input.trim()}
-              >
-                Send
-              </button>
-            </form>
+            ) : (
+              <>
+                <div className="chatw-msgs" ref={scrollRef}>
+                  {items.length === 0 && (
+                    <div className="chatw-empty">
+                      <p>Ask anything about the Company OS data:</p>
+                      <ul>
+                        <li>How many open deals do we have, and what is their total USD value?</li>
+                        <li>Which job requisitions are open and how many applicants each?</li>
+                        <li>Who is on vacation next week?</li>
+                        <li>Top 5 unpaid invoices by balance.</li>
+                      </ul>
+                      <p className="chatw-empty-note">
+                        {canWrite
+                          ? "It can also update records and send emails — every change and every email needs your approval first."
+                          : "Read-only. The assistant never changes data."}
+                      </p>
+                    </div>
+                  )}
+
+                  {items.map((item, i) => {
+                    if (item.kind === "user") {
+                      return (
+                        <div key={i} className="chatw-msg chatw-msg--user">
+                          {item.text}
+                        </div>
+                      );
+                    }
+                    if (item.kind === "bot") {
+                      return (
+                        <div key={i} className="chatw-msg chatw-msg--bot">
+                          <BotText text={item.text} />
+                        </div>
+                      );
+                    }
+                    if (item.kind === "tool") {
+                      return (
+                        <div key={i} className="chatw-toolchip" title={item.detail}>
+                          {CHIP_LABELS[item.name ?? ""] ?? "Queried the database"}
+                        </div>
+                      );
+                    }
+                    if (item.kind === "approval") {
+                      return (
+                        <ApprovalCard key={i} item={item} disabled={pending} onDecide={decide} />
+                      );
+                    }
+                    return (
+                      <div key={i} className="chatw-msg chatw-msg--error">
+                        {item.text}
+                      </div>
+                    );
+                  })}
+
+                  {pending && <div className="chatw-typing">Thinking…</div>}
+                </div>
+
+                <form className="chatw-composer" onSubmit={onSubmit}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={
+                      hasPendingApproval
+                        ? "Approve or cancel the pending action first…"
+                        : "Ask about the business…"
+                    }
+                    disabled={pending || hasPendingApproval}
+                    aria-label="Message the admin assistant"
+                  />
+                  <button
+                    type="submit"
+                    className="chatw-send"
+                    disabled={pending || hasPendingApproval || !input.trim()}
+                  >
+                    Send
+                  </button>
+                </form>
+              </>
+            )}
           </aside>
         </div>
       )}
