@@ -459,13 +459,13 @@ export default function PrivateRetreatsTrainingPage() {
               },
               {
                 num: '06',
-                title: 'Send the post-event survey',
+                title: 'Do the post-event survey',
                 actor: 'human',
-                actorLabel: 'My',
+                actorLabel: 'Quan',
                 body: (
                   <p>
-                    After the retreat, collect feedback on the event itself plus the same capability and competency
-                    questions from the pre-retreat survey, so the before and after show the movement.
+                    At the end of the retreat, collect feedback on the event itself plus the same capability and
+                    competency questions from the pre-retreat survey, so the before and after show the movement.
                   </p>
                 ),
               },
