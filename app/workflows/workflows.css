@@ -386,6 +386,7 @@
 
 /* ─── PROBLEM LIST ─────────────────────────────────── */
 .wf-problems { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; }
+.wf-problems-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .wf-problem {
   background: var(--white);
   border: 1px solid var(--card-border);
@@ -535,6 +536,7 @@
 @media (max-width: 900px) {
   .wf-grid { grid-template-columns: 1fr; }
   .wf-info-grid { grid-template-columns: 1fr; }
+  .wf-problems-4 { grid-template-columns: 1fr; }
 
   .wf-rail { grid-auto-flow: row; grid-auto-columns: unset; gap: 28px; justify-items: start; }
   .wf-rail-step { text-align: left; padding: 0 0 0 72px; }

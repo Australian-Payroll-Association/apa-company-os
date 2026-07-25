@@ -27,9 +27,9 @@ export default function PrivateRetreatsTrainingPage() {
         <div className="container">
           <span className="section-label">Never bend these</span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
-            The six ground rules
+            The seven ground rules
           </h2>
-          <div className="wf-problems">
+          <div className="wf-problems wf-problems-4">
             <div className="wf-problem">
               <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -80,6 +80,14 @@ export default function PrivateRetreatsTrainingPage() {
               </svg>
               <strong>Staff know their hours before day one.</strong> Engineers, driver, and maid each get their
               schedule before the retreat starts. Nobody finds out day-of that they were supposed to be somewhere.
+            </div>
+            <div className="wf-problem">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+              </svg>
+              <strong>Data is gold.</strong> Information is collected throughout the retreat to fill the data sources we
+              use for social media and PR. Capture it as it happens, not after everyone flies home.
             </div>
           </div>
         </div>
