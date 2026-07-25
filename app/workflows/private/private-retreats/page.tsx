@@ -14,10 +14,10 @@ export default function PrivateRetreatsTrainingPage() {
       <WorkflowHero
         category="Operations · Internal"
         title="Private Retreats Training Guide"
-        tldr="How to host a private retreat guest on the ground: from wheels-down at the airport to their last free afternoon. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: transport, check-in, the agenda, the staff, and the hospitality judgment calls. Kwan is the retreat lead. You own execution."
+        tldr="How to host a private retreat guest on the ground: from wheels-down at the airport to their last free afternoon. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: transport, check-in, the agenda, the staff, and the hospitality judgment calls. Quan is the retreat lead. You own execution."
         meta={[
           { label: 'Audience', value: 'Retreat ops' },
-          { label: 'Lead', value: 'Kwan' },
+          { label: 'Lead', value: 'Quan' },
           { label: 'Execution', value: 'You' },
         ]}
       />
@@ -105,7 +105,7 @@ export default function PrivateRetreatsTrainingPage() {
                 <path d="M12 17h.01" />
                 <path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
               </svg>
-              <strong>The trap is assuming someone else has it.</strong> Kwan leads the retreat, but he is new. You own
+              <strong>The trap is assuming someone else has it.</strong> Quan leads the retreat, but he is new. You own
               execution: confirm the driver knows the pickup time, the engineers know their blocks, and the maid knows
               her window. Verify, don&apos;t assume.
             </div>
@@ -216,7 +216,7 @@ export default function PrivateRetreatsTrainingPage() {
           <p className="section-sub" style={{ marginTop: 12 }}>
             The guest needs three things to live at Lumiere: their keys, the door combination, and their room number.
             They also need to know where they are going, which is why somebody hosts the arrival in person. Historically
-            Dave does the pickup; Kwan is taking this over as retreat lead.
+            Dave does the pickup; Quan is taking this over as retreat lead.
           </p>
           <StepCards
             steps={[
@@ -241,7 +241,7 @@ export default function PrivateRetreatsTrainingPage() {
                 body: (
                   <p>
                     A named host is at Lumiere when the car pulls up. The host is decided before arrival day: usually
-                    Dave, increasingly Kwan. The guest should never arrive at the building and have to work out where to
+                    Dave, increasingly Quan. The guest should never arrive at the building and have to work out where to
                     go on their own.
                   </p>
                 ),
@@ -285,7 +285,7 @@ export default function PrivateRetreatsTrainingPage() {
                 num: '01',
                 title: 'Draft the agenda in blocks',
                 actor: 'human',
-                actorLabel: 'Kwan + You',
+                actorLabel: 'Quan + You',
                 body: (
                   <p>
                     Build the trip agenda day by day, split into morning and afternoon blocks. Each block states what is
@@ -355,7 +355,7 @@ export default function PrivateRetreatsTrainingPage() {
             Staff scheduling
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
-            Everyone who touches the retreat needs to be very clear on when they are working. Kwan runs the retreat, but
+            Everyone who touches the retreat needs to be very clear on when they are working. Quan runs the retreat, but
             he is new: he is in charge of the retreat, and you are in charge of execution. That means you make sure the
             engineers are there to work, the driver knows when to drive, and the maid knows when to clean.
           </p>
@@ -370,7 +370,7 @@ export default function PrivateRetreatsTrainingPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td>Kwan</td>
+                  <td>Quan</td>
                   <td>Whole retreat</td>
                   <td>
                     Retreat lead: owns the guest relationship and the room. He is new, so back him up rather than assume
@@ -492,7 +492,7 @@ export default function PrivateRetreatsTrainingPage() {
                 <li>The guest&apos;s flight changes and the VIP service or driver cannot move with it</li>
                 <li>No Lumiere room or co-working space is available for a block</li>
                 <li>A staffing gap appears that you cannot fill: an engineer, the driver, or the maid drops out</li>
-                <li>Anything about the guest&apos;s stay feels off and Kwan is unsure how to handle it</li>
+                <li>Anything about the guest&apos;s stay feels off and Quan is unsure how to handle it</li>
               </ul>
             </div>
           </div>
