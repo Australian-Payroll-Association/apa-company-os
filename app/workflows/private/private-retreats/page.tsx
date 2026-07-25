@@ -14,7 +14,7 @@ export default function PrivateRetreatsTrainingPage() {
       <WorkflowHero
         category="Operations · Internal"
         title="Private Retreats Training Guide"
-        tldr="How to host a private retreat guest on the ground: from wheels-down at the airport to their last free afternoon. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: transport, check-in, the agenda, the staff, and the hospitality judgment calls. Quan is the retreat lead. You own execution."
+        tldr="How to host a private retreat guest on the ground: from passport photos and the visa check two weeks out, to their last free afternoon and the post-event survey. The retreats workflow covers the business layer: sales, the retreat record, and the P&L. This guide covers execution: pre-arrival, transport, check-in, the residence, the agenda, the staff, and the hospitality judgment calls. Quan is the retreat lead. You own execution."
         meta={[
           { label: 'Audience', value: 'Retreat ops' },
           { label: 'Lead', value: 'Quan' },
@@ -27,7 +27,7 @@ export default function PrivateRetreatsTrainingPage() {
         <div className="container">
           <span className="section-label">Never bend these</span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
-            The five ground rules
+            The six ground rules
           </h2>
           <div className="wf-problems">
             <div className="wf-problem">
@@ -46,6 +46,14 @@ export default function PrivateRetreatsTrainingPage() {
               </svg>
               <strong>VIP arrival is not optional.</strong> The VIP airport service is arranged before the guest is in
               the air, never improvised after they land.
+            </div>
+            <div className="wf-problem">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+              </svg>
+              <strong>The visa is confirmed two weeks out.</strong> Government offices close for holidays, and a holiday
+              in the wrong week can eat the whole buffer. Two weeks is the deadline, not the target.
             </div>
             <div className="wf-problem">
               <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,9 +90,16 @@ export default function PrivateRetreatsTrainingPage() {
         <div className="container">
           <span className="section-label">The mental model</span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
-            Two clocks: arrival day, then the daily rhythm
+            Three clocks: paperwork, arrival day, the daily rhythm
           </h2>
           <div className="wf-problems">
+            <div className="wf-problem wf-problem-ok">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <strong>The paperwork runs earliest.</strong> Passport photos at booking, visa confirmed two weeks out.
+              Miss these and nothing else in this guide matters.
+            </div>
             <div className="wf-problem wf-problem-ok">
               <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6L9 17l-5-5" />
@@ -117,8 +132,9 @@ export default function PrivateRetreatsTrainingPage() {
               <path d="M12 8h.01" />
             </svg>
             <span>
-              This guide covers four workflows: <strong>airport arrival</strong>, <strong>Lumiere check-in</strong>,{' '}
-              <strong>agenda and room booking</strong>, and <strong>staff scheduling</strong>, plus the hospitality
+              This guide covers five workflows: <strong>pre-arrival</strong>, <strong>airport arrival</strong>,{' '}
+              <strong>Lumiere check-in</strong>, <strong>agenda and room booking</strong>, and{' '}
+              <strong>staff scheduling</strong>, plus the hospitality
               judgment calls around meals and free time. The business side lives in the{' '}
               <Link href="/workflows/infinite-leverage-retreats">retreats workflow</Link>.
             </span>
@@ -126,11 +142,56 @@ export default function PrivateRetreatsTrainingPage() {
         </div>
       </section>
 
-      {/* Workflow 1: Airport arrival */}
+      {/* Workflow 1: Pre-arrival */}
+      <section className="section" style={{ paddingBottom: 48 }}>
+        <div className="container">
+          <span className="section-label">Workflow 1</span>
+          <h2 className="section-title" style={{ fontSize: 34 }}>
+            Pre-arrival
+          </h2>
+          <p className="section-sub" style={{ marginTop: 12 }}>
+            Two things happen before anyone is on a plane, and both have deadlines that do not move with you. Paperwork
+            first, then everything else in this guide.
+          </p>
+          <StepCards
+            steps={[
+              {
+                num: '01',
+                title: 'Collect passport photos',
+                cadence: 'At booking',
+                actor: 'human',
+                actorLabel: 'You',
+                body: (
+                  <p>
+                    Get a passport photo from every guest as soon as the retreat is confirmed. The visa and the
+                    registrations hang off this, so chase it on day one, not when the visa clock is already running.
+                  </p>
+                ),
+              },
+              {
+                num: '02',
+                title: 'Confirm the visa',
+                cadence: '2 weeks out',
+                actor: 'human',
+                actorLabel: 'You',
+                body: (
+                  <p>
+                    Confirm every guest has their visa no later than two weeks before arrival. Watch the calendar for
+                    holidays: government offices close, and a closed office in the wrong week eats the whole buffer. If
+                    the visa is not confirmed at the two-week mark, escalate to Dave the same day.
+                  </p>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </section>
+
+      {/* Workflow 2: Airport arrival */}
       <section className="section" style={{ background: 'var(--tint)', padding: '72px 0' }}>
         <div className="container">
           <span className="section-label" style={{ background: 'var(--white)' }}>
-            Workflow 1
+            Workflow 2
           </span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
             Airport arrival
@@ -206,22 +267,36 @@ export default function PrivateRetreatsTrainingPage() {
         </div>
       </section>
 
-      {/* Workflow 2: Lumiere check-in */}
+      {/* Workflow 3: Lumiere check-in */}
       <section className="section">
         <div className="container">
-          <span className="section-label">Workflow 2</span>
+          <span className="section-label">Workflow 3</span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
             Lumiere check-in
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
             The guest needs three things to live at Lumiere: their keys, the door combination, and their room number.
             They also need to know where they are going, which is why somebody hosts the arrival in person. Historically
-            Dave does the pickup; Quan is taking this over as retreat lead.
+            Dave does the pickup; Quan is taking this over as retreat lead. And before the guest walks in, the residence
+            itself has to be ready: cleaned, and stocked to the standard list below.
           </p>
           <StepCards
             steps={[
               {
                 num: '01',
+                title: 'Prepare the residence',
+                actor: 'human',
+                actorLabel: 'You',
+                body: (
+                  <p>
+                    The apartment is cleaned before arrival day, and the fridge and snack shelf are stocked to the
+                    standard list below. Confirm both are done, don&apos;t assume: walk the rooms yourself the day
+                    before.
+                  </p>
+                ),
+              },
+              {
+                num: '02',
                 title: 'Prepare the access pack',
                 actor: 'human',
                 actorLabel: 'You',
@@ -234,7 +309,7 @@ export default function PrivateRetreatsTrainingPage() {
                 ),
               },
               {
-                num: '02',
+                num: '03',
                 title: 'Host meets the guest',
                 actor: 'human',
                 actorLabel: 'Host',
@@ -247,7 +322,7 @@ export default function PrivateRetreatsTrainingPage() {
                 ),
               },
               {
-                num: '03',
+                num: '04',
                 title: 'Walk them in and orient them',
                 actor: 'human',
                 actorLabel: 'Host',
@@ -262,14 +337,42 @@ export default function PrivateRetreatsTrainingPage() {
               },
             ]}
           />
+          <div className="wf-table-wrap">
+            <table className="wf-table">
+              <thead>
+                <tr>
+                  <th>Prep</th>
+                  <th>The standard</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Cleaning</td>
+                  <td>Full clean before arrival day, confirmed with the maid, walked by you.</td>
+                </tr>
+                <tr>
+                  <td>Fridge: drinks</td>
+                  <td>Water, 5 juices, 5 Diet Cokes, 5 cans of cà phê sữa đá.</td>
+                </tr>
+                <tr>
+                  <td>Fridge: fruit</td>
+                  <td>Oranges, apples, and Vietnamese grapefruit (the sour one).</td>
+                </tr>
+                <tr>
+                  <td>Snacks</td>
+                  <td>Nuts, cookies, and chips.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      {/* Workflow 3: Agenda + room booking */}
+      {/* Workflow 4: Agenda + room booking */}
       <section className="section" style={{ background: 'var(--tint)', padding: '72px 0' }}>
         <div className="container">
           <span className="section-label" style={{ background: 'var(--white)' }}>
-            Workflow 3
+            Workflow 4
           </span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
             Agenda and room booking
@@ -277,12 +380,26 @@ export default function PrivateRetreatsTrainingPage() {
           <p className="section-sub" style={{ marginTop: 12 }}>
             The retreat runs in blocks: every morning is a block, every afternoon is a block. Rooms, staff, and meals all
             hang off the block plan, so this is the workflow that has to be super clear in your mind. Sometimes we book
-            in Lumiere, sometimes a co-working center. Know which, for every block, before the retreat starts.
+            in Lumiere, sometimes a co-working center. Know which, for every block, before the retreat starts. The
+            agenda is also bookended by surveys: a pre-retreat survey feeds it, a post-event survey scores it.
           </p>
           <StepCards
             steps={[
               {
                 num: '01',
+                title: 'Send the pre-retreat survey',
+                actor: 'human',
+                actorLabel: 'You',
+                body: (
+                  <p>
+                    Before the agenda is drafted, the guest completes a pre-retreat survey: where they are on their AI
+                    journey, and a baseline read on capability and competency. The answers shape what the blocks
+                    contain. It runs on our <Link href="/workflows/surveys">survey collection workflow</Link>.
+                  </p>
+                ),
+              },
+              {
+                num: '02',
                 title: 'Draft the agenda in blocks',
                 actor: 'human',
                 actorLabel: 'Quan + You',
@@ -295,20 +412,21 @@ export default function PrivateRetreatsTrainingPage() {
                 ),
               },
               {
-                num: '02',
+                num: '03',
                 title: 'Map every block to a venue',
                 actor: 'human',
                 actorLabel: 'You',
                 body: (
                   <p>
-                    For each block, decide the venue: a Lumiere meeting room or a co-working center. The test is simple:
-                    can you say, for every block of every day, exactly which room it happens in? If not, the mapping is
-                    not done.
+                    For each block, decide the venue, and book a mix across the retreat: co-working space inside
+                    Lumiere, the Lumiere conference room, and a co-working center outside Lumiere. Outside days put the
+                    driver on the schedule. The test is simple: can you say, for every block of every day, exactly
+                    which room it happens in? If not, the mapping is not done.
                   </p>
                 ),
               },
               {
-                num: '03',
+                num: '04',
                 title: 'Book the rooms',
                 actor: 'human',
                 actorLabel: 'You',
@@ -320,7 +438,7 @@ export default function PrivateRetreatsTrainingPage() {
                 ),
               },
               {
-                num: '04',
+                num: '05',
                 title: 'Share the agenda',
                 actor: 'human',
                 actorLabel: 'You',
@@ -328,6 +446,18 @@ export default function PrivateRetreatsTrainingPage() {
                   <p>
                     The guest gets the agenda for the trip so they always know what is next. The staff get it too,
                     because their schedules in the next workflow are derived from it.
+                  </p>
+                ),
+              },
+              {
+                num: '06',
+                title: 'Send the post-event survey',
+                actor: 'human',
+                actorLabel: 'You',
+                body: (
+                  <p>
+                    After the retreat, collect feedback on the event itself plus the same capability and competency
+                    questions from the pre-retreat survey, so the before and after show the movement.
                   </p>
                 ),
               },
@@ -347,10 +477,10 @@ export default function PrivateRetreatsTrainingPage() {
         </div>
       </section>
 
-      {/* Workflow 4: Staffing */}
+      {/* Workflow 5: Staffing */}
       <section className="section">
         <div className="container">
-          <span className="section-label">Workflow 4</span>
+          <span className="section-label">Workflow 5</span>
           <h2 className="section-title" style={{ fontSize: 34 }}>
             Staff scheduling
           </h2>
@@ -443,12 +573,11 @@ export default function PrivateRetreatsTrainingPage() {
             <div className="wf-info-card" style={{ background: 'var(--white)' }}>
               <h3>Lunch</h3>
               <ul>
-                <li>Default: lunch together with the team</li>
+                <li>The split: two lunches with the team, two lunches as free time</li>
                 <li>
-                  At least once, make it a bigger lunch that doubles as time off: a longer break where the guest can go
-                  to the spa or just breathe
+                  Free-time lunches are the longer ones: a real break where the guest can go to the spa or just breathe
                 </li>
-                <li>Decide which day gets the long lunch when you build the agenda, not on the day</li>
+                <li>Decide which days are which when you build the agenda, not on the day</li>
               </ul>
             </div>
             <div className="wf-info-card wf-info-card-mint" style={{ background: 'var(--white)' }}>
@@ -477,18 +606,24 @@ export default function PrivateRetreatsTrainingPage() {
             <div className="wf-info-card">
               <h3>Pre-retreat checklist</h3>
               <ul>
+                <li>Passport photos collected from every guest</li>
+                <li>Visa confirmed two weeks out, with government holidays counted into the buffer</li>
+                <li>Pre-retreat survey sent and the answers reviewed</li>
                 <li>Flight details confirmed and VIP arrival booked</li>
                 <li>Driver briefed: airport run plus all daily transfers</li>
                 <li>Access pack ready: keys, door combination, room number</li>
+                <li>Residence cleaned and stocked to the standard list</li>
                 <li>Host for arrival named and confirmed</li>
                 <li>Agenda drafted in blocks, every block mapped to a venue, every room booked</li>
                 <li>Engineers, driver, and maid each confirmed their own schedule</li>
-                <li>Long-lunch day and hosted dinners decided</li>
+                <li>Lunch split decided (two with the team, two free) and hosted dinners chosen</li>
+                <li>Post-event survey ready to send when the retreat ends</li>
               </ul>
             </div>
             <div className="wf-info-card wf-info-card-mint">
               <h3>Escalate to Dave when</h3>
               <ul>
+                <li>The visa is not confirmed at the two-week mark, or a holiday closure threatens the deadline</li>
                 <li>The guest&apos;s flight changes and the VIP service or driver cannot move with it</li>
                 <li>No Lumiere room or co-working space is available for a block</li>
                 <li>A staffing gap appears that you cannot fill: an engineer, the driver, or the maid drops out</li>
