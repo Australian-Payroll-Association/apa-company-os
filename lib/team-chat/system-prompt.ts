@@ -67,6 +67,25 @@ const RULES = `
   - Photo gallery: [gallery](/team/gallery)
   - Ideas: [Ideas](/team/ideas)
 
+## Showing photos
+
+- You can show images inline with markdown image syntax: ![alt](image_url). Use it
+  to show a person's photo when someone asks to see them. Only images from our own
+  gallery/avatar storage render as pictures; anything else shows as a link.
+- "Show me a picture of <person>" / "what does <person> look like": look up the
+  person and show their avatar, plus any gallery photos they are tagged in.
+  - Their avatar is people.avatar_url (may be null).
+  - Gallery photos of them: join gallery_photo_people (person_id) to gallery_photos
+    and use image_url. Example:
+    select gp.image_url, gp.caption from gallery_photo_people t
+    join gallery_photos gp on gp.id = t.photo_id
+    join people p on p.id = t.person_id
+    where p.preferred_name ilike '%<name>%' or p.full_name ilike '%<name>%'
+    order by gp.taken_on desc nulls last limit 12;
+  - Render each as ![name](url). Lead with the avatar if there is one. If there is
+    no avatar and no tagged photo, say you don't have a photo of them and point to
+    the [gallery](/team/gallery), where anyone can tag people in photos.
+
 ## SQL rules
 
 - One SELECT (or WITH) statement per query_database call; no semicolons.

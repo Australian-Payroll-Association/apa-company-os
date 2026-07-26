@@ -2,8 +2,16 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GALLERY_CATEGORIES, type GalleryPhoto } from "@/lib/gallery";
-import { createGalleryUpload, recordGalleryUpload, saveGalleryPhoto, removeGalleryPhoto } from "@/app/admin/(dashboard)/operations/gallery/actions";
+import { GALLERY_CATEGORIES, type GalleryPhoto, type TaggablePerson } from "@/lib/gallery";
+import {
+  createGalleryUpload,
+  recordGalleryUpload,
+  saveGalleryPhoto,
+  removeGalleryPhoto,
+  tagGalleryPhotoPerson,
+  untagGalleryPhotoPerson,
+} from "@/app/admin/(dashboard)/operations/gallery/actions";
+import { PhotoTagPicker } from "@/components/gallery/PhotoTagPicker";
 
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
 // Public anon key — mirrors what the supabase browser client sends; harmless if
@@ -22,7 +30,7 @@ type QueueItem = {
 
 // Drag-and-drop gallery uploader (direct-to-storage, real progress) with a
 // per-batch category and a category filter over the saved-photo grid.
-export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
+export function GalleryManager({ photos, taggable }: { photos: GalleryPhoto[]; taggable: TaggablePerson[] }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
@@ -197,7 +205,7 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
       ) : (
         <div className="gallery-admin-grid">
           {shown.map((p) => (
-            <PhotoCard key={p.id} photo={p} onChanged={() => router.refresh()} />
+            <PhotoCard key={p.id} photo={p} taggable={taggable} onChanged={() => router.refresh()} />
           ))}
         </div>
       )}
@@ -205,7 +213,15 @@ export function GalleryManager({ photos }: { photos: GalleryPhoto[] }) {
   );
 }
 
-function PhotoCard({ photo, onChanged }: { photo: GalleryPhoto; onChanged: () => void }) {
+function PhotoCard({
+  photo,
+  taggable,
+  onChanged,
+}: {
+  photo: GalleryPhoto;
+  taggable: TaggablePerson[];
+  onChanged: () => void;
+}) {
   const [pending, start] = useTransition();
   const [caption, setCaption] = useState(photo.caption ?? "");
   const [takenOn, setTakenOn] = useState(photo.taken_on ?? "");
@@ -263,6 +279,15 @@ function PhotoCard({ photo, onChanged }: { photo: GalleryPhoto; onChanged: () =>
       <div className="gallery-admin-row">
         <input className="admin-input" type="date" value={takenOn} onChange={(e) => setTakenOn(e.target.value)} onBlur={() => save()} disabled={pending} />
         <button className="admin-btn admin-btn--sm admin-btn--danger" onClick={del} disabled={pending}>Delete</button>
+      </div>
+      <div className="gallery-admin-tags">
+        <PhotoTagPicker
+          photoId={photo.id}
+          tags={photo.people ?? []}
+          taggable={taggable}
+          onAdd={tagGalleryPhotoPerson}
+          onRemove={untagGalleryPhotoPerson}
+        />
       </div>
     </div>
   );

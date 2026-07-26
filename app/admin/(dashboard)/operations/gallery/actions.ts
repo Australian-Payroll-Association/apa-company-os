@@ -7,6 +7,8 @@ import {
   recordGalleryPhoto,
   updateGalleryPhoto,
   deleteGalleryPhoto,
+  addPhotoTag,
+  removePhotoTag,
   type Result,
 } from "@/lib/gallery";
 
@@ -48,6 +50,22 @@ export async function saveGalleryPhoto(
 export async function removeGalleryPhoto(id: string): Promise<Result> {
   await requireAdmin();
   const res = await deleteGalleryPhoto(id);
+  if (res.ok) revalidate();
+  return res;
+}
+
+// Tag / untag a person in a photo. tagged_by is left null for admins (they act
+// by email, not a people.id).
+export async function tagGalleryPhotoPerson(photoId: string, personId: string): Promise<Result> {
+  await requireAdmin();
+  const res = await addPhotoTag(photoId, personId, null);
+  if (res.ok) revalidate();
+  return res;
+}
+
+export async function untagGalleryPhotoPerson(photoId: string, personId: string): Promise<Result> {
+  await requireAdmin();
+  const res = await removePhotoTag(photoId, personId);
   if (res.ok) revalidate();
   return res;
 }

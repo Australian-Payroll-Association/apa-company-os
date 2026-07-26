@@ -1138,6 +1138,58 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .gallery-admin-cap { border: 0; border-radius: 0; border-top: 1px solid var(--admin-line-soft); }
 .gallery-admin-row { display: flex; gap: 8px; padding: 8px; align-items: center; }
 .gallery-admin-row .admin-input { flex: 1; }
+.gallery-admin-tags { padding: 0 8px 10px; }
+
+/* Team tile: image links out; the tagger sits in-flow below it. */
+.gallery-tile-media { position: relative; display: block; }
+.gallery-tile-tags { padding: 8px 8px 6px; }
+
+/* Per-photo people tagger (shared by admin + team gallery). */
+.phototag { display: flex; flex-direction: column; gap: 6px; }
+.phototag-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.phototag-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 5px 2px 3px;
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  font-size: 12px; color: var(--admin-ink);
+  max-width: 100%;
+}
+.phototag-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.phototag-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--admin-line-soft); }
+.phototag-avatar--blank {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--admin-muted);
+}
+.phototag-x {
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 15px; line-height: 1; color: var(--admin-muted); padding: 0 1px;
+}
+.phototag-x:hover:not(:disabled) { color: var(--admin-err-ink); }
+.phototag-add {
+  border: 1px dashed var(--admin-line-strong); background: transparent;
+  border-radius: 999px; padding: 2px 9px;
+  font-size: 12px; color: var(--admin-muted); cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.phototag-add:hover:not(:disabled) { color: var(--admin-accent-strong); border-color: var(--admin-accent); }
+.phototag-picker {
+  border: 1px solid var(--admin-line); border-radius: 10px;
+  background: var(--admin-surface); padding: 6px; box-shadow: var(--admin-shadow);
+}
+.phototag-search { width: 100%; margin-bottom: 6px; }
+.phototag-results { display: flex; flex-direction: column; gap: 2px; max-height: 168px; overflow-y: auto; }
+.phototag-result {
+  display: flex; align-items: center; gap: 8px;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 5px 6px; border-radius: 7px; text-align: left;
+  font-size: 13px; color: var(--admin-ink);
+}
+.phototag-result:hover:not(:disabled) { background: var(--admin-accent-soft); }
+.phototag-none { padding: 6px; font-size: 12px; color: var(--admin-muted); }
+.phototag-err { font-size: 12px; color: var(--admin-err-ink); }
+.phototag :disabled { opacity: 0.55; cursor: default; }
 
 /* ─── Onboarding walkthrough ───────────────────────────── */
 .team-tour-scrim {
@@ -2070,6 +2122,15 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   word-break: break-word;
 }
 .chatw-msg--bot a:hover { color: var(--admin-accent); }
+.assistant-photo {
+  display: block;
+  width: 100%;
+  max-width: 150px;
+  height: auto;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: 1px solid var(--admin-line);
+}
 .chatw-msg--bot code {
   font-family: var(--admin-font-mono);
   font-size: 12px;

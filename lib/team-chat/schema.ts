@@ -20,7 +20,8 @@ NULL as "active" unless asked about archived records.
   id, email, full_name, first_name, last_name, preferred_name, phone, country,
   city, timezone, is_team_member (bool: staff), persona
   (job_seeker|prospect|employee|client|null), owner_id -> people.id, linkedin_url,
-  notes, metadata (jsonb), archived_at, created_at.
+  avatar_url (public profile photo URL, may be null), notes, metadata (jsonb),
+  archived_at, created_at.
 - companies — id, name, domain, industry, size_band, country, website, owner_id,
   priority, lifecycle_stage (none|lead|sql|opportunity|customer|evangelist),
   notes, metadata, archived_at, created_at. Clients are companies with won deals.
@@ -76,6 +77,12 @@ NULL as "active" unless asked about archived records.
   calendar (mostly empty).
 - ideas — team idea backlog from /team: person_id, title, problem, roi, office,
   ai_plan, status, created_at.
+- gallery_photos — the internal team photo gallery (public-bucket images).
+  id, image_url (a public URL you can show inline), caption, taken_on (date),
+  category (workshops|clients|team|null), created_at.
+- gallery_photo_people — who is tagged in each gallery photo: photo_id ->
+  gallery_photos, person_id -> people, created_at. Join this to find the gallery
+  photos a person appears in. (A person's own avatar_url is a separate photo.)
 - company_profile — key/value company facts (label, content).
 - integration_sources — external system registry.
 - team_knowledge — the company handbook/FAQ knowledge base for this assistant:
