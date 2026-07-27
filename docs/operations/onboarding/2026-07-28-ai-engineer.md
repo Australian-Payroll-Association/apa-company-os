@@ -39,7 +39,7 @@ She should know on day one that these are two repos in two languages, because th
 
 There is a loop worth naming: she takes both certifications **on the product she is building**. Every rough edge she hits as a student is a bug she is allowed to file. That perspective expires the moment she stops being a beginner, so she should write things down while they still annoy her.
 
-**Timing note.** The AustPayroll AI Retreat week runs from Monday 27 July, so she starts on day two of it. She is not expected to contribute. Sitting in where useful is worth more than it looks, because the retreat deck is the 18 protocols and seeing them delivered to a paying client is the fastest way to understand why they matter.
+**Timing note.** The AustPayroll AI Retreat week runs from Monday 27 July, and the Payroll IQ build alongside it is a one-week project that wraps as she arrives. She is not expected to contribute to either. Sitting in where useful is worth more than it looks, because the retreat deck is the 18 protocols and seeing them delivered to a paying client is the fastest way to understand why they matter.
 
 ---
 
@@ -186,16 +186,6 @@ The honest bar: **is the team faster with her on it than without her?** That is 
 | 8-agent template | `talentedgeai/infiniteleverage-8-agents-template`, cloned in E02 |
 | Team portal | [https://www.edge8.ai/team](https://www.edge8.ai/team) |
 | Edge8 core values | `docs/product/product.md`, "How we work" |
-
----
-
-## Open items for Dave before day one
-
-- [ ] Confirm the spelling of her name including diacritics. The team record reads "Ly Doan Van Anh" with none, and confirm she goes by Anh
-- [ ] Set her position on her team member record. It is currently empty, so she renders thin on the onboarding board. The `AI Engineer` position row already exists
-- [ ] Nominate the engineer who sits with her for Wednesday's first pull request. Vũ Trần Minh is the obvious choice, subject to his load
-- [ ] Make sure there are small, well-scoped tasks in the aiolabz.com queue waiting for Thursday. The daily cadence only starts on time if there is something to pick up
-- [ ] Decide whether she attends any of the AustPayroll retreat week in person
 
 ---
 
