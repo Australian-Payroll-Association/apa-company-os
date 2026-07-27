@@ -56,7 +56,7 @@ Get access to everything. Understand what the four tools in the stack each do. G
 - [ ] Claude Code installed on her machine and signed in
 - [ ] Student account on [aiolabz.com](https://aiolabz.com), enrolled in the Agentic and Generative tracks
 - [ ] Team portal login at [https://www.edge8.ai/team](https://www.edge8.ai/team), then complete the onboarding survey (this populates her profile, so do it properly)
-- [ ] Confirm design tooling: does she need a Figma seat, or is she designing directly in code? Decide in week one, do not let it drift.
+- [ ] Understand how we design here: there is no separate design tool and no handoff step. Design happens in the code, against the design system, previewed in the browser. Claude is the tool that gets it there.
 - [ ] Read this document and bring questions to the first 1-1
 - [ ] Weekly 1-1 with Dave scheduled as a recurring slot
 
@@ -320,17 +320,6 @@ The honest bar on the first row: **can she be left alone with a design task and 
 | Payroll IQ live | [https://www.payrolliq.com.au](https://www.payrolliq.com.au) |
 | Team portal | [https://www.edge8.ai/team](https://www.edge8.ai/team) |
 | Edge8 core values | `docs/product/product.md`, "How we work" |
-
----
-
-## Open items for Dave before day one
-
-- [ ] Confirm the spelling of her name including diacritics. The team record currently reads "Nghiem Cam Viet Ha" with none, and confirm she goes by Ha
-- [ ] Set her position and start date on her team member record. Both are currently empty, which is why she does not appear correctly on the onboarding board
-- [ ] Upload this plan against her onboarding journey at [https://www.edge8.ai/admin/talent/onboarding](https://www.edge8.ai/admin/talent/onboarding). The cron nags daily until a plan is attached
-- [ ] Decide the Figma question in week 1
-- [ ] Nominate the engineer who sits with her for the first PR in week 1
-- [ ] Decide whether she attends any of the AustPayroll retreat week in person
 
 ---
 

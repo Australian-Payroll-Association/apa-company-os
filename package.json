@@ -16,6 +16,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.7.5",
     "gray-matter": "^4.0.3",
+    "hast-util-sanitize": "^5.0.2",
     "mammoth": "^1.12.0",
     "next": "14.2.29",
     "postgres": "^3.4.9",
@@ -23,6 +24,7 @@
     "react": "^18",
     "react-dom": "^18",
     "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-html": "^16.0.1",
     "resend": "^6.12.4",
     "stripe": "^22.2.1"

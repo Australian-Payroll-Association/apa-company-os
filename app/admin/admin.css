@@ -1473,6 +1473,51 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .idea-plan blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 10px; padding: 2px 12px; color: var(--admin-muted); }
 .idea-plan code { font-family: var(--admin-font-mono); font-size: 12px; }
 
+/* rendered markdown (uploaded plan documents — onboarding plans)
+   Distinct from .idea-plan: an idea plan is a short AI-generated note, a plan
+   document runs to hundreds of lines with tables and checklists, so it needs
+   real heading hierarchy and separation to be readable rather than a wall. */
+.plan-doc { font-size: 14px; color: var(--admin-ink); line-height: 1.7; }
+.plan-doc > *:first-child { margin-top: 0; }
+.plan-doc h1 { font-size: 22px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.01em; }
+.plan-doc h2 { font-size: 18px; font-weight: 650; margin: 34px 0 10px; letter-spacing: -0.01em; }
+.plan-doc h3 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; }
+.plan-doc h4 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; color: var(--admin-muted); }
+.plan-doc p { margin: 0 0 12px; }
+.plan-doc ul, .plan-doc ol { margin: 0 0 14px 20px; padding: 0; }
+.plan-doc li { margin-bottom: 6px; }
+.plan-doc li > ul, .plan-doc li > ol { margin-top: 6px; }
+.plan-doc strong { font-weight: 650; }
+.plan-doc a { color: var(--admin-accent, #2563eb); text-decoration: underline; text-underline-offset: 2px; }
+.plan-doc blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 14px; padding: 2px 14px; color: var(--admin-muted); }
+.plan-doc code { font-family: var(--admin-font-mono); font-size: 12.5px; background: var(--admin-tint, rgba(0,0,0,0.04)); padding: 1px 5px; border-radius: 4px; }
+
+/* `---` between sections is the document's own separator, so it carries the
+   spacing; headings deliberately don't also draw a rule or they double up. */
+.plan-doc hr { border: 0; border-top: 1px solid var(--admin-line); margin: 32px 0; }
+
+.plan-doc table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: 13.5px; }
+.plan-doc thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  border-bottom: 1px solid var(--admin-line);
+  padding: 0 12px 7px 0;
+}
+.plan-doc tbody td { border-bottom: 1px solid var(--admin-line); padding: 9px 12px 9px 0; vertical-align: top; }
+.plan-doc tbody tr:last-child td { border-bottom: 0; }
+.plan-doc th:last-child, .plan-doc td:last-child { padding-right: 0; }
+
+/* Task-list items carry their own checkbox, so drop the redundant bullet. */
+.plan-doc li:has(> input[type="checkbox"]) { list-style: none; margin-left: -20px; }
+.plan-doc input[type="checkbox"] { margin-right: 9px; vertical-align: baseline; accent-color: var(--admin-accent, #2563eb); }
+
+/* Wide tables scroll inside the card instead of pushing the page sideways. */
+.plan-doc { overflow-x: auto; }
+
 /* ─── Tabs ────────────────────────────────────────── */
 .admin-tabs {
   /* globals.css ships `nav { position: fixed; top:0; ... }` for the marketing
