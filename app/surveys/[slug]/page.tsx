@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { resolveSurveyActor } from "@/lib/survey-identity";
+import { isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
 import type { SurveyFieldRow, SurveyRow } from "@/lib/admin/surveys";
 import { SurveyRunner } from "./SurveyRunner";
 import styles from "./survey.module.css";
@@ -59,7 +60,16 @@ export default async function PublicSurveyPage({
       .order("position", { ascending: true }),
     resolveSurveyActor(),
   ]);
-  const fields = (fieldsRes.data ?? []) as SurveyFieldRow[];
+  let fields = (fieldsRes.data ?? []) as SurveyFieldRow[];
+
+  // AI Journey: don't re-ask what the CRM already knows. For a logged-in
+  // respondent, questions whose config.maps_to value is on file (company name,
+  // industry) are hidden here; the submit API injects the known value so the
+  // stored response is still complete.
+  if (isAiJourneyPurpose(survey.purpose) && !survey.is_anonymous && actor?.personId) {
+    const prefill = await resolveCompanyPrefill(actor.personId);
+    fields = fields.filter((f) => !(f.config?.maps_to && prefill[f.config.maps_to] !== undefined));
+  }
 
   // Onboarding is for a new hire who is not in the system yet: their identity
   // must come from what they type, never from whoever's browser session is

@@ -6,6 +6,7 @@ import { notifyOps } from "@/lib/lark";
 import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
 import { processProbationReview, recordDay8Response } from "@/lib/onboarding-cycle";
+import { backfillCompanyIndustry, isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
 
 export const runtime = "nodejs";
 
@@ -41,8 +42,27 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     if (fields.length === 0)
       return NextResponse.json({ error: "This survey has no questions." }, { status: 410 });
 
-    // Validate every answer server-side.
+    // Identity. Onboarding is for a new hire not in the system, so we must
+    // resolve them by the email they TYPE, never by a logged-in session (a
+    // recruiter previewing the link would otherwise get mapped as the person).
+    const isOnboarding = surveyData.purpose === "onboarding";
+    const actor = isOnboarding ? null : await resolveSurveyActor();
+
+    // AI Journey: the page hides questions whose config.maps_to value the CRM
+    // already knows for a logged-in respondent. Inject those values here so the
+    // stored response is complete and required-field validation still holds.
     const rawAnswers = (body.answers ?? {}) as Record<string, unknown>;
+    if (isAiJourneyPurpose(surveyData.purpose) && !surveyData.is_anonymous && actor?.personId) {
+      const prefill = await resolveCompanyPrefill(actor.personId);
+      for (const field of fields) {
+        const mapsTo = field.config?.maps_to;
+        const raw = rawAnswers[field.id];
+        const empty = raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "");
+        if (mapsTo && prefill[mapsTo] !== undefined && empty) rawAnswers[field.id] = prefill[mapsTo];
+      }
+    }
+
+    // Validate every answer server-side.
     const answerRows: { field_id: string; value: string; value_json: unknown }[] = [];
     for (const field of fields) {
       const v = validateAnswer(field, rawAnswers[field.id]);
@@ -53,20 +73,18 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     if (answerRows.length === 0)
       return NextResponse.json({ error: "The response is empty." }, { status: 400 });
 
-    // Identity. Onboarding is for a new hire not in the system, so we must
-    // resolve them by the email they TYPE, never by a logged-in session (a
-    // recruiter previewing the link would otherwise get mapped as the person).
-    const isOnboarding = surveyData.purpose === "onboarding";
-    const actor = isOnboarding ? null : await resolveSurveyActor();
     let personId: string | null = null;
     let respondentName: string | null = null;
     let respondentEmail: string | null = null;
+    // "team" means actual staff or admins. A logged-in portal CLIENT is still
+    // identified (person_id, name, email from the session) but stamped
+    // "external" so attendee roll-ups aren't polluted with mislabeled rows.
     let kind: "team" | "external";
 
     if (surveyData.is_anonymous) {
-      kind = actor ? "team" : "external";
+      kind = actor?.isTeam ? "team" : "external";
     } else if (actor) {
-      kind = "team";
+      kind = actor.isTeam ? "team" : "external";
       personId = actor.personId;
       respondentName = actor.name;
       respondentEmail = actor.email;
@@ -155,6 +173,16 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         });
       } catch (err) {
         console.error("[survey] onboarding post-process failed:", err);
+      }
+    }
+
+    // AI Journey pre-survey: adopt the respondent's industry answer when their
+    // company has none on file. Same contract: never fails the submit.
+    if (surveyData.purpose === "ai_journey_pre" && personId) {
+      try {
+        await backfillCompanyIndustry(personId, fields, answerRows);
+      } catch (err) {
+        console.error("[survey] ai-journey post-process failed:", err);
       }
     }
 
