@@ -3,7 +3,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import {
   getAllCycleRows,
-  getDay1Tasks,
+  getOnboardingTasks,
+  taskCategoryLabel,
   getDay8Scores,
   cycleDay,
   saigonToday,
@@ -37,14 +38,14 @@ export default async function AdminOnboardingPage() {
   const today = saigonToday();
   const rows = await getAllCycleRows();
   const [tasks, scores] = await Promise.all([
-    getDay1Tasks(rows.map((r) => r.team_member_id)),
+    getOnboardingTasks(rows.map((r) => r.team_member_id)),
     getDay8Scores(rows.map((r) => r.day8_response_id ?? "").filter(Boolean)),
   ]);
 
-  const tasksByMember = new Map<string, { id: string; title: string; done: boolean }[]>();
+  const tasksByMember = new Map<string, { id: string; title: string; done: boolean; group: string }[]>();
   for (const t of tasks) {
     const arr = tasksByMember.get(t.teamMemberId) ?? [];
-    arr.push({ id: t.id, title: t.title, done: t.status === "done" });
+    arr.push({ id: t.id, title: t.title, done: t.status === "done", group: taskCategoryLabel(t.category) });
     tasksByMember.set(t.teamMemberId, arr);
   }
 

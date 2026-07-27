@@ -838,19 +838,58 @@ export async function getPlanMarkdown(planPath: string): Promise<string | null> 
 
 // ---- Day 1 checklist + Day 8 score reads for the board ----------------------
 
-export type Day1Task = { id: string; teamMemberId: string; title: string; status: string };
+export type OnboardingTask = {
+  id: string;
+  teamMemberId: string;
+  title: string;
+  status: string;
+  category: string | null;
+  description: string | null;
+};
 
-export async function getDay1Tasks(teamMemberIds: string[]): Promise<Day1Task[]> {
+// Every onboarding task for these members, not just the Day 1 three. A plan
+// uploaded as markdown is a read-only document, so the checklist items in it
+// are seeded as rows here and ticked off in the UI. Ordered by category then
+// position so grouping in the board is a straight walk over the list.
+export async function getOnboardingTasks(teamMemberIds: string[]): Promise<OnboardingTask[]> {
   if (teamMemberIds.length === 0) return [];
   const { data } = await companyOs
     .from("onboarding_tasks")
-    .select("id, team_member_id, title, status, position")
+    .select("id, team_member_id, title, status, category, description, position")
     .in("team_member_id", teamMemberIds)
-    .eq("category", DAY1_CATEGORY)
+    .order("category", { ascending: true })
     .order("position", { ascending: true });
-  return ((data ?? []) as Array<{ id: string; team_member_id: string; title: string; status: string }>).map(
-    (t) => ({ id: t.id, teamMemberId: t.team_member_id, title: t.title, status: t.status }),
-  );
+  return ((data ?? []) as Array<{
+    id: string;
+    team_member_id: string;
+    title: string;
+    status: string;
+    category: string | null;
+    description: string | null;
+  }>).map((t) => ({
+    id: t.id,
+    teamMemberId: t.team_member_id,
+    title: t.title,
+    status: t.status,
+    category: t.category,
+    description: t.description,
+  }));
+}
+
+// Human label for a task category. Day 1 keeps its name; plan categories are
+// seeded as `week_1`…`week_7_8` from the uploaded plan's section headings.
+export function taskCategoryLabel(category: string | null): string {
+  if (!category) return "Other";
+  if (category === DAY1_CATEGORY) return "Day 1 orientation";
+  if (category === "week_7_8") return "Weeks 7 and 8";
+  const m = /^week_(\d+)$/.exec(category);
+  if (m) return `Week ${m[1]}`;
+  return humanizeCategory(category);
+}
+
+function humanizeCategory(c: string): string {
+  const s = c.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // Average Day 8 score (1-5) per response id.
