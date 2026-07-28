@@ -234,7 +234,7 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
             <h2 className="heading">Who you&apos;ll work with</h2>
             <div className="team-stats">
               <div className="team-stat">
-                <div className="ts-num">26</div>
+                <div className="ts-num">25</div>
                 <div className="ts-lbl">Team members</div>
               </div>
               <div className="team-stat">
@@ -342,9 +342,6 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                     </li>
                     <li>
                       <span className="name">Ginny Vo</span> : Design
-                    </li>
-                    <li>
-                      <span className="name">Trac Nguyen</span> : AI Engineer
                     </li>
                     <li>
                       <span className="name">Khoa Doan</span> : AI Engineer
