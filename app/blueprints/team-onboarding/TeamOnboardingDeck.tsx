@@ -474,7 +474,7 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
               <div className="expect-item">
                 Think deeply about the business and seek to learn every aspect of it
               </div>
-              <div className="expect-item">Write perfect English, using ChatGPT</div>
+              <div className="expect-item">Write perfect English, using Claude</div>
               <div className="expect-item">Over-communicate, ask questions, chat frequently</div>
               <div className="expect-item">Be detail-oriented</div>
               <div className="expect-item">Take detailed notes, use notetakers</div>
