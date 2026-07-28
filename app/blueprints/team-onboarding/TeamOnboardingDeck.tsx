@@ -234,11 +234,11 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
             <h2 className="heading">Who you&apos;ll work with</h2>
             <div className="team-stats">
               <div className="team-stat">
-                <div className="ts-num">23</div>
+                <div className="ts-num">26</div>
                 <div className="ts-lbl">Team members</div>
               </div>
               <div className="team-stat">
-                <div className="ts-num">5</div>
+                <div className="ts-num">6</div>
                 <div className="ts-lbl">Partners &amp; Advisors</div>
               </div>
             </div>
@@ -316,7 +316,18 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                       <span className="name">Thanh Nguyen</span> : HubSpot Specialist
                     </li>
                     <li>
-                      <span className="name">Khoi Le</span> : AI Engineer
+                      <span className="name">Khoi Le</span> : Fullstack Engineer
+                    </li>
+                    <li>
+                      <span className="name">Quang Van</span> : C# Engineer
+                    </li>
+                  </ul>
+                </div>
+                <div className="team-block">
+                  <h5>DOXA Talent</h5>
+                  <ul>
+                    <li>
+                      <span className="name">Ngoc Le</span> : AI Engineer
                     </li>
                   </ul>
                 </div>
@@ -336,13 +347,16 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                       <span className="name">Trac Nguyen</span> : AI Engineer
                     </li>
                     <li>
-                      <span className="name">Khang Nguyen</span> : AI Engineer
-                    </li>
-                    <li>
-                      <span className="name">Phuc Tran</span> : AI Engineer
+                      <span className="name">Khoa Doan</span> : AI Engineer
                     </li>
                     <li>
                       <span className="name">Ethan Truong</span> : Video Producer
+                    </li>
+                    <li>
+                      <span className="name">Viet Ha</span> : UX Designer &amp; Developer
+                    </li>
+                    <li>
+                      <span className="name">Van Anh</span> : AI Engineer
                     </li>
                   </ul>
                 </div>
@@ -366,6 +380,9 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                     </li>
                     <li>
                       <span className="name">David Nilssen</span> : Partner, AIO
+                    </li>
+                    <li>
+                      <span className="name">Dr. Brooks C. Holtom</span> : Partner, AIO
                     </li>
                   </ul>
                 </div>
