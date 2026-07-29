@@ -59,8 +59,8 @@ const HUB_LIVE: HubItem[] = [
     href: "/team/org",
   },
   {
-    title: "Ideas & Innovation",
-    sub: "Submit a workflow AI should own; get a product plan back in seconds.",
+    title: "Ideas that Spark Solutions",
+    sub: "What should we build? What have I learned? Share both with the team.",
     ico: "✦",
     href: "/team/ideas",
   },

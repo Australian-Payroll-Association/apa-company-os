@@ -55,9 +55,9 @@ export function OnboardingWalkthrough({
     {
       ico: "✦",
       title: "Share an idea",
-      body: "Got a workflow AI should own? Submit it and get a product plan back in seconds. This is how the company OS grows.",
+      body: "What should we build? What have I learned? Answer either — build ideas come back as product plans, learnings go straight to the team feed.",
       href: "/team/ideas/new",
-      cta: "Submit an idea",
+      cta: "Share an idea",
     },
   ];
 

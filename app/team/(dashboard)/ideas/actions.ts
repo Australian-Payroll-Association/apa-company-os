@@ -55,3 +55,38 @@ export async function submitIdea(input: {
   revalidatePath("/team/ideas");
   return { ok: true, id: data.id };
 }
+
+// "What have I learned?" — the light half of Ideas that Spark Solutions.
+// Same ownership model as submitIdea; the Claude call is a quick editorial
+// polish for the team feed, not a product plan.
+export async function submitLearning(input: {
+  title: string;
+  story: string;
+  takeaway: string;
+}): Promise<SubmitResult> {
+  const actor = await requireTeamMember();
+
+  const title = input.title?.trim();
+  const story = input.story?.trim();
+  const takeaway = input.takeaway?.trim();
+
+  if (!title) return { ok: false, error: "Give your learning a short title." };
+  if (!story) return { ok: false, error: "Tell what happened — two honest sentences is enough." };
+  if (!takeaway) return { ok: false, error: "Name the takeaway — what should a teammate do differently?" };
+  for (const v of [title, story, takeaway]) {
+    if (v.length > MAX_FIELD) return { ok: false, error: "One of your answers is too long — keep each under 5,000 characters." };
+  }
+
+  const { data, error } = await teamInsertOwn(actor, "ideas", {
+    kind: "learning",
+    title: title.slice(0, 200),
+    story,
+    takeaway,
+  });
+  if (error || !data) return { ok: false, error: error ?? "Could not save your learning." };
+
+  await generateIdeaPlan(data.id);
+
+  revalidatePath("/team/ideas");
+  return { ok: true, id: data.id };
+}

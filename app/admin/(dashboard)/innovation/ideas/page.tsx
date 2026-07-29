@@ -8,12 +8,16 @@ import { FilterBar } from "@/components/admin/FilterBar";
 import { formatDate } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import {
+  IDEA_KINDS,
+  IDEA_KIND_LABEL,
   IDEA_OFFICES,
   IDEA_STATUSES,
   IDEA_STATUS_LABEL,
   OFFICE_LABEL,
+  ideaKindTone,
   ideaStatusTone,
   officeTone,
+  type IdeaKind,
   type IdeaOffice,
   type IdeaStatus,
 } from "@/lib/ideas";
@@ -24,11 +28,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Idea backlog",
-  description: "Employee-submitted AI program ideas, planned by Claude via the 5D framework.",
+  description: "Employee-submitted build ideas and learnings — Ideas that Spark Solutions.",
 };
 
 const PAGE_SIZES = [25, 50, 100];
-const SORTABLE = new Set(["title", "office", "status", "created_at"]);
+const SORTABLE = new Set(["title", "kind", "office", "status", "created_at"]);
 
 export default async function IdeasBacklogPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
@@ -40,9 +44,13 @@ export default async function IdeasBacklogPage({ searchParams }: { searchParams:
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const officeParam = firstParam(searchParams.office);
   const statusParam = firstParam(searchParams.status);
+  const kindParam = firstParam(searchParams.kind);
 
   // No archived_at column here — "archived" is a status. Default view hides it.
   const filters: Record<string, string | string[]> = {};
+  if (kindParam && (IDEA_KINDS as readonly string[]).includes(kindParam)) {
+    filters.kind = kindParam;
+  }
   if (officeParam && (IDEA_OFFICES as readonly string[]).includes(officeParam)) {
     filters.office = officeParam;
   }
@@ -56,7 +64,7 @@ export default async function IdeasBacklogPage({ searchParams }: { searchParams:
     page,
     pageSize: pageSizeChoice,
     search: q,
-    searchColumns: ["title", "problem", "roi"],
+    searchColumns: ["title", "problem", "roi", "story", "takeaway"],
     sort,
     dir,
     filters,
@@ -79,6 +87,14 @@ export default async function IdeasBacklogPage({ searchParams }: { searchParams:
       cell: (r) => <span className="admin-cell-strong">{r.title}</span>,
     },
     { key: "submitter", header: "Submitted by", cell: (r) => submitterName(r) },
+    {
+      key: "kind",
+      header: "Type",
+      sortable: true,
+      cell: (r) => (
+        <Badge tone={ideaKindTone(r.kind)}>{IDEA_KIND_LABEL[r.kind as IdeaKind] ?? r.kind}</Badge>
+      ),
+    },
     {
       key: "office",
       header: "Office",
@@ -118,7 +134,7 @@ export default async function IdeasBacklogPage({ searchParams }: { searchParams:
       <PageHead
         eyebrow="Innovation"
         title="Idea backlog"
-        sub={`${total.toLocaleString()} ${total === 1 ? "idea" : "ideas"} — submitted by the team via the 5D framework, planned by Claude`}
+        sub={`${total.toLocaleString()} ${total === 1 ? "entry" : "entries"} — build ideas planned by Claude via the 5D framework, plus learnings shared by the team`}
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
       <IdeasShelfProvider>
@@ -140,6 +156,11 @@ export default async function IdeasBacklogPage({ searchParams }: { searchParams:
               basePath="/admin/innovation/ideas"
               searchParams={searchParams}
               filters={[
+                {
+                  key: "kind",
+                  label: "Type",
+                  options: IDEA_KINDS.map((k) => ({ value: k, label: IDEA_KIND_LABEL[k] })),
+                },
                 {
                   key: "office",
                   label: "Office",

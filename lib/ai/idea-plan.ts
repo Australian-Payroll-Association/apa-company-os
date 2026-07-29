@@ -2,10 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { IDEA_OFFICES } from "@/lib/ideas";
 
-// Ideas Backlog plan generation: reads a submitted idea (the first four Ds of
-// the 5D framework), asks Claude — writing as Dan Shipper — for a product plan
-// and an office classification, and writes the result onto the idea row.
-// Called from the /team submit action and from admin retry — it must never
+// Ideas Backlog generation, both kinds. Build ideas: reads the first four Ds
+// of the 5D framework, asks Claude — writing as Dan Shipper — for a product
+// plan and an office classification. Learnings ("What have I learned?"): a
+// much lighter pass that polishes the raw story + takeaway into a short
+// shareable write-up for the team feed. Both write to ai_plan on the idea row.
+// Called from the /team submit actions and from admin retry — it must never
 // throw. Same shape as lib/resume-screen.ts.
 
 const MODEL = process.env.IDEAS_CLAUDE_MODEL || "claude-sonnet-5";
@@ -50,6 +52,38 @@ How to write it:
 
 Ground everything in what they actually wrote. Do not invent team details, tools, or systems they did not mention.`;
 
+const LEARNING_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["office", "summary_markdown"],
+  properties: {
+    office: {
+      type: "string",
+      enum: [...IDEA_OFFICES],
+      description:
+        "Which of the Four Outcomes this learning most relates to, mapped to its office: " +
+        "increased revenue -> 'revenue'; higher-performing people -> 'talent'; " +
+        "cheaper operations -> 'operations'; valuable innovation -> 'innovation'. Pick exactly one.",
+    },
+    summary_markdown: {
+      type: "string",
+      description:
+        "The polished learning in Markdown, under 150 words total. Structure: a single bold takeaway line " +
+        "(the lesson, stated so a teammate could act on it); then '## What happened' (the story, tightened); " +
+        "then '## Try it yourself' (1-3 short bullets on how a teammate applies this). No preamble before the takeaway line.",
+    },
+  },
+} as const;
+
+const LEARNING_SYSTEM = `You are an editor for Edge8's internal "Ideas that Spark Solutions" feed. A team member has shared something they learned — per the company's Learn and Share value — as a raw story plus a takeaway. Your job is a light polish, not a rewrite: make it crisp and shareable so a teammate scanning the feed gets the lesson in seconds.
+
+How to write it:
+- Keep the submitter's first-person voice ("I noticed…", "I tried…"). It is their learning, not a corporate memo.
+- Lead with the takeaway as one bold line a teammate could act on tomorrow.
+- Tighten the story; keep any concrete numbers, tools, or steps they named.
+- End with 1-3 practical "try it yourself" bullets grounded ONLY in what they wrote.
+- Under 150 words. Do not invent details, tools, or outcomes they did not mention.`;
+
 type Ok = { ok: true };
 type Err = { ok: false; error: string };
 
@@ -78,7 +112,7 @@ async function runGeneration(ideaId: string): Promise<Ok | Err> {
 
   const { data: idea, error: ideaErr } = await companyOs
     .from("ideas")
-    .select("id, title, problem, data_needed, workflow, roi, people:people!person_id(full_name, preferred_name)")
+    .select("id, kind, title, problem, data_needed, workflow, roi, story, takeaway, people:people!person_id(full_name, preferred_name)")
     .eq("id", ideaId)
     .maybeSingle();
   if (ideaErr || !idea) return markFailed(ideaId, ideaErr?.message ?? "Idea not found.");
@@ -88,16 +122,21 @@ async function runGeneration(ideaId: string): Promise<Ok | Err> {
   const person = Array.isArray(personRaw) ? personRaw[0] ?? null : personRaw;
   const submitter = person?.preferred_name || person?.full_name || "an Edge8 team member";
 
-  const anthropic = new Anthropic();
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 8000,
-    system: PLAN_SYSTEM,
-    output_config: { format: { type: "json_schema", schema: PLAN_SCHEMA } },
-    messages: [
-      {
-        role: "user",
-        content: `# Idea submitted by ${submitter}
+  const isLearning = idea.kind === "learning";
+  const prompt = isLearning
+    ? `# Learning shared by ${submitter}
+
+## Title
+${idea.title}
+
+## What happened
+${idea.story}
+
+## The takeaway
+${idea.takeaway}
+
+Polish this into a shareable learning and classify it into one office.`
+    : `# Idea submitted by ${submitter}
 
 ## Title
 ${idea.title}
@@ -114,9 +153,17 @@ ${idea.workflow}
 ## Determine — the expected ROI
 ${idea.roi}
 
-Turn this into a product plan and classify it into one office.`,
-      },
-    ],
+Turn this into a product plan and classify it into one office.`;
+
+  const anthropic = new Anthropic();
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: isLearning ? 2000 : 8000,
+    system: isLearning ? LEARNING_SYSTEM : PLAN_SYSTEM,
+    output_config: {
+      format: { type: "json_schema", schema: isLearning ? LEARNING_SCHEMA : PLAN_SCHEMA },
+    },
+    messages: [{ role: "user", content: prompt }],
   });
 
   if (response.stop_reason === "refusal") {
@@ -125,9 +172,14 @@ Turn this into a product plan and classify it into one office.`,
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
   if (!textBlock) return markFailed(ideaId, "Model returned no text output.");
 
-  const parsed = JSON.parse(textBlock.text) as { office: string; plan_markdown: string };
+  const parsed = JSON.parse(textBlock.text) as {
+    office: string;
+    plan_markdown?: string;
+    summary_markdown?: string;
+  };
+  const markdown = isLearning ? parsed.summary_markdown : parsed.plan_markdown;
   const office = (IDEA_OFFICES as readonly string[]).includes(parsed.office) ? parsed.office : null;
-  if (!office || !parsed.plan_markdown?.trim()) {
+  if (!office || !markdown?.trim()) {
     return markFailed(ideaId, "Model output was missing the office or the plan.");
   }
 
@@ -135,7 +187,7 @@ Turn this into a product plan and classify it into one office.`,
     .from("ideas")
     .update({
       office,
-      ai_plan: parsed.plan_markdown,
+      ai_plan: markdown,
       ai_model: MODEL,
       ai_error: null,
       updated_at: new Date().toISOString(),

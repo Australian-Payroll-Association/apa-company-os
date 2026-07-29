@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitIdea } from "../actions";
+import { appendDictation, useDictation } from "./useDictation";
 
 // Guided 5D submission form. One step per D (Define, Discover, Design,
 // Determine — Deploy is deliberately skipped: submitters won't know deployment
 // details yet, and that's fine at the backlog stage). Each step teaches its D
-// with A01 language and offers voice dictation via the browser's Web Speech
-// API — no audio leaves the page; unsupported browsers just type.
+// with A01 language and offers voice dictation (see useDictation).
 
 type FieldKey = "problem" | "data_needed" | "workflow" | "roi";
 
@@ -59,28 +59,6 @@ const STEPS: Step[] = [
   },
 ];
 
-// Minimal typings for the Web Speech API (not in TS's DOM lib everywhere).
-type SpeechAlt = { transcript: string };
-type SpeechResult = { isFinal: boolean; 0: SpeechAlt };
-type SpeechEvent = { resultIndex: number; results: { length: number; [i: number]: SpeechResult } };
-type Recognition = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((e: SpeechEvent) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-function getRecognition(): Recognition | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
-  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-  return Ctor ? new Ctor() : null;
-}
-
 export function IdeaForm() {
   const router = useRouter();
   const [step, setStep] = useState(0); // 0 = title intro, 1..4 = the Ds
@@ -94,47 +72,9 @@ export function IdeaForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Voice dictation. One recognition instance at a time, appending final
-  // transcripts to the current step's field.
-  const [canDictate, setCanDictate] = useState(false);
-  const [listening, setListening] = useState(false);
-  const recRef = useRef<Recognition | null>(null);
-
-  useEffect(() => {
-    setCanDictate(Boolean(getRecognition()));
-    return () => recRef.current?.stop();
-  }, []);
-
-  function stopDictation() {
-    recRef.current?.stop();
-    recRef.current = null;
-    setListening(false);
-  }
-
-  function toggleDictation(key: FieldKey) {
-    if (listening) {
-      stopDictation();
-      return;
-    }
-    const rec = getRecognition();
-    if (!rec) return;
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e) => {
-      let heard = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) heard += e.results[i][0].transcript;
-      }
-      if (!heard) return;
-      setFields((f) => ({ ...f, [key]: (f[key] ? f[key].replace(/\s+$/, "") + " " : "") + heard.trim() }));
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recRef.current = rec;
-    rec.start();
-    setListening(true);
-  }
+  const { canDictate, listening, toggleDictation, stopDictation } = useDictation((field, heard) =>
+    setFields((f) => ({ ...f, [field]: appendDictation(f[field as FieldKey], heard) })),
+  );
 
   const current = step >= 1 ? STEPS[step - 1] : null;
 

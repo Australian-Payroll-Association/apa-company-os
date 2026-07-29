@@ -38,7 +38,7 @@ export function IdeasShelfProvider({ children }: { children: ReactNode }) {
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelected(null)}
-        eyebrow="Idea"
+        eyebrow={selected?.kind === "learning" ? "Learning" : "Idea"}
         title={selected?.title ?? ""}
       >
         {selected && <IdeaShelfBody row={selected} />}
@@ -82,8 +82,14 @@ const D_SECTIONS: { key: "problem" | "data_needed" | "workflow" | "roi"; label: 
   { key: "roi", label: "Determine · Expected ROI" },
 ];
 
+const LEARNING_SECTIONS: { key: "story" | "takeaway"; label: string }[] = [
+  { key: "story", label: "What happened" },
+  { key: "takeaway", label: "The takeaway" },
+];
+
 function IdeaShelfBody({ row }: { row: IdeaRow }) {
   const router = useRouter();
+  const isLearning = row.kind === "learning";
   const [status, setStatus] = useState(row.status);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -124,19 +130,31 @@ function IdeaShelfBody({ row }: { row: IdeaRow }) {
       <section>
         <div className="admin-shelf-heading">
           Backlog
-          <select
-            className="admin-select"
-            value={status}
-            onChange={(e) => changeStatus(e.target.value)}
-            aria-label="Idea status"
-            style={{ width: "auto" }}
-          >
-            {IDEA_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {IDEA_STATUS_LABEL[s as IdeaStatus]}
-              </option>
-            ))}
-          </select>
+          {isLearning ? (
+            // Learnings skip approve/decline triage — they're shared, not
+            // built. Archiving is how one comes off the team feed.
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm"
+              onClick={() => changeStatus(status === "archived" ? "new" : "archived")}
+            >
+              {status === "archived" ? "Unarchive" : "Archive"}
+            </button>
+          ) : (
+            <select
+              className="admin-select"
+              value={status}
+              onChange={(e) => changeStatus(e.target.value)}
+              aria-label="Idea status"
+              style={{ width: "auto" }}
+            >
+              {IDEA_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {IDEA_STATUS_LABEL[s as IdeaStatus]}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <dl className="admin-kv">
           <dt>Submitted by</dt>
@@ -166,8 +184,10 @@ function IdeaShelfBody({ row }: { row: IdeaRow }) {
       </section>
 
       <section>
-        <div className="admin-shelf-heading">The idea (their 5D answers)</div>
-        {D_SECTIONS.map((s) => (
+        <div className="admin-shelf-heading">
+          {isLearning ? "The learning (as submitted)" : "The idea (their 5D answers)"}
+        </div>
+        {(isLearning ? LEARNING_SECTIONS : D_SECTIONS).map((s) => (
           <div key={s.key} style={{ marginBottom: 12 }}>
             <div className="admin-label" style={{ marginBottom: 2 }}>{s.label}</div>
             <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{row[s.key]}</div>
@@ -177,7 +197,7 @@ function IdeaShelfBody({ row }: { row: IdeaRow }) {
 
       <section>
         <div className="admin-shelf-heading">
-          Product plan
+          {isLearning ? "Shared summary" : "Product plan"}
           <button type="button" className="admin-btn admin-btn--sm" onClick={retry} disabled={busy}>
             {busy ? "Regenerating…" : row.ai_plan ? "Regenerate" : "Retry generation"}
           </button>

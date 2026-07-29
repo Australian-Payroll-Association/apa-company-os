@@ -75,8 +75,10 @@ NULL as "active" unless asked about archived records.
 - events + event_registrations — events and who signed up.
 - content_channels / content_pillars / content_items / content_ideas — content
   calendar (mostly empty).
-- ideas — team idea backlog from /team: person_id, title, problem, roi, office,
-  ai_plan, status, created_at.
+- ideas — Ideas that Spark Solutions from /team: kind ('build' = What should we
+  build, with problem/roi + ai_plan product plan; 'learning' = What have I
+  learned, with story/takeaway + ai_plan polished summary), person_id, title,
+  office, status, created_at.
 - gallery_photos — the internal team photo gallery (public-bucket images).
   id, image_url (a public URL you can show inline), caption, taken_on (date),
   category (workshops|clients|team|null), created_at.

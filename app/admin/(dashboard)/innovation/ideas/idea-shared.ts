@@ -2,11 +2,14 @@
 
 export type IdeaRow = {
   id: string;
+  kind: string;
   title: string;
-  problem: string;
-  data_needed: string;
-  workflow: string;
-  roi: string;
+  problem: string | null;
+  data_needed: string | null;
+  workflow: string | null;
+  roi: string | null;
+  story: string | null;
+  takeaway: string | null;
   office: string | null;
   ai_plan: string | null;
   ai_model: string | null;
@@ -22,7 +25,7 @@ export type IdeaRow = {
 // people!person_id: explicit FK hint — bare embeds break at runtime when two
 // FKs link the tables.
 export const IDEA_SELECT =
-  "id, title, problem, data_needed, workflow, roi, office, ai_plan, ai_model, ai_error, " +
+  "id, kind, title, problem, data_needed, workflow, roi, story, takeaway, office, ai_plan, ai_model, ai_error, " +
   "status, created_at, people:people!person_id(full_name, preferred_name, email)";
 
 export function submitterName(row: IdeaRow): string {
