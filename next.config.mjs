@@ -15,6 +15,8 @@ const nextConfig = {
     return [
       // The talent Rank page was renamed to Candidate Pool.
       { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
+      // The onboarding deck moved into the private workflows library.
+      { source: '/blueprints/team-onboarding', destination: '/workflows/private/team-onboarding', permanent: true },
     ]
   },
 }

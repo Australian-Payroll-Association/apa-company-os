@@ -277,7 +277,7 @@
 /* SLIDE 2 — Stats */
 .deckRoot .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 32px;
   margin-top: 48px;
   border-top: 1px solid var(--white-12);
@@ -471,6 +471,72 @@
   margin-bottom: 24px;
 }
 
+.deckRoot .big-header .path-def {
+  font-size: clamp(18px, 2vw, 24px);
+  color: var(--white-90);
+  line-height: 1.5;
+  max-width: 860px;
+  margin: 32px auto 0;
+}
+
+/* SLIDE — 18 Protocols */
+.deckRoot .heading-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--mint);
+  text-underline-offset: 6px;
+}
+.deckRoot .proto-groups {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  margin-top: 28px;
+}
+.deckRoot .proto-group h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--mint);
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--white-12);
+}
+.deckRoot .proto-list {
+  list-style: none;
+  counter-reset: proto;
+  margin: 0;
+  padding: 0;
+}
+.deckRoot .proto-list[start='5'] {
+  counter-reset: proto 4;
+}
+.deckRoot .proto-list[start='9'] {
+  counter-reset: proto 8;
+}
+.deckRoot .proto-list[start='14'] {
+  counter-reset: proto 13;
+}
+.deckRoot .proto-list li {
+  counter-increment: proto;
+  font-size: 13px;
+  color: var(--white-90);
+  line-height: 1.4;
+  padding: 7px 0 7px 30px;
+  position: relative;
+  border-bottom: 1px solid var(--white-08);
+}
+.deckRoot .proto-list li::before {
+  content: counter(proto, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white-60);
+  letter-spacing: 0.06em;
+}
+
 /* SLIDE — North Star */
 .deckRoot .northstar-quote {
   font-size: clamp(28px, 3.8vw, 48px);
@@ -500,6 +566,11 @@
   padding: 14px 0 14px 36px;
   position: relative;
   border-bottom: 1px solid var(--white-08);
+}
+.deckRoot .expect-item a {
+  color: var(--mint);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .deckRoot .expect-item::before {
   content: "";
@@ -990,6 +1061,10 @@
   }
   .deckRoot .expect-grid {
     grid-template-columns: 1fr;
+  }
+  .deckRoot .proto-groups {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
   .deckRoot .success-grid {
     grid-template-columns: 1fr;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-const TOTAL = 19
+const TOTAL = 23
 
 export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassName?: string }) {
   const [current, setCurrent] = useState(0)
@@ -148,8 +148,12 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                 <div className="stat-lbl">Years experience</div>
               </div>
               <div className="stat">
-                <div className="stat-num">14</div>
-                <div className="stat-lbl">Active clients</div>
+                <div className="stat-num">4</div>
+                <div className="stat-lbl">Staffing clients</div>
+              </div>
+              <div className="stat">
+                <div className="stat-num">2&ndash;4</div>
+                <div className="stat-lbl">AI Program clients at a time</div>
               </div>
             </div>
           </div>
@@ -469,12 +473,24 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
             <div className="label">Expectations</div>
             <h2 className="heading">How to show up</h2>
             <div className="expect-grid">
+              <div className="expect-item">Plan well</div>
+              <div className="expect-item">Master the stack: Github, Vercel, Supabase, Claude</div>
+              <div className="expect-item">
+                Master the{' '}
+                <a
+                  href="https://infiniteleverage-8.com/blueprints/protocols"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  18 Protocols
+                </a>
+              </div>
+              <div className="expect-item">Get certified: AI-Officer and AI-Engineer</div>
               <div className="expect-item">Be proactive, assertive, confident</div>
               <div className="expect-item">Use data, always</div>
               <div className="expect-item">
                 Think deeply about the business and seek to learn every aspect of it
               </div>
-              <div className="expect-item">Write perfect English, using Claude</div>
               <div className="expect-item">Over-communicate, ask questions, chat frequently</div>
               <div className="expect-item">Be detail-oriented</div>
               <div className="expect-item">Take detailed notes, use notetakers</div>
@@ -520,10 +536,10 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 12. TE Company Tools */}
+        {/* 12. Edge8 Company Tools */}
         <section className={slideClass(11)}>
           <div className="slide-inner">
-            <div className="label">TE Company Tools</div>
+            <div className="label">Edge8 Company Tools</div>
             <h2 className="heading">The stack you&apos;ll use</h2>
             <div className="stack-layout">
               <div className="tools-grid">
@@ -537,22 +553,25 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                   <span className="num">03</span> Quickbooks
                 </div>
                 <div className="tool-chip">
-                  <span className="num">04</span> Perplexity.ai
+                  <span className="num">04</span> Ubersuggest
                 </div>
                 <div className="tool-chip">
-                  <span className="num">05</span> Ubersuggest
+                  <span className="num">05</span> Canva
                 </div>
                 <div className="tool-chip">
-                  <span className="num">06</span> Canva
+                  <span className="num">06</span> HubSpot
                 </div>
                 <div className="tool-chip">
-                  <span className="num">07</span> HubSpot
+                  <span className="num">07</span> AIOlabz.com
                 </div>
                 <div className="tool-chip">
-                  <span className="num">08</span> Thoughtflow
+                  <span className="num">08</span> Resend.com
                 </div>
                 <div className="tool-chip">
-                  <span className="num">09</span> AIOlabz.com
+                  <span className="num">09</span> Brevo.com
+                </div>
+                <div className="tool-chip">
+                  <span className="num">10</span> Edge8.ai Company OS
                 </div>
               </div>
               <div className="power-stack">
@@ -599,39 +618,44 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 14. Daily Check-in */}
+        {/* 14. Daily Multi-Delegate */}
         <section className={slideClass(13)}>
           <div className="slide-inner">
             <div className="label">Daily Rhythm</div>
-            <h2 className="heading">Daily check-in</h2>
+            <h2 className="heading">Multi-Delegate your day</h2>
             <p className="intro">
-              Every day in our channel, post the most important things you need to accomplish today.
+              Every morning, plan your day by delegating it. You are the orchestrator, not the
+              worker.
             </p>
             <ul className="step-list">
               <li className="step-row">
                 <div className="step-num">01</div>
                 <div className="step-body">
-                  <h4>Be specific</h4>
+                  <h4>Plan with your PM agent</h4>
                   <p>
-                    Name the deliverable. Not &quot;work on the deck&quot;, but &quot;ship the v2
-                    outline by 3pm&quot;.
+                    Break the day into named deliverables. Not &quot;work on the deck&quot;, but
+                    &quot;ship the v2 outline by 3pm&quot;.
                   </p>
                 </div>
               </li>
               <li className="step-row">
                 <div className="step-num">02</div>
                 <div className="step-body">
-                  <h4>Be clear</h4>
+                  <h4>Delegate in parallel</h4>
                   <p>
-                    Anyone reading should know what done looks like, without follow-up questions.
+                    Hand tasks to multiple agents at once and keep them all moving. Your leverage is
+                    how many workstreams you can run, not how fast you type.
                   </p>
                 </div>
               </li>
               <li className="step-row">
                 <div className="step-num">03</div>
                 <div className="step-body">
-                  <h4>Flag blockers</h4>
-                  <p>If something is blocking you, name it and say what kind of help you need.</p>
+                  <h4>Post your plan</h4>
+                  <p>
+                    In our channel: what ships today, which agent is doing which piece, and any
+                    blockers with the help you need.
+                  </p>
                 </div>
               </li>
             </ul>
@@ -661,8 +685,11 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
               <li className="step-row">
                 <div className="step-num">02</div>
                 <div className="step-body">
-                  <h4>Record and store</h4>
-                  <p>Take the recording every time and save it to your folder for reference.</p>
+                  <h4>Show up prepared</h4>
+                  <p>
+                    Recordings and AI summaries land in the coaching system automatically. Your job
+                    is to come with what you want to talk about.
+                  </p>
                 </div>
               </li>
               <li className="step-row">
@@ -682,17 +709,113 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 16. Big header: What to expect from me */}
+        {/* 16. Big header: Your Path to Becoming an AI Engineer */}
         <section className={slideClass(15)}>
           <div className="slide-inner big-header">
             <div className="eyebrow">Part 2</div>
+            <h2>Your path to becoming an AI Engineer</h2>
+            <div className="divider center" />
+            <p className="path-def">
+              An AI Engineer is a person who knows how to lead a team of AI to do work, and knows
+              when to involve engineers to review AI&apos;s code.{' '}
+              <span className="accent-mint">Everyone here, no matter the role, will be some flavor of it.</span>
+            </p>
+          </div>
+        </section>
+
+        {/* 17. The 18 Protocols */}
+        <section className={slideClass(16)}>
+          <div className="slide-inner">
+            <div className="label">The Curriculum</div>
+            <h2 className="heading">
+              The{' '}
+              <a
+                href="https://infiniteleverage-8.com/blueprints/protocols"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="heading-link"
+              >
+                18 Protocols
+              </a>
+            </h2>
+            <div className="proto-groups">
+              <div className="proto-group">
+                <h4>Foundation</h4>
+                <ol className="proto-list" start={1}>
+                  <li>CMS is dead: AI is the CMS</li>
+                  <li>The Stack: Claude + GitHub + Vercel + Supabase</li>
+                  <li>Agents: the folder is the agent</li>
+                  <li>Cataloguing: folder structures for agentic development</li>
+                </ol>
+              </div>
+              <div className="proto-group">
+                <h4>Hygiene</h4>
+                <ol className="proto-list" start={5}>
+                  <li>GitHub hygiene: check-in / check-out</li>
+                  <li>Vercel hygiene: domains and DNS</li>
+                  <li>Supabase: data structure basics</li>
+                  <li>Design systems and Claude design</li>
+                </ol>
+              </div>
+              <div className="proto-group">
+                <h4>Building</h4>
+                <ol className="proto-list" start={9}>
+                  <li>Workflow design</li>
+                  <li>Communications: SMS, email, Resend</li>
+                  <li>Admin interfaces: CRM, dashboards</li>
+                  <li>Product planning and epic planning</li>
+                  <li>Epic status: project status tracking</li>
+                </ol>
+              </div>
+              <div className="proto-group">
+                <h4>Working Together</h4>
+                <ol className="proto-list" start={14}>
+                  <li>Planning your day with a PM agent</li>
+                  <li>Working with an engineer to unlock you</li>
+                  <li>User roles on an Infinite Leverage team</li>
+                  <li>AI testing vs human testing</li>
+                  <li>Working with human tokens after you leave</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 18. Certification */}
+        <section className={slideClass(17)}>
+          <div className="slide-inner">
+            <div className="label">Proof, Not Attendance</div>
+            <h2 className="heading">Get certified</h2>
+            <div className="mission-rows">
+              <div className="mission-row">
+                <span className="mission-tag">AI-Officer</span>
+                <p className="mission-text">
+                  Certified to lead <strong>AI Programs</strong>: plan the work, orchestrate the
+                  agents, ship the outcome.
+                </p>
+              </div>
+              <div className="mission-row">
+                <span className="mission-tag">AI-Engineer</span>
+                <p className="mission-text">
+                  Certified to lead a <strong>team of AI</strong> to do work, and to know when to
+                  bring in engineers to review AI&apos;s code.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 19. Big header: What to expect from me */}
+        <section className={slideClass(18)}>
+          <div className="slide-inner big-header">
+            <div className="eyebrow">Part 3</div>
             <h2>What to expect from me</h2>
             <div className="divider center" />
           </div>
         </section>
 
-        {/* 17. Working with Dave */}
-        <section className={slideClass(16)}>
+        {/* 20. Working with Dave */}
+        <section className={slideClass(19)}>
           <div className="slide-inner">
             <div className="label">From Dave</div>
             <h2 className="heading">Working with Dave</h2>
@@ -727,8 +850,8 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 18. Dave's Time */}
-        <section className={slideClass(17)}>
+        {/* 21. Dave's Time */}
+        <section className={slideClass(20)}>
           <div className="slide-inner">
             <div className="label">Dave&apos;s Time</div>
             <h2 className="heading">How my week splits</h2>
@@ -768,8 +891,8 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 19. AI Research / Closing */}
-        <section className={slideClass(18)}>
+        {/* 22. AI Research / Ideas */}
+        <section className={slideClass(21)}>
           <div className="blob b1" />
           <div className="blob b2" />
           <div className="slide-inner closing">
@@ -777,9 +900,33 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
             <div className="divider center" />
             <div className="lines">
               <p>Join the AI Officer community.</p>
-              <p>Learn &amp; share.</p>
-              <p className="mint-line">It&apos;s your job.</p>
+              <p>Learn &amp; share. Two questions, always open:</p>
+              <p>
+                <strong>What should we build?</strong> · <strong>What have I learned?</strong>
+              </p>
+              <p className="mint-line">Post both at edge8.ai/team/ideas. It&apos;s your job.</p>
             </div>
+          </div>
+        </section>
+
+        {/* 23. Your home base / Live demo */}
+        <section className={slideClass(22)}>
+          <div className="slide-inner">
+            <div className="label mint">Live Demo</div>
+            <h2 className="heading">Your home base: edge8.ai/team</h2>
+            <p className="intro">
+              Everything in this deck lives in the team portal. This is where your first day
+              starts.
+            </p>
+            <ul className="theme-list">
+              <li>Start here: your onboarding hub and plan</li>
+              <li>The org chart, team gallery, and time off</li>
+              <li>The ideas backlog</li>
+              <li>The team assistant. Ask it anything</li>
+            </ul>
+            <p className="reward-line">
+              <span className="accent-mint">Let&apos;s take a tour.</span>
+            </p>
           </div>
         </section>
       </div>
