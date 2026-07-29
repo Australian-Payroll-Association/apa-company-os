@@ -34,6 +34,11 @@ const PRIVATE_PAGES = [
     title: 'AI Retreat Week Brief: Australian Payroll Association',
     description: 'Week brief for Tracy Angwin: goal, survey results, and the adaptive payroll training workflows for the 4-day AI Retreat.',
   },
+  {
+    href: '/workflows/private/vung-tau-leg.html',
+    title: 'Bánh Mì Ballers: Saigon + Vung Tau Leg',
+    description: 'Itinerary for the Saigon and Vung Tau leg.',
+  },
 ]
 
 export default function PrivateWorkflowsIndexPage() {

@@ -498,6 +498,9 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
               <div className="expect-item">
                 Don&apos;t be afraid to make mistakes. Fail fast, learn fast
               </div>
+              <div className="expect-item bold">
+                We respect time and never arrive late to meetings
+              </div>
             </div>
           </div>
         </section>
@@ -536,8 +539,144 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
           </div>
         </section>
 
-        {/* 12. Edge8 Company Tools */}
+        {/* 12. Sample Personal Objectives */}
         <section className={slideClass(11)}>
+          <div className="slide-inner">
+            <div className="label">Sample Personal Objectives</div>
+            <h2 className="heading">What good goals look like</h2>
+            <div className="obj-grid">
+              <div className="obj-card">
+                <h4>Increase my AI knowledge</h4>
+                <ol>
+                  <li>Publish 1 learning per month to the team wiki</li>
+                  <li>Create one automated process for my role</li>
+                </ol>
+              </div>
+              <div className="obj-card">
+                <h4>Drive customer value</h4>
+                <ol>
+                  <li>NPS score &gt; 50 for the product I work on</li>
+                  <li>Three automations published to the community</li>
+                </ol>
+              </div>
+              <div className="obj-card">
+                <h4>Contribute to hyper-growth</h4>
+                <ol>
+                  <li>My client team expands by 25%</li>
+                  <li>My product generates 50,000 users by year end</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 13. One-on-Ones */}
+        <section className={slideClass(12)}>
+          <div className="slide-inner">
+            <div className="label">Cadence · Every 2 weeks</div>
+            <h2 className="heading">One-on-ones are yours</h2>
+            <p className="intro">
+              1:1s happen every two weeks and exist for the employee. It&apos;s on you to make them
+              happen and make them count.
+            </p>
+            <ul className="step-list">
+              <li className="step-row">
+                <div className="step-num">01</div>
+                <div className="step-body">
+                  <h4>Make sure they happen</h4>
+                  <p>
+                    Hold the recurring slot every two weeks. Show up. Reschedule if it slips.
+                    Don&apos;t wait to be invited.
+                  </p>
+                </div>
+              </li>
+              <li className="step-row">
+                <div className="step-num">02</div>
+                <div className="step-body">
+                  <h4>Show up prepared</h4>
+                  <p>
+                    Recordings and AI summaries land in the coaching system automatically. Your job
+                    is to come with what you want to talk about.
+                  </p>
+                </div>
+              </li>
+              <li className="step-row">
+                <div className="step-num">03</div>
+                <div className="step-body">
+                  <h4>Maintain your 1:1 doc</h4>
+                  <p>
+                    Keep your goals and success criteria up to date. This is your record of what
+                    you&apos;re working toward.
+                  </p>
+                </div>
+              </li>
+            </ul>
+            <p className="reward-line">
+              <span className="accent-mint">This is how people get rewarded.</span>
+            </p>
+          </div>
+        </section>
+
+        {/* 14. Big header: Your Path to Certification */}
+        <section className={slideClass(13)}>
+          <div className="slide-inner big-header">
+            <div className="eyebrow">Part 2</div>
+            <h2>Your path to certification</h2>
+            <div className="divider center" />
+            <p className="path-def">
+              An AI Engineer is a person who knows how to lead a team of AI to do work, and knows
+              when to involve engineers to review AI&apos;s code.{' '}
+              <span className="accent-mint">Everyone here, no matter the role, will be some flavor of it.</span>
+            </p>
+          </div>
+        </section>
+
+        {/* 15. Daily Multi-Delegate */}
+        <section className={slideClass(14)}>
+          <div className="slide-inner">
+            <div className="label">Daily Rhythm</div>
+            <h2 className="heading">Multi-Delegate your day</h2>
+            <p className="intro">
+              Every morning, plan your day by delegating it. You are the orchestrator, not the
+              worker.
+            </p>
+            <ul className="step-list">
+              <li className="step-row">
+                <div className="step-num">01</div>
+                <div className="step-body">
+                  <h4>Plan with your PM agent</h4>
+                  <p>
+                    Break the day into named deliverables. Not &quot;work on the deck&quot;, but
+                    &quot;ship the v2 outline by 3pm&quot;.
+                  </p>
+                </div>
+              </li>
+              <li className="step-row">
+                <div className="step-num">02</div>
+                <div className="step-body">
+                  <h4>Delegate in parallel</h4>
+                  <p>
+                    Hand tasks to multiple agents at once and keep them all moving. Your leverage is
+                    how many workstreams you can run, not how fast you type.
+                  </p>
+                </div>
+              </li>
+              <li className="step-row">
+                <div className="step-num">03</div>
+                <div className="step-body">
+                  <h4>Post your plan</h4>
+                  <p>
+                    In our channel: what ships today, which agent is doing which piece, and any
+                    blockers with the help you need.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* 16. Edge8 Company Tools */}
+        <section className={slideClass(15)}>
           <div className="slide-inner">
             <div className="label">Edge8 Company Tools</div>
             <h2 className="heading">The stack you&apos;ll use</h2>
@@ -584,142 +723,6 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
                 </ul>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* 13. Sample Personal Objectives */}
-        <section className={slideClass(12)}>
-          <div className="slide-inner">
-            <div className="label">Sample Personal Objectives</div>
-            <h2 className="heading">What good goals look like</h2>
-            <div className="obj-grid">
-              <div className="obj-card">
-                <h4>Increase my AI knowledge</h4>
-                <ol>
-                  <li>Publish 1 learning per month to the team wiki</li>
-                  <li>Create one automated process for my role</li>
-                </ol>
-              </div>
-              <div className="obj-card">
-                <h4>Drive customer value</h4>
-                <ol>
-                  <li>NPS score &gt; 50 for the product I work on</li>
-                  <li>Three automations published to the community</li>
-                </ol>
-              </div>
-              <div className="obj-card">
-                <h4>Contribute to hyper-growth</h4>
-                <ol>
-                  <li>My client team expands by 25%</li>
-                  <li>My product generates 50,000 users by year end</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 14. Daily Multi-Delegate */}
-        <section className={slideClass(13)}>
-          <div className="slide-inner">
-            <div className="label">Daily Rhythm</div>
-            <h2 className="heading">Multi-Delegate your day</h2>
-            <p className="intro">
-              Every morning, plan your day by delegating it. You are the orchestrator, not the
-              worker.
-            </p>
-            <ul className="step-list">
-              <li className="step-row">
-                <div className="step-num">01</div>
-                <div className="step-body">
-                  <h4>Plan with your PM agent</h4>
-                  <p>
-                    Break the day into named deliverables. Not &quot;work on the deck&quot;, but
-                    &quot;ship the v2 outline by 3pm&quot;.
-                  </p>
-                </div>
-              </li>
-              <li className="step-row">
-                <div className="step-num">02</div>
-                <div className="step-body">
-                  <h4>Delegate in parallel</h4>
-                  <p>
-                    Hand tasks to multiple agents at once and keep them all moving. Your leverage is
-                    how many workstreams you can run, not how fast you type.
-                  </p>
-                </div>
-              </li>
-              <li className="step-row">
-                <div className="step-num">03</div>
-                <div className="step-body">
-                  <h4>Post your plan</h4>
-                  <p>
-                    In our channel: what ships today, which agent is doing which piece, and any
-                    blockers with the help you need.
-                  </p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        {/* 15. One-on-Ones */}
-        <section className={slideClass(14)}>
-          <div className="slide-inner">
-            <div className="label">Cadence · Every 2 weeks</div>
-            <h2 className="heading">One-on-ones are yours</h2>
-            <p className="intro">
-              1:1s happen every two weeks and exist for the employee. It&apos;s on you to make them
-              happen and make them count.
-            </p>
-            <ul className="step-list">
-              <li className="step-row">
-                <div className="step-num">01</div>
-                <div className="step-body">
-                  <h4>Make sure they happen</h4>
-                  <p>
-                    Hold the recurring slot every two weeks. Show up. Reschedule if it slips.
-                    Don&apos;t wait to be invited.
-                  </p>
-                </div>
-              </li>
-              <li className="step-row">
-                <div className="step-num">02</div>
-                <div className="step-body">
-                  <h4>Show up prepared</h4>
-                  <p>
-                    Recordings and AI summaries land in the coaching system automatically. Your job
-                    is to come with what you want to talk about.
-                  </p>
-                </div>
-              </li>
-              <li className="step-row">
-                <div className="step-num">03</div>
-                <div className="step-body">
-                  <h4>Maintain your 1:1 doc</h4>
-                  <p>
-                    Keep your goals and success criteria up to date. This is your record of what
-                    you&apos;re working toward.
-                  </p>
-                </div>
-              </li>
-            </ul>
-            <p className="reward-line">
-              <span className="accent-mint">This is how people get rewarded.</span>
-            </p>
-          </div>
-        </section>
-
-        {/* 16. Big header: Your Path to Becoming an AI Engineer */}
-        <section className={slideClass(15)}>
-          <div className="slide-inner big-header">
-            <div className="eyebrow">Part 2</div>
-            <h2>Your path to becoming an AI Engineer</h2>
-            <div className="divider center" />
-            <p className="path-def">
-              An AI Engineer is a person who knows how to lead a team of AI to do work, and knows
-              when to involve engineers to review AI&apos;s code.{' '}
-              <span className="accent-mint">Everyone here, no matter the role, will be some flavor of it.</span>
-            </p>
           </div>
         </section>
 
@@ -790,15 +793,13 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
               <div className="mission-row">
                 <span className="mission-tag">AI-Officer</span>
                 <p className="mission-text">
-                  Certified to lead <strong>AI Programs</strong>: plan the work, orchestrate the
-                  agents, ship the outcome.
+                  <strong>Plans</strong> AI Programs &amp; Workflows.
                 </p>
               </div>
               <div className="mission-row">
                 <span className="mission-tag">AI-Engineer</span>
                 <p className="mission-text">
-                  Certified to lead a <strong>team of AI</strong> to do work, and to know when to
-                  bring in engineers to review AI&apos;s code.
+                  <strong>Builds</strong> them.
                 </p>
               </div>
             </div>

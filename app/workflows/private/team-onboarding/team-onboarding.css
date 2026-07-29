@@ -567,6 +567,11 @@
   position: relative;
   border-bottom: 1px solid var(--white-08);
 }
+.deckRoot .expect-item.bold {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--white);
+}
 .deckRoot .expect-item a {
   color: var(--mint);
   text-decoration: underline;
