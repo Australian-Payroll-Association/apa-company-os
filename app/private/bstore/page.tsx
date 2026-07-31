@@ -7,23 +7,18 @@ const PASSWORD = "Bstore2026";
 const CONTENT_HTML = `
 <style>
   .bstore-doc {
-    --bg: #f6f7f9; --card: #ffffff; --ink: #1c2430; --muted: #5c6b7a;
-    --accent: #2f6df6; --accent-soft: #eaf1ff; --border: #e2e7ee; --line: #eef1f5;
+    --bg: #ffffff; --card: #ffffff; --ink: #101014; --muted: #797c82;
+    --accent: #287BE8; --accent-bright: #3B8CF5; --mint: #6FF2C1;
+    --accent-soft: rgba(40,123,232,0.08); --border: #E6E6E6; --line: #EAEEF2;
     background: var(--bg); color: var(--ink);
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font: 16px/1.6 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
     padding: 32px 16px; min-height: 100vh;
-  }
-  @media (prefers-color-scheme: dark) {
-    .bstore-doc {
-      --bg: #0f141a; --card: #161c24; --ink: #e6ebf1; --muted: #9aa7b4;
-      --accent: #6ea0ff; --accent-soft: #1b2740; --border: #263140; --line: #202932;
-    }
   }
   .bstore-doc * { box-sizing: border-box; }
   .bstore-doc .wrap { max-width: 860px; margin: 0 auto; }
   .bstore-doc header {
-    background: linear-gradient(135deg, var(--accent) 0%, #6a4df6 100%);
-    color: #fff; border-radius: 16px; padding: 32px 28px; margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
+    color: #fff; border-radius: 20px; padding: 32px 28px; margin-bottom: 24px;
   }
   .bstore-doc header h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; }
   .bstore-doc header .meta { font-size: 14px; opacity: 0.92; line-height: 1.8; }
@@ -365,9 +360,8 @@ export default function BstoreScopePage() {
         alignItems: "center",
         justifyContent: "center",
         padding: "24px",
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        background: "#f6f7f9",
+        fontFamily: "'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif",
+        background: "#ffffff",
       }}
     >
       <form
@@ -376,16 +370,16 @@ export default function BstoreScopePage() {
           width: "100%",
           maxWidth: "360px",
           background: "#fff",
-          border: "1px solid #e2e7ee",
-          borderRadius: "14px",
+          border: "1px solid #E6E6E6",
+          borderRadius: "20px",
           padding: "28px 26px",
-          boxShadow: "0 4px 24px rgba(20,30,45,0.06)",
+          boxShadow: "0 4px 24px rgba(16,16,20,0.06)",
         }}
       >
-        <h1 style={{ margin: "0 0 4px", fontSize: "20px", color: "#1c2430" }}>
+        <h1 style={{ margin: "0 0 4px", fontSize: "20px", color: "#101014" }}>
           Bstore - Project Scope
         </h1>
-        <p style={{ margin: "0 0 18px", fontSize: "14px", color: "#5c6b7a" }}>
+        <p style={{ margin: "0 0 18px", fontSize: "14px", color: "#797c82" }}>
           Enter the access code to view this document.
         </p>
         <input
@@ -398,8 +392,8 @@ export default function BstoreScopePage() {
             width: "100%",
             padding: "11px 12px",
             fontSize: "15px",
-            border: `1px solid ${error ? "#e0564f" : "#d5dce4"}`,
-            borderRadius: "9px",
+            border: `1px solid ${error ? "#e0564f" : "#A8B2BD"}`,
+            borderRadius: "10px",
             outline: "none",
             marginBottom: error ? "8px" : "16px",
           }}
@@ -417,9 +411,9 @@ export default function BstoreScopePage() {
             fontSize: "15px",
             fontWeight: 600,
             color: "#fff",
-            background: "#2f6df6",
+            background: "#287BE8",
             border: "none",
-            borderRadius: "9px",
+            borderRadius: "40px",
             cursor: "pointer",
           }}
         >
