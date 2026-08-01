@@ -1,0 +1,63 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { MY_RETREAT_COOKIE, verifyAccessGrant } from "@/lib/my-retreat/access";
+import { getEventBySlug } from "@/lib/events-server";
+import { getEventAgenda } from "@/lib/admin/event-agenda";
+import { formatEventDates } from "@/lib/events";
+import { RetreatAgenda } from "@/components/retreat/RetreatAgenda";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "My Retreat", robots: { index: false, follow: false } };
+
+// The gated guest hub. Verifies the signed cookie matches this retreat, then
+// renders the retreat basics (from the events row) and the guest itinerary
+// (guest-visible agenda blocks). Staff assignments are stripped before render —
+// the work-schedule half never reaches the guest.
+export default async function MyRetreatHub({ params }: { params: { slug: string } }) {
+  const token = cookies().get(MY_RETREAT_COOKIE)?.value;
+  const grant = await verifyAccessGrant(token);
+  if (!grant || grant.eventSlug !== params.slug) redirect("/my-retreat");
+
+  const event = await getEventBySlug(params.slug);
+  if (!event) redirect("/my-retreat");
+
+  // Defense in depth: drop staff before the guest render.
+  const blocks = (await getEventAgenda(event.id)).map((b) => ({ ...b, staff: [] }));
+
+  const firstName = grant.name?.trim().split(/\s+/)[0] ?? null;
+
+  return (
+    <main style={{ maxWidth: 820, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <header style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6 }}>
+          {firstName ? `Welcome, ${firstName}` : "My Retreat"}
+        </div>
+        <h1 style={{ fontSize: 30, margin: "6px 0 8px", lineHeight: 1.15 }}>{event.title}</h1>
+        <div style={{ opacity: 0.8 }}>
+          {formatEventDates(event.starts_at, event.ends_at, event.timezone)}
+          {event.location ? ` · ${event.location}` : ""}
+        </div>
+        {event.cover_image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.cover_image_url}
+            alt={event.title}
+            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 14, marginTop: 18 }}
+          />
+        )}
+      </header>
+
+      {event.description && (
+        <section style={{ marginBottom: 32, lineHeight: 1.6, fontSize: 17 }}>
+          <p style={{ whiteSpace: "pre-line", margin: 0 }}>{event.description}</p>
+        </section>
+      )}
+
+      <section>
+        <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>Your itinerary</h2>
+        <RetreatAgenda blocks={blocks} view="guest" />
+      </section>
+    </main>
+  );
+}
