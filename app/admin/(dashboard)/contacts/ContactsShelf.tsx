@@ -17,6 +17,7 @@ import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { Person360 } from "@/lib/admin/contacts";
 import { PersonEditForm } from "./[id]/PersonEditForm";
 import { getPersonShelf } from "./actions";
+import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 
 // Client-owned shelf for the contacts list. One drawer at the provider level;
 // rows push the selected contact into context and related data (companies,
@@ -111,9 +112,19 @@ function ContactShelfBody({ row }: { row: ContactRow }) {
   }, [load]);
 
   const person = data?.person;
+  const primaryCompany = data?.companies.find((c) => c.is_primary) ?? data?.companies[0] ?? null;
 
   return (
     <div className="admin-shelf-sections">
+      <CrmCommandBar
+        kind="contact"
+        id={row.id}
+        name={data?.person.full_name || row.full_name || row.email}
+        archived={data ? !!data.person.archived_at : !!row.archived_at}
+        assumeCompanyId={primaryCompany?.company_id ?? null}
+        onChanged={() => void load()}
+      />
+
       <section>
         <div className="admin-shelf-heading">
           Details

@@ -11,6 +11,7 @@ import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { PersonEditForm } from "./PersonEditForm";
 import { PersonDangerZone } from "./PersonDangerZone";
 import { PromoteButton } from "./PromoteButton";
+import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 import { ApplicantStatusSelect } from "@/components/admin/ApplicantStatusSelect";
 import { formatCents, formatDate, humanize, timeAgo } from "@/lib/admin/format";
 
@@ -31,7 +32,7 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
   const [data, portalMemberships, affiliate] = await Promise.all([
     getPerson360(params.id),
     getPortalMembershipsForPerson(params.id),
-    getAffiliate360(params.id),
+    getAffiliate360({ personId: params.id }),
   ]);
   if (!data) notFound();
 
@@ -317,30 +318,39 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
         title={name}
         sub={person.email}
         action={
-          <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {person.archived_at && <Badge tone="neutral">Archived</Badge>}
-            {person.do_not_contact && <Badge tone="err">Do not contact</Badge>}
-            {person.is_team_member && <Badge tone="info">Team</Badge>}
-            {isCustomer && <Badge tone="ok">Customer</Badge>}
-            {!isCustomer && lead && (
-              <Badge tone="info">Lead · {humanize(lead.status)}</Badge>
-            )}
-            {person.persona && <Badge>{humanize(person.persona)}</Badge>}
-            {isApplicant && latestApplication && (
-              <ApplicantStatusSelect
-                applicationId={latestApplication.id}
-                status={latestApplication.status}
-                label="Applicant status"
-              />
-            )}
-            {!isApplicant &&
-              !person.do_not_contact &&
-              !person.is_team_member &&
-              !isCustomer &&
-              (!lead || ["unqualified", "nurture"].includes(lead.status)) && (
-                <PromoteButton personId={person.id} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              {person.archived_at && <Badge tone="neutral">Archived</Badge>}
+              {person.do_not_contact && <Badge tone="err">Do not contact</Badge>}
+              {person.is_team_member && <Badge tone="info">Team</Badge>}
+              {isCustomer && <Badge tone="ok">Customer</Badge>}
+              {!isCustomer && lead && (
+                <Badge tone="info">Lead · {humanize(lead.status)}</Badge>
               )}
-          </span>
+              {person.persona && <Badge>{humanize(person.persona)}</Badge>}
+              {isApplicant && latestApplication && (
+                <ApplicantStatusSelect
+                  applicationId={latestApplication.id}
+                  status={latestApplication.status}
+                  label="Applicant status"
+                />
+              )}
+              {!isApplicant &&
+                !person.do_not_contact &&
+                !person.is_team_member &&
+                !isCustomer &&
+                (!lead || ["unqualified", "nurture"].includes(lead.status)) && (
+                  <PromoteButton personId={person.id} />
+                )}
+            </span>
+            <CrmCommandBar
+              kind="contact"
+              id={person.id}
+              name={name}
+              archived={!!person.archived_at}
+              assumeCompanyId={primaryCompany?.company_id ?? null}
+            />
+          </div>
         }
       />
 
@@ -411,7 +421,6 @@ export default async function ContactDetailPage({ params }: { params: { id: stri
             <PersonDangerZone
               personId={person.id}
               personName={name}
-              archived={!!person.archived_at}
             />
           </div>
         </div>

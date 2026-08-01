@@ -25,10 +25,13 @@ import {
   moveDealStage,
   reorderDeals,
   restoreDeal,
+  searchCompanies,
   searchPeople,
   setDealReferrer,
+  setDealReferrerCompany,
   updateDeal,
   type Communication,
+  type CompanyHit,
   type PersonHit,
 } from "./actions";
 import { HANDOFF_COLUMN_ID } from "./constants";
@@ -65,6 +68,8 @@ export type DealCard = {
   updatedAt: string | null;
   referrerId: string | null;
   referrerName: string | null;
+  referrerCompanyId: string | null;
+  referrerCompanyName: string | null;
 };
 
 const CURRENCIES = ["usd", "eur", "gbp", "aud", "sgd", "vnd"];
@@ -97,7 +102,7 @@ function idleDays(updatedAt: string | null): number | null {
 // trimmed + lowercased. Matches title, contact, company, referrer and source.
 function cardMatches(c: DealCard, query: string): boolean {
   if (!query) return true;
-  return [c.title, c.personName, c.companyName, c.referrerName, c.source].some((v) =>
+  return [c.title, c.personName, c.companyName, c.referrerName, c.referrerCompanyName, c.source].some((v) =>
     v ? v.toLowerCase().includes(query) : false,
   );
 }
@@ -1069,6 +1074,13 @@ export function DealDetail({
         onChange={(referrerId, referrerName) => onPatch({ referrerId, referrerName })}
       />
 
+      <ReferrerCompanyField
+        dealId={card.id}
+        referrerCompanyId={card.referrerCompanyId}
+        referrerCompanyName={card.referrerCompanyName}
+        onChange={(referrerCompanyId, referrerCompanyName) => onPatch({ referrerCompanyId, referrerCompanyName })}
+      />
+
       <div className="admin-form">
         <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
           <AutosaveIndicator status={dealStatus} />
@@ -1458,6 +1470,168 @@ function ReferrerField({
             </button>
             <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")} disabled={busy}>
               Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {err && (
+        <div className="admin-alert admin-alert--err" style={{ marginTop: 8 }}>
+          {err}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The deal's referring company — the org that sent the introduction. Type to
+// search existing companies and pick one. Separate from the person referrer
+// above; companies are picked here, not created. One referring company per deal.
+function ReferrerCompanyField({
+  dealId,
+  referrerCompanyId,
+  referrerCompanyName,
+  onChange,
+}: {
+  dealId: string;
+  referrerCompanyId: string | null;
+  referrerCompanyName: string | null;
+  onChange: (referrerCompanyId: string | null, referrerCompanyName: string | null) => void;
+}) {
+  const [mode, setMode] = useState<"idle" | "search">("idle");
+  const [term, setTerm] = useState("");
+  const [hits, setHits] = useState<CompanyHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Debounced typeahead, only while the search box is open.
+  useEffect(() => {
+    if (mode !== "search") return;
+    const q = term.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const r = await searchCompanies(q);
+      setHits(r);
+      setSearching(false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [term, mode]);
+
+  function reset() {
+    setMode("idle");
+    setTerm("");
+    setHits([]);
+    setErr(null);
+  }
+
+  async function link(hit: CompanyHit) {
+    setBusy(true);
+    setErr(null);
+    const r = await setDealReferrerCompany(dealId, hit.id);
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    onChange(r.referrerCompany?.id ?? null, r.referrerCompany?.name ?? null);
+    reset();
+  }
+
+  async function clear() {
+    setBusy(true);
+    setErr(null);
+    const r = await setDealReferrerCompany(dealId, null);
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    onChange(null, null);
+    reset();
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="admin-label" style={{ marginBottom: 6 }}>
+        Referring company
+      </div>
+
+      {mode === "idle" &&
+        (referrerCompanyId ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <Link href={`/admin/revenue/companies/${referrerCompanyId}`} className="admin-cell-strong">
+              {referrerCompanyName || "View company"}
+            </Link>
+            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")} disabled={busy}>
+              Change
+            </button>
+            <button type="button" className="admin-btn admin-btn--sm" onClick={clear} disabled={busy}>
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")}>
+            Add referring company
+          </button>
+        ))}
+
+      {mode === "search" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input
+            className="admin-input"
+            autoFocus
+            placeholder="Search companies by name…"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+          />
+          {term.trim().length >= 2 && (
+            <div
+              style={{
+                border: "1px solid var(--admin-line)",
+                borderRadius: 8,
+                overflow: "hidden",
+                maxHeight: 220,
+                overflowY: "auto",
+              }}
+            >
+              {searching ? (
+                <div className="admin-hint" style={{ padding: "8px 10px" }}>
+                  Searching…
+                </div>
+              ) : hits.length === 0 ? (
+                <div className="admin-hint" style={{ padding: "8px 10px" }}>
+                  No matching companies.
+                </div>
+              ) : (
+                hits.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => link(h)}
+                    disabled={busy}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: 2,
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "var(--admin-surface)",
+                      border: "none",
+                      borderBottom: "1px solid var(--admin-line-soft)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span className="admin-cell-strong">{h.name || "Unnamed company"}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="admin-btn admin-btn--sm" onClick={reset}>
+              Cancel
             </button>
           </div>
         </div>

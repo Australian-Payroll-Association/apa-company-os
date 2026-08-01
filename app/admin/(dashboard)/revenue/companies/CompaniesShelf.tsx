@@ -18,6 +18,7 @@ import type { Company360 } from "@/lib/admin/companies";
 import { CompanyEditForm } from "./CompanyEditForm";
 import { getCompanyShelf } from "./actions";
 import { activateAffiliate, deactivateAffiliate } from "../affiliates/actions";
+import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 
 // Client-owned shelf for the companies list. One drawer lives at the provider
 // level; rows only push the selected company into context. Related data
@@ -155,6 +156,16 @@ function CompanyShelfBody({ row }: { row: CompanyRow }) {
 
   return (
     <div className="admin-shelf-sections">
+      <CrmCommandBar
+        kind="company"
+        id={row.id}
+        name={data?.company.name || row.name || "(no name)"}
+        archived={data ? !!data.company.archived_at : !!row.archived_at}
+        assumeCompanyId={row.id}
+        affiliate={data ? { active: !!data.affiliate?.active, code: data.affiliate?.code ?? null } : null}
+        onChanged={() => void load()}
+      />
+
       <section>
         <div className="admin-shelf-heading">Contacts</div>
         {loading ? (
