@@ -7,7 +7,7 @@ import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { RegistrationStatus } from "@/lib/events";
-import { addManualRegistration, markRemainingNoShow, promoteFromWaitlist, setCheckedIn } from "./actions";
+import { addManualRegistration, markRemainingNoShow, promoteFromWaitlist, setCheckedIn, setRegistrationPayment } from "./actions";
 
 export type RosterTier = { id: string; title: string; tier: string | null; amountCents: number; currency: string };
 
@@ -170,6 +170,7 @@ export function RosterTab({
                 <th>Attendee</th>
                 <th>Tier</th>
                 <th>Status</th>
+                <th>Payment</th>
                 <th style={{ textAlign: "right" }}>Guests</th>
                 <th>Registered</th>
                 <th>Checked in</th>
@@ -179,7 +180,7 @@ export function RosterTab({
             <tbody>
               {registrations.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="admin-empty">No registrations yet.</div>
                   </td>
                 </tr>
@@ -205,6 +206,9 @@ export function RosterTab({
                         {humanize(r.status)}
                         {r.status === "waitlisted" && r.waitlistPosition ? ` #${r.waitlistPosition}` : ""}
                       </Badge>
+                    </td>
+                    <td>
+                      <PaymentCell eventId={eventId} reg={r} onDone={() => router.refresh()} />
                     </td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                       {r.guestCount}
@@ -263,5 +267,64 @@ function RowActions({ eventId, reg, onDone }: { eventId: string; reg: RosterRegi
     >
       {reg.status === "attended" ? "Undo check-in" : "Check in"}
     </button>
+  );
+}
+
+// Inline manual-payment editor for one roster row. Shows the current amount (or
+// "Set amount"); editing records a paid order via setRegistrationPayment.
+function PaymentCell({ eventId, reg, onDone }: { eventId: string; reg: RosterRegistration; onDone: () => void }) {
+  const current = reg.order?.amountUsdCents ?? null;
+  const [editing, setEditing] = useState(false);
+  const [amount, setAmount] = useState(current != null ? String(current / 100) : "");
+  const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save(clear = false) {
+    setPending(true);
+    setErr(null);
+    const res = await setRegistrationPayment(eventId, reg.id, { amountUsd: clear ? 0 : Number(amount) });
+    setPending(false);
+    if (!res.ok) {
+      setErr(res.error);
+      return;
+    }
+    setEditing(false);
+    onDone();
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" className="admin-btn admin-btn--sm" onClick={() => setEditing(true)}>
+        {current != null ? formatCents(current, "usd") : <span className="admin-cell-muted">Set amount</span>}
+      </button>
+    );
+  }
+
+  return (
+    <span style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+      <span>$</span>
+      <input
+        className="admin-input"
+        style={{ width: 90 }}
+        type="number"
+        min={0}
+        step="0.01"
+        value={amount}
+        autoFocus
+        onChange={(e) => setAmount(e.target.value)}
+      />
+      <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" disabled={pending} onClick={() => save(false)}>
+        Save
+      </button>
+      {current != null && (
+        <button type="button" className="admin-btn admin-btn--sm" disabled={pending} onClick={() => save(true)}>
+          Clear
+        </button>
+      )}
+      <button type="button" className="admin-btn admin-btn--sm" disabled={pending} onClick={() => setEditing(false)}>
+        ✕
+      </button>
+      {err && <span style={{ color: "#a01212", fontSize: 12 }}>{err}</span>}
+    </span>
   );
 }
