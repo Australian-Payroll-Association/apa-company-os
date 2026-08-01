@@ -62,7 +62,7 @@ export default async function MyRetreatHub({ params }: { params: { slug: string 
   const firstName = grant.name?.trim().split(/\s+/)[0] ?? null;
 
   return (
-    <main style={{ maxWidth: 780, margin: "0 auto", padding: "clamp(40px, 8vh, 110px) 20px 96px" }}>
+    <main style={{ maxWidth: 780, margin: "0 auto", padding: "clamp(104px, 14vh, 168px) 20px 96px" }}>
       <header style={{ marginBottom: 36, paddingBottom: 24, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
         <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.55 }}>
           {firstName ? `Welcome, ${firstName}` : "My Retreat"}
