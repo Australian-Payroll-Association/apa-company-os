@@ -62,13 +62,13 @@ export default async function MyRetreatHub({ params }: { params: { slug: string 
   const firstName = grant.name?.trim().split(/\s+/)[0] ?? null;
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: "32px 20px 80px" }}>
-      <header style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6 }}>
+    <main style={{ maxWidth: 780, margin: "0 auto", padding: "clamp(40px, 8vh, 110px) 20px 96px" }}>
+      <header style={{ marginBottom: 36, paddingBottom: 24, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.55 }}>
           {firstName ? `Welcome, ${firstName}` : "My Retreat"}
         </div>
-        <h1 style={{ fontSize: 30, margin: "6px 0 8px", lineHeight: 1.15 }}>{event.title}</h1>
-        <div style={{ opacity: 0.8 }}>
+        <h1 style={{ fontSize: 34, margin: "8px 0 10px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>{event.title}</h1>
+        <div style={{ opacity: 0.75, fontSize: 16 }}>
           {formatEventDates(event.starts_at, event.ends_at, event.timezone)}
           {event.location ? ` · ${event.location}` : ""}
         </div>

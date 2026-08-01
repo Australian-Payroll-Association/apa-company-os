@@ -45,6 +45,7 @@ type EventDbRow = {
   archived_at: string | null;
   feedback_survey_id: string | null;
   attendee_count_override: number | null;
+  metadata: Record<string, unknown> | null;
 };
 
 type TierDbRow = {
@@ -87,7 +88,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     companyOs
       .from("events")
       .select(
-        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override"
+        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override, metadata"
       )
       .eq("id", params.id)
       .maybeSingle(),
@@ -207,6 +208,28 @@ export default async function EventDetailPage({ params }: { params: { id: string
     }
   }
 
+  // My Retreat access code (from the event metadata) and the guest hub link.
+  const accessCode = typeof event.metadata?.access_code === "string" ? (event.metadata.access_code as string) : null;
+  const myRetreatUrl = `${origin}/my-retreat/${event.slug}`;
+
+  // Feedback results: survey responses stamped with this event's cohort_slug,
+  // tallied per survey.
+  const { data: fbRows } = await companyOs
+    .from("survey_responses")
+    .select("submitted_at, surveys(id, slug, name)")
+    .eq("cohort_slug", event.slug);
+  const fbBySurvey = new Map<string, { id: string; name: string; slug: string; count: number; last: string | null }>();
+  for (const r of (fbRows ?? []) as { submitted_at: string | null; surveys: { id: string; slug: string; name: string } | { id: string; slug: string; name: string }[] | null }[]) {
+    const s = one(r.surveys);
+    if (!s) continue;
+    const cur = fbBySurvey.get(s.id) ?? { id: s.id, name: s.name, slug: s.slug, count: 0, last: null };
+    cur.count += 1;
+    if (r.submitted_at && (!cur.last || r.submitted_at > cur.last)) cur.last = r.submitted_at;
+    fbBySurvey.set(s.id, cur);
+  }
+  const feedback = Array.from(fbBySurvey.values()).sort((a, b) => b.count - a.count);
+  const feedbackTotal = feedback.reduce((s, f) => s + f.count, 0);
+
   const overview = (
     <>
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
@@ -219,6 +242,51 @@ export default async function EventDetailPage({ params }: { params: { id: string
         <MetricCard label="Checked in" value={checkedInCount} sub={`of ${registeredSeats || 0} registered`} />
         <MetricCard label="Revenue" value={formatCents(collectedUsdCents, "usd")} sub="USD · registered+" />
       </div>
+
+      {(accessCode || feedback.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 20 }}>
+          {accessCode && (
+            <div className="admin-card admin-section-card">
+              <div className="admin-card-title">My Retreat access</div>
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div>
+                  <div className="admin-cell-muted" style={{ fontSize: 12 }}>Access code</div>
+                  <code className="admin-cell-mono" style={{ fontSize: 20, fontWeight: 700 }}>{accessCode}</code>
+                </div>
+                <div>
+                  <div className="admin-cell-muted" style={{ fontSize: 12 }}>Guest link</div>
+                  <a className="admin-cell-mono" href={myRetreatUrl} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all" }}>
+                    {origin}/my-retreat
+                  </a>
+                </div>
+                <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                  Guests enter the code, then their email, to open their itinerary and surveys.
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="admin-card admin-section-card">
+            <div className="admin-card-title">Feedback ({feedbackTotal})</div>
+            {feedback.length === 0 ? (
+              <div className="admin-empty" style={{ marginTop: 10 }}>No survey responses yet for this event.</div>
+            ) : (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                {feedback.map((f) => (
+                  <div key={f.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+                    <Link href={`/admin/operations/surveys/${f.id}`} style={{ fontWeight: 600 }}>
+                      {f.name}
+                    </Link>
+                    <span className="admin-cell-muted" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                      {f.count} {f.count === 1 ? "response" : "responses"}
+                      {f.last ? ` · last ${formatDate(f.last)}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: feedbackQr ? "1fr 1fr" : "1fr", gap: 20 }}>
         <QrBlock title="Signup link" url={signupUrl} png={signupQr} downloadName={`${event.slug}-signup-qr.png`} />

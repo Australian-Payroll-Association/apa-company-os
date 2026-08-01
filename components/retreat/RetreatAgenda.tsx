@@ -30,11 +30,15 @@ export function RetreatAgenda({ blocks, view }: { blocks: AgendaBlock[]; view: "
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       {days.map((day) => (
         <section key={day.dayIndex}>
-          <header style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 600, fontSize: 16 }}>{day.dayLabel || `Day ${day.dayIndex}`}</div>
-            {day.dayDate && (
-              <div style={{ ...timeStyle, marginTop: 2 }}>{formatDay(day.dayDate)}</div>
-            )}
+          <header style={{ marginBottom: 8, display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span
+              aria-hidden
+              style={{ width: 8, height: 8, borderRadius: 999, background: "var(--accent-2, #111)", flexShrink: 0 }}
+            />
+            <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em" }}>
+              {day.dayLabel || `Day ${day.dayIndex}`}
+            </div>
+            {!day.dayLabel && day.dayDate && <div style={timeStyle}>{formatDay(day.dayDate)}</div>}
           </header>
 
           <div style={{ display: "flex", flexDirection: "column" }}>
