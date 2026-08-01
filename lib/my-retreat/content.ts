@@ -16,7 +16,7 @@ export const RETREAT_SURVEYS: RetreatSurvey[] = [
   {
     stage: "Before",
     slug: "ai-journey",
-    title: "AI Journey — baseline",
+    title: "AI Journey baseline",
     description: "A quick read on where you are with AI today. Do this before the retreat starts.",
   },
   {

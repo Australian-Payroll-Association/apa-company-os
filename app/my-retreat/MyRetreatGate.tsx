@@ -57,7 +57,7 @@ export function MyRetreatGate({ initialCode = "" }: { initialCode?: string }) {
       const data = await res.json();
       if (res.status === 404 && data.needName) {
         setNeedName(true);
-        setError("We don't have that email on file — add your name to continue.");
+        setError("We don't have that email on file. Add your name to continue.");
         return;
       }
       if (!res.ok || !data.ok) {
@@ -78,7 +78,7 @@ export function MyRetreatGate({ initialCode = "" }: { initialCode?: string }) {
       <p style={{ margin: "0 0 18px", opacity: 0.75, fontSize: 15 }}>
         {stage === "code"
           ? "Enter the access code from your retreat invitation."
-          : `${title} — enter your email to continue.`}
+          : `${title}. Enter your email to continue.`}
       </p>
 
       {error && <div style={alert}>{error}</div>}
@@ -128,7 +128,7 @@ export function MyRetreatGate({ initialCode = "" }: { initialCode?: string }) {
 
 const card: React.CSSProperties = {
   maxWidth: 420,
-  margin: "8vh auto",
+  margin: "0 auto",
   padding: "28px 26px",
   border: "1px solid rgba(0,0,0,0.1)",
   borderRadius: 14,

@@ -49,7 +49,7 @@ export function SurveyCards({ items }: { items: SurveyCard[] }) {
             <div style={{ fontWeight: 600, margin: "4px 0 6px" }}>{s.title}</div>
             <p style={{ margin: "0 0 10px", fontSize: 14, opacity: 0.8, lineHeight: 1.5 }}>{s.description}</p>
             <span style={{ fontWeight: 600, fontSize: 14, color: s.completed ? "#148c50" : "var(--ink, #111)" }}>
-              {s.completed ? "✓ Completed — edit your answers" : "Open survey →"}
+              {s.completed ? "✓ Completed. Edit your answers" : "Open survey →"}
             </span>
           </a>
         ))}

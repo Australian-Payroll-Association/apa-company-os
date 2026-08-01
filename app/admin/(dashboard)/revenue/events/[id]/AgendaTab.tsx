@@ -242,14 +242,14 @@ function BlockFormCard({
           <input className="admin-input" type="number" min={1} value={form.dayIndex} onChange={(e) => set({ dayIndex: e.target.value })} />
         </Field>
         <Field label="Day label">
-          <input className="admin-input" value={form.dayLabel} placeholder="Day 1 — Arrive & begin" onChange={(e) => set({ dayLabel: e.target.value })} />
+          <input className="admin-input" value={form.dayLabel} placeholder="Day 1: Arrive & begin" onChange={(e) => set({ dayLabel: e.target.value })} />
         </Field>
         <Field label="Day date">
           <input className="admin-input" type="date" value={form.dayDate} onChange={(e) => set({ dayDate: e.target.value })} />
         </Field>
         <Field label="Period">
           <select className="admin-select" value={form.period} onChange={(e) => set({ period: e.target.value as BlockForm["period"] })}>
-            <option value="">—</option>
+            <option value="">None</option>
             {AGENDA_PERIODS.map((p) => (
               <option key={p} value={p}>
                 {PERIOD_LABELS[p]}
