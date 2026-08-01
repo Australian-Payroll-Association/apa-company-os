@@ -16,6 +16,7 @@ import { getEventPnlLines } from "@/lib/admin/event-pnl";
 import { PnlTab } from "./PnlTab";
 import { getEventAgenda } from "@/lib/admin/event-agenda";
 import { AgendaTab } from "./AgendaTab";
+import { TeamMembersTab } from "./TeamMembersTab";
 
 export const dynamic = "force-dynamic";
 
@@ -400,7 +401,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
       <Tabs
         tabs={[
           { key: "overview", label: "Overview", content: overview },
-          { key: "roster", label: "Roster", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
+          { key: "roster", label: "Attendees", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
           { key: "revenue", label: "Revenue", content: revenue },
           {
             key: "pnl",
@@ -419,6 +420,11 @@ export default async function EventDetailPage({ params }: { params: { id: string
             label: "Agenda",
             count: agendaBlocks.length,
             content: <AgendaTab eventId={event.id} blocks={agendaBlocks} people={pnlPeople} cloneSources={cloneSources} />,
+          },
+          {
+            key: "team",
+            label: "Team Members",
+            content: <TeamMembersTab blocks={agendaBlocks} />,
           },
           { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} talks={talkOptions} selectedTalkIds={selectedTalkIds} /> },
         ]}
