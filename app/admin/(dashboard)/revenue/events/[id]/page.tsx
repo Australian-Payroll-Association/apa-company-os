@@ -14,6 +14,8 @@ import { RosterTab, type RosterRegistration, type RosterTier } from "./RosterTab
 import { EventSettings, type EventSettingsData, type SettingsTier, type SurveyOption } from "./EventSettings";
 import { getEventPnlLines } from "@/lib/admin/event-pnl";
 import { PnlTab } from "./PnlTab";
+import { getEventAgenda } from "@/lib/admin/event-agenda";
+import { AgendaTab } from "./AgendaTab";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +83,7 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes, agendaBlocks, cloneSourcesRes] = await Promise.all([
     companyOs
       .from("events")
       .select(
@@ -115,7 +117,20 @@ export default async function EventDetailPage({ params }: { params: { id: string
       .select("person_id, full_name")
       .not("person_id", "is", null)
       .order("full_name", { ascending: true }),
+    getEventAgenda(params.id),
+    companyOs
+      .from("events")
+      .select("id, title")
+      .is("archived_at", null)
+      .neq("id", params.id)
+      .order("starts_at", { ascending: false, nullsFirst: false })
+      .limit(50),
   ]);
+
+  const cloneSources = ((cloneSourcesRes.data ?? []) as { id: string; title: string }[]).map((e) => ({
+    id: e.id,
+    title: e.title,
+  }));
 
   const pnlPeople = ((peopleRes.data ?? []) as { person_id: string; full_name: string | null }[])
     .filter((p) => p.person_id)
@@ -324,6 +339,12 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 people={pnlPeople}
               />
             ),
+          },
+          {
+            key: "agenda",
+            label: "Agenda",
+            count: agendaBlocks.length,
+            content: <AgendaTab eventId={event.id} blocks={agendaBlocks} people={pnlPeople} cloneSources={cloneSources} />,
           },
           { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} talks={talkOptions} selectedTalkIds={selectedTalkIds} /> },
         ]}
