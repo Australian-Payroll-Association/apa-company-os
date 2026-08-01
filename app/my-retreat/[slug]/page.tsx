@@ -1,11 +1,35 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { companyOs } from "@/lib/supabase";
 import { MY_RETREAT_COOKIE, verifyAccessGrant } from "@/lib/my-retreat/access";
 import { getEventBySlug } from "@/lib/events-server";
 import { getEventAgenda } from "@/lib/admin/event-agenda";
 import { formatEventDates } from "@/lib/events";
+import { RETREAT_SURVEYS, getRetreatResources } from "@/lib/my-retreat/content";
 import { RetreatAgenda } from "@/components/retreat/RetreatAgenda";
+import { SurveyCards, ResourceCards, type SurveyCard } from "./HubSections";
+
+// Which of the standard surveys this guest has already answered for this
+// retreat: a response tagged with the retreat's cohort_slug and matching the
+// guest by person_id or email. Attendee sets are tiny, so one small read.
+async function completedSurveySlugs(cohort: string, personId?: string, email?: string): Promise<Set<string>> {
+  const or: string[] = [];
+  if (personId) or.push(`person_id.eq.${personId}`);
+  if (email) or.push(`respondent_email.ilike.${email}`);
+  if (or.length === 0) return new Set();
+  const { data } = await companyOs
+    .from("survey_responses")
+    .select("surveys(slug)")
+    .eq("cohort_slug", cohort)
+    .or(or.join(","));
+  const slugs = new Set<string>();
+  for (const r of (data ?? []) as { surveys: { slug: string } | { slug: string }[] | null }[]) {
+    const s = Array.isArray(r.surveys) ? r.surveys[0]?.slug : r.surveys?.slug;
+    if (s) slugs.add(s);
+  }
+  return slugs;
+}
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "My Retreat", robots: { index: false, follow: false } };
@@ -24,6 +48,16 @@ export default async function MyRetreatHub({ params }: { params: { slug: string 
 
   // Defense in depth: drop staff before the guest render.
   const blocks = (await getEventAgenda(event.id)).map((b) => ({ ...b, staff: [] }));
+
+  const done = await completedSurveySlugs(event.slug, grant.personId, grant.email);
+  const surveyCards: SurveyCard[] = RETREAT_SURVEYS.map((s) => ({
+    stage: s.stage,
+    title: s.title,
+    description: s.description,
+    href: `/surveys/${s.slug}?cohort=${encodeURIComponent(event.slug)}`,
+    completed: done.has(s.slug),
+  }));
+  const resources = getRetreatResources(event.slug);
 
   const firstName = grant.name?.trim().split(/\s+/)[0] ?? null;
 
@@ -58,6 +92,9 @@ export default async function MyRetreatHub({ params }: { params: { slug: string 
         <h2 style={{ fontSize: 20, margin: "0 0 14px" }}>Your itinerary</h2>
         <RetreatAgenda blocks={blocks} view="guest" />
       </section>
+
+      <SurveyCards items={surveyCards} />
+      <ResourceCards resources={resources} />
     </main>
   );
 }
