@@ -45,6 +45,7 @@ type EventDbRow = {
   archived_at: string | null;
   feedback_survey_id: string | null;
   attendee_count_override: number | null;
+  registered_count_override: number | null;
   metadata: Record<string, unknown> | null;
 };
 
@@ -88,7 +89,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     companyOs
       .from("events")
       .select(
-        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override, metadata"
+        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override, registered_count_override, metadata"
       )
       .eq("id", params.id)
       .maybeSingle(),
@@ -185,6 +186,10 @@ export default async function EventDetailPage({ params }: { params: { id: string
   const registeredSeats = registrations
     .filter((r) => COUNTED_STATUSES.has(r.status))
     .reduce((s, r) => s + 1 + r.guestCount, 0);
+  // Manual overrides win over the derived count: client keynotes/workshops have
+  // no signups, so the admin enters the headcount by hand.
+  const usingManualCount = event.registered_count_override != null || event.attendee_count_override != null;
+  const effectiveRegistered = event.registered_count_override ?? event.attendee_count_override ?? registeredSeats;
   const pendingCount = registrations.filter((r) => r.status === "pending_payment").length;
   const waitlistedCount = registrations.filter((r) => r.status === "waitlisted").length;
   const checkedInCount = registrations.filter((r) => !!r.checkedInAt).length;
@@ -235,11 +240,11 @@ export default async function EventDetailPage({ params }: { params: { id: string
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard
           label="Registered"
-          value={event.capacity ? `${registeredSeats} / ${event.capacity}` : String(registeredSeats)}
-          sub={waitlistedCount ? `${waitlistedCount} waitlisted` : "seats incl. guests"}
+          value={event.capacity ? `${effectiveRegistered} / ${event.capacity}` : String(effectiveRegistered)}
+          sub={usingManualCount ? "manual count" : waitlistedCount ? `${waitlistedCount} waitlisted` : "seats incl. guests"}
         />
         <MetricCard label="Paid / Pending" value={formatCents(collectedUsdCents, "usd")} sub={pendingCount ? `${formatCents(pendingUsdCents, "usd")} pending (${pendingCount})` : "no pending orders"} />
-        <MetricCard label="Checked in" value={checkedInCount} sub={`of ${registeredSeats || 0} registered`} />
+        <MetricCard label="Checked in" value={checkedInCount} sub={`of ${effectiveRegistered || 0} registered`} />
         <MetricCard label="Revenue" value={formatCents(collectedUsdCents, "usd")} sub="USD · registered+" />
       </div>
 
@@ -374,6 +379,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     archivedAt: event.archived_at,
     totalRegistrations: registrations.length,
     attendeeCountOverride: event.attendee_count_override,
+    registeredCountOverride: event.registered_count_override,
   };
 
   const talkOptions = ((talksRes.data ?? []) as { id: string; title: string }[]).map((t) => ({

@@ -229,6 +229,7 @@ export type EventPatch = {
   cover_image_url?: string | null;
   feedback_survey_id?: string | null;
   attendee_count_override?: number | null;
+  registered_count_override?: number | null;
 };
 
 export async function updateEvent(eventId: string, patch: EventPatch): Promise<Result> {
@@ -295,6 +296,13 @@ export async function updateEvent(eventId: string, patch: EventPatch): Promise<R
       return { ok: false, error: "Attendee count must be a non-negative whole number, or blank to count registrations." };
     }
     updates.attendee_count_override = v;
+  }
+  if (patch.registered_count_override !== undefined) {
+    const v = patch.registered_count_override;
+    if (v !== null && (!Number.isInteger(v) || v < 0)) {
+      return { ok: false, error: "Registered count must be a non-negative whole number, or blank to count registrations." };
+    }
+    updates.registered_count_override = v;
   }
 
   if (Object.keys(updates).length === 0) return { ok: true };
