@@ -12,7 +12,7 @@ const CONTENT_HTML = `
     --accent-soft: rgba(40,123,232,0.08); --border: #E6E6E6; --line: #EAEEF2;
     background: var(--bg); color: var(--ink);
     font: 16px/1.6 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
-    padding: 32px 16px; min-height: 100vh;
+    padding: 108px 16px 56px; min-height: 100vh; box-sizing: border-box;
   }
   .bstore-doc * { box-sizing: border-box; }
   .bstore-doc .wrap { max-width: 860px; margin: 0 auto; }
@@ -356,10 +356,11 @@ export default function BstoreScopePage() {
     <div
       style={{
         minHeight: "100vh",
+        boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px",
+        padding: "108px 24px 56px",
         fontFamily: "'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif",
         background: "#ffffff",
       }}
