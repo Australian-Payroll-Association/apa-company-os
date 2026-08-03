@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AIO LABZ Admin-view workflow: how a company manager receives their company, seats their team, and monitors learning.">
+<title>Company Admin workflow — AIO LABZ</title>
+<style>
+  html{-webkit-text-size-adjust:100%;}
+  img{max-width:100%;}
+  :root {
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+      --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+      --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+      --navy:#4a6c95; --on-navy:#f3f7fb;
+      --amber:#d3a13a; --amber-soft:#241f14;
+      --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb;
+    --amber:#d3a13a; --amber-soft:#241f14;
+    --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--serif);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; margin:0;}
+  .wrap{max-width:1040px; margin:0 auto; padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+
+  /* ── type roles ─────────────────────────────────────────── */
+  .eyebrow{font-family:var(--sans); font-size:.72rem; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .7rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem); font-weight:700; line-height:1.04;
+    letter-spacing:-.015em; margin:.2rem 0 0; text-wrap:balance; max-width:20ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem); font-weight:700; line-height:1.14;
+    letter-spacing:-.01em; margin:0 0 .9rem; text-wrap:balance; max-width:24ch;}
+  h3{font-size:1.12rem; font-weight:700; line-height:1.25; margin:0 0 .5rem;}
+  p{font-size:1.055rem; line-height:1.62; color:var(--ink-soft); margin:0 0 1.05rem; max-width:62ch;}
+  p strong,li strong{color:var(--ink); font-weight:700;}
+  em{color:var(--ink); font-style:italic;}
+  a{color:var(--navy); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+
+  /* ── header ─────────────────────────────────────────────── */
+  header.masthead{margin-bottom:clamp(2.6rem,6vw,4.2rem);}
+  .meta{font-family:var(--mono); font-size:.82rem; line-height:2; color:var(--ink-soft);
+    margin-top:1.6rem; padding-top:1.2rem; border-top:1px solid var(--line);}
+  .meta b{color:var(--ink); font-weight:700; display:inline-block; min-width:5.2rem;}
+  .meta .k{color:var(--muted);}
+
+  /* ── section rhythm ─────────────────────────────────────── */
+  section{margin-top:clamp(2.8rem,6vw,4.4rem); scroll-margin-top:2rem;}
+  .lead{max-width:62ch;}
+
+  /* ── badges ─────────────────────────────────────────────── */
+  .badge{display:inline-flex; align-items:center; gap:.4em; font-family:var(--sans);
+    font-size:.66rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    padding:.24em .6em; border-radius:2px; vertical-align:middle;}
+  .badge::before{content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor;}
+  .badge.live{color:var(--ok); background:color-mix(in srgb,var(--ok) 12%,transparent);}
+  .badge.soon{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .eyebrow .badge{margin-left:.6em;}
+
+  /* ── two-option comparison cards ────────────────────────── */
+  .cards2{display:grid; grid-template-columns:repeat(2,1fr); gap:1.4rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.cards2{grid-template-columns:1fr;}}
+  .optcard{background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;}
+  .optcard .cap{padding:1.05rem 1.3rem 1.15rem; color:var(--on-navy);}
+  .optcard.navy .cap{background:var(--navy);}
+  .optcard.amber .cap{background:var(--amber);}
+  .optcard .cap .k{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.13em;
+    text-transform:uppercase; opacity:.72; display:block; margin-bottom:.35rem;}
+  .optcard .cap h3{color:var(--on-navy); font-size:1.3rem; margin:0;}
+  .optcard .body{padding:1.15rem 1.3rem 1.3rem; display:flex; flex-direction:column; gap:.1rem; flex:1;}
+  .optcard .sub{font-family:var(--mono); font-size:.76rem; color:var(--muted);
+    padding-bottom:.9rem; margin-bottom:.4rem; border-bottom:1px solid var(--line-soft);}
+  .optcard .sub b{color:var(--ink-soft);}
+  ul.ticks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.62rem;}
+  ul.ticks li{font-size:.97rem; line-height:1.45; color:var(--ink-soft); padding-left:1.5rem; position:relative;}
+  ul.ticks li::before{content:""; position:absolute; left:.15rem; top:.5em; width:.42rem; height:.42rem;
+    border-radius:50%; background:var(--navy);}
+  .optcard.amber ul.ticks li::before{background:var(--amber);}
+  .optcard .foot{margin-top:auto; padding-top:1rem; font-size:.86rem; line-height:1.5; color:var(--muted); font-style:italic;}
+
+  /* ── callout ────────────────────────────────────────────── */
+  .callout{border-left:3px solid var(--amber); background:var(--amber-soft);
+    padding:1.05rem 1.25rem; margin:1.7rem 0; max-width:70ch; border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans); font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin-bottom:.5rem;}
+  .callout p{margin:0; font-size:.98rem; color:var(--ink-soft);}
+  .callout.navy{border-left-color:var(--navy); background:color-mix(in srgb,var(--navy) 7%,var(--surface));}
+  .callout.navy .k{color:var(--navy);}
+
+  /* ── state cards ────────────────────────────────────────── */
+  .states{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.states{grid-template-columns:1fr;}}
+  .state{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--c);
+    border-radius:3px; padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .state.invited{--c:var(--warn);} .state.active{--c:var(--ok);} .state.revoked{--c:var(--stop);}
+  .state h3{font-family:var(--sans); font-size:.78rem; font-weight:700; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--c); margin-bottom:1rem;}
+  .state .row{display:grid; grid-template-columns:5.2rem 1fr; gap:.5rem; margin-bottom:.85rem;}
+  .state .row:last-child{margin-bottom:0;}
+  .state .who{font-family:var(--sans); font-size:.64rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); padding-top:.15rem;}
+  .state .what{font-size:.92rem; line-height:1.4; color:var(--ink-soft);}
+
+  /* ── does/never action grid ─────────────────────────────── */
+  .actions{display:grid; grid-template-columns:repeat(2,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.actions{grid-template-columns:1fr;}}
+  .action{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.1rem 1.25rem 1.2rem; box-shadow:var(--shadow);}
+  .action h3{font-size:1.05rem; margin-bottom:.85rem;}
+  .dn{display:grid; grid-template-columns:3.4rem 1fr; gap:.45rem .7rem; align-items:start;}
+  .dn dt{font-family:var(--sans); font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding-top:.18rem;}
+  .dn dt.does{color:var(--ok);} .dn dt.never{color:var(--stop);}
+  .dn dd{margin:0; font-size:.9rem; line-height:1.42; color:var(--ink-soft);}
+
+  /* ── numbered steps ─────────────────────────────────────── */
+  ol.steps{list-style:none; counter-reset:s; margin:1.5rem 0; padding:0;
+    display:flex; flex-direction:column; gap:.9rem; max-width:66ch;}
+  ol.steps li{counter-increment:s; position:relative; padding-left:2.6rem; font-size:1rem;
+    line-height:1.5; color:var(--ink-soft); min-height:1.7rem;}
+  ol.steps li::before{content:counter(s); position:absolute; left:0; top:-.05rem; width:1.7rem; height:1.7rem;
+    display:grid; place-items:center; font-family:var(--mono); font-size:.82rem; font-weight:700;
+    color:var(--navy); background:var(--surface); border:1px solid var(--navy); border-radius:3px;}
+
+  /* ── table ──────────────────────────────────────────────── */
+  .tablewrap{overflow-x:auto; margin:1.6rem 0 .4rem; border:1px solid var(--line);
+    border-radius:4px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:.94rem;}
+  caption{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); text-align:left; padding:.95rem 1.15rem .2rem;}
+  th,td{text-align:left; padding:.7rem 1.15rem; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  thead th{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); background:var(--line-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);}
+  .tnote{font-size:.9rem; color:var(--muted); font-style:italic; margin-top:.7rem;}
+
+  /* ── ownership cards ────────────────────────────────────── */
+  .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--navy); margin-bottom:.7rem;}
+  .owner p{font-size:.92rem; line-height:1.5; margin:0; color:var(--ink-soft);}
+
+  /* ── file references ────────────────────────────────────── */
+  .files{display:flex; flex-direction:column; gap:.7rem; margin:1.4rem 0; max-width:74ch;}
+  .file{display:flex; flex-wrap:wrap; align-items:baseline; gap:.7rem;}
+  .file code{font-family:var(--mono); font-size:.8rem; background:var(--code-bg); color:var(--ink);
+    padding:.28rem .55rem; border-radius:3px; border:1px solid var(--line); white-space:nowrap;}
+  .file span{font-size:.95rem; color:var(--ink-soft);}
+
+  hr.rule{border:none; border-top:1px solid var(--line); margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem); padding-top:1.5rem; border-top:1px solid var(--line);
+    font-size:.9rem; line-height:1.6; color:var(--muted); max-width:70ch;}
+  footer.foot b{color:var(--ink-soft);}
+
+  /* ── motion ─────────────────────────────────────────────── */
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1; transform:none;}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1; transform:none; transition:none;}}
+  :focus-visible{outline:2px solid var(--navy); outline-offset:3px; border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · Admin view · Workflow 01</p>
+    <h1>Running your company as a manager</h1>
+    <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:58ch; margin-top:1rem;">
+      How a client company's manager receives their company, seats their team, and keeps an eye
+      on learning — every screen and action, and the rules underneath them.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> &nbsp; company manager &nbsp;<span style="color:var(--muted)">(company_membership.role = 'manager')</span></div>
+      <div><span class="k">Source</span> &nbsp; router/aio/admin/companies.py — <b style="min-width:0">live in production</b></div>
+      <div><span class="k">State</span> &nbsp; <span class="badge live">Live</span> setup · seats · monitoring &nbsp;&nbsp; <span class="badge soon">Rolling out</span> support</div>
+      <div><span class="k">Prepared</span> &nbsp; 3 August 2026 · detected from code</div>
+    </div>
+  </header>
+
+  <!-- 1 ─ framing -->
+  <section class="reveal">
+    <p class="eyebrow">The one thing to understand first</p>
+    <h2>You receive a company — you don't build one</h2>
+    <p>Edge8 sets a company up for you before you ever sign in. In a single step the back office
+      creates the <strong>company</strong>, an active <strong>contract</strong> with your seat cap, and
+      <strong>your own manager seat</strong>, then emails you a join link. You claim that seat, sign in, and
+      land in the admin panel.</p>
+    <p>Everything you do afterwards happens <em>inside</em> that fixed cap and is scoped to your company
+      alone. You never create a company, set your own cap, or reach another company's people — those
+      belong to Edge8. What's yours is the seat list and what you can learn from it.</p>
+  </section>
+
+  <!-- 2 ─ getting in -->
+  <section class="reveal">
+    <p class="eyebrow">Getting in</p>
+    <h2>Signing in as a manager</h2>
+    <p>There's no separate admin password. When you sign in, the panel confirms your manager role
+      straight from the database — not from anything stored in your browser — and unlocks the admin
+      view. Every action you take then re-checks that you belong to this company, so a copied link or
+      an edited cookie gets you nowhere.</p>
+    <ol class="steps">
+      <li>You claim your manager seat from the invite email, the same way your team will.</li>
+      <li>You sign in normally; the panel recognises your <strong>manager</strong> role and switches to admin mode.</li>
+      <li>Each screen and button re-verifies your company on the server before it does anything.</li>
+    </ol>
+    <div class="callout navy">
+      <div class="k">Where the line sits</div>
+      <p>Managers get the company admin panel — the seat list, your company profile, and monitoring.
+        Back-office tools (creating companies, editing contracts, cross-company views) stay with Edge8,
+        even if you hold other roles.</p>
+    </div>
+  </section>
+
+  <!-- 3 ─ profile setup -->
+  <section class="reveal">
+    <p class="eyebrow">Done once</p>
+    <h2>Complete your company profile</h2>
+    <p>The first thing the panel asks for is your company details. Your company name is already there;
+      you confirm it and add contact details — address, phone, website. This is a <strong>one-time</strong>
+      step: once you save it, the name is locked and any rename goes through Edge8. Contact details you
+      can edit whenever they change.</p>
+    <div class="actions" style="grid-template-columns:1fr;">
+      <div class="action" style="max-width:none;">
+        <h3>Company profile</h3>
+        <dl class="dn">
+          <dt class="does">Once</dt><dd>Confirm the company name and add contact details. Saving it latches the profile as complete.</dd>
+          <dt class="does">Anytime</dt><dd>Edit address, phone, and website from the Company tab.</dd>
+          <dt class="never">Never</dt><dd>Rename the company yourself, or fill the profile in twice — a second save is refused.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 ─ seats: two kinds -->
+  <section class="reveal">
+    <p class="eyebrow">The one screen you'll live in</p>
+    <h2>Seats come in two kinds</h2>
+    <p>The seat list is where you spend almost all your time. Before the actions make sense, the two
+      kinds of seat do. A person needs a <strong>basic seat</strong> to learn at all; a
+      <strong>Leadership add-on</strong> is an extra, stacked on top of a basic seat for the people who
+      need it.</p>
+    <div class="cards2">
+      <div class="optcard navy">
+        <div class="cap"><span class="k">Seat type one</span><h3>Basic seat</h3></div>
+        <div class="body">
+          <div class="sub"><b>Included in your subscription</b> · standard certifications</div>
+          <ul class="ticks">
+            <li>Everyone on your team needs one to learn.</li>
+            <li>Counts against your basic seat cap — the number on your contract.</li>
+            <li>Grants the standard AI certifications.</li>
+            <li>You invite by email; the person claims it to begin.</li>
+          </ul>
+          <p class="foot">This is the seat almost everyone holds. Your cap is set by Edge8; you can buy more.</p>
+        </div>
+      </div>
+      <div class="optcard amber">
+        <div class="cap"><span class="k">Seat type two</span><h3>Leadership add-on</h3></div>
+        <div class="body">
+          <div class="sub"><b>Billed on top</b> · adds the Leadership certification</div>
+          <ul class="ticks">
+            <li>Adds the Leadership cert to someone who <em>already</em> holds an active basic seat.</li>
+            <li>Drawn from a separate Leadership capacity you buy on top.</li>
+            <li>One person can hold a basic seat and a Leadership add-on at once.</li>
+            <li>Add or remove it per person, whenever there's capacity.</li>
+          </ul>
+          <p class="foot">You can only add Leadership to someone who has already joined and is active.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <div class="k">Why seats are counted in one place</div>
+      <p>Every invite, claim, and revoke goes through the platform's seat list, checked as a single
+        atomic step. That's what stops two people claiming the last seat, and why your used-versus-cap
+        number is always exact. The seat list — not the invite email and not the join link — is the one
+        authority on who has access.</p>
+    </div>
+  </section>
+
+  <!-- 5 ─ states -->
+  <section class="reveal">
+    <p class="eyebrow">The three states a seat can be in</p>
+    <h2>What each state means for a real person</h2>
+    <p>Every row on your seat list is in exactly one of three states. These words mean the same thing in
+      the panel and in this document.</p>
+    <div class="states">
+      <div class="state invited">
+        <h3>Invited</h3>
+        <div class="row"><span class="who">Person</span><span class="what">Has an email with a join link. No access yet — they haven't claimed the seat.</span></div>
+        <div class="row"><span class="who">You</span><span class="what">The seat is reserved and counts against your cap. You can resend the email or revoke it.</span></div>
+      </div>
+      <div class="state active">
+        <h3>Active</h3>
+        <div class="row"><span class="who">Person</span><span class="what">Has claimed the seat and can learn. Their progress lives on their own account.</span></div>
+        <div class="row"><span class="who">You</span><span class="what">You can add or remove a Leadership add-on, or revoke the seat to free it.</span></div>
+      </div>
+      <div class="state revoked">
+        <h3>Revoked</h3>
+        <div class="row"><span class="who">Person</span><span class="what">Access removed. Their learning history stays with their account, untouched.</span></div>
+        <div class="row"><span class="who">You</span><span class="what">The capacity returns to your pool and the row leaves your active roster.</span></div>
+      </div>
+    </div>
+    <div class="callout">
+      <div class="k">Freeing a seat is instant and exact</div>
+      <p>Revoking removes the person's access and returns the capacity to your pool in the same atomic
+        step — there is never a moment where the seat is counted twice or lost.</p>
+    </div>
+  </section>
+
+  <!-- 6 ─ actions -->
+  <section class="reveal">
+    <p class="eyebrow">What a manager can do</p>
+    <h2>Five actions, all on the seat list</h2>
+    <p>Managing your team is these five moves, nothing more. Each says exactly what it does — and, just
+      as usefully, what it will never do.</p>
+    <div class="actions">
+      <div class="action">
+        <h3>Invite</h3>
+        <dl class="dn">
+          <dt class="does">Does</dt><dd>Adds one or more email addresses to the seat list and sends each a join link.</dd>
+          <dt class="never">Never</dt><dd>Lets you exceed your cap — an over-cap invite is refused before any email goes out.</dd>
+        </dl>
+      </div>
+      <div class="action">
+        <h3>Resend</h3>
+        <dl class="dn">
+          <dt class="does">Does</dt><dd>Sends the join email again for a seat that's still <em>Invited</em>.</dd>
+          <dt class="never">Never</dt><dd>Works on a seat that's already Active or Revoked — there's nothing to resend.</dd>
+        </dl>
+      </div>
+      <div class="action">
+        <h3>Revoke</h3>
+        <dl class="dn">
+          <dt class="does">Does</dt><dd>Frees the seat and removes that person's access at once.</dd>
+          <dt class="never">Never</dt><dd>Touches another company's seats — you only ever see and act on your own.</dd>
+        </dl>
+      </div>
+      <div class="action">
+        <h3>Add Leadership</h3>
+        <dl class="dn">
+          <dt class="does">Does</dt><dd>Grants the Leadership certification to an active basic-seat holder, using free Leadership capacity.</dd>
+          <dt class="never">Never</dt><dd>Applies before the person has joined, or when there's no spare Leadership capacity.</dd>
+        </dl>
+      </div>
+      <div class="action">
+        <h3>Remove Leadership</h3>
+        <dl class="dn">
+          <dt class="does">Does</dt><dd>Removes the Leadership certification and returns the add-on seat to your pool.</dd>
+          <dt class="never">Never</dt><dd>Affects their basic access — they keep learning exactly as before.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 ─ join journey -->
+  <section class="reveal">
+    <p class="eyebrow">From invite to first lesson</p>
+    <h2>How someone joins your team</h2>
+    <p>An invite doesn't grant access on its own — the person has to claim it. The link names your
+      company so they know the invite is real, and on an invite-only contract the address itself is the
+      gate.</p>
+    <ol class="steps">
+      <li>You invite an email address — the seat becomes <strong>Invited</strong> and a join link goes out.</li>
+      <li>Your teammate opens the link and lands on a page that <strong>names your company</strong>.</li>
+      <li>They claim the seat by confirming their email address.</li>
+      <li>The seat flips to <strong>Active</strong> and they can start learning right away.</li>
+      <li>On an invite-only contract, the link alone is not a way in — the address must be on your seat list, so a forwarded link grants nothing.</li>
+    </ol>
+    <div class="callout">
+      <div class="k">Watch for: unverified accounts</div>
+      <p>Sometimes a company mail filter blocks the invite email. That person may instead sign up with a
+        password, without ever confirming they own the address. Those accounts appear in a separate
+        <strong>Unverified</strong> list for you to check each is a real employee before you trust them.</p>
+    </div>
+  </section>
+
+  <!-- 8 ─ capacity & billing -->
+  <section class="reveal">
+    <p class="eyebrow">Capacity &amp; billing</p>
+    <h2>Buying more seats</h2>
+    <p>When you run low, you choose how many basic and how many Leadership seats you need, right in the
+      panel. Capacity becomes usable immediately, so you can invite the moment you buy — the invoice is
+      handled separately.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>The two seat pools</caption>
+        <thead><tr><th>Seat type</th><th>Grants</th><th>Counted against</th><th>Billed</th></tr></thead>
+        <tbody>
+          <tr><td><b>Basic</b></td><td>Standard certifications</td><td>Your basic cap</td><td>In your subscription</td></tr>
+          <tr><td><b>Leadership add-on</b></td><td>Leadership certification</td><td>Your Leadership capacity</td><td>On top, per add-on seat</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <div class="k">For billing</div>
+      <p>There's no card to enter. Buying seats raises an <strong>offline invoice</strong> — the moment you
+        add capacity it's usable, and Edge8 is notified to bill for it. Your contract term and renewal
+        are set on your contract by Edge8, not in this panel.</p>
+    </div>
+  </section>
+
+  <!-- 9 ─ monitoring -->
+  <section class="reveal">
+    <p class="eyebrow">Keeping an eye on progress</p>
+    <h2>Monitoring your team</h2>
+    <p>From the same panel you can see how your team is actually doing: a twelve-week rhythm of who's
+      been active and their weekly momentum, each person's progress and scores per activity, and the
+      work they've produced — submissions and artifacts. It's all <strong>read-only</strong> and scoped to
+      your company: you can't see another company's learners, and you can't change anyone's grades.</p>
+  </section>
+
+  <!-- 10 ─ support -->
+  <section class="reveal">
+    <p class="eyebrow">When you need a hand <span class="badge soon">Rolling out</span></p>
+    <h2>Getting help</h2>
+    <p>When something needs Edge8's attention, you can raise a support request for your company and
+      follow its status without leaving the panel. This is rolling out behind a feature flag; the seat
+      and monitoring workflows above are already live.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- 11 ─ ownership -->
+  <section class="reveal">
+    <p class="eyebrow">Three parties, one seat list</p>
+    <h2>Who owns what</h2>
+    <div class="owners">
+      <div class="owner">
+        <div class="k">Edge8 — back office</div>
+        <p>Creates your company and contract. Sets your seat cap and your company name. Raises your
+          invoices, and handles renames and renewals.</p>
+      </div>
+      <div class="owner">
+        <div class="k">You — the manager</div>
+        <p>Own the seat list: invite, resend, revoke, add and remove Leadership. Complete the company
+          profile once, buy more capacity, and monitor learning.</p>
+      </div>
+      <div class="owner">
+        <div class="k">Your learners</div>
+        <p>Claim their seat, learn, and earn certifications. Their history stays with their own account,
+          whatever happens to the seat.</p>
+      </div>
+    </div>
+    <div class="callout navy">
+      <div class="k">One source of truth</div>
+      <p>Access is whatever the seat list says — not the invite email, not the join link, not anything in
+        the browser. Every action re-checks it on the server, so the number you see is the number that's
+        real.</p>
+    </div>
+  </section>
+
+  <!-- 12 ─ where the detail lives -->
+  <section class="reveal">
+    <p class="eyebrow">Where the detail lives</p>
+    <h2>In the code</h2>
+    <p>This document was detected from the live backend. Each part of it maps to a real place:</p>
+    <div class="files">
+      <div class="file"><code>router/aio/admin/companies.py</code><span>every screen and action in this document</span></div>
+      <div class="file"><code>router/aio/admin/_deps.py</code><span>how a manager is recognised and kept company-scoped</span></div>
+      <div class="file"><code>router/aio/auth.py → /admin/elevate</code><span>entering admin mode</span></div>
+      <div class="file"><code>router/aio/admin/platform.py</code><span>support requests (rolling out)</span></div>
+      <div class="file"><code>docs/…/0005-canonical-auth-tiers.md</code><span>the three tiers: platform, admin, learner</span></div>
+      <div class="file"><code>migration 20260707150000</code><span>the atomic seat RPCs — invite, redeem, revoke</span></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <b>AIO LABZ · Admin view · Company Manager workflow.</b> Detected from the live backend on
+    3 August 2026. Everything above ships today except the Support panel, which is rolling out behind a
+    feature flag. Prepared for internal review — <b>this is a detected map, not a spec</b>; confirm any
+    behaviour against the code before relying on it.
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.forEach(function (e) { e.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+</body>
+</html>

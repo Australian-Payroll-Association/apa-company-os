@@ -9,7 +9,16 @@ export const metadata: Metadata = {
 }
 
 const AIO_PAGES: { href: string; title: string; description: string }[] = [
-  // AIO Labs plans and workflows go here.
+  {
+    href: '/workflows/private/aio-labs/aio-company-admin-workflow.html',
+    title: 'Company Admin Workflow',
+    description: 'How a company manager receives their company, seats their team, and monitors learning.',
+  },
+  {
+    href: '/workflows/private/aio-labs/aio-platform-admin-workflow.html',
+    title: 'Platform Admin Workflow',
+    description: 'Edge8 staff cross-company back-office and the /platform console, with live / flag-gated / built-unmounted status.',
+  },
 ]
 
 export default function AioLabsPrivateWorkflowsIndexPage() {
