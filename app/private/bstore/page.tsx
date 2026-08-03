@@ -1,8 +1,111 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const PASSWORD = "Bstore2026";
+
+// ── Kickoff checklist (reusable template) ─────────────────────────────
+// To spin up a new client: copy this page, change CLIENT_NAME, PASSWORD,
+// the survey link, and adjust CHECKLIST groups/items + dates as needed.
+const CLIENT_NAME = "Bstore";
+const CHECKLIST_STORAGE_KEY = "bstore-kickoff-checklist";
+const SURVEY_URL = "https://www.edge8.ai/surveys/ai-journey";
+
+type CheckItem = { key: string; label: string; note?: string };
+type CheckGroup = { title: string; tag: "Client" | "Edge8"; items: CheckItem[] };
+
+const CHECKLIST: CheckGroup[] = [
+  {
+    title: `${CLIENT_NAME} to complete`,
+    tag: "Client",
+    items: [
+      { key: "contract", label: "Sign the service agreement" },
+      { key: "payment", label: "Pay the initial payment" },
+      {
+        key: "survey",
+        label: 'Complete the "Begin Your AI Journey With Us" survey',
+        note: `<a href="${SURVEY_URL}" target="_blank" rel="noopener">${SURVEY_URL.replace("https://", "")} &rarr;</a>`,
+      },
+      {
+        key: "datamap",
+        label: "Send a data map of the systems you use",
+        note: "So we understand your tech stack and how data flows between tools.",
+      },
+      {
+        key: "docs",
+        label: "Share any workflow / process documentation you follow",
+        note: "Dump whatever exists, however rough.",
+      },
+      {
+        key: "portal-people",
+        label: "Give us everyone who should get client-portal access",
+        note: "Names + emails, so we can send portal invites.",
+      },
+      {
+        key: "cert-date",
+        label: "Pick a certification kickoff date",
+        note: "Week of Aug 17 &mdash; choose <strong>Aug 17, 18, or 21</strong> (any time).",
+      },
+    ],
+  },
+  {
+    title: "Edge8 to deliver",
+    tag: "Edge8",
+    items: [
+      {
+        key: "infra",
+        label: "Set up GitHub, Vercel & Supabase accounts and install the company database",
+        note: "Week of Aug 3 &mdash; complete before Aug 14.",
+      },
+      {
+        key: "portal-invites",
+        label: "Send client-portal invites",
+        note: "Once we have your access list.",
+      },
+      {
+        key: "program-plan",
+        label: "Create a program plan for the first workflows",
+        note: "Identified together.",
+      },
+      {
+        key: "review",
+        label: "Review meeting to review progress and continue",
+        note: "Week of Aug 10.",
+      },
+    ],
+  },
+];
+
+function checklistHtml(): string {
+  const groups = CHECKLIST.map((g) => {
+    const tagClass = g.tag === "Edge8" ? "ck-tag--edge8" : "ck-tag--client";
+    const items = g.items
+      .map(
+        (it) => `
+        <label class="ck-item" for="ck-${it.key}">
+          <input type="checkbox" class="ck" id="ck-${it.key}" data-key="${it.key}">
+          <span class="ck-box" aria-hidden="true"></span>
+          <span class="ck-text"><span class="ck-label">${it.label}</span>${
+            it.note ? `<span class="ck-note">${it.note}</span>` : ""
+          }</span>
+        </label>`,
+      )
+      .join("");
+    return `
+      <div class="ck-group">
+        <div class="ck-group-head"><span class="ck-tag ${tagClass}">${g.tag}</span><span class="ck-group-title">${g.title}</span></div>
+        ${items}
+      </div>`;
+  }).join("");
+
+  return `
+  <section class="ck-section">
+    <h2><span class="num">&#10003;</span>Kickoff Checklist</h2>
+    <p>Everything to get ${CLIENT_NAME} started. Tick items off as you go &mdash; your progress is saved in this browser.</p>
+    <div class="ck-progress"><div class="ck-bar"><div class="ck-bar-fill" id="ck-bar-fill"></div></div><span class="ck-count" id="ck-count"></span></div>
+    ${groups}
+  </section>`;
+}
 
 const CONTENT_HTML = `
 <style>
@@ -72,6 +175,31 @@ const CONTENT_HTML = `
   .bstore-doc .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   @media (max-width: 620px) { .bstore-doc .grid2 { grid-template-columns: 1fr; } }
   .bstore-doc footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  /* Kickoff checklist */
+  .bstore-doc .ck-section > p { color: var(--muted); }
+  .bstore-doc .ck-progress { display: flex; align-items: center; gap: 12px; margin: 10px 0 20px; }
+  .bstore-doc .ck-bar { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bstore-doc .ck-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); transition: width 0.25s ease; }
+  .bstore-doc .ck-count { font-size: 13px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .bstore-doc .ck-group { margin-bottom: 18px; }
+  .bstore-doc .ck-group-head { display: flex; align-items: center; gap: 8px; margin: 16px 0 8px; }
+  .bstore-doc .ck-group-title { font-weight: 700; font-size: 14px; }
+  .bstore-doc .ck-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 99px; }
+  .bstore-doc .ck-tag--client { background: var(--accent-soft); color: var(--accent); }
+  .bstore-doc .ck-tag--edge8 { background: rgba(111,242,193,0.18); color: #0b8f63; }
+  .bstore-doc .ck-item { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+  .bstore-doc .ck-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .bstore-doc .ck { position: absolute; opacity: 0; width: 0; height: 0; }
+  .bstore-doc .ck-box { flex: none; width: 20px; height: 20px; margin-top: 1px; border: 2px solid var(--border); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+  .bstore-doc .ck-box::after { content: "\\2713"; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; opacity: 0; transform: scale(0.5); transition: all 0.15s ease; }
+  .bstore-doc .ck:checked + .ck-box { background: var(--accent); border-color: var(--accent); }
+  .bstore-doc .ck:checked + .ck-box::after { opacity: 1; transform: scale(1); }
+  .bstore-doc .ck:focus-visible + .ck-box { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bstore-doc .ck-text { display: flex; flex-direction: column; gap: 2px; }
+  .bstore-doc .ck-label { font-weight: 600; }
+  .bstore-doc .ck:checked ~ .ck-text .ck-label { color: var(--muted); text-decoration: line-through; }
+  .bstore-doc .ck-note { font-size: 13px; color: var(--muted); }
+  .bstore-doc .ck-note a { color: var(--accent); }
 </style>
 <div class="wrap">
 
@@ -83,6 +211,7 @@ const CONTENT_HTML = `
       <strong>Attendees:</strong> David Hajdu (Edge8) &middot; Quan (Edge8, process &amp; database) &middot; Sean Rohald (Bstore, founder)
     </div>
   </header>
+  ${checklistHtml()}
 
   <section>
     <h2><span class="num">1</span>Core Problem We Are Trying to Solve</h2>
@@ -342,6 +471,50 @@ export default function BstoreScopePage() {
       setError(true);
     }
   }
+
+  // Wire up checklist checkboxes + progress bar, persisting to localStorage.
+  useEffect(() => {
+    if (!unlocked) return;
+    const root = document.querySelector(".bstore-doc");
+    if (!root) return;
+    const boxes = Array.from(root.querySelectorAll<HTMLInputElement>("input.ck"));
+    if (boxes.length === 0) return;
+    const fill = root.querySelector<HTMLElement>("#ck-bar-fill");
+    const count = root.querySelector<HTMLElement>("#ck-count");
+
+    let saved: Record<string, boolean> = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY) || "{}");
+    } catch {
+      saved = {};
+    }
+
+    const update = () => {
+      const done = boxes.filter((b) => b.checked).length;
+      if (fill) fill.style.width = `${(done / boxes.length) * 100}%`;
+      if (count) count.textContent = `${done} / ${boxes.length} done`;
+    };
+
+    const handlers: Array<() => void> = [];
+    boxes.forEach((b) => {
+      const key = b.dataset.key || "";
+      b.checked = !!saved[key];
+      const onChange = () => {
+        saved[key] = b.checked;
+        try {
+          localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(saved));
+        } catch {
+          /* ignore */
+        }
+        update();
+      };
+      b.addEventListener("change", onChange);
+      handlers.push(() => b.removeEventListener("change", onChange));
+    });
+    update();
+
+    return () => handlers.forEach((off) => off());
+  }, [unlocked]);
 
   if (unlocked) {
     return (
