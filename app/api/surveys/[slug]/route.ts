@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { companyOs } from "@/lib/supabase";
 import { getOrCreatePerson } from "@/lib/company-os";
-import { resolveSurveyActor, isTeamEmail } from "@/lib/survey-identity";
+import { resolveSurveyActor, classifyEmail, type RespondentKind } from "@/lib/survey-identity";
 import { notifyOps } from "@/lib/lark";
 import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
@@ -76,29 +76,28 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     let personId: string | null = null;
     let respondentName: string | null = null;
     let respondentEmail: string | null = null;
-    // "team" means actual staff or admins. A logged-in portal CLIENT is still
-    // identified (person_id, name, email from the session) but stamped
-    // "external" so attendee roll-ups aren't polluted with mislabeled rows.
-    let kind: "team" | "external";
+    // team = staff/admin, client = person already on file, external = only
+    // known from a survey. A logged-in portal client is identified (person_id,
+    // name, email from the session) and stamped "client".
+    let kind: RespondentKind;
 
     if (surveyData.is_anonymous) {
-      kind = actor?.isTeam ? "team" : "external";
+      kind = actor?.kind ?? "external";
     } else if (actor) {
-      kind = actor.isTeam ? "team" : "external";
+      kind = actor.kind;
       personId = actor.personId;
       respondentName = actor.name;
       respondentEmail = actor.email;
     } else {
-      kind = "external";
       const name = typeof body.name === "string" ? body.name.trim().slice(0, 200) : "";
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       if (!name || !email.includes("@"))
         return NextResponse.json({ error: "Name and a valid email are required." }, { status: 400 });
       respondentName = name;
       respondentEmail = email;
-      // Staff routinely fill survey links logged-out; keep them "team" so the
-      // roll-up isn't polluted with mislabeled rows.
-      if (await isTeamEmail(email)) kind = "team";
+      // Classify the typed email BEFORE getOrCreatePerson mints a record — a
+      // brand-new respondent must resolve to "external", not "client".
+      kind = await classifyEmail(email);
       const person = await getOrCreatePerson({ email, name, source: "survey" });
       if (person.ok) personId = person.id;
     }
