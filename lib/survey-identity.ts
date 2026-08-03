@@ -61,3 +61,29 @@ export async function resolveSurveyActor(): Promise<SurveyActor | null> {
 
   return null;
 }
+
+// Classify a TYPED email (the external-respondent flow, where there is no
+// session to trust) as team when it belongs to staff or an admin. A survey
+// link shared outside the portal — the common case — is filled out logged-out,
+// so without this every staff response is stamped "external" and pollutes the
+// team-vs-external roll-up. Mirrors the isTeam rule in resolveSurveyActor.
+export async function isTeamEmail(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes("@")) return false;
+  if (await isAdminEmail(normalized)) return true;
+
+  const { data: person } = await companyOs
+    .from("people")
+    .select("id")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!person) return false;
+
+  const { data: memberships } = await companyOs
+    .from("team_members")
+    .select("id")
+    .eq("person_id", person.id)
+    .in("status", PORTAL_STATUSES)
+    .limit(1);
+  return (memberships ?? []).length > 0;
+}

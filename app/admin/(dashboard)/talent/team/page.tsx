@@ -172,12 +172,20 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       key: "portal",
       header: "Portal",
       sortable: true,
-      cell: (r) =>
-        r.person_id ? (
-          <InvitePortalButton teamMemberId={r.id} status={portalStatusOf(one(r.people)?.auth_user_id, signedIn)} />
-        ) : (
-          dash
-        ),
+      cell: (r) => {
+        if (!r.person_id) return dash;
+        const status = portalStatusOf(one(r.people)?.auth_user_id, signedIn);
+        // Past employees are never (re-)invited to the portal: show their
+        // standing status as plain text, with no Invite/Resend action.
+        if (r.status === "terminated" || r.status === "alumni") {
+          return (
+            <span className="admin-cell-muted">
+              {status === "active" ? "Signed in" : status === "invited" ? "Invited" : dash}
+            </span>
+          );
+        }
+        return <InvitePortalButton teamMemberId={r.id} status={status} />;
+      },
     },
   ];
 

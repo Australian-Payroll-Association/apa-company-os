@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { companyOs } from "@/lib/supabase";
 import { getOrCreatePerson } from "@/lib/company-os";
-import { resolveSurveyActor } from "@/lib/survey-identity";
+import { resolveSurveyActor, isTeamEmail } from "@/lib/survey-identity";
 import { notifyOps } from "@/lib/lark";
 import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
@@ -96,6 +96,9 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         return NextResponse.json({ error: "Name and a valid email are required." }, { status: 400 });
       respondentName = name;
       respondentEmail = email;
+      // Staff routinely fill survey links logged-out; keep them "team" so the
+      // roll-up isn't polluted with mislabeled rows.
+      if (await isTeamEmail(email)) kind = "team";
       const person = await getOrCreatePerson({ email, name, source: "survey" });
       if (person.ok) personId = person.id;
     }

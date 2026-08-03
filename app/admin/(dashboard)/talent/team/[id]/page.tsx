@@ -5,6 +5,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { ContractStartForm } from "./ContractStartForm";
 import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { AvatarUpload } from "@/components/team/AvatarUpload";
@@ -233,20 +234,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
                 {/* Admin-editable: when the full-time labor contract begins. A
                     probation extension moves it +30 automatically; this is the
                     manual control. */}
-                <form
+                <ContractStartForm
                   action={saveContractStartDate.bind(null, m.id)}
-                  style={{ display: "flex", gap: 8, alignItems: "center" }}
-                >
-                  <input
-                    type="date"
-                    name="contract_start_date"
-                    defaultValue={cycle?.contract_start_date ?? ""}
-                    style={{ fontSize: 13 }}
-                  />
-                  <button type="submit" className="btn btn-secondary" style={{ padding: "4px 10px", fontSize: 12 }}>
-                    Save
-                  </button>
-                </form>
+                  defaultValue={cycle?.contract_start_date ?? ""}
+                />
               </dd>
               {m.end_date && (
                 <>
@@ -302,10 +293,15 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
           <div className="admin-card admin-section-card">
             <h2 className="admin-card-title">Portal access</h2>
             <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
-            {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
-            ) : (
+            {!m.person_id ? (
               <span className="admin-cell-muted">No linked person record.</span>
+            ) : m.status === "terminated" || m.status === "alumni" ? (
+              // Past employees are never (re-)invited: show standing status only.
+              <span className="admin-cell-muted">
+                {portalStatus === "active" ? "Signed in" : portalStatus === "invited" ? "Invited, never signed in" : "Not invited"}
+              </span>
+            ) : (
+              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
             )}
           </div>
 
