@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { WorkflowHero, FlowRail, StepCards } from '../../ui'
+import { WorkflowHero, FlowRail, StepCards } from '../../../ui'
 
 export const metadata: Metadata = {
   title: 'Private Retreats Training Guide | Edge8',
@@ -643,7 +643,7 @@ export default function PrivateRetreatsTrainingPage() {
             <Link href="/workflows/infinite-leverage-retreats" className="wf-back">
               ← The retreats workflow: sales, record, and P&L
             </Link>
-            <Link href="/workflows/private/accounting-training" className="wf-back">
+            <Link href="/workflows/private/e8/accounting-training" className="wf-back">
               Accounting training guide →
             </Link>
           </div>

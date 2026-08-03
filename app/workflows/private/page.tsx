@@ -8,36 +8,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-const PRIVATE_PAGES = [
+const BRANDS = [
   {
-    href: '/workflows/private/team-onboarding',
-    title: 'Team Onboarding',
-    description: 'Onboarding deck for new Edge8 AI team members.',
+    href: '/workflows/private/e8',
+    title: 'E8',
+    description: 'Edge8 internal guides and briefs: team onboarding, private retreats, accounting, and AI Retreat week briefs.',
   },
   {
-    href: '/workflows/private/private-retreats',
-    title: 'Private Retreats Training Guide',
-    description: 'Internal training guide for hosting a private retreat guest end to end.',
-  },
-  {
-    href: '/workflows/private/accounting-training',
-    title: 'Accounting Training Guide',
-    description: 'Internal training guide for the Edge8 monthly accounting close.',
-  },
-  {
-    href: '/workflows/private/ai-retreat-work-healthy',
-    title: 'AI Retreat Week Brief: Work Healthy Australia',
-    description: 'Week brief for Dr James Murray: goal, survey results, and the OccuSpan workflows for the 4-day AI Retreat.',
-  },
-  {
-    href: '/workflows/private/ai-retreat-austpayroll',
-    title: 'AI Retreat Week Brief: Australian Payroll Association',
-    description: 'Week brief for Tracy Angwin: goal, survey results, and the adaptive payroll training workflows for the 4-day AI Retreat.',
-  },
-  {
-    href: '/workflows/private/vung-tau-leg.html',
-    title: 'Bánh Mì Ballers: Saigon + Vung Tau Leg',
-    description: 'Itinerary for the Saigon and Vung Tau leg.',
+    href: '/workflows/private/aio-labs',
+    title: 'AIO Labs',
+    description: 'AIO Labs plans and workflows, built and maintained independently from E8.',
   },
 ]
 
@@ -55,7 +35,7 @@ export default function PrivateWorkflowsIndexPage() {
               </div>
               <h1 className="section-title">Private workflows library</h1>
               <p className="wf-hero-sub">
-                Internal guides and briefs, gated behind an access code. Not linked from public navigation.
+                Internal guides and briefs, gated behind an access code. Not linked from public navigation. Choose a brand.
               </p>
             </div>
           </div>
@@ -64,9 +44,9 @@ export default function PrivateWorkflowsIndexPage() {
         <section className="section">
           <div className="container">
             <div className="wf-problems wf-problems-4">
-              {PRIVATE_PAGES.map((p) => (
-                <Link key={p.href} href={p.href} className="wf-problem" style={{ display: 'block' }}>
-                  <strong>{p.title}</strong> {p.description}
+              {BRANDS.map((b) => (
+                <Link key={b.href} href={b.href} className="wf-problem" style={{ display: 'block' }}>
+                  <strong>{b.title}</strong> {b.description}
                 </Link>
               ))}
             </div>

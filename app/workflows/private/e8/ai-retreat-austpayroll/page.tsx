@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { WorkflowHero, FlowRail, StepCards } from '../../ui'
+import { WorkflowHero, FlowRail, StepCards } from '../../../ui'
 
 export const metadata: Metadata = {
   title: 'AI Retreat Week Brief: Australian Payroll Association | Edge8',

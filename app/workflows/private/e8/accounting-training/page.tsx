@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { WorkflowHero, StepCards } from '../../ui'
+import { WorkflowHero, StepCards } from '../../../ui'
 
 export const metadata: Metadata = {
   title: 'Accounting Training Guide | Edge8',
