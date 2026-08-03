@@ -9,7 +9,11 @@ export const metadata: Metadata = {
 }
 
 const AIO_PAGES: { href: string; title: string; description: string }[] = [
-  // AIO Labs plans and workflows go here.
+  {
+    href: '/workflows/private/aio-labs/ui-redesign-plan',
+    title: 'UI Redesign Plan',
+    description: '— Team Dashboard Quick Actions, the Mission Control Grading Outcome card, and the Blog index.',
+  },
 ]
 
 export default function AioLabsPrivateWorkflowsIndexPage() {
