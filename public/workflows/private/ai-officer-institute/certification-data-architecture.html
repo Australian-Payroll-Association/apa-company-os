@@ -108,6 +108,19 @@
   .farrow{align-self:center; color:var(--muted); font-family:var(--mono); font-size:1rem; flex:0 0 auto;}
   @media(max-width:720px){ .flow{flex-direction:column;} .fnode{flex:0 0 auto;} .farrow{transform:rotate(90deg); margin:.1rem 0;} }
 
+  /* track picker */
+  .pick{margin:1.6rem 0 .4rem;}
+  .pick .lab{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.75rem;}
+  .tracks{display:flex; flex-wrap:wrap; gap:.6rem;}
+  .trk{display:inline-flex; align-items:center; gap:.55rem; font-family:var(--sans); font-size:.95rem; font-weight:700;
+    color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:40px; padding:.5rem 1.05rem; box-shadow:var(--shadow);}
+  .trk.ex{border-color:var(--navy); color:var(--navy); background:color-mix(in srgb,var(--navy) 8%,var(--surface));}
+  .trk.soon{color:var(--muted);}
+  .trk .tagx{font-family:var(--sans); font-size:.6rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:.2em .5em; border-radius:2px;}
+  .trk.ex .tagx{color:var(--navy); background:color-mix(in srgb,var(--navy) 14%,transparent);}
+  .trk.soon .tagx{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .pickcap{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:1.4rem 0 -.4rem;}
+
   /* 3-up definition cards */
   .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
   @media(max-width:720px){.owners{grid-template-columns:1fr;}}
@@ -213,9 +226,17 @@
       AI Officer). Credit is earned the same way in every unit: watch the video, read the textbook, do the
       challenge in the AI Buddy, submit. The certification is what those units add up to.</p>
 
-    <div class="flow" role="img" aria-label="Certification pipeline: pick a track, complete the Core of 10 missions, complete the elective micro-sessions, then the capstone unlocks and the credential is issued.">
-      <div class="fnode"><span class="c">Step 1</span><span class="t">Pick a track</span><span class="d">AI Officer (example)</span></div>
-      <span class="farrow" aria-hidden="true">&rarr;</span>
+    <div class="pick">
+      <div class="lab">Step 1: pick one track (a learner works one at a time, no order between them)</div>
+      <div class="tracks">
+        <span class="trk soon">Leadership <span class="tagx">Coming soon</span></span>
+        <span class="trk">AI Engineering</span>
+        <span class="trk ex">AI Officer <span class="tagx">This brief</span></span>
+      </div>
+    </div>
+
+    <p class="pickcap">Step 2: then, within the chosen track</p>
+    <div class="flow" role="img" aria-label="A learner picks one of three tracks (Leadership is not open yet). Within the chosen track, shown here for AI Officer, they complete the Core of 10 missions and the elective micro-sessions, then the capstone unlocks and the credential is issued.">
       <div class="fnode core"><span class="c">Core</span><span class="t">10 missions</span><span class="d">Generative then Agentic</span></div>
       <span class="farrow" aria-hidden="true">+</span>
       <div class="fnode elect"><span class="c">Electives</span><span class="t">Micro-sessions</span><span class="d">10 (proposed)</span></div>
@@ -239,6 +260,9 @@
         <p>The proof-of-competence project. It stays locked until the Core and the Electives are both complete, then issuing the credential is automatic.</p>
       </div>
     </div>
+    <p class="tnote">Every track uses this same shape; only the Core differs. AI Officer is 10 missions (Generative
+      then Agentic), AI Engineering is 8 (<span class="mono">E01 – E08</span>), and Leadership is grouped as Lead
+      Yourself, Lead Team, Lead Org. Leadership and Business AI Essentials are not open to learners yet.</p>
   </section>
 
   <!-- CORE -->
