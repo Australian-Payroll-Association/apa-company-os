@@ -73,6 +73,37 @@ export async function listVendorOptions(): Promise<VendorOption[]> {
   return (data ?? []) as VendorOption[];
 }
 
+export type PersonCustody = {
+  id: string;
+  assigned_at: string;
+  returned_at: string | null;
+  condition_in: string | null;
+  equipment: {
+    id: string;
+    asset_tag: string;
+    name: string;
+    type: string;
+    status: string;
+    serial_number: string | null;
+  } | null;
+};
+
+// Everything this person has ever held, open periods first. Powers the
+// Equipment block on the team member profile, which is also the offboarding
+// check: anything still open has to come back before their last day.
+export async function listCustodyForPerson(personId: string): Promise<PersonCustody[]> {
+  const { data } = await companyOs
+    .from("equipment_assignments")
+    .select(
+      "id, assigned_at, returned_at, condition_in, " +
+        "equipment:equipment!equipment_assignments_equipment_id_fkey(id, asset_tag, name, type, status, serial_number)",
+    )
+    .eq("person_id", personId)
+    .order("returned_at", { ascending: true, nullsFirst: true })
+    .order("assigned_at", { ascending: false });
+  return (data ?? []) as unknown as PersonCustody[];
+}
+
 export type PendingRequest = {
   id: string;
   type: string;
