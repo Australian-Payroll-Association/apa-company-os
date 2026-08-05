@@ -207,12 +207,12 @@
     <h1>Core, electives, and the capstone</h1>
     <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:62ch; margin-top:1rem;">
       A companion to the AI Program Plan, focused on the part that matters most: how a certification is
-      structured in data. Every certification is a required <strong>Core</strong> of missions, a set of
+      structured. Every certification is a required <strong>Core</strong> of missions, a set of
       elective <strong>micro-sessions</strong>, and a <strong>capstone</strong> that unlocks only when both
       are done. AI Officer is the worked example.</p>
     <div class="meta">
       <div><span class="k">Scope</span> &nbsp; AI Officer certification: Core (missions) + Electives (micro-sessions) + Capstone</div>
-      <div><span class="k">Source</span> &nbsp; comingSoon.ts <span class="k">(launch scope)</span> · aiolabz-fe <span class="k">(progress + grading)</span> · incident BE&nbsp;#942</div>
+      <div><span class="k">Basis</span> &nbsp; The AI Program Plan, plus how the program is structured today</div>
       <div><span class="k">State</span> &nbsp; <span class="badge ok">Verified</span> 10-mission core &nbsp;&nbsp; <span class="badge prop">Proposed</span> elective count · capstone gate</div>
       <div><span class="k">Prepared</span> &nbsp; 5 August 2026 · companion to the AI Program Plan</div>
     </div>
@@ -288,16 +288,15 @@
         </tfoot>
       </table>
     </div>
-    <p class="tnote">Verified against the launch scope config, the grading tests, and incident BE&nbsp;#942, which
-      is the one shape the codebase agrees on everywhere.</p>
+    <p class="tnote">This 10-mission shape is the one the whole program is consistent on, so it stays the safe
+      anchor for this brief.</p>
 
     <div class="callout navy">
-      <div class="k">The rule that broke once</div>
-      <p>The completion percentage must count <strong>Core and Electives together</strong>, and the completion
-        denominator must stay fixed at all 10 courses. When the Generative group was hidden as "coming soon", the
-        denominator shrank from 10 to 6, so students who finished the 6 Agentic courses were shown as done and the
-        capstone opened, yet no credential ever issued (incident <code>BE #942</code>). Hiding a group is
-        presentational only, it must never change what "finished" means.</p>
+      <div class="k">Why completion has to count everything</div>
+      <p>A learner's progress needs to count the <strong>Core and the Electives together</strong>, and "finished"
+        has to mean all 10 missions. Even when part of the program is hidden from view, the certificate must not
+        look complete early: someone who has done only the Agentic half should not be told they are done. Getting
+        this right is what makes the progress number trustworthy.</p>
     </div>
   </section>
 
@@ -416,9 +415,8 @@
   <!-- CURRENT STATE -->
   <section>
     <p class="eyebrow">Current state vs. target</p>
-    <h2>Most pieces exist, the gap is the completion math</h2>
-    <p class="lead">Grounding this brief in what the platform already does, so the conversation is about the delta,
-      not a rebuild.</p>
+    <h2>Most pieces exist; the new part is counting electives</h2>
+    <p class="lead">A quick read on what already exists, so the conversation is about what is new, not a rebuild.</p>
     <div class="tablewrap">
       <table>
         <caption>Where each piece stands</caption>
@@ -427,14 +425,14 @@
         </thead>
         <tbody>
           <tr>
-            <td><b>Certification = series model</b></td>
+            <td><b>How a certification is built</b></td>
             <td><span class="badge ok">Built</span></td>
-            <td>Series already carry mission groups, workshops, micro-sessions, a capstone, and a minimum micro-sessions requirement.</td>
+            <td>A certification already holds its mission groups, workshops, micro-sessions, and a capstone, plus a minimum number of electives.</td>
           </tr>
           <tr>
             <td><b>Micro-sessions</b></td>
             <td><span class="badge ok">Built</span></td>
-            <td>List, detail, challenge flow, sign-up, live-session URL and host all exist. The screens already mirror a standard session.</td>
+            <td>Browsing, the detail screen, the challenge flow, sign-up, and the live-session link already exist, and the screens already mirror a standard session.</td>
           </tr>
           <tr>
             <td><b>Coaching</b></td>
@@ -449,32 +447,30 @@
           <tr>
             <td><b>Completion = Core + Electives</b></td>
             <td><span class="badge gap">The gap</span></td>
-            <td>Today progress counts missions only; electives are tracked but do not roll into the certification's completion math. This is the core change.</td>
+            <td>Today progress counts missions only. Electives are tracked, but do not yet add to the certification's progress. This is the main change.</td>
           </tr>
           <tr>
-            <td><b>Fixed denominator</b></td>
+            <td><b>Counting the full program</b></td>
             <td><span class="badge gap">The gap</span></td>
-            <td>Per <code>BE #942</code>, hiding a group shrank the denominator 10 to 6 and falsely marked students done. It must stay fixed at all 10.</td>
+            <td>Progress has to be measured against all 10 missions. Hiding part of the program from view should never make a learner look finished early.</td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="callout">
-      <div class="k">Numbers to reconcile first</div>
-      <p>The codebase disagrees with itself on the other tracks. AI Engineer shows "6 sessions" in onboarding but
-        8 courses (<code>E01–E08</code>) in the launch config; the old certification mock still shows a stale
-        4 + 4 two-track shape; and a fourth certification, Business AI Essentials, exists in code but is not in the
-        three-track plan. AI Officer's 10-mission shape is the one part that is consistent everywhere, so it is the
-        safe anchor for this brief.</p>
+      <div class="k">A couple of numbers still to confirm</div>
+      <p>A few track details are worth confirming with the team, for example the exact number of sessions in
+        AI Engineering, and whether Leadership and Business AI Essentials are in the picture yet. AI Officer's
+        shape is settled, so it stays the anchor for this brief.</p>
     </div>
   </section>
 
   <footer class="foot">
     <p><b>Certification data architecture</b>, a design brief for the AI Officer Institute. Companion to the AI
       Program Plan. Prepared 5 August 2026 for review.</p>
-    <p>Scope note: this is the data-model brief. The micro-session and coaching interfaces are partially built and
-      are being finished separately. Items marked <b>Proposed</b> (the 10-elective count, the Core-plus-Electives
-      capstone gate) are for-discussion targets, not current behaviour.</p>
+    <p>Scope note: this brief is about how the program is structured, not the visual design. The micro-session and
+      coaching screens are partly built and being finished separately. Items marked <b>Proposed</b> (the 10-elective
+      count, and whether the capstone waits for electives too) are still to be agreed, not decided.</p>
   </footer>
 
 </div>
