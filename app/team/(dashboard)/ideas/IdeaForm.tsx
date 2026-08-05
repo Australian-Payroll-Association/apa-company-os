@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { submitIdea } from "../actions";
+import { submitIdea } from "./actions";
 import { appendDictation, useDictation } from "./useDictation";
 
 // Guided 5D submission form. One step per D (Define, Discover, Design,

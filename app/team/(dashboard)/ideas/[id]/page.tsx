@@ -82,10 +82,26 @@ export default async function IdeaDetailPage({ params }: { params: { id: string 
                   <dt style={{ marginBottom: 2 }}>What happened</dt>
                   <dd style={{ whiteSpace: "pre-wrap" }}>{idea.story ?? ""}</dd>
                 </div>
-                <div style={{ gridColumn: "1 / -1", marginBottom: 10 }}>
+                <div style={{ gridColumn: "1 / -1", marginBottom: idea.source_urls?.length ? 10 : 0 }}>
                   <dt style={{ marginBottom: 2 }}>The takeaway</dt>
                   <dd style={{ whiteSpace: "pre-wrap" }}>{idea.takeaway ?? ""}</dd>
                 </div>
+                {idea.source_urls && idea.source_urls.length > 0 && (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <dt style={{ marginBottom: 2 }}>Source</dt>
+                    <dd>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {idea.source_urls.map((url) => (
+                          <li key={url}>
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              {url}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
           </>
