@@ -7,7 +7,36 @@
 **Branch:** `feat/equipment-tracking` (cut from `main` at 343f292)
 **Published:** `/workflows/private/e8/equipment-register`
 **Decisions locked:** two tables (item + custody history); status set is `in_use, in_stock, in_repair, lost, retired, sold`; `serial_number` added even though the sheet has none; cost visible to all admins and explicitly outside the wage and PII gate.
-**Status:** awaiting confirmation to build. Nothing applied to the database.
+**Status:** phases 1 to 4 built and applied. Phases 5 and 6 are operational.
+
+---
+
+## Build status (2026-08-05)
+
+Phases 1 to 4 are shipped: both tables, the two custody RPCs, the admin module,
+and the backfill of all 25 items. Three things landed differently from the plan
+above, and the plan text below has been left as written so the difference is
+visible:
+
+- **27 assignment rows, not 29.** Two of the four handovers have a prior holder
+  whose name did not resolve, so only the live period could be recorded.
+- **Only one name failed to resolve, not three.** Le Minh Tan, Do Minh Tam and
+  Tran Thi Hong Phuong all exist in `company_os.people` after all (the sheet
+  writes names without diacritics, the database keeps them). The unresolved ones
+  are **Le Dinh Ngoc** (both "Ngoc Le" and "Loc Dinh" are plausible) and
+  **Nguyen Duy Khanh Chieu** (a prior holder, near match is a job_seeker). Both
+  are noted on the records rather than guessed.
+- **Vendors are not linked.** The vendor directory holds cars, tours and venues;
+  none of the electronics retailers are in it. Suppliers are kept verbatim in
+  `vendor_name_raw` rather than inventing vendor rows as an import side effect.
+
+Verified after import: 25 items, 27 custody periods, 17 open periods matching
+17 items in use, holder equal to the open period on every row and zero
+mismatches, and 914,033,401 VND on the register, which reconciles to the
+spreadsheet exactly.
+
+**Still to do:** phase 5 (physical audit, serial numbers, resolve the two names)
+and phase 6 (offboarding closes open assignments).
 
 ---
 

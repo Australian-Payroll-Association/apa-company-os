@@ -122,7 +122,7 @@ export default function EquipmentRegisterPlanPage() {
             { label: 'Owner', value: 'Dave (sponsor)' },
             { label: 'Outcome', value: 'Cheaper Operations' },
             { label: 'Home', value: '/admin/operations/equipment' },
-            { label: 'State', value: 'Awaiting go' },
+            { label: 'State', value: 'Built, phases 1 to 4' },
           ]}
         />
 
@@ -648,10 +648,34 @@ export default function EquipmentRegisterPlanPage() {
               </div>
             </div>
 
-            <p className="section-sub" style={{ marginTop: 32 }}>
-              Status: awaiting confirmation. The branch exists and this brief is on it. No migration
-              has been applied, no table created, and the database is untouched. The same brief in
-              markdown lives at docs/plans/2026-08-05-equipment-tracking.md.
+            <span className="section-label" style={{ marginTop: 48 }}>
+              Build status, 5 August 2026
+            </span>
+            <div className="wf-problems" style={{ marginTop: 20 }}>
+              <div className="wf-problem wf-problem-ok">
+                <strong>Phases 1 to 4 are shipped.</strong> Both tables, the two custody RPCs, the
+                admin module, and the backfill of all 25 items. Verified: 27 custody periods, 17
+                open periods matching 17 items in use, holder equal to the open period on every row,
+                and 914,033,401 VND on the register, reconciling to the spreadsheet exactly.
+              </div>
+              <div className="wf-problem wf-problem-warn">
+                <strong>Only one name failed to resolve, not three.</strong> Le Minh Tan, Do Minh Tam
+                and Tran Thi Hong Phuong all exist in company_os.people after all. The unresolved
+                ones are <strong>Le Dinh Ngoc</strong> and <strong>Nguyen Duy Khanh Chieu</strong>,
+                both noted on the records rather than guessed.
+              </div>
+              <div className="wf-problem wf-problem-warn">
+                <strong>Vendors are not linked.</strong> The vendor directory holds cars, tours and
+                venues; none of the electronics retailers are in it. Suppliers are kept verbatim in
+                vendor_name_raw rather than inventing vendor rows as an import side effect.
+              </div>
+              <div className="wf-problem wf-problem-warn">
+                <strong>Still to do:</strong> phase 5 (physical audit, serial numbers, resolve the
+                two names) and phase 6 (offboarding closes open assignments).
+              </div>
+            </div>
+            <p className="section-sub" style={{ marginTop: 24 }}>
+              The same brief in markdown lives at docs/plans/2026-08-05-equipment-tracking.md.
             </p>
           </div>
         </section>
