@@ -25,6 +25,14 @@ const nextConfig = {
       { source: '/workflows/private/ai-retreat-work-healthy', destination: '/workflows/private/e8/ai-retreat-work-healthy', permanent: true },
       { source: '/workflows/private/ai-retreat-austpayroll', destination: '/workflows/private/e8/ai-retreat-austpayroll', permanent: true },
       { source: '/workflows/private/vung-tau-leg.html', destination: '/workflows/private/e8/vung-tau-leg.html', permanent: true },
+      // The "AIO Labs" brand was renamed to "AI Officer Institute"; the route dir moved
+      // from /workflows/private/aio-labs to /workflows/private/ai-officer-institute.
+      { source: '/workflows/private/aio-labs', destination: '/workflows/private/ai-officer-institute', permanent: true },
+      { source: '/workflows/private/aio-labs/ui-redesign-plan', destination: '/workflows/private/ai-officer-institute/ui-redesign-plan', permanent: true },
+      { source: '/workflows/private/aio-labs/agentic-ai-workflows.html', destination: '/workflows/private/ai-officer-institute/agentic-ai-workflows.html', permanent: true },
+      { source: '/workflows/private/aio-labs/gen-ai-workflows.html', destination: '/workflows/private/ai-officer-institute/gen-ai-workflows.html', permanent: true },
+      { source: '/workflows/private/aio-labs/aio-company-admin-workflow.html', destination: '/workflows/private/ai-officer-institute/aio-company-admin-workflow.html', permanent: true },
+      { source: '/workflows/private/aio-labs/aio-platform-admin-workflow.html', destination: '/workflows/private/ai-officer-institute/aio-platform-admin-workflow.html', permanent: true },
     ]
   },
 }

@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 const BRANDS = [
   {
     href: '/workflows/private/e8',
-    title: 'E8',
-    description: 'Edge8 internal guides and briefs: team onboarding, private retreats, accounting, and AI Retreat week briefs.',
+    title: 'Edge8 Consulting',
+    description: 'Edge8 Consulting internal guides and briefs: team onboarding, private retreats, accounting, and AI Retreat week briefs.',
   },
   {
-    href: '/workflows/private/aio-labs',
-    title: 'AIO Labs',
-    description: 'AIO Labs plans and workflows, built and maintained independently from E8.',
+    href: '/workflows/private/ai-officer-institute',
+    title: 'AI Officer Institute',
+    description: 'AI Officer Institute plans, workflows, and data, built and maintained independently from Edge8 Consulting.',
   },
 ]
 
