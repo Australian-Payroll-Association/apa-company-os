@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Scheduling Platform &amp; Company OS &middot; Home Integrity | Edge8</title>
+<meta name="description" content="A plan for Home Integrity: one central database it owns, a scheduling platform built the way its schedulers actually work, and AI assist on top.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Edge8 AI">
+<meta property="og:title" content="Edge8 AI &times; Home Integrity: Scheduling Platform &amp; Company OS">
+<meta property="og:description" content="One central database Home Integrity owns, a scheduling platform built the way its schedulers actually work, and AI assist on top.">
+<meta property="og:image" content="https://www.edge8.ai/social.jpg">
+<meta property="og:url" content="https://www.edge8.ai/proposals/home-integrity-proposal.html">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Edge8 AI &times; Home Integrity: Scheduling Platform &amp; Company OS">
+<meta name="twitter:description" content="One central database Home Integrity owns, a scheduling platform built the way its schedulers actually work, and AI assist on top.">
+<meta name="twitter:image" content="https://www.edge8.ai/social.jpg">
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--navy);
+    background:var(--mist);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:840px;
+    margin:0 auto;
+    background:var(--white);
+  }
+  header{
+    background:var(--navy);
+    color:var(--white);
+    padding:56px 56px 48px;
+  }
+  .eyebrow{
+    font-size:13px;
+    letter-spacing:.18em;
+    color:var(--mint);
+    font-weight:600;
+    margin-bottom:18px;
+  }
+  header h1{
+    font-size:34px;
+    line-height:1.2;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  header p.sub{
+    font-size:17px;
+    color:var(--mist);
+    max-width:640px;
+  }
+  .meta{
+    margin-top:30px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:28px;
+    font-size:13px;
+    color:var(--mist);
+  }
+  .meta div span{
+    display:block;
+    color:var(--mint);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:3px;
+  }
+  section{padding:44px 56px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{
+    font-size:13px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--blue);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  h3{
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:18px;
+    color:var(--navy);
+  }
+  p{margin-bottom:16px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li{
+    position:relative;
+    padding-left:24px;
+    margin-bottom:10px;
+    font-size:16px;
+  }
+  ul li::before{
+    content:"";
+    position:absolute;
+    left:0;top:11px;
+    width:8px;height:8px;
+    background:var(--mint);
+    border-radius:50%;
+  }
+  .cost-table{
+    width:100%;
+    border-collapse:collapse;
+    margin:8px 0 4px;
+    font-size:15px;
+  }
+  .cost-table th{
+    text-align:left;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--blue);
+    padding:0 0 12px;
+    border-bottom:2px solid var(--mist);
+  }
+  .cost-table th.num,.cost-table td.num{text-align:right;}
+  .cost-table td{
+    padding:14px 0;
+    border-bottom:1px solid var(--mist);
+    vertical-align:top;
+  }
+  .cost-table td .label{font-weight:600;}
+  .cost-table td .note{display:block;font-size:13px;color:#5a6478;margin-top:2px;}
+  .callout{
+    background:var(--navy);
+    color:var(--white);
+    padding:34px 36px;
+    border-radius:10px;
+    margin:6px 0;
+  }
+  .callout .q{
+    font-size:22px;
+    font-weight:600;
+    line-height:1.4;
+  }
+  .callout .q .hl{color:var(--mint);}
+  .callout .tag{
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mint);font-weight:600;margin-bottom:14px;display:block;
+  }
+  .guarantee{
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+    background:var(--mint);
+    color:var(--navy);
+    padding:28px 32px;
+    border-radius:10px;
+    margin:6px 0;
+  }
+  .guarantee .badge{
+    flex:0 0 auto;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:700;background:var(--navy);color:var(--mint);
+    padding:6px 12px;border-radius:20px;white-space:nowrap;margin-top:2px;
+  }
+  .guarantee p{margin:0;font-size:16px;font-weight:500;}
+  .guarantee strong{font-weight:700;}
+  .leverage{
+    display:flex;align-items:center;gap:20px;
+    background:var(--mist);border-left:4px solid var(--blue);
+    border-radius:8px;padding:16px 22px;margin:14px 0 0;
+  }
+  .leverage .mult{
+    flex:0 0 auto;font-size:38px;font-weight:800;color:var(--blue);
+    line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .leverage p{margin:0;font-size:15px;}
+  .phase{
+    display:flex;
+    gap:22px;
+    padding:24px 0;
+    border-bottom:1px solid var(--mist);
+  }
+  .phase:last-child{border-bottom:none;}
+  .phase .num{
+    flex:0 0 52px;
+    height:52px;
+    background:var(--mist);
+    color:var(--navy);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;
+  }
+  .phase .body h4{font-size:19px;font-weight:700;margin-bottom:6px;}
+  .phase .body .role{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--pink);font-weight:700;margin-bottom:8px;
+  }
+  .phase .body p{margin-bottom:0;font-size:15px;}
+  .mitigation{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--blue);font-weight:700;margin:10px 0 4px;
+  }
+  .split{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:6px;
+  }
+  .box{
+    border:1px solid var(--mist);
+    border-radius:10px;
+    padding:24px;
+  }
+  .box.emph{border-color:var(--blue);border-width:2px;}
+  .box h4{font-size:17px;font-weight:700;margin-bottom:6px;}
+  .box .tag8020{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:700;margin-bottom:10px;display:inline-block;
+    padding:3px 9px;border-radius:20px;
+  }
+  .box .tag8020.eighty{background:var(--mint);color:var(--navy);}
+  .box .tag8020.twenty{background:var(--pink);color:var(--white);}
+  .box p{font-size:14px;margin-bottom:12px;}
+  .box ul li{font-size:14px;margin-bottom:8px;}
+  .next-step{
+    background:var(--mint);
+    color:var(--navy);
+    padding:30px 36px;
+    border-radius:10px;
+  }
+  .next-step h3{margin-bottom:8px;}
+  .next-step p{margin-bottom:0;font-size:16px;}
+  footer{
+    background:var(--navy);
+    color:var(--mist);
+    padding:30px 56px;
+    font-size:13px;
+  }
+  footer strong{color:var(--white);}
+  .disclaimer{font-size:13px;color:#5a6478;margin-top:10px;}
+  a.more{
+    color:var(--blue);font-weight:650;text-decoration:none;
+    border-bottom:1px solid rgba(40,123,232,.35);
+    white-space:nowrap;
+  }
+  a.more:hover{border-bottom-color:var(--blue);}
+  .retreat{
+    background:var(--navy);
+    color:var(--white);
+    padding:34px 36px;
+    border-radius:10px;
+  }
+  .retreat h4{font-size:20px;font-weight:700;margin-bottom:10px;color:var(--white);}
+  .retreat p{font-size:15px;color:var(--mist);}
+  .retreat ul li{font-size:15px;color:var(--mist);}
+  .retreat ul li::before{background:var(--mint);}
+  .retreat .price{font-size:22px;font-weight:700;color:var(--mint);margin:4px 0 10px;}
+  .retreat .price small{font-size:14px;color:var(--mist);font-weight:500;}
+  .retreat a.more{color:var(--mint);border-bottom-color:rgba(111,242,193,.4);}
+  .retreat a.more:hover{border-bottom-color:var(--mint);}
+  @media (max-width:620px){
+    header,section,footer{padding-left:28px;padding-right:28px;}
+    .split{grid-template-columns:1fr;}
+    .guarantee{flex-direction:column;gap:12px;}
+    header h1{font-size:27px;}
+  }
+  @media print{
+    body{background:var(--white);}
+    .page{max-width:100%;}
+    .callout,.guarantee,.next-step,.box,.retreat,.phase .num{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Edge8 &nbsp;&middot;&nbsp; Proposal</div>
+    <h1>A Scheduling Platform on a Database You Own</h1>
+    <p class="sub">A plan for Home Integrity: centralize the data your inspections run on into a database you own, replace Zuper with a scheduling platform built the way your schedulers actually work, and open the door to AI assist once the foundation is in.</p>
+    <div class="meta">
+      <div><span>Prepared for</span>Ben Vowles, Home Integrity</div>
+      <div><span>Prepared by</span>Dave Hajdu &amp; Quan Chau, Edge8</div>
+      <div><span>Date</span>5 August 2026</div>
+      <div><span>Status</span>For discussion</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>What we heard</h2>
+    <h3>Where you are today</h3>
+    <p>Home Integrity is a building and pre-purchase inspection business in Perth: 24 people, 160 to 180 inspections a week, scheduled by region, with inspectors on the road working from their iPads. The stack works, but it works hard against you:</p>
+    <ul>
+      <li><strong>HubSpot is home base.</strong> Deals are the source of truth for jobs, Data Hub wires the tools together, and the team lives in it.</li>
+      <li><strong>Zuper is the weak link.</strong> It runs scheduling, and workflows break, servers go down, and fixes take a long time. The team is burnt out on it, and you are already unhooking reliance on it piece by piece.</li>
+      <li><strong>The data behind scheduling is scattered.</strong> Inspector information sits partly in HubSpot, partly in Zuper, partly on spreadsheets. Employee records just moved to Employment Hero. Reports live in Safety Culture, invoicing in Xero, calls in Echo.</li>
+      <li><strong>Leave is handled twice.</strong> An inspector requests leave in Employment Hero, then someone has to remember to block those days out in Zuper so no jobs land on them.</li>
+      <li><strong>Scheduling itself is tribal knowledge.</strong> Regions, inspector capabilities, referral-partner priority, urgency: it all lives in the schedulers' heads. There is no SOP, because the nuance never fit into one.</li>
+    </ul>
+    <p>Keeping it all talking to each other is close to a full-time job, the whole stack runs around A$10,000 a month, and you have lived through one big-bang migration already. Nobody wants a repeat of that.</p>
+  </section>
+
+  <section>
+    <h2>The idea</h2>
+    <h3>The scheduling tool is the last piece, not the first</h3>
+    <p>To schedule one inspection you need three things in one place: the inspectors (their regions, capabilities, calendars and leave), the jobs (your HubSpot deals), and the rules (the logic in your schedulers' heads). Today those live in four rented systems and a few clever people. Any scheduling tool built on top of that, ours included, would inherit the same fragility that makes Zuper painful.</p>
+    <p>So the real project is the foundation. We built <strong>Company OS</strong>, a company-database platform we run our own companies on, already covering CRM, HR, scheduling data, portals and reporting. Its data structures are modeled on HubSpot's, so your contacts, companies and deals sync in cleanly, and HubSpot keeps working exactly as it does today while you consolidate at your own pace. We stand up a central database <em>you</em> own, pull the employee spine out of Employment Hero and the jobs out of HubSpot, write the scheduling rules down at last, and then build the scheduling platform on ground that holds. No big-bang, no repeat of last time.</p>
+  </section>
+
+  <section>
+    <h2>The opportunity</h2>
+    <div class="callout">
+      <span class="tag">The question worth answering</span>
+      <p class="q">What if the schedule stopped depending on <span class="hl">Zuper's uptime and one person's memory</span>? Jobs, inspectors, calendars and leave in <span class="hl">one database you own</span>, a scheduling screen built exactly how Home Integrity schedules, and AI carrying more of the load every quarter.</p>
+    </div>
+    <p style="margin-top:24px;">That is what Ben described on the call. The hard part is not the software: it is centralizing the data and documenting the scheduling logic that has never been written down. That is exactly what the plan below is built around, and it is the same foundation-first path Bstore has just started with us.</p>
+  </section>
+
+  <section>
+    <h2>The plan</h2>
+    <h3>The foundation, then the platform, then AI</h3>
+
+    <div class="guarantee">
+      <span class="badge">Money-back gate</span>
+      <p>The foundation opens with a 2 to 4 week systems map and roadmap sprint, and we move through it as fast as we can to get to building. <strong>If the roadmap we hand you isn't worth building, you don't pay for it.</strong> You only continue into the build once the plan convinces you.</p>
+    </div>
+
+    <div class="phase" style="margin-top:20px;">
+      <div class="num">1</div>
+      <div class="body">
+        <div class="role">Phase one &nbsp;&middot;&nbsp; the foundation &nbsp;&middot;&nbsp; money-back gate</div>
+        <h4>Central database, HubSpot synced, scheduling rules written down</h4>
+        <p>A consulting engagement Dave runs personally with the Edge8 team. We map your systems and data: HubSpot, Zuper, Employment Hero, Safety Culture, Xero, Echo, and the spreadsheets in between, what each costs, and what gets replaced versus pulled in. We stand up your central database with Company OS installed, sync your contacts, companies and deals from HubSpot, and make the employee spine the single source for every inspector's region, capability and availability. Then the piece nobody has managed yet: we sit with your schedulers and turn the tribal knowledge into documented scheduling workflows. The first automations come straight off your pain list, starting with leave: approved in Employment Hero, blocked from scheduling automatically, no memory required.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">2</div>
+      <div class="body">
+        <div class="role">Phase two &nbsp;&middot;&nbsp; the scheduling platform &nbsp;&middot;&nbsp; metered build</div>
+        <h4>Replace Zuper with a platform built the way you schedule</h4>
+        <p>On the foundation, we build the scheduler console your team actually described: a region view of every inspector's week, drag-and-drop assignment, capability and referral-partner priority visible where the decision is made. Inspectors get a clean iPad view of their day. Jobs flow in from HubSpot the way they do now, a deal reaching the ready stage creates the job, and updates sync back. Reports keep flowing to Safety Culture. The new platform runs in parallel with Zuper until it has proven itself, region by region, and only then do you cut over and cancel.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">3</div>
+      <div class="body">
+        <div class="role">Phase three &nbsp;&middot;&nbsp; ongoing &nbsp;&middot;&nbsp; tokens or a dedicated engineer</div>
+        <h4>AI on top, and the stack keeps shrinking</h4>
+        <p>With the data centralized and the rules documented, the AI work gets easy: scheduling suggestions ("this job fits this inspector Tuesday at 10"), call transcripts that update the CRM on their own, weekly operations summaries, and a company chatbot that answers from your own data. You keep building with <strong>human tokens</strong>, one unit of work at a time with no monthly fees, or add a <strong>dedicated Edge8 engineer</strong> in Vietnam as part of your team. And each quarter you get to ask which piece of the A$10,000 a month stack goes next. <a class="more" href="https://infiniteleverage-8.com/human-tokens" target="_blank" rel="noopener">More on human tokens &rarr;</a></p>
+        <div class="leverage">
+          <span class="mult">4x</span>
+          <p><strong>Human tokens are leveraged with AI.</strong> An expert hour paired with Claude routinely produces around four times the output of unaided work, so every token goes further than a billed hour ever could.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What's in the box</h2>
+    <h3>The 80%, and where the 20% begins</h3>
+    <div class="split">
+      <div class="box emph">
+        <span class="tag8020 eighty">The foundation &middot; fixed scope</span>
+        <h4>Phase one, standard</h4>
+        <ul>
+          <li>Your systems and data map: what you run, what it costs, what to replace or pull in</li>
+          <li>Your own central database, with Company OS installed and the modules that fit an inspection business turned on: CRM, people and HR, scheduling data, reporting</li>
+          <li>HubSpot contacts, companies and deals synced in; employee spine synced from Employment Hero</li>
+          <li>Your scheduling workflows documented with your schedulers: the SOPs that have never existed</li>
+          <li>The first 2 to 4 automations, leave sync first</li>
+          <li>One training day: your team running it with Claude</li>
+        </ul>
+      </div>
+      <div class="box">
+        <span class="tag8020 twenty">The 20% &middot; metered</span>
+        <h4>Everything bespoke to Home Integrity</h4>
+        <ul>
+          <li>The scheduler console and inspector iPad experience</li>
+          <li>AI scheduling assist, built on your documented rules</li>
+          <li>Connectors to Safety Culture, Xero and Echo</li>
+          <li>The Zuper parallel run, cutover and retirement</li>
+          <li>Automations beyond the first 2 to 4</li>
+        </ul>
+        <p style="margin-top:6px;color:#5a6478;">Bought in human tokens ($3,000 AUD per 40-token pack), on demand, once the foundation is live. Sized and quoted from the roadmap before it starts. You always see it coming.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The investment</h2>
+    <h3>Reference pricing, to confirm together</h3>
+    <table class="cost-table">
+      <thead>
+        <tr><th>Piece</th><th class="num">Price (AUD)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="label">The foundation</span><span class="note">8 week consulting engagement with Dave. Includes AI Engineer and Database Design Specialist. Systems map, database design, Company OS install, HubSpot and Employment Hero sync, scheduling SOPs, and the first 2 to 4 automations. Money back if the roadmap doesn't convince you.</span></td>
+          <td class="num"><strong>$15,000</strong><span class="note">fixed, incl. money-back gate</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">The scheduling platform (phase two)</span><span class="note">Metered build after go-live, sized in the roadmap. For scale: a recent client shipped a complete training platform, payments, assessments and chatbot included, in roughly a 40-token week.</span></td>
+          <td class="num">$3,000 / 40 tokens<span class="note">$6,000 for a starting block of 80</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">AI Officer Certification (optional)</span><span class="note">For the people you nominate, delivered on AIOlabz (AI Officer Institute). One live kickoff, then challenge-based and self-paced, with a leader dashboard. Platform opens 8 August; Ben's invite is on its way.</span></td>
+          <td class="num"><strong>$24.75</strong> / seat / month<span class="note">75% off the $99 list, as fellow EO</span></td>
+        </tr>
+        <tr>
+          <td><span class="label">Dedicated AI engineer (optional, later)</span><span class="note">Vietnam-based, part of your team, once the roadmap is set. Fractional or full-time.</span></td>
+          <td class="num">$4,000 to $6,000 / month</td>
+        </tr>
+        <tr>
+          <td><span class="label">Running costs</span><span class="note">Your Supabase database and Vercel hosting. The system is yours; this is all it costs to keep on.</span></td>
+          <td class="num">~$70 / month</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="disclaimer">These are the reference figures to confirm together. We nail down connector scope, the Zuper cutover plan, and the build pace during the systems map. A pack is 40 human tokens ($3,000 AUD); no monthly fees, no expiry. Claude usage is billed to your own account, usage-based.</p>
+  </section>
+
+  <section>
+    <h2>Roles &amp; responsibilities</h2>
+    <h3>Who does what</h3>
+    <div class="split">
+      <div class="box emph">
+        <h4>Edge8</h4>
+        <ul>
+          <li>Run the systems map and deliver your database design and prioritised roadmap</li>
+          <li>Honour the money-back gate: no charge for the roadmap if it doesn't convince you</li>
+          <li>On "go", install Company OS on your database, sync HubSpot and Employment Hero, and build the first automations</li>
+          <li>Run the scheduling workflow sessions and deliver the documented SOPs</li>
+          <li>Build the scheduling platform in metered token packs, quoted before each block starts</li>
+          <li>Run the training day, and keep building only when and if you choose</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>Home Integrity</h4>
+        <ul>
+          <li>Make your schedulers available for the workflow sessions (a few hours a week during the map)</li>
+          <li>Provide access to HubSpot, Zuper, Employment Hero and the reporting stack</li>
+          <li>Give the "go" on the roadmap, or take the refund at the gate</li>
+          <li>Own the accounts outright: the Supabase database, Vercel hosting, Claude usage, and their running costs</li>
+          <li>Keep Zuper running through the parallel period, and decide when each region cuts over</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Risks &amp; assumptions</h2>
+    <h3>The three that matter</h3>
+
+    <div class="phase">
+      <div class="num">1</div>
+      <div class="body">
+        <h4>If the scheduling logic resists being written down</h4>
+        <p>You told us yourself: there is no SOP because the variables never fit one. If the rules stay in heads, no tool, and certainly no AI, can carry the load.</p>
+        <div class="mitigation">How we handle it</div>
+        <p>Documenting the scheduling workflows is a first-class deliverable of the foundation, done in working sessions with the schedulers themselves, not a template. SOPs come before software, and AI assist is only built on rules that exist in writing. If the map shows the logic is heavier than expected, the roadmap says so before you commit a dollar to the build.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">2</div>
+      <div class="body">
+        <h4>If replacing Zuper mid-flight risks the operation</h4>
+        <p>Zuper schedules 160 to 180 jobs a week today. A hard cutover that stumbles would hurt, and you have lived through a painful migration before.</p>
+        <div class="mitigation">How we handle it</div>
+        <p>No big-bang, ever. The new platform runs in parallel with Zuper, synced, until it has proven itself, and you cut over region by region on your call. Zuper is not cancelled until the last region is confidently off it.</p>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="num">3</div>
+      <div class="body">
+        <h4>If the data plumbing is messier than it looks</h4>
+        <p>Your data lives across HubSpot, Zuper, Employment Hero, Safety Culture, Xero and Echo, and data quality is never fully visible until someone looks properly.</p>
+        <div class="mitigation">How we handle it</div>
+        <p>The systems map inventories every source before the build starts, and anything beyond the standard scope, heavy migration, cleanup, specialist connectors, is metered human-token work quoted before it starts. Nothing lands as surprise hours inside the fixed foundation fee.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Build it with us</h2>
+    <h3>An optional private Infinite Leverage retreat</h3>
+    <p>If you want to accelerate, the fastest way to make this real is to build it with us in the room. A private, hands-on retreat over three to five days, in Saigon or on-site in Perth, where your team walks in with the roadmap and walks out with working software running on your real data. You mentioned you'd love to see Vietnam again; this is a productive excuse. There is also a public build sprint in Sydney in a few weeks, with Melbourne and Perth on the list. Optional, and never required to start.</p>
+    <div class="retreat">
+      <h4>What you walk out with</h4>
+      <div class="price">From $10,500<small> AUD &middot; 3-day private retreat, first person</small></div>
+      <ul>
+        <li>2 to 3 working applications, shipped to production on your real data</li>
+        <li>The 18 Protocols installed, the operating system for building on your own</li>
+        <li>In Saigon: VIP immigration, airport pickup, a private car and driver, daily lunch, and a room at the AIO Pad</li>
+      </ul>
+      <p style="margin-bottom:0;">Add $1,500 per extra day, and $1,500 per additional person per day. Or we run it on-site in Perth, quoted per trip. <a class="more" href="https://infiniteleverage-8.com/saigon-private" target="_blank" rel="noopener">More on private retreats &rarr;</a></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="next-step">
+      <h3>Next step</h3>
+      <p>You have a few working days before Scandinavia: share this with Elias, and we'll send your invite to the AI Officer platform (it opens 8 August) so the training track can start while you travel. When you're back in early September, one systems-map session, about ninety minutes, with Dave and Quan. Bring the scheduling brain trust. Worst case, you get a roadmap that isn't worth paying for, and you don't pay for it.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>A note on EO.</strong> This conversation came warm through the EO community and the Bstore relationship. We honour the EO non-solicitation guideline: this proposal exists because Ben reached out to us, and we're glad he did.</p>
+    <p style="margin-top:14px;"><strong>Edge8</strong> &nbsp;&middot;&nbsp; AI consulting &amp; staffing &nbsp;&middot;&nbsp; David Hajdu &amp; Quan Chau</p>
+  </footer>
+
+</div>
+</body>
+</html>
