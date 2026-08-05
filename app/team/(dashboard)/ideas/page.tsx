@@ -40,14 +40,14 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
 
   if (compose) {
     return (
-      <>
+      <div className="ideas-page">
         <PageHead
           eyebrow="Ideas"
           title={compose === "build" ? "What should we build?" : "What have I learned?"}
           sub={
             compose === "build"
-              ? "Walk the 5D framework: Define the problem, Discover the data, Design the workflow, Determine the ROI. Claude turns it into a product plan you keep."
-              : "Share a lesson from your work — Learn and Share in action. It lands on the team feed for everyone to use."
+              ? "Walk the 5D framework: Define, Discover, Design, Determine. Claude turns it into a product plan you keep."
+              : "A lesson from your work — Learn and Share in action. It lands on the team feed for everyone."
           }
           action={
             <Link href="/team/ideas" className="admin-btn">
@@ -56,17 +56,17 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
           }
         />
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <div className="ideas-tabs">
           <Link
             href="/team/ideas?compose=build"
-            className={`admin-btn admin-btn--sm${compose === "build" ? " admin-btn--primary" : ""}`}
+            className={`ideas-tab${compose === "build" ? " ideas-tab--active" : ""}`}
             aria-current={compose === "build" ? "page" : undefined}
           >
             What should we build?
           </Link>
           <Link
             href="/team/ideas?compose=learning"
-            className={`admin-btn admin-btn--sm${compose === "learning" ? " admin-btn--primary" : ""}`}
+            className={`ideas-tab${compose === "learning" ? " ideas-tab--active" : ""}`}
             aria-current={compose === "learning" ? "page" : undefined}
           >
             What have I learned?
@@ -74,7 +74,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
         </div>
 
         <div style={{ maxWidth: 720 }}>{compose === "build" ? <IdeaForm /> : <LearningForm />}</div>
-      </>
+      </div>
     );
   }
 
@@ -100,11 +100,11 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
   ];
 
   return (
-    <>
+    <div className="ideas-page">
       <PageHead
         eyebrow="Ideas"
         title="Ideas that Spark Solutions"
-        sub="Two questions power this page: what should we build, and what have I learned? Everyone sees everything — that's the point."
+        sub="What should we build, and what have I learned? Everyone sees everything."
         action={
           <Link href="/team/ideas?compose=build" className="admin-btn admin-btn--primary">
             Share an idea
@@ -112,12 +112,12 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
         }
       />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="ideas-tabs">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={t.href}
-            className={`admin-btn admin-btn--sm${view === t.key ? " admin-btn--primary" : ""}`}
+            className={`ideas-tab${view === t.key ? " ideas-tab--active" : ""}`}
             aria-current={view === t.key ? "page" : undefined}
           >
             {t.label}
@@ -130,7 +130,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
       ) : (
         <PlansTable builds={builds} />
       )}
-    </>
+    </div>
   );
 }
 
@@ -143,7 +143,8 @@ function LearningsFeed({
 }) {
   if (learnings.length === 0) {
     return (
-      <div className="admin-card" style={{ padding: "22px 24px", maxWidth: 720 }}>
+      <div className="admin-card ideas-empty">
+        <div className="ideas-empty-icon" aria-hidden>✎</div>
         <h2 className="admin-card-title">Learned something this week?</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
           Learn and Share is how we work: something you figured out is something the whole team
@@ -157,7 +158,7 @@ function LearningsFeed({
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 760 }}>
+    <div style={{ display: "grid", gap: 14, maxWidth: 780 }}>
       {learnings.map((l) => {
         const html = summaryHtml.get(l.id);
         return (
@@ -193,7 +194,8 @@ function LearningsFeed({
 function PlansTable({ builds }: { builds: SharedIdea[] }) {
   if (builds.length === 0) {
     return (
-      <div className="admin-card" style={{ padding: "22px 24px", maxWidth: 720 }}>
+      <div className="admin-card ideas-empty">
+        <div className="ideas-empty-icon" aria-hidden>◈</div>
         <h2 className="admin-card-title">Got a workflow AI should own?</h2>
         <p className="admin-page-sub" style={{ marginTop: 0 }}>
           Submit it through the 5D framework — define the problem, discover the data, design the
