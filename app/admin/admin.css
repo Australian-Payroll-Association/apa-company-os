@@ -2421,3 +2421,56 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   border-color: var(--admin-accent);
   color: var(--admin-accent-strong);
 }
+
+/* ─── Ideas that Spark Solutions (/team/ideas) ───────── */
+/* Scoped to .ideas-page so it can't affect any other admin/team page that
+   reuses .admin-page-head / .admin-btn. */
+.ideas-page .admin-page-head { flex-wrap: nowrap; align-items: flex-start; }
+.ideas-page .admin-page-head > div:first-child { min-width: 0; }
+.ideas-page .admin-page-head > div:last-child { flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .ideas-page .admin-page-head { flex-wrap: wrap; }
+}
+
+.ideas-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 999px;
+  margin-bottom: 22px;
+}
+a.ideas-tab {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-muted);
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+a.ideas-tab:hover { color: var(--admin-ink); }
+a.ideas-tab--active {
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.ideas-empty {
+  max-width: 640px;
+  padding: 32px 28px;
+}
+.ideas-empty-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.ideas-empty .admin-btn { margin-top: 14px; }
