@@ -105,31 +105,48 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
         eyebrow="Ideas"
         title="Ideas that Spark Solutions"
         sub="What should we build, and what have I learned? Everyone sees everything."
-        action={
-          <Link href="/team/ideas?compose=build" className="admin-btn admin-btn--primary">
-            Share an idea
-          </Link>
-        }
       />
 
-      <div className="ideas-tabs">
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={t.href}
-            className={`ideas-tab${view === t.key ? " ideas-tab--active" : ""}`}
-            aria-current={view === t.key ? "page" : undefined}
-          >
-            {t.label}
-          </Link>
-        ))}
+      {/* Share: the primary action on this page — two equal-weight entry
+          points, not one button hiding a second choice behind it. */}
+      <div className="ideas-share-grid">
+        <Link href="/team/ideas?compose=build" className="ideas-share-card">
+          <div className="ideas-share-icon" aria-hidden>◈</div>
+          <h2>What should we build?</h2>
+          <p>A workflow AI should own. Walk the 5D framework and get a product plan back in seconds.</p>
+        </Link>
+        <Link href="/team/ideas?compose=learning" className="ideas-share-card">
+          <div className="ideas-share-icon" aria-hidden>✎</div>
+          <h2>What have I learned?</h2>
+          <p>A lesson worth sharing. Two minutes, no framework — it goes straight onto the team feed.</p>
+        </Link>
       </div>
 
-      {view === "learnings" ? (
-        <LearningsFeed learnings={learnings} summaryHtml={summaryHtml} />
-      ) : (
-        <PlansTable builds={builds} />
-      )}
+      {/* History: secondary — everything already shared, browsable below the
+          share cards rather than competing with them for attention. */}
+      <div className="ideas-history">
+        <div className="ideas-history-head">
+          <h2 className="ideas-history-title">History</h2>
+          <div className="ideas-tabs">
+            {tabs.map((t) => (
+              <Link
+                key={t.key}
+                href={t.href}
+                className={`ideas-tab${view === t.key ? " ideas-tab--active" : ""}`}
+                aria-current={view === t.key ? "page" : undefined}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {view === "learnings" ? (
+          <LearningsFeed learnings={learnings} summaryHtml={summaryHtml} />
+        ) : (
+          <PlansTable builds={builds} />
+        )}
+      </div>
     </div>
   );
 }
@@ -143,16 +160,8 @@ function LearningsFeed({
 }) {
   if (learnings.length === 0) {
     return (
-      <div className="admin-card ideas-empty">
-        <div className="ideas-empty-icon" aria-hidden>✎</div>
-        <h2 className="admin-card-title">Learned something this week?</h2>
-        <p className="admin-page-sub" style={{ marginTop: 0 }}>
-          Learn and Share is how we work: something you figured out is something the whole team
-          gets to skip figuring out. Be the first on the feed.
-        </p>
-        <Link href="/team/ideas?compose=learning" className="admin-btn admin-btn--primary">
-          Share a learning
-        </Link>
+      <div className="admin-empty">
+        Nothing shared yet — be the first with &ldquo;What have I learned?&rdquo; above.
       </div>
     );
   }
@@ -194,17 +203,8 @@ function LearningsFeed({
 function PlansTable({ builds }: { builds: SharedIdea[] }) {
   if (builds.length === 0) {
     return (
-      <div className="admin-card ideas-empty">
-        <div className="ideas-empty-icon" aria-hidden>◈</div>
-        <h2 className="admin-card-title">Got a workflow AI should own?</h2>
-        <p className="admin-page-sub" style={{ marginTop: 0 }}>
-          Submit it through the 5D framework — define the problem, discover the data, design the
-          workflow, determine the ROI — and get back a product plan written in seconds. Your idea
-          lands in the company backlog where it can get picked up and built.
-        </p>
-        <Link href="/team/ideas?compose=build" className="admin-btn admin-btn--primary">
-          Submit your first idea
-        </Link>
+      <div className="admin-empty">
+        Nothing submitted yet — be the first with &ldquo;What should we build?&rdquo; above.
       </div>
     );
   }
