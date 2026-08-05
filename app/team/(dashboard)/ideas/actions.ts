@@ -14,6 +14,30 @@ import { generateIdeaPlan } from "@/lib/ai/idea-plan";
 type SubmitResult = { ok: true; id: string } | { ok: false; error: string };
 
 const MAX_FIELD = 5000;
+const MAX_SOURCE_URLS = 10;
+const MAX_URL_LEN = 500;
+
+// Keep only well-formed http(s) links — a bad scheme here (e.g. javascript:)
+// would otherwise get rendered as a clickable href on the detail page.
+function cleanSourceUrls(urls: string[] | undefined): string[] | { error: string } {
+  const trimmed = (urls ?? []).map((u) => u.trim()).filter(Boolean);
+  if (trimmed.length > MAX_SOURCE_URLS) return { error: `Add at most ${MAX_SOURCE_URLS} source links.` };
+  const cleaned: string[] = [];
+  for (const u of trimmed) {
+    if (u.length > MAX_URL_LEN) return { error: "One of your source links is too long." };
+    let parsed: URL;
+    try {
+      parsed = new URL(u);
+    } catch {
+      return { error: `"${u}" doesn't look like a valid link.` };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { error: `"${u}" needs to be a regular http(s) link.` };
+    }
+    cleaned.push(parsed.toString());
+  }
+  return cleaned;
+}
 
 export async function submitIdea(input: {
   title: string;
@@ -63,6 +87,7 @@ export async function submitLearning(input: {
   title: string;
   story: string;
   takeaway: string;
+  sourceUrls?: string[];
 }): Promise<SubmitResult> {
   const actor = await requireTeamMember();
 
@@ -77,11 +102,15 @@ export async function submitLearning(input: {
     if (v.length > MAX_FIELD) return { ok: false, error: "One of your answers is too long — keep each under 5,000 characters." };
   }
 
+  const sourceUrls = cleanSourceUrls(input.sourceUrls);
+  if (!Array.isArray(sourceUrls)) return { ok: false, error: sourceUrls.error };
+
   const { data, error } = await teamInsertOwn(actor, "ideas", {
     kind: "learning",
     title: title.slice(0, 200),
     story,
     takeaway,
+    source_urls: sourceUrls.length ? sourceUrls : null,
   });
   if (error || !data) return { ok: false, error: error ?? "Could not save your learning." };
 

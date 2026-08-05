@@ -56,7 +56,7 @@ export function OnboardingWalkthrough({
       ico: "✦",
       title: "Share an idea",
       body: "What should we build? What have I learned? Answer either — build ideas come back as product plans, learnings go straight to the team feed.",
-      href: "/team/ideas/new",
+      href: "/team/ideas?compose=build",
       cta: "Share an idea",
     },
   ];

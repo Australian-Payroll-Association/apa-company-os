@@ -371,6 +371,7 @@ export type SharedIdea = {
   roi: string | null;
   story: string | null;
   takeaway: string | null;
+  source_urls: string[] | null;
   office: string | null;
   ai_plan: string | null;
   ai_error: string | null;
@@ -380,7 +381,7 @@ export type SharedIdea = {
 };
 
 const SHARED_IDEA_SELECT =
-  "id, kind, person_id, title, problem, data_needed, workflow, roi, story, takeaway, " +
+  "id, kind, person_id, title, problem, data_needed, workflow, roi, story, takeaway, source_urls, " +
   "office, ai_plan, ai_error, status, created_at, " +
   "people:people!person_id(full_name, preferred_name)";
 

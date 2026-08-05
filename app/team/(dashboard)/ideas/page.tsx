@@ -7,6 +7,8 @@ import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { IdeaForm } from "./IdeaForm";
+import { LearningForm } from "./LearningForm";
 import {
   IDEA_STATUS_LABEL,
   OFFICE_LABEL,
@@ -25,11 +27,56 @@ export const metadata = {
 
 // Ideas that Spark Solutions: the whole team sees the whole feed (Learn and
 // Share). Two sections — Learnings (what have I learned?) and Plans (what
-// should we build?, each with its Claude product plan).
+// should we build?, each with its Claude product plan). Sharing happens on
+// this same page via ?compose=build|learning — no separate /new route, so
+// there's one URL for the whole feature instead of a feed page and a form
+// page that both claim to be "Ideas".
 
 export default async function IdeasPage({ searchParams }: { searchParams: SearchParamsObj }) {
   await requireTeamMember();
   const view = firstParam(searchParams.view) === "plans" ? "plans" : "learnings";
+  const composeParam = firstParam(searchParams.compose);
+  const compose = composeParam === "learning" ? "learning" : composeParam === "build" ? "build" : null;
+
+  if (compose) {
+    return (
+      <>
+        <PageHead
+          eyebrow="Ideas"
+          title={compose === "build" ? "What should we build?" : "What have I learned?"}
+          sub={
+            compose === "build"
+              ? "Walk the 5D framework: Define the problem, Discover the data, Design the workflow, Determine the ROI. Claude turns it into a product plan you keep."
+              : "Share a lesson from your work — Learn and Share in action. It lands on the team feed for everyone to use."
+          }
+          action={
+            <Link href="/team/ideas" className="admin-btn">
+              Cancel
+            </Link>
+          }
+        />
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <Link
+            href="/team/ideas?compose=build"
+            className={`admin-btn admin-btn--sm${compose === "build" ? " admin-btn--primary" : ""}`}
+            aria-current={compose === "build" ? "page" : undefined}
+          >
+            What should we build?
+          </Link>
+          <Link
+            href="/team/ideas?compose=learning"
+            className={`admin-btn admin-btn--sm${compose === "learning" ? " admin-btn--primary" : ""}`}
+            aria-current={compose === "learning" ? "page" : undefined}
+          >
+            What have I learned?
+          </Link>
+        </div>
+
+        <div style={{ maxWidth: 720 }}>{compose === "build" ? <IdeaForm /> : <LearningForm />}</div>
+      </>
+    );
+  }
 
   const all = await getSharedIdeas();
   const learnings = all.filter((i) => i.kind === "learning");
@@ -59,7 +106,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
         title="Ideas that Spark Solutions"
         sub="Two questions power this page: what should we build, and what have I learned? Everyone sees everything — that's the point."
         action={
-          <Link href="/team/ideas/new" className="admin-btn admin-btn--primary">
+          <Link href="/team/ideas?compose=build" className="admin-btn admin-btn--primary">
             Share an idea
           </Link>
         }
@@ -102,7 +149,7 @@ function LearningsFeed({
           Learn and Share is how we work: something you figured out is something the whole team
           gets to skip figuring out. Be the first on the feed.
         </p>
-        <Link href="/team/ideas/new?kind=learning" className="admin-btn admin-btn--primary">
+        <Link href="/team/ideas?compose=learning" className="admin-btn admin-btn--primary">
           Share a learning
         </Link>
       </div>
@@ -153,7 +200,7 @@ function PlansTable({ builds }: { builds: SharedIdea[] }) {
           workflow, determine the ROI — and get back a product plan written in seconds. Your idea
           lands in the company backlog where it can get picked up and built.
         </p>
-        <Link href="/team/ideas/new?kind=build" className="admin-btn admin-btn--primary">
+        <Link href="/team/ideas?compose=build" className="admin-btn admin-btn--primary">
           Submit your first idea
         </Link>
       </div>
