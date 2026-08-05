@@ -35,22 +35,33 @@ export async function listOpenAssignmentsForPerson(personId: string) {
   return data ?? [];
 }
 
-// Assignable people: the internal team (persona=employee). Leavers who still
-// hold something stay selectable via `include`, so a historical handover can
-// always be recorded against the person who actually had it.
-export async function listAssignablePeople(include?: (string | null)[]): Promise<PersonOption[]> {
+// Assignable people: currently active staff, driven by team_members.status
+// rather than people.persona.
+//
+// persona is the CRM lifecycle tag and drifts from employment reality in both
+// directions: four active staff still carry job_seeker or null from before they
+// were hired, and twenty-two leavers keep persona='employee' forever. Filtering
+// on it both hid people who work here and offered up people who don't.
+//
+// Anyone who currently holds an item is merged in by the caller, so a leaver on
+// notice can still be handed back from even though they are not assignable.
+export async function listAssignablePeople(): Promise<PersonOption[]> {
   const { data } = await companyOs
-    .from("people")
-    .select("id, full_name, persona, archived_at")
-    .order("full_name", { ascending: true });
+    .from("team_members")
+    .select("person:people!team_members_person_id_fkey(id, full_name, archived_at)")
+    .eq("status", "active");
 
-  const extra = new Set((include ?? []).filter(Boolean) as string[]);
-  return (data ?? [])
-    .filter(
-      (p: { id: string; full_name: string | null; persona: string | null; archived_at: string | null }) =>
-        p.full_name && ((p.persona === "employee" && !p.archived_at) || extra.has(p.id)),
+  const rows = (data ?? []) as unknown as {
+    person: { id: string; full_name: string | null; archived_at: string | null } | null;
+  }[];
+
+  return rows
+    .map((r) => r.person)
+    .filter((p): p is { id: string; full_name: string; archived_at: string | null } =>
+      Boolean(p?.full_name && !p.archived_at),
     )
-    .map((p: { id: string; full_name: string | null }) => ({ id: p.id, full_name: p.full_name as string }));
+    .map((p) => ({ id: p.id, full_name: p.full_name }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
 export async function listVendorOptions(): Promise<VendorOption[]> {
