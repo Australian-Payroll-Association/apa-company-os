@@ -201,9 +201,17 @@ export default function AiProgramPlanPage() {
               <div className="app-kicker">Coaching</div>
               <h2 className="app-h2">Open Coaching: bring a challenge, get coached</h2>
               <p className="app-lead">
-                Open Coaching mirrors what was already built for coaching elsewhere, brought into the
-                AI Officer Institute. Like micro-sessions, coaching has an Upcoming view and an
-                Archive.
+                Open Coaching mirrors the coaching prototype at{' '}
+                <a
+                  href="https://www.caiocoach.com/coaching"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--blue)', fontWeight: 600 }}
+                >
+                  caiocoach.com/coaching
+                </a>{' '}
+                (our own site, where the prototype was built), brought into the AI Officer Institute.
+                Like micro-sessions, coaching has an Upcoming view and an Archive.
               </p>
               <ul className="app-list">
                 <li>
@@ -222,6 +230,19 @@ export default function AiProgramPlanPage() {
                   published to the archive so others can learn from it.
                 </li>
               </ul>
+              <div className="app-callout">
+                <strong>Reference.</strong> The working prototype lives at{' '}
+                <a
+                  href="https://www.caiocoach.com/coaching"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--blue)', fontWeight: 600 }}
+                >
+                  caiocoach.com/coaching
+                </a>
+                , our own site. It is the model for the Upcoming and Archive flows being brought into
+                the AI Officer Institute.
+              </div>
             </div>
 
             {/* Scope note */}
