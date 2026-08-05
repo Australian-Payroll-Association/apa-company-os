@@ -11,6 +11,13 @@ export const metadata: Metadata = {
 
 const ITEMS: LibraryItem[] = [
   {
+    category: 'plan',
+    href: '/workflows/private/e8/equipment-register',
+    title: 'Equipment Register: 5Ds Brief',
+    description:
+      'Problem, data, workflow, ROI, and the deployment and training plan for tracking company laptops, monitors and accessories in the Company OS.',
+  },
+  {
     category: 'workflow',
     href: '/workflows/private/e8/team-onboarding',
     title: 'Team Onboarding',
