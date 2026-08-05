@@ -620,8 +620,7 @@ export default function EquipmentRegisterPlanPage() {
                     tools, who holds a seat and who pays. company_os.subscriptions already exists as
                     an empty scaffold. The obvious next brief.
                   </li>
-                  <li>A /team self serve view: what am I holding, and when did I get it.</li>
-                  <li>Depreciation and refresh cycles. Age is derivable from purchase_date once the data is clean.</li>
+                      <li>Depreciation and refresh cycles. Age is derivable from purchase_date once the data is clean.</li>
                   <li>Automatic offboarding enforcement. Phase 6 is a checklist step, not a system block.</li>
                 </ul>
               </div>
@@ -668,6 +667,11 @@ export default function EquipmentRegisterPlanPage() {
                 <strong>Vendors are not linked.</strong> The vendor directory holds cars, tours and
                 venues; none of the electronics retailers are in it. Suppliers are kept verbatim in
                 vendor_name_raw rather than inventing vendor rows as an import side effect.
+              </div>
+              <div className="wf-problem wf-problem-warn">
+                <strong>My Equipment shipped on /team.</strong> Employees see the kit assigned to
+                them and can raise a request; open requests surface on the admin equipment page with
+                approve and decline. Fulfilment stays manual on purpose.
               </div>
               <div className="wf-problem wf-problem-warn">
                 <strong>Still to do:</strong> phase 5 (physical audit, serial numbers, resolve the

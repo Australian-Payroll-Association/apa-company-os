@@ -7,7 +7,12 @@ import { ArchivedToggle } from "@/components/admin/ArchivedToggle";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { equipmentSummary, listAssignablePeople, listVendorOptions } from "@/lib/admin/equipment";
+import {
+  equipmentSummary,
+  listAssignablePeople,
+  listPendingRequests,
+  listVendorOptions,
+} from "@/lib/admin/equipment";
 import {
   EQUIPMENT_SELECT,
   EQUIPMENT_STATUSES,
@@ -18,6 +23,7 @@ import {
   type EquipmentRow,
 } from "./equipment-shared";
 import { EquipmentShelfProvider, EquipmentShelfRow } from "./EquipmentShelf";
+import { RequestsPanel } from "./RequestsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +33,13 @@ export const metadata = {
 };
 
 const PAGE_SIZES = [25, 50, 100];
-const SORTABLE = new Set(["asset_tag", "name", "type", "status", "purchase_date", "cost_vnd"]);
+const SORTABLE = new Set(["asset_tag", "name", "type", "status", "purchase_date", "cost_vnd", "holder"]);
+
+// "Assigned to" is a joined column, so it sorts through PostgREST's embedded
+// ordering on the aliased embed rather than a column on equipment itself. The
+// UI keeps the plain key ("holder") for the header state; only the query is
+// remapped. Verified against the REST endpoint, not assumed.
+const SORT_COLUMN: Record<string, string> = { holder: "holder(full_name)" };
 
 export default async function EquipmentPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
@@ -47,13 +59,13 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
     filters.status = statusParam;
   }
 
-  const [{ rows, total, pageSize, error }, summary, people, vendors] = await Promise.all([
+  const [{ rows, total, pageSize, error }, summary, people, vendors, requests] = await Promise.all([
     listEntity<EquipmentRow>("equipment", EQUIPMENT_SELECT, {
       page,
       pageSize: pageSizeChoice,
       search: q,
       searchColumns: ["name", "asset_tag", "brand", "model", "serial_number", "notes"],
-      sort,
+      sort: SORT_COLUMN[sort] ?? sort,
       dir,
       excludeArchived: !showArchived,
       filters,
@@ -61,6 +73,7 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
     equipmentSummary(),
     listAssignablePeople(),
     listVendorOptions(),
+    listPendingRequests(),
   ]);
 
   // Leavers can still hold equipment, and they aren't in the assignable list.
@@ -90,6 +103,7 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
     {
       key: "holder",
       header: "Assigned to",
+      sortable: true,
       cell: (r) => r.holder?.full_name ?? <span className="admin-cell-muted">Unassigned</span>,
     },
     {
@@ -144,6 +158,7 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
         }
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
+      <RequestsPanel requests={requests} />
       <EquipmentShelfProvider people={peopleOptions} vendors={vendors}>
         <DataTable
           columns={columns}

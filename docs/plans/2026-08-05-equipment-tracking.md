@@ -35,6 +35,14 @@ Verified after import: 25 items, 27 custody periods, 17 open periods matching
 mismatches, and 914,033,401 VND on the register, which reconciles to the
 spreadsheet exactly.
 
+**Also shipped (2026-08-05):** My Equipment on the /team portal. Employees see
+the kit assigned to them (product photo when `equipment.image_url` is set, a
+drawn device illustration otherwise) and can raise a request through
+`company_os.equipment_requests`. Open requests surface on the admin equipment
+page with approve and decline. Fulfilment stays manual: an admin creates the
+item and assigns it, because pretending to automate procurement would be worse
+than a two-step.
+
 **Still to do:** phase 5 (physical audit, serial numbers, resolve the two names)
 and phase 6 (offboarding closes open assignments).
 

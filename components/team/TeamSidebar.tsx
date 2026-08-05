@@ -20,6 +20,7 @@ const ME: NavGroup[] = [
     items: [
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
+      { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
       { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
       { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
       { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },

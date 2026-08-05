@@ -261,6 +261,7 @@ function EquipmentShelfBody({
               status: (item.status as EquipmentFormValues["status"]) ?? "in_stock",
               condition: item.condition ?? "",
               notes: item.notes ?? "",
+              image_url: item.image_url ?? "",
             }}
             autosave={{ onField: saveField, onDone: () => setEditing(false) }}
           />

@@ -19,6 +19,11 @@ const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   ideas: { column: "person_id", scope: "person" },
   onboarding_plans: { column: "team_member_id", scope: "team_member" },
   onboarding_tasks: { column: "team_member_id", scope: "team_member" },
+  // Equipment is scoped on the CURRENT holder, so an employee sees only what
+  // they are holding right now — never the register, and never an item they
+  // handed back (its custody row stays, but the item is someone else's).
+  equipment: { column: "current_holder_id", scope: "person" },
+  equipment_requests: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {

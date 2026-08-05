@@ -34,6 +34,7 @@ export type EquipmentInput = {
   status?: EquipmentStatus;
   condition?: string;
   notes?: string;
+  image_url?: string;
 };
 
 function refresh() {
@@ -258,4 +259,42 @@ export async function restoreEquipment(id: string): Promise<Result> {
 export async function getAssignments(equipmentId: string) {
   await requireAdmin();
   return listAssignments(equipmentId);
+}
+
+// ── Requests from /team ────────────────────────────────────────────────────
+// Deciding a request records the outcome and the note the requester sees on
+// their own page. Fulfilment stays manual: an admin creates the equipment row
+// and assigns it, then marks the request fulfilled.
+
+export async function decideEquipmentRequest(
+  id: string,
+  status: "approved" | "declined" | "fulfilled",
+  note?: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!["approved", "declined", "fulfilled"].includes(status)) {
+    return { ok: false, error: "Invalid decision." };
+  }
+
+  const { error } = await companyOs
+    .from("equipment_requests")
+    .update({
+      status,
+      decided_by: admin.email ?? null,
+      decided_at: new Date().toISOString(),
+      decision_note: note?.trim() || null,
+    })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "equipment_requests",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    newData: { status },
+  });
+  refresh();
+  revalidatePath("/team/equipment");
+  return { ok: true };
 }

@@ -47,6 +47,12 @@ const HUB_LIVE: HubItem[] = [
     href: "/team/profile",
   },
   {
+    title: "My Equipment",
+    sub: "The laptop and kit you're holding, and how to ask for more.",
+    ico: "▤",
+    href: "/team/equipment",
+  },
+  {
     title: "Team Directory",
     sub: "Find anyone at Edge8 and who they report to.",
     ico: "☷",

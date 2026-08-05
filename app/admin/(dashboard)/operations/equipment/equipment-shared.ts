@@ -58,6 +58,7 @@ export type EquipmentRow = {
   condition: string | null;
   current_holder_id: string | null;
   notes: string | null;
+  image_url: string | null;
   archived_at: string | null;
   created_at: string;
   // Embedded, for the list and shelf headers.
@@ -70,7 +71,7 @@ export type EquipmentRow = {
 export const EQUIPMENT_SELECT =
   "id, asset_tag, type, name, brand, model, serial_number, processor, ram, storage, " +
   "screen_size, purchase_date, model_year, vendor_id, vendor_name_raw, invoice_ref, " +
-  "cost_vnd, cost_usd, status, condition, current_holder_id, notes, archived_at, created_at, " +
+  "cost_vnd, cost_usd, status, condition, current_holder_id, notes, image_url, archived_at, created_at, " +
   "holder:people!equipment_current_holder_id_fkey(id, full_name), " +
   "vendor:vendors!equipment_vendor_id_fkey(id, name)";
 

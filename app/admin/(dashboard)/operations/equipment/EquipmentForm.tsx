@@ -39,6 +39,7 @@ const EMPTY: EquipmentFormValues = {
   status: "in_stock",
   condition: "",
   notes: "",
+  image_url: "",
 };
 
 // Full equipment field set, shared by the "New equipment" page (one explicit
@@ -231,6 +232,17 @@ function EquipmentFields({
           Handing it over or taking it back is done with Assign and Return, not here. Editing status
           only records where the item is, never who has it.
         </div>
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label">Photo URL</label>
+        <input
+          className="admin-input"
+          value={form.image_url ?? ""}
+          placeholder="Optional. Shows on the employee's My Equipment card."
+          onChange={(e) => onChange("image_url", e.target.value)}
+          onBlur={(e) => onBlur("image_url", e.target.value)}
+        />
       </div>
 
       <div className="admin-field">

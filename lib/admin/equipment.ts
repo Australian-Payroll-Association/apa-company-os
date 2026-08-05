@@ -62,6 +62,29 @@ export async function listVendorOptions(): Promise<VendorOption[]> {
   return (data ?? []) as VendorOption[];
 }
 
+export type PendingRequest = {
+  id: string;
+  type: string;
+  reason: string | null;
+  needed_by: string | null;
+  created_at: string;
+  person: { id: string; full_name: string | null } | null;
+};
+
+// Open asks from /team. Surfaced on the equipment list so a request can't sit
+// unseen in a table nobody opens.
+export async function listPendingRequests(): Promise<PendingRequest[]> {
+  const { data } = await companyOs
+    .from("equipment_requests")
+    .select(
+      "id, type, reason, needed_by, created_at, " +
+        "person:people!equipment_requests_person_id_fkey(id, full_name)",
+    )
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  return (data ?? []) as unknown as PendingRequest[];
+}
+
 // Counts for the list page subtitle: what is out, what is on the shelf, and
 // what the register is worth.
 export async function equipmentSummary(): Promise<{
