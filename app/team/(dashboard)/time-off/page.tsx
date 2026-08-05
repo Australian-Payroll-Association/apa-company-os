@@ -2,7 +2,7 @@ import { requireTeamMember } from "@/lib/team-auth";
 import { teamRead, getOwnLeaveSummary, getOwnApprovalPolicy } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { formatLeaveBalance } from "@/lib/admin/time-off";
+import { countWorkingDays, formatLeaveBalance } from "@/lib/admin/time-off";
 import { TimeOffPanel, type OwnRequestRow } from "./TimeOffPanel";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +21,13 @@ export default async function TeamTimeOffPage() {
   const [summary, approvalPolicy, requestsRes] = await Promise.all([
     getOwnLeaveSummary(actor),
     getOwnApprovalPolicy(actor),
-    teamRead(actor, "time_off", "id, leave_type, status, start_date, end_date, is_half_day, reason")
+    teamRead(actor, "time_off", "id, leave_type, status, start_date, end_date, is_half_day, reason, external_source")
       .eq("team_member_id", actor.teamMemberId)
       .order("start_date", { ascending: false })
       .limit(200),
   ]);
 
-  const rows = ((requestsRes.data ?? []) as unknown as {
+  const rawRows = (requestsRes.data ?? []) as unknown as {
     id: string;
     leave_type: string;
     status: string;
@@ -35,7 +35,10 @@ export default async function TeamTimeOffPage() {
     end_date: string;
     is_half_day: boolean;
     reason: string | null;
-  }[]).map(
+    external_source: string | null;
+  }[];
+
+  const rows = rawRows.map(
     (r): OwnRequestRow => ({
       id: r.id,
       leaveType: r.leave_type,
@@ -47,8 +50,24 @@ export default async function TeamTimeOffPage() {
     }),
   );
 
+  // The synced balance (summary.usedDays) reflects only the Day Off snapshot,
+  // which never sees leave filed here in the portal. Add this period's
+  // app-native approved/taken leave (external_source is null; Day Off imports
+  // carry a source, so there's no double count) so "Used" matches the requests
+  // listed below. Current period is scoped to the calendar year.
+  const periodStart = `${new Date().getFullYear()}-01-01`;
+  const appNativeUsed = rawRows.reduce((sum, r) => {
+    if (r.external_source !== null) return sum;
+    if (r.status !== "approved" && r.status !== "taken") return sum;
+    if (r.start_date < periodStart) return sum;
+    return sum + countWorkingDays(r.start_date, r.end_date, r.is_half_day);
+  }, 0);
+
   const total = summary?.totalDays ?? null;
-  const used = summary?.usedDays ?? null;
+  const used =
+    summary?.usedDays !== null && summary?.usedDays !== undefined
+      ? Math.round((summary.usedDays + appNativeUsed) * 10) / 10
+      : null;
   const remaining = total !== null && used !== null ? Math.round((total - used) * 10) / 10 : null;
 
   return (
