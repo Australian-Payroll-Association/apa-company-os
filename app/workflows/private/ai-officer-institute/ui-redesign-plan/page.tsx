@@ -3,7 +3,7 @@ import Link from 'next/link'
 import PrivateGate from '../../PrivateGate'
 
 export const metadata: Metadata = {
-  title: 'UI Redesign Plan — AIO Labs | Edge8',
+  title: 'UI Redesign Plan — AI Officer Institute | Edge8',
   description:
     'Internal plan brief for three aiolabz-fe UI redesigns: Team Dashboard Quick Actions, the Mission Control Grading Outcome card, and the Blog index.',
   robots: { index: false, follow: false },
@@ -546,7 +546,7 @@ export default function AioLabsUiRedesignPlanPage() {
                 <span>/</span>
                 <Link href="/workflows/private">Private</Link>
                 <span>/</span>
-                <Link href="/workflows/private/aio-labs">AIO Labs</Link>
+                <Link href="/workflows/private/ai-officer-institute">AI Officer Institute</Link>
                 <span>/</span>
                 <span>UI Redesign Plan</span>
               </div>
