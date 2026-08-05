@@ -10,6 +10,16 @@ export const metadata: Metadata = {
 
 const AIO_PAGES: { href: string; title: string; description: string }[] = [
   {
+    href: '/workflows/private/aio-labs/agentic-ai-workflows.html',
+    title: 'Agentic AI — Mission & Certification Workflows',
+    description: 'The six Agentic AI missions (A01–A06) from plan to production, the shared grading loop, and how the credential is issued automatically.',
+  },
+  {
+    href: '/workflows/private/aio-labs/gen-ai-workflows.html',
+    title: 'Gen AI — Mission & Certification Workflows',
+    description: 'The four Gen AI missions (G01–G04), the capstone, the shared grading loop, and how certification is issued automatically.',
+  },
+  {
     href: '/workflows/private/aio-labs/ui-redesign-plan',
     title: 'UI Redesign Plan',
     description: '— Team Dashboard Quick Actions, the Mission Control Grading Outcome card, and the Blog index.',
