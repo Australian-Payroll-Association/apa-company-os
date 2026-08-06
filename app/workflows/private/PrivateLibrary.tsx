@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
-export type LibraryCategory = 'plan' | 'workflow' | 'data'
+export type LibraryCategory = 'plan' | 'workflow' | 'prototype' | 'data'
 
 export type LibraryItem = {
   href: string
@@ -15,12 +15,14 @@ export type LibraryItem = {
 const TABS: { key: LibraryCategory; label: string }[] = [
   { key: 'plan', label: 'Plans' },
   { key: 'workflow', label: 'Workflows' },
+  { key: 'prototype', label: 'Prototypes' },
   { key: 'data', label: 'Data' },
 ]
 
 const EMPTY_COPY: Record<LibraryCategory, string> = {
   plan: 'No plans here yet. Coming soon.',
   workflow: 'No workflows here yet. Coming soon.',
+  prototype: 'No prototypes here yet. Coming soon.',
   data: 'No data views here yet. Coming soon.',
 }
 
