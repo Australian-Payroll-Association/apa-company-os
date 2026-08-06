@@ -115,8 +115,10 @@ export default function AiProgramPlanPage() {
                   browsable in one place.
                 </li>
                 <li>
-                  <strong>General library of shorts.</strong> Sections of the full-length videos, cut
-                  to map to individual slides and sections.
+                  <strong>Shorts, catalogued not browsed.</strong> Sections of the full-length videos
+                  are cut into shorts and catalogued against the slides and sections they map to. We
+                  display them in context, but there is no browsable shorts library, people won&rsquo;t
+                  browse shorts initially.
                 </li>
                 <li>
                   <strong>Videos link out.</strong> Each video connects to its Mission Overview, Core
