@@ -12,6 +12,13 @@ export const metadata: Metadata = {
 
 const ITEMS: LibraryItem[] = [
   {
+    category: 'prototype',
+    href: '/workflows/private/ai-officer-institute/open-coaching.html',
+    title: 'Open Coaching',
+    description:
+      'Bring a challenge, get coached. The weekly live-coaching experience: an Upcoming view, submitted-challenge voting (max 8 topics per session), and a recorded-session archive with attendees, key learnings, video, and resources. Mirrors caiocoach.com/coaching.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/ai-officer-institute/ai-program-plan',
     title: 'AI Program Plan',
