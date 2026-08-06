@@ -116,26 +116,25 @@
   /* ---------- certificate hero ---------- */
   .cert-hero{background:
       radial-gradient(120% 140% at 100% 0%, color-mix(in srgb,var(--amber) 16%,var(--surface)) 0%, var(--surface) 55%);
-    border:1px solid var(--line); border-radius:16px; padding:1.5rem 1.6rem; box-shadow:var(--shadow-lg); position:relative; overflow:hidden;}
+    border:1px solid var(--line); border-radius:16px; padding:1.1rem 1.35rem 1.2rem; box-shadow:var(--shadow-lg); position:relative; overflow:hidden;}
   .cert-hero .seal{position:absolute; right:1.3rem; top:1.3rem; width:3.1rem; height:3.1rem; border-radius:50%;
     background:conic-gradient(var(--amber) calc(var(--p,45)*1%), color-mix(in srgb,var(--amber) 18%,transparent) 0);
     display:grid; place-items:center;}
   .cert-hero .seal b{width:2.3rem; height:2.3rem; border-radius:50%; background:var(--surface); display:grid; place-items:center;
     font-family:var(--mono); font-weight:700; font-size:.72rem; color:var(--amber-strong); font-variant-numeric:tabular-nums;}
   .cert-hero .kicker{color:var(--amber-strong);}
-  .cert-hero h1{margin:.2rem 0 .1rem; max-width:20ch;}
-  .cert-hero .sub{max-width:52ch; font-size:.95rem;}
+  .cert-hero h1{margin:.15rem 0 .1rem; max-width:20ch; font-size:clamp(1.35rem,2.8vw,1.75rem);}
+  .cert-hero .sub{max-width:58ch; font-size:.88rem; line-height:1.45;}
 
   /* requirement grid — every open cell is a visible open loop (Zeigarnik) */
-  .reqblock{margin-top:1.3rem; display:grid; gap:1rem;}
-  .reqrow .lab{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.45rem;}
+  .reqblock{margin-top:1rem; display:grid; gap:.6rem;}
+  .reqrow .lab{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.3rem;}
   .reqrow .lab .name{font-size:.82rem; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:.5rem;}
   .reqrow .lab .name .swatch{width:.7rem; height:.7rem; border-radius:3px;}
   .reqrow .lab .count{font-family:var(--mono); font-size:.82rem; color:var(--muted); font-variant-numeric:tabular-nums;}
   .reqrow .lab .count b{color:var(--ink);}
-  .cells{display:grid; grid-template-columns:repeat(10,1fr); gap:.4rem;}
-  @media(max-width:520px){.cells{grid-template-columns:repeat(5,1fr);}}
-  .cell{aspect-ratio:1; border-radius:5px; border:1px solid var(--line); background:var(--surface-2); position:relative;
+  .cells{display:grid; grid-template-columns:repeat(10,1fr); gap:.3rem;}
+  .cell{height:16px; border-radius:4px; border:1px solid var(--line); background:var(--surface-2); position:relative;
     transition:background .3s ease, transform .3s ease, border-color .3s ease;}
   .cell.done{border-color:transparent;}
   .cell.core.done{background:var(--navy);}
@@ -145,7 +144,7 @@
   @keyframes pop{0%{transform:scale(.4); opacity:.2;} 60%{transform:scale(1.15);} 100%{transform:scale(1);}}
 
   .rulechip{display:inline-flex; align-items:center; gap:.4rem; font-size:.8rem; color:var(--ink-soft);
-    background:var(--surface-2); border:1px solid var(--line); border-radius:40px; padding:.35rem .8rem; margin-top:1.2rem;}
+    background:var(--surface-2); border:1px solid var(--line); border-radius:40px; padding:.35rem .8rem; margin-top:.85rem;}
   .rulechip b{color:var(--ink);}
 
   /* resume / next-best-action — the standout (Von Restorff) */
