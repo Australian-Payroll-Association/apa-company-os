@@ -3,9 +3,9 @@ import Link from 'next/link'
 import PrivateGate from '../../PrivateGate'
 
 export const metadata: Metadata = {
-  title: 'AI Program Plan — AI Officer Institute | Edge8',
+  title: 'Video, Micro Sessions and Coaching | AI Officer Institute | Edge8',
   description:
-    'Program design brief for the AI Officer Institute: session types (standard, micro-sessions, coaching), certification tracks, tag taxonomy, and the credit model.',
+    'Program design brief for the AI Officer Institute: video, micro-sessions, and coaching, how they are tagged, and how learners earn credit toward a certification.',
   robots: { index: false, follow: false },
 }
 
@@ -71,11 +71,11 @@ export default function AiProgramPlanPage() {
                 <span>/</span>
                 <Link href="/workflows/private/ai-officer-institute">AI Officer Institute</Link>
                 <span>/</span>
-                <span>AI Program Plan</span>
+                <span>Video, Micro Sessions and Coaching</span>
               </div>
-              <h1 className="section-title">AI Program Plan</h1>
+              <h1 className="section-title">Video, Micro Sessions and Coaching</h1>
               <p className="wf-hero-sub">
-                The program design brief for the AI Officer Institute: how sessions, micro-sessions,
+                The program design brief for the AI Officer Institute: how video, micro-sessions,
                 and coaching fit together, how they are tagged, and how learners earn credit toward
                 a certification.
               </p>
@@ -98,6 +98,47 @@ export default function AiProgramPlanPage() {
                 {TRACKS.map((t) => (
                   <span key={t} className="app-track">{t}</span>
                 ))}
+              </div>
+            </div>
+
+            {/* Video */}
+            <div className="app-section">
+              <div className="app-kicker">Video</div>
+              <h2 className="app-h2">The video library and how it earns credit</h2>
+              <p className="app-lead">
+                Video is the front door to the program. Learners watch, and their watch time turns
+                into progress. Here is how the video layer is shaping up:
+              </p>
+              <ul className="app-list">
+                <li>
+                  <strong>General library of full-length videos.</strong> The complete sessions,
+                  browsable in one place.
+                </li>
+                <li>
+                  <strong>General library of shorts.</strong> Sections of the full-length videos, cut
+                  to map to individual slides and sections.
+                </li>
+                <li>
+                  <strong>Videos link out.</strong> Each video connects to its Mission Overview, Core
+                  Missions, Micro Sessions, and Blogs.
+                </li>
+                <li>
+                  <strong>Watch time counts.</strong> We can log the time learners spend on videos and
+                  give them credit toward their progress.
+                </li>
+              </ul>
+              <div className="app-callout">
+                <strong>David Hajdu (Dave).</strong> Book a 1-1 anytime:{' '}
+                <a
+                  href="https://talentedgeai.larksuite.com/scheduler/94b8c9566fee29f1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--blue)', fontWeight: 600 }}
+                >
+                  scheduler link
+                </a>
+                . Let&rsquo;s talk today about how to approach it. I can share what I&rsquo;m
+                thinking.
               </div>
             </div>
 
