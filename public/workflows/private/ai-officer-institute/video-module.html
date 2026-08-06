@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Video — AI Officer Institute (Prototype)</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────────────
+     Tokens from the AIOlabz Design System (globals.css + AIO_LAB_DESIGN_SYSTEM.md)
+     Typeface: Inter · Track colours: cms-track gen/age/lead
+  ───────────────────────────────────────────────────────────────────── */
+  :root{
+    --navy:#04102d; --navy-light:#0a1a3d; --navy-800:#0e348f;
+    --blue:#287be8; --blue-600:#236bc9; --blue-700:#1c58a8; --blue-50:#e7f1ff; --blue-100:#cbe1ff; --cta:#092244;
+    --gray-50:#fafafa; --gray-100:#eaeef2; --gray-200:#e5e5e5; --gray-300:#d4d4d4;
+    --gray-400:#a3a3a3; --gray-500:#737373; --gray-600:#525252; --gray-900:#171717;
+    --border:#e2e8f0; --border-light:#eaeef2;
+    --text:#04102d; --text-2:#475569; --text-3:#64748b;
+    --t-officer:#d1458b; --t-officer-bg:#ffeff7; --t-officer-fg:#a03168;
+    --t-eng:#287be8;     --t-eng-bg:#e7f1ff;     --t-eng-fg:#1c58a8;
+    --t-lead:#64d7ac;    --t-lead-bg:#e3fff4;    --t-lead-fg:#377b61;
+    --success:#16a34a; --amber:#b0810f; --amber-bg:#faf4e4;
+    --r-sm:6px; --r-md:8px; --r-lg:10px; --r-xl:14px; --r-2xl:16px; --r-3xl:20px; --r-full:9999px;
+    --sh-sm:0 1px 3px rgba(4,16,45,.07); --sh-hover:0 6px 24px rgba(4,16,45,.10); --sh-lg:0 12px 34px rgba(4,16,45,.16);
+    --font:"Inter","Inter var",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#fff;color:var(--text);}
+  body{font-family:var(--font);font-size:16px;line-height:24px;-webkit-font-smoothing:antialiased;font-feature-settings:"rlig" 1,"calt" 1;}
+  a{color:inherit;text-decoration:none;} button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  img{display:block;max-width:100%;} .wrap{max-width:1240px;margin:0 auto;padding:0 24px;} .tnum{font-variant-numeric:tabular-nums;}
+
+  /* ── Nav ──────────────────────────────────────────────────────────────── */
+  .nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
+  .nav-inner{display:flex;align-items:center;gap:16px;height:64px;}
+  .logo{display:flex;align-items:center;gap:1px;flex:none;}
+  .logo .lg-word{font-weight:800;font-size:23px;letter-spacing:-.6px;color:var(--navy);}
+  .logo .lg-8{height:23px;width:auto;margin-left:1px;transform:translateY(1px);}
+  .logo small{font-size:11px;color:var(--text-3);font-weight:600;margin-left:10px;padding-left:10px;border-left:1px solid var(--border);}
+  .nav-search{flex:1;max-width:440px;display:flex;align-items:center;gap:10px;background:var(--gray-50);border:1.5px solid var(--border);border-radius:var(--r-full);padding:10px 18px;color:var(--gray-400);transition:.15s;}
+  .nav-search:focus-within{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px var(--blue-50);}
+  .nav-search input{border:none;background:none;outline:none;flex:1;font-size:15px;color:var(--text);}
+  .who{margin-left:auto;flex:none;display:flex;align-items:center;gap:10px;}
+  .who .av{width:36px;height:36px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;}
+  .who .meta{line-height:1.15;} .who .nm{font-size:13px;font-weight:700;} .who .tk{font-size:11.5px;color:var(--text-3);}
+  .previewas{position:relative;flex:none;}
+  .previewas>button{display:flex;align-items:center;gap:7px;border:1px dashed var(--border);border-radius:var(--r-full);padding:8px 13px;font-size:12px;font-weight:600;color:var(--text-2);background:#fff;}
+  .previewas>button:hover{border-color:var(--blue);color:var(--blue);}
+  .previewas .menu{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh-lg);padding:6px;min-width:230px;display:none;z-index:70;}
+  .previewas.open .menu{display:block;}
+  .previewas .menu .lbl{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--gray-400);text-transform:uppercase;padding:8px 10px 4px;}
+  .previewas .menu button{display:flex;width:100%;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-md);font-size:13.5px;font-weight:600;text-align:left;}
+  .previewas .menu button:hover{background:var(--gray-50);} .previewas .menu .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .previewas .menu button.on{color:var(--blue-700);} .previewas .menu button.on::after{content:"✓";margin-left:auto;}
+  @media(max-width:820px){.logo small,.who .meta{display:none;}}
+
+  /* ── Featured head ────────────────────────────────────────────────────── */
+  .featured{margin:24px 0 4px;border-radius:var(--r-3xl);overflow:hidden;background:var(--navy);color:#fff;box-shadow:var(--sh-lg);}
+  .featured-grid{display:grid;grid-template-columns:1.15fr .95fr;}
+  @media(max-width:820px){.featured-grid{grid-template-columns:1fr;}}
+  .featured-media{position:relative;min-height:320px;background-size:cover;background-position:center;cursor:pointer;}
+  .featured-media::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,rgba(4,16,45,.10),rgba(4,16,45,.72));}
+  @media(max-width:820px){.featured-media{min-height:200px;}}
+  .featured-body{padding:38px;display:flex;flex-direction:column;justify-content:center;gap:14px;}
+  @media(max-width:820px){.featured-body{padding:26px;}}
+  .kick{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8fb6ff;}
+  .featured h1{margin:0;font-weight:600;font-size:34px;line-height:38px;letter-spacing:-.9px;text-wrap:balance;}
+  @media(max-width:820px){.featured h1{font-size:26px;line-height:30px;}}
+  .featured p{margin:0;color:#c7d2e6;font-size:15.5px;max-width:52ch;}
+  .featured-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:#9fb0cc;font-size:13px;}
+  .featured-credit{display:flex;flex-direction:column;gap:7px;margin-top:2px;}
+  .fc-top{display:flex;justify-content:space-between;font-size:12.5px;color:#c7d2e6;font-weight:500;}
+  .fc-bar{height:7px;border-radius:var(--r-full);background:rgba(255,255,255,.16);overflow:hidden;}
+  .fc-bar>i{display:block;height:100%;background:linear-gradient(90deg,#5ba2ff,var(--blue));}
+  .featured-actions{display:flex;gap:12px;align-items:center;margin-top:4px;flex-wrap:wrap;}
+  .btn-play{display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--navy);font-weight:700;padding:11px 20px;border-radius:var(--r-full);font-size:14px;}
+  .btn-ghost{display:inline-flex;align-items:center;gap:8px;color:#dbe4f2;font-weight:600;font-size:13.5px;border:1px solid rgba(255,255,255,.22);padding:10px 17px;border-radius:var(--r-full);}
+  .btn-ghost:hover{background:rgba(255,255,255,.08);}
+  .fmedia-tri{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.94);display:grid;place-items:center;z-index:2;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+
+  /* ── Faceted layout ───────────────────────────────────────────────────── */
+  .lib-layout{display:grid;grid-template-columns:256px 1fr;gap:28px;align-items:start;margin-top:22px;}
+  @media(max-width:900px){.lib-layout{grid-template-columns:1fr;}}
+
+  /* Filter sidebar (Law of Common Region + Proximity) */
+  .filters{position:sticky;top:80px;display:flex;flex-direction:column;gap:10px;}
+  @media(max-width:900px){
+    .filters{position:fixed;inset:0 0 0 auto;width:min(340px,86vw);top:0;background:#fff;z-index:80;padding:20px;overflow:auto;box-shadow:var(--sh-lg);transform:translateX(100%);transition:transform .22s;border-left:1px solid var(--border);}
+    .filters.open{transform:none;}
+    .filters::before{content:"Filters";font-weight:700;font-size:16px;}
+  }
+  .fscrim{display:none;} @media(max-width:900px){.fscrim.open{display:block;position:fixed;inset:0;background:rgba(4,16,45,.4);z-index:75;}}
+  .fgroup{border:1px solid var(--border);border-radius:var(--r-xl);background:#fff;overflow:hidden;}
+  .fg-head{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:13px 15px;font-size:13.5px;font-weight:700;color:var(--text);}
+  .fg-head:hover{background:var(--gray-50);}
+  .fg-head .fg-n{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;margin-left:8px;border-radius:var(--r-full);background:var(--blue);color:#fff;font-size:11px;font-weight:700;}
+  .fg-head .chev{color:var(--gray-400);transition:transform .18s;} .fgroup.open .fg-head .chev{transform:rotate(180deg);}
+  .fg-body{display:none;padding:4px 8px 10px;} .fgroup.open .fg-body{display:block;}
+  .fopt{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:var(--r-md);cursor:pointer;font-size:13.5px;color:var(--text-2);} /* whole row = target (Fitts) */
+  .fopt:hover{background:var(--gray-50);}
+  .fopt input{position:absolute;opacity:0;width:0;height:0;}
+  .fopt .box{width:18px;height:18px;border:1.5px solid var(--gray-300);border-radius:5px;flex:none;display:grid;place-items:center;transition:.12s;}
+  .fopt input:checked+.box{background:var(--blue);border-color:var(--blue);}
+  .fopt input:checked+.box::after{content:"";width:5px;height:9px;border:2px solid #fff;border-top:0;border-left:0;transform:rotate(45deg) translateY(-1px);}
+  .fopt input:focus-visible+.box{outline:2px solid var(--blue);outline-offset:2px;}
+  .fopt .swatch{width:10px;height:10px;border-radius:50%;flex:none;}
+  .fopt .ol{flex:1;color:var(--text);} .fopt .oc{font-size:12px;color:var(--gray-400);font-weight:600;}
+  .fopt.dim{opacity:.4;cursor:default;} .fopt.dim:hover{background:none;}
+  .fopt.on{color:var(--text);font-weight:600;}
+
+  /* Results column */
+  .rtoolbar{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .filterbtn{display:none;align-items:center;gap:7px;border:1.5px solid var(--border);border-radius:var(--r-full);padding:9px 15px;font-size:13.5px;font-weight:600;}
+  @media(max-width:900px){.filterbtn{display:inline-flex;}}
+  .rcount{font-size:14px;font-weight:600;color:var(--text);}
+  .sortsel{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-3);font-weight:600;}
+  .sortsel select{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--text);border:1.5px solid var(--border);border-radius:var(--r-md);padding:8px 10px;background:#fff;cursor:pointer;}
+  .sortsel select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center;}
+  .achip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;background:var(--blue-50);color:var(--blue-700);border:1px solid var(--blue-100);border-radius:var(--r-full);padding:5px 6px 5px 12px;}
+  .achip .sw{width:8px;height:8px;border-radius:50%;}
+  .achip button{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:13px;color:var(--blue-700);background:rgba(40,123,232,.12);line-height:1;}
+  .achip button:hover{background:var(--blue);color:#fff;}
+  .clearall{font-size:12.5px;font-weight:700;color:var(--text-3);text-decoration:underline;text-underline-offset:2px;padding:4px 6px;}
+  .clearall:hover{color:var(--blue);}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  @media(max-width:1200px){.grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:1024px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr;}}
+  .card{cursor:pointer;display:flex;flex-direction:column;gap:9px;}
+  .thumb{position:relative;aspect-ratio:16/9;border-radius:var(--r-2xl);overflow:hidden;background-size:cover;background-position:center;box-shadow:var(--sh-sm);transition:.16s;}
+  .card:hover .thumb{transform:translateY(-3px);box-shadow:var(--sh-hover);}
+  .card.other .thumb{filter:saturate(.72);}
+  .thumb .dur{position:absolute;right:8px;bottom:8px;background:rgba(4,16,45,.86);color:#fff;font-size:12px;font-weight:600;padding:2px 7px;border-radius:var(--r-sm);}
+  .thumb .done{position:absolute;left:8px;bottom:8px;background:var(--success);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-full);}
+  .thumb .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.34);} .thumb .prog>i{display:block;height:100%;background:var(--blue);}
+  .thumb .ptri{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;opacity:0;transition:.16s;box-shadow:0 6px 20px rgba(0,0,0,.35);} .card:hover .thumb .ptri{opacity:1;}
+  .card-title{font-weight:600;font-size:15px;line-height:20px;letter-spacing:-.2px;}
+  .card-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:var(--r-full);white-space:nowrap;}
+  .pill.officer{background:var(--t-officer-bg);color:var(--t-officer-fg);} .pill.eng{background:var(--t-eng-bg);color:var(--t-eng-fg);} .pill.lead{background:var(--t-lead-bg);color:var(--t-lead-fg);}
+  .pill.office{background:var(--gray-100);color:var(--text-2);}
+  .pill.tool{background:transparent;color:var(--text-3);border:1px solid var(--border);font-weight:600;}
+  .pill.nocredit{background:transparent;color:var(--gray-500);border:1px solid var(--border);}
+  .watched{font-size:12px;color:var(--blue-700);font-weight:600;}
+  mark{background:#ffe9a8;color:inherit;border-radius:3px;padding:0 1px;}
+  .empty{grid-column:1/-1;padding:56px;text-align:center;color:var(--text-2);border:1px dashed var(--border);border-radius:var(--r-2xl);background:var(--gray-50);}
+  .empty b{color:var(--text);display:block;margin-bottom:10px;}
+
+  /* ── Detail / player ──────────────────────────────────────────────────── */
+  #detail{display:none;}
+  .detail-grid{display:grid;grid-template-columns:1fr 380px;gap:34px;padding:22px 0 66px;}
+  @media(max-width:1000px){.detail-grid{grid-template-columns:1fr;}}
+  .player{position:relative;aspect-ratio:16/9;border-radius:var(--r-2xl);overflow:hidden;background:#000 center/cover no-repeat;box-shadow:var(--sh-lg);cursor:pointer;}
+  .player .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.4));}
+  .player .bigplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:86px;height:86px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.45);transition:.15s;}
+  .player.playing .bigplay{opacity:0;pointer-events:none;}
+  .player .scrub{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(255,255,255,.28);} .player .scrub>i{display:block;height:100%;width:0;background:var(--blue);}
+  .player .tlbl{position:absolute;right:12px;bottom:14px;font-size:12px;color:#fff;font-weight:600;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:var(--r-sm);}
+  .v-title{font-weight:600;font-size:28px;line-height:32px;letter-spacing:-.7px;margin:18px 0 10px;text-wrap:balance;}
+  .v-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-3);font-size:13.5px;} .v-divider{width:1px;height:16px;background:var(--border);}
+  .credit{margin:18px 0;border:1px solid var(--border);border-left:4px solid var(--blue);background:var(--blue-50);border-radius:var(--r-xl);padding:16px 18px;}
+  .credit-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;font-weight:600;} .credit-top .pct{color:var(--blue-700);}
+  .credit-bar{height:8px;border-radius:var(--r-full);background:#fff;overflow:hidden;margin-top:10px;border:1px solid var(--border);} .credit-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--blue-600));transition:width .2s;}
+  .credit-sub{font-size:13px;color:var(--text-2);margin-top:8px;}
+  .certnote{display:flex;align-items:center;gap:11px;font-size:13px;color:var(--text-2);border:1px dashed var(--border);border-radius:var(--r-lg);padding:13px 15px;margin:14px 0;line-height:1.4;}
+  .certnote .ic{flex:none;font-size:16px;} .certnote b{color:var(--text);}
+  .certnote .cta{margin-left:auto;flex:none;background:var(--cta);color:#fff;font-weight:600;font-size:12.5px;padding:9px 15px;border-radius:var(--r-full);white-space:nowrap;}
+  .certnote.explore{border-style:solid;border-color:var(--amber);background:var(--amber-bg);color:#6b5310;} .certnote.explore b{color:#4a3a0b;}
+  .panel{border:1px solid var(--border);border-radius:var(--r-2xl);padding:18px 20px;margin:18px 0;background:#fff;box-shadow:var(--sh-sm);}
+  .panel h3{font-size:12.5px;font-weight:800;letter-spacing:.05em;margin:0 0 12px;text-transform:uppercase;color:var(--text-3);}
+  .links{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;} @media(max-width:620px){.links{grid-template-columns:1fr;}}
+  .linkcard{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--r-lg);transition:.15s;} .linkcard:hover{border-color:var(--blue);background:var(--blue-50);}
+  .linkcard .ic{width:38px;height:38px;border-radius:var(--r-lg);display:grid;place-items:center;background:var(--gray-100);color:var(--blue-700);flex:none;}
+  .linkcard .lt{font-weight:600;font-size:14px;} .linkcard .ls{font-size:12px;color:var(--text-3);}
+  .up-head{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px;} .up-head .t{font-weight:600;font-size:18px;letter-spacing:-.3px;}
+  .autoplay{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);font-weight:500;}
+  .switch{width:38px;height:22px;border-radius:var(--r-full);background:var(--blue);position:relative;transition:.15s;} .switch::after{content:"";position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .switch.off{background:var(--gray-300);} .switch.off::after{left:2px;}
+  .up{display:flex;gap:11px;margin-bottom:12px;cursor:pointer;padding:6px;border-radius:var(--r-xl);transition:.12s;} .up:hover{background:var(--gray-50);}
+  .up.next{outline:2px solid var(--blue);outline-offset:0;background:var(--blue-50);}
+  .up .st{position:relative;flex:none;width:156px;aspect-ratio:16/9;border-radius:var(--r-lg);overflow:hidden;background-size:cover;background-position:center;}
+  .up .st .d{position:absolute;right:5px;bottom:5px;background:rgba(4,16,45,.86);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;}
+  .up .st .p{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.35);} .up .st .p>i{display:block;height:100%;background:var(--blue);}
+  .up-body{min-width:0;} .up-tag{font-size:10.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin-bottom:3px;} .up-tag.next{color:var(--blue-700);}
+  .up-title{font-size:14px;font-weight:600;line-height:19px;letter-spacing:-.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;} .up-sub{font-size:12px;color:var(--text-3);margin-top:3px;}
+  .back{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--text-2);margin:18px 0 0;} .back:hover{color:var(--blue);}
+  .footnote{border-top:1px solid var(--border);margin-top:44px;padding:22px 0 60px;color:var(--gray-400);font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div class="nav"><div class="wrap nav-inner">
+  <a class="logo" href="#/"><span class="lg-word">Edge</span><svg class="lg-8" viewBox="0 0 26 34" fill="none" aria-hidden="true"><circle cx="13" cy="8" r="6" stroke="#287be8" stroke-width="3"/><circle cx="13" cy="23" r="9" stroke="#04102d" stroke-width="3"/></svg><small>AI Officer Institute</small></a>
+  <label class="nav-search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="searchInput" placeholder="Search the video library…" oninput="onSearch(this.value)" onfocus="if(location.hash.startsWith('#/watch'))location.hash='#/'"/>
+  </label>
+  <div class="who"><div class="av" id="avatar">AC</div><div class="meta"><div class="nm">Alex Chen</div><div class="tk" id="whoTrack">AI Officer track</div></div></div>
+  <div class="previewas" id="previewas">
+    <button onclick="togglePreviewMenu(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Preview as</button>
+    <div class="menu"><div class="lbl">Enrolled track (credit goes here)</div><div id="previewOptions"></div></div>
+  </div>
+</div></div>
+
+<div class="fscrim" id="fscrim" onclick="togglePanel()"></div>
+<main id="library" class="wrap"></main>
+<main id="detail" class="wrap"></main>
+
+<div class="wrap footnote">
+  Prototype · AI Officer Institute — <b>Video module</b>. One library for every full-length session, filterable by Track, Office, Tools, Length, and Status. A learner works toward <b>one certification track at a time</b>; other tracks are open to explore. <b>Watch time is logged for coaches and program managers as engagement data — it doesn't move the certification %.</b> Certification credit is earned by completing each session's challenge in the AI Buddy. Videos link out to Mission Overview, Core Missions, Micro Sessions, and Blogs.
+</div>
+
+<script>
+/* ── Tracks + data ─────────────────────────────────────────────────────── */
+const TRACKS=[{key:"officer",label:"AI Officer"},{key:"eng",label:"AI Engineering"},{key:"lead",label:"Leadership"}];
+const trackLabel=k=>(TRACKS.find(t=>t.key===k)||{}).label||k;
+const trackKeyByLabel=l=>(TRACKS.find(t=>t.label===l)||{}).key;
+function grad(a,b){return `linear-gradient(135deg,${a},${b})`;}
+const P={officerA:grad('#1a264f','#a03168'),officerB:grad('#04102d','#d1458b'),officerC:grad('#46142d','#b73978'),
+  engA:grad('#0a235f','#287be8'),engB:grad('#04102d','#2c87ff'),engC:grad('#10386c','#5ba2ff'),
+  leadA:grad('#0e7490','#64d7ac'),leadB:grad('#155e75','#6ff2c1'),leadC:grad('#224a3b','#59c09a')};
+
+const VIDEOS=[
+  {id:"o1",track:"officer",office:"Operations",tools:["Claude","ChatGPT"],title:"The AI Officer Operating Model",dur:"42:10",progress:0.35,bg:P.officerA,desc:"How an AI Officer sets strategy, governance, and an operating rhythm for an AI-first organization — the flagship session of the track."},
+  {id:"o2",track:"officer",office:"Operations",tools:["Claude"],title:"AI Governance in Practice",dur:"39:05",progress:0,bg:P.officerB,desc:"Turning AI principles into policies, reviews, and an approval flow people actually follow."},
+  {id:"o3",track:"officer",office:"Revenue",tools:["ChatGPT","Gemini"],title:"Board-Ready AI Business Cases",dur:"35:12",progress:0.6,bg:P.officerC,desc:"Framing AI investments so a board sees the return, the risk, and the timeline."},
+  {id:"o4",track:"officer",office:"Talent",tools:["Claude","n8n"],title:"Rolling Out AI Across Teams",dur:"44:18",progress:0,bg:P.officerA,desc:"A phased rollout that earns trust and keeps momentum across every team."},
+  {id:"e1",track:"eng",office:"Innovation",tools:["Claude","Cursor"],title:"Shipping Your First Production Agent",dur:"51:04",progress:0.72,bg:P.engA,desc:"An end-to-end build: tools, evals, and the guardrails that make an agent safe to ship."},
+  {id:"e2",track:"eng",office:"Innovation",tools:["Claude","n8n"],title:"Evals: Measuring What Your AI Does",dur:"46:30",progress:0,bg:P.engB,desc:"Building an eval harness so you can trust — and improve — model behaviour over time."},
+  {id:"e3",track:"eng",office:"Operations",tools:["n8n","Cursor"],title:"From Idea to Automation in a Week",dur:"55:41",progress:0,bg:P.engC,desc:"A week-long sprint template that takes a rough idea to a working automation."},
+  {id:"l1",track:"lead",office:"Talent",tools:["ChatGPT"],title:"Leading Teams Through AI Change",dur:"38:22",progress:0,bg:P.leadA,desc:"The change-management playbook for bringing a whole team along on AI adoption."},
+  {id:"l2",track:"lead",office:"Talent",tools:["Gemini"],title:"Hiring for an AI-Native Org",dur:"33:58",progress:0,bg:P.leadB,desc:"What roles change, what to screen for, and how to structure an AI-native team."},
+  {id:"l3",track:"lead",office:"Revenue",tools:["ChatGPT","Claude"],title:"The AI Value Narrative",dur:"29:44",progress:0,bg:P.leadC,desc:"Telling the story of AI value to customers, boards, and your own teams."}
+];
+const FEATURED={officer:"o1",eng:"e1",lead:"l1"};
+
+/* ── student ───────────────────────────────────────────────────────────── */
+const student={name:"Alex Chen",track:"officer"};
+
+/* ── facet config (extensible — add axes here as the catalog grows) ─────── */
+const LENGTHS=[{v:"Under 30 min",lo:0,hi:30},{v:"30–45 min",lo:30,hi:45},{v:"45 min +",lo:45,hi:1e9}];
+const STATUSES=["Not started","In progress","Watched"];
+const ALL_TOOLS=["Claude","ChatGPT","Gemini","n8n","Cursor"];
+const FACETS=[
+  {key:"track", label:"Track",  opts:TRACKS.map(t=>t.label)},
+  {key:"office",label:"Office", opts:["Revenue","Talent","Operations","Innovation"]},
+  {key:"tools", label:"Tools",  opts:ALL_TOOLS},
+  {key:"length",label:"Length", opts:LENGTHS.map(l=>l.v)},
+  {key:"status",label:"Status", opts:STATUSES}
+];
+let state={filters:{track:new Set(),office:new Set(),tools:new Set(),length:new Set(),status:new Set()},q:"",sort:"reco",panel:false};
+const expanded=new Set(["track","office"]);   // Hick's Law: only the primary groups open by default
+
+/* ── helpers ───────────────────────────────────────────────────────────── */
+const $=s=>document.querySelector(s);
+const isOwn=v=>v.track===student.track;
+function playIcon(c="#04102d",s=22){return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${c}"><path d="M8 5v14l11-7z"/></svg>`;}
+function esc(t){return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function hl(t){if(!state.q)return esc(t);const i=t.toLowerCase().indexOf(state.q);if(i<0)return esc(t);return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+state.q.length))+'</mark>'+esc(t.slice(i+state.q.length));}
+const trackPill=k=>`<span class="pill ${k}">${trackLabel(k)}</span>`;
+const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const durMin=d=>{const[m,s]=d.split(':').map(Number);return m+s/60;};
+const lengthOf=v=>{const m=durMin(v.dur);return (LENGTHS.find(l=>m>=l.lo&&m<l.hi)||{}).v;};
+const statusOf=v=>v.progress>=1?"Watched":v.progress>0?"In progress":"Not started";
+
+/* ── mock thumbnails — generated inline SVG cover art (no external images) ─ */
+function trackColors(k){return ({officer:['#2a0e22','#d1458b'],eng:['#04143a','#287be8'],lead:['#093230','#54c3a0']})[k]||['#04102d','#287be8'];}
+function wrapTitle(t,max,maxLines){max=max||24;maxLines=maxLines||2;const words=t.split(/\s+/),lines=[];let cur='';
+  for(const w of words){const test=cur?cur+' '+w:w;if(test.length<=max)cur=test;else{if(cur)lines.push(cur);cur=w;if(lines.length===maxLines)break;}}
+  if(lines.length<maxLines&&cur)lines.push(cur);
+  const used=lines.join(' ').split(/\s+/).filter(Boolean).length;
+  if(used<words.length)lines[lines.length-1]=lines[lines.length-1].replace(/[…]?$/,'')+'…';
+  return lines.slice(0,maxLines);}
+function thumb(v,play){
+  play=play!==false;
+  const c=trackColors(v.track),d=c[0],l=c[1];
+  const seed=[...v.id].reduce((a,ch)=>a+ch.charCodeAt(0),0),m=seed%3;
+  const motif=m===0
+    ?`<g fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="2"><circle cx="258" cy="42" r="18"/><circle cx="258" cy="42" r="32"/><circle cx="258" cy="42" r="46"/></g>`
+    :m===1
+    ?`<g fill="#fff" fill-opacity="0.13">`+[0,1,2,3,4,5].map(i=>`<rect x="${152+i*22}" y="${44-(i%3)*10}" width="13" height="${34+(i%3)*22}" rx="3"/>`).join('')+`</g>`
+    :`<g fill="#fff" fill-opacity="0.15">`+Array.from({length:18},(_,i)=>`<circle cx="${198+(i%6)*20}" cy="${24+Math.floor(i/6)*20}" r="3"/>`).join('')+`</g>`;
+  const lines=wrapTitle(v.title,24,2).map((ln,i)=>`<text x="18" y="${130+i*21}" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">${esc(ln)}</text>`).join('');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><defs>`
+    +`<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${d}"/><stop offset="1" stop-color="${l}"/></linearGradient>`
+    +`<linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0.4" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.62"/></linearGradient></defs>`
+    +`<rect width="320" height="180" fill="url(#g)"/>${motif}`
+    +(play?`<circle cx="160" cy="82" r="23" fill="#fff" fill-opacity="0.92"/><path d="M154 72 L154 92 L172 82 Z" fill="${d}"/>`:``)
+    +`<rect width="320" height="180" fill="url(#s)"/>`
+    +`<text x="18" y="26" fill="#fff" fill-opacity="0.8" font-family="Inter,Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">AI OFFICER INSTITUTE</text>`
+    +lines+`</svg>`;
+  return "data:image/svg+xml,"+encodeURIComponent(svg);
+}
+
+/* ── preview-as ────────────────────────────────────────────────────────── */
+function buildPreviewMenu(){$("#previewOptions").innerHTML=TRACKS.map(t=>`<button class="${t.key===student.track?'on':''}" onclick="setStudentTrack('${t.key}')"><span class="dot" style="background:var(--t-${t.key})"></span>${t.label}</button>`).join('');}
+function togglePreviewMenu(e){e.stopPropagation();$("#previewas").classList.toggle('open');}
+document.addEventListener('click',()=>$("#previewas")?.classList.remove('open'));
+function setStudentTrack(k){student.track=k;clearAll(true);$("#whoTrack").textContent=trackLabel(k)+" track";$("#avatar").style.background="var(--t-"+k+")";$("#previewas").classList.remove('open');location.hash="#/";buildPreviewMenu();renderLibrary();}
+
+/* ── faceted matching (OR within a group, AND across groups) ───────────── */
+function optMatch(key,val,v){
+  if(key==="track")return trackLabel(v.track)===val;
+  if(key==="office")return v.office===val;
+  if(key==="tools")return (v.tools||[]).includes(val);
+  if(key==="length")return lengthOf(v)===val;
+  if(key==="status")return statusOf(v)===val;
+  return false;
+}
+function groupMatch(key,v){const set=state.filters[key];return !set.size||[...set].some(val=>optMatch(key,val,v));}
+function qMatch(v){return !state.q||`${v.title} ${v.desc} ${v.office} ${trackLabel(v.track)} ${(v.tools||[]).join(' ')}`.toLowerCase().includes(state.q);}
+const videoMatches=v=>FACETS.every(f=>groupMatch(f.key,v))&&qMatch(v);
+const matchExcept=(v,ex)=>FACETS.every(f=>f.key===ex||groupMatch(f.key,v))&&qMatch(v);
+const countFor=(key,val)=>VIDEOS.filter(v=>matchExcept(v,key)&&optMatch(key,val,v)).length;   // faceted counts
+const activeCount=()=>FACETS.reduce((n,f)=>n+state.filters[f.key].size,0);
+
+/* ── filter actions (Doherty: each re-renders instantly) ───────────────── */
+function toggleFacet(key,val){const set=state.filters[key];set.has(val)?set.delete(val):set.add(val);renderLibrary();}
+function clearAll(silent){FACETS.forEach(f=>state.filters[f.key].clear());state.q="";const si=$("#searchInput");if(si)si.value="";if(!silent)renderLibrary();}
+function toggleGroup(key){expanded.has(key)?expanded.delete(key):expanded.add(key);renderLibrary();}
+function setSort(v){state.sort=v;renderLibrary();}
+function togglePanel(){state.panel=!state.panel;$("#fscrim").classList.toggle('open',state.panel);renderLibrary();}
+function onSearch(v){state.q=v.trim().toLowerCase();renderLibrary();}
+
+/* ── card ──────────────────────────────────────────────────────────────── */
+function card(v){
+  const own=isOwn(v),pct=Math.round(v.progress*100),done=v.progress>=1;
+  const note=done?`<div class="watched">✓ Fully watched</div>`:v.progress>0?`<div class="watched">▸ ${pct}% watched · resume</div>`:'';
+  const tools=(v.tools||[]).slice(0,2).map(t=>`<span class="pill tool">${t}</span>`).join('');
+  return `<article class="card ${own?'':'other'}" onclick="openDetail('${v.id}')">
+    <div class="thumb" style="background-image:url('${thumb(v)}')"><span class="dur tnum">${v.dur}</span>
+      ${done?`<span class="done">✓ Watched</span>`:(v.progress>0?`<div class="prog"><i style="width:${pct}%"></i></div>`:'')}</div>
+    <div class="card-title">${hl(v.title)}</div>
+    <div class="card-tags">${trackPill(v.track)}<span class="pill office">${v.office}</span>${own?'':'<span class="pill nocredit">Other track</span>'}</div>
+    <div class="card-tags">${tools}</div>
+    ${note}
+  </article>`;
+}
+
+/* ── LIBRARY (featured head → filter sidebar + results) ────────────────── */
+function renderLibrary(){
+  const anyFilter=activeCount()>0||!!state.q;
+  const f=VIDEOS.find(v=>v.id===FEATURED[student.track]),fpct=Math.round(f.progress*100);
+  const featured=anyFilter?'':`
+    <section class="featured"><div class="featured-grid">
+      <div class="featured-media" style="background-image:url('${thumb(f,false)}')" onclick="openDetail('${f.id}')"><div class="fmedia-tri">${playIcon('#04102d',24)}</div></div>
+      <div class="featured-body">
+        <div class="kick">${trackPill(f.track)}<span>Featured in your track</span></div>
+        <h1>${f.title}</h1><p>${f.desc}</p>
+        <div class="featured-meta"><span>Full-length session</span><span>·</span><span class="tnum">${f.dur}</span><span>·</span><span>${f.office}</span></div>
+        <div class="featured-credit"><div class="fc-top"><span>Your viewing progress · logged for your coach</span><span class="tnum">${fpct}% watched</span></div><div class="fc-bar"><i style="width:${fpct}%"></i></div></div>
+        <div class="featured-actions"><button class="btn-play" onclick="event.stopPropagation();openDetail('${f.id}')">${playIcon('#04102d',18)} ${f.progress>0?'Resume watching':'Start watching'}</button>
+          <a class="btn-ghost" href="#" onclick="openDetail('${f.id}');return false;">Details</a></div>
+      </div>
+    </div></section>`;
+
+  const chev='<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>';
+  const sidebar=`<aside class="filters ${state.panel?'open':''}">
+    ${FACETS.map(f2=>{
+      const open=expanded.has(f2.key),sel=state.filters[f2.key];
+      return `<div class="fgroup ${open?'open':''}">
+        <button class="fg-head" onclick="toggleGroup('${f2.key}')"><span>${f2.label}${sel.size?`<span class="fg-n">${sel.size}</span>`:''}</span>${chev}</button>
+        <div class="fg-body">${f2.opts.map(o=>{
+          const c=countFor(f2.key,o),on=sel.has(o),dim=c===0&&!on;
+          const sw=f2.key==='track'?`<span class="swatch" style="background:var(--t-${trackKeyByLabel(o)})"></span>`:'';
+          return `<label class="fopt ${on?'on':''} ${dim?'dim':''}"><input type="checkbox" ${on?'checked':''} ${dim?'disabled':''} onchange="toggleFacet('${f2.key}','${o}')"/><span class="box"></span>${sw}<span class="ol">${o}</span><span class="oc tnum">${c}</span></label>`;
+        }).join('')}</div></div>`;
+    }).join('')}
+  </aside>`;
+
+  const list=VIDEOS.filter(videoMatches);
+  const sorted=[...list].sort((a,b)=>{
+    if(state.sort==='short')return durMin(a.dur)-durMin(b.dur);
+    if(state.sort==='long') return durMin(b.dur)-durMin(a.dur);
+    if(state.sort==='az')   return a.title.localeCompare(b.title);
+    const ao=isOwn(a)?0:1,bo=isOwn(b)?0:1;return ao!==bo?ao-bo:VIDEOS.indexOf(a)-VIDEOS.indexOf(b); // Recommended: your track first
+  });
+
+  const chips=[];FACETS.forEach(f2=>state.filters[f2.key].forEach(v=>chips.push({key:f2.key,v})));
+  const chipbar=(chips.length||state.q)?`<div class="chips">
+    ${state.q?`<span class="achip">“${esc(state.q)}”<button aria-label="Clear search" onclick="document.getElementById('searchInput').value='';onSearch('')">×</button></span>`:''}
+    ${chips.map(c=>{const sw=c.key==='track'?`<span class="sw" style="background:var(--t-${trackKeyByLabel(c.v)})"></span>`:'';return `<span class="achip">${sw}${esc(c.v)}<button aria-label="Remove ${esc(c.v)}" onclick="toggleFacet('${c.key}','${c.v}')">×</button></span>`;}).join('')}
+    <button class="clearall" onclick="clearAll()">Clear all</button></div>`:'';
+
+  const toolbar=`<div class="rtoolbar">
+    <button class="filterbtn" onclick="togglePanel()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${activeCount()?` · ${activeCount()}`:''}</button>
+    <span class="rcount tnum">${sorted.length} video${sorted.length!==1?'s':''}</span>
+    <label class="sortsel">Sort<select onchange="setSort(this.value)">
+      <option value="reco" ${state.sort==='reco'?'selected':''}>Recommended</option>
+      <option value="short" ${state.sort==='short'?'selected':''}>Shortest first</option>
+      <option value="long" ${state.sort==='long'?'selected':''}>Longest first</option>
+      <option value="az" ${state.sort==='az'?'selected':''}>A–Z</option>
+    </select></label>
+  </div>`;
+
+  const grid=sorted.length?`<div class="grid">${sorted.map(card).join('')}</div>`
+    :`<div class="grid"><div class="empty"><b>No videos match these filters.</b>Try removing a filter.<br><br><button class="clearall" onclick="clearAll()">Clear all filters</button></div></div>`;
+
+  $("#library").innerHTML=featured+`<div class="lib-layout">${sidebar}<div class="results">${toolbar}${chipbar}${grid}</div></div>`;
+}
+
+/* ── DETAIL ────────────────────────────────────────────────────────────── */
+let playTimer=null,playState={pct:0,video:null};
+function openDetail(id){location.hash="#/watch/"+id;}
+function renderDetail(id){
+  const v=VIDEOS.find(x=>x.id===id);if(!v){location.hash="#/";return;}
+  const own=isOwn(v),startPct=Math.round(v.progress*100),ownLabel=trackLabel(student.track);
+  const sug=[...VIDEOS.filter(x=>x.id!==v.id&&x.track===v.track),...VIDEOS.filter(x=>x.id!==v.id&&x.track!==v.track)];
+  const linkOuts=[{t:"Mission Overview",s:"Where this fits in the program",ic:"map"},{t:"Core Missions",s:"The graded work for this track",ic:"target"},{t:"Micro Sessions",s:"Related electives (separate flow)",ic:"layers"},{t:"Blogs",s:"Written companions to this video",ic:"file"}];
+  const icon=n=>({map:'<path d="M9 3 4 5v16l5-2 6 2 5-2V3l-5 2-6-2Z"/><path d="M9 3v16M15 5v16"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',layers:'<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/>',file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6"/>'}[n]);
+  const creditBlock=`
+    <div class="credit"><div class="credit-top"><span>Your viewing progress</span><span class="pct tnum" id="creditPct">${startPct}%</span></div>
+      <div class="credit-bar"><i id="creditBar" style="width:${startPct}%"></i></div>
+      <div class="credit-sub" id="creditSub">Watch time is logged for your coach and program manager — it doesn't change your certification %.</div></div>
+    ${own?`<div class="certnote"><span class="ic">🎓</span><span><b>Counts toward your ${ownLabel} certification</b> when you complete this session's challenge in the AI Buddy — not from watch time.</span><a class="cta" href="#/">Go to challenge</a></div>`
+         :`<div class="certnote explore"><span class="ic">🔍</span><span>This is a <b>${trackLabel(v.track)}</b> session — <b>not part of your ${ownLabel} certification</b>. Watch freely; your viewing is still logged for your coach.</span></div>`}`;
+
+  $("#detail").innerHTML=`
+    <a class="back" href="#/">← Back to the video library</a>
+    <div class="detail-grid"><div class="detail-main">
+      <div class="player" id="player" style="background-image:url('${thumb(v,false)}')" onclick="togglePlay()"><div class="veil"></div><div class="bigplay">${playIcon('#04102d',30)}</div>
+        <div class="tlbl tnum" id="tlbl">${startPct}% · ${v.dur}</div><div class="scrub"><i id="scrub" style="width:${startPct}%"></i></div></div>
+      <h1 class="v-title">${v.title}</h1>
+      <div class="v-meta"><span>Full-length session</span><span>·</span><span class="tnum">${v.dur}</span><span class="v-divider"></span>${trackPill(v.track)}<span class="pill office">${v.office}</span>${(v.tools||[]).map(t=>`<span class="pill tool">${t}</span>`).join('')}${own?'':'<span class="pill nocredit">Not your track</span>'}</div>
+      ${creditBlock}
+      <p style="color:var(--text-2);font-size:15px;max-width:65ch;">${v.desc}</p>
+      <div class="panel"><h3>Connected to</h3><div class="links">
+        ${linkOuts.map(l=>`<a class="linkcard" href="#/"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${icon(l.ic)}</svg></span><span><span class="lt">${l.t}</span><br><span class="ls">${l.s}</span></span></a>`).join('')}
+      </div></div>
+    </div>
+    <aside class="detail-side">
+      <div class="up-head"><span class="t">Up next</span><span class="autoplay">Autoplay <span class="switch" id="autoplay" onclick="this.classList.toggle('off')"></span></span></div>
+      ${sug.map((s,i)=>{const p=Math.round(s.progress*100),isNext=i===0,so=isOwn(s);return `<div class="up ${isNext?'next':''}" onclick="openDetail('${s.id}')">
+        <div class="st" style="background-image:url('${thumb(s)}')"><span class="d tnum">${s.dur}</span>${s.progress>0?`<div class="p"><i style="width:${p}%"></i></div>`:''}</div>
+        <div class="up-body">${isNext?`<div class="up-tag next">Next up</div>`:`<div class="up-tag" style="color:var(--t-${s.track}-fg,var(--text-3))">${trackLabel(s.track)}${so?'':' · other track'}</div>`}
+          <div class="up-title">${s.title}</div><div class="up-sub">${s.office} · ${s.progress>0?p+'% watched':'Not started'}</div></div></div>`;}).join('')}
+    </aside></div>`;
+  playState={pct:v.progress,video:v};
+}
+
+/* ── simulated playback ────────────────────────────────────────────────── */
+function togglePlay(){
+  const p=$("#player");if(!p)return;if(playTimer){stopPlay();return;}
+  p.classList.add('playing');const sub=$("#creditSub");if(sub)sub.textContent="Playing — watch time is being logged for your coach (it doesn't change your certification %).";
+  playTimer=setInterval(()=>{playState.pct=Math.min(1,playState.pct+0.01);const pct=Math.round(playState.pct*100);
+    $("#scrub").style.width=pct+"%";$("#creditBar").style.width=pct+"%";$("#creditPct").textContent=pct+"%";$("#tlbl").textContent=pct+"% · "+playState.video.dur;
+    if(playState.pct>=1){stopPlay();const s=$("#creditSub");if(s)s.innerHTML="✓ Fully watched — logged for your coach. Certification credit is earned by completing the challenge, not by watch time.";playState.video.progress=1;}},120);
+}
+function stopPlay(){clearInterval(playTimer);playTimer=null;const p=$("#player");if(p)p.classList.remove('playing');if(playState.video)playState.video.progress=playState.pct;}
+
+/* ── router ────────────────────────────────────────────────────────────── */
+function route(){
+  stopPlay();
+  const m=(location.hash||"#/").match(/#\/watch\/(.+)/);
+  if(m){$("#library").style.display="none";$("#detail").style.display="block";renderDetail(m[1]);window.scrollTo(0,0);}
+  else{$("#detail").style.display="none";$("#library").style.display="block";renderLibrary();}
+}
+window.addEventListener('hashchange',route);
+$("#avatar").textContent=initials(student.name);$("#avatar").style.background="var(--t-"+student.track+")";
+buildPreviewMenu();route();
+</script>
+</body>
+</html>
