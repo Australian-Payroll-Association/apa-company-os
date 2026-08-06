@@ -13,6 +13,20 @@ export const metadata: Metadata = {
 const ITEMS: LibraryItem[] = [
   {
     category: 'prototype',
+    href: '/workflows/private/ai-officer-institute/video-module.html',
+    title: 'Video Library',
+    description:
+      'The front door to the program: one library of full-length sessions, a featured head, faceted filtering (Track, Office, Tools, Length, Status), and a player with watch-time progress, link-outs, and a YouTube-style Up next. Watch time is logged for coaches; certification credit is earned in the challenge.',
+  },
+  {
+    category: 'plan',
+    href: '/workflows/private/ai-officer-institute/video-module-plan.html',
+    title: 'Video Module — plan',
+    description:
+      'The video design brief: the general library, the Office × Discipline tag taxonomy and filtering, the player, and how watch time relates to certification (engagement data for coaches, not credit).',
+  },
+  {
+    category: 'prototype',
     href: '/workflows/private/ai-officer-institute/open-coaching.html',
     title: 'Open Coaching',
     description:
