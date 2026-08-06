@@ -20,6 +20,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'plan',
+    href: '/workflows/private/ai-officer-institute/coaching-module-plan',
+    title: 'Coaching Module — build plan',
+    description:
+      'Turning the Open Coaching prototype into a real product module: surfaces, core flows, the data model, rules and states, architecture fit in aiolabz-fe, and phased delivery.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/ai-officer-institute/ai-program-plan',
     title: 'AI Program Plan',
     description:
