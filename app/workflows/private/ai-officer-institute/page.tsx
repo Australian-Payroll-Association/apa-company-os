@@ -27,6 +27,20 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'prototype',
+    href: '/workflows/private/ai-officer-institute/micro-sessions.html',
+    title: 'Micro-sessions',
+    description:
+      'The student experience for the elective unit: a certificate progress spine (Core + Electives, no capstone), a browsable catalog, a guided session (watch → read → challenge), and the AI Buddy submission that earns one elective — with a completion moment that advances the certificate.',
+  },
+  {
+    category: 'plan',
+    href: '/workflows/private/ai-officer-institute/micro-sessions-plan.html',
+    title: 'Micro-sessions — plan',
+    description:
+      'The micro-session design brief: what the elective is (one video, one textbook, one short challenge), the learner flow, how credit is earned and applied once, the Office × Discipline tags, the optional live sitting, and how electives count toward a certification with no capstone.',
+  },
+  {
+    category: 'prototype',
     href: '/workflows/private/ai-officer-institute/open-coaching.html',
     title: 'Open Coaching',
     description:
