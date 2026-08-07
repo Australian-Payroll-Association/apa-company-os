@@ -17,25 +17,32 @@
           accent: { DEFAULT:'#287be8', 600:'#236bc9', 700:'#1c58a8', 50:'#e7f1ff', 100:'#cbe1ff' },
           officer:{ DEFAULT:'#d1458b', bg:'#ffeff7', fg:'#a03168' },
           eng:    { DEFAULT:'#287be8', bg:'#e7f1ff', fg:'#1c58a8' },
-          lead:   { DEFAULT:'#22b07d', bg:'#e3fff4', fg:'#377b61' },
+          lead:   { DEFAULT:'#64d7ac', bg:'#e3fff4', fg:'#377b61' }, // mint-600 / mint-100 / mint-900 (globals.css)
+          emerald:{ 50:'#f0fdf4', 100:'#dcfce7', 200:'#bbf7d0', 500:'#22c55e', 600:'#16a34a', 700:'#15803d' }, // repo green scale (globals.css)
         },
         fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','Segoe UI','sans-serif'] },
       },
     },
   };
 </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   body { -webkit-font-smoothing:antialiased; }
   .fade-in { animation: fade .35s ease both; }
   @keyframes fade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
   .tnum { font-variant-numeric: tabular-nums; }
+  /* DS: JetBrains Mono for numeric display — scoped to the three synced modules */
+  #view-videos .tnum, #view-micro .tnum, #view-coaching .tnum,
+  #view-videos .dur, #view-videos .tlbl, #view-videos .up .st .d,
+  #view-videos .vstat .n { font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; }
 
   /* Shared certification-category pills + free-flowing tags */
   .pill-cat { font-size:11px; font-weight:700; padding:2px 9px; border-radius:9999px; white-space:nowrap; display:inline-flex; align-items:center; }
   .pill-officer { background:#ffeff7; color:#a03168; }
   .pill-eng     { background:#e7f1ff; color:#1c58a8; }
-  .pill-lead    { background:#e3fff4; color:#2f6b52; }
-  .pill-micro   { background:#f1ecff; color:#5b3fb0; }
+  .pill-lead    { background:#e3fff4; color:#377b61; } /* mint-100 / mint-900 */
+  .pill-micro   { background:#edf2ff; color:#0e348f; } /* deep-navy-50 / deep-navy-800 */
   .tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:9999px; white-space:nowrap; color:#475569; background:#fff; border:1px solid #e2e8f0; }
 
   /* Sidebar */
@@ -53,9 +60,9 @@
     --border:#e2e8f0; --text:#04102d; --text-2:#475569; --text-3:#64748b;
     --t-officer:#d1458b; --t-officer-bg:#ffeff7; --t-officer-fg:#a03168;
     --t-eng:#287be8; --t-eng-bg:#e7f1ff; --t-eng-fg:#1c58a8;
-    --t-lead:#22b07d; --t-lead-bg:#e3fff4; --t-lead-fg:#2f6b52;
-    --t-micro:#6a4fd0; --t-micro-bg:#f1ecff; --t-micro-fg:#5b3fb0;
-    --success:#16a34a; --amber:#b0810f; --amber-bg:#faf4e4;
+    --t-lead:#64d7ac; --t-lead-bg:#e3fff4; --t-lead-fg:#377b61; /* mint-600/100/900 */
+    --t-micro:#1258ff; --t-micro-bg:#edf2ff; --t-micro-fg:#0e348f; /* deep-navy-500/50/800 */
+    --success:#16a34a; --amber:#b8943f; --amber-bg:#faf4e4; /* green-600 / trophy-gold */
     --r-sm:6px; --r-md:8px; --r-lg:10px; --r-xl:14px; --r-2xl:16px; --r-3xl:20px; --r-full:9999px;
     --sh-sm:0 1px 3px rgba(4,16,45,.07); --sh-hover:0 6px 24px rgba(4,16,45,.10); --sh-lg:0 12px 34px rgba(4,16,45,.16);
 
@@ -159,8 +166,8 @@
     @media(max-width:1024px){ .grid { grid-template-columns:repeat(2,1fr); } }
     @media(max-width:560px){ .grid { grid-template-columns:1fr; } }
     .card { cursor:pointer; display:flex; flex-direction:column; gap:9px; }
-    .thumb { position:relative; aspect-ratio:16/9; border-radius:var(--r-2xl); overflow:hidden; background-size:cover; background-position:center; box-shadow:var(--sh-sm); transition:.16s; }
-    .card:hover .thumb { transform:translateY(-3px); box-shadow:var(--sh-hover); }
+    .thumb { position:relative; aspect-ratio:16/9; border-radius:var(--r-2xl); overflow:hidden; background-size:cover; background-position:center; box-shadow:var(--sh-sm); transition:.2s cubic-bezier(0.4,0,0.2,1); }
+    .card:hover .thumb { transform:translateY(-1px); box-shadow:var(--sh-hover); }
     .card.other .thumb { filter:saturate(.72); }
     .thumb .dur { position:absolute; right:8px; bottom:8px; background:rgba(4,16,45,.86); color:#fff; font-size:12px; font-weight:600; padding:2px 7px; border-radius:var(--r-sm); }
     .thumb .done { position:absolute; left:8px; bottom:8px; background:var(--success); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:var(--r-full); }
@@ -228,7 +235,7 @@
   <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-black/5 bg-white">
     <div class="flex items-center justify-between px-4 py-4">
       <div class="flex items-center gap-2.5">
-        <div class="grid h-9 w-9 place-items-center rounded-xl bg-ink-900 text-sm font-extrabold text-white">Ai</div>
+        <img src="assets/AIO_logo_navy.svg" alt="AI Officer" class="h-9 w-auto" />
         <div class="leading-tight sidebar-label">
           <p class="text-[13px] font-bold">AI Officer</p>
           <p class="text-[11px] text-ink-900/45">Institute</p>
@@ -249,10 +256,6 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 13l-1.5 8L12 18l4.5 3L15 13"/></svg>
         <span class="sidebar-label">Certification</span>
       </button>
-      <button class="navitem" data-view="coaching" onclick="showView('coaching')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5M21 12a8 8 0 01-11.2 7.3L3 21l1.7-6A8 8 0 1121 12z"/></svg>
-        <span class="sidebar-label">Coaching</span>
-      </button>
       <button class="navitem" data-view="micro" onclick="showView('micro')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg>
         <span class="sidebar-label">Micro Sessions</span>
@@ -266,6 +269,10 @@
       <button class="navitem" data-view="blog" onclick="showView('blog')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M8 16h5"/></svg>
         <span class="sidebar-label">Blog</span>
+      </button>
+      <button class="navitem" data-view="coaching" onclick="showView('coaching')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5M21 12a8 8 0 01-11.2 7.3L3 21l1.7-6A8 8 0 1121 12z"/></svg>
+        <span class="sidebar-label">Coaching</span>
       </button>
     </nav>
 
@@ -288,7 +295,7 @@
     <header class="sticky top-0 z-30 flex items-center justify-between border-b border-black/5 bg-white/85 px-6 py-3 backdrop-blur">
       <p id="topbar-title" class="text-xs font-bold uppercase tracking-widest text-ink-900/45">Home</p>
       <div class="flex items-center gap-2.5">
-        <span class="hidden items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink-900/70 sm:inline-flex">🔥 0 day streak</span>
+        <span class="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink-900/70 sm:inline-flex">🔥 0 day streak</span>
         <button class="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H8m9 0v9"/></svg>Feedback
         </button>
@@ -358,6 +365,7 @@
           <!-- home -->
           <div id="co-home">
             <section class="pb-6 pt-1">
+              <div class="grid items-start gap-10 lg:grid-cols-[1fr,340px]">
               <div class="max-w-2xl">
                 <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-ink-900/70">
                   <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Live weekly · Open to all members
@@ -376,6 +384,28 @@
                   <button onclick="coOpenForm('challenge')" class="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Submit a coaching topic</button>
                 </div>
                 <p class="mt-3 text-xs text-ink-900/50">Submitting a coaching topic is optional. You can just come to listen and ask questions.</p>
+              </div>
+              <div class="relative mt-8 hidden overflow-hidden rounded-2xl lg:block" style="aspect-ratio:4/3" id="co-hero-rotator">
+                <img src="assets/leadership-doubled-room.webp" alt="Open coaching session" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:1;transition:opacity .6s cubic-bezier(0.4,0,0.2,1);transform:rotate(90deg) scale(1.34)" />
+                <img src="assets/leadership-doubled-teaching.webp" alt="Coaching a topic live" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <img src="assets/dr-holtom-dave-dao.webp" alt="Coaches in session" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <img src="assets/dao-nguyen-speaking.webp" alt="Live group coaching" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(4,16,45,.35),rgba(40,123,232,.15))"></div>
+                <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5" id="co-hero-dots"></div>
+              </div>
+              <script>
+              (function(){
+                const slides = document.querySelectorAll('#co-hero-rotator .co-hero-slide');
+                const dotsWrap = document.getElementById('co-hero-dots');
+                if (!slides.length || !dotsWrap) return;
+                let cur = 0;
+                dotsWrap.innerHTML = [...slides].map((_,i)=>`<button data-i="${i}" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,${i===0?'.95':'.45'});transition:background .15s"></button>`).join('');
+                const dots = dotsWrap.querySelectorAll('button');
+                function go(n){ cur = n % slides.length; slides.forEach((s,i)=>s.style.opacity = i===cur?1:0); dots.forEach((d,i)=>d.style.background = `rgba(255,255,255,${i===cur?'.95':'.45'})`); }
+                let timer = setInterval(()=>go(cur+1), 5000);
+                dots.forEach(d=>d.addEventListener('click', e=>{ clearInterval(timer); go(+e.currentTarget.dataset.i); timer = setInterval(()=>go(cur+1), 5000); }));
+              })();
+              </script>
               </div>
             </section>
 
@@ -429,10 +459,23 @@
             </section>
 
             <section id="co-view-archive" class="hidden py-8">
-              <div class="mb-6 flex items-end justify-between">
-                <div><h2 class="text-2xl font-bold">Archive</h2><p class="mt-1 text-ink-900/60">Every past session, recorded and published automatically.</p></div>
+              <div class="mb-6">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                  <div><h2 class="text-2xl font-bold">Archive</h2><p class="mt-1 text-ink-900/60">Every past session, recorded and published automatically.</p></div>
+                  <label class="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-sm">
+                    <svg class="h-4 w-4 text-ink-900/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg>
+                    <input id="co-arch-search" oninput="coArchFilter()" placeholder="Search topic, tag, or coach…" class="w-56 max-w-full bg-transparent outline-none placeholder:text-ink-900/40" />
+                  </label>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-1.5" id="co-arch-filters">
+                  <button class="co-afc rounded-full border border-accent bg-accent-50 px-3 py-1 text-xs font-semibold text-accent" data-cat="all" onclick="coArchSetCat('all')">All</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="officer" onclick="coArchSetCat('officer')">AI Officer</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="eng" onclick="coArchSetCat('eng')">AI Engineer</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="lead" onclick="coArchSetCat('lead')">Leadership</button>
+                </div>
               </div>
               <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="co-archive-grid"></div>
+              <p id="co-arch-empty" class="hidden py-10 text-center text-sm text-ink-900/50">No sessions match. Try another search or clear the filters.</p>
             </section>
           </div>
 
@@ -499,8 +542,8 @@
                         </li>
                       </ol>
                       <div class="mt-5 flex flex-wrap gap-3">
-                        <button id="ms-signup-btn" onclick="msSignUp()" class="rounded-full bg-officer px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105">Sign up for Tuesday</button>
-                        <button id="ms-start-btn" onclick="msOpenSession()" class="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Start now</button>
+                        <button id="ms-signup-btn" onclick="msSignUp()" class="whitespace-nowrap rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-600">Sign up for Tuesday</button>
+                        <button id="ms-start-btn" onclick="msOpenSession()" class="whitespace-nowrap rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Start now</button>
                       </div>
                     </div>
                   </div>
@@ -520,7 +563,7 @@
                       <li class="flex items-center justify-between"><span class="text-ink-900/60">4 · Challenge submitted</span><span id="ms-d-submit" class="font-semibold text-ink-900/35">—</span></li>
                       <li class="flex items-center justify-between"><span class="text-ink-900/60">5 · Challenge score</span><span id="ms-d-score" class="font-semibold text-ink-900/35 tnum">—</span></li>
                     </ul>
-                    <p class="mt-4 border-t border-black/5 pt-3 text-xs text-ink-900/45">These five points are logged for your coach and program manager. Credit is earned by submitting the challenge, not by watch time.</p>
+                    <p class="mt-4 border-t border-black/5 pt-3 text-xs text-ink-900/45">These five points are logged for your coach and program manager. Credit is earned by submitting the challenge, not by watch time. The pass mark is 70% (placeholder); a score below it is a Redo you can resubmit, no penalty.</p>
                   </div>
                 </aside>
               </div>
@@ -541,7 +584,7 @@
                 </div>
               </div>
             </div>
-            <section class="py-8"><div class="overflow-hidden rounded-2xl border border-black/10 bg-white" id="ms-catalog"></div></section>
+            <section class="py-8"><p class="mb-4 rounded-xl border border-officer/30 bg-officer-bg/50 px-4 py-2.5 text-sm text-ink-900/70">Any elective counts once toward the certificate you're working on now, even a <b>Leadership</b> elective can count toward your <b>AI Officer</b> certificate.</p><div class="overflow-hidden rounded-2xl border border-black/10 bg-white" id="ms-catalog"></div></section>
           </div>
 
           <!-- session flow -->
@@ -716,7 +759,7 @@ function toggleSidebar(){
   };
   coSwitchTab('upcoming');
 
-  const palette = ['#287be8','#7c3aed','#0ea5e9','#f59e0b','#ef4444','#10b981','#ec4899','#14b8a6'];
+  const palette = ['#287be8','#d1458b','#1258ff','#b8943f','#dc2626','#22c55e','#e966a5','#64d7ac'];
   const initials = n => n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
   const sessions = [
     { n:'012', date:'Jul 30, 2026', coach:'Dave Cheng', cat:'eng', tags:['Evals','CI'], headline:'Wiring evals into your CI so quality stops regressing silently.',
@@ -751,7 +794,15 @@ function toggleSidebar(){
       resources:[{label:'Threat-model checklist',kind:'doc'},{label:'Slides: Injection defenses',kind:'slides'}] },
   ];
 
-  document.getElementById('co-archive-grid').innerHTML = sessions.map((s,i) => `
+  // Archive is filterable by search (topic, tag, coach, headline) and by discipline.
+  let coArchState = { q:'', cat:'all' };
+  function coArchMatch(s){
+    if (coArchState.cat!=='all' && s.cat!==coArchState.cat) return false;
+    const q = coArchState.q; if (!q) return true;
+    const hay = [s.headline, s.coach, ...(s.tags||[]), ...((s.topics||[]).map(t=>t.name+' '+t.desc))].join(' ').toLowerCase();
+    return hay.includes(q);
+  }
+  const coArchCard = (s,i) => `
     <article class="group flex flex-col rounded-2xl border border-black/10 bg-white p-5 transition hover:shadow-md">
       <div class="flex items-center justify-between">
         <span class="text-xs font-semibold uppercase tracking-wide text-ink-900/40">#${s.n} · ${s.date}</span>
@@ -764,7 +815,15 @@ function toggleSidebar(){
         <div class="leading-tight"><p class="text-sm font-medium">${s.coach}</p><p class="text-xs text-ink-900/50">Coach · ${s.attendees.length} attended</p></div>
       </div>
       <button onclick="coOpenSession(${i})" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-ink-900 py-2.5 text-sm font-semibold text-white transition group-hover:bg-ink-800">View session<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
-    </article>`).join('');
+    </article>`;
+  function renderArchive(){
+    const rows = sessions.map((s,i)=>({s,i})).filter(o=>coArchMatch(o.s));
+    document.getElementById('co-archive-grid').innerHTML = rows.map(o=>coArchCard(o.s,o.i)).join('');
+    const empty = document.getElementById('co-arch-empty'); if (empty) empty.classList.toggle('hidden', rows.length>0);
+  }
+  window.coArchFilter = function(){ const el=document.getElementById('co-arch-search'); coArchState.q=(el?el.value:'').toLowerCase().trim(); renderArchive(); };
+  window.coArchSetCat = function(cat){ coArchState.cat=cat; document.querySelectorAll('#co-arch-filters .co-afc').forEach(b=>{ const on=b.dataset.cat===cat; b.className='co-afc rounded-full border px-3 py-1 text-xs font-semibold '+(on?'border-accent bg-accent-50 text-accent':'border-black/10 bg-white text-ink-900/60'); }); renderArchive(); };
+  renderArchive();
 
   const resIcon = { doc:'<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h6l6 6v10a2 2 0 01-2 2z"/>', slides:'<path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18v12H3zM3 4v12m9 0v4m-4 0h8"/>', code:'<path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-3 3 3 3m8-6l3 3-3 3"/>' };
   const PREVIEW_LEARNINGS = 3;
@@ -856,10 +915,12 @@ function toggleSidebar(){
   const tagPillsLight = ts => (ts||[]).map(t => `<span class="tag" style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.25)">${t}</span>`).join('');
 
   // The active (this week) micro session + its logged data points
+  const PASS_MARK = 70; // placeholder pass mark (set the real threshold with the team)
   const active = { title:'Prompt Ops', cat:'officer', tags:['Prompting','Operations'],
     data:{ signup:false, attend:false, minutes:0, submit:false, score:null } };
 
   // Catalog: single topic each
+  const MSIMG = {};
   const available = [
     { title:'Prompt Ops', cat:'officer', tags:['Prompting','Operations'], when:'Tue Aug 11 · 4:00 PM GMT+7', live:true, status:'active' },
     { title:'Revenue signals with AI', cat:'officer', tags:['Revenue','Analytics'], when:'On-demand', live:false, status:'new' },
@@ -870,6 +931,7 @@ function toggleSidebar(){
     { title:'Hiring & coaching with AI', cat:'lead', tags:['Hiring','Talent'], data:{ signup:true, attend:true, minutes:18, submit:true, score:92 }, note:'Completed' },
     { title:'Ops automation basics', cat:'officer', tags:['Automation','Ops'], data:{ signup:true, attend:false, minutes:12, submit:true, score:85 }, note:'Recording' },
     { title:'Structured outputs', cat:'eng', tags:['JSON','Schemas'], data:{ signup:true, attend:true, minutes:21, submit:true, score:96 }, note:'Completed' },
+    { title:'Data storytelling basics', cat:'officer', tags:['Analytics','Comms'], data:{ signup:true, attend:true, minutes:15, submit:true, score:58 }, note:'Resubmit' },
   ];
 
   // ── this-week card ──
@@ -894,7 +956,7 @@ function toggleSidebar(){
     set('ms-d-attend', d.attend?'✓ Yes':'—', d.attend);
     const mins = document.getElementById('ms-d-minutes'); mins.textContent = d.minutes; mins.classList.toggle('text-ink-900/35', d.minutes===0); mins.classList.toggle('text-ink-900', d.minutes>0);
     set('ms-d-submit', d.submit?'✓ Yes':'—', d.submit);
-    const sc = document.getElementById('ms-d-score'); sc.textContent = d.score==null?'—':d.score+'%'; sc.classList.toggle('text-ink-900/35', d.score==null); sc.classList.toggle('text-officer-fg', d.score!=null);
+    const sc = document.getElementById('ms-d-score'); if (d.score==null){ sc.textContent='—'; sc.className='font-semibold text-ink-900/35 tnum'; } else { const pass=d.score>=PASS_MARK; sc.className='font-semibold tnum '+(pass?'text-officer-fg':'text-amber-600'); sc.innerHTML=d.score+'% <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold '+(pass?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600')+'">'+(pass?'Pass':'Redo')+'</span>'; }
   }
   renderStepper(); renderData();
 
@@ -903,20 +965,20 @@ function toggleSidebar(){
   // ── catalog ──
   let msFilter = 'all', msTab = 'available';
   function statusPill(s){ return { active:'<span class="rounded-full bg-officer-bg px-2 py-0.5 text-[11px] font-semibold text-officer-fg">This week</span>', new:'<span class="rounded-full bg-accent-50 px-2 py-0.5 text-[11px] font-semibold text-accent">Available</span>' }[s] || ''; }
-  const cover = (c,txt) => `<div class="grid h-[52px] w-[76px] shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style="background:${ {officer:'linear-gradient(135deg,#a03168,#d1458b)',eng:'linear-gradient(135deg,#1c58a8,#287be8)',lead:'linear-gradient(135deg,#2f6b52,#22b07d)'}[c] }">${txt}</div>`;
+  const cover = (c,txt) => `<div class="relative grid h-[52px] w-[76px] shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style="background:${ {officer:'linear-gradient(135deg,#a03168,#d1458b)',eng:'linear-gradient(135deg,#1c58a8,#287be8)',lead:'linear-gradient(135deg,#377b61,#64d7ac)'}[c] };font-family:'JetBrains Mono',Menlo,monospace">${txt}</div>`;
   const initials2 = t => t.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   function renderCatalog(){
     const rows = (msTab==='available'?available:completed).filter(x => msFilter==='all' || x.cat===msFilter);
     if (!rows.length){ document.getElementById('ms-catalog').innerHTML = `<div class="p-10 text-center text-sm text-ink-900/50">No micro sessions in this category yet.</div>`; return; }
-    document.getElementById('ms-catalog').innerHTML = rows.map((x) => {
+    document.getElementById('ms-catalog').innerHTML = rows.map((x,i) => {
       const isCompleted = msTab==='completed';
       const right = isCompleted
-        ? `<div class="text-right"><div class="text-sm font-semibold text-officer-fg tnum">${x.data.score}%</div><div class="text-xs text-ink-900/45">${x.data.minutes} min · ${x.note}</div></div>`
-        : `<button onclick="${x.status==='active'?'msOpenSession()':'msOpenSession()'}" class="shrink-0 rounded-full ${x.status==='active'?'bg-officer text-white':'border border-black/15 bg-white'} px-4 py-2 text-sm font-semibold transition hover:brightness-105">${x.status==='active'?'Continue →':'Start'}</button>`;
+        ? `<div class="text-right"><div class="text-sm font-semibold tnum ${x.data.score>=PASS_MARK?'text-officer-fg':'text-amber-600'}">${x.data.score}% <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${x.data.score>=PASS_MARK?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${x.data.score>=PASS_MARK?'Pass':'Redo'}</span></div><div class="text-xs text-ink-900/45">${x.data.minutes} min · ${x.note}</div></div>`
+        : `<button onclick="${x.status==='active'?'msOpenSession()':'msOpenSession()'}" class="shrink-0 rounded-full ${x.status==='active'?'bg-accent text-white hover:bg-accent-600':'border border-black/15 bg-white'} px-4 py-2 text-sm font-semibold transition hover:brightness-105">${x.status==='active'?'Continue →':'Start'}</button>`;
       return `<div class="flex items-center gap-4 border-b border-black/5 p-4 last:border-0">
-        ${cover(x.cat, initials2(x.title))}
+        ${cover(x.cat, ('0'+(i+1)).slice(-2))}
         <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2"><span class="font-semibold">${x.title}</span>${isCompleted?'<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">Credit earned</span>':statusPill(x.status)}</div>
+          <div class="flex flex-wrap items-center gap-2"><span class="font-semibold">${x.title}</span>${isCompleted?(x.data.score>=PASS_MARK?'<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">Credit earned</span>':'<span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">Redo to earn credit</span>'):statusPill(x.status)}</div>
           <div class="mt-1.5 flex flex-wrap items-center gap-1.5">${catPill(x.cat)}${tagPills(x.tags)}</div>
           <p class="mt-1.5 text-xs text-ink-900/45">${isCompleted?('Signed up · '+(x.data.attend?'attended':'watched recording')+' · challenge submitted'):x.when}${!isCompleted&&x.live?' · live option':''}</p>
         </div>
@@ -981,7 +1043,7 @@ function toggleSidebar(){
               <textarea id="ms-answer" rows="4" class="mt-3 w-full resize-none rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-accent" placeholder="Draft your answer with the AI Buddy…" ${d.submit?'disabled':''}>${d.submit?'Submitted for grading.':''}</textarea>
               <div class="mt-3 flex items-center justify-between">
                 <span class="text-xs text-ink-900/50">Submitting sends your work for grading — this is what earns credit.</span>
-                <button id="ms-submit-btn" onclick="msSubmit()" class="rounded-full bg-officer px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 ${d.submit?'opacity-50':''}" ${d.submit?'disabled':''}>${d.submit?'Submitted ✓':'Submit & earn credit'}</button>
+                <button id="ms-submit-btn" onclick="msSubmit()" class="whitespace-nowrap rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-600 ${d.submit?'opacity-50':''}" ${d.submit?'disabled':''}>${d.submit?'Submitted ✓':'Submit & earn credit'}</button>
               </div>
             </div>
             <div id="ms-celebrate" class="hidden rounded-2xl border border-officer bg-officer-bg p-6 text-center">
@@ -1027,7 +1089,7 @@ function toggleSidebar(){
     renderStepper(); renderData();
     const b = document.getElementById('ms-submit-btn'); if(b){ b.textContent='Submitted ✓'; b.disabled=true; b.classList.add('opacity-50'); }
     const ta = document.getElementById('ms-answer'); if(ta) ta.disabled = true;
-    const cel = document.getElementById('ms-celebrate'); if(cel){ cel.classList.remove('hidden'); document.getElementById('ms-jump').textContent = '45% → 50% · score 94%'; cel.scrollIntoView({behavior:'smooth', block:'center'}); }
+    const cel = document.getElementById('ms-celebrate'); if(cel){ cel.classList.remove('hidden'); document.getElementById('ms-jump').textContent = 'Passed · 45% → 50% · score 94%'; cel.scrollIntoView({behavior:'smooth', block:'center'}); }
   };
 })();
 </script>
@@ -1041,8 +1103,8 @@ function toggleSidebar(){
   function grad(a,b){ return `linear-gradient(135deg,${a},${b})`; }
   const P = { officerA:grad('#1a264f','#a03168'),officerB:grad('#04102d','#d1458b'),officerC:grad('#46142d','#b73978'),
     engA:grad('#0a235f','#287be8'),engB:grad('#04102d','#2c87ff'),engC:grad('#10386c','#5ba2ff'),
-    leadA:grad('#0e7490','#22b07d'),leadB:grad('#155e75','#3fd39a'),leadC:grad('#224a3b','#59c09a'),
-    microA:grad('#3a2b74','#6a4fd0'),microB:grad('#2a1f5a','#8b6ff0') };
+    leadA:grad('#224a3b','#64d7ac'),leadB:grad('#377b61','#9affd9'),leadC:grad('#224a3b','#59c09a'),
+    microA:grad('#0a235f','#1258ff'),microB:grad('#04102d','#3d76ff') }; /* deep-navy scale */
 
   // category: officer|eng|lead  (credit track) ; kind:'micro' flags micro-session recordings
   const VIDEOS = [
@@ -1087,7 +1149,7 @@ function toggleSidebar(){
   const lengthOf = v => (LENGTHS.find(l=>durMin(v.dur)>=l.lo&&durMin(v.dur)<l.hi)||{}).v;
   const statusOf = v => v.progress>=1?'Watched':v.progress>0?'In progress':'Not started';
 
-  function trackColors(k){ return ({officer:['#2a0e22','#d1458b'],eng:['#04143a','#287be8'],lead:['#093230','#22b07d'],micro:['#241a52','#6a4fd0']})[k]||['#04102d','#287be8']; }
+  function trackColors(k){ return ({officer:['#2a0e22','#d1458b'],eng:['#04143a','#287be8'],lead:['#224a3b','#64d7ac'],micro:['#04102d','#1258ff']})[k]||['#04102d','#287be8']; }
   function wrapTitle(t,max,maxLines){ max=max||24; maxLines=maxLines||2; const words=t.split(/\s+/),lines=[]; let cur='';
     for(const w of words){ const test=cur?cur+' '+w:w; if(test.length<=max)cur=test; else{ if(cur)lines.push(cur); cur=w; if(lines.length===maxLines)break; } }
     if(lines.length<maxLines&&cur)lines.push(cur);
@@ -1108,6 +1170,7 @@ function toggleSidebar(){
       +(play?`<circle cx="160" cy="82" r="23" fill="#fff" fill-opacity="0.92"/><path d="M154 72 L154 92 L172 82 Z" fill="${d}"/>`:``)
       +`<rect width="320" height="180" fill="url(#s)"/>`
       +`<text x="18" y="26" fill="#fff" fill-opacity="0.8" font-family="Inter,Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">AI OFFICER INSTITUTE</text>`
+      +`<text x="302" y="27" text-anchor="end" fill="#fff" fill-opacity="0.85" font-family="JetBrains Mono,Menlo,monospace" font-size="11" font-weight="700" letter-spacing="1">${v.kind==='micro'?'MICRO':'SESSION'} ${('0'+v.id.slice(1)).slice(-2)}</text>`
       +lines+`</svg>`;
     return 'data:image/svg+xml,'+encodeURIComponent(svg);
   }
