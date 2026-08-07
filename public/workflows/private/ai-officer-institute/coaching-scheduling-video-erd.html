@@ -47,7 +47,7 @@ header .sub code{font-family:var(--mono);font-size:12px;color:var(--ink2)}
 .counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .counts .c{font-size:12px;padding:4px 11px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--card)}
 .counts .c b{font-variant-numeric:tabular-nums;color:var(--ink)}
-.counts .c.n b{color:var(--new)} .counts .c.e b{color:var(--ext)} .counts .c.p b{color:var(--plan)}
+.counts .c.n b{color:var(--new)} .counts .c.e b{color:var(--ext)} .counts .c.d b{color:var(--warn)}
 
 .toolbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;gap:7px;width:max-content;
   margin:14px 24px 0 auto;padding:7px 12px;background:var(--card);border:1px solid var(--line);border-radius:999px;
@@ -135,7 +135,9 @@ section.seam .d::before{background:var(--old)}
   <div class="sub">
     Two primitives (a <b>schedulable live event</b> + the <b>video asset model shipped 2026-08-06</b>) carrying three features:
     group coaching, micro-sessions, and the video library. Grounded against the live snapshot
-    <code>tests/integration/schema/snapshots/live_schema.json</code> (50 tables) and settled in the 2026-08-07 grilling session.
+    <code>tests/integration/schema/snapshots/live_schema.json</code> (50 tables), grilling rounds 1–2, and
+    <b>Dave's round-3 review (2026-08-07)</b>: <code>micro_session</code> folds into <code>course</code>, placements and
+    category links collapse to one table each, and graduation follows the college core-plus-electives model.
   </div>
   <div class="legend">
     <span class="sw"><span class="box n"></span> new table</span>
@@ -143,14 +145,13 @@ section.seam .d::before{background:var(--old)}
     <span class="sw"><span class="box o"></span> existing, untouched</span>
     <span class="sw"><span class="ln n"></span> new FK</span>
     <span class="sw"><span class="ln o"></span> existing FK</span>
-    <span class="sw"><span class="ln p"></span> designed, not built</span>
     <span class="sw">hover to isolate · click to pin · ⌘/Ctrl+scroll to zoom</span>
   </div>
   <div class="counts">
-    <span class="c n"><b>8</b> new tables</span>
+    <span class="c n"><b>7</b> new tables</span>
     <span class="c e"><b>4</b> extended</span>
-    <span class="c"><b>11</b> untouched anchors shown</span>
-    <span class="c p"><b>1</b> planned branch (cert-class events)</span>
+    <span class="c"><b>5</b> untouched anchors shown</span>
+    <span class="c d"><b>2</b> deleted (micro_session · micro_session_completion — stale pilot, fresh content)</span>
   </div>
 </header>
 
@@ -177,19 +178,21 @@ section.seam .d::before{background:var(--old)}
 
 <main>
   <section>
-    <h2>Locked decisions (grilling rounds 1–2, 2026-08-07)</h2>
+    <h2>Locked decisions (rounds 1–3, 2026-08-07)</h2>
     <div class="dgrid">
-      <div class="d"><b>One generic <code>live_event</code> table.</b> A coaching session IS an event row — no bespoke coaching table. Micro-session and cert-class events attach via optional FKs; <code>CHECK event_surface_shape</code> ties <code>event_type</code> to the matching FK.</div>
+      <div class="d"><b><code>micro_session</code> is DELETED, not migrated.</b> A micro-session IS a <code>course</code> row — <code>type='micro_session'</code>. Both carry a pass score; the old table's scheduling/host columns move to <code>live_event</code>, and its content was stale pilot data (we're re-authoring). <code>micro_session_completion</code> dies with it — completion rides normal course progress.</div>
+      <div class="d"><b>Graduation = college model.</b> <code>course.requirement</code> = <code>core | elective</code>; <code>certification.electives_required</code>. Complete = all core courses + at least N electives. Micro-sessions count — as electives.</div>
+      <div class="d"><b>One generic <code>live_event</code> table, one pointer.</b> <code>event_type</code> = <code>coaching | class</code>; single nullable <code>course_id</code>. Coaching has no course (FK NULL); a class of any type points at its course. <code>CHECK event_surface_shape</code> ties type↔FK. Re-runs: one course, many events.</div>
+      <div class="d"><b>Homework needs zero schema surgery.</b> A micro-session's assignment is an <code>activity</code> row under its course — <code>submission</code>, <code>assessment</code>, scorer, grade card all untouched. The old plan's nullable-FK + resolver branch is dead.</div>
+      <div class="d"><b>One <code>video_placement</code> table</b> — a nullable real FK per surface + <code>CHECK</code> exactly-one-set. "Where does this video appear" and "all videos on this course" are single queries; Postgres still enforces every reference. New surface = add a column, not a table. (Supersedes the per-surface <code>video_on_*</code> doctrine.)</div>
+      <div class="d"><b><code>category</code> has a <code>type</code></b> — <code>certification | collection</code>, extensible — so surfaces can display the right slice (the 3 certifications are the main categories; more taxonomies can join later). One <code>category_link</code> join table, same exactly-one-of idiom. <code>tags text[]</code> stays a free folksonomy on <code>video</code>.</div>
       <div class="d"><b>Signup is one row with a lifecycle</b> — <code>signed_up_at</code> / <code>attended_at</code> / <code>cancelled_at</code>; partial <code>UNIQUE</code> on live rows. Walk-ins get an attended-only row. Archive attendee list = <code>attended_at IS NOT NULL</code>.</div>
-      <div class="d"><b>Cert-class events: designed, not built.</b> One enum label + one nullable FK (dashed). Zero endpoints, zero UI.</div>
       <div class="d"><b>Topics are body-only</b>, visible to the group, with a NULLABLE event FK — "move to next week" = re-point the FK. Max 8 accepted per event is an app rule, never a constraint.</div>
-      <div class="d"><b><code>key_learnings</code> + <code>resources</code> live on <code>live_event</code></b> — so micro-sessions and future cert classes inherit them for free.</div>
-      <div class="d"><b>Homework hangs on <code>micro_session</code></b> (<code>assignment_instructions</code>/<code>_rubric</code>); <code>submission</code> gets exactly-one-of (<code>activity_id</code>, <code>micro_session_id</code>). Existing grading pipeline reused via a resolver branch.</div>
+      <div class="d"><b><code>key_learnings</code> + <code>resources</code> live on <code>live_event</code></b> — coaching, micro-session classes, and cert classes inherit them for free.</div>
       <div class="d"><b>Polished-replaces-Zoom = <code>video.superseded_by_video_id</code>.</b> Display rule everywhere: hide superseded. Nothing is deleted — the transcript source survives.</div>
-      <div class="d"><b>Watch tracking = one upsert row per (user, video).</b> Fed by FE IFrame-Player heartbeats — our own build; YouTube's Data/Analytics APIs cannot attribute minutes to a logged-in learner. Completion threshold is an app rule.</div>
-      <div class="d"><b><code>category</code> is a curated table</b> (seed: AI Officer · AI Engineer · Micro-sessions) with join tables per surface. <code>tags text[]</code> stays a free-flowing folksonomy on <code>video</code>. Curation truth, not placement truth — admins link new videos.</div>
-      <div class="d"><b>One track at a time = soft pointer</b> <code>app_user.current_certification_id</code>. Business students pick AI Officer, STEM pick AI Engineer — switchable, no entitlement state machine.</div>
-      <div class="d"><b>Coaching recordings are <code>video</code> rows</b> via <code>video_on_live_event</code> — never a bare URL (the <code>recording_url</code> pattern #1100 is retiring). They stay <code>status='draft'</code> → library-hidden unless deliberately published.</div>
+      <div class="d"><b>Watch tracking = one upsert row per (user, video).</b> Fed by FE IFrame-Player heartbeats — our own build; YouTube's APIs cannot attribute minutes to a logged-in learner. Completion threshold is an app rule.</div>
+      <div class="d"><b>One track at a time = soft pointer</b> <code>app_user.current_certification_id</code> — switchable, no entitlement state machine.</div>
+      <div class="d"><b>Coaching recordings are <code>video</code> rows</b> via a <code>video_placement</code> on the event — never a bare URL (the <code>recording_url</code> pattern #1100 is retiring). They stay <code>status='draft'</code> → library-hidden unless deliberately published.</div>
       <div class="d"><b>House conventions:</b> uuidv7 PKs, <code>text + CHECK</code> (never native enums — the <code>material_type</code> lesson), <code>trg_touch</code> timestamps, RLS enabled with no policies (service-role only, like <code>video</code>).</div>
     </div>
   </section>
@@ -197,26 +200,30 @@ section.seam .d::before{background:var(--old)}
   <section class="pend">
     <h2>Assumptions pending Dave</h2>
     <div class="dgrid">
-      <div class="d"><b>Micro-session cert credit.</b> Dave says micro-sessions count toward certification; ERD §6.5 deliberately gates on course final-projects only. The schema stores both readings — flipping is a computation change, no migration — but it must be an explicit call, not a side effect.</div>
       <div class="d"><b>Coaching earns no credit</b> — assumed, never stated. If wrong, <code>event_signup.attended_at</code> already carries the fact; only the computation changes.</div>
-      <div class="d"><b>"Replace" resolved as display-rule</b> (keep both videos, hide superseded) — Khoa's call; confirm with Dave in passing since deletion would destroy the transcript that key-learnings generation needs.</div>
+      <div class="d"><b>Host is per-occurrence.</b> <code>host_name/email/avatar</code> moved from the deleted <code>micro_session</code> onto <code>live_event</code> — a re-run can have a different coach. Confirm.</div>
+      <div class="d"><b><code>electives_required</code> per certification</b> — the number itself is unset. Also: can a standard course be an elective, or only micro-sessions? Schema allows either.</div>
+      <div class="d"><b>"Replace" resolved as display-rule</b> (keep both videos, hide superseded) — Khoa's call; confirm in passing since deletion would destroy the transcript that key-learnings generation needs.</div>
     </div>
   </section>
 
   <section class="seam">
     <h2>Impacted code seams</h2>
     <div class="dgrid">
-      <div class="d"><b>Grading resolver branches</b> on which submission FK is set — <code>submission_resolver.py</code> in the live V2 pipeline is the seam.</div>
-      <div class="d"><b>Library query grows three reads:</b> category join, hide-superseded filter, per-user watch stats.</div>
+      <div class="d"><b>Grading pipeline: zero change.</b> Micro-session homework is an <code>activity</code> — <code>submission_resolver.py</code> keeps its single path. (The previous draft's resolver branch is cancelled.)</div>
+      <div class="d"><b>Progress computation grows the elective rule</b> — <code>v_certification_progress</code> (or its successor) counts all-core-complete + N-electives-complete, filtered by <code>course.requirement</code>.</div>
+      <div class="d"><b><code>micro_session</code> endpoints + FE pages repoint</b> to <code>course</code> filtered on <code>type='micro_session'</code>; the table, its completion table, and <code>video_on_micro_session</code> writers are deleted, not migrated (nothing live to customers).</div>
+      <div class="d"><b>Library query grows three reads:</b> <code>category_link</code> join, hide-superseded filter, per-user watch stats.</div>
       <div class="d"><b>New FE↔BE seam:</b> player wrapper posts progress heartbeats → <code>video_watch</code> upsert endpoint. This is what makes "watched the recording ⇒ credit" enforceable.</div>
-      <div class="d"><b>"All live sessions we run"</b> — Dave's analytics ask — becomes one query over <code>live_event</code>, no UNION.</div>
-      <div class="d"><b><code>micro_session.recording_url</code> retirement (#1100)</b> — coaching never grows the anti-pattern; recordings ride placements from day one.</div>
+      <div class="d"><b>"All live sessions we run"</b> — Dave's analytics ask — stays one query over <code>live_event</code>, no UNION.</div>
     </div>
   </section>
 
   <div class="srcnote">
     Sources: <code>REQUIREMENTS.md</code> (this folder) · <code>DATA_MODEL_V2.md</code> §6.7, §14.11–§14.12 ·
-    ADR-0001 video-as-a-first-class-asset · live schema snapshot 2026-08-06. Diagram shows the related subset — 23 of 50+ live tables.
+    ADR-0001 video-as-a-first-class-asset · live schema snapshot 2026-08-06 · Dave's round-3 review 2026-08-07
+    (micro_session→course merge, single placement + category-link tables, elective graduation model).
+    Diagram shows the related subset — 16 tables.
   </div>
 </main>
 
@@ -225,18 +232,19 @@ const TABLES = [
 // ---------------- Zone 0 · Scheduling ----------------
 {id:'live_event', zone:0, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
-  {n:'event_type', t:'text', b:['CHECK'], note:1},
-  {n:'micro_session_id', t:'uuid', b:['FK','NULL']},
-  {n:'course_id', t:'uuid', b:['FK','NULL','PLAN'], plan:1},
+  {n:'event_type', t:'text', b:['CHECK']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
   {n:'title', t:'text', b:['NULL']},
   {n:'scheduled_at', t:'timestamptz', b:[]},
   {n:'duration_min', t:'int', b:['NULL']},
   {n:'meeting_url', t:'text', b:['NULL']},
+  {n:'location_type · in_person_location', t:'text', b:['NULL'], dim:1},
+  {n:'host_name · host_email · host_avatar_url', t:'text', b:['NULL']},
   {n:'status', t:'text', b:['CHECK']},
   {n:'key_learnings', t:'text', b:['NULL']},
   {n:'resources', t:'jsonb', b:['NULL']},
   {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
-], foot:'<b>event_type</b>: coaching | micro_session | course_class<span style="color:var(--plan)">†</span> — CHECK <b>event_surface_shape</b> ties type↔FK (coaching = both NULL). <b>status</b>: scheduled | completed | cancelled. resources = [{title,url}]. Re-runs allowed: micro_session 1:N events.'},
+], foot:'<b>event_type</b>: coaching | class — CHECK <b>event_surface_shape</b>: coaching ⇒ course_id IS NULL, class ⇒ NOT NULL. <b>status</b>: scheduled | completed | cancelled. resources = [{title,url}]. Host + location ride the occurrence (moved off the deleted micro_session). Re-runs: one course → many events.'},
 
 {id:'event_signup', zone:0, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
@@ -257,42 +265,20 @@ const TABLES = [
   {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
 ], foot:'<b>status</b>: submitted | accepted | deferred | done. Deferral to next week = re-point live_event_id. ≤8 accepted / event = app rule. Visible to the group (pilot behavior).'},
 
-// ---------------- Zone 1 · Sessions & work ----------------
-{id:'micro_session', zone:1, status:'ext', cols:[
+// ---------------- Zone 1 · Work & grading ----------------
+{id:'submission', zone:1, status:'old', cols:[
   {n:'id', t:'uuid', b:['PK']},
-  {n:'certification_id', t:'uuid', b:['FK']},
-  {n:'course_group_id', t:'uuid', b:['FK','NULL']},
-  {n:'slug · code · title', t:'text', b:['UK'], dim:1},
-  {n:'format', t:'live|recorded', b:[], dim:1},
-  {n:'scheduled_at · duration_min', t:'', b:[], dim:1},
-  {n:'session_url · host_* · location_*', t:'', b:[], dim:1},
-  {n:'recording_url', t:'text', b:['RETIRING'], dim:1},
-  {n:'rsvp_disabled · status · display_order', t:'', b:[], dim:1},
-  {n:'assignment_instructions', t:'text', b:['NEW','NULL'], nw:1},
-  {n:'assignment_rubric', t:'jsonb', b:['NEW','NULL'], nw:1},
-], foot:'One assignment per session ("here\'s your assignment, come back when done"). recording_url writers already moved to video + placements (#1100).'},
-
-{id:'submission', zone:1, status:'ext', cols:[
-  {n:'id', t:'uuid', b:['PK']},
-  {n:'activity_id', t:'uuid', b:['FK','CHANGED']},
-  {n:'micro_session_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+  {n:'activity_id', t:'uuid', b:['FK']},
   {n:'user_id', t:'uuid', b:['FK']},
   {n:'content · attempt_no · submitted_at', t:'', b:[], dim:1},
-], foot:'<b>activity_id becomes NULLABLE</b> + CHECK exactly-one-of(activity_id, micro_session_id). Grading resolver branches on the set FK; scorer + grade card unchanged.'},
+], foot:'<b>Untouched.</b> Micro-session homework is an activity row under its course — no nullable-FK surgery, no resolver branch, grading pipeline unchanged.'},
 
 {id:'assessment', zone:1, status:'old', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'submission_id', t:'uuid', b:['FK','UK']},
   {n:'score · component_scores', t:'', b:[], dim:1},
   {n:'feedback · status · graded_at', t:'', b:[], dim:1},
-], foot:'Untouched — 1:1 with submission. Micro-session homework reuses this exactly (F2-R8: "it looks kind of the same").'},
-
-{id:'micro_session_completion', zone:1, status:'old', cols:[
-  {n:'id', t:'uuid', b:['PK']},
-  {n:'user_id', t:'uuid', b:['FK']},
-  {n:'micro_session_id', t:'uuid', b:['FK']},
-  {n:'completed_at', t:'timestamptz', b:[]},
-], foot:'The CREDIT fact — written on attended live OR watched recording (app rule). Cert-gating stays final-project-only pending Dave.'},
+], foot:'Untouched — 1:1 with submission. Micro-session homework reuses this exactly.'},
 
 // ---------------- Zone 2 · Identity & curriculum ----------------
 {id:'app_user', zone:2, status:'ext', cols:[
@@ -302,86 +288,72 @@ const TABLES = [
   {n:'current_certification_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
 ], foot:'Soft "one track at a time" pointer — switchable; a hard rule would be an app gate at entitlement-grant, not schema.'},
 
-{id:'certification', zone:2, status:'old', cols:[
+{id:'certification', zone:2, status:'ext', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'slug · title · status', t:'', b:[], dim:1},
-]},
+  {n:'electives_required', t:'int', b:['NEW'], nw:1},
+], foot:'College model: graduate = complete every core course + at least <b>electives_required</b> electives.'},
+
 {id:'course_group', zone:2, status:'old', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'certification_id', t:'uuid', b:['FK']},
   {n:'title · display_order', t:'', b:[], dim:1},
 ]},
-{id:'course', zone:2, status:'old', cols:[
+
+{id:'course', zone:2, status:'ext', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'certification_id', t:'uuid', b:['FK']},
-  {n:'course_group_id', t:'uuid', b:['FK']},
+  {n:'course_group_id', t:'uuid', b:['FK','CHANGED','NULL']},
   {n:'slug · code · title · pass_score', t:'', b:[], dim:1},
-]},
+  {n:'status · display_order', t:'', b:[], dim:1},
+  {n:'type', t:'text', b:['NEW','CHECK'], nw:1},
+  {n:'requirement', t:'text', b:['NEW','CHECK'], nw:1},
+], foot:'<b>Absorbs micro_session</b> (table deleted — stale pilot content, re-authoring). <b>type</b>: standard | micro_session. <b>requirement</b>: core | elective (micro-sessions = electives). <b>course_group_id becomes NULLABLE</b> — micro-sessions need no group. Homework = its activity rows; scheduling = live_event rows.'},
+
 {id:'activity', zone:2, status:'old', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'course_id', t:'uuid', b:['FK']},
   {n:'instructions · rubric · solution', t:'', b:[], dim:1},
   {n:'is_assessable · is_final_project', t:'', b:[], dim:1},
-]},
+], foot:'A micro-session\'s assignment is just an activity here — instructions + rubric already exist.'},
+
 {id:'activity_step', zone:2, status:'old', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'activity_id', t:'uuid', b:['FK']},
   {n:'step_key · step_index · content', t:'', b:[], dim:1},
 ]},
 
-// ---------------- Zone 3 · Placements & joins ----------------
-{id:'video_on_live_event', zone:3, status:'new', group:'placements', cols:[
+// ---------------- Zone 3 · Placements & links ----------------
+{id:'video_placement', zone:3, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'video_id', t:'uuid', b:['FK']},
-  {n:'live_event_id', t:'uuid', b:['FK']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
+  {n:'activity_step_id', t:'uuid', b:['FK','NULL']},
+  {n:'live_event_id', t:'uuid', b:['FK','NULL']},
+  {n:'blog_slug', t:'text — NO FK', b:['NULL']},
   {n:'anchor', t:'text', b:['NULL']},
   {n:'display_order', t:'int', b:[]},
-], foot:'UNIQUE(video_id, live_event_id). Coaching recordings ride this; the video stays draft → library-hidden unless published. Cascades delete the placement only — never the asset.'},
+], foot:'<b>Replaces the five video_on_&lt;surface&gt; tables.</b> CHECK exactly-one location set; partial UNIQUE(video_id, location) per column. One master "where does this video appear" list — every FK still real, cascades per column delete the placement, never the asset. New surface = add a column. Blogs are files on disk — slug only, no FK by construction. 1 course → many videos via display_order.'},
 
-{id:'video_on_micro_session', zone:3, status:'old', group:'placements', cols:[
-  {n:'video_id', t:'uuid', b:['FK']},
-  {n:'micro_session_id', t:'uuid', b:['FK']},
-  {n:'anchor · display_order', t:'', b:[], dim:1},
-]},
-{id:'video_on_course', zone:3, status:'old', group:'placements', cols:[
-  {n:'video_id', t:'uuid', b:['FK']},
-  {n:'course_id', t:'uuid', b:['FK']},
-  {n:'anchor · display_order', t:'', b:[], dim:1},
-]},
-{id:'video_on_activity_step', zone:3, status:'old', group:'placements', cols:[
-  {n:'video_id', t:'uuid', b:['FK']},
-  {n:'activity_step_id', t:'uuid', b:['FK']},
-  {n:'anchor · display_order', t:'', b:[], dim:1},
-]},
-{id:'video_on_blog', zone:3, status:'old', group:'placements', cols:[
-  {n:'video_id', t:'uuid', b:['FK']},
-  {n:'source_slug', t:'text — NO FK', b:[]},
-  {n:'anchor · display_order', t:'', b:[], dim:1},
-], foot:'Blogs are files on disk — keys on the anchor-system slug; no referential integrity by construction.'},
-
-{id:'video_category', zone:3, status:'new', group:'catjoins', cols:[
+{id:'category_link', zone:3, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
-  {n:'video_id', t:'uuid', b:['FK']},
   {n:'category_id', t:'uuid', b:['FK']},
-], foot:'UNIQUE(video_id, category_id).'},
-{id:'micro_session_category', zone:3, status:'new', group:'catjoins', cols:[
-  {n:'id', t:'uuid', b:['PK']},
-  {n:'micro_session_id', t:'uuid', b:['FK']},
-  {n:'category_id', t:'uuid', b:['FK']},
-], foot:'UNIQUE(micro_session_id, category_id).'},
+  {n:'video_id', t:'uuid', b:['FK','NULL']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
+], foot:'CHECK exactly-one of (video_id, course_id); partial UNIQUE per pair. Same one-table idiom as video_placement — a new categorizable surface = add a column.'},
 
 // ---------------- Zone 4 · Video assets ----------------
 {id:'video', zone:4, status:'ext', cols:[
   {n:'id', t:'uuid', b:['PK']},
   {n:'title', t:'text', b:[]},
-  {n:'source_type', t:'text', b:['CHECK'], note:1},
+  {n:'source_type', t:'text', b:['CHECK']},
   {n:'source_url', t:'text', b:['NULL']},
   {n:'storage_* · file_*', t:'upload fields', b:[], dim:1},
   {n:'duration_seconds', t:'int', b:['NULL']},
   {n:'status', t:'catalog_status', b:[]},
   {n:'superseded_by_video_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
   {n:'tags', t:'text[] + GIN', b:['NEW'], nw:1},
-], foot:'<b>source_type</b>: upload | youtube | vimeo | external — already covers YT / Zoom / MP4. Display rule everywhere: hide superseded (polished replaces Zoom, nothing deleted). YouTube-first V1; premium/self-host = additive later.'},
+], foot:'<b>The one master list</b> — every video is exactly one row here; placements only point at it. <b>source_type</b>: upload | youtube | vimeo | external. Display rule everywhere: hide superseded (polished replaces Zoom, nothing deleted). YouTube-first V1; premium/self-host = additive later.'},
 
 {id:'video_watch', zone:4, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
@@ -395,77 +367,56 @@ const TABLES = [
 
 {id:'category', zone:4, status:'new', cols:[
   {n:'id', t:'uuid', b:['PK']},
+  {n:'type', t:'text', b:['CHECK']},
   {n:'name', t:'text', b:['UK']},
   {n:'slug', t:'text', b:['UK']},
   {n:'display_order', t:'int', b:[]},
-], foot:'Admin-curated, dynamic. Seed: AI Officer · AI Engineer · Micro-sessions. Orthogonal to free-form video.tags.'},
+], foot:'<b>type</b>: certification | collection — text+CHECK, extensible when new taxonomies appear. Seed: the 3 certifications (type=certification) + Micro-sessions (type=collection). A surface filters by type to show the right slice. Admin-curated; orthogonal to free-form video.tags.'},
 ];
 
 const ZONES = [
   {t:'Scheduling — net new', slim:false},
-  {t:'Sessions & work', slim:false},
+  {t:'Work & grading', slim:false},
   {t:'Identity & curriculum', slim:true},
-  {t:'Placements & joins', slim:true},
+  {t:'Placements & links', slim:false},
   {t:'Video assets', slim:false},
 ];
 
 const EDGES = [
   // scheduling (new)
-  {f:'live_event.micro_session_id', to:'micro_session.id', s:'n'},
-  {f:'live_event.course_id',        to:'course.id',        s:'p'},
-  {f:'event_signup.live_event_id',  to:'live_event.id',    s:'n'},
-  {f:'event_signup.user_id',        to:'app_user.id',      s:'n'},
-  {f:'coaching_topic.live_event_id',to:'live_event.id',    s:'n'},
-  {f:'coaching_topic.user_id',      to:'app_user.id',      s:'n'},
-  // homework (new)
-  {f:'submission.micro_session_id', to:'micro_session.id', s:'n'},
+  {f:'live_event.course_id',        to:'course.id',     s:'n'},
+  {f:'event_signup.live_event_id',  to:'live_event.id', s:'n'},
+  {f:'event_signup.user_id',        to:'app_user.id',   s:'n'},
+  {f:'coaching_topic.live_event_id',to:'live_event.id', s:'n'},
+  {f:'coaching_topic.user_id',      to:'app_user.id',   s:'n'},
+  // placements + category links (new)
+  {f:'video_placement.video_id',         to:'video.id',         s:'n'},
+  {f:'video_placement.course_id',        to:'course.id',        s:'n'},
+  {f:'video_placement.activity_step_id', to:'activity_step.id', s:'n'},
+  {f:'video_placement.live_event_id',    to:'live_event.id',    s:'n'},
+  {f:'category_link.category_id', to:'category.id', s:'n'},
+  {f:'category_link.video_id',    to:'video.id',    s:'n'},
+  {f:'category_link.course_id',   to:'course.id',   s:'n'},
   // video library (new)
-  {f:'video_on_live_event.live_event_id', to:'live_event.id', s:'n'},
-  {f:'video_on_live_event.video_id',      to:'video.id',      s:'n'},
   {f:'video_watch.user_id',   to:'app_user.id', s:'n'},
   {f:'video_watch.video_id',  to:'video.id',    s:'n'},
   {f:'video.superseded_by_video_id', to:'video.id', s:'n', self:1},
-  {f:'video_category.video_id',    to:'video.id',    s:'n'},
-  {f:'video_category.category_id', to:'category.id', s:'n'},
-  {f:'micro_session_category.micro_session_id', to:'micro_session.id', s:'n'},
-  {f:'micro_session_category.category_id',      to:'category.id',      s:'n'},
   {f:'app_user.current_certification_id', to:'certification.id', s:'n'},
   // existing fabric
   {f:'submission.activity_id', to:'activity.id',  s:'o'},
   {f:'submission.user_id',     to:'app_user.id',  s:'o'},
   {f:'assessment.submission_id', to:'submission.id', s:'o'},
-  {f:'micro_session_completion.user_id',          to:'app_user.id',      s:'o'},
-  {f:'micro_session_completion.micro_session_id', to:'micro_session.id', s:'o'},
-  {f:'micro_session.certification_id', to:'certification.id', s:'o'},
-  {f:'micro_session.course_group_id',  to:'course_group.id',  s:'o'},
+  {f:'course_group.certification_id', to:'certification.id', s:'o'},
   {f:'course.certification_id', to:'certification.id', s:'o'},
   {f:'course.course_group_id',  to:'course_group.id',  s:'o'},
   {f:'activity.course_id',      to:'course.id',        s:'o'},
   {f:'activity_step.activity_id', to:'activity.id',    s:'o'},
-  {f:'video_on_micro_session.video_id',         to:'video.id',         s:'o'},
-  {f:'video_on_micro_session.micro_session_id', to:'micro_session.id', s:'o'},
-  {f:'video_on_course.video_id',  to:'video.id',  s:'o'},
-  {f:'video_on_course.course_id', to:'course.id', s:'o'},
-  {f:'video_on_activity_step.video_id',         to:'video.id',         s:'o'},
-  {f:'video_on_activity_step.activity_step_id', to:'activity_step.id', s:'o'},
-  {f:'video_on_blog.video_id', to:'video.id', s:'o'},
 ];
 
 const BADGE = {PK:'pk',FK:'fk',UK:'uk',NULL:'nu',NEW:'nw',CHECK:'ch',PLAN:'pl',CHANGED:'ch',RETIRING:'wr'};
 const CHIP = {new:'NEW', ext:'EXTENDED', old:'EXISTING'};
 
-// Tables that share a shape ON PURPOSE get boxed together, with the reason on the box —
-// so the repetition reads as a pattern, not as accidental duplication.
-const GROUPS = {
-  placements: {
-    label:'video_on_&lt;surface&gt;', why:'same shape by design',
-    note:'<b>Identical columns on purpose — do not merge.</b> One placement table per surface keeps every FK <b>real</b>: Postgres enforces integrity and scopes ON DELETE per surface. The alternative — one polymorphic table with <code>surface_type + surface_id</code> — cannot have an FK at all. Adding a surface = adding a table; nothing existing changes (ADR-0001, same doctrine as §6.7).'
-  },
-  catjoins: {
-    label:'&lt;surface&gt;_category', why:'same idiom',
-    note:'Curated category links follow the <b>same per-surface idiom</b> as <code>video_on_*</code> — one join table per surface, UNIQUE per pair.'
-  }
-};
+const GROUPS = {};
 
 const cols = document.getElementById('cols');
 const zoneEls = ZONES.map(z=>{
