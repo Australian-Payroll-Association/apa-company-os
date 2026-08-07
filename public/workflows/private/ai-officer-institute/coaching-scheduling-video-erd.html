@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<!-- saved from url=(0198)file:///Users/ngocanhkhoadoan/Edge8/aio-lab-be/.claude/worktrees/micro-sessions-mechanism-00b07c/docs/engineering/development/2026-08-consolidated/2026-08-07-coaching-scheduling-video-model/ERD.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coaching · Scheduling · Video — V2 ERD delta</title>
+</head>
+<body>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --ink:#1c2430; --ink2:#5b6674; --ink3:#8a94a2;
+  --line:#d6dce4; --hair:#e6eaef;
+  --new:#15803d; --new-bg:#e9f5ec; --new-line:#3f9e63;
+  --ext:#b45309; --ext-bg:#fdf3e3; --ext-line:#cf8a2e;
+  --old:#64748b; --old-line:#a7b2c0;
+  --plan:#5b5fd6; --plan-line:#8286e8;
+  --warn:#b3261e;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+/* Deliberately single-theme: always light, regardless of OS/viewer theme. */
+:root[data-theme="dark"], :root[data-theme="light"]{
+  --bg:#f4f6f8; --card:#ffffff; --ink:#1c2430; --ink2:#5b6674; --ink3:#8a94a2;
+  --line:#d6dce4; --hair:#e6eaef;
+  --new:#15803d; --new-bg:#e9f5ec; --new-line:#3f9e63;
+  --ext:#b45309; --ext-bg:#fdf3e3; --ext-line:#cf8a2e;
+  --old:#64748b; --old-line:#a7b2c0;
+  --plan:#5b5fd6; --plan-line:#8286e8;
+  --warn:#b3261e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+header{max-width:1200px;margin:0 auto;padding:34px 24px 10px}
+header h1{margin:0 0 4px;font-size:23px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+header .sub{color:var(--ink2);font-size:13.5px;max-width:74ch}
+header .sub code{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 4px;font-size:12.5px;color:var(--ink2);align-items:center}
+.legend .sw{display:inline-flex;align-items:center;gap:7px}
+.legend .box{width:13px;height:13px;border-radius:3px;border:1.5px solid}
+.legend .box.n{background:var(--new-bg);border-color:var(--new)}
+.legend .box.e{background:var(--ext-bg);border-color:var(--ext)}
+.legend .box.o{background:var(--card);border-color:var(--old-line)}
+.legend .ln{width:26px;height:0;border-top:2px solid}
+.legend .ln.n{border-color:var(--new-line)}
+.legend .ln.o{border-color:var(--old-line)}
+.legend .ln.p{border-top-style:dashed;border-color:var(--plan-line)}
+.counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.counts .c{font-size:12px;padding:4px 11px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--card)}
+.counts .c b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.counts .c.n b{color:var(--new)} .counts .c.e b{color:var(--ext)} .counts .c.p b{color:var(--plan)}
+
+.toolbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;gap:7px;width:max-content;
+  margin:14px 24px 0 auto;padding:7px 12px;background:var(--card);border:1px solid var(--line);border-radius:999px;
+  box-shadow:0 2px 10px rgba(16,24,36,.10);font-size:12px;color:var(--ink2)}
+.toolbar .tl{font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 2px}
+.toolbar button{font:inherit;font-size:12px;color:var(--ink2);background:transparent;border:1px solid var(--line);
+  border-radius:7px;padding:3px 9px;cursor:pointer;line-height:1.3}
+.toolbar button:hover{color:var(--ink);border-color:var(--old-line)}
+.toolbar button.on{background:var(--hair);color:var(--ink);border-color:var(--old-line)}
+.toolbar #zpct{min-width:44px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink)}
+.toolbar .sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.viewport{overflow-x:auto;padding:8px 24px 20px}
+#canvas{position:relative;width:max-content;min-width:100%;margin:0 auto;padding:118px 10px 14px}
+#wires{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#cols{position:relative;display:flex;gap:112px;align-items:flex-start;padding:6px 4px}
+.zone{width:294px;flex:none;display:flex;flex-direction:column;gap:26px}
+.zone.slim{width:268px}
+#canvas[data-edges="new"] #wires .edge.e-o{display:none}
+#canvas[data-edges="none"] #wires .edge{display:none}
+.zhead{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:0 2px 2px;border-bottom:1px solid var(--line)}
+.tbl{background:var(--card);border:1.5px solid var(--old-line);border-radius:8px;font-family:var(--mono);font-size:11.5px;
+  box-shadow:0 1px 2px rgba(16,24,36,.06);transition:opacity .15s ease, box-shadow .15s ease}
+.tbl.new{border-color:var(--new)}
+.tbl.ext{border-color:var(--ext)}
+.tbl .th{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--hair);border-radius:7px 7px 0 0}
+.tbl.new .th{background:var(--new-bg)} .tbl.ext .th{background:var(--ext-bg)}
+.tbl .th .nm{font-weight:700;font-size:12.5px;letter-spacing:-.01em}
+.tbl .th .chip{margin-left:auto;font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.07em;padding:2px 7px;border-radius:99px}
+.tbl.new .th .chip{color:var(--new);border:1px solid var(--new)}
+.tbl.ext .th .chip{color:var(--ext);border:1px solid var(--ext)}
+.tbl.old .th .chip{color:var(--ink3);border:1px solid var(--old-line)}
+.row{display:flex;align-items:baseline;gap:6px;padding:3.5px 10px;border-bottom:1px solid var(--hair)}
+.row:last-of-type{border-bottom:none}
+.row .cn{white-space:nowrap}
+.row .ct{color:var(--ink3);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:right}
+.row .b{font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;letter-spacing:.03em;font-family:var(--sans);white-space:nowrap}
+.b.pk{background:var(--ink);color:var(--card)}
+.b.fk{border:1px solid var(--ink3);color:var(--ink2)}
+.b.uk{border:1px solid var(--ink3);color:var(--ink2);border-style:dashed}
+.b.nu{color:var(--ink3)}
+.b.nw{background:var(--new);color:#fff}
+.b.ch{border:1px solid var(--ext);color:var(--ext)}
+.b.pl{border:1px dashed var(--plan);color:var(--plan)}
+.b.wr{color:var(--warn);border:1px solid var(--warn)}
+.row.isnew{background:color-mix(in srgb,var(--new-bg) 55%, transparent)}
+.row.isplan .cn,.row.isplan .ct{color:var(--plan)}
+.row.dim .cn,.row.dim .ct{color:var(--ink3)}
+.foot{padding:6px 10px 8px;font-family:var(--sans);font-size:10.8px;line-height:1.45;color:var(--ink2);border-top:1px dashed var(--hair)}
+.foot b{color:var(--ink)}
+#canvas.focus .tbl{opacity:.32}
+#canvas.focus .tbl.hot{opacity:1;box-shadow:0 2px 10px rgba(16,24,36,.16)}
+#wires path{fill:none;stroke-width:1.6;transition:opacity .15s ease}
+#wires path.n{stroke:var(--new-line)}
+#wires path.o{stroke:var(--old-line)}
+#wires path.p{stroke:var(--plan-line);stroke-dasharray:5 4}
+#wires circle{stroke:none}
+#canvas.focus #wires .edge{opacity:.07}
+#canvas.focus #wires .edge.hot{opacity:1}
+#canvas.focus #wires .edge.hot path{stroke-width:2.2}
+
+main{max-width:1200px;margin:0 auto;padding:8px 24px 60px}
+section{margin-top:34px}
+section h2{font-size:15px;font-weight:650;letter-spacing:.01em;margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px 26px}
+.d{font-size:13.5px;color:var(--ink2);padding-left:14px;position:relative}
+.d::before{content:"";position:absolute;left:0;top:.52em;width:6px;height:6px;border-radius:2px;background:var(--new)}
+.d b{color:var(--ink);font-weight:600}
+.d code{font-family:var(--mono);font-size:11.5px;background:var(--hair);padding:1px 5px;border-radius:4px}
+section.pend .d::before{background:var(--ext)}
+section.seam .d::before{background:var(--old)}
+.srcnote{margin-top:44px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line);padding-top:14px}
+.srcnote code{font-family:var(--mono)}
+@media (prefers-reduced-motion: reduce){ .tbl,#wires path,#wires .edge{transition:none} }
+</style>
+
+<header>
+  <h1>Coaching · Scheduling · Video — the V2 ERD delta</h1>
+  <div class="sub">
+    Two primitives (a <b>schedulable live event</b> + the <b>video asset model shipped 2026-08-06</b>) carrying three features:
+    group coaching, micro-sessions, and the video library. Grounded against the live snapshot
+    <code>tests/integration/schema/snapshots/live_schema.json</code> (50 tables) and settled in the 2026-08-07 grilling session.
+  </div>
+  <div class="legend">
+    <span class="sw"><span class="box n"></span> new table</span>
+    <span class="sw"><span class="box e"></span> existing, extended (new columns highlighted)</span>
+    <span class="sw"><span class="box o"></span> existing, untouched</span>
+    <span class="sw"><span class="ln n"></span> new FK</span>
+    <span class="sw"><span class="ln o"></span> existing FK</span>
+    <span class="sw"><span class="ln p"></span> designed, not built</span>
+    <span class="sw">hover to isolate · click to pin · ⌘/Ctrl+scroll to zoom</span>
+  </div>
+  <div class="counts">
+    <span class="c n"><b>8</b> new tables</span>
+    <span class="c e"><b>4</b> extended</span>
+    <span class="c"><b>11</b> untouched anchors shown</span>
+    <span class="c p"><b>1</b> planned branch (cert-class events)</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="tl">Zoom</span>
+  <button id="zout" title="Zoom out">−</button>
+  <span id="zpct">100%</span>
+  <button id="zin" title="Zoom in">+</button>
+  <button id="zfit">Fit width</button>
+  <button id="z100">Reset</button>
+  <span class="sep"></span>
+  <span class="tl">Links</span>
+  <button class="ef on" data-e="all">All</button>
+  <button class="ef" data-e="new">New only</button>
+  <button class="ef" data-e="none">Hidden</button>
+</div>
+
+<div class="viewport">
+  <div id="canvas">
+    <div id="cols"><div class="zone"><div class="zhead">Scheduling — net new</div><div class="tbl new" data-table="live_event"><div class="th"><span class="nm">live_event</span><span class="chip">NEW</span></div><div class="row" data-t="live_event" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="live_event" data-c="event_type"><span class="cn">event_type</span><span class="b ch">CHECK</span><span class="ct">text</span></div><div class="row" data-t="live_event" data-c="micro_session_id"><span class="cn">micro_session_id</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="row isplan" data-t="live_event" data-c="course_id"><span class="cn">course_id</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="b pl">PLAN</span><span class="ct">uuid</span></div><div class="row" data-t="live_event" data-c="title"><span class="cn">title</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row" data-t="live_event" data-c="scheduled_at"><span class="cn">scheduled_at</span><span class="ct">timestamptz</span></div><div class="row" data-t="live_event" data-c="duration_min"><span class="cn">duration_min</span><span class="b nu">∅</span><span class="ct">int</span></div><div class="row" data-t="live_event" data-c="meeting_url"><span class="cn">meeting_url</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row" data-t="live_event" data-c="status"><span class="cn">status</span><span class="b ch">CHECK</span><span class="ct">text</span></div><div class="row" data-t="live_event" data-c="key_learnings"><span class="cn">key_learnings</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row" data-t="live_event" data-c="resources"><span class="cn">resources</span><span class="b nu">∅</span><span class="ct">jsonb</span></div><div class="row dim" data-t="live_event" data-c="created_at"><span class="cn">created_at · updated_at</span><span class="ct">trg_touch</span></div><div class="foot"><b>event_type</b>: coaching | micro_session | course_class<span style="color:var(--plan)">†</span> — CHECK <b>event_surface_shape</b> ties type↔FK (coaching = both NULL). <b>status</b>: scheduled | completed | cancelled. resources = [{title,url}]. Re-runs allowed: micro_session 1:N events.</div></div><div class="tbl new" data-table="event_signup"><div class="th"><span class="nm">event_signup</span><span class="chip">NEW</span></div><div class="row" data-t="event_signup" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="event_signup" data-c="live_event_id"><span class="cn">live_event_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="event_signup" data-c="user_id"><span class="cn">user_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="event_signup" data-c="signed_up_at"><span class="cn">signed_up_at</span><span class="ct">timestamptz</span></div><div class="row" data-t="event_signup" data-c="attended_at"><span class="cn">attended_at</span><span class="b nu">∅</span><span class="ct">timestamptz</span></div><div class="row" data-t="event_signup" data-c="cancelled_at"><span class="cn">cancelled_at</span><span class="b nu">∅</span><span class="ct">timestamptz</span></div><div class="foot">UNIQUE(live_event_id, user_id) WHERE cancelled_at IS NULL. Logged-in only — no PII beyond the app_user FK (F1-R2). Walk-in = attended-only row.</div></div><div class="tbl new" data-table="coaching_topic"><div class="th"><span class="nm">coaching_topic</span><span class="chip">NEW</span></div><div class="row" data-t="coaching_topic" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="coaching_topic" data-c="live_event_id"><span class="cn">live_event_id</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="row" data-t="coaching_topic" data-c="user_id"><span class="cn">user_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="coaching_topic" data-c="body"><span class="cn">body</span><span class="ct">text</span></div><div class="row" data-t="coaching_topic" data-c="status"><span class="cn">status</span><span class="b ch">CHECK</span><span class="ct">text</span></div><div class="row" data-t="coaching_topic" data-c="display_order"><span class="cn">display_order</span><span class="b nu">∅</span><span class="ct">int</span></div><div class="row dim" data-t="coaching_topic" data-c="created_at"><span class="cn">created_at · updated_at</span><span class="ct">trg_touch</span></div><div class="foot"><b>status</b>: submitted | accepted | deferred | done. Deferral to next week = re-point live_event_id. ≤8 accepted / event = app rule. Visible to the group (pilot behavior).</div></div></div><div class="zone"><div class="zhead">Sessions &amp; work</div><div class="tbl ext" data-table="micro_session"><div class="th"><span class="nm">micro_session</span><span class="chip">EXTENDED</span></div><div class="row" data-t="micro_session" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session" data-c="certification_id"><span class="cn">certification_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session" data-c="course_group_id"><span class="cn">course_group_id</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="row dim" data-t="micro_session" data-c="slug"><span class="cn">slug · code · title</span><span class="b uk">UK</span><span class="ct">text</span></div><div class="row dim" data-t="micro_session" data-c="format"><span class="cn">format</span><span class="ct">live|recorded</span></div><div class="row dim" data-t="micro_session" data-c="scheduled_at"><span class="cn">scheduled_at · duration_min</span><span class="ct"></span></div><div class="row dim" data-t="micro_session" data-c="session_url"><span class="cn">session_url · host_* · location_*</span><span class="ct"></span></div><div class="row dim" data-t="micro_session" data-c="recording_url"><span class="cn">recording_url</span><span class="b wr">RETIRING</span><span class="ct">text</span></div><div class="row dim" data-t="micro_session" data-c="rsvp_disabled"><span class="cn">rsvp_disabled · status · display_order</span><span class="ct"></span></div><div class="row isnew" data-t="micro_session" data-c="assignment_instructions"><span class="cn">assignment_instructions</span><span class="b nw">NEW</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row isnew" data-t="micro_session" data-c="assignment_rubric"><span class="cn">assignment_rubric</span><span class="b nw">NEW</span><span class="b nu">∅</span><span class="ct">jsonb</span></div><div class="foot">One assignment per session ("here's your assignment, come back when done"). recording_url writers already moved to video + placements (#1100).</div></div><div class="tbl ext" data-table="submission"><div class="th"><span class="nm">submission</span><span class="chip">EXTENDED</span></div><div class="row" data-t="submission" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="submission" data-c="activity_id"><span class="cn">activity_id</span><span class="b fk">FK</span><span class="b ch">CHANGED</span><span class="ct">uuid</span></div><div class="row isnew" data-t="submission" data-c="micro_session_id"><span class="cn">micro_session_id</span><span class="b nw">NEW</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="row" data-t="submission" data-c="user_id"><span class="cn">user_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="submission" data-c="content"><span class="cn">content · attempt_no · submitted_at</span><span class="ct"></span></div><div class="foot"><b>activity_id becomes NULLABLE</b> + CHECK exactly-one-of(activity_id, micro_session_id). Grading resolver branches on the set FK; scorer + grade card unchanged.</div></div><div class="tbl old" data-table="assessment"><div class="th"><span class="nm">assessment</span><span class="chip">EXISTING</span></div><div class="row" data-t="assessment" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="assessment" data-c="submission_id"><span class="cn">submission_id</span><span class="b fk">FK</span><span class="b uk">UK</span><span class="ct">uuid</span></div><div class="row dim" data-t="assessment" data-c="score"><span class="cn">score · component_scores</span><span class="ct"></span></div><div class="row dim" data-t="assessment" data-c="feedback"><span class="cn">feedback · status · graded_at</span><span class="ct"></span></div><div class="foot">Untouched — 1:1 with submission. Micro-session homework reuses this exactly (F2-R8: "it looks kind of the same").</div></div><div class="tbl old" data-table="micro_session_completion"><div class="th"><span class="nm">micro_session_completion</span><span class="chip">EXISTING</span></div><div class="row" data-t="micro_session_completion" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session_completion" data-c="user_id"><span class="cn">user_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session_completion" data-c="micro_session_id"><span class="cn">micro_session_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session_completion" data-c="completed_at"><span class="cn">completed_at</span><span class="ct">timestamptz</span></div><div class="foot">The CREDIT fact — written on attended live OR watched recording (app rule). Cert-gating stays final-project-only pending Dave.</div></div></div><div class="zone slim"><div class="zhead">Identity &amp; curriculum</div><div class="tbl ext" data-table="app_user"><div class="th"><span class="nm">app_user</span><span class="chip">EXTENDED</span></div><div class="row" data-t="app_user" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row dim" data-t="app_user" data-c="email"><span class="cn">email · full_name · status</span><span class="ct"></span></div><div class="row dim" data-t="app_user" data-c="…"><span class="cn">… 9 more</span><span class="ct"></span></div><div class="row isnew" data-t="app_user" data-c="current_certification_id"><span class="cn">current_certification_id</span><span class="b nw">NEW</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="foot">Soft "one track at a time" pointer — switchable; a hard rule would be an app gate at entitlement-grant, not schema.</div></div><div class="tbl old" data-table="certification"><div class="th"><span class="nm">certification</span><span class="chip">EXISTING</span></div><div class="row" data-t="certification" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row dim" data-t="certification" data-c="slug"><span class="cn">slug · title · status</span><span class="ct"></span></div></div><div class="tbl old" data-table="course_group"><div class="th"><span class="nm">course_group</span><span class="chip">EXISTING</span></div><div class="row" data-t="course_group" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="course_group" data-c="certification_id"><span class="cn">certification_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="course_group" data-c="title"><span class="cn">title · display_order</span><span class="ct"></span></div></div><div class="tbl old" data-table="course"><div class="th"><span class="nm">course</span><span class="chip">EXISTING</span></div><div class="row" data-t="course" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="course" data-c="certification_id"><span class="cn">certification_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="course" data-c="course_group_id"><span class="cn">course_group_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="course" data-c="slug"><span class="cn">slug · code · title · pass_score</span><span class="ct"></span></div></div><div class="tbl old" data-table="activity"><div class="th"><span class="nm">activity</span><span class="chip">EXISTING</span></div><div class="row" data-t="activity" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="activity" data-c="course_id"><span class="cn">course_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="activity" data-c="instructions"><span class="cn">instructions · rubric · solution</span><span class="ct"></span></div><div class="row dim" data-t="activity" data-c="is_assessable"><span class="cn">is_assessable · is_final_project</span><span class="ct"></span></div></div><div class="tbl old" data-table="activity_step"><div class="th"><span class="nm">activity_step</span><span class="chip">EXISTING</span></div><div class="row" data-t="activity_step" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="activity_step" data-c="activity_id"><span class="cn">activity_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="activity_step" data-c="step_key"><span class="cn">step_key · step_index · content</span><span class="ct"></span></div></div></div><div class="zone slim"><div class="zhead">Placements &amp; joins</div><div class="tbl new" data-table="video_on_live_event"><div class="th"><span class="nm">video_on_live_event</span><span class="chip">NEW</span></div><div class="row" data-t="video_on_live_event" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_live_event" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_live_event" data-c="live_event_id"><span class="cn">live_event_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_live_event" data-c="anchor"><span class="cn">anchor</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row" data-t="video_on_live_event" data-c="display_order"><span class="cn">display_order</span><span class="ct">int</span></div><div class="foot">UNIQUE(video_id, live_event_id). Coaching recordings ride this; the video stays draft → library-hidden unless published. Cascades delete the placement only — never the asset.</div></div><div class="tbl old" data-table="video_on_micro_session"><div class="th"><span class="nm">video_on_micro_session</span><span class="chip">EXISTING</span></div><div class="row" data-t="video_on_micro_session" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_micro_session" data-c="micro_session_id"><span class="cn">micro_session_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="video_on_micro_session" data-c="anchor"><span class="cn">anchor · display_order</span><span class="ct"></span></div></div><div class="tbl old" data-table="video_on_course"><div class="th"><span class="nm">video_on_course</span><span class="chip">EXISTING</span></div><div class="row" data-t="video_on_course" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_course" data-c="course_id"><span class="cn">course_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="video_on_course" data-c="anchor"><span class="cn">anchor · display_order</span><span class="ct"></span></div></div><div class="tbl old" data-table="video_on_activity_step"><div class="th"><span class="nm">video_on_activity_step</span><span class="chip">EXISTING</span></div><div class="row" data-t="video_on_activity_step" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_activity_step" data-c="activity_step_id"><span class="cn">activity_step_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row dim" data-t="video_on_activity_step" data-c="anchor"><span class="cn">anchor · display_order</span><span class="ct"></span></div></div><div class="tbl old" data-table="video_on_blog"><div class="th"><span class="nm">video_on_blog</span><span class="chip">EXISTING</span></div><div class="row" data-t="video_on_blog" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_on_blog" data-c="source_slug"><span class="cn">source_slug</span><span class="ct">text — NO FK</span></div><div class="row dim" data-t="video_on_blog" data-c="anchor"><span class="cn">anchor · display_order</span><span class="ct"></span></div><div class="foot">Blogs are files on disk — keys on the anchor-system slug; no referential integrity by construction.</div></div><div class="tbl new" data-table="video_category"><div class="th"><span class="nm">video_category</span><span class="chip">NEW</span></div><div class="row" data-t="video_category" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="video_category" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_category" data-c="category_id"><span class="cn">category_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="foot">UNIQUE(video_id, category_id).</div></div><div class="tbl new" data-table="micro_session_category"><div class="th"><span class="nm">micro_session_category</span><span class="chip">NEW</span></div><div class="row" data-t="micro_session_category" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session_category" data-c="micro_session_id"><span class="cn">micro_session_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="micro_session_category" data-c="category_id"><span class="cn">category_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="foot">UNIQUE(micro_session_id, category_id).</div></div></div><div class="zone"><div class="zhead">Video assets</div><div class="tbl ext" data-table="video"><div class="th"><span class="nm">video</span><span class="chip">EXTENDED</span></div><div class="row" data-t="video" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="video" data-c="title"><span class="cn">title</span><span class="ct">text</span></div><div class="row" data-t="video" data-c="source_type"><span class="cn">source_type</span><span class="b ch">CHECK</span><span class="ct">text</span></div><div class="row" data-t="video" data-c="source_url"><span class="cn">source_url</span><span class="b nu">∅</span><span class="ct">text</span></div><div class="row dim" data-t="video" data-c="storage_*"><span class="cn">storage_* · file_*</span><span class="ct">upload fields</span></div><div class="row" data-t="video" data-c="duration_seconds"><span class="cn">duration_seconds</span><span class="b nu">∅</span><span class="ct">int</span></div><div class="row" data-t="video" data-c="status"><span class="cn">status</span><span class="ct">catalog_status</span></div><div class="row isnew" data-t="video" data-c="superseded_by_video_id"><span class="cn">superseded_by_video_id</span><span class="b nw">NEW</span><span class="b fk">FK</span><span class="b nu">∅</span><span class="ct">uuid</span></div><div class="row isnew" data-t="video" data-c="tags"><span class="cn">tags</span><span class="b nw">NEW</span><span class="ct">text[] + GIN</span></div><div class="foot"><b>source_type</b>: upload | youtube | vimeo | external — already covers YT / Zoom / MP4. Display rule everywhere: hide superseded (polished replaces Zoom, nothing deleted). YouTube-first V1; premium/self-host = additive later.</div></div><div class="tbl new" data-table="video_watch"><div class="th"><span class="nm">video_watch</span><span class="chip">NEW</span></div><div class="row" data-t="video_watch" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="video_watch" data-c="user_id"><span class="cn">user_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_watch" data-c="video_id"><span class="cn">video_id</span><span class="b fk">FK</span><span class="ct">uuid</span></div><div class="row" data-t="video_watch" data-c="watched_seconds"><span class="cn">watched_seconds</span><span class="ct">int</span></div><div class="row" data-t="video_watch" data-c="furthest_position_seconds"><span class="cn">furthest_position_seconds</span><span class="ct">int</span></div><div class="row" data-t="video_watch" data-c="completed_at"><span class="cn">completed_at</span><span class="b nu">∅</span><span class="ct">timestamptz</span></div><div class="row" data-t="video_watch" data-c="last_watched_at"><span class="cn">last_watched_at</span><span class="ct">timestamptz</span></div><div class="foot">UNIQUE(user_id, video_id) — one upsert row. Fed by FE IFrame-Player heartbeats (our build; YouTube APIs can't attribute per-learner minutes). Answers: count, total minutes, finished?, recently-watched.</div></div><div class="tbl new" data-table="category"><div class="th"><span class="nm">category</span><span class="chip">NEW</span></div><div class="row" data-t="category" data-c="id"><span class="cn">id</span><span class="b pk">PK</span><span class="ct">uuid</span></div><div class="row" data-t="category" data-c="name"><span class="cn">name</span><span class="b uk">UK</span><span class="ct">text</span></div><div class="row" data-t="category" data-c="slug"><span class="cn">slug</span><span class="b uk">UK</span><span class="ct">text</span></div><div class="row" data-t="category" data-c="display_order"><span class="cn">display_order</span><span class="ct">int</span></div><div class="foot">Admin-curated, dynamic. Seed: AI Officer · AI Engineer · Micro-sessions. Orthogonal to free-form video.tags.</div></div></div></div>
+    <svg id="wires" aria-hidden="true" width="1894" height="1416"><g class="edge e-n" data-tables="live_event micro_session"><path d="M 306.5,272.5 C 358.25,272.5 369.75,220.875 421.5,220.875" class="n"></path><circle cx="306.5" cy="272.5" r="3" fill="#3f9e63"></circle><circle cx="421.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-p" data-tables="live_event course"><path d="M 306.5,298.5 L 338,298.5 Q 350,298.5 350,286.5 L 350,110 Q 350,98 362,98 L 744,98 Q 756,98 756,110 L 756,696.3203125 Q 756,708.3203125 768,708.3203125 L 827.5,708.3203125" class="p"></path><circle cx="306.5" cy="298.5" r="3" fill="#8286e8"></circle><circle cx="827.5" cy="708.3203125" r="2.2" fill="#8286e8" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="event_signup live_event"><path d="M 306.5,727.640625 C 343.5,727.640625 343.5,220.875 306.5,220.875" class="n"></path><circle cx="306.5" cy="727.640625" r="3" fill="#3f9e63"></circle><circle cx="306.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="event_signup app_user"><path d="M 306.5,753.640625 L 345,753.640625 Q 357,753.640625 357,741.640625 L 357,98 Q 357,86 369,86 L 751,86 Q 763,86 763,98 L 763,208.875 Q 763,220.875 775,220.875 L 827.5,220.875" class="n"></path><circle cx="306.5" cy="753.640625" r="3" fill="#3f9e63"></circle><circle cx="827.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="coaching_topic live_event"><path d="M 306.5,1024.484375 C 354.5,1024.484375 354.5,220.875 306.5,220.875" class="n"></path><circle cx="306.5" cy="1024.484375" r="3" fill="#3f9e63"></circle><circle cx="306.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="coaching_topic app_user"><path d="M 306.5,1050.484375 L 352,1050.484375 Q 364,1050.484375 364,1038.484375 L 364,86 Q 364,74 376,74 L 758,74 Q 770,74 770,86 L 770,208.875 Q 770,220.875 782,220.875 L 827.5,220.875" class="n"></path><circle cx="306.5" cy="1050.484375" r="3" fill="#3f9e63"></circle><circle cx="827.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="submission micro_session"><path d="M 712.5,697.09375 C 749.5,697.09375 749.5,220.875 712.5,220.875" class="n"></path><circle cx="712.5" cy="697.09375" r="3" fill="#3f9e63"></circle><circle cx="712.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_on_live_event live_event"><path d="M 1207.5,272.5 L 1169,272.5 Q 1157,272.5 1157,260.5 L 1157,74 Q 1157,62 1145,62 L 383,62 Q 371,62 371,74 L 371,208.875 Q 371,220.875 359,220.875 L 306.5,220.875" class="n"></path><circle cx="1207.5" cy="272.5" r="3" fill="#3f9e63"></circle><circle cx="306.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_on_live_event video"><path d="M 1472.5,246.5 C 1524.25,246.5 1535.75,220.875 1587.5,220.875" class="n"></path><circle cx="1472.5" cy="246.5" r="3" fill="#3f9e63"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_watch app_user"><path d="M 1587.5,634.7421875 L 1556,634.7421875 Q 1544,634.7421875 1544,622.7421875 L 1544,62 Q 1544,50 1532,50 L 1176,50 Q 1164,50 1164,62 L 1164,208.875 Q 1164,220.875 1152,220.875 L 1092.5,220.875" class="n"></path><circle cx="1587.5" cy="634.7421875" r="3" fill="#3f9e63"></circle><circle cx="1092.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_watch video"><path d="M 1878.5,660.7421875 C 1915.5,660.7421875 1915.5,220.875 1878.5,220.875" class="n"></path><circle cx="1878.5" cy="660.7421875" r="3" fill="#3f9e63"></circle><circle cx="1878.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video video"><path d="M 1878.5,398.75 C 1912.5,398.75 1912.5,220.875 1878.5,220.875" class="n"></path><circle cx="1878.5" cy="398.75" r="3" fill="#3f9e63"></circle><circle cx="1878.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_category video"><path d="M 1472.5,1150.2890625 C 1524.25,1150.2890625 1535.75,220.875 1587.5,220.875" class="n"></path><circle cx="1472.5" cy="1150.2890625" r="3" fill="#3f9e63"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="video_category category"><path d="M 1472.5,1176.2890625 C 1524.25,1176.2890625 1535.75,931.2109375 1587.5,931.2109375" class="n"></path><circle cx="1472.5" cy="1176.2890625" r="3" fill="#3f9e63"></circle><circle cx="1587.5" cy="931.2109375" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="micro_session_category micro_session"><path d="M 1207.5,1324.4375 L 1148,1324.4375 Q 1136,1324.4375 1136,1312.4375 L 1136,50 Q 1136,38 1124,38 L 768,38 Q 756,38 756,50 L 756,208.875 Q 756,220.875 744,220.875 L 712.5,220.875" class="n"></path><circle cx="1207.5" cy="1324.4375" r="3" fill="#3f9e63"></circle><circle cx="712.5" cy="220.875" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="micro_session_category category"><path d="M 1472.5,1350.4375 C 1524.25,1350.4375 1535.75,931.2109375 1587.5,931.2109375" class="n"></path><circle cx="1472.5" cy="1350.4375" r="3" fill="#3f9e63"></circle><circle cx="1587.5" cy="931.2109375" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-n" data-tables="app_user certification"><path d="M 1092.5,297 C 1129.5,297 1129.5,450.8203125 1092.5,450.8203125" class="n"></path><circle cx="1092.5" cy="297" r="3" fill="#3f9e63"></circle><circle cx="1092.5" cy="450.8203125" r="2.2" fill="#3f9e63" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="submission activity"><path d="M 712.5,671.09375 C 764.25,671.09375 775.75,876.0703125 827.5,876.0703125" class="o"></path><circle cx="712.5" cy="671.09375" r="3" fill="#a7b2c0"></circle><circle cx="827.5" cy="876.0703125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="submission app_user"><path d="M 712.5,723.09375 C 764.25,723.09375 775.75,220.875 827.5,220.875" class="o"></path><circle cx="712.5" cy="723.09375" r="3" fill="#a7b2c0"></circle><circle cx="827.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="assessment submission"><path d="M 712.5,943.4375 C 760.5,943.4375 760.5,645.46875 712.5,645.46875" class="o"></path><circle cx="712.5" cy="943.4375" r="3" fill="#a7b2c0"></circle><circle cx="712.5" cy="645.46875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="micro_session_completion app_user"><path d="M 712.5,1173.3828125 C 764.25,1173.3828125 775.75,220.875 827.5,220.875" class="o"></path><circle cx="712.5" cy="1173.3828125" r="3" fill="#a7b2c0"></circle><circle cx="827.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="micro_session_completion micro_session"><path d="M 712.5,1199.3828125 C 771.5,1199.3828125 771.5,220.875 712.5,220.875" class="o"></path><circle cx="712.5" cy="1199.3828125" r="3" fill="#a7b2c0"></circle><circle cx="712.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="micro_session certification"><path d="M 712.5,246.5 C 764.25,246.5 775.75,450.8203125 827.5,450.8203125" class="o"></path><circle cx="712.5" cy="246.5" r="3" fill="#a7b2c0"></circle><circle cx="827.5" cy="450.8203125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="micro_session course_group"><path d="M 712.5,272.5 C 764.25,272.5 775.75,566.5703125 827.5,566.5703125" class="o"></path><circle cx="712.5" cy="272.5" r="3" fill="#a7b2c0"></circle><circle cx="827.5" cy="566.5703125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="course certification"><path d="M 1092.5,733.9453125 C 1140.5,733.9453125 1140.5,450.8203125 1092.5,450.8203125" class="o"></path><circle cx="1092.5" cy="733.9453125" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="450.8203125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="course course_group"><path d="M 1092.5,759.9453125 C 1151.5,759.9453125 1151.5,566.5703125 1092.5,566.5703125" class="o"></path><circle cx="1092.5" cy="759.9453125" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="566.5703125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="activity course"><path d="M 1092.5,901.6953125 C 1118.5,901.6953125 1118.5,708.3203125 1092.5,708.3203125" class="o"></path><circle cx="1092.5" cy="901.6953125" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="708.3203125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="activity_step activity"><path d="M 1092.5,1068.6953125 C 1129.5,1068.6953125 1129.5,876.0703125 1092.5,876.0703125" class="o"></path><circle cx="1092.5" cy="1068.6953125" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="876.0703125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_micro_session video"><path d="M 1472.5,492.84375 C 1524.25,492.84375 1535.75,220.875 1587.5,220.875" class="o"></path><circle cx="1472.5" cy="492.84375" r="3" fill="#a7b2c0"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_micro_session micro_session"><path d="M 1207.5,518.84375 L 1155,518.84375 Q 1143,518.84375 1143,506.84375 L 1143,38 Q 1143,26 1131,26 L 775,26 Q 763,26 763,38 L 763,208.875 Q 763,220.875 751,220.875 L 712.5,220.875" class="o"></path><circle cx="1207.5" cy="518.84375" r="3" fill="#a7b2c0"></circle><circle cx="712.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_course video"><path d="M 1472.5,635.34375 C 1524.25,635.34375 1535.75,220.875 1587.5,220.875" class="o"></path><circle cx="1472.5" cy="635.34375" r="3" fill="#a7b2c0"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_course course"><path d="M 1207.5,661.34375 C 1155.75,661.34375 1144.25,708.3203125 1092.5,708.3203125" class="o"></path><circle cx="1207.5" cy="661.34375" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="708.3203125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_activity_step video"><path d="M 1472.5,777.84375 C 1524.25,777.84375 1535.75,220.875 1587.5,220.875" class="o"></path><circle cx="1472.5" cy="777.84375" r="3" fill="#a7b2c0"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_activity_step activity_step"><path d="M 1207.5,803.84375 C 1155.75,803.84375 1144.25,1043.0703125 1092.5,1043.0703125" class="o"></path><circle cx="1207.5" cy="803.84375" r="3" fill="#a7b2c0"></circle><circle cx="1092.5" cy="1043.0703125" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g><g class="edge e-o" data-tables="video_on_blog video"><path d="M 1472.5,920.34375 C 1524.25,920.34375 1535.75,220.875 1587.5,220.875" class="o"></path><circle cx="1472.5" cy="920.34375" r="3" fill="#a7b2c0"></circle><circle cx="1587.5" cy="220.875" r="2.2" fill="#a7b2c0" fill-opacity=".55"></circle></g></svg>
+  </div>
+</div>
+
+<main>
+  <section>
+    <h2>Locked decisions (grilling rounds 1–2, 2026-08-07)</h2>
+    <div class="dgrid">
+      <div class="d"><b>One generic <code>live_event</code> table.</b> A coaching session IS an event row — no bespoke coaching table. Micro-session and cert-class events attach via optional FKs; <code>CHECK event_surface_shape</code> ties <code>event_type</code> to the matching FK.</div>
+      <div class="d"><b>Signup is one row with a lifecycle</b> — <code>signed_up_at</code> / <code>attended_at</code> / <code>cancelled_at</code>; partial <code>UNIQUE</code> on live rows. Walk-ins get an attended-only row. Archive attendee list = <code>attended_at IS NOT NULL</code>.</div>
+      <div class="d"><b>Cert-class events: designed, not built.</b> One enum label + one nullable FK (dashed). Zero endpoints, zero UI.</div>
+      <div class="d"><b>Topics are body-only</b>, visible to the group, with a NULLABLE event FK — "move to next week" = re-point the FK. Max 8 accepted per event is an app rule, never a constraint.</div>
+      <div class="d"><b><code>key_learnings</code> + <code>resources</code> live on <code>live_event</code></b> — so micro-sessions and future cert classes inherit them for free.</div>
+      <div class="d"><b>Homework hangs on <code>micro_session</code></b> (<code>assignment_instructions</code>/<code>_rubric</code>); <code>submission</code> gets exactly-one-of (<code>activity_id</code>, <code>micro_session_id</code>). Existing grading pipeline reused via a resolver branch.</div>
+      <div class="d"><b>Polished-replaces-Zoom = <code>video.superseded_by_video_id</code>.</b> Display rule everywhere: hide superseded. Nothing is deleted — the transcript source survives.</div>
+      <div class="d"><b>Watch tracking = one upsert row per (user, video).</b> Fed by FE IFrame-Player heartbeats — our own build; YouTube's Data/Analytics APIs cannot attribute minutes to a logged-in learner. Completion threshold is an app rule.</div>
+      <div class="d"><b><code>category</code> is a curated table</b> (seed: AI Officer · AI Engineer · Micro-sessions) with join tables per surface. <code>tags text[]</code> stays a free-flowing folksonomy on <code>video</code>. Curation truth, not placement truth — admins link new videos.</div>
+      <div class="d"><b>One track at a time = soft pointer</b> <code>app_user.current_certification_id</code>. Business students pick AI Officer, STEM pick AI Engineer — switchable, no entitlement state machine.</div>
+      <div class="d"><b>Coaching recordings are <code>video</code> rows</b> via <code>video_on_live_event</code> — never a bare URL (the <code>recording_url</code> pattern #1100 is retiring). They stay <code>status='draft'</code> → library-hidden unless deliberately published.</div>
+      <div class="d"><b>House conventions:</b> uuidv7 PKs, <code>text + CHECK</code> (never native enums — the <code>material_type</code> lesson), <code>trg_touch</code> timestamps, RLS enabled with no policies (service-role only, like <code>video</code>).</div>
+    </div>
+  </section>
+
+  <section class="pend">
+    <h2>Assumptions pending Dave</h2>
+    <div class="dgrid">
+      <div class="d"><b>Micro-session cert credit.</b> Dave says micro-sessions count toward certification; ERD §6.5 deliberately gates on course final-projects only. The schema stores both readings — flipping is a computation change, no migration — but it must be an explicit call, not a side effect.</div>
+      <div class="d"><b>Coaching earns no credit</b> — assumed, never stated. If wrong, <code>event_signup.attended_at</code> already carries the fact; only the computation changes.</div>
+      <div class="d"><b>"Replace" resolved as display-rule</b> (keep both videos, hide superseded) — Khoa's call; confirm with Dave in passing since deletion would destroy the transcript that key-learnings generation needs.</div>
+    </div>
+  </section>
+
+  <section class="seam">
+    <h2>Impacted code seams</h2>
+    <div class="dgrid">
+      <div class="d"><b>Grading resolver branches</b> on which submission FK is set — <code>submission_resolver.py</code> in the live V2 pipeline is the seam.</div>
+      <div class="d"><b>Library query grows three reads:</b> category join, hide-superseded filter, per-user watch stats.</div>
+      <div class="d"><b>New FE↔BE seam:</b> player wrapper posts progress heartbeats → <code>video_watch</code> upsert endpoint. This is what makes "watched the recording ⇒ credit" enforceable.</div>
+      <div class="d"><b>"All live sessions we run"</b> — Dave's analytics ask — becomes one query over <code>live_event</code>, no UNION.</div>
+      <div class="d"><b><code>micro_session.recording_url</code> retirement (#1100)</b> — coaching never grows the anti-pattern; recordings ride placements from day one.</div>
+    </div>
+  </section>
+
+  <div class="srcnote">
+    Sources: <code>REQUIREMENTS.md</code> (this folder) · <code>DATA_MODEL_V2.md</code> §6.7, §14.11–§14.12 ·
+    ADR-0001 video-as-a-first-class-asset · live schema snapshot 2026-08-06. Diagram shows the related subset — 23 of 50+ live tables.
+  </div>
+</main>
+
+<script>
+const TABLES = [
+// ---------------- Zone 0 · Scheduling ----------------
+{id:'live_event', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'event_type', t:'text', b:['CHECK'], note:1},
+  {n:'micro_session_id', t:'uuid', b:['FK','NULL']},
+  {n:'course_id', t:'uuid', b:['FK','NULL','PLAN'], plan:1},
+  {n:'title', t:'text', b:['NULL']},
+  {n:'scheduled_at', t:'timestamptz', b:[]},
+  {n:'duration_min', t:'int', b:['NULL']},
+  {n:'meeting_url', t:'text', b:['NULL']},
+  {n:'status', t:'text', b:['CHECK']},
+  {n:'key_learnings', t:'text', b:['NULL']},
+  {n:'resources', t:'jsonb', b:['NULL']},
+  {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
+], foot:'<b>event_type</b>: coaching | micro_session | course_class<span style="color:var(--plan)">†</span> — CHECK <b>event_surface_shape</b> ties type↔FK (coaching = both NULL). <b>status</b>: scheduled | completed | cancelled. resources = [{title,url}]. Re-runs allowed: micro_session 1:N events.'},
+
+{id:'event_signup', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'live_event_id', t:'uuid', b:['FK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'signed_up_at', t:'timestamptz', b:[]},
+  {n:'attended_at', t:'timestamptz', b:['NULL']},
+  {n:'cancelled_at', t:'timestamptz', b:['NULL']},
+], foot:'UNIQUE(live_event_id, user_id) WHERE cancelled_at IS NULL. Logged-in only — no PII beyond the app_user FK (F1-R2). Walk-in = attended-only row.'},
+
+{id:'coaching_topic', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'live_event_id', t:'uuid', b:['FK','NULL']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'body', t:'text', b:[]},
+  {n:'status', t:'text', b:['CHECK']},
+  {n:'display_order', t:'int', b:['NULL']},
+  {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
+], foot:'<b>status</b>: submitted | accepted | deferred | done. Deferral to next week = re-point live_event_id. ≤8 accepted / event = app rule. Visible to the group (pilot behavior).'},
+
+// ---------------- Zone 1 · Sessions & work ----------------
+{id:'micro_session', zone:1, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'course_group_id', t:'uuid', b:['FK','NULL']},
+  {n:'slug · code · title', t:'text', b:['UK'], dim:1},
+  {n:'format', t:'live|recorded', b:[], dim:1},
+  {n:'scheduled_at · duration_min', t:'', b:[], dim:1},
+  {n:'session_url · host_* · location_*', t:'', b:[], dim:1},
+  {n:'recording_url', t:'text', b:['RETIRING'], dim:1},
+  {n:'rsvp_disabled · status · display_order', t:'', b:[], dim:1},
+  {n:'assignment_instructions', t:'text', b:['NEW','NULL'], nw:1},
+  {n:'assignment_rubric', t:'jsonb', b:['NEW','NULL'], nw:1},
+], foot:'One assignment per session ("here\'s your assignment, come back when done"). recording_url writers already moved to video + placements (#1100).'},
+
+{id:'submission', zone:1, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'activity_id', t:'uuid', b:['FK','CHANGED']},
+  {n:'micro_session_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'content · attempt_no · submitted_at', t:'', b:[], dim:1},
+], foot:'<b>activity_id becomes NULLABLE</b> + CHECK exactly-one-of(activity_id, micro_session_id). Grading resolver branches on the set FK; scorer + grade card unchanged.'},
+
+{id:'assessment', zone:1, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'submission_id', t:'uuid', b:['FK','UK']},
+  {n:'score · component_scores', t:'', b:[], dim:1},
+  {n:'feedback · status · graded_at', t:'', b:[], dim:1},
+], foot:'Untouched — 1:1 with submission. Micro-session homework reuses this exactly (F2-R8: "it looks kind of the same").'},
+
+{id:'micro_session_completion', zone:1, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'micro_session_id', t:'uuid', b:['FK']},
+  {n:'completed_at', t:'timestamptz', b:[]},
+], foot:'The CREDIT fact — written on attended live OR watched recording (app rule). Cert-gating stays final-project-only pending Dave.'},
+
+// ---------------- Zone 2 · Identity & curriculum ----------------
+{id:'app_user', zone:2, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'email · full_name · status', t:'', b:[], dim:1},
+  {n:'… 9 more', t:'', b:[], dim:1},
+  {n:'current_certification_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+], foot:'Soft "one track at a time" pointer — switchable; a hard rule would be an app gate at entitlement-grant, not schema.'},
+
+{id:'certification', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'slug · title · status', t:'', b:[], dim:1},
+]},
+{id:'course_group', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'title · display_order', t:'', b:[], dim:1},
+]},
+{id:'course', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'course_group_id', t:'uuid', b:['FK']},
+  {n:'slug · code · title · pass_score', t:'', b:[], dim:1},
+]},
+{id:'activity', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'course_id', t:'uuid', b:['FK']},
+  {n:'instructions · rubric · solution', t:'', b:[], dim:1},
+  {n:'is_assessable · is_final_project', t:'', b:[], dim:1},
+]},
+{id:'activity_step', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'activity_id', t:'uuid', b:['FK']},
+  {n:'step_key · step_index · content', t:'', b:[], dim:1},
+]},
+
+// ---------------- Zone 3 · Placements & joins ----------------
+{id:'video_on_live_event', zone:3, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'live_event_id', t:'uuid', b:['FK']},
+  {n:'anchor', t:'text', b:['NULL']},
+  {n:'display_order', t:'int', b:[]},
+], foot:'UNIQUE(video_id, live_event_id). Coaching recordings ride this; the video stays draft → library-hidden unless published. Cascades delete the placement only — never the asset.'},
+
+{id:'video_on_micro_session', zone:3, status:'old', cols:[
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'micro_session_id', t:'uuid', b:['FK']},
+  {n:'anchor · display_order', t:'', b:[], dim:1},
+]},
+{id:'video_on_course', zone:3, status:'old', cols:[
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'course_id', t:'uuid', b:['FK']},
+  {n:'anchor · display_order', t:'', b:[], dim:1},
+]},
+{id:'video_on_activity_step', zone:3, status:'old', cols:[
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'activity_step_id', t:'uuid', b:['FK']},
+  {n:'anchor · display_order', t:'', b:[], dim:1},
+]},
+{id:'video_on_blog', zone:3, status:'old', cols:[
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'source_slug', t:'text — NO FK', b:[]},
+  {n:'anchor · display_order', t:'', b:[], dim:1},
+], foot:'Blogs are files on disk — keys on the anchor-system slug; no referential integrity by construction.'},
+
+{id:'video_category', zone:3, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'category_id', t:'uuid', b:['FK']},
+], foot:'UNIQUE(video_id, category_id).'},
+{id:'micro_session_category', zone:3, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'micro_session_id', t:'uuid', b:['FK']},
+  {n:'category_id', t:'uuid', b:['FK']},
+], foot:'UNIQUE(micro_session_id, category_id).'},
+
+// ---------------- Zone 4 · Video assets ----------------
+{id:'video', zone:4, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'title', t:'text', b:[]},
+  {n:'source_type', t:'text', b:['CHECK'], note:1},
+  {n:'source_url', t:'text', b:['NULL']},
+  {n:'storage_* · file_*', t:'upload fields', b:[], dim:1},
+  {n:'duration_seconds', t:'int', b:['NULL']},
+  {n:'status', t:'catalog_status', b:[]},
+  {n:'superseded_by_video_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+  {n:'tags', t:'text[] + GIN', b:['NEW'], nw:1},
+], foot:'<b>source_type</b>: upload | youtube | vimeo | external — already covers YT / Zoom / MP4. Display rule everywhere: hide superseded (polished replaces Zoom, nothing deleted). YouTube-first V1; premium/self-host = additive later.'},
+
+{id:'video_watch', zone:4, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'watched_seconds', t:'int', b:[]},
+  {n:'furthest_position_seconds', t:'int', b:[]},
+  {n:'completed_at', t:'timestamptz', b:['NULL']},
+  {n:'last_watched_at', t:'timestamptz', b:[]},
+], foot:'UNIQUE(user_id, video_id) — one upsert row. Fed by FE IFrame-Player heartbeats (our build; YouTube APIs can\'t attribute per-learner minutes). Answers: count, total minutes, finished?, recently-watched.'},
+
+{id:'category', zone:4, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'name', t:'text', b:['UK']},
+  {n:'slug', t:'text', b:['UK']},
+  {n:'display_order', t:'int', b:[]},
+], foot:'Admin-curated, dynamic. Seed: AI Officer · AI Engineer · Micro-sessions. Orthogonal to free-form video.tags.'},
+];
+
+const ZONES = [
+  {t:'Scheduling — net new', slim:false},
+  {t:'Sessions & work', slim:false},
+  {t:'Identity & curriculum', slim:true},
+  {t:'Placements & joins', slim:true},
+  {t:'Video assets', slim:false},
+];
+
+const EDGES = [
+  // scheduling (new)
+  {f:'live_event.micro_session_id', to:'micro_session.id', s:'n'},
+  {f:'live_event.course_id',        to:'course.id',        s:'p'},
+  {f:'event_signup.live_event_id',  to:'live_event.id',    s:'n'},
+  {f:'event_signup.user_id',        to:'app_user.id',      s:'n'},
+  {f:'coaching_topic.live_event_id',to:'live_event.id',    s:'n'},
+  {f:'coaching_topic.user_id',      to:'app_user.id',      s:'n'},
+  // homework (new)
+  {f:'submission.micro_session_id', to:'micro_session.id', s:'n'},
+  // video library (new)
+  {f:'video_on_live_event.live_event_id', to:'live_event.id', s:'n'},
+  {f:'video_on_live_event.video_id',      to:'video.id',      s:'n'},
+  {f:'video_watch.user_id',   to:'app_user.id', s:'n'},
+  {f:'video_watch.video_id',  to:'video.id',    s:'n'},
+  {f:'video.superseded_by_video_id', to:'video.id', s:'n', self:1},
+  {f:'video_category.video_id',    to:'video.id',    s:'n'},
+  {f:'video_category.category_id', to:'category.id', s:'n'},
+  {f:'micro_session_category.micro_session_id', to:'micro_session.id', s:'n'},
+  {f:'micro_session_category.category_id',      to:'category.id',      s:'n'},
+  {f:'app_user.current_certification_id', to:'certification.id', s:'n'},
+  // existing fabric
+  {f:'submission.activity_id', to:'activity.id',  s:'o'},
+  {f:'submission.user_id',     to:'app_user.id',  s:'o'},
+  {f:'assessment.submission_id', to:'submission.id', s:'o'},
+  {f:'micro_session_completion.user_id',          to:'app_user.id',      s:'o'},
+  {f:'micro_session_completion.micro_session_id', to:'micro_session.id', s:'o'},
+  {f:'micro_session.certification_id', to:'certification.id', s:'o'},
+  {f:'micro_session.course_group_id',  to:'course_group.id',  s:'o'},
+  {f:'course.certification_id', to:'certification.id', s:'o'},
+  {f:'course.course_group_id',  to:'course_group.id',  s:'o'},
+  {f:'activity.course_id',      to:'course.id',        s:'o'},
+  {f:'activity_step.activity_id', to:'activity.id',    s:'o'},
+  {f:'video_on_micro_session.video_id',         to:'video.id',         s:'o'},
+  {f:'video_on_micro_session.micro_session_id', to:'micro_session.id', s:'o'},
+  {f:'video_on_course.video_id',  to:'video.id',  s:'o'},
+  {f:'video_on_course.course_id', to:'course.id', s:'o'},
+  {f:'video_on_activity_step.video_id',         to:'video.id',         s:'o'},
+  {f:'video_on_activity_step.activity_step_id', to:'activity_step.id', s:'o'},
+  {f:'video_on_blog.video_id', to:'video.id', s:'o'},
+];
+
+const BADGE = {PK:'pk',FK:'fk',UK:'uk',NULL:'nu',NEW:'nw',CHECK:'ch',PLAN:'pl',CHANGED:'ch',RETIRING:'wr'};
+const CHIP = {new:'NEW', ext:'EXTENDED', old:'EXISTING'};
+
+const cols = document.getElementById('cols');
+const zoneEls = ZONES.map(z=>{
+  const d = document.createElement('div');
+  d.className = 'zone'+(z.slim?' slim':'');
+  d.innerHTML = `<div class="zhead">${z.t}</div>`;
+  cols.appendChild(d);
+  return d;
+});
+for(const t of TABLES){
+  const el = document.createElement('div');
+  el.className = `tbl ${t.status}`;
+  el.dataset.table = t.id;
+  let h = `<div class="th"><span class="nm">${t.id}</span><span class="chip">${CHIP[t.status]}</span></div>`;
+  for(const c of t.cols){
+    const cls = ['row']; if(c.nw)cls.push('isnew'); if(c.plan)cls.push('isplan'); if(c.dim)cls.push('dim');
+    const badges = (c.b||[]).map(b=>`<span class="b ${BADGE[b]||'nu'}">${b==='NULL'?'∅':b}</span>`).join('');
+    h += `<div class="${cls.join(' ')}" data-t="${t.id}" data-c="${c.n.split(' ')[0]}"><span class="cn">${c.n}</span>${badges}<span class="ct">${c.t||''}</span></div>`;
+  }
+  if(t.foot) h += `<div class="foot">${t.foot}</div>`;
+  el.innerHTML = h;
+  zoneEls[t.zone].appendChild(el);
+}
+
+const svg = document.getElementById('wires');
+const canvas = document.getElementById('canvas');
+const viewport = document.querySelector('.viewport');
+const colsEl = document.getElementById('cols');
+const zoneOf = {}; TABLES.forEach(t=>zoneOf[t.id]=t.zone);
+let Z = 1;
+
+function rowEl(ref){
+  const [t,c] = ref.split('.');
+  return document.querySelector(`.row[data-t="${t}"][data-c="${c}"]`) ||
+         document.querySelector(`.tbl[data-table="${t}"] .th`);
+}
+// Orthogonal polyline with rounded corners.
+function rounded(pts, r){
+  let d = `M ${pts[0][0]},${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const [x,y]=pts[i], [px,py]=pts[i-1], [nx,ny]=pts[i+1];
+    const r1 = Math.min(r, Math.hypot(x-px,y-py)/2), r2 = Math.min(r, Math.hypot(nx-x,ny-y)/2);
+    const ax = x - Math.sign(x-px)*r1, ay = y - Math.sign(y-py)*r1;
+    const bx = x + Math.sign(nx-x)*r2, by = y + Math.sign(ny-y)*r2;
+    d += ` L ${ax},${ay} Q ${x},${y} ${bx},${by}`;
+  }
+  d += ` L ${pts[pts.length-1][0]},${pts[pts.length-1][1]}`;
+  return d;
+}
+function draw(){
+  const cr = canvas.getBoundingClientRect();
+  const eff = (cr.width / canvas.offsetWidth) || 1;   // zoom-corrected
+  svg.setAttribute('width', canvas.offsetWidth);
+  svg.setAttribute('height', canvas.offsetHeight);
+  svg.innerHTML = '';
+  const styles = getComputedStyle(document.documentElement);
+  const color = s => styles.getPropertyValue(s==='n'?'--new-line':s==='p'?'--plan-line':'--old-line').trim();
+  const P = el => { const r = el.getBoundingClientRect();
+    return {l:(r.left-cr.left)/eff, r:(r.right-cr.left)/eff, t:(r.top-cr.top)/eff, b:(r.bottom-cr.top)/eff}; };
+  const zrs = zoneEls.map(z=>P(z));
+  const gutter = i => (zrs[i].r + zrs[i+1].l)/2;
+  const colsTop = P(colsEl).t;
+  let lane = 0, loopLane = {};
+  for(const e of EDGES){
+    const a = rowEl(e.f), b = rowEl(e.to);
+    if(!a||!b) continue;
+    const ta = e.f.split('.')[0], tb = e.to.split('.')[0];
+    const za = zoneOf[ta], zb = zoneOf[tb];
+    const pa = P(a), pb = P(b);
+    const y1 = (pa.t+pa.b)/2, y2 = (pb.t+pb.b)/2;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','edge e-'+e.s);
+    g.dataset.tables = ta+' '+tb;
+    let d, x1, x2;
+    if(e.self){
+      x1 = pa.r; x2 = pb.r;
+      d = `M ${x1},${y1} C ${x1+34},${y1} ${x2+34},${y2} ${x2},${y2}`;
+    } else if(za === zb){
+      // Same column: loop out the right gutter, staggered so parallel loops don't stack.
+      const k = 'z'+za; loopLane[k] = (loopLane[k]||0)+1;
+      const dx = 26 + (loopLane[k]%4)*11;
+      x1 = pa.r; x2 = pb.r;
+      d = `M ${x1},${y1} C ${x1+dx},${y1} ${x2+dx},${y2} ${x2},${y2}`;
+    } else if(Math.abs(za-zb) >= 2){
+      // Long span: route over the top in its own lane — never across a table.
+      const dir = zb > za ? 1 : -1;
+      const jit = ((lane%5)-2)*7;
+      const g1 = gutter(dir>0 ? za : za-1) + jit;
+      const g2 = gutter(dir>0 ? zb-1 : zb) + jit;
+      const busY = colsTop - 20 - (lane++ % 8)*12;
+      x1 = dir>0 ? pa.r : pa.l;
+      x2 = dir>0 ? pb.l : pb.r;
+      d = rounded([[x1,y1],[g1,y1],[g1,busY],[g2,busY],[g2,y2],[x2,y2]], 12);
+    } else {
+      // Adjacent columns: bezier confined to the shared gutter.
+      const fromRight = zb > za;
+      x1 = fromRight ? pa.r : pa.l;
+      x2 = fromRight ? pb.l : pb.r;
+      const dx = Math.max(30, Math.min(90, Math.abs(x2-x1)*0.45)) * (fromRight?1:-1);
+      d = `M ${x1},${y1} C ${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+    }
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',d); p.setAttribute('class',e.s);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',x1); dot.setAttribute('cy',y1); dot.setAttribute('r',3);
+    dot.setAttribute('fill',color(e.s));
+    const dot2 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot2.setAttribute('cx',x2); dot2.setAttribute('cy',y2); dot2.setAttribute('r',2.2);
+    dot2.setAttribute('fill',color(e.s)); dot2.setAttribute('fill-opacity','.55');
+    g.append(p,dot,dot2);
+    svg.appendChild(g);
+  }
+}
+draw();
+addEventListener('resize', draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+document.fonts && document.fonts.ready.then(draw);
+
+// --- zoom ---
+function applyZoom(z){
+  Z = Math.min(2, Math.max(0.4, Math.round(z*20)/20));
+  canvas.style.zoom = Z;
+  document.getElementById('zpct').textContent = Math.round(Z*100)+'%';
+  draw();
+}
+document.getElementById('zin').addEventListener('click', ()=>applyZoom(Z+0.1));
+document.getElementById('zout').addEventListener('click', ()=>applyZoom(Z-0.1));
+document.getElementById('z100').addEventListener('click', ()=>applyZoom(1));
+document.getElementById('zfit').addEventListener('click', ()=>applyZoom((viewport.clientWidth-56)/canvas.offsetWidth));
+viewport.addEventListener('wheel', e=>{
+  if(!(e.ctrlKey||e.metaKey)) return;
+  e.preventDefault();
+  applyZoom(Z * (e.deltaY < 0 ? 1.1 : 0.9));
+}, {passive:false});
+
+// --- link visibility filter ---
+document.querySelectorAll('.toolbar .ef').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.toolbar .ef').forEach(x=>x.classList.toggle('on', x===b));
+    canvas.dataset.edges = b.dataset.e;
+  });
+});
+
+let pinned = null;
+function focus(tbl){
+  canvas.classList.add('focus');
+  document.querySelectorAll('.tbl').forEach(t=>t.classList.toggle('hot', t.dataset.table===tbl));
+  document.querySelectorAll('#wires .edge').forEach(g=>{
+    const hit = g.dataset.tables.split(' ').includes(tbl);
+    g.classList.toggle('hot', hit);
+    if(hit) g.dataset.tables.split(' ').forEach(n=>{
+      const el = document.querySelector(`.tbl[data-table="${n}"]`);
+      if(el) el.classList.add('hot');
+    });
+  });
+}
+function blur(){ if(pinned) return focus(pinned);
+  canvas.classList.remove('focus');
+  document.querySelectorAll('.tbl.hot,#wires .edge.hot').forEach(e=>e.classList.remove('hot'));
+}
+document.querySelectorAll('.tbl').forEach(t=>{
+  t.addEventListener('mouseenter',()=>focus(t.dataset.table));
+  t.addEventListener('mouseleave',blur);
+  t.addEventListener('click',()=>{ pinned = pinned===t.dataset.table?null:t.dataset.table; pinned?focus(pinned):blur(); });
+});
+</script>
+
+
+</body></html>
