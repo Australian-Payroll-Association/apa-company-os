@@ -19,6 +19,11 @@ const BRANDS = [
     title: 'AI Officer Institute',
     description: 'AI Officer Institute plans, workflows, and data, built and maintained independently from Edge8 Consulting.',
   },
+  {
+    href: '/workflows/private/work-healthy-australia',
+    title: 'Work Healthy Australia',
+    description: 'The version 4 process set for Work Healthy Australia and the OccuSpan product plans built on it: L0 value chain, eleven L1 processes, the drawn L2 subprocesses, and the three-stage master plan.',
+  },
 ]
 
 export default function PrivateWorkflowsIndexPage() {

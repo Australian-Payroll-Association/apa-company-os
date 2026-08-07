@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 04 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 04 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 04: Schedule the Service</h2><div class="meta"><div class="r"><div class="k">Prerequisite</div><div>The Site Service calendar exists, carries the Site's operating hours, and has a Clinician or Practitioner assigned to it. Every Service Order carries an estimated period.</div></div><div class="r"><div class="k">Trigger</div><div>A Service Order is raised for a Site, a booked Patient does not attend, or a Clinician or Practitioner becomes unavailable for a date range.</div></div><div class="r"><div class="k">Urgent</div><div>A complaint or injury Order may be marked urgent by the Employer raising it, and only that kind may be. Urgent means someone is hurt or a situation is unsafe now, so the Order does not join the queue. It lands as an alert on the Day Sheet of the Clinician or Practitioner covering the Site the moment it is raised, and is seen today. An emergency is a different thing again: an ambulance and the emergency department, not an Order, which is the triage line every industry reference draws.</div></div><div class="r"><div class="k">Rule</div><div>The Day Sheet is the day's booked sessions for one Clinician or Practitioner at one Site, read from the Site Service calendar. The urgent alert lands there because the person who owns the day is the only one who can rule how the day absorbs the case. Drawn for the Clinician; a Practitioner rules their own Day Sheet the same way inside their own Client organization.</div></div><div class="r"><div class="k">Rule</div><div>Two ways to absorb it, and the day owner chooses. Push the day: every remaining session moves back one, and the day runs past the Site's hours into overtime where it must. Clear the day: every non-critical service on the sheet is rebooked to the next available slot through the normal search, and the freed time takes the case. What counts as critical is decided by the service, not by the person: another injury does not move, a screening does. Every moved Patient and their Employer contact are told at the moment of the move, the same way any booking is confirmed. Overtime needs no special object, because Process 09 bills time and a long day is simply more recorded time.</div></div><div class="r"><div class="k">Open</div><div>Whether an Order raised by a case in Process 06 or by the clock in Process 08 may also be urgent. Today only the Employer marks it, at raise time, on a complaint or injury Order. Not ruled.</div></div><div class="r"><div class="k">Output</div><div>An appointment on the Site Service calendar: a named Clinician or Practitioner, a Patient, and a slot of the estimated period inside the Site's operating hours. Booked as a placeholder until accepted.</div></div><div class="r"><div class="k">Output</div><div>Where there is no capacity in the Site's hours, the Order is returned unbooked. Site, date and time cross the wall. Nothing else.</div></div><div class="r"><div class="k">Output</div><div>A weekly no-show report of the Patients who did not attend, carrying the open Service Orders that need follow-up.</div></div><div class="r"><div class="k">Rule</div><div>An open Service Order is never dropped, and it is never rebooked by default. Where Work Healthy Australia moves the date, the Order keeps a slot. Where the Patient does not attend, the Order releases its slot and waits on the no-show report until follow-up books it again.</div></div><div class="r"><div class="k">Rule</div><div>The schedule is a plan, not a gate. It never decides how released time is used and never prevents a Patient being seen earlier than the slotted time.</div></div><div class="r"><div class="k">Rule</div><div>A Service Order raised by the clock in Process 08, or by a case in Process 06, enters at the search with no Employer behind it. An Employer amending a booking they already hold enters the same way.</div></div><div class="r"><div class="k">Rule</div><div>The slot search reads travel time as well as the Site's working hours. A slot the assigned person cannot physically reach is not a slot.</div></div><div class="r"><div class="k">Rule</div><div>The estimated period comes from the client and the service together, not from the service alone, because the same service runs longer at some Sites. Where that resolution happens is below this level.</div></div><div class="r"><div class="k">Rule</div><div>The Patient is entitled to be served under this Client organization when their work email address belongs to it. The Service Order carries that check, so the door in 05a verifies who a person is rather than whether they belong.</div></div><div class="r"><div class="k">Rule</div><div>Confirmation goes to both the named Employer contact and the Patient at the moment of booking, and the paperwork goes out before the day.</div></div><div class="r"><div class="k">Rule</div><div>The Order carries a short check-in code from the moment it is raised, the way an airline issues a booking reference, so a walk-in with no booking still arrives holding one. It is a correlation key, not a credential. One code ties the Service Order, the appointment, the paperwork issued before the day, the consents given against it, and later the outputs, so any one of them pulls up all of them with certainty. A booking reference ties a reservation to checked luggage, a boarding pass and a screening status, and it still does not board anyone. Identity is a separate act, in Process 05a.</div></div><div class="r"><div class="k">Rule</div><div>An Employer request that cannot be met is returned with a reason, the same way the no-slot alert is. A request falling outside the contracted working days is a different case from one that fits, and is returned as such.</div></div><div class="r"><div class="k">Roles</div><div>Patients, Clinicians, Practitioners, Admin, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 3840 1520" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="3600" height="170" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="170" fill="#532C6D"/>
+<line x1="0" y1="0" x2="3810" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="71" font-size="27" font-weight="700" fill="#FFFFFF">Patient</text>
+<text x="20" y="95" font-size="18" fill="#DDD4E4">Own record only. Consent</text>
+<text x="20" y="117" font-size="18" fill="#DDD4E4">gates collection.</text>
+<rect x="210" y="170" width="3600" height="170" fill="#FAF8FB"/>
+<rect x="0" y="170" width="210" height="170" fill="#532C6D"/>
+<line x1="0" y1="170" x2="3810" y2="170" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="241" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="265" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="287" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="340" width="3600" height="340" fill="#FFFFFF"/>
+<rect x="0" y="340" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="340" x2="3810" y2="340" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="496" font-size="27" font-weight="700" fill="#FFFFFF">Practitioner</text>
+<text x="20" y="520" font-size="18" fill="#DDD4E4">One Client organization</text>
+<text x="20" y="542" font-size="18" fill="#DDD4E4">only.</text>
+<rect x="210" y="680" width="3600" height="600" fill="#FAF8FB"/>
+<rect x="0" y="680" width="210" height="600" fill="#532C6D"/>
+<line x1="0" y1="680" x2="3810" y2="680" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="955" font-size="27" font-weight="700" fill="#FFFFFF">Admin</text>
+<text x="20" y="979" font-size="18" fill="#DDD4E4">Setup, accounts,</text>
+<text x="20" y="1001" font-size="18" fill="#DDD4E4">authorization. No clinical</text>
+<text x="20" y="1023" font-size="18" fill="#DDD4E4">detail.</text>
+<rect x="210" y="1280" width="3600" height="200" fill="#FFFFFF"/>
+<rect x="0" y="1280" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="1280" x2="3810" y2="1280" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="1366" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="1390" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="1412" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="1480" x2="3810" y2="1480" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="1280" x2="3810" y2="1280" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="1263" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="1287" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 792 255 L 845 255" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 255 L 1128 255" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 360 1340 L 360 980 L 545 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 255 L 510 255 L 510 870 L 545 870" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 510 L 510 510 L 510 870 L 545 870" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 870 L 825 870" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1095 870 L 1110 870 L 1110 980 L 1145 980" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/>
+<path d="M 792 1090 L 845 1090" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 1090 L 1110 1090 L 1110 980 L 1145 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1092 760 L 1260 760 L 1260 927" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 980 L 1145 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1375 980 L 1410 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1560 915 L 1560 870 L 1745 870" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1624" y="875" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1560 1045 L 1560 1090 L 1735 1090" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1624" y="1095" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1860 1130 L 1860 1380 L 2035 1380" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1975 870 L 2010 870 L 2010 255 L 2045 255" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2112" y="850" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Clinician assigned</text>
+<path d="M 1975 870 L 2310 870 L 2310 510 L 2310 510" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2202" y="896" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Practitioner assigned</text>
+<path d="M 2610 510 L 2760 510 L 2760 453" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2685" y="490" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 2610 510 L 2760 510 L 2760 580" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2685" y="540" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2275 255 L 2910 255 L 2910 85 L 2945 85" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2875 400 L 3060 400 L 3060 151" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 3175 85 L 3360 85 L 3360 940" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 3492 980 L 3660 980 L 3660 1327" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="3616" y="956" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Site, date and time only</text>
+<g><rect x="228" y="1340" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="1374" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Raise a Service Order</text><text x="360" y="1400" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">for a Site</text></g>
+<g><rect x="228" y="215" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="249" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Patient did not</text><text x="360" y="275" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">attend. Record it.</text></g>
+<g><rect x="228" y="470" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="504" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Patient did not</text><text x="360" y="530" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">attend. Record it.</text></g>
+<g><rect x="545" y="817" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="851" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Release the slot. Add</text><text x="660" y="877" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the Order to the</text><text x="660" y="903" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">no-show report.</text></g>
+<g><rect x="545" y="940" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="974" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Locate the Site,</text><text x="660" y="1000" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Department and Role</text></g>
+<g><rect x="528" y="1037" width="264" height="106" rx="53" fill="#532C6D"/><text x="660" y="1071" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Clinician or Practitioner</text><text x="660" y="1097" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">unavailable for a</text><text x="660" y="1123" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">date range</text></g>
+<g><rect x="828" y="720" width="264" height="80" rx="40" fill="#532C6D"/><text x="960" y="754" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Order raised by the</text><text x="960" y="780" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">clock or by a case</text></g>
+<g><rect x="825" y="824" width="270" height="92" rx="8" fill="#EDE8F1" stroke="#532C6D" stroke-width="2.5"/><rect x="825" y="824" width="7" height="92" fill="#532C6D"/><text x="960" y="851" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Weekly no-show report.</text><text x="960" y="877" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Follow up, then book</text><text x="960" y="903" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">from the report.</text></g>
+<g><rect x="845" y="1050" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="1084" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Release the slots.</text><text x="960" y="1110" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Orders keep a slot.</text></g>
+<g><rect x="1145" y="927" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="961" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Search the Site</text><text x="1260" y="987" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Service calendar</text><text x="1260" y="1013" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">for a slot</text><rect x="1336" y="1020" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 1343 1033 H 1355 M 1349 1027 V 1039" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><path d="M 1560 915 L 1710 980 L 1560 1045 L 1410 980 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="965" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Slot and travel time</text><text x="1560" y="987" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">available in the</text><text x="1560" y="1009" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Site's hours?</text></g>
+<g><rect x="1745" y="817" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="851" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Book the slot as a</text><text x="1860" y="877" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">placeholder on the</text><text x="1860" y="903" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Site Service calendar</text></g>
+<g><rect x="1735" y="1050" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="1860" y="1084" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">No slot in the Site's</text><text x="1860" y="1110" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">operating hours</text></g>
+<g><rect x="2045" y="202" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="236" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Accept the</text><text x="2160" y="262" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">assignment. Any</text><text x="2160" y="288" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Client organization.</text></g>
+<g><rect x="2035" y="1340" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2160" y="1374" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Alert: no slot in the</text><text x="2160" y="1400" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Site's operating hours</text></g>
+<g><path d="M 2460 445 L 2610 510 L 2460 575 L 2310 510 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="495" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Site in the</text><text x="2460" y="517" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Practitioner's own</text><text x="2460" y="539" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Client organization?</text></g>
+<g><rect x="2645" y="347" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2760" y="381" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Accept the assignment.</text><text x="2760" y="407" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Own Client</text><text x="2760" y="433" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">organization only.</text></g>
+<g><rect x="2635" y="580" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2760" y="614" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">No calendar or Patient</text><text x="2760" y="640" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">data returned</text></g>
+<g><rect x="2945" y="19" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3060" y="53" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Notified of the Site,</text><text x="3060" y="79" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">date, time, and a</text><text x="3060" y="105" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">check-in code, with</text><text x="3060" y="131" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">paperwork beforehand</text></g>
+<g><rect x="3228" y="940" width="264" height="80" rx="40" fill="#532C6D"/><text x="3360" y="974" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Appointment stands.</text><text x="3360" y="1000" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Service can be rendered.</text></g>
+<g><rect x="3528" y="1327" width="264" height="106" rx="53" fill="#532C6D"/><text x="3660" y="1361" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Alert: Patient booked.</text><text x="3660" y="1387" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Site, date and time</text><text x="3660" y="1413" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">only.</text></g>
+<g><rect x="528" y="202" width="264" height="106" rx="53" fill="#532C6D"/><text x="660" y="236" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Urgent Order raised by</text><text x="660" y="262" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">the Employer: hurt now.</text><text x="660" y="288" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Alert on the Day Sheet.</text></g>
+<g><rect x="845" y="189" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="223" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">The day owner rules:</text><text x="960" y="249" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">push the day with</text><text x="960" y="275" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">overtime, or rebook</text><text x="960" y="301" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the non-critical</text><rect x="1036" y="308" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 1043 321 H 1055 M 1049 315 V 327" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="1128" y="202" width="264" height="106" rx="53" fill="#532C6D"/><text x="1260" y="236" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Seen today. Bumped</text><text x="1260" y="262" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Orders re-enter</text><text x="1260" y="288" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">the search.</text></g>
+</svg></div></div>
+</div></body></html>

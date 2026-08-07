@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVP implementation plan: Prove the service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#04102D; --blue:#287BE8; --lightgray:#EAEEF2; --white:#FFFFFF;
+  --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+  --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--white);color:var(--body);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:64px 28px 120px;}
+
+h1{font-size:40px;line-height:1.15;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 10px;}
+h2{font-size:27px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;margin:64px 0 14px;padding-top:22px;border-top:1px solid var(--border);}
+h3{font-size:20px;font-weight:700;color:var(--navy);margin:38px 0 8px;}
+h4{font-size:16.5px;font-weight:600;color:var(--navy);margin:26px 0 6px;}
+h2:first-of-type{border-top:none;padding-top:0;}
+p{margin:0 0 15px;}
+a{color:var(--blue);}
+strong{font-weight:600;color:var(--navy);}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.87em;background:var(--lightgray);
+     padding:2px 6px;border-radius:4px;color:var(--navy);}
+hr{border:none;border-top:1px solid var(--border);margin:48px 0;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 6px;}
+li::marker{color:var(--blue);}
+
+.lede{font-size:18px;color:var(--muted);margin:0 0 34px;}
+.meta{font-size:13.5px;color:var(--muted);border-left:3px solid var(--blue);padding:10px 0 10px 16px;
+      background:var(--lightgray);border-radius:0 6px 6px 0;margin:0 0 34px;}
+
+table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:14.5px;}
+th{text-align:left;font-weight:600;color:var(--navy);background:var(--lightgray);
+   padding:11px 13px;border-bottom:2px solid var(--border);vertical-align:top;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.tablewrap{overflow-x:auto;margin:20px 0 26px;}
+.tablewrap table{margin:0;}
+
+/* colour coding: dispositions */
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:0.01em;
+     padding:2px 9px;border-radius:999px;white-space:nowrap;}
+.tag-mvp{background:var(--blue);color:#fff;}
+.tag-reduced{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.tag-deferred{background:var(--lightgray);color:var(--muted);border:1px solid var(--border);}
+.tag-retired{background:#FFEDE5;color:#B5431A;border:1px solid #FFC9B0;}
+.tag-blocking{background:var(--magenta);color:#fff;}
+
+/* colour coding: legacy systems vs business objects */
+.sys{display:inline-block;background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;
+     padding:1px 8px;border-radius:4px;white-space:nowrap;}
+.obj{display:inline-block;background:#EAF2FE;color:#1A4E96;font-size:13px;font-weight:500;
+     padding:1px 8px;border-radius:4px;border:1px solid #CFE0FA;}
+
+.objgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin:12px 0 22px;}
+
+/* process cards */
+.proc{background:var(--lightgray);border-radius:10px;padding:22px 24px;margin:22px 0;}
+.proc h3{margin-top:0;}
+.proc p{margin-bottom:11px;}
+.proc p:last-child{margin-bottom:0;}
+.proc ol,.proc ul{margin-bottom:12px;}
+
+.band{margin:60px 0 8px;padding:16px 22px;background:var(--navy);color:#fff;border-radius:10px;}
+.band h2{border:none;padding:0;margin:0;color:#fff;font-size:22px;}
+.band .bsub{font-size:14px;color:#B9C4DA;margin-top:3px;}
+
+.callout{border-left:3px solid var(--orange);background:#FFF6F2;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;}
+.callout strong{color:#B5431A;}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+@media print{
+  /* reveals must never hide content on paper */
+  .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
+  body{font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:14pt;margin:22pt 0 8pt;padding-top:10pt;}
+  h3{font-size:12pt;margin:14pt 0 5pt;} h4{font-size:10.5pt;}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid;}
+  .proc,.band,.callout,.meta,tr,li{break-inside:avoid;page-break-inside:avoid;}
+  table{font-size:9pt;}
+  .tablewrap{overflow:visible;}
+  .band{background:var(--navy) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .proc,.meta,th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tag,.sys,.obj{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a{color:var(--blue);text-decoration:none;}
+  footer{margin-top:24pt;}
+}
+@page{margin:16mm 14mm;}
+@media (max-width:640px){
+  .wrap{padding:40px 18px 80px;} h1{font-size:31px;} h2{font-size:23px;} body{font-size:16px;}
+}
+</style></head>
+<body><div class="wrap">
+<h1>MVP implementation plan: Prove the service</h1>
+<div class="meta">Written 2 August 2026 by the operator Chau, Edge8. The build plan for stage 1 of <code>Master-Product-Plan-Three-Stages.md</code>. Companion diagrams: <code>MVP-Functional-Architecture.html</code> and <code>MVP-Technical-Architecture.html</code>. Process authority: the version 4 L1 pages, the L2 subprocess pages, and <code>WHA-Process-Set-Findings.md</code>.</div>
+<h2 class="reveal">1. What this document is</h2>
+<p class="reveal">The master plan says what the three stages are and why. This document says what gets built for stage 1, in what order, and what proves each piece. It is written for the engineers who will build it, so it names screens, engines, jobs, tests and tables rather than intentions.</p>
+<p class="reveal">Nothing here re-decides anything. The process pages are the specification: where this plan and a diagram disagree, the diagram wins and this plan is corrected. Durations are deliberately absent; the steps carry entry and exit criteria and the team supplies the dates.</p>
+<p class="reveal"><strong>The MVP in one sentence.</strong> One pilot client runs pre-employment screening and complaint or injury evaluation end to end on the new record, from signed agreement to paid invoice, through review and release, with the employer wall live, every pass role-stamped, and the migration pipeline proven on a named slice of real IMS data.</p>
+<h2 class="reveal">2. Scope</h2>
+<p class="reveal"><strong>Processes in scope, as drawn in version 4:</strong> 01 Setup Workplace, 02 Onboard / Offboard, 03 Define the Role Requirements, 04 Schedule the Service, 05a admission, 05b render and determine, 05c review and release, 09 Report to Invoice.</p>
+<p class="reveal"><strong>Subprocess pages in scope.</strong> Six of the eight drawn: 01-RD requirement defaults, 02-CR credentials, 03-MS measure the demands, 04-SL slot search, 05a-CN confirm the consents, 09-DB the debrief. The other two, 07-SU suppression and 08-DU compute what is due, are stage 3 and are not built now, though the due-date ledger they will read is written from the first day.</p>
+<p class="reveal"><strong>Out of scope, registered not dropped:</strong> processes 06, 07 and 08; the Treatment box; bulk migration; Employer self-service beyond raising a Service Order and receiving outputs; organization parents above the Client organization; standing alerts. Each has a home in the master plan's stage 2 or 3.</p>
+<p class="reveal"><strong>Data.</strong> All eighty-three tables from the master plan's section 3 are created in the first migration set. The MVP writes to roughly fifty of them; the rest exist, carry their row-level security, and wait. No stage adds a table.</p>
+<p class="reveal"><strong>Two proposals this plan builds on.</strong> From the findings document: review before release is decided by the service, not the person (proposal 2), and the two clinical roles are kept as drawn (proposal 1). Both are recommendations awaiting Work Healthy Australia's confirmation; if proposal 1 collapses to one clinical role, the change is capability matrix rows and one rule removed from the diagrams, not a rebuild.</p>
+<h2 class="reveal">3. Functional architecture</h2>
+<p class="reveal">Drawn in <code>MVP-Functional-Architecture.html</code>. The shape in prose:</p>
+<p class="reveal"><strong>Four surfaces.</strong> An Admin workspace for setup, accounts, scheduling and invoicing. A clinical workspace shared by Clinicians and Practitioners, differing only in scope, never in screens. Patient links, which are scoped, expiring, tokenised pages with no sign-in: the paperwork pack before the day and the booking confirmation. And an Employer portal that sits on the other side of the wall and can render only wall-schema objects.</p>
+<p class="reveal"><strong>The wall is architectural, not stylistic.</strong> The Employer portal's database role has usage on the <code>wall</code> schema and nothing else. The determination crosses as a release document, the report and invoice cross from <code>billing</code> through wall views, and booking confirmations carry site, date and time. There is no code path from an Employer surface to a clinical table, which makes the wall gate a schema grant test rather than a code review.</p>
+<p class="reveal"><strong>Six engines carry the algorithmic weight.</strong> Everything else in the MVP is forms, gates and records; these six are the pieces a builder could not infer from a box, which is why each has its own L2 page:</p>
+<div class="tablewrap reveal"><table><thead><tr><th>Engine</th><th>L2 page</th><th>What it does</th></tr></thead><tbody><tr><td>Requirement resolution</td><td>01-RD</td><td>Requirements attach at Site, Role, or the intersection; the effective set is computed at Service Order time; most specific wins, shorter interval wins, nothing lengthens another's interval</td></tr><tr><td>Credential cycle</td><td>02-CR</td><td>Capture, verify against the public register where one exists, track expiry, derive service grants; a lapse suspends the grant on the date and cascades to bookings already made</td></tr><tr><td>Measurement roll-up</td><td>03-MS</td><td>One screen always runs; deep-dive instruments run in parallel, conditional and scoped; every instrument outputs onto the common scale; the Role's demand is the envelope across its tasks, not the average</td></tr><tr><td>Slot search</td><td>04-SL</td><td>Five filters in series, narrowing, cheapest and most selective first: working days, hours, credential grant, remaining hours, travel from the previous Site. No slot is a legitimate outcome</td></tr><tr><td>Consent set</td><td>05a-CN</td><td>The required set is computed from the service, compared against what is held and current by version; only the difference is asked; any single refusal ends the Order with no partial admission</td></tr><tr><td>Debrief allocation</td><td>09-DB</td><td>The day splits into travel, on site, debrief and internal minutes; on-site minutes allocate across delivered services; lost time is categorised; a rendered service with no minutes is an error</td></tr></tbody></table></div>
+<p class="reveal"><strong>One piece of work unlocks three of them.</strong> The findings document names the single absence behind three gaps: nothing in IMS links a person to the services they may perform. Here that link is <code>user_service_grants</code>, fed by the credential cycle, read by the slot search and by the 05c review gate. It is built once, early, in step 2.</p>
+<h2 class="reveal">4. Technical architecture</h2>
+<p class="reveal">Drawn in <code>MVP-Technical-Architecture.html</code>. All of it is proposed in the master plan's sense until the first step lands; none of it is exotic.</p>
+<p class="reveal"><strong>Stack.</strong> Next.js App Router with strict TypeScript, one application serving all four surfaces as route groups. Supabase as the platform: Postgres with the six schemas, row-level security on every table, Auth as the user pool for the four signed-in roles, Storage for evidence and signed documents, and scheduled functions for the few timed jobs the MVP has. Vercel for hosting, deployed only by git push through CI. Resend for email, an SMS gateway for the paperwork and confirmation messages. Playwright drives the role-stamped verification harness.</p>
+<p class="reveal"><strong>A new, dedicated Supabase project.</strong> The new build shares nothing with the existing OccuSpan project or any other. One project, three environments by branch: development, staging, pilot production.</p>
+<p class="reveal"><strong>Authorization is one guard and two tables.</strong> Every server action calls the same guard, which answers from <code>role_capabilities</code> for data scope and <code>user_service_grants</code> for function scope. Row-level security policies join the same tables, so the application layer and the database layer derive from one source. There are no role names in code, no per-page checks, and the acceptance test is a query: who can read a clinical note is one row lookup.</p>
+<p class="reveal"><strong>The wall in Postgres.</strong> The Employer surface authenticates to a database role whose only schema grant is <code>wall</code>. Release documents are rows with their own content columns, written at 05c sign-off, immutable, carrying no foreign key that an Employer query can follow into <code>clinical</code>. The wall gate test asserts response bodies contain no clinical field, and the schema grant makes the stronger claim structurally.</p>
+<p class="reveal"><strong>Patient links without accounts.</strong> <code>patient_access_links</code> rows carry a single-purpose token, a scope, and an expiry: the paperwork pack, the confirmation view. The check-in code on the Service Order follows the same lifecycle. No Supabase Auth user is ever created for a Patient.</p>
+<p class="reveal"><strong>Documents are generated, stored, and released.</strong> Release documents, the report of services rendered, and invoices render server-side to PDF, are stored in a <code>wall</code>-scoped bucket, and their issue is a <code>release_log_entries</code> row. Evidence for Role requirements documents, signed consent files and external certificates live in clinical buckets keyed to their records.</p>
+<p class="reveal"><strong>Scheduled work in the MVP is small, because there is no clock yet.</strong> Three jobs: issue the paperwork pack when a booking confirms, retry undelivered notifications against the fallback recipient, and compile the weekly no-show report. All three are idempotent and all three log delivery confirmations to <code>notifications</code>.</p>
+<p class="reveal"><strong>The migration rehearsal pipeline is its own component</strong>, deliberately outside the application: extract from the IMS snapshot, obfuscate at the source under a custodian-held map, transform and load through the same mapping code stage 2 will reuse, unobfuscate on the target side, verify field for field, and write the evidence to <code>migration_reconciliations</code>. No identified health record enters the transform environment, which is the property the privacy owner will ask about.</p>
+<h2 class="reveal">5. The engines in detail</h2>
+<p class="reveal">Each engine is a pure function over typed inputs, built before its screens, with table-driven tests taken from its L2 page. The L2 page is the acceptance criterion; the tests below are the minimum set, not the whole set.</p>
+<p class="reveal"><strong>Requirement resolution (01-RD).</strong> Input: a Service Order's Site, Role and service. Output: the effective requirement set with intervals. Tests: intersection beats Role beats Site for the same requirement; shorter interval wins across layers; a Site may shorten a test's own validity and may never lengthen it; a rule change after an Order resolved does not rewrite that Order.</p>
+<p class="reveal"><strong>Credential cycle (02-CR).</strong> Input: credential records with type, state, expiry, verification events. Output: the person's current service grants. Tests: an Ahpra-checkable credential is not verified until the register check is recorded with its date; a course certificate verifies against the held document; expiry on date suspends the grant; suspension surfaces every future booking that depended on it for re-assignment or return; every expiry writes a due-item row.</p>
+<p class="reveal"><strong>Measurement roll-up (03-MS).</strong> Input: task measurements from the screen and any triggered deep-dives, on the common scale. Output: the Role's minimum ratings envelope. Tests: the envelope takes the hardest task, never the average; a deep-dive triggers only where its condition holds; adding an instrument changes nothing above the common scale; a document with unmeasured tasks cannot compile.</p>
+<p class="reveal"><strong>Slot search (04-SL).</strong> Input: an unbooked Service Order with its estimated period. Output: candidate slots, or an explicit no-slot result. Tests: filter order is working days, hours, credential, remaining hours, travel; a person without the service grant never reaches the travel computation; the estimated period resolves from the client and service together; no slot returns the Order unbooked with only site, date and time crossing the wall.</p>
+<p class="reveal"><strong>Consent set (05a-CN).</strong> Input: the service, the person, the Client organization, current wording versions. Output: what is outstanding, or admission. Tests: the required set varies by service against one stored set; only the difference is asked; a version bump invalidates exactly the consent whose wording changed; one refusal closes the Order as a named state and the Employer notice carries no reason; procedure consent is not part of this gate, it belongs to 05b.</p>
+<p class="reveal"><strong>Debrief allocation (09-DB).</strong> Input: a day's minutes by category, services delivered, the agreement's coverage. Output: the locked billable record. Tests: the four categories are disjoint and complete; every rendered service carries minutes or the debrief will not complete; lost time is categorised, never a gap; the lock freezes the records and unlock is a granted, named act; the invoice reads only locked minutes.</p>
+<h2 class="reveal">6. Delivery steps</h2>
+<p class="reveal">Dependency-ordered. Every step exits through the verification harness: role-stamped passes for each role the step touches, the safety gate on every table it reads, and the wall gate on any Employer-facing surface. A step's diagram is its acceptance criterion, walked step by step in the witnessed demo.</p>
+<div class="tablewrap reveal"><table><thead><tr><th>Step</th><th>Builds</th><th>Needs</th><th>Exits when</th></tr></thead><tbody><tr><td>0</td><td>The foundation: Supabase project, all eighty-three tables with row-level security, the capability matrix seeded, the one guard, the audit log, the app shell with the four route groups, CI to Vercel, the verification harness itself</td><td>Nothing</td><td>A wrong-organization read fails closed with a plain sentence, proven by the harness against seeded fixtures; the matrix answers who-can-read-what by query</td></tr><tr><td>1</td><td>Process 01: hierarchy screens, contracted services and term, named contacts with audiences, working days for the year, requirement defaults with the resolution engine</td><td>Step 0</td><td>The pilot hierarchy loads complete; an incomplete hierarchy blocks Order creation; 01-RD tests green; witnessed against the 01 page</td></tr><tr><td>2</td><td>Process 02: accounts, role assignments with effective dates, the credential cycle engine, service grants</td><td>Step 0</td><td>A lapsed credential suspends the grant and surfaces dependent bookings; grants answer by query; 02-CR tests green; witnessed against the 02 page</td></tr><tr><td>3</td><td>Process 03: the document lifecycle draft to signed to active, task and measurement capture on the common scale, the roll-up engine, evidence attachment, Employer sign-off across the wall</td><td>Steps 1, 2</td><td>A signed document exists for every pilot Role; nothing determines against a draft; 03-MS tests green; the Employer signed through the portal; witnessed against the 03 page</td></tr><tr><td>4</td><td>Process 04: Service Orders with entitlement check and check-in codes, the slot search engine, booking and acceptance, dual confirmations, paperwork issuance job, patient link pages, the weekly no-show report</td><td>Steps 1, 2</td><td>An Order books only against a credentialled provider; confirmations reach both sides with delivery logged; the paperwork link works end to end; 04-SL tests green; witnessed against the 04 page</td></tr><tr><td>5</td><td>Process 05a: the identity gate, the consent set engine, consent capture and versioning, the refusal path with its wall notice</td><td>Step 4</td><td>An identity mismatch stops the service leaving no trace; a refusal closes the Order and the Employer notice carries nothing else; 05a-CN tests green; witnessed against the 05a page</td></tr><tr><td>6</td><td>Process 05b: the two pilot services rendered against the yardstick, safety gate before functional testing, procedure consent, standing history review, measurements, determination with restrictions and mitigation plan, time capture</td><td>Steps 3, 5</td><td>Both pilot services complete end to end in staging; a restriction cannot be saved unmeasured; a temporary determination requires a review date and writes the ledger; witnessed against the 05b page</td></tr><tr><td>7</td><td>Process 05c and the wall's moving parts: the review gate reading grants, release document generation, the release log, referral out with the Patient told, the second-assessment request path</td><td>Step 6</td><td>A service requiring review cannot release without a qualified reviewer recorded; the release document renders from its own columns only; the wall gate passes on every Employer response; witnessed against the 05c page</td></tr><tr><td>8</td><td>Process 09: the debrief as time entry with the allocation engine, the completeness check, the day lock with granted unlock, report of services rendered, invoice from locked minutes</td><td>Steps 4, 6</td><td>A rendered service without minutes blocks the debrief; the invoice traces every line to locked minutes; 09-DB tests green; witnessed against the 09 page</td></tr><tr><td>9</td><td>The migration rehearsal pipeline: extractor, obfuscator with custodian-held map, mapping engine with lineage, loader, unobfuscator, field-for-field verifier writing <code>migration_reconciliations</code></td><td>Step 0; the named slice; custodian access</td><td>The slice round-trips under the master plan's ten criteria; a second operator reproduces the run from the runbook</td></tr><tr><td>10</td><td>Pilot readiness: seeded pilot data through 01 to 03, full-path rehearsal in staging, the two production checks below, cutover of the pilot client to live</td><td>Everything above</td><td>The master plan's stage 1 exit criteria, witnessed and signed</td></tr></tbody></table></div>
+<p class="reveal">Steps 1 to 3 can run in parallel once step 0 lands, sharing only the guard and the fixtures. Steps 4 to 8 are the service path and land in order. Step 9 is independent of everything except step 0 and can run alongside the service path.</p>
+<p class="reveal"><strong>Two checks before step 10 goes live.</strong> The privacy owner is named, because release wording, audiences and the retention clocks are theirs to sign. And clinical governance has signed the service catalog: which services require review, the reviewer registration each calls for, the consent set each requires, and the restriction vocabulary. Both are people questions, both are flagged in the master plan, and step 10 does not start without them.</p>
+<h2 class="reveal">7. The verification harness</h2>
+<p class="reveal">Built in step 0 because it is the product's admission ticket, not an afterthought. Four parts:</p>
+<ol class="reveal"><li><strong>Role-stamped passes.</strong> Playwright drives every capability end to end through real sign-ins as each role that touches it, no bypass header, one stored evidence record per pass: who, what, when, against which build.</li><li><strong>The safety gate.</strong> For every table a step touches, a fixture from the wrong organization attempts the read and the write. Pass means failure: closed, with a plain sentence, before any work.</li><li><strong>The wall gate.</strong> Every Employer-facing response is asserted to contain no column from any clinical table, mechanically, from the schema definition rather than a hand-kept list. The schema grant makes the structural claim; this test catches serialization leaks.</li><li><strong>The witnessed demo.</strong> Per step, the capability is walked against its process page by the Work Healthy Australia person who does that job, and the sign-off is recorded. This is the adoption mechanism as much as the verification one: the judges are the people who hold the knowledge.</li></ol>
+<h2 class="reveal">8. The migration rehearsal, concretely</h2>
+<p class="reveal">The master plan's section 5 carries the ten acceptance criteria; this section is the build.</p>
+<p class="reveal"><strong>The slice, as proposed there:</strong> the <code>tblJobs</code> cluster with its demand tables, because it carries stored computed ManTRA scores under the recompute-versus-trust ruling; <code>CertOfCapacity</code> with <code>TreatmentDuties</code>, because their state reconstructs from flags and dates; <code>ConsentSignature</code>, because versioned currency must survive the move. Archive-flagged rows included on purpose.</p>
+<p class="reveal"><strong>Pipeline components.</strong> An extractor that reads only the named slice from the snapshot. An obfuscator that maps every identifier and clinical value deterministically and reversibly, format-preserving so downstream code behaves identically; the map is generated and held in the custodian's environment and never enters the transform environment, the repository, or any AI tooling context. The mapping engine, which is the same code stage 2 will run: source rows to target tables, lineage columns populated, state reconstructed to exactly one status. The loader, into a staging Supabase project. The unobfuscator, run by the custodian against the target. The verifier, which compares source to unobfuscated target field by field and writes <code>migration_reconciliations</code> rows with the counts, matches and signed variances.</p>
+<p class="reveal"><strong>What the rehearsal is allowed to conclude.</strong> That the pipeline works, that the mapping rules survive contact with real shapes, and what the per-table effort curve looks like. It does not conclude anything about volume; that is stage 2's row-count pass.</p>
+<h2 class="reveal">9. Environments and operations</h2>
+<p class="reveal">Three environments: development, staging with seeded fixture clients, and pilot production holding only the pilot client. Schema migrations are versioned files in the repository, applied through CI in order, never by hand against production. <code>.env.example</code> carries every variable with a one-line comment from the first commit. Deploys are git push to main through CI; there are no CLI deploys. Backups: Supabase point-in-time recovery on from day one, and a restore is tested before step 10, because the migration rehearsal already proved the team can verify a restore.</p>
+<p class="reveal">Secrets never enter the repository. The obfuscation map is not a secret the platform holds at all; it is the custodian's.</p>
+<h2 class="reveal">10. Exit</h2>
+<p class="reveal">The MVP is done when the master plan's stage 1 exit criteria hold, all witnessed: a real applicant screened and a real employee evaluated end to end through real sign-ins, review recorded where required, the Employer holding a release document and nothing else, the invoice paid from locked minutes, no legacy read anywhere in the service path, and the rehearsal slice round-tripped with its evidence in <code>migration_reconciliations</code>.</p>
+<p class="reveal">What exits with it, beyond the running system: the runbooks per step, the stored role-stamped evidence, the signed witness record per process, and the mapping engine and runbook that stage 2 scales. The next document after that is stage 2's row-count pass, for which <code>IMS-Evidence-Query-Pack.sql</code> already exists.</p>
+<footer>Edge8 · Work Healthy Australia · 30 July 2026</footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body></html>

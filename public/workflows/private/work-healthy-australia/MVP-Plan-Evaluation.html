@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVP plan evaluation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#04102D; --blue:#287BE8; --lightgray:#EAEEF2; --white:#FFFFFF;
+  --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+  --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--white);color:var(--body);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:64px 28px 120px;}
+
+h1{font-size:40px;line-height:1.15;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 10px;}
+h2{font-size:27px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;margin:64px 0 14px;padding-top:22px;border-top:1px solid var(--border);}
+h3{font-size:20px;font-weight:700;color:var(--navy);margin:38px 0 8px;}
+h4{font-size:16.5px;font-weight:600;color:var(--navy);margin:26px 0 6px;}
+h2:first-of-type{border-top:none;padding-top:0;}
+p{margin:0 0 15px;}
+a{color:var(--blue);}
+strong{font-weight:600;color:var(--navy);}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.87em;background:var(--lightgray);
+     padding:2px 6px;border-radius:4px;color:var(--navy);}
+hr{border:none;border-top:1px solid var(--border);margin:48px 0;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 6px;}
+li::marker{color:var(--blue);}
+
+.lede{font-size:18px;color:var(--muted);margin:0 0 34px;}
+.meta{font-size:13.5px;color:var(--muted);border-left:3px solid var(--blue);padding:10px 0 10px 16px;
+      background:var(--lightgray);border-radius:0 6px 6px 0;margin:0 0 34px;}
+
+table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:14.5px;}
+th{text-align:left;font-weight:600;color:var(--navy);background:var(--lightgray);
+   padding:11px 13px;border-bottom:2px solid var(--border);vertical-align:top;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.tablewrap{overflow-x:auto;margin:20px 0 26px;}
+.tablewrap table{margin:0;}
+
+/* colour coding: dispositions */
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:0.01em;
+     padding:2px 9px;border-radius:999px;white-space:nowrap;}
+.tag-mvp{background:var(--blue);color:#fff;}
+.tag-reduced{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.tag-deferred{background:var(--lightgray);color:var(--muted);border:1px solid var(--border);}
+.tag-retired{background:#FFEDE5;color:#B5431A;border:1px solid #FFC9B0;}
+.tag-blocking{background:var(--magenta);color:#fff;}
+
+/* colour coding: legacy systems vs business objects */
+.sys{display:inline-block;background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;
+     padding:1px 8px;border-radius:4px;white-space:nowrap;}
+.obj{display:inline-block;background:#EAF2FE;color:#1A4E96;font-size:13px;font-weight:500;
+     padding:1px 8px;border-radius:4px;border:1px solid #CFE0FA;}
+
+.objgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin:12px 0 22px;}
+
+/* process cards */
+.proc{background:var(--lightgray);border-radius:10px;padding:22px 24px;margin:22px 0;}
+.proc h3{margin-top:0;}
+.proc p{margin-bottom:11px;}
+.proc p:last-child{margin-bottom:0;}
+.proc ol,.proc ul{margin-bottom:12px;}
+
+.band{margin:60px 0 8px;padding:16px 22px;background:var(--navy);color:#fff;border-radius:10px;}
+.band h2{border:none;padding:0;margin:0;color:#fff;font-size:22px;}
+.band .bsub{font-size:14px;color:#B9C4DA;margin-top:3px;}
+
+.callout{border-left:3px solid var(--orange);background:#FFF6F2;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;}
+.callout strong{color:#B5431A;}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+@media print{
+  /* reveals must never hide content on paper */
+  .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
+  body{font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:14pt;margin:22pt 0 8pt;padding-top:10pt;}
+  h3{font-size:12pt;margin:14pt 0 5pt;} h4{font-size:10.5pt;}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid;}
+  .proc,.band,.callout,.meta,tr,li{break-inside:avoid;page-break-inside:avoid;}
+  table{font-size:9pt;}
+  .tablewrap{overflow:visible;}
+  .band{background:var(--navy) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .proc,.meta,th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tag,.sys,.obj{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a{color:var(--blue);text-decoration:none;}
+  footer{margin-top:24pt;}
+}
+@page{margin:16mm 14mm;}
+@media (max-width:640px){
+  .wrap{padding:40px 18px 80px;} h1{font-size:31px;} h2{font-size:23px;} body{font-size:16px;}
+}
+</style></head>
+<body><div class="wrap">
+<h1>Evaluation: is the MVP implementation plan safe to build from?</h1>
+<div class="meta">Written 2 August 2026 by the evaluating session, against <code>MVP-Implementation-Plan.md</code>, the master plan, both architecture diagrams, the findings document, the fit and gap, the L2 pages and the eleven version 4 generator sources. Every judgement here is proposed. Nothing in this document ran and produced a record.</div>
+<h2 class="reveal">1. The verdict</h2>
+<p class="reveal"><strong>Build it after fixing named items.</strong> The plan's structure holds: the three-stage gate on capability rather than schema, the time-entry billing model, the engine-first build order, the verification harness and the migration acceptance criteria all survived deliberate attack. But five of the corrections below are load-bearing and land before step 0, because they change the table inventory, the diagrams, or the step order. Building step 0 first and discovering them at step 3 would break the no-rewire promise in public, on the exact claim the adoptability argument leans on.</p>
+<p class="reveal">The load-bearing five: the Employer's interactive capabilities have no path through the wall as drawn (finding 1), the two catalog tables that give the grants and consent engines their content do not exist (finding 2), the wall's enforcement mechanism is unnamed and its gate test as described will not work (finding 3), four dates fail the due-date walk including one missing from the diagrams themselves (finding 4), and the step plan contradicts its own dependency table (finding 5). None of them is structural damage. All of them are a week of design work now instead of a rewire later, which is the trade this evaluation exists to buy.</p>
+<h2 class="reveal">2. Findings, ordered by what each costs if ignored</h2>
+<h3 class="reveal">Finding 1. The wall cannot carry the Employer's stage 1 capabilities as drawn</h3>
+<p class="reveal"><strong>What the plan says.</strong> The Employer portal's database role has usage on the <code>wall</code> schema and nothing else, and there is no code path from an Employer surface to a clinical table. The wall schema holds four tables: audience classes, release documents, the release log, and group scores.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> The Employer does more in stage 1 than read outputs. The scope section keeps "raising a Service Order" in stage 1, and Service Orders live in <code>core</code>. Step 3's exit criterion is "the Employer signed through the portal", and the Role requirements document, its evidence and the <code>employer_signoffs</code> table all live in <code>clinical</code>. The functional architecture even draws the signature crossing the wall. A role granted only <code>wall</code> cannot insert a Service Order into <code>core</code> or write a signature into <code>clinical</code>, and the four wall tables contain no request object and no signature object. The plan already uses cross-schema views for the reads (the report and invoice "cross from billing through wall views"), so the read side is fine. The write side has no mechanism at all.</p>
+<p class="reveal"><strong>Consequence.</strong> Step 3 and step 4 exit criteria are unbuildable as specified. Discovered mid-build, the fix adds wall tables after the first migration set, which is precisely the event the master plan promises never happens.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Add wall-side interaction objects to the first migration set: a service request table (the Employer writes a request row; trusted internal code validates it and creates the Service Order in <code>core</code>, writing the rejection reason back to the wall row), and a signature request table (the rendered document and its evidence pack are published into the wall bucket as a signing artifact; the Employer signs the wall row; internal code copies the sign-off into <code>clinical.employer_signoffs</code>). The same object serves the stage 2 suitable duties agreement, so design it with a kind column now. This keeps the schema grant claim fully intact: the Employer role still touches <code>wall</code> and nothing else. It costs roughly two tables and one processing path, decided before step 0. The master plan's section 3 table count and both architecture diagrams then need the matching correction.</p>
+<h3 class="reveal">Finding 2. The grants engine and the consent engine have plumbing but no content</h3>
+<p class="reveal"><strong>What the plan says.</strong> <code>user_service_grants</code> is fed by the credential cycle, read by the slot search and the 05c review gate, built once in step 2. The consent set engine computes the required set from the service.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> The handoff's suspicion 4.5 is confirmed, and it is worse than "underspecified". Two inputs are missing entirely, not underdrawn:</p>
+<ol class="reveal"><li><strong>Nothing anywhere holds the mapping from credential type to the services it permits.</strong> The 02-CR page says "a credential grants services, and only the services it covers", and no table in the eighty-three carries that rule. <code>service_types</code> holds the reviewer registration, so the review side has a home; the perform side has none. It is also absent from the clinical governance sign-off list in the plan's section 6, so the one catalog that makes function scope mean anything has no owner.</li><li><strong>Nothing holds which consents each service requires.</strong> The 05a-CN engine's first step is "compute the set this service requires", and its input table does not exist. The nullable service-type column on <code>consents</code> answers how held consent is scoped, which is a different question. The plan's own sign-off list includes "the consent set each service requires", so the plan knows the data must exist; it never says where.</li></ol>
+<p class="reveal">Three smaller holes in the same object: the 05c page says the reviewer is qualified by registration while the plan says the gate reads grants, and no page states the derivation that reconciles them; "who may unlock a day" is described as derived from credentials, which cannot be literally true, since no registration confers billing-day unlock; and the lapse cascade never says whether a grant row carries its source credential, which decides what happens when a person holds two credentials granting the same service.</p>
+<p class="reveal"><strong>Consequence.</strong> Step 2 starts and stalls, or worse, ships with the mapping invented by whoever builds it, unsigned by clinical governance, on the table that gates who may perform clinical services.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Add two catalog tables to the first migration set: credential-to-service mappings, and per-service consent requirements. Add both to the clinical governance sign-off list alongside the service catalog they extend. Rule the 05c mechanism as follows, consistent with the diagram's authority: registration is the qualification, materialised as review rows in <code>user_service_grants</code> when 02 confirms the credential, with the lapse cascade covering review grants exactly as it covers perform grants. Rule that unlock-a-day is an Admin-granted row with a named grantor, and give 02 the step that grants it. Rule that a grant row carries its source credential, so suspending one credential leaves a grant standing where another credential still covers the service.</p>
+<h3 class="reveal">Finding 3. The wall as a schema grant survives, but only with a mechanism the plan must name, and the wall gate test as described will not work</h3>
+<p class="reveal"><strong>What the plan says.</strong> The Employer surface authenticates to a database role whose only schema grant is <code>wall</code>, making the wall structural rather than conventional. The wall gate test asserts Employer responses contain no column from any clinical table, mechanically, from the schema definition.</p>
+<p class="reveal"><strong>Why it needs correcting.</strong> The handoff's largest worry, 4.1, resolves in the plan's favour, with conditions. Supabase's default is exactly the problem the handoff feared: every signed-in user reaches Postgres as the one <code>authenticated</code> role, with row-level security carrying the differences. But the JWT role claim is the Postgres role the request runs as, and Supabase's documented Custom Access Token hook can rewrite that claim. Create an <code>employer_wall</code> Postgres role, grant it to <code>authenticator</code>, grant it usage on <code>wall</code> alone, and have the hook stamp it onto Employer accounts at token issue. The schema grant claim then holds structurally, as written. The alternative mechanism, a dedicated wall-only connection role used exclusively by the Employer route group's server code, also works and is simpler, but it is a code convention inside one Next.js application rather than a property of the user's own session, which is a weaker claim. Either way the plan currently asserts the destination without naming the road, and the two roads have different residual risks. Three hygiene conditions apply whichever is chosen: no default privileges may ever grant the employer role anything outside <code>wall</code>, storage policies need the same role discipline as tables, and the "no code path" sentence should be restated honestly, since all four surfaces share one application and the grant is the backstop for a routing mistake, not a substitute for the module boundary.</p>
+<p class="reveal">Separately, the wall gate test as specified will not survive contact with its own schema. Clinical and wall tables share column names by nature: identifiers, statuses, timestamps, notes. A mechanical assertion that no clinical column name appears in an Employer response either fires constantly on innocent collisions or gets quietly weakened until it tests nothing. The deeper point: once the wall is a schema grant, the leak risk moves from read time to write time, into whatever 05c copies into a release document's content columns. No schema can test that; only a content contract can.</p>
+<p class="reveal"><strong>Consequence.</strong> Without the named mechanism, the build defaults to the conventional Supabase shape and the wall silently becomes row-level security plus good intentions, which is the materially weaker claim the master plan's adoptability section warns about. Without the test correction, the harness's wall gate is either noise or theatre.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Name the Custom Access Token hook mechanism in the plan's section 4 and both diagrams, with the three hygiene conditions as step 0 exit checks. Replace the wall gate's mechanical column assertion with two tests that actually bind: an allowlist contract per release document kind, owned and signed by the privacy owner, asserted on every Employer response; and a harness check that the Employer role's session cannot select from any non-wall schema, which is one query against the grants and is the structural claim made testable.</p>
+<h3 class="reveal">Finding 4. The due-date claim fails the walk in four places</h3>
+<p class="reveal"><strong>What the plan says.</strong> Every process that decides a date writes a row to <code>due_items</code> from day one, so stage 3's clock starts with history. A date with no home is a rewire.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> The walk of all eleven generator sources confirms the five listed dates are real and homed, and finds four failures beyond them:</p>
+<ol class="reveal"><li><strong>Process 03's document review date is missing twice.</strong> "Publish as the yardstick. Set the review date" is a stage 1 step, its date must reach the clock or 03 is never re-triggered, and it appears neither in the plan's list of due-date writers nor in process 08's own enumeration of dates set elsewhere. That second omission is an inconsistency inside the diagrams, which the diagrams-win rule says must be fixed at the generator and rebuilt.</li><li><strong>The working days calendar runs out silently.</strong> 01 loads the working days for the year, and nothing anywhere watches the day the loaded year ends. The failure mode arrives through 04: every slot search past the horizon returns no slot in the Site's hours, indistinguishable from a full calendar, in the pilot's first December.</li><li><strong>Process 09 watches three dates of its own.</strong> The report cadence, the client acceptance date hold, and the invoice cycle start are all future dates that 09 waits on, none has a named home, and together they contradict the rule that only 08 watches a calendar. The plan already carries three scheduled jobs without calling them clock breaches, so the rule needs its honest restatement: 08 is the only process that raises clinical work from a date; commercial cadences are configuration on the service agreement, run by scheduled jobs or by Admin from a view.</li><li><strong>Supersession is nowhere.</strong> Credential renewal, document re-publication and certificate re-issue each replace a pending due item, and no step in any diagram cancels the old row. Without the rule, the clock turns on in stage 3 against a ledger of ghosts.</li></ol>
+<p class="reveal">Two smaller ambiguities worth one sentence each in the plan: whether a booking placeholder that is never accepted times out, and whether the second-assessment request after release is time-boxed.</p>
+<p class="reveal"><strong>Consequence.</strong> Items 1 and 2 are genuine rewires of exactly the kind the operator's requirement prohibits, found now for a paragraph each. Item 3, left unruled, ships a second clock nobody admits to. Item 4 corrupts the stage 3 harvest that criterion 1 of stage 3's acceptance measures by query.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Add the 03 review date to the plan's writer list and to 08's enumeration in the generator, and rebuild. Write a coverage-end due item when a year of working days is loaded. Put the report cadence and acceptance date on <code>service_agreements</code> as named columns, restate the one-clock rule as above, and state which of the three timed behaviours are scheduled jobs. Add one supersession rule to section 5: any step that replaces a date-carrying record closes the prior due item, and the harness tests it wherever an engine touches a date.</p>
+<h3 class="reveal">Finding 5. The step plan contradicts its own dependency table, and step 4 depends on a step 5 engine</h3>
+<p class="reveal"><strong>What the plan says.</strong> Steps 1 to 3 run in parallel after step 0, sharing only the guard and the fixtures. Step 4 builds the paperwork issuance job and patient link pages; step 5 builds the consent set engine.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> Two ways. First, the plan's own table says step 3 needs steps 1 and 2, so the prose parallelism claim is false on its face: steps 1 and 2 run in parallel, step 3 follows both. That is the handoff's suspicion 4.4, confirmed in the document itself. Second, and unlisted: the paperwork pack exists so that the door verifies consent rather than collects it, which means the pack must contain exactly the outstanding consents, which is the consent set engine's computation. Step 4 therefore consumes the engine step 5 builds. The step order is inverted for that one component. Underneath sits a design gap the L2 decision list flagged and deferred: the paperwork subprocess, candidate 6 on that list, where consent is actually collected, was never drawn, and it is load-bearing for 05a. Chasing non-completion and what happens when a Patient arrives with nothing done have no page.</p>
+<p class="reveal"><strong>Consequence.</strong> A team that starts steps 1 to 3 concurrently on the prose claim discovers the serialisation in week one, which is cheap. A team that builds step 4's paperwork job without the consent engine ships a pack that cannot say what is outstanding, which is the exact hole 05a exists to close.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Fix the prose to match the table. Move the consent set engine into step 4, or into a shared engine step alongside step 2, leaving step 5 the identity gate, capture screens, versioning and the refusal path. Draw the paperwork L2 before step 4 starts; it is one page, it was already judged worth drawing, and step 4's exit criterion, the paperwork link working end to end, has no acceptance authority without it.</p>
+<h3 class="reveal">Finding 6. The rehearsal slice was named on structure alone, and the rehearsal can be invalidated by schema drift</h3>
+<p class="reveal"><strong>What the plan says.</strong> The slice is named now: the <code>tblJobs</code> cluster, <code>CertOfCapacity</code> with <code>TreatmentDuties</code>, and <code>ConsentSignature</code>. Step 9 is independent of everything except step 0.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> The handoff's section 6 instructs that treating a Covered verdict as proven usage is a finding, and the slice choice is the one place the plan does it. The dumps hold no rows, the query pack has never run, and the slice's entire value rests on those tables carrying enough real, messy rows to exercise the named hazards. If <code>CertOfCapacity</code> turns out sparse, the rehearsal passes while proving little, and stage 2 inherits a false confidence, which is the costliest quiet failure in the plan. On independence: step 9 proves mapping code against the step 0 schema, and steps 1 through 8 will correct that schema in small ways as real screens land on it. A rehearsal finished in parallel with step 2 can be stale by step 8, and nothing re-runs it.</p>
+<p class="reveal"><strong>Consequence.</strong> Stage 2, the stage the master plan says the programme dies in if the pipeline fails, scales a pipeline proven against tables that have since moved, on a slice that may never have contained the hazards it was chosen for.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Two entry and exit changes to step 9, no new work. Entry: the query pack runs against the snapshot before the slice is confirmed, and the slice is re-named if the counts disappoint; snapshot access is already a step 9 prerequisite, so this costs nothing. Exit: the rehearsal's repeatability criterion becomes a standing regression, re-run whenever a migration alters a table the slice loads into, which the runbook the step already produces makes cheap.</p>
+<h3 class="reveal">Finding 7. The obfuscation specification contradicts the mapping it feeds</h3>
+<p class="reveal"><strong>What the plan says.</strong> The obfuscator maps every identifier and clinical value deterministically and reversibly, format-preserving so downstream code behaves identically.</p>
+<p class="reveal"><strong>Why it is wrong.</strong> The mapping engine's job, per stage 2 criterion 6, is to reconstruct state from archive flags, dates and booleans, and tombstone filtering is one of the things step 9 exists to prove. Code that branches on values cannot behave identically on values that have been substituted; format preservation keeps shapes, not orderings, thresholds or flag semantics. So either flags, dates and enumerated states pass through in the clear, in which case "every clinical value" is false as written, or they are obfuscated and the rehearsal exercises different branches than stage 2 will. The sentence promises both halves of a contradiction.</p>
+<p class="reveal"><strong>Consequence.</strong> The privacy owner signs a claim the pipeline does not keep, or the rehearsal quietly proves the wrong code paths. Both surface at the worst possible time, which is stage 2.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Replace the blanket sentence with a per-column obfuscation policy, written with the custodian and signed by the privacy owner: direct identifiers tokenised, free text replaced, dates shifted by a consistent per-person offset so intervals and orderings survive, and flags, enumerations and scores preserved because the mapping's branches read them. State the privacy claim as what it then is, that no person is identifiable in the transform environment, rather than that no clinical value enters it. That is the claim the pipeline actually keeps, and it is the one the privacy owner needs.</p>
+<h3 class="reveal">Finding 8. A real complaint or injury evaluation ends at a cliff, and the bridge is unnamed</h3>
+<p class="reveal"><strong>What the plan says.</strong> A pilot complaint or injury evaluation ends at the released determination and its mitigation plan; the persistent case is stage 2. Registered, not dropped.</p>
+<p class="reveal"><strong>Why it is incomplete.</strong> The pilot serves a real employee of a real client, and if the determination is not fit or fit with restrictions, that person's ongoing case will be managed in IMS, because 06 is not live. The determination now exists only in the new record. Somebody at Work Healthy Australia re-keys it into IMS so that care continues, and no document names that person, that step, or whether the copy is recorded. The exit criterion "no legacy read anywhere in the service path" is honest, and it is also not the question; the question is the legacy write after the path completes. The same seam exists commercially: the pilot client is invoiced from the new system while every other client is invoiced from the old process, and the finance reconciliation is unmentioned.</p>
+<p class="reveal"><strong>Consequence.</strong> The first unfit determination of the pilot produces a clinical continuity gap discovered by a clinician mid-case, in front of the exact audience the witnessed demo strategy exists to win.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> One paragraph in the step 10 runbook: the named person who carries a pilot determination into IMS, the recorded act of doing it, and the finance owner for the dual invoicing period. The privacy owner should see the paragraph, since it moves clinical content between systems.</p>
+<h3 class="reveal">Finding 9. Three steps are too big to estimate at the bar the plan is held to</h3>
+<p class="reveal"><strong>What the plan says.</strong> Durations belong to the team, and the steps carry entry and exit criteria in place of dates. The handoff asks whether a team could estimate each step above the ninetieth percentile without re-deriving the plan, and requires that the answer to an unestimable step is a smaller step.</p>
+<p class="reveal"><strong>Why it is wrong in three places.</strong> Step 0 contains the Supabase project, eighty-three tables with row-level security, the seeded matrix, the guard, the audit log, the app shell, CI, and the entire verification harness including Playwright role-stamped evidence storage. Step 3 contains a versioned document lifecycle, measurement capture, the roll-up engine, evidence attachment, and the first Employer-facing wall surface with the cross-wall signature from finding 1. Step 4 contains Service Orders, the slot search engine, booking and acceptance, dual confirmations, the paperwork job, the patient link surface, and the no-show report: seven deliverables spanning every surface. Each is a composite whose variance comes from its widest member, and none can carry a ninetieth percentile estimate as one number. The other steps are fine: 1, 2, 5 through 9 are each one process or one pipeline with a clear spine.</p>
+<p class="reveal"><strong>Consequence.</strong> The first date anyone commits to is built on the three least estimable steps, which is how the previous filed estimating miss happened: confidence modelled structure, not volume.</p>
+<p class="reveal"><strong>Correction, proposed.</strong> Split by exit criterion, not by scope cut. Step 0 into foundation (project, tables, policies, matrix, guard) and harness (shell, CI, Playwright, evidence store), the second exiting on the first role-stamped pass against fixtures. Step 3 into the document lifecycle with measurement and roll-up, then the wall signature surface. Step 4 into orders, slot search and booking, then patient links, notifications and jobs. Same content, seven or eight extra exit checks, and every piece becomes estimable by one person who has read its page.</p>
+<h3 class="reveal">Finding 10. Three small items, each worth one sentence now</h3>
+<p class="reveal">The exit criterion says the invoice was paid, and no table records payment: add settlement fields to <code>invoices</code> now, or state that receivables live in the practice's accounting system and the criterion is evidenced there. The identity rule's "leaves no trace" needs an implementer's sentence, since the Service Order must still close with a state, the Employer still gets a completion-failed notice, and the minutes still enter the debrief; propose "no clinical record is created or opened for the person who attended", which keeps the rule and unblocks step 5. And the three environments should be stated as the dedicated project's main branch for pilot production with persistent branches for development and staging, because point-in-time recovery, the thing section 9 promises from day one, is a property of the project, not of its preview branches.</p>
+<h2 class="reveal">3. What was attacked and did not break</h2>
+<p class="reveal">These held under deliberate attempts to break them, which is worth recording because it says where the plan is load-bearing and tested.</p>
+<p class="reveal"><strong>The time-entry billing model.</strong> Attacked end to end: no billable event, debrief as the time entry, lock before invoice, lines tracing to minutes. It is internally consistent, it has the strongest legacy parity in the estate behind it, and every attempt to construct a case it cannot record, late cancellation, failure to attend, lost time, unpaid internal work, landed in a category it already has.</p>
+<p class="reveal"><strong>The no-rewire scaffolding, against the handoff's specific attacks.</strong> Collapsing to one clinical role holds: scope lives on the role assignment, not the role, so the change is matrix rows plus one rule removed, exactly as claimed. Consent flipping to per service type holds, given finding 2's requirements table exists: the engine already varies the required set by service, and the nullable column carries the held side. The survey flipping to confidential holds mechanically, with one caveat worth recording: a personal result addressed to the Patient should not live in the wall schema, which is the Employer's grant, so the release kind the master plan proposes for it should be delivered through the patient link path instead. The person-who-is-both-Patient-and-contact duality is representable today. Admin separation of duties is matrix rows. The scaffolding does what it promises.</p>
+<p class="reveal"><strong>The stage 1 scope, against the handoff's own doubt.</strong> The three contested inclusions all survive. Review and release cannot move: the pilot delivers determinations to a real Employer, so the wall and the duty of care are day one obligations, not features. The rehearsal cannot move: it is the only evidence stage 2 rests on, and it runs off the critical path. The full 09 chain cannot move: "signed agreement to paid invoice" is the sentence the MVP is, and cutting it produces a demo. Stage 1 is not oversized; it is mis-described. It is not a pilot in the throwaway sense, it is the product's spine built once with a single-client rollout, and saying that plainly would stop anyone pruning it into a demo. The sizing risk that is real lives in step granularity, finding 9, not in scope.</p>
+<p class="reveal"><strong>The engines with real pages.</strong> Requirement resolution, measurement roll-up, slot search and debrief allocation are genuinely specified: inputs, outputs, precedence rules and the test seeds are on their pages, and a builder needs no invention. The two engines that failed the same test are in finding 2, and they failed on missing catalog inputs, not on missing process.</p>
+<p class="reveal"><strong>The harness and the adoption argument.</strong> Role-stamped passes through real sign-ins, the safety gate, and the witnessed demo with the person who does the job as the judge: attacked as theatre and it is not. It answers the specific failure mode recorded in this account's history, unwitnessed AI output, with a mechanism rather than an assurance. Only the wall gate's mechanics needed correcting, finding 3.</p>
+<p class="reveal"><strong>The migration acceptance criteria.</strong> Ten stage 1 criteria and eleven for stage 2, each binary, each producing evidence. Attacked for partial-pass loopholes and found none. The schema-only evidence limit is honoured everywhere in the text except the slice choice, finding 6.</p>
+<h2 class="reveal">4. What this evaluation could not reach, and who has it</h2>
+<p class="reveal">Four things, each named with its holder, none evaluable from the documents.</p>
+<ol class="reveal"><li><strong>Row counts.</strong> The single largest unknown under the whole evidence base. <code>IMS-Evidence-Query-Pack.sql</code> exists and has not run. Work Healthy Australia holds the access; the custodian arrangement in step 9 is the natural moment, and finding 6 makes it an entry criterion.</li><li><strong>The two blocking names.</strong> The privacy owner and the clinical governance owner, both Work Healthy Australia people, both already flagged in the master plan. Five corrections in this document route through one or the other, so the block is wider than the plan states: it now gates the obfuscation policy, the release content contracts, and two new catalog sign-offs, not only the pilot go-live.</li><li><strong>The pilot client.</strong> Whether one is agreed, whether their Employer contacts will actually operate a portal, and whether their hierarchy and two services fit the scope as drawn. Work Healthy Australia holds this.</li><li><strong>The Ahpra register check.</strong> Whether verification against the public register is a manual recorded act or an automated lookup, which the Ahpra terms of use decide. It changes 02-CR's effort, not its shape. Edge8 can settle this without the client.</li></ol>
+<h2 class="reveal">5. The corrections in one list</h2>
+<p class="reveal">Before step 0, because they change the inventory, the diagrams or the order: the wall interaction objects and diagram corrections (finding 1); the two catalog tables and the four grant rulings (finding 2); the named wall mechanism, hygiene checks and reworked wall gate (finding 3); the 03 review date in both lists, the calendar coverage due item, the 09 date homes, the one-clock restatement and the supersession rule (finding 4); the step order fix, the consent engine move and the paperwork L2 page (finding 5); the step splits (finding 9); and the three sentences of finding 10.</p>
+<p class="reveal">Before step 9: the row-count entry criterion, the regression rule, and the per-column obfuscation policy (findings 6 and 7).</p>
+<p class="reveal">Before step 10: the IMS bridge paragraph and the finance owner (finding 8).</p>
+<p class="reveal">Everything else in the plan is safe to build as written, and this evaluation looked for reasons to say otherwise.</p>
+<footer>Edge8 · Work Healthy Australia · 30 July 2026</footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body></html>

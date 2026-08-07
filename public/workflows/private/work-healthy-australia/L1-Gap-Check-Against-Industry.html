@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The industry sweep: L1 gap check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#04102D; --blue:#287BE8; --lightgray:#EAEEF2; --white:#FFFFFF;
+  --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+  --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--white);color:var(--body);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:64px 28px 120px;}
+
+h1{font-size:40px;line-height:1.15;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 10px;}
+h2{font-size:27px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;margin:64px 0 14px;padding-top:22px;border-top:1px solid var(--border);}
+h3{font-size:20px;font-weight:700;color:var(--navy);margin:38px 0 8px;}
+h4{font-size:16.5px;font-weight:600;color:var(--navy);margin:26px 0 6px;}
+h2:first-of-type{border-top:none;padding-top:0;}
+p{margin:0 0 15px;}
+a{color:var(--blue);}
+strong{font-weight:600;color:var(--navy);}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.87em;background:var(--lightgray);
+     padding:2px 6px;border-radius:4px;color:var(--navy);}
+hr{border:none;border-top:1px solid var(--border);margin:48px 0;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 6px;}
+li::marker{color:var(--blue);}
+
+.lede{font-size:18px;color:var(--muted);margin:0 0 34px;}
+.meta{font-size:13.5px;color:var(--muted);border-left:3px solid var(--blue);padding:10px 0 10px 16px;
+      background:var(--lightgray);border-radius:0 6px 6px 0;margin:0 0 34px;}
+
+table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:14.5px;}
+th{text-align:left;font-weight:600;color:var(--navy);background:var(--lightgray);
+   padding:11px 13px;border-bottom:2px solid var(--border);vertical-align:top;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.tablewrap{overflow-x:auto;margin:20px 0 26px;}
+.tablewrap table{margin:0;}
+
+/* colour coding: dispositions */
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:0.01em;
+     padding:2px 9px;border-radius:999px;white-space:nowrap;}
+.tag-mvp{background:var(--blue);color:#fff;}
+.tag-reduced{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.tag-deferred{background:var(--lightgray);color:var(--muted);border:1px solid var(--border);}
+.tag-retired{background:#FFEDE5;color:#B5431A;border:1px solid #FFC9B0;}
+.tag-blocking{background:var(--magenta);color:#fff;}
+
+/* colour coding: legacy systems vs business objects */
+.sys{display:inline-block;background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;
+     padding:1px 8px;border-radius:4px;white-space:nowrap;}
+.obj{display:inline-block;background:#EAF2FE;color:#1A4E96;font-size:13px;font-weight:500;
+     padding:1px 8px;border-radius:4px;border:1px solid #CFE0FA;}
+
+.objgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin:12px 0 22px;}
+
+/* process cards */
+.proc{background:var(--lightgray);border-radius:10px;padding:22px 24px;margin:22px 0;}
+.proc h3{margin-top:0;}
+.proc p{margin-bottom:11px;}
+.proc p:last-child{margin-bottom:0;}
+.proc ol,.proc ul{margin-bottom:12px;}
+
+.band{margin:60px 0 8px;padding:16px 22px;background:var(--navy);color:#fff;border-radius:10px;}
+.band h2{border:none;padding:0;margin:0;color:#fff;font-size:22px;}
+.band .bsub{font-size:14px;color:#B9C4DA;margin-top:3px;}
+
+.callout{border-left:3px solid var(--orange);background:#FFF6F2;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;}
+.callout strong{color:#B5431A;}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+@media print{
+  /* reveals must never hide content on paper */
+  .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
+  body{font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:14pt;margin:22pt 0 8pt;padding-top:10pt;}
+  h3{font-size:12pt;margin:14pt 0 5pt;} h4{font-size:10.5pt;}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid;}
+  .proc,.band,.callout,.meta,tr,li{break-inside:avoid;page-break-inside:avoid;}
+  table{font-size:9pt;}
+  .tablewrap{overflow:visible;}
+  .band{background:var(--navy) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .proc,.meta,th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tag,.sys,.obj{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a{color:var(--blue);text-decoration:none;}
+  footer{margin-top:24pt;}
+}
+@page{margin:16mm 14mm;}
+@media (max-width:640px){
+  .wrap{padding:40px 18px 80px;} h1{font-size:31px;} h2{font-size:23px;} body{font-size:16px;}
+}
+</style></head>
+<body><div class="wrap">
+<h1>L1 gap check against industry practice, Australian and international</h1>
+<div class="meta">Compiled 2 August 2026 in two passes. Pass one: KINNECT, Jobfit and Sonic HealthPlus. Pass two: the Netherlands, Japan, the United Kingdom, Germany, Finland and the enterprise platforms. Sources are the providers' and regulators' published material, refreshed today, plus the earlier compilation in <code>OH-Industry-Process-Reference.md</code>. Nothing here changes any diagram.</div>
+<p class="reveal">Our current set: 01 Setup Workplace, 02 Onboard / Offboard, 03 Schedule the Service, 04a admission, 04b render and determine, 05 anonymous Healthiness Survey, 06 Report to Invoice.</p>
+<h2 class="reveal">What each provider publishes</h2>
+<p class="reveal"><strong>KINNECT</strong> runs one platform, Carelever, in four modules that map almost exactly onto four processes: <strong>Screen</strong> (referrals with a live status dashboard for the employer, in-progress against complete, searchable by booking stage), <strong>Monitor</strong> (periodic health checks with due dates set per site and job role, automated reminders, due and overdue dashboards, compliance reports, retention beyond 40 years), <strong>Manage</strong> (injury cases holding current capacity, certificates, the suitable-duties plan, case notes and next steps), and <strong>Comply</strong> (immunisations, Blue Card, First Aid and qualifications, on a capture, verify, track cycle with due dates and expiry). They also publish a cancellation and reschedule policy priced by notice period, and charge 100 per cent of the fee for failure to attend.</p>
+<p class="reveal"><strong>Jobfit</strong> sells the measurement instrument. Assessments come in two levels, roughly an hour, covering a musculoskeletal screen, aerobic fitness, job-specific postural tolerances and job-specific lifting and carrying. Results are read by a doctor alongside any medical assessments <strong>and the job dictionary or job task analysis</strong>. Medical clearance may be required before the assessment where an existing injury is disclosed.</p>
+<p class="reveal"><strong>Sonic HealthPlus</strong> runs two client-facing systems. <strong>SASS</strong> lets the client make, track or <strong>amend</strong> appointments 24 hours a day. <strong>Infiniti</strong> issues the paperwork the day before the appointment by email and SMS so the candidate completes it before attending, with iPads in clinic as the fallback. Appointment confirmations go to both the requesting company contact and the candidate within fifteen minutes of booking. Their clinics run a recall system for periodic care.</p>
+<h2 class="reveal">Three processes that are missing entirely</h2>
+<h3 class="reveal">1. The process that produces the Role requirements</h3>
+<p class="reveal">Every service we have drawn measures a Patient against "the Role requirements". Nothing in our seven diagrams creates them. Process 01 creates a Role as an empty container under a Department.</p>
+<p class="reveal">In all three providers this is a delivered service with its own shape: the employer commissions it, an allied health professional attends site and observes the work being performed, tasks are measured, the measurements roll up to a role-level document, the employer signs it, and it is re-validated on change or on a cycle. Jobfit's entire decision rule depends on it, since capability is compared against demand on the same scale, and their assessors read the job dictionary alongside the medical.</p>
+<p class="reveal">This is not the detail of what a requirement contains. It is the absence of any process that produces or re-validates the yardstick, and of the employer sign-off that makes it binding.</p>
+<h3 class="reveal">2. Tracking what is due</h3>
+<p class="reveal">Every service in our set begins because a person raised a Service Order. Nothing in the seven diagrams generates work from a date.</p>
+<p class="reveal">KINNECT's Monitor module sets testing frequency per site and per job role, notifies before an assessment falls due, and shows who is due and who is overdue. Sonic runs periodic medicals against a recall system. The industry pattern underneath both is that the requirement lives on the Site or the Role, each person's applicable set is computed from where they work and what they do, and the clock produces the work.</p>
+<p class="reveal">Without this, Work Healthy Australia cannot sell a monitoring programme, only a series of individually requested services.</p>
+<h3 class="reveal">3. The injury case</h3>
+<p class="reveal">Our 04b treats a complaint or injury as one evaluation producing one determination. KINNECT's Manage module holds a case: current capacity, certificates, the suitable-duties plan, case notes, medical reports, and the planned next steps, with the employer able to see status and capacity in real time.</p>
+<p class="reveal">The difference that matters at L1 is that a case has a heartbeat. A certificate expires, which forces a re-assessment, which revises the duties plan, and the loop repeats until capacity is restored and the case is closed. Our L0 arrow from 04 to 05 gestures at this. No diagram carries it.</p>
+<h2 class="reveal">Steps missing inside processes we have drawn</h2>
+<div class="tablewrap reveal"><table><thead><tr><th>Where</th><th>Missing step</th><th>Evidence</th></tr></thead><tbody><tr><td>03</td><td>System-generated Service Orders. Process 07 raises them; our only trigger is an Employer raising one.</td><td>KINNECT Monitor, Sonic recalls</td></tr><tr><td>03</td><td>Employer cancels or amends a booking. Our only change-of-plan paths are our own outage and the Patient's non-attendance.</td><td>Sonic SASS amend, KINNECT policy</td></tr><tr><td>03</td><td>Confirmation to both sides. Sonic sends the confirmation to the requesting company contact and the candidate within fifteen minutes. Our Employer alert fires only once the appointment stands.</td><td>Sonic</td></tr><tr><td>03 → 04a</td><td>Paperwork issued before attendance. The questionnaire, identity documents and consent go out the day before by email and SMS, and are completed before the Patient arrives.</td><td>Sonic Infiniti</td></tr><tr><td>04a</td><td>Nothing. Both gates match industry practice. What changes is where the consent is captured, not whether it is checked.</td><td></td></tr><tr><td>04b</td><td>A safety gate before functional testing. Where an existing injury is disclosed, clearance is obtained before the assessment proceeds.</td><td>Jobfit</td></tr><tr><td>04b</td><td>Temporary against permanent on the determination, and a review date where temporary. A determination that expires is what feeds the due-date tracking.</td><td>Rail and coal schemes</td></tr><tr><td>04b</td><td>A review or dispute path after release. Every published scheme has a second assessment.</td><td>AFOEM, rail, QLD coal</td></tr><tr><td>05</td><td>Feeding results back to the people who answered, before action planning. It is a consultation duty in the published method, not a courtesy.</td><td>People at Work</td></tr><tr><td>05</td><td>The action plan has a named executor and a named reviewer, and a re-survey at twelve to twenty-four months. Ours ends at plan delivered.</td><td>People at Work</td></tr><tr><td>06</td><td>Billable events other than services rendered. Late cancellation and failure to attend are charged, at published rates.</td><td>KINNECT policy</td></tr><tr><td>02</td><td>Credentials, inductions and immunisations with expiry, for Clinicians and Practitioners as well as workers. Ours is a one-off confirmation.</td><td>KINNECT Comply</td></tr><tr><td>Everywhere</td><td>In-flight status visible to the Employer. Carelever shows in-progress against complete and lets the employer search by booking stage. Our wall passes outcomes only.</td><td>KINNECT Screen</td></tr></tbody></table></div>
+<h2 class="reveal">What this would change in the flows as drawn</h2>
+<p class="reveal"><strong>03 gains two triggers and loses its assumption that a person starts everything.</strong> A recall-generated Service Order arrives without an Employer request, and an Employer amendment arrives against a booking that already exists. Both enter at the search, which the process already supports.</p>
+<p class="reveal"><strong>03's output grows a tail.</strong> If paperwork goes out the day before, the appointment is not the end of scheduling. Either 03 ends at "paperwork issued" or 04a starts before the Patient arrives.</p>
+<p class="reveal"><strong>04a's Gate 2 may move.</strong> Consent is captured before attendance in all three providers, not at the door. The two diamonds survive intact, because the check is still "already held for this Client" and then "given now". What changes is that the capture usually happens at home the night before, and the door is where it is verified. Gate 1 stays at the door, because identity cannot be confirmed remotely.</p>
+<p class="reveal"><strong>04b gains a gate before testing and a state after release.</strong> The safety check is a new diamond before functional testing. Temporary against permanent, with a review date, is a change to the determination itself, and it is the join between 04b and the due-date tracking.</p>
+<p class="reveal"><strong>05 is incomplete rather than wrong.</strong> The survey is drawn correctly. What is missing is everything after the plan crosses the wall: feedback to the respondents, an action plan with named owners, implementation by the Employer, and a re-survey. Our diagram treats delivering the plan as the end of the process. The published method treats it as the middle.</p>
+<p class="reveal"><strong>06 gains inputs.</strong> Cancellation and non-attendance are charged in this industry, at published rates by notice period. That answers the question I asked earlier and you have not had to rule on: a no-show is billable, which means the no-show report has a commercial tail as well as a clinical one.</p>
+<p class="reveal"><strong>01 gains the step that makes everything else resolvable.</strong> Beyond Role requirements, the three providers set the protocol and paperwork defaults on the Site and the Role at setup, which is what lets a later request resolve what is required without anyone deciding case by case.</p>
+<hr>
+<h1 class="reveal">Pass two: outside Australia</h1>
+<p class="reveal">The Australian providers show what a good commercial operator does. The overseas systems show what a regulator forces, which is where the process shapes we are missing are written down most precisely.</p>
+<h2 class="reveal">The Netherlands: the injury case is a clock with legal deadlines</h2>
+<p class="reveal">The Gatekeeper Improvement Act governs the first two years of sick leave and names the milestones. The absence is registered and the company doctor notified within about a week. A problem analysis by the company doctor lands around week six. Employer and employee write a plan of action by week eight. Progress is evaluated periodically. The employee is reported to the national body at week 42, there is a first-year evaluation at week 52, and a final evaluation near week 91. Failure to follow the process costs the employer a wage sanction of up to another 52 weeks of pay.</p>
+<p class="reveal">Two things we do not have. The case has statutory dates that arrive whether or not anyone books an appointment, and it has a third party outside the Employer and the Patient who audits compliance and can penalise. Our whole set assumes two parties and no external clock.</p>
+<h2 class="reveal">Japan: the worker gets their own result, and that is what triggers the referral</h2>
+<p class="reveal">The Stress Check Program is an annual survey, mandatory at 50 or more employees and extending to all workplaces. Its rules are precise. Results go to the worker. The employer receives group analysis only, in groups above ten, and gets that without consent because it does not identify anyone. Individual results reach the employer only with the worker's consent. A worker whose result is high may <strong>request an interview with a physician</strong>, and making that request is treated as implied consent to disclose their result. The employer may not treat a worker unfavourably for asking, and must act on the physician's recommendations.</p>
+<p class="reveal">This bears directly on our 05. Japan's survey is confidential, not anonymous: responses are identified and protected, which is precisely what allows the worker to receive their own result. That personal result is the trigger for self-referral.</p>
+<p class="reveal">Our 05 collects no identifier, so the respondent receives nothing back, so the self-referral node we drew has no trigger behind it. A person who answers in distress learns nothing they did not already know. The design fork is not whether to protect the response. It is anonymous, meaning no personal result and no trigger, against confidential, meaning a personal result to the worker alone and a self-request route.</p>
+<p class="reveal">Japan also carries a non-retaliation rule, which appears nowhere in our set.</p>
+<h2 class="reveal">The United Kingdom: consent gates release as well as collection</h2>
+<p class="reveal">A management referral starts with the manager discussing it with the employee and sharing the referral form. The employee consents to the referral itself. Then the part that matters for our wall: the employee may ask to see the occupational health report <strong>before it goes to the employer</strong>, may request corrections, and may withdraw consent to release at any point, including after reading it. If they refuse release, the employer decides on the information it has.</p>
+<p class="reveal">Our rule is that consent gates collection and not release, on the reasoning that the Employer commissioned the evaluation and receives it whenever one is made. That is defensible in the Australian commissioning model and it is the opposite of the British one. It is a decision we made, not a fact of the industry, and it should be recorded as a decision.</p>
+<h2 class="reveal">Germany: three service classes, and a wall that passes no determination at all</h2>
+<p class="reveal">German preventive occupational medicine splits into three classes. <strong>Pflichtvorsorge</strong> is mandatory and the worker must attend. <strong>Angebotsvorsorge</strong> must be offered and the worker may decline. <strong>Wunschvorsorge</strong> happens at the worker's own request.</p>
+<p class="reveal">The employer receives a <strong>Vorsorgebescheinigung</strong> carrying the date, the reason for the examination and the next due date. Diagnoses and findings are withheld, and so, explicitly, is any statement of fitness.</p>
+<p class="reveal">Two gaps. First, a decision we do not have anywhere: is this service mandatory, offered, or requested by the worker? It determines who may decline and what a decline means. In our set every service is commissioned by the Employer, so a decline is always a failure. In the offered class a decline is a legitimate recorded outcome.</p>
+<p class="reveal">Second, a wall crossing we do not have: date, reason, and next due date, with no determination. Every crossing we have drawn carries an outcome. A monitoring service may have no outcome to carry, and what the Employer actually needs is the next due date, which is what feeds the clock.</p>
+<h2 class="reveal">Finland: the survey is of the workplace, and the output is a standing plan</h2>
+<p class="reveal">Finnish statutory occupational health rests on a workplace survey that assesses the hazards, stress factors and resources of the work, the environment and the work community. From it the employer and the provider jointly prepare an action plan naming the goals, the means, who is responsible, and the schedule for the next surveys.</p>
+<p class="reveal">Two things. The survey is of the workplace, not of the people in it, which is a different object from our Healthiness Survey. And the standing output is a plan that schedules future work, where our 01 produces a hierarchy and a calendar but no programme.</p>
+<h2 class="reveal">The enterprise platforms</h2>
+<p class="reveal">Cority runs surveillance protocols with a recall and reminder system, immunisations, compliance reporting, and case management from intake to resolution, including return-to-work clearances. The pattern that repeats across Cority, KINNECT and Sonic is that <strong>clearance is a standing status on a person</strong>, current or expired, rather than a report that was produced once. Our set produces determinations and never holds a status.</p>
+<hr>
+<h1 class="reveal">The consolidated change set</h1>
+<p class="reveal">Both passes point at the same small number of shapes. This is the whole list, in the order I would build it.</p>
+<h2 class="reveal">Three new processes</h2>
+<p class="reveal"><strong>A. Produce the Role requirements.</strong> Commission, attend site, observe and measure the work, compile to a role-level document, Employer signs, publish as the yardstick, re-validate on change. Everything we have drawn measures against this and nothing creates it.</p>
+<p class="reveal"><strong>B. The clock.</strong> Requirements sit on the Site and the Role, each person's applicable set is computed from where they work and what they do, due and overdue are visible, and the clock raises Service Orders without anyone asking. This absorbs periodic monitoring, immunisations, credentials and any determination that carries a review date. It is the single largest gap, because without it Work Healthy Australia sells services and not programmes.</p>
+<p class="reveal"><strong>C. The case.</strong> Injury and return to work as something that persists: current capacity, certificates that expire and force re-assessment, a suitable-duties plan revised against each one, an external party with deadlines, and a closure. Our 04b answers a question once. A case answers it repeatedly until the answer is durable.</p>
+<h2 class="reveal">Changes to the diagrams we have</h2>
+<div class="tablewrap reveal"><table><thead><tr><th>Diagram</th><th>Change</th><th>Source</th></tr></thead><tbody><tr><td>01</td><td>Requirement and paperwork defaults on Site and Role, so a later request resolves what is required without a case-by-case decision. A standing programme plan per client, with the schedule for future work.</td><td>KINNECT, Finland</td></tr><tr><td>02</td><td>Credentials, inductions and immunisations carry expiry and feed the clock. Ours confirms them once.</td><td>KINNECT Comply, Cority</td></tr><tr><td>03</td><td>Two new triggers: an Order raised by the clock with no Employer behind it, and an Employer amending an existing booking. Confirmation to both the Employer contact and the Patient at booking. Paperwork issued before attendance.</td><td>Sonic, KINNECT</td></tr><tr><td>04a</td><td>Consent capture moves before attendance; the door verifies rather than collects. Identity stays at the door. New decision: is the service mandatory, offered, or requested, which decides what a decline means.</td><td>Sonic, Germany</td></tr><tr><td>04b</td><td>A safety gate before functional testing. Temporary against permanent with a review date, which is the join to the clock. A dispute or second-assessment path.</td><td>Jobfit, rail and coal schemes</td></tr><tr><td>05</td><td>Results back to the people who answered. An action plan with a named executor and a named reviewer. A re-survey clock. A non-retaliation rule.</td><td>People at Work, Japan</td></tr><tr><td>06</td><td>Late cancellation and failure to attend are billable, at rates by notice period.</td><td>KINNECT policy</td></tr><tr><td>Wall</td><td>In-flight status crosses: booking stage and milestones are not clinical detail. A monitoring crossing may carry date, reason and next due with no determination at all.</td><td>KINNECT Screen, Germany</td></tr></tbody></table></div>
+<h2 class="reveal">Five decisions that have to be made before any of it is drawn</h2>
+<ol class="reveal"><li><strong>Anonymous or confidential survey.</strong> Anonymous means no personal result and therefore no trigger for the self-referral we drew. Confidential means a personal result to the worker alone, which is how Japan makes self-referral work.</li><li><strong>Does the Patient see the determination before the Employer?</strong> Ours says no, Britain says yes. Recorded as a decision either way.</li><li><strong>Is every service commissioned by the Employer?</strong> If some are offered or worker-requested, a decline stops being a failure.</li><li><strong>What crosses the wall for a monitoring service?</strong> A determination, or date, reason and next due.</li><li><strong>Where does the case live?</strong> Extend 04b, or a new process. My view is a new process, because a case has a clock and 04b does not.</li></ol>
+<h2 class="reveal">What IMS provides, and therefore which slice is the MVP</h2>
+<p class="reveal">The three new processes cannot be scoped without knowing which of them already exist. The evidence we hold is thin and partly mis-filed.</p>
+<p class="reveal"><strong>Confirmed about IMS.</strong> It holds clients, sites and rostering, confirmed through the flow OccuSpan mirrored. It holds complaint and medical history records. Roles exist through its job task analysis records. Work Healthy Australia describes task analysis as its mature home ground, which is a description, not a verification.</p>
+<p class="reveal"><strong>Confirmed about the Bubble application, which is a different system.</strong> Reverse-engineered in full, ten documents, verified against the live API. System of record for job task analysis since July 2020: roughly 3,800 assessments, 3,448 tasks, 515 departments, 78 sites, 42 client companies, five ergonomic scoring instruments.</p>
+<p class="reveal"><strong>Everything else about IMS is unverified by its own authors</strong>, including whether any recall or cohort engine exists, certificate of capacity handling, suitable-duties plans, claim and insurer linkage, psychosocial survey capability, effective dating, versioning, access tiers, a unified request object, and invoicing.</p>
+<p class="reveal">And the correction that has to keep being made: the unauthenticated exposure, the orphaned job-matching and the REBA scoring defect are Bubble findings sitting in IMS-gap columns. They are the only concrete evidence in circulation and they are about the wrong system.</p>
+<h3 class="reveal">Mapping the three new processes onto that</h3>
+<div class="tablewrap reveal"><table><thead><tr><th>New process</th><th>Evidence</th><th>Provisional disposition</th></tr></thead><tbody><tr><td><strong>A. Produce the Role requirements</strong></td><td>Exists twice over. Bubble is a verified system of record with six years of data. IMS is described as its home ground. OccuSpan's equivalent cannot reliably finish, which starves every consumer</td><td><strong>In <span class="tag tag-mvp">MVP</span>, but as adopt and migrate, not build.</strong> It is the parity bar. The L1 process should be drawn because nothing else can be measured without it, but the build question is which system it migrates from</td></tr><tr><td><strong>B. The clock</strong></td><td>IMS's maturity is task analysis, not monitoring cycles. Whether a recall or cohort engine exists is unverified. Rostering exists, but that is scheduling capacity, and the maps warn explicitly against confusing the two</td><td><strong>Probably greenfield in both systems, therefore not parity.</strong> Deferring it cannot breach "no capability dropped". It is the largest single build on the list</td></tr><tr><td><strong>C. The case</strong></td><td>IMS holds complaint and medical history records, but is described as the system of record for task analysis and not for case management. Certificates, suitable duties and insurer linkage are all unverified</td><td><strong>Split.</strong> The records are parity and belong in the <span class="tag tag-mvp">MVP</span>. The case machinery, the expiring certificate and the revised duties plan, is probably greenfield and can follow</td></tr></tbody></table></div>
+<h3 class="reveal">The provisional slice</h3>
+<p class="reveal">MVP carries the seven processes as drawn, plus A adopted rather than built, plus C's records. Defer B entirely and defer C's case clock. The reasoning is that both deferrals are greenfield in both systems, so neither can breach the parity promise, and they are the two most expensive items on the list.</p>
+<p class="reveal">The exception is commercial rather than technical. If Work Healthy Australia intends to sell monitoring programmes rather than individually requested services, B is the product and not the parity, and deferring it defers the proposition.</p>
+<h3 class="reveal">Three questions that settle this without funding all of gate zero</h3>
+<p class="reveal">The full inventory is weeks of work and is unfunded. The MVP slice does not need all of it. It needs three answers, and the client application analyst can give them in a day.</p>
+<ol class="reveal"><li><strong>Does IMS raise work from a date?</strong> Any next-due field, any due or overdue list, any recall. A yes moves the clock from greenfield to parity and it must be in the MVP.</li><li><strong>Does IMS hold anything that persists across visits and is driven by an expiry?</strong> A certificate with a date, a duties plan revised against it. A yes moves the case machinery into parity.</li><li><strong>Where does task analysis actually happen, and which system do clinicians open?</strong> IMS, Bubble, or both. This decides what A migrates from, and whether the Bubble suite is the migration source or a decommissioning target.</li></ol>
+<p class="reveal">Row counts answer all three faster than screens do, which is what the Bubble tombstone finding already demonstrated: a table with no rows is an abandoned capability, whatever the screen suggests.</p>
+<p class="reveal">The risk of skipping even this reduced set is named in the programme plan. If the MVP is designed on the assumption that IMS has no clock and it turns out to have one, a capability is dropped at cutover, which is the failure the parity promise exists to prevent.</p>
+<h2 class="reveal">Deliberately not raised</h2>
+<p class="reveal">Drug and alcohol collection, which Work Healthy Australia does not do. The contents of a job demands document, which is below L1. The commercial front door of quote and credit check, which sits before the signed agreement that starts 01. Retention periods. Instrument selection for the survey. Jurisdiction-specific statutory deadlines, which are L2 once the case shape exists.</p>
+<footer>Edge8 · Work Healthy Australia · 2 August 2026</footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body></html>

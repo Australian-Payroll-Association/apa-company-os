@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which L1 steps need an L2 drawn under them</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#04102D; --blue:#287BE8; --lightgray:#EAEEF2; --white:#FFFFFF;
+  --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+  --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--white);color:var(--body);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:64px 28px 120px;}
+
+h1{font-size:40px;line-height:1.15;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 10px;}
+h2{font-size:27px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;margin:64px 0 14px;padding-top:22px;border-top:1px solid var(--border);}
+h3{font-size:20px;font-weight:700;color:var(--navy);margin:38px 0 8px;}
+h4{font-size:16.5px;font-weight:600;color:var(--navy);margin:26px 0 6px;}
+h2:first-of-type{border-top:none;padding-top:0;}
+p{margin:0 0 15px;}
+a{color:var(--blue);}
+strong{font-weight:600;color:var(--navy);}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.87em;background:var(--lightgray);
+     padding:2px 6px;border-radius:4px;color:var(--navy);}
+hr{border:none;border-top:1px solid var(--border);margin:48px 0;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 6px;}
+li::marker{color:var(--blue);}
+
+.lede{font-size:18px;color:var(--muted);margin:0 0 34px;}
+.meta{font-size:13.5px;color:var(--muted);border-left:3px solid var(--blue);padding:10px 0 10px 16px;
+      background:var(--lightgray);border-radius:0 6px 6px 0;margin:0 0 34px;}
+
+table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:14.5px;}
+th{text-align:left;font-weight:600;color:var(--navy);background:var(--lightgray);
+   padding:11px 13px;border-bottom:2px solid var(--border);vertical-align:top;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.tablewrap{overflow-x:auto;margin:20px 0 26px;}
+.tablewrap table{margin:0;}
+
+/* colour coding: dispositions */
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:0.01em;
+     padding:2px 9px;border-radius:999px;white-space:nowrap;}
+.tag-mvp{background:var(--blue);color:#fff;}
+.tag-reduced{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.tag-deferred{background:var(--lightgray);color:var(--muted);border:1px solid var(--border);}
+.tag-retired{background:#FFEDE5;color:#B5431A;border:1px solid #FFC9B0;}
+.tag-blocking{background:var(--magenta);color:#fff;}
+
+/* colour coding: legacy systems vs business objects */
+.sys{display:inline-block;background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;
+     padding:1px 8px;border-radius:4px;white-space:nowrap;}
+.obj{display:inline-block;background:#EAF2FE;color:#1A4E96;font-size:13px;font-weight:500;
+     padding:1px 8px;border-radius:4px;border:1px solid #CFE0FA;}
+
+.objgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin:12px 0 22px;}
+
+/* process cards */
+.proc{background:var(--lightgray);border-radius:10px;padding:22px 24px;margin:22px 0;}
+.proc h3{margin-top:0;}
+.proc p{margin-bottom:11px;}
+.proc p:last-child{margin-bottom:0;}
+.proc ol,.proc ul{margin-bottom:12px;}
+
+.band{margin:60px 0 8px;padding:16px 22px;background:var(--navy);color:#fff;border-radius:10px;}
+.band h2{border:none;padding:0;margin:0;color:#fff;font-size:22px;}
+.band .bsub{font-size:14px;color:#B9C4DA;margin-top:3px;}
+
+.callout{border-left:3px solid var(--orange);background:#FFF6F2;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;}
+.callout strong{color:#B5431A;}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+@media print{
+  /* reveals must never hide content on paper */
+  .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
+  body{font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:14pt;margin:22pt 0 8pt;padding-top:10pt;}
+  h3{font-size:12pt;margin:14pt 0 5pt;} h4{font-size:10.5pt;}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid;}
+  .proc,.band,.callout,.meta,tr,li{break-inside:avoid;page-break-inside:avoid;}
+  table{font-size:9pt;}
+  .tablewrap{overflow:visible;}
+  .band{background:var(--navy) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .proc,.meta,th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tag,.sys,.obj{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a{color:var(--blue);text-decoration:none;}
+  footer{margin-top:24pt;}
+}
+@page{margin:16mm 14mm;}
+@media (max-width:640px){
+  .wrap{padding:40px 18px 80px;} h1{font-size:31px;} h2{font-size:23px;} body{font-size:16px;}
+}
+</style></head>
+<body><div class="wrap">
+<h1>Which L1 steps need an L2 drawn under them</h1>
+<div class="meta">A working list, 2 August 2026. Every box in the eleven diagrams was tested against one question, and the answer decides whether it gets a subprocess.</div>
+<h2 class="reveal">The test</h2>
+<p class="reveal">A box needs an L2 when a builder could not build it from the box alone, because underneath it sits a sequence with its own decisions, its own failure modes, or its own actors.</p>
+<p class="reveal">A box does <strong>not</strong> need an L2 when what sits underneath is a list of fields, a choice of instrument, or a single write. That is L3, and drawing it as process is the trap.</p>
+<p class="reveal">Applied to every box, twenty-three come out as candidates. Nine are worth drawing. The rest are recorded here so the judgement is on the record rather than repeated.</p>
+<h2 class="reveal">Draw these five first</h2>
+<p class="reveal">Ranked by the criticality tiers, not by how interesting they are.</p>
+<div class="tablewrap reveal"><table><thead><tr><th>#</th><th>The L1 step</th><th>Process</th><th>Why it is not atomic</th><th>Tier</th></tr></thead><tbody><tr><td>1</td><td>Compute what is due: test validity, Site and Role intervals, plus dates set elsewhere</td><td>08</td><td>The most algorithmic box in the set. Resolve the applicable requirement set, take the shorter of test validity and the Site or Role interval, anchor each to its own last-completed or baseline date, then band into due soon, due and overdue. Nobody builds this from one sentence</td><td>Growth, but the largest single build</td></tr><tr><td>2</td><td>Set the requirement defaults on each Site and Role</td><td>01</td><td>This is the precedence algorithm everything downstream resolves against. Requirements attach at Site, at Role, or at the intersection, and the effective set is computed at order time with most specific winning. Get it wrong and 04, 05b and 08 all resolve wrong, silently</td><td>Cash and sellability</td></tr><tr><td>3</td><td>Search the Site Service calendar for a slot</td><td>04</td><td>Candidate slots inside the working days, minus travel from the previous Site, minus clinician hours already committed, filtered to whoever is credentialled for the service, sized to the estimated period. Five constraints interacting</td><td>Cash</td></tr><tr><td>4</td><td>Complete the site visit debrief</td><td>09</td><td>This is now the billing record, not a note. Split the day into travel, on site, debrief and internal minutes, allocate the on-site minutes across the contracted services delivered, mark what the agreement covers, and account for lost time by category</td><td>Cash</td></tr><tr><td>5</td><td>Release without identifying anyone?</td><td>07</td><td>Group size thresholds, and complementary-cell suppression, where a breakdown lets someone subtract their way to an individual. Real arithmetic with a privacy breach on the wrong side of it</td><td>Legal exposure</td></tr></tbody></table></div>
+<h2 class="reveal">Probably draw these four</h2>
+<div class="tablewrap reveal"><table><thead><tr><th>#</th><th>The L1 step</th><th>Process</th><th>Why it is not atomic</th></tr></thead><tbody><tr><td>6</td><td>Notified of the Site, date, time, and a check-in code, with paperwork beforehand</td><td>04</td><td>This is where consent is actually collected, which makes it load-bearing for 05a. Issue the code, send the pack, collect the outstanding consents against their current version, chase non-completion, and decide what happens when the Patient arrives with nothing done</td></tr><tr><td>7</td><td>Confirm credentials and their expiry</td><td>02</td><td>A capture, verify and track cycle rather than a field. Record the credential, verify it against the issuing register, store the expiry so 08 reads it, and decide what happens to bookings already made when one lapses</td></tr><tr><td>8</td><td>The door: locate the Order, identify, hold the record</td><td>05a</td><td>Widened on 5 August from identity alone to the whole admission door, when the record step was added to the L1. One L2, not three: the order repair loop (no Order, or wrong Site, returned to the Employer contact to raise or amend), acceptable identity documents and partial matches, and the within-Client duplicate search that reuses or creates the record. The wrong side of the record step is a cross-Client join, which is a privacy breach, the same exposure class as number 5. <strong>Drawn 5 August as L2 05a-DR</strong></td></tr><tr><td>9</td><td>Draft the suitable duties plan against the Role requirements</td><td>06</td><td>Matching recorded restrictions against the duties a Site actually has available, which is a search rather than a write, and the point where most return-to-work plans fail</td></tr><tr><td>10</td><td>The day owner rules how the day absorbs an urgent Order</td><td>04</td><td>Added 5 August with the urgent flag on complaint and injury Orders. Who may reshape a booked day, the push-or-clear test, what counts as critical, and what every bumped booking is owed. The complaint and injury reference records the matching IMS gap: no triage step exists. <strong>Drawn 5 August as L2 04-UR</strong></td></tr></tbody></table></div>
+<h2 class="reveal">Do not draw these. They are L3.</h2>
+<p class="reveal">Recorded so the argument is not had twice.</p>
+<div class="tablewrap reveal"><table><thead><tr><th>The L1 step</th><th>Why not</th></tr></thead><tbody><tr><td>Measure the demands of each task, rate the task risk</td><td>The sequence is decompose the role into tasks, measure each, roll up to the role, and that is one line. Which instrument does the measuring is a choice below this, and the step does not change when it changes</td></tr><tr><td>Render and assess against the Role requirements</td><td>This is not one subprocess, it is one per service, and each is a clinical specification rather than a process. They belong in a service catalogue</td></tr><tr><td>Record the state, the restrictions, whether temporary, and the review date</td><td>A field structure. Weight, height, frequency, duration, and a date. Important to get right, not a process</td></tr><tr><td>Capture the evidence</td><td>Attach files to a record</td></tr><tr><td>Name the client contacts and what each receives</td><td>Configuration</td></tr><tr><td>Record the contracted services and the term</td><td>Configuration, until contract variation mid-term turns out to be common, which it may</td></tr><tr><td>Lock the day</td><td>One state change with one permission on it</td></tr><tr><td>Record the barriers to recovery and which are resolved</td><td>A taxonomy and two flags</td></tr></tbody></table></div>
+<h2 class="reveal">Deliberately parked</h2>
+<p class="reveal">Real subprocesses, but none of them is on the critical path and each can wait until the thing above it is built.</p>
+<div class="tablewrap reveal"><table><thead><tr><th>The L1 step</th><th>Process</th><th>Note</th></tr></thead><tbody><tr><td>Attend the Site, observe the work being performed</td><td>03</td><td>A site visit has a shape, but it is the same shape as any other site visit</td></tr><tr><td>Review and sign the document</td><td>03</td><td>Signature routing and the revision cycle. Matters once there is something to sign</td></tr><tr><td>Weekly no-show report, follow up, then book from the report</td><td>04</td><td>Contact attempts, escalation, closure. Small and self-contained</td></tr><tr><td>Release the slots, Orders keep a slot</td><td>04</td><td>Outage handling. Which Orders keep their slot and who is told</td></tr><tr><td>Locate the Order and the Patient</td><td>05a</td><td>No longer parked on its own: absorbed into candidate 8 on 5 August, since the fallback search and the order repair loop are the shape of the same door</td></tr><tr><td>Review and update the standing medical history</td><td>05b</td><td>Clinical, and largely a form</td></tr><tr><td>Conduct functional testing against the Role requirements</td><td>05b</td><td>The PEFA sequence is published, so this is adoption rather than design</td></tr><tr><td>A reviewer with the right registration reviews and signs</td><td>05c</td><td>Queue, routing, rejection back to the author</td></tr><tr><td>Release to the Employer</td><td>05c</td><td>What crosses, how it is delivered, and proof it was</td></tr><tr><td>Identify the hazards</td><td>07</td><td>Four methods, four shapes. Only the survey one is in the first slice</td></tr><tr><td>Maintain the hierarchy after setup</td><td>01</td><td>Restructures, mergers, site closures and end-dating. Not in 01 today because 01 only draws creation, and it will be needed the first time a client reorganises</td></tr></tbody></table></div>
+<p class="reveal">That last one is the only genuine omission in the set rather than a decomposition. Everything else on this page exists as a box already.</p>
+<h2 class="reveal">Recommendation</h2>
+<p class="reveal">Draw one to five. They are four cash-or-exposure items and the largest build on the list, and each is a real algorithm that a builder cannot infer.</p>
+<p class="reveal">Hold six to nine until one to five are drawn, then reassess, because two of them may collapse into the ones above once those exist.</p>
+<p class="reveal">Leave the rest. The list stays here so nothing is lost, and nothing on it is blocking.</p>
+<footer>Edge8 · Work Healthy Australia · 30 July 2026</footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body></html>

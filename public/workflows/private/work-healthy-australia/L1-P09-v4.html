@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 09 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 09 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 09: Report to Invoice</h2><div class="meta"><div class="r"><div class="k">Prerequisite</div><div>Services rendered at a Site visit.</div></div><div class="r"><div class="k">Trigger</div><div>A site visit ends. Reports each have their own cadence. The invoicing date depends on the client acceptance cycle.</div></div><div class="r"><div class="k">Output</div><div>A report of the services rendered, against what was contracted.</div></div><div class="r"><div class="k">Output</div><div>Clear invoices to be paid, built from the locked minutes.</div></div><div class="r"><div class="k">Rule</div><div>Billing is time entry. There is no billable event. A Service Order is evidence that time was spent, never the thing that is charged.</div></div><div class="r"><div class="k">Rule</div><div>The debrief is the time entry. It splits the day into travel, on site, debrief and internal minutes, and says which of them the client agreement covers.</div></div><div class="r"><div class="k">Rule</div><div>A day is locked before it is invoiced, and after that the time records do not change. Unlocking is a named act by someone senior enough to do it, not an edit.</div></div><div class="r"><div class="k">Rule</div><div>The Clinician or Practitioner completes and submits the debrief for their own site visit. Submission is never a precondition for invoicing.</div></div><div class="r"><div class="k">Rule</div><div>Two chains that do not touch. An outstanding debrief holds the report of services rendered and nothing else.</div></div><div class="r"><div class="k">Rule</div><div>A late cancellation and a failure to attend are recorded, and neither is a billing event. The time was reserved and consumed, so it is already in the minutes.</div></div><div class="r"><div class="k">Rule</div><div>The report compares what was delivered against what was contracted, in minutes. That comparison is what a client renewing a contract asks for.</div></div><div class="r"><div class="k">Roles</div><div>Clinicians, Practitioners, Admin, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 2940 1370" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="2700" height="200" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="0" x2="2910" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="86" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="110" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="132" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="200" width="2700" height="230" fill="#FAF8FB"/>
+<rect x="0" y="200" width="210" height="230" fill="#532C6D"/>
+<line x1="0" y1="200" x2="2910" y2="200" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="301" font-size="27" font-weight="700" fill="#FFFFFF">Practitioner</text>
+<text x="20" y="325" font-size="18" fill="#DDD4E4">One Client organization</text>
+<text x="20" y="347" font-size="18" fill="#DDD4E4">only.</text>
+<rect x="210" y="430" width="2700" height="700" fill="#FFFFFF"/>
+<rect x="0" y="430" width="210" height="700" fill="#532C6D"/>
+<line x1="0" y1="430" x2="2910" y2="430" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="755" font-size="27" font-weight="700" fill="#FFFFFF">Admin</text>
+<text x="20" y="779" font-size="18" fill="#DDD4E4">Setup, accounts,</text>
+<text x="20" y="801" font-size="18" fill="#DDD4E4">authorization. No clinical</text>
+<text x="20" y="823" font-size="18" fill="#DDD4E4">detail.</text>
+<rect x="210" y="1130" width="2700" height="200" fill="#FAF8FB"/>
+<rect x="0" y="1130" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="1130" x2="2910" y2="1130" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="1216" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="1240" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="1262" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="1330" x2="2910" y2="1330" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="1130" x2="2910" y2="1130" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="1113" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="1137" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 100 L 660 100 L 660 740" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 315 L 660 315 L 660 740" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 780 L 810 780" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 960 715 L 960 680 L 1145 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1024" y="685" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 960 845 L 960 880 L 1135 880" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1024" y="885" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1375 680 L 1445 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1675 680 L 1710 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2010 680 L 2045 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2027" y="665" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1860 745 L 1860 791 L 1560 791 L 1560 733" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/><text x="1710" y="783" font-size="19" font-weight="600" fill="#5A5A5B" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No, keep accruing</text>
+<path d="M 2275 680 L 2760 680 L 2760 1177" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2517" y="656" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Counts and dates only</text>
+<path d="M 492 980 L 545 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 980 L 845 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 980 L 1410 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1710 980 L 2045 980" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1877" y="965" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1560 1045 L 1560 1080 L 1745 1080" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1624" y="1085" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1745 1080 L 1110 1080 L 1110 980 L 1075 980" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/>
+<path d="M 2160 1011 L 2160 1230 L 2328 1230" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<g><rect x="228" y="21" width="264" height="158" rx="79" fill="#532C6D"/><text x="360" y="55" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Complete the site visit</text><text x="360" y="81" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">debrief at end of day:</text><text x="360" y="107" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">travel, on site,</text><text x="360" y="133" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">debrief and internal</text><text x="360" y="159" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">minutes</text><rect x="453" y="166" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 460 179 H 472 M 466 173 V 185" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="228" y="262" width="264" height="106" rx="53" fill="#532C6D"/><text x="360" y="296" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Complete the site visit</text><text x="360" y="322" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">debrief. Own Client</text><text x="360" y="348" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">organization only.</text><rect x="453" y="355" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 460 368 H 472 M 466 362 V 374" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="228" y="940" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="974" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Client invoice</text><text x="360" y="1000" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">cycle begins</text></g>
+<g><rect x="545" y="740" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="774" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Collect the submitted</text><text x="660" y="800" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">debriefs for the day</text></g>
+<g><rect x="545" y="927" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="961" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Prepare the invoice</text><text x="660" y="987" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">from the locked</text><text x="660" y="1013" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">minutes</text></g>
+<g><path d="M 960 715 L 1110 780 L 960 845 L 810 780 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="765" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Debrief submitted for</text><text x="960" y="787" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">every rendered</text><text x="960" y="809" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">service?</text></g>
+<g><rect x="845" y="940" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="974" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Check the client</text><text x="960" y="1000" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">acceptance date</text></g>
+<g><rect x="1145" y="627" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="661" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Lock the day. No</text><text x="1260" y="687" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">further change to</text><text x="1260" y="713" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the time records.</text></g>
+<g><rect x="1135" y="827" width="250" height="106" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="1260" y="861" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Outstanding debrief.</text><text x="1260" y="887" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Chased. Invoicing</text><text x="1260" y="913" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">is not held.</text></g>
+<g><rect x="1445" y="627" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="661" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Compile the minutes</text><text x="1560" y="687" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">and the services</text><text x="1560" y="713" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">rendered per client</text></g>
+<g><path d="M 1560 915 L 1710 980 L 1560 1045 L 1410 980 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="976" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Acceptance date</text><text x="1560" y="998" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">reached?</text></g>
+<g><path d="M 1860 615 L 2010 680 L 1860 745 L 1710 680 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="676" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Report cadence</text><text x="1860" y="698" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">reached?</text></g>
+<g><rect x="1745" y="1040" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="1074" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Hold until the</text><text x="1860" y="1100" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">acceptance date</text></g>
+<g><rect x="2045" y="614" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="648" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Produce the report:</text><text x="2160" y="674" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">services rendered</text><text x="2160" y="700" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">against what was</text><text x="2160" y="726" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">contracted</text></g>
+<g><rect x="2045" y="949" width="230" height="62" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="987" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Issue the invoice</text></g>
+<g><rect x="2328" y="1190" width="264" height="80" rx="40" fill="#532C6D"/><text x="2460" y="1224" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Accept and pay.</text><text x="2460" y="1250" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Clear invoices.</text></g>
+<g><rect x="2628" y="1177" width="264" height="106" rx="53" fill="#532C6D"/><text x="2760" y="1211" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Alert: report ready.</text><text x="2760" y="1237" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Receive the report of</text><text x="2760" y="1263" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">services rendered.</text></g>
+</svg></div></div>
+</div></body></html>
