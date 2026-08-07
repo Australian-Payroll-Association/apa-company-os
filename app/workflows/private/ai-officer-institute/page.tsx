@@ -55,6 +55,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'plan',
+    href: '/workflows/private/ai-officer-institute/coaching-scheduling-video-erd.html',
+    title: 'Coaching, Scheduling, Video: V2 ERD delta',
+    description:
+      'The database delta for the coaching, scheduling, and video model: one generic live_event table with signups and coaching topics, micro-session assignments riding the existing submission and assessment loop, video watch tracking, curated categories, and the superseded-video display rule. Shows 23 of 50+ live tables with NEW, EXTENDED, and EXISTING states.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/ai-officer-institute/coaching-module-plan',
     title: 'Coaching Module — build plan',
     description:
