@@ -13,6 +13,13 @@ export const metadata: Metadata = {
 const ITEMS: LibraryItem[] = [
   {
     category: 'prototype',
+    href: '/workflows/private/ai-officer-institute/hub.html',
+    title: 'Learning Hub (unified prototype)',
+    description:
+      'One prototype with a left-hand nav pulling Coaching, Micro Sessions, and Videos into a single shell, plus a light Home and Certification. Every section shares one taxonomy: a certification category (AI Officer, AI Engineer, Leadership) and free-flowing topic tags. Coaching submits a coaching topic; Micro Sessions log the five data points and earn a credit on challenge submit (Tuesdays 4pm GMT+7); Videos is a YouTube-light library with a featured video, recently watched, 30-day watch stats, and a Micro-Sessions category.',
+  },
+  {
+    category: 'prototype',
     href: '/workflows/private/ai-officer-institute/video-module.html',
     title: 'Video Library',
     description:
