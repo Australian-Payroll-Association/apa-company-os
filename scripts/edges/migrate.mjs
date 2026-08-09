@@ -115,6 +115,12 @@ const statements = [
   `alter table company_os.issues enable row level security`,
   `alter table company_os.sync_packets enable row level security`,
 
+  // Every metric needs an owner: a person, an agent, or both.
+  `do $$ begin
+    alter table company_os.metrics add constraint metrics_owner_required
+      check (owner_person_id is not null or owner_agent is not null);
+  exception when duplicate_object then null; end $$`,
+
   // Grants to match the sibling company_os tables. Tables created over the
   // postgres connection do NOT inherit these; without them PostgREST returns
   // "permission denied" even to the service key.
