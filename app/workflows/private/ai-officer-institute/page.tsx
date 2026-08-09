@@ -54,6 +54,13 @@ const ITEMS: LibraryItem[] = [
       'Bring a challenge, get coached. The weekly live-coaching experience: an Upcoming view, submitted-challenge voting (max 8 topics per session), and a recorded-session archive with attendees, key learnings, video, and resources. Mirrors caiocoach.com/coaching.',
   },
   {
+    category: 'data',
+    href: '/workflows/private/ai-officer-institute/aiolabz-db-schema.html',
+    title: 'AIO Labz: Database Schema',
+    description:
+      'Indexed, zoomable map of the live AIO Labz V2 database: 47 tables and 6 views across nine domains — catalog, videos and live events, learning and grading, identity, commerce, company, support, and the agents chat and vector store — with every column, key, and relationship.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/ai-officer-institute/coaching-scheduling-video-erd.html',
     title: 'Coaching, Scheduling, Video: V2 ERD delta',
