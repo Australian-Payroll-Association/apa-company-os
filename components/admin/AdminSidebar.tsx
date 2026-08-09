@@ -12,17 +12,38 @@ type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
 type NavSubsection = { subheading: string; items: NavItem[] };
 type NavEntry = NavItem | NavSubsection;
 type NavGroup = { label: string | null; items: NavEntry[]; collapsible?: boolean };
+type NavSection = { section: string | null; groups: NavGroup[] };
 
 const isSubsection = (e: NavEntry): e is NavSubsection => "subheading" in e;
 
-// Nested-by-office IA, three levels deep: every feature (L3) lives under a System
-// (L2) inside an Office (L1). Offices are the Four Offices of the Future (Revenue,
-// Talent, Operations, Innovation) plus a Dashboard home and a Settings area;
-// Systems are the products within each office (CRM, Commerce, ATS, People, Time
-// Off, Workplace, ...). Offices and Systems both collapse. Rows
-// open the shared 360s. See docs/product/four-offices-of-the-future.md.
-const NAV: NavGroup[] = [
-  { label: null, items: [{ label: "Dashboard", href: "/admin", ico: "◈", enabled: true }] },
+// Three labeled sections (agreed 2026-08-09, see
+// docs/product/eight-edges/eight-edges-engineering-plan.md): EIGHT EDGES points
+// the company (Company Dashboard = the unchanged /admin home, plus the Edges
+// pages), FOUR OFFICES runs it (the nested-by-office IA: every feature lives
+// under a System inside an Office, see
+// docs/product/four-offices-of-the-future.md), WORKSPACE configures it.
+// Offices and Systems both collapse. Rows open the shared 360s.
+const NAV: NavSection[] = [
+  {
+    section: "Eight Edges",
+    groups: [
+      { label: null, items: [{ label: "Company Dashboard", href: "/admin", ico: "◈", enabled: true }] },
+      {
+        label: "Edges",
+        collapsible: true,
+        items: [
+          { label: "Goals", href: "/admin/edges/goals", ico: "◆", enabled: true },
+          { label: "Metrics", href: "/admin/edges/metrics", ico: "▲" },
+          { label: "Sync", href: "/admin/edges/sync", ico: "☰" },
+          { label: "Issues", href: "/admin/edges/issues", ico: "◉" },
+          { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
+        ],
+      },
+    ],
+  },
+  {
+    section: "Four Offices",
+    groups: [
   {
     label: "Revenue",
     collapsible: true,
@@ -128,6 +149,11 @@ const NAV: NavGroup[] = [
       },
     ],
   },
+    ],
+  },
+  {
+    section: "Workspace",
+    groups: [
   {
     label: "Settings",
     collapsible: true,
@@ -146,6 +172,8 @@ const NAV: NavGroup[] = [
           { label: "QuickBooks", href: "/admin/settings/quickbooks", ico: "⌁", enabled: true },
         ],
       },
+    ],
+  },
     ],
   },
 ];
@@ -386,7 +414,10 @@ export function AdminSidebar({
         )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
-          {NAV.map((group, gi) => {
+          {NAV.map((sect, si) => (
+            <div key={sect.section ?? `s${si}`}>
+              {sect.section && <div className="admin-nav-sectlabel">{sect.section}</div>}
+              {sect.groups.map((group, gi) => {
             const label = group.label;
             const isCollapsed = Boolean(label && group.collapsible && collapsed[label]);
             return (
@@ -414,7 +445,9 @@ export function AdminSidebar({
               )}
             </div>
             );
-          })}
+              })}
+            </div>
+          ))}
         </div>
       </nav>
     </>
