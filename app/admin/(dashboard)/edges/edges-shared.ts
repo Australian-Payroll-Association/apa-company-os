@@ -139,6 +139,7 @@ export type MetricRow = {
   direction: "up" | "down";
   source: "agent" | "manual";
   source_detail: string | null;
+  owner_person_id: string | null;
   owner_agent: string | null;
   key_result_id: string | null;
 };
@@ -156,7 +157,7 @@ export type IssueRow = {
 };
 
 export const METRIC_SELECT =
-  "id, name, office, formula, target, direction, source, source_detail, owner_agent, key_result_id";
+  "id, name, office, formula, target, direction, source, source_detail, owner_person_id, owner_agent, key_result_id";
 export const ISSUE_SELECT = "id, title, diagnosis, key_result_id, filed_by, status, notes_md, created_at, resolved_at";
 
 export const ISSUE_DIAGNOSES = ["goal", "system", "execution"] as const;

@@ -20,9 +20,15 @@ export type MetricInput = {
   direction?: "up" | "down";
   source: "agent" | "manual";
   source_detail?: string;
-  owner_agent?: string;
+  owner_person_id?: string | null;
+  owner_agent?: string | null;
   key_result_id?: string;
 };
+
+// Every metric needs an owner: a person, an agent, or both (also a DB constraint).
+function hasOwner(input: Pick<MetricInput, "owner_person_id" | "owner_agent">): boolean {
+  return Boolean(input.owner_person_id || input.owner_agent);
+}
 
 function clean(input: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -39,6 +45,7 @@ export async function createMetric(input: MetricInput): Promise<Result & { id?: 
   if (!name) return { ok: false, error: "Metric name is required." };
   if (!OFFICES.includes(input.office as (typeof OFFICES)[number])) return { ok: false, error: "Pick an office." };
   if (input.source !== "agent" && input.source !== "manual") return { ok: false, error: "Invalid source." };
+  if (!hasOwner(input)) return { ok: false, error: "Every metric needs an owner. Pick a person or an agent." };
 
   const row = { ...clean({ ...input }), name };
   const { data, error } = await companyOs.from("metrics").insert(row).select("id").single();
@@ -51,6 +58,9 @@ export async function createMetric(input: MetricInput): Promise<Result & { id?: 
 export async function updateMetric(id: string, patch: Partial<MetricInput>): Promise<Result> {
   const admin = await requireAdmin();
   if (patch.name !== undefined && !patch.name.trim()) return { ok: false, error: "Metric name can't be empty." };
+  if (("owner_person_id" in patch || "owner_agent" in patch) && !hasOwner(patch)) {
+    return { ok: false, error: "Every metric needs an owner. Pick a person or an agent." };
+  }
   const updates = { ...clean(patch), updated_at: new Date().toISOString() };
   const { error } = await companyOs.from("metrics").update(updates).eq("id", id);
   if (error) return { ok: false, error: error.message };
