@@ -4,25 +4,69 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { sendTransactionalEmail } from "@/lib/email";
+import { promotePersonToLead } from "@/lib/lifecycle";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-const STATUSES = new Set(["new_lead", "contacted", "discovery", "proposal", "won", "lost", "archived"]);
+// The four working stages plus the two terminal exits. 'qualified' is not
+// movable here: promotion goes through promoteInquiryToLead so the person
+// also lands in the SDR lead queue.
+const STATUSES = new Set(["new_lead", "contacted", "no_action", "spam", "archived"]);
+
+function refresh() {
+  revalidatePath("/admin/revenue/inquiries");
+  // The cockpit's "Inquiries to triage" card only shows new_lead; archiving or
+  // moving an inquiry must clear it there too, not just on the board.
+  revalidatePath("/admin/revenue");
+}
 
 export async function moveInquiryStatus(id: string, status: string): Promise<Result> {
   await requireAdmin();
   if (!STATUSES.has(status)) return { ok: false, error: "Invalid status." };
   const { error } = await companyOs.from("inquiries").update({ status }).eq("id", id);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/revenue/inquiries");
-  // The cockpit's "Inquiries to triage" card only shows new_lead; archiving or
-  // moving an inquiry must clear it there too, not just on the board.
-  revalidatePath("/admin/revenue");
+  refresh();
   return { ok: true };
 }
 
 export async function archiveInquiry(id: string): Promise<Result> {
   return moveInquiryStatus(id, "archived");
+}
+
+export async function markInquirySpam(id: string): Promise<Result> {
+  return moveInquiryStatus(id, "spam");
+}
+
+// Promote to lead: the inquiry moves to 'qualified' AND the person joins the
+// SDR queue on /admin/revenue/leads via the shared lifecycle helper (upserts
+// the lead satellite row with a fresh SLA, logs the transition).
+export async function promoteInquiryToLead(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: inquiry, error: iErr } = await companyOs
+    .from("inquiries")
+    .select("person_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (iErr || !inquiry) return { ok: false, error: iErr?.message ?? "Inquiry not found." };
+  if (!inquiry.person_id) return { ok: false, error: "No contact attached to this inquiry." };
+
+  const promoted = await promotePersonToLead(inquiry.person_id, {
+    reason: "inquiry_promoted",
+    changedBy: admin.email,
+  });
+  if (!promoted.ok) return promoted;
+
+  const { error: uErr } = await companyOs
+    .from("inquiries")
+    .update({ status: "qualified" })
+    .eq("id", id);
+  if (uErr) return { ok: false, error: uErr.message };
+
+  refresh();
+  revalidatePath("/admin/revenue/leads");
+  revalidatePath("/admin/contacts");
+  return { ok: true };
 }
 
 function escapeHtml(s: string): string {

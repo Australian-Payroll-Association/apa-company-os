@@ -10,7 +10,7 @@ export const metadata = {
   description: "Inbound inquiries from the website and forms.",
 };
 
-const ACTIVE_STATUSES = ["new_lead", "contacted", "discovery", "proposal", "won", "lost"];
+const ACTIVE_STATUSES = ["new_lead", "contacted", "qualified", "no_action"];
 // The inquiries board is inbound SALES contact only. Event/commerce/legacy-import
 // intake (retreat signups, checkout, newsletter, the one-off legacy 'general'
 // bulk import) lives in orders/registrations, not here.
@@ -65,8 +65,8 @@ export default async function InquiriesPage() {
   const kpis = {
     fresh: count((c) => c.columnId === "new_lead"),
     contacted: count((c) => c.columnId === "contacted"),
-    discussion: count((c) => c.columnId === "discovery" || c.columnId === "proposal"),
-    converted: count((c) => !!c.deal_id),
+    promoted: count((c) => c.columnId === "qualified"),
+    noAction: count((c) => c.columnId === "no_action"),
   };
 
   return (
@@ -84,8 +84,8 @@ export default async function InquiriesPage() {
       <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
         <MetricCard label="New" value={kpis.fresh} sub="unworked" />
         <MetricCard label="Contacted" value={kpis.contacted} />
-        <MetricCard label="In discussion" value={kpis.discussion} />
-        <MetricCard label="Converted to deal" value={kpis.converted} />
+        <MetricCard label="Promoted to lead" value={kpis.promoted} sub="in the SDR queue" />
+        <MetricCard label="No action" value={kpis.noAction} />
       </div>
       <InquiriesBoard initialCards={cards} />
     </>
