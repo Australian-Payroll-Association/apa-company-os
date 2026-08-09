@@ -29,8 +29,11 @@ work, spread across the quarter on purpose.
 
 ## PR 1: "Create the goal tables"
 
-**What it does.** Adds five tables to the company database: strategies (the one-page annual
-strategy), objectives, key results, metrics with their weekly readings, and issues. Two rules
+**What it does.** Adds five tables to the `company_os` schema in our existing Supabase project,
+the same schema where the CRM already lives (deals, people, companies, meetings). No new
+database, no new schema; agents reach it the same way the CRM helper already does. The five
+tables: strategies (the one-page annual strategy), objectives, key results, metrics with their
+weekly readings, and issues. Two rules
 are built into the database itself so they can never be skipped: an office or individual
 objective cannot be saved without naming the company key result it serves, and a key result
 cannot be saved without naming its one accountable human.
