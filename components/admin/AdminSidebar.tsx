@@ -27,11 +27,11 @@ const NAV: NavSection[] = [
   {
     section: "Eight Edges",
     groups: [
-      { label: null, items: [{ label: "Company Dashboard", href: "/admin", ico: "◈", enabled: true }] },
       {
         label: "Edges",
         collapsible: true,
         items: [
+          { label: "Company Dashboard", href: "/admin", ico: "◈", enabled: true },
           { label: "Goals", href: "/admin/edges/goals", ico: "◆", enabled: true },
           { label: "Metrics", href: "/admin/edges/metrics", ico: "▲", enabled: true },
           { label: "Sync", href: "/admin/edges/sync", ico: "☰", enabled: true },
