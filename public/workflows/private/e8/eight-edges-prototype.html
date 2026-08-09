@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Edge8 OS · Eight Edges (prototype)</title>
+<style>
+  :root{
+    --navy:#04102D;
+    --navy2:#0A1C45;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+    --ink:#1a2340;
+    --muted:#66708c;
+    --line:#E2E7F0;
+    --bg:#F4F6FA;
+    --green:#12A06B;
+    --amber:#D97706;
+    --red:#DC2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex;min-height:100vh;}
+
+  /* ── Sidebar ─────────────────────────── */
+  .side{width:212px;background:var(--navy);color:var(--mist);flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .logo{padding:22px 20px 18px;font-size:17px;font-weight:800;color:var(--white);letter-spacing:.01em;}
+  .logo em{color:var(--mint);font-style:normal;}
+  .logo span{display:block;font-size:10.5px;font-weight:600;color:#8fa0c4;letter-spacing:.14em;margin-top:2px;}
+  .nav{flex:1;padding:6px 10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:#aab8d6;text-decoration:none;font-size:13.5px;font-weight:550;margin-bottom:2px;}
+  .nav a .ic{width:17px;text-align:center;opacity:.9;}
+  .nav a:hover{background:var(--navy2);color:var(--white);}
+  .nav a.on{background:var(--navy2);color:var(--white);box-shadow:inset 3px 0 0 var(--mint);}
+  .nav .grp{font-size:10px;letter-spacing:.16em;color:#5d6d94;font-weight:700;padding:16px 12px 6px;}
+  .side .me{padding:14px 16px;border-top:1px solid #16274f;display:flex;gap:10px;align-items:center;font-size:12.5px;color:#aab8d6;}
+
+  /* ── Main ───────────────────────────── */
+  .main{flex:1;min-width:0;padding:0 26px 60px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:20px 0 14px;}
+  .topbar h1{font-size:21px;font-weight:800;color:var(--navy);}
+  .topbar h1 small{font-weight:600;color:var(--muted);font-size:13px;margin-left:10px;}
+  .fast{display:flex;gap:8px;flex-wrap:wrap;}
+  .fchip{background:var(--white);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:650;color:var(--muted);display:flex;gap:6px;align-items:center;}
+  .fchip b{color:var(--navy);}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .dot.g{background:var(--green);} .dot.a{background:var(--amber);} .dot.r{background:var(--red);}
+
+  .strategy{background:var(--navy);color:var(--white);border-radius:14px;padding:18px 22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+  .strategy .lbl{font-size:10.5px;letter-spacing:.16em;color:var(--mint);font-weight:800;flex-shrink:0;}
+  .strategy p{font-size:14.5px;flex:1;min-width:260px;color:var(--mist);}
+  .strategy .mix{display:flex;align-items:center;gap:10px;font-size:11.5px;color:#aab8d6;flex-shrink:0;}
+  .mixbar{width:150px;height:10px;border-radius:999px;overflow:hidden;display:flex;}
+  .mixbar i{display:block;height:100%;}
+
+  .tabs{display:flex;gap:4px;margin:20px 0 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .tabs button{appearance:none;border:0;background:none;font:inherit;font-weight:650;color:var(--muted);padding:9px 14px;cursor:pointer;border-bottom:2.5px solid transparent;font-size:13.5px;}
+  .tabs button.on{color:var(--navy);border-bottom-color:var(--pink);}
+  .tabs button .n{background:var(--mist);border-radius:999px;font-size:11px;padding:1px 7px;margin-left:5px;color:var(--muted);}
+
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;}
+  @media(max-width:1100px){.cols{grid-template-columns:1fr;}}
+
+  /* ── Objective cards / cascade ──────── */
+  .obj{background:var(--white);border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden;}
+  .obj>.head{padding:16px 20px 12px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;}
+  .obj>.head h3{font-size:16px;font-weight:750;color:var(--navy);flex:1;min-width:220px;}
+  .line-tag{font-size:10.5px;font-weight:800;letter-spacing:.1em;padding:3px 10px;border-radius:6px;}
+  .line-tag.staff{background:#E7F1FE;color:var(--blue);}
+  .line-tag.ai{background:#FDE7F2;color:var(--pink);}
+  .line-tag.co{background:#E3FBF1;color:#0B7A55;}
+  .obj .oprog{font-size:12px;color:var(--muted);font-weight:650;}
+
+  .kr{border-top:1px solid var(--line);padding:12px 20px;}
+  .kr .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .kr .title{flex:1;min-width:230px;font-size:13.5px;font-weight:600;}
+  .kr .title .krid{color:var(--muted);font-weight:700;font-size:11px;margin-right:8px;}
+  .cast{font-size:10px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:999px;flex-shrink:0;}
+  .cast.human{background:#FDE7F2;color:var(--pink);}
+  .cast.ai{background:#E3FBF1;color:#0B7A55;}
+  .cast.blend{background:#E7F1FE;color:var(--blue);}
+  .owner{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+  .av{width:22px;height:22px;border-radius:50%;background:var(--navy);color:var(--white);font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .av.bot{background:#DFF9EE;color:#0B7A55;border:1px solid #b1eed6;border-radius:6px;}
+  .prog{width:130px;flex-shrink:0;display:flex;align-items:center;gap:8px;}
+  .bar{flex:1;height:7px;background:var(--mist);border-radius:999px;overflow:hidden;}
+  .bar i{display:block;height:100%;border-radius:999px;}
+  .pv{font-size:11.5px;font-weight:750;width:34px;text-align:right;}
+  .exp{appearance:none;border:1px solid var(--line);background:var(--white);border-radius:7px;font-size:11px;font-weight:700;color:var(--muted);padding:3px 9px;cursor:pointer;flex-shrink:0;}
+  .exp:hover{color:var(--navy);border-color:var(--blue);}
+
+  .chain{display:none;margin:12px 0 4px 14px;border-left:2px solid var(--mist);padding-left:16px;}
+  .kr.open .chain{display:block;}
+  .chain .node{background:#F8FAFD;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:8px;}
+  .chain .lv{font-size:9.5px;font-weight:800;letter-spacing:.14em;color:var(--blue);display:block;margin-bottom:3px;}
+  .chain .node.exec .lv{color:#0B7A55;}
+  .chain .node b{font-size:13px;color:var(--navy);}
+  .chain .node .nkr{font-size:12.5px;color:var(--ink);margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .chain .link{color:var(--pink);font-weight:700;font-size:11px;}
+
+  /* ── Right rail ─────────────────────── */
+  .rail .box{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;}
+  .rail h4{font-size:11px;letter-spacing:.14em;font-weight:800;color:var(--blue);margin-bottom:12px;}
+  .met{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);}
+  .met:last-child{border-bottom:0;}
+  .met .nm{flex:1;font-size:12.5px;font-weight:600;}
+  .met .nm span{display:block;font-size:10.5px;color:var(--muted);font-weight:550;}
+  .met .val{font-size:14px;font-weight:800;color:var(--navy);}
+  .met .d{font-size:10.5px;font-weight:750;}
+  .d.up{color:var(--green);} .d.down{color:var(--red);} .d.flat{color:var(--muted);}
+  .src{font-size:9px;font-weight:800;letter-spacing:.08em;color:#0B7A55;background:#E3FBF1;border-radius:5px;padding:1px 5px;vertical-align:middle;}
+  .issue{padding:9px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+  .issue:last-child{border-bottom:0;}
+  .issue .who{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .diag{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;margin-right:6px;}
+  .diag.sys{background:#FEF3E2;color:var(--amber);}
+  .diag.exec{background:#FDE7F2;color:var(--pink);}
+  .diag.goal{background:#E7F1FE;color:var(--blue);}
+  .sync li{list-style:none;font-size:12.5px;padding:6px 0 6px 22px;position:relative;border-bottom:1px dashed var(--line);}
+  .sync li:last-child{border-bottom:0;}
+  .sync li::before{content:"";position:absolute;left:4px;top:12px;width:7px;height:7px;background:var(--mint);border-radius:50%;}
+  .railnote{font-size:10.5px;color:var(--muted);margin-top:10px;display:flex;gap:6px;align-items:center;}
+
+  /* ── Secondary tabs (tables) ────────── */
+  .pane{display:none;}
+  .pane.on{display:block;}
+  .tbl{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:13px;}
+  .tbl th{background:var(--navy);color:var(--white);text-align:left;padding:10px 14px;font-size:11.5px;letter-spacing:.06em;}
+  .tbl td{padding:10px 14px;border-top:1px solid var(--line);vertical-align:middle;}
+  .rev{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:14px;}
+  .rev h5{font-size:14px;font-weight:750;color:var(--navy);margin-bottom:6px;display:flex;gap:8px;align-items:center;}
+  .rev p{font-size:12.5px;color:var(--ink);margin-bottom:6px;}
+  .rev .q{font-weight:750;color:var(--blue);}
+  .proto{position:fixed;bottom:12px;right:14px;background:var(--pink);color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;padding:4px 10px;border-radius:999px;opacity:.92;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="logo">Edge<em>8</em> OS<span>COMPANY OPERATING SYSTEM</span></div>
+    <nav class="nav">
+      <a href="#" class="on"><span class="ic">◆</span> Eight Edges</a>
+      <div class="grp">FOUR OFFICES</div>
+      <a href="#"><span class="ic">▲</span> Revenue</a>
+      <a href="#"><span class="ic">●</span> Talent</a>
+      <a href="#"><span class="ic">■</span> Operations</a>
+      <a href="#"><span class="ic">✦</span> Innovation</a>
+      <div class="grp">WORKSPACE</div>
+      <a href="#"><span class="ic">☰</span> Playbooks</a>
+      <a href="#"><span class="ic">⚙</span> Agents</a>
+    </nav>
+    <div class="me"><span class="av">DH</span> Dave Hajdu<br></div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <h1>Eight Edges <small>Q3 2026 · Week 7 of 13</small></h1>
+      <div class="fast">
+        <div class="fchip"><span class="dot g"></span>Frequent <b>6/7 syncs</b></div>
+        <div class="fchip"><span class="dot g"></span>Specific <b>21/23 KRs measurable</b></div>
+        <div class="fchip"><span class="dot a"></span>Ambitious <b>2 flagged soft</b></div>
+        <div class="fchip"><span class="dot g"></span>Transparent <b>100% visible</b></div>
+      </div>
+    </div>
+
+    <div class="strategy">
+      <span class="lbl">STRATEGY · 2026</span>
+      <p>Own the staffing renewal base, make AI Programs the growth engine, and prove a company can run half human, half AI, then teach it.</p>
+      <div class="mix">
+        <span>Casting mix</span>
+        <div class="mixbar" title="Human 9 · Blended 8 · AI 6">
+          <i style="width:39%;background:var(--pink);"></i>
+          <i style="width:35%;background:var(--blue);"></i>
+          <i style="width:26%;background:var(--mint);"></i>
+        </div>
+        <span>9H · 8B · 6A</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="on" data-pane="cascade">Goals</button>
+      <button data-pane="metrics">Metrics</button>
+      <button data-pane="sync">Sync</button>
+      <button data-pane="issues">Issues <span class="n">3</span></button>
+      <button data-pane="reviews">Reviews</button>
+    </div>
+
+    <!-- ── GOALS / CASCADE ─────────────── -->
+    <div class="pane on" id="cascade">
+      <div class="cols">
+        <div>
+
+          <!-- O1 Staffing -->
+          <div class="obj">
+            <div class="head">
+              <span class="line-tag staff">STAFFING</span>
+              <h3>O1 · Own the renewal base</h3>
+              <span class="oprog">58% · on track</span>
+            </div>
+
+            <div class="kr open">
+              <div class="row">
+                <div class="title"><span class="krid">KR1.1</span>Renew 4 of 4 staffing contracts (Unlock, On Target, EO, Wareease)</div>
+                <span class="cast human">HUMAN-LED</span>
+                <span class="owner"><span class="av" title="Dave Hajdu">DH</span></span>
+                <div class="prog"><div class="bar"><i style="width:50%;background:var(--blue);"></i></div><span class="pv">2/4</span></div>
+                <button class="exp">Cascade ▾</button>
+              </div>
+              <div class="chain">
+                <div class="node">
+                  <span class="lv">OFFICE OF REVENUE · translates KR1.1</span>
+                  <b>O: Make renewals a system, not a scramble</b>
+                  <div class="nkr">KR: Renewal workflow runs end-to-end for all 4 anniversaries <span class="cast blend">BLENDED</span></div>
+                  <div class="nkr"><span class="link">KR: Transcript to live proposal under 10 min ↴</span></div>
+                </div>
+                <div class="node exec">
+                  <span class="lv">EXECUTOR · Dave (accountable) + developer agent (executing)</span>
+                  <b>O: Proposal generation fully agent-run</b>
+                  <div class="nkr">KR: crm-call-to-proposal executes &lt;10 min, 100% of runs <span class="cast ai">AI-LED</span> <span class="owner"><span class="av">DH</span><span class="av bot" title="developer agent">dev</span></span></div>
+                  <div class="nkr">KR: Zero manual CRM writes for renewals this quarter <span class="cast ai">AI-LED</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR1.2</span>Staffing revenue from $34k to $42k MRR</div>
+                <span class="cast blend">BLENDED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="email-marketer agent">em</span></span>
+                <div class="prog"><div class="bar"><i style="width:44%;background:var(--blue);"></i></div><span class="pv">44%</span></div>
+                <button class="exp">Cascade ▾</button>
+              </div>
+              <div class="chain">
+                <div class="node">
+                  <span class="lv">OFFICE OF TALENT · translates KR1.2</span>
+                  <b>O: Bench strength that makes expansion easy to say yes to</b>
+                  <div class="nkr">KR: 3 pre-vetted candidates ready per active role family <span class="cast human">HUMAN-LED</span></div>
+                  <div class="nkr">KR: Time-to-fill under 21 days on expansion seats <span class="cast blend">BLENDED</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR1.3</span>Renewal proposal live within 48h of trigger date, every anniversary</div>
+                <span class="cast ai">AI-LED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="developer agent">dev</span></span>
+                <div class="prog"><div class="bar"><i style="width:100%;background:var(--mint);"></i></div><span class="pv">100%</span></div>
+                <button class="exp">Cascade ▾</button>
+              </div>
+              <div class="chain">
+                <div class="node exec">
+                  <span class="lv">EXECUTOR · developer agent (executing) · Dave (accountable)</span>
+                  <b>Runs playbook: staffing-contract-renewal</b>
+                  <div class="nkr">2 of 2 anniversaries hit inside 48h this quarter (Unlock, On Target)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- O2 AI Programs -->
+          <div class="obj">
+            <div class="head">
+              <span class="line-tag ai">AI PROGRAMS</span>
+              <h3>O2 · Make AI Programs the growth engine</h3>
+              <span class="oprog">47% · watch</span>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR2.1</span>Close 6 new AI Program deals</div>
+                <span class="cast human">HUMAN-LED</span>
+                <span class="owner"><span class="av">DH</span></span>
+                <div class="prog"><div class="bar"><i style="width:50%;background:var(--blue);"></i></div><span class="pv">3/6</span></div>
+                <button class="exp">Cascade ▾</button>
+              </div>
+              <div class="chain">
+                <div class="node">
+                  <span class="lv">OFFICE OF REVENUE · translates KR2.1</span>
+                  <b>O: A pipeline that never depends on memory</b>
+                  <div class="nkr">KR: 10 discovery calls per month <span class="cast blend">BLENDED</span></div>
+                  <div class="nkr">KR: Every call in CRM with BANT within 24h <span class="cast ai">AI-LED</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR2.2</span>Transcript-to-proposal median under 10 minutes</div>
+                <span class="cast ai">AI-LED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="developer agent">dev</span></span>
+                <div class="prog"><div class="bar"><i style="width:100%;background:var(--mint);"></i></div><span class="pv">8m</span></div>
+              </div>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR2.3</span>2 keynotes or workshops booked per month</div>
+                <span class="cast blend">BLENDED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="writer agent">wr</span></span>
+                <div class="prog"><div class="bar"><i style="width:62%;background:var(--amber);"></i></div><span class="pv">1.5</span></div>
+                <button class="exp">Cascade ▾</button>
+              </div>
+              <div class="chain">
+                <div class="node">
+                  <span class="lv">OFFICE OF REVENUE · translates KR2.3</span>
+                  <b>O: Thought leadership that books rooms</b>
+                  <div class="nkr">KR: 4 published pieces per month in Dave's voice <span class="cast ai">AI-LED</span> <span class="owner"><span class="av bot" title="writer agent">wr</span><span class="av bot" title="web-publisher agent">wp</span></span></div>
+                  <div class="nkr">KR: 1 speaking pitch per week to target orgs <span class="cast blend">BLENDED</span> <span class="owner"><span class="av bot" title="email-marketer agent">em</span></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- O3 Company -->
+          <div class="obj">
+            <div class="head">
+              <span class="line-tag co">COMPANY</span>
+              <h3>O3 · Run Edge8 on Eight Edges</h3>
+              <span class="oprog">88% · on track</span>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR3.1</span>100% of weekly Syncs run on the agent-prepared packet</div>
+                <span class="cast blend">BLENDED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="product-manager agent">pm</span></span>
+                <div class="prog"><div class="bar"><i style="width:86%;background:var(--blue);"></i></div><span class="pv">6/7</span></div>
+              </div>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR3.2</span>Every KR carries a casting decision and one accountable human</div>
+                <span class="cast ai">AI-LED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="qa agent">qa</span></span>
+                <div class="prog"><div class="bar"><i style="width:100%;background:var(--mint);"></i></div><span class="pv">23/23</span></div>
+              </div>
+            </div>
+            <div class="kr">
+              <div class="row">
+                <div class="title"><span class="krid">KR3.3</span>Weekly metrics 100% agent-pulled, zero manual entry</div>
+                <span class="cast ai">AI-LED</span>
+                <span class="owner"><span class="av">DH</span><span class="av bot" title="devops agent">do</span></span>
+                <div class="prog"><div class="bar"><i style="width:78%;background:var(--amber);"></i></div><span class="pv">78%</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right rail -->
+        <div class="rail">
+          <div class="box">
+            <h4>THIS WEEK'S NUMBERS</h4>
+            <div class="met"><div class="nm">Staffing MRR <span>Revenue · target $42k</span></div><div class="val">$37.5k</div><div class="d up">▲ 2.1%</div><span class="src">AGENT</span></div>
+            <div class="met"><div class="nm">Open AI Program deals <span>Revenue · target 8</span></div><div class="val">5</div><div class="d flat">·</div><span class="src">AGENT</span></div>
+            <div class="met"><div class="nm">Transcript → proposal <span>Revenue · target &lt;10m</span></div><div class="val">8m</div><div class="d up">▼ 1m</div><span class="src">AGENT</span></div>
+            <div class="met"><div class="nm">Time-to-fill <span>Talent · target &lt;21d</span></div><div class="val">19d</div><div class="d up">▼ 3d</div><span class="src">AGENT</span></div>
+            <div class="met"><div class="nm">Published pieces <span>Innovation · target 4/mo</span></div><div class="val">3</div><div class="d down">▼ 1</div><span class="src">AGENT</span></div>
+            <div class="railnote"><span class="av bot" style="width:18px;height:18px;">do</span> Pulled Mon 06:00 by devops agent. 2 metrics still manual.</div>
+          </div>
+
+          <div class="box">
+            <h4>OPEN ISSUES</h4>
+            <div class="issue"><span class="diag sys">SYSTEM</span><b>Keynote pipeline below 2/mo, two weeks running</b><div class="who">Auto-filed by pm agent · blocks KR2.3 · diagnosis: no standing pitch list</div></div>
+            <div class="issue"><span class="diag exec">EXECUTION</span><b>Wareease renewal champion left the company</b><div class="who">Filed by Dave · blocks KR1.1 · needs new exec sponsor before Jan 1</div></div>
+            <div class="issue"><span class="diag goal">GOAL</span><b>KR3.3 target may be wrong: 2 sources have no API</b><div class="who">Auto-filed by devops agent · proposes re-scope at review</div></div>
+          </div>
+
+          <div class="box">
+            <h4>NEXT SYNC · MON 08:00</h4>
+            <ul class="sync">
+              <li>Numbers: staffing MRR up, published pieces missed</li>
+              <li>KRs at risk: KR2.3 (keynotes), KR3.3 (manual metrics)</li>
+              <li>Solve: keynote pipeline issue (oldest, highest impact)</li>
+            </ul>
+            <div class="railnote"><span class="av bot" style="width:18px;height:18px;">pm</span> Packet prepared by product-manager agent, Sun 18:00.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── METRICS ─────────────────────── -->
+    <div class="pane" id="metrics">
+      <table class="tbl">
+        <tr><th>Metric</th><th>Office</th><th>Formula</th><th>Owner</th><th>Target</th><th>This week</th><th>Direction</th><th>Source</th></tr>
+        <tr><td>Staffing MRR</td><td>Revenue</td><td>Σ active staffing contracts / mo</td><td>Dave</td><td>$42k</td><td><b>$37.5k</b></td><td>Up is good</td><td><span class="src">AGENT</span> QuickBooks</td></tr>
+        <tr><td>Open AI Program deals</td><td>Revenue</td><td>count(deals, status=open, cat=AI Program)</td><td>Dave</td><td>8</td><td><b>5</b></td><td>Up is good</td><td><span class="src">AGENT</span> company_os</td></tr>
+        <tr><td>Transcript → proposal</td><td>Revenue</td><td>median(mins, playbook runs)</td><td>developer agent</td><td>&lt;10m</td><td><b>8m</b></td><td>Down is good</td><td><span class="src">AGENT</span> playbook log</td></tr>
+        <tr><td>Time-to-fill</td><td>Talent</td><td>avg(days, role opened → filled)</td><td>Dave</td><td>&lt;21d</td><td><b>19d</b></td><td>Down is good</td><td><span class="src">AGENT</span> company_os</td></tr>
+        <tr><td>Published pieces</td><td>Innovation</td><td>count(posts live / mo)</td><td>writer agent</td><td>4/mo</td><td><b>3</b></td><td>Up is good</td><td><span class="src">AGENT</span> site</td></tr>
+        <tr><td>Sync packet on time</td><td>Operations</td><td>packet ready before Mon 08:00</td><td>pm agent</td><td>100%</td><td><b>6/7</b></td><td>Up is good</td><td><span class="src">AGENT</span> scheduler</td></tr>
+      </table>
+    </div>
+
+    <!-- ── SYNC ────────────────────────── -->
+    <div class="pane" id="sync">
+      <div class="rev">
+        <h5><span class="av bot">pm</span> Weekly packet · Monday 08:00 · prepared Sun 18:00</h5>
+        <p><span class="q">1 · Numbers (5 min):</span> Staffing MRR $37.5k (▲2.1%, on path to $42k). Published pieces 3 of 4, second consecutive miss. All other metrics green.</p>
+        <p><span class="q">2 · Goals check (10 min):</span> 18 of 23 KRs on track. At risk: KR2.3 keynotes (1.5/mo vs 2), KR3.3 manual metrics (78%). AI-led KRs all green this week.</p>
+        <p><span class="q">3 · Solve Issues (40 min):</span> Keynote pipeline (system): proposal on the table from pm agent, standing pitch list + 1 pitch/week cast to email-marketer agent. Then Wareease sponsor plan.</p>
+        <p><span class="q">Commitments out:</span> captured as tasks, checked next Sync. Goals discussed = FAST "Frequent" stays green.</p>
+      </div>
+    </div>
+
+    <!-- ── ISSUES ──────────────────────── -->
+    <div class="pane" id="issues">
+      <table class="tbl">
+        <tr><th>Issue</th><th>Diagnosis</th><th>Blocks</th><th>Filed by</th><th>Age</th><th>Status</th></tr>
+        <tr><td>Keynote pipeline below 2/mo, two weeks running</td><td><span class="diag sys">SYSTEM</span> no standing pitch list</td><td>KR2.3</td><td>pm agent (auto)</td><td>6d</td><td>Solve at next Sync</td></tr>
+        <tr><td>Wareease renewal champion left</td><td><span class="diag exec">EXECUTION</span> relationship gap</td><td>KR1.1</td><td>Dave</td><td>3d</td><td>Owner assigned</td></tr>
+        <tr><td>KR3.3 target may be wrong: 2 sources lack APIs</td><td><span class="diag goal">GOAL</span> re-scope proposed</td><td>KR3.3</td><td>devops agent (auto)</td><td>1d</td><td>Queued for review</td></tr>
+      </table>
+    </div>
+
+    <!-- ── REVIEWS ─────────────────────── -->
+    <div class="pane" id="reviews">
+      <div class="rev">
+        <h5><span class="av">DH</span> Dave · Q3 review packet <span class="cast human" style="margin-left:6px;">HUMAN</span></h5>
+        <p><span class="q">Progress:</span> KR1.1 at 2/4 with both live anniversaries closed inside 48h. KR2.1 at 3/6, pace requires 1 close/month.</p>
+        <p><span class="q">Learning:</span> deals move faster when the proposal exists before the second call. The agent-run proposal path is the growth lever, not more calls.</p>
+        <p><span class="q">Adjust:</span> recast KR2.3 pitching from blended to AI-led drafting + human close. Review Wareease before committing the Q4 renewal target.</p>
+      </div>
+      <div class="rev">
+        <h5><span class="av bot">dev</span> developer agent · Q3 review packet <span class="cast ai" style="margin-left:6px;">AGENT</span></h5>
+        <p><span class="q">Progress:</span> 11 playbook runs, median 8m, zero failed runs. Both owned KRs green.</p>
+        <p><span class="q">Learning:</span> runs slow past 10m only when transcripts arrive unformatted; a pre-clean step would cut 2m.</p>
+        <p><span class="q">Adjust:</span> add transcript pre-clean to the playbook. No recast needed: AI-led delivery mix confirmed by results.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="proto">PROTOTYPE · ILLUSTRATIVE DATA</div>
+
+<script>
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});
+      document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+      b.classList.add('on');
+      document.getElementById(b.dataset.pane).classList.add('on');
+    });
+  });
+  document.querySelectorAll('.exp').forEach(function(b){
+    b.addEventListener('click',function(){
+      var kr=b.closest('.kr');kr.classList.toggle('open');
+      b.textContent=kr.classList.contains('open')?'Cascade ▴':'Cascade ▾';
+    });
+  });
+  document.querySelectorAll('.kr.open .exp').forEach(function(b){b.textContent='Cascade ▴';});
+</script>
+</body>
+</html>
