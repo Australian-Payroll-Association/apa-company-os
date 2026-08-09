@@ -1,252 +1,152 @@
-# Eight Edges: engineering plan
+# Eight Edges: build plan
 
-Style: Karpathy rules. Spec first. Smallest thing that closes the loop. The database is the
-product; the UI is a view. No stage starts until the previous one survived a real Monday sync.
-Every task below is sized so a junior engineer (or the developer agent) can complete it without
-asking questions. If a task can't be verified, it isn't a task.
+Written 2026-08-09. Companion docs in this folder: the product doc and the prototype.
+The prototype is the picture of what we are building; this file is the order we build it in.
 
-Written 2026-08-09. Companion docs in this folder: product doc + prototype (the prototype is
-the UI spec; do not redesign it in code review).
+## The idea in one paragraph
 
----
+We are building one thing: a goal tree that lives in the company database. Company goals at
+the top, office goals under them, and at the bottom the people and agents who do the work.
+Every goal below the top level must point at the goal above it, so nothing floats free. Every
+key result must name one accountable human and say whether the work is done by a human, an
+agent, or both. One page in Edge8 OS shows the whole tree. Agents read the tree to know what
+matters, and write back the weekly numbers. That's it.
 
-## 0. What we are actually building
+We build it as seven small pull requests. Each one is useful on its own, and each one gets
+used in a real Monday sync before the next one starts. Total build time is about two weeks of
+work, spread across the quarter on purpose.
 
-One goal tree in `company_os`, three levels (Company → Office → Executor), where:
+## What we are NOT building (so nobody builds it)
 
-- every child Objective points at a parent Key Result (FK, enforced),
-- every KR carries a casting decision (`human | ai | blended`) and one accountable human,
-- agents read the tree as context and write metrics/issues/packets into it,
-- one page in Edge8 OS (`/admin/edges`) renders it.
-
-That's the whole system. Strategy is a text column. Sync is a generated document. Reviews are
-generated documents. Resist the urge to make any of those "features" in v1.
-
-### Non-goals for v1 (write them down so nobody builds them)
-
-- No engagement pulse, no Q12.
-- No multi-tenant / client-facing anything.
-- No notification system (the 7am plan and Monday packet ARE the notifications).
-- No historical trend charts. A number and last week's number.
-- No drag-and-drop OKR editor. Forms are fine.
-- No new auth. Existing Edge8 OS admin auth gates everything.
-- No merging with Human Tokens. Different ledger, different doc.
+- No employee engagement surveys (later phase).
+- No version for clients (dogfood first).
+- No reminder emails or notifications (the Monday packet is the reminder).
+- No charts of history (this week's number and last week's number is enough).
+- No connection to Human Tokens (different system, stays separate).
+- No new login system (the existing Edge8 OS admin login covers it).
 
 ---
 
-## 1. Data model (Stage 0)
+## PR 1: "Create the goal tables"
 
-Five tables in schema `company_os`. Naming is boring on purpose.
+**What it does.** Adds five tables to the company database: strategies (the one-page annual
+strategy), objectives, key results, metrics with their weekly readings, and issues. Two rules
+are built into the database itself so they can never be skipped: an office or individual
+objective cannot be saved without naming the company key result it serves, and a key result
+cannot be saved without naming its one accountable human.
 
-```sql
--- The annual page. One row per year. Everything hangs off it.
-strategies (
-  id uuid pk, year int unique, title text, body_md text,
-  created_at, updated_at
-)
+**What you'll see.** Nothing on screen yet. What exists after this PR is the real Q4 goal
+tree, sitting in the database. Writing that tree is part of this PR: we sit down, do Q4
+planning for real, and load it in.
 
-objectives (
-  id uuid pk,
-  strategy_id uuid -> strategies,
-  level text check in ('company','office','executor'),
-  office text null check in ('revenue','talent','operations','innovation'),
-  business_line text null check in ('staffing','ai_programs'),  -- null = company-wide
-  parent_kr_id uuid null -> key_results,   -- REQUIRED (not null) when level != 'company'
-  quarter text,                             -- '2026Q4'
-  title text, status text default 'active',
-  owner_person_id uuid null -> people,      -- accountable human
-  owner_agent text null,                    -- agent slug when an agent co-owns
-  created_at, updated_at
-)
-
-key_results (
-  id uuid pk, objective_id uuid -> objectives,
-  title text,
-  target_value numeric, current_value numeric default 0, unit text,
-  direction text check in ('up','down'),
-  delivery_mix text check in ('human','ai','blended'),
-  accountable_person_id uuid -> people,     -- NOT NULL. governance rule lives here.
-  executing_agent text null,
-  status text default 'on_track' check in ('on_track','at_risk','off_track','done'),
-  created_at, updated_at
-)
-
-metrics (
-  id uuid pk, name text, office text, formula text,
-  target numeric, direction text check in ('up','down'),
-  source text check in ('agent','manual'), source_detail text,
-  owner_person_id uuid null, owner_agent text null,
-  key_result_id uuid null -> key_results    -- a metric may feed a KR
-)
-metric_readings (
-  id uuid pk, metric_id uuid -> metrics,
-  week_start date, value numeric, collected_by text,  -- 'devops-agent' | 'manual:dave'
-  created_at, unique(metric_id, week_start)
-)
-
-issues (
-  id uuid pk, title text,
-  diagnosis text check in ('goal','system','execution'),
-  key_result_id uuid null -> key_results,
-  filed_by text,                            -- 'dave' | 'pm-agent:auto' etc
-  status text default 'open' check in ('open','solving','solved','dropped'),
-  notes_md text, created_at, resolved_at
-)
-```
-
-Two deliberate choices:
-
-1. **The cascade is `objectives.parent_kr_id`.** A non-company objective without a parent KR is
-   rejected by a CHECK constraint. Orphan goals are impossible, not discouraged.
-2. **`key_results.accountable_person_id` is NOT NULL.** The "every KR has one accountable
-   human" rule is a schema constraint, not a code review comment.
-
-### Tasks
-
-- [ ] 0.1 Migration file with the five tables + constraints. Apply to the Supabase project
-      (schema `company_os`, same access pattern as the CRM: service key + Content-Profile).
-- [ ] 0.2 Seed script `scripts/edges/seed-q4.mjs` (reuse `scripts/crm/db.mjs`): inserts the 2026
-      strategy row and the real Q4 tree Dave writes during planning. No fake data in prod, ever.
-- [ ] 0.3 Verify: one SQL query walks Executor KR → objective → parent KR → company objective.
-      Paste the query and its output into the PR description.
-
-**Exit test for Stage 0:** the real Q4 tree exists in the database and the cascade query works.
-Time: 1 day including the planning session to write the actual OKRs.
+**Done when.** We can ask the database "show me how this individual goal connects up to the
+company goal" and get the full chain back. About 1 day, most of it the planning session.
 
 ---
 
-## 2. Read-only page (Stage 1)
+## PR 2: "The Eight Edges page"
 
-`/admin/edges` in edge8-web, server component, reads the tree, renders what the prototype
-shows: strategy banner, FAST chips (hardcode "Frequent" and "Transparent" logic for now, see
-Stage 4), three-level cascade with casting chips and progress bars, right rail with latest
-`metric_readings` and open `issues`.
+**What it does.** Builds the page at /admin/edges that shows the tree: the strategy line at
+the top, the FAST health chips, each objective with its key results, the human/AI/blended
+badge on every key result, progress bars, and the right-hand rail with this week's numbers
+and open issues. Read-only for now. It should look like the prototype; the prototype is the
+design, not a suggestion.
 
-Rules:
+**What you'll see.** Open /admin/edges and see the real Q4 goals, live from the database.
 
-- Copy the prototype's layout and palette. Do not invent UI. The prototype is the spec.
-- Progress = `current_value / target_value` clamped, direction-aware. One utility function,
-  one unit test file, done.
-- Nav: fixed 68px top nav exists on full-page routes; remember the ~108px top padding.
-
-### Tasks
-
-- [ ] 1.1 Route + data fetch (one query per table, join in JS; no ORM adventures).
-- [ ] 1.2 Cascade tree component with expand/collapse (client component, state = open set).
-- [ ] 1.3 Right rail: numbers (latest reading vs target, delta vs previous week) + open issues.
-- [ ] 1.4 Verify: screenshot side-by-side with prototype; Dave says "yes, that's it."
-
-**Exit test for Stage 1:** Dave opens `/admin/edges` on production and sees the real Q4 tree.
-Time: 2-3 days.
+**Done when.** You look at it next to the prototype and say "yes, that's it." About 3 days.
 
 ---
 
-## 3. Write paths (Stage 2)
+## PR 3: "Update goals from the page"
 
-The minimum set of mutations, as plain forms + server actions:
+**What it does.** Adds the three things you need to touch every week, as simple forms: update
+a key result's number and status (the Monday check-in), add or edit an objective and its key
+results, and file or close an issue. The goal form politely challenges you if a key result
+looks like a task instead of an outcome ("launch X" is a task; "retention at 90%" is an
+outcome).
 
-1. **Weekly check-in:** update `key_results.current_value` and `status`, one inline field per
-   KR row. This is the one write that must be frictionless; it happens every Monday.
-2. **Add/edit Objective + KRs:** one form. The form enforces what the schema enforces, plus
-   one soft lint: if a KR title starts with a verb like "launch/build/create/run", show
-   "this looks like an activity, not an outcome; are you sure?" (string list, not an LLM;
-   the LLM lint is Stage 5 garnish and may never be needed).
-3. **File/solve an Issue:** title, diagnosis, linked KR, done.
+**What you'll see.** You run a whole Monday sync from the page. No spreadsheets, no SQL, no
+asking Claude to update a number.
 
-### Tasks
-
-- [ ] 2.1 Check-in action + inline UI. Verify: update a KR value without touching SQL.
-- [ ] 2.2 Objective/KR forms with cascade-link picker (dropdown of parent KRs). Verify: try to
-      create an office objective without a parent KR: the UI stops you and the DB would too.
-- [ ] 2.3 Issue form + status flips. Verify: file, solve, see it move.
-
-**Exit test for Stage 2:** one full Monday sync run entirely through the UI: check in every KR,
-file one issue, no SQL. Time: 2-3 days.
+**Done when.** One real Monday sync happens entirely through the page. About 3 days.
 
 ---
 
-## 4. Agents read the tree (Stage 3)
+## PR 4: "Agents read the goals"
 
-This is the 50% AI half, and it is deliberately the simplest stage, because the agents already
-run on this machine and can already reach the DB.
+**What it does.** Gives every agent on the Mac Mini one simple command that prints the current
+goal tree in a compact form: what the strategy is, which key results exist, who owns them, and
+which ones are at risk. Then wires it into the product manager agent's 7am routine, so the
+daily plan starts from the goals instead of from memory.
 
-- `scripts/edges/context.mjs`: prints the current tree as compact markdown
-  (strategy line, KRs with owner/mix/status/value). This is THE integration point. Any agent
-  that needs goal context runs this script. No API server, no MCP work, a script.
-- Wire the 7am product-manager routine: daily plan opens with "KRs at risk" from the script.
-- Wire agent briefings: the standup/briefing templates include the context block.
+**What you'll see.** Tomorrow's 7am daily plan opens with "key results at risk" and every item
+on the plan says which key result it advances, or says plainly "not tied to a goal."
 
-### Tasks
-
-- [ ] 3.1 `context.mjs` with `--office`, `--owner`, `--at-risk` flags. Verify: output under
-      100 lines for the full tree (it's context, not a report).
-- [ ] 3.2 Add the context call to the pm agent's daily-plan step. Verify: Tuesday's 7am plan
-      names real KRs.
-- [ ] 3.3 Tag work: the pm agent's plan items each name the KR they advance ("KR2.1") or say
-      "no KR" explicitly. Verify by reading one real plan.
-
-**Exit test for Stage 3:** a week of daily plans where every item traces to a KR or is flagged.
-Time: 1-2 days.
+**Done when.** A full week of daily plans where every item traces to a goal. About 2 days.
 
 ---
 
-## 5. Agents write the tree (Stage 4)
+## PR 5: "Agents collect the numbers"
 
-Three writers, built in this order because each is independently useful:
+**What it does.** A scheduled job every Monday at 6am where the devops agent pulls the weekly
+numbers that have a source it can reach (revenue from the deals table, proposal speed from the
+playbook logs, published posts from the site) and writes them into the metrics table. Numbers
+with no automatic source stay manual and are labeled "manual" on the page, honestly. The same
+job watches for trouble: if a number misses its target two weeks in a row and nobody has filed
+an issue about it, the agent files one, with its best guess at the cause attached.
 
-1. **Metrics collector** (devops agent, Mon 06:00 scheduled task): pulls what has an API today:
-   deals/MRR from `company_os`, playbook run times from the CRM skill logs, published posts
-   from the site. Writes `metric_readings` with `collected_by`. Metrics without an API stay
-   `source='manual'` and appear in the UI with a "manual" badge (honesty over coverage; this
-   badge is exactly KR3.3's tension and that's fine).
-2. **Issue watcher** (same run): metric under target 2 consecutive weeks and no open issue for
-   it → insert issue with `diagnosis` guess + `filed_by='devops-agent:auto'`.
-3. **Sync packet** (pm agent, Sun 18:00): generates the Monday packet (numbers, KR deltas,
-   at-risk list, proposed agenda from oldest open issue) as markdown, saved where the standup
-   briefings already live, linked from `/admin/edges`.
+**What you'll see.** Monday morning the numbers are already fresh, and problems show up as
+filed issues before anyone noticed them.
 
-### Tasks
-
-- [ ] 4.1 Collector for 3 agent-pullable metrics. Verify: Monday rows appear unattended.
-- [ ] 4.2 Issue watcher with the 2-week rule. Verify: seed a failing metric in a test week,
-      watch it file once and only once.
-- [ ] 4.3 Sync packet generation. Verify: run one real Monday sync from the packet; Dave
-      grades it. Iterate on the prompt, not the plumbing.
-
-**Exit test for Stage 4:** two consecutive Mondays where the packet was ready, the numbers were
-fresh, and nobody typed a metric by hand that has an API. Time: 3-4 days.
+**Done when.** Two Mondays in a row where no human typed a number that has an automatic
+source. About 4 days.
 
 ---
 
-## 6. Reviews (Stage 5)
+## PR 6: "The Monday packet"
 
-Quarterly, so build it in week 10, not week 1.
+**What it does.** Every Sunday at 6pm the product manager agent writes the packet for Monday's
+sync: what the numbers say, which key results are at risk, which issue to solve first, and a
+proposed agenda. It lands where the standup briefings already live and is linked from the
+Eight Edges page.
 
-- `scripts/edges/review-packet.mjs <executor>`: progress / learning-prompts / adjust-candidates
-  from the quarter's data, for humans AND agents (an agent packet includes run stats and a
-  recast recommendation).
-- Render packets read-only under `/admin/edges/reviews`.
-- Casting recap: one table, KRs by delivery mix with hit rate per mix. This single table is the
-  Eight Edges pitch slide, generated from real data.
+**What you'll see.** You walk into Monday's sync with the whole picture already assembled, and
+the meeting starts at the decision, not at the data gathering.
 
-**Exit test:** Q4 review week runs off generated packets. Time: 2 days, in December.
+**Done when.** Two consecutive syncs run off the packet and you grade the packet useful. About
+2 days.
 
 ---
 
-## 7. Order of operations and the one metric for this project
+## PR 7: "Quarterly review packets" (build in December, not now)
 
-```
-Stage 0  schema + real Q4 tree        ~1 day     (blocks everything)
-Stage 1  read-only /admin/edges       ~3 days
-Stage 2  write paths                  ~3 days    (Monday syncs go live here)
-Stage 3  agents read                  ~2 days
-Stage 4  agents write                 ~4 days    (FAST becomes ambient here)
-Stage 5  reviews                      ~2 days    (December)
-```
+**What it does.** At quarter end, generates a review packet for every person AND every agent:
+what progress was made, what the misses teach us, and what to adjust, including whether any
+work should be recast from human to AI or back. Also produces the one table that is the whole
+Eight Edges story: key results grouped by human/AI/blended, with the hit rate of each.
 
-Total: ~2 weeks of build spread over the quarter, on purpose: the system must absorb real
-Mondays between stages. The meta-metric for the project itself: **consecutive weekly syncs run
-on the system**. If that streak breaks, stop building features and fix why.
+**What you'll see.** Q4 review week runs off generated packets instead of memory.
 
-Ship flow per repo rules: worktree off origin/main, named staging, PR, merge on green CI,
-verify on https://www.edge8.ai with curl. Never build on the WIP checkout.
+**Done when.** The Q4 reviews happen. About 2 days, in December.
+
+---
+
+## Order and timing
+
+| PR | Name | Time | What changes for you |
+|----|------|------|----------------------|
+| 1 | Create the goal tables | 1 day | Q4 goals exist in the database |
+| 2 | The Eight Edges page | 3 days | You can see the tree |
+| 3 | Update goals from the page | 3 days | Monday syncs run on the page |
+| 4 | Agents read the goals | 2 days | The 7am plan starts from the goals |
+| 5 | Agents collect the numbers | 4 days | Numbers are fresh without you |
+| 6 | The Monday packet | 2 days | Meetings start at the decision |
+| 7 | Quarterly review packets | 2 days | December |
+
+One measure tells us if this project is working: **how many weekly syncs in a row have run on
+the system.** If that streak breaks, we stop building and fix the reason before adding
+anything new.
+
+Ship rules as always: each PR from a clean branch off main, merged only when CI is green,
+verified on production.
