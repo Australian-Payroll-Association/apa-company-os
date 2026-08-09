@@ -31,6 +31,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'workflow',
+    href: '/workflows/private/e8/staffing-contract-renewal',
+    title: 'Staffing Contract Renewal',
+    description:
+      'How a staffing contract renews: the renewal calendar, the CRM deal conventions (type, categories, renewal chain), the agreement draft, and the close-out.',
+  },
+  {
+    category: 'workflow',
     href: '/workflows/private/e8/accounting-training',
     title: 'Accounting Training Guide',
     description: 'Internal training guide for the Edge8 monthly accounting close.',
