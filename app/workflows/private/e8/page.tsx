@@ -11,6 +11,13 @@ export const metadata: Metadata = {
 
 const ITEMS: LibraryItem[] = [
   {
+    category: 'data',
+    href: '/workflows/private/e8/company-os-schema.html',
+    title: 'Company OS: Database Schema',
+    description:
+      'Indexed, zoomable map of the Company OS database: 115 tables across the people spine and the Four Offices, with every column, key, and relationship.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/e8/equipment-register',
     title: 'Equipment Register: 5Ds Brief',
