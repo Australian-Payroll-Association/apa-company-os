@@ -83,6 +83,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'plan',
+    href: '/workflows/private/ai-officer-institute/certification-data-architecture.html',
+    title: 'Certification Data Architecture',
+    description:
+      'The data model behind a certification: Core missions (Generative then Agentic), elective micro-sessions, the capstone, and how completion is counted. Companion to the AI Program Plan.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/ai-officer-institute/ui-redesign-plan',
     title: 'UI Redesign Plan',
     description:
