@@ -177,12 +177,18 @@ export default function StaffingContractRenewalPage() {
               </div>
               <div className="rnw-arrow">→</div>
               <div className="rnw-node">
-                <strong>2 · Review the contract year</strong>
-                Delivery quality, team changes, rate pressure, client sentiment. Gather the facts.
+                <strong>2 · Collect the feedback</strong>
+                No survey this contract year? Send it now. Operations summarizes everything the client told us all
+                year.
+              </div>
+              <div className="rnw-arrow">→</div>
+              <div className="rnw-node">
+                <strong>3 · Review the contract year</strong>
+                Delivery quality, team changes, rate pressure, and the feedback summary. Gather the facts.
               </div>
               <div className="rnw-arrow">→</div>
               <div className="rnw-node rnw-decision">
-                <strong>3 · Decision</strong>
+                <strong>4 · Decision</strong>
                 Will they renew, and at what shape? Three paths out, never zero.
               </div>
             </div>
@@ -268,19 +274,35 @@ export default function StaffingContractRenewalPage() {
               },
               {
                 num: '2',
-                title: 'Review the contract year',
+                title: 'Collect and summarize the feedback',
                 cadence: 'T-90 days',
                 actor: 'human',
+                actorLabel: 'Operations + AI',
                 body: (
                   <>
-                    Pull the expiring agreement and gather the facts the decision needs: did the team change (people,
-                    seniority, hours)? Is the rate still right for the market and the margin? Is the client happy, and
-                    is there an upsell or a risk on the table?
+                    Check whether the client received a satisfaction survey during this contract year. If not, send
+                    one the moment the calendar flags the renewal, so the responses are back before the decision. Then
+                    the operations person compiles everything the client told us across the year (survey responses,
+                    meeting notes, praise, complaints, escalations) into a one-page feedback summary attached to the
+                    deal. The renewal decision is made on that summary, not on memory.
                   </>
                 ),
               },
               {
                 num: '3',
+                title: 'Review the contract year',
+                cadence: 'T-80 days',
+                actor: 'human',
+                body: (
+                  <>
+                    Pull the expiring agreement and gather the facts the decision needs: did the team change (people,
+                    seniority, hours)? Is the rate still right for the market and the margin? And what does the
+                    feedback summary say: is the client happy, and is there an upsell or a risk on the table?
+                  </>
+                ),
+              },
+              {
+                num: '4',
                 title: 'Make the renewal decision',
                 cadence: 'T-75 days',
                 actor: 'human',
@@ -295,7 +317,7 @@ export default function StaffingContractRenewalPage() {
                 ),
               },
               {
-                num: '4',
+                num: '5',
                 title: 'Create the successor deal',
                 cadence: 'Same day',
                 actor: 'ai',
@@ -311,7 +333,7 @@ export default function StaffingContractRenewalPage() {
                 ),
               },
               {
-                num: '5',
+                num: '6',
                 title: 'Agreement, send, and track',
                 cadence: 'Until signed',
                 actor: 'ai',
@@ -328,7 +350,7 @@ export default function StaffingContractRenewalPage() {
                 ),
               },
               {
-                num: '6',
+                num: '7',
                 title: 'Close out the deal',
                 cadence: 'On signature',
                 actor: 'ai',
