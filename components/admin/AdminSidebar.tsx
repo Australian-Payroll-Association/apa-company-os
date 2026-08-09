@@ -33,9 +33,9 @@ const NAV: NavSection[] = [
         collapsible: true,
         items: [
           { label: "Goals", href: "/admin/edges/goals", ico: "◆", enabled: true },
-          { label: "Metrics", href: "/admin/edges/metrics", ico: "▲" },
+          { label: "Metrics", href: "/admin/edges/metrics", ico: "▲", enabled: true },
           { label: "Sync", href: "/admin/edges/sync", ico: "☰" },
-          { label: "Issues", href: "/admin/edges/issues", ico: "◉" },
+          { label: "Issues", href: "/admin/edges/issues", ico: "◉", enabled: true },
           { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
         ],
       },

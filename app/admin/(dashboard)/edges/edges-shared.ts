@@ -129,3 +129,43 @@ export function currentQuarter(now = new Date()): { label: string; week: number;
   const totalWeeks = Math.round((end.getTime() - start.getTime()) / (7 * 86400000));
   return { label: `${y}Q${q}`, week, totalWeeks, start };
 }
+
+export type MetricRow = {
+  id: string;
+  name: string;
+  office: string;
+  formula: string | null;
+  target: number | null;
+  direction: "up" | "down";
+  source: "agent" | "manual";
+  source_detail: string | null;
+  owner_agent: string | null;
+  key_result_id: string | null;
+};
+
+export type IssueRow = {
+  id: string;
+  title: string;
+  diagnosis: "goal" | "system" | "execution";
+  key_result_id: string | null;
+  filed_by: string;
+  status: "open" | "solving" | "solved" | "dropped";
+  notes_md: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
+
+export const METRIC_SELECT =
+  "id, name, office, formula, target, direction, source, source_detail, owner_agent, key_result_id";
+export const ISSUE_SELECT = "id, title, diagnosis, key_result_id, filed_by, status, notes_md, created_at, resolved_at";
+
+export const ISSUE_DIAGNOSES = ["goal", "system", "execution"] as const;
+export const ISSUE_STATUSES = ["open", "solving", "solved", "dropped"] as const;
+
+// Monday of the week containing `d`, as YYYY-MM-DD (metric_readings.week_start).
+export function weekStartISO(d = new Date()): string {
+  const day = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day);
+  return monday.toISOString().slice(0, 10);
+}
