@@ -5,6 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { sendEventTicketEmail, sendTransactionalEmail } from "@/lib/email";
 import { notifyOps } from "@/lib/lark";
 import { formatEventDates, ticketPath } from "@/lib/events";
+import { newTicketCode } from "@/lib/events-server";
 import { getSiteOrigin } from "@/lib/site-origin";
 
 // Stripe webhook — the payment truth this repo has been missing: until now
@@ -77,13 +78,17 @@ async function handlePaid(session: Stripe.Checkout.Session) {
   const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
 
   // Order first (both shapes): pending → paid, guarded by current status.
+  // 'expired' is also flippable: infinite-leverage's payment-recovery flow
+  // (/pay/[orderId]) re-mints a checkout session after the original expired,
+  // so a payment can legitimately arrive on an order this webhook already
+  // expired. Payment truth wins.
   const { data: order, error: orderErr } = await companyOs
     .from("orders")
     // No metadata write — a jsonb update would clobber what the checkout
     // flow stored there (booking details). paid-at = updated_at on this row.
     .update({ status: "paid", stripe_payment_intent_id: paymentIntentId })
     .eq("stripe_session_id", session.id)
-    .eq("status", "pending")
+    .in("status", ["pending", "expired"])
     .select("id")
     .maybeSingle();
   if (orderErr) console.error("[stripe/webhook] order update failed:", orderErr.message);
@@ -94,6 +99,14 @@ async function handlePaid(session: Stripe.Checkout.Session) {
 
   if (session.metadata?.type === "token_pack") {
     await handleTokenPackPaid(session);
+    return;
+  }
+
+  // Infinite-leverage retreat checkout (reserve funnel on infiniteleverage-8.com).
+  // Fulfilment ported from the old aio-website webhook: registration rows for
+  // seat counts, inquiry → won, affiliate commission, buyer confirmation email.
+  if (session.metadata?.source_site === "infiniteleverage-8.com") {
+    await handleInfiniteLeveragePaid(session);
     return;
   }
 
@@ -130,6 +143,197 @@ async function handlePaid(session: Stripe.Checkout.Session) {
       .from("event_registrations")
       .update({ confirmation_sent_at: new Date().toISOString() })
       .eq("id", reg.id);
+  }
+}
+
+// Attendee rows for team-member add-on seats, from the reserve funnel's
+// session metadata. Prefers the "Name <email>; Name" summary in
+// metadata.team_members; falls back to a bare count from metadata.add_ons
+// ("id:qty,team_member:N"). Ported from the old aio-website webhook.
+type AttendeeRow = { name: string | null; email: string | null };
+
+function resolveTeamMemberAttendees(
+  metadata: Stripe.Metadata | null | undefined,
+): AttendeeRow[] {
+  const raw = metadata?.team_members?.trim();
+  if (raw) {
+    return raw
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const match = entry.match(/^(.*?)\s*<([^>]+)>\s*$/);
+        if (match) {
+          return { name: match[1].trim() || null, email: match[2].trim() || null };
+        }
+        return { name: entry || null, email: null };
+      });
+  }
+  const addOns = metadata?.add_ons ?? "";
+  const teamEntry = addOns
+    .split(",")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith("team_member:"));
+  const count = teamEntry ? parseInt(teamEntry.split(":")[1] ?? "0", 10) || 0 : 0;
+  return Array.from({ length: count }, () => ({ name: null, email: null }));
+}
+
+// Infinite-leverage retreat paid. Every step is idempotent on its own
+// (registration insert guarded by an order_id count, inquiry never regresses
+// from won, commission guarded by an order_id lookup, buyer email tied to the
+// first registration insert) so Stripe redeliveries are safe no-ops.
+async function handleInfiniteLeveragePaid(session: Stripe.Checkout.Session) {
+  const { data: order, error: orderErr } = await companyOs
+    .from("orders")
+    .select(
+      "id, person_id, product_id, amount_cents, amount_usd_cents, currency, affiliate_id, products(id, title, slug, cohort_slug, tier, location, date_start, date_end, event_id), people(full_name, email)",
+    )
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+  if (orderErr || !order) {
+    console.error("[stripe/webhook] IL order lookup failed for session", session.id, orderErr?.message);
+    return;
+  }
+  const product = Array.isArray(order.products) ? order.products[0] ?? null : order.products;
+  const person = Array.isArray(order.people) ? order.people[0] ?? null : order.people;
+  if (!product || !person) {
+    console.error("[stripe/webhook] IL order missing product/person joins:", order.id);
+    return;
+  }
+
+  // 1. Registration rows — one per seat so capacity counts every attendee:
+  // the buyer plus any team-member add-on seats. The reserve flow sends
+  // attendee details in metadata.team_members ("Name <email>; Name"), seat
+  // count mirrored in metadata.add_ons ("team_member:N"). Team rows reuse the
+  // buyer's person_id (NOT NULL, booked under the buyer); attendee_name/email
+  // distinguish them.
+  const { count } = await companyOs
+    .from("event_registrations")
+    .select("*", { count: "exact", head: true })
+    .eq("order_id", order.id);
+  const firstFulfilment = (count ?? 0) === 0;
+
+  if (firstFulfilment) {
+    const teamRows = resolveTeamMemberAttendees(session.metadata).map((m) => ({
+      order_id: order.id,
+      product_id: product.id,
+      event_id: product.event_id,
+      person_id: order.person_id,
+      attendee_name: m.name,
+      attendee_email: m.email,
+      status: "confirmed" as const,
+      guest_count: 0,
+      ticket_code: newTicketCode(),
+    }));
+    const { error: regError } = await companyOs.from("event_registrations").insert([
+      {
+        order_id: order.id,
+        product_id: product.id,
+        event_id: product.event_id,
+        person_id: order.person_id,
+        attendee_name: person.full_name,
+        attendee_email: person.email,
+        status: "confirmed" as const,
+        guest_count: 0,
+        ticket_code: newTicketCode(),
+      },
+      ...teamRows,
+    ]);
+    if (regError) console.error("[stripe/webhook] IL registration insert failed:", regError.message);
+  }
+
+  // 2. Latest retreat inquiry for this person → won, payment details merged
+  // into metadata. Never regresses an inquiry that is already won.
+  const { data: inquiry } = await companyOs
+    .from("inquiries")
+    .select("id, status, metadata")
+    .eq("person_id", order.person_id)
+    .eq("type", "retreat")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (inquiry) {
+    const mergedMeta = {
+      ...((inquiry.metadata as Record<string, unknown>) ?? {}),
+      payment_method: "stripe",
+      payment_amount_cents: order.amount_cents,
+      payment_currency: order.currency,
+      order_id: order.id,
+      product_slug: product.slug,
+      ...(product.cohort_slug ? { cohort: product.cohort_slug } : {}),
+      ...(product.tier ? { tier: product.tier } : {}),
+    };
+    const { error: inqError } = await companyOs
+      .from("inquiries")
+      .update({ status: "won", metadata: mergedMeta })
+      .eq("id", inquiry.id);
+    if (inqError) console.error("[stripe/webhook] IL inquiry advance failed:", inqError.message);
+  } else {
+    console.warn("[stripe/webhook] no retreat inquiry found for IL person", order.person_id);
+  }
+
+  // 3. Commission ledger — only when the customer used a commission-type code
+  // (discount conversions earn nothing; the discount was the compensation).
+  // gross is USD-settled when the order carries amount_usd_cents (AUD orders).
+  const codeType = session.metadata?.affiliate_code_type;
+  if (order.affiliate_id && codeType === "commission") {
+    const { data: existingCommission } = await companyOs
+      .from("affiliate_commissions")
+      .select("id")
+      .eq("order_id", order.id)
+      .eq("source_event", "order_paid")
+      .limit(1)
+      .maybeSingle();
+    if (!existingCommission) {
+      const { data: aff } = await companyOs
+        .from("affiliates")
+        .select("id, rate")
+        .eq("id", order.affiliate_id)
+        .maybeSingle();
+      if (aff) {
+        const grossCents = order.amount_usd_cents ?? order.amount_cents;
+        const { error: commError } = await companyOs.from("affiliate_commissions").insert({
+          affiliate_id: aff.id,
+          order_id: order.id,
+          source_event: "order_paid",
+          source_ref: session.id,
+          gross_cents: grossCents,
+          rate: aff.rate,
+          commission_cents: Math.round(grossCents * aff.rate),
+          notes: `Infinite Leverage ${product.title} (${order.currency.toUpperCase()} order, gross in USD).`,
+        });
+        if (commError) console.error("[stripe/webhook] IL commission insert failed:", commError.message);
+      }
+    }
+  }
+
+  // 4. Buyer confirmation + ops ping, first fulfilment only.
+  if (firstFulfilment) {
+    const amountLabel = `${order.currency.toUpperCase()} $${(order.amount_cents / 100).toLocaleString()}`;
+    // Day-granular label; AUD cohorts run in Australia, everything else in Vietnam.
+    const tz = order.currency === "aud" ? "Australia/Sydney" : "Asia/Ho_Chi_Minh";
+    const dateLabel = product.date_start
+      ? formatEventDates(product.date_start, product.date_end, tz)
+      : null;
+    if (person.email) {
+      const firstName = person.full_name?.split(" ")[0] || "there";
+      await sendTransactionalEmail({
+        to: person.email,
+        subject: `You're in: ${product.title}`,
+        html: `
+          <p>Hi ${firstName},</p>
+          <p>Your payment of <strong>${amountLabel}</strong> for <strong>${product.title}</strong> is confirmed — your seat is locked in.</p>
+          ${dateLabel ? `<p><strong>Dates:</strong> ${dateLabel}${product.location ? ` · ${product.location}` : ""}</p>` : ""}
+          <p>We'll follow up before the event with everything you need to prepare. Reply to this email any time with questions.</p>
+          <p>Dave and the Infinite Leverage team</p>
+        `.trim(),
+        replyTo: "dave@edge8.co",
+        logMeta: { source: "il_retreat_paid" },
+      });
+    }
+    await notifyOps(
+      `🌴 Retreat paid: ${person.full_name ?? person.email ?? "someone"} — ${product.title}, ${amountLabel}.`,
+    );
   }
 }
 
