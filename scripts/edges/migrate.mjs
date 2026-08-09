@@ -114,6 +114,17 @@ const statements = [
   `alter table company_os.metric_readings enable row level security`,
   `alter table company_os.issues enable row level security`,
   `alter table company_os.sync_packets enable row level security`,
+
+  // Grants to match the sibling company_os tables. Tables created over the
+  // postgres connection do NOT inherit these; without them PostgREST returns
+  // "permission denied" even to the service key.
+  ...['strategies', 'objectives', 'key_results', 'metrics', 'metric_readings', 'issues', 'sync_packets'].flatMap(
+    (t) => [
+      `grant select, insert, update, delete on company_os.${t} to service_role`,
+      `grant select on company_os.${t} to team_chatbot_reader`,
+      `grant select on company_os.${t} to chatbot_reader`,
+    ],
+  ),
 ];
 
 for (const s of statements) await sql.unsafe(s);
