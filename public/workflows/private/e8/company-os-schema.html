@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Company OS: Database Schema | Edge8</title>
+<style>
+  :root {
+    --dark: #101014; --panel: #16161c; --card: #1A1A1F; --card-hi: #22222a;
+    --border: rgba(234,238,242,0.10); --border-hi: rgba(234,238,242,0.25);
+    --text: #EAEEF2; --muted: #8b909a; --dim: #5c616b;
+    --blue: #3B8CF5; --mint: #6FF2C1;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --mono: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: var(--font); background: var(--dark); color: var(--text); }
+
+  /* ---- top bar ---- */
+  #topbar { position: fixed; inset: 0 0 auto 0; height: 52px; z-index: 40; display: flex; align-items: center; gap: 14px; padding: 0 14px; background: rgba(16,16,20,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  #topbar h1 { font-size: 15px; font-weight: 700; white-space: nowrap; }
+  #topbar h1 span { color: var(--mint); }
+  #stats { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  #topbar .spacer { flex: 1; }
+  .ctl { display: flex; align-items: center; gap: 6px; }
+  .btn { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; height: 30px; min-width: 30px; padding: 0 10px; font-size: 13px; cursor: pointer; }
+  .btn:hover { border-color: var(--border-hi); background: var(--card-hi); }
+  #zpct { font-size: 12px; color: var(--muted); min-width: 42px; text-align: center; }
+  #menu-toggle { display: none; }
+
+  /* ---- sidebar index ---- */
+  #sidebar { position: fixed; top: 52px; bottom: 0; left: 0; width: 272px; z-index: 30; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  #searchwrap { padding: 10px; border-bottom: 1px solid var(--border); }
+  #search { width: 100%; height: 34px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 13px; outline: none; }
+  #search:focus { border-color: var(--blue); }
+  #index { flex: 1; overflow-y: auto; padding: 6px 0 30px; }
+  .dom-group summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); user-select: none; }
+  .dom-group summary::-webkit-details-marker { display: none; }
+  .dom-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dom-count { margin-left: auto; font-weight: 400; color: var(--dim); }
+  .idx-item { display: flex; align-items: baseline; gap: 6px; padding: 4px 12px 4px 30px; font-size: 13px; cursor: pointer; color: var(--text); }
+  .idx-item:hover { background: var(--card-hi); }
+  .idx-item.active { background: rgba(59,140,245,0.18); }
+  .idx-item .rc { margin-left: auto; font-size: 11px; color: var(--dim); }
+  .idx-sub { padding: 1px 12px 3px 44px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--mono); }
+  .idx-sub:hover { color: var(--mint); }
+  .no-results { padding: 16px; font-size: 13px; color: var(--muted); }
+
+  /* ---- canvas ---- */
+  #viewport { position: absolute; top: 52px; left: 272px; right: 0; bottom: 0; overflow: hidden; cursor: grab; background:
+    radial-gradient(circle at 30% 20%, rgba(59,140,245,0.05), transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(111,242,193,0.04), transparent 50%), var(--dark); }
+  #viewport.panning { cursor: grabbing; }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+  #edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+  #edges path { fill: none; stroke: rgba(139,144,154,0.35); stroke-width: 1.5; }
+  body.has-sel #edges path { stroke: rgba(139,144,154,0.10); }
+  #edges path.out { stroke: var(--blue); stroke-width: 2.5; }
+  #edges path.in { stroke: var(--mint); stroke-width: 2.5; }
+
+  .dom-box { position: absolute; border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,0.015); }
+  .dom-title { position: absolute; top: 14px; left: 24px; font-size: 20px; font-weight: 800; letter-spacing: 0.02em; opacity: 0.9; pointer-events: none; }
+
+  .tcard { position: absolute; width: 250px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; }
+  .tcard:hover { border-color: var(--border-hi); }
+  .tcard.sel { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,140,245,0.45), 0 10px 34px rgba(0,0,0,0.5); z-index: 5; }
+  .tcard.rel { border-color: rgba(111,242,193,0.5); z-index: 4; }
+  body.has-sel .tcard:not(.sel):not(.rel), body.searching .tcard.faded { opacity: 0.28; }
+  .tc-head { height: 42px; padding: 0 10px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--border); border-top: 3px solid; background: var(--card-hi); }
+  .tc-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tc-rows { font-size: 10px; color: var(--dim); }
+  .tc-col { height: 20px; display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 11px; font-family: var(--mono); }
+  .tc-col:nth-child(even) { background: rgba(255,255,255,0.018); }
+  .tc-col .cn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tc-col .ct { margin-left: auto; color: var(--dim); flex: none; font-size: 10px; }
+  .tc-col.pk .cn { color: var(--mint); font-weight: 700; }
+  .tc-col.fk .cn { color: var(--blue); }
+
+  /* ---- detail panel ---- */
+  #detail { position: fixed; top: 52px; right: 0; bottom: 0; width: 340px; z-index: 35; background: var(--panel); border-left: 1px solid var(--border); transform: translateX(100%); transition: transform 0.22s ease; display: flex; flex-direction: column; }
+  #detail.open { transform: none; }
+  #d-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  #d-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+  #d-domain { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  #d-name { font-size: 18px; font-weight: 800; font-family: var(--mono); word-break: break-all; }
+  #d-rows { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  #d-comment { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  #d-body { flex: 1; overflow-y: auto; padding: 10px 0 40px; }
+  .d-sec { padding: 10px 16px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); }
+  .d-col { padding: 5px 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 12px; font-family: var(--mono); border-bottom: 1px solid rgba(234,238,242,0.04); }
+  .d-col .cn { font-weight: 600; }
+  .d-col.pk .cn { color: var(--mint); }
+  .d-col .ct { color: var(--dim); font-size: 11px; }
+  .badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; letter-spacing: 0.03em; }
+  .b-pk { background: rgba(111,242,193,0.15); color: var(--mint); }
+  .b-nn { background: rgba(139,144,154,0.15); color: var(--muted); }
+  .d-fk { width: 100%; font-size: 11px; color: var(--blue); cursor: pointer; }
+  .d-fk:hover { text-decoration: underline; }
+  .d-fk.ext { color: var(--muted); cursor: default; }
+  .d-fk.ext:hover { text-decoration: none; }
+  .d-ccomment { width: 100%; font-size: 11px; color: var(--dim); font-family: var(--font); line-height: 1.4; }
+  .d-ref { padding: 5px 16px; font-size: 12px; font-family: var(--mono); color: var(--mint); cursor: pointer; }
+  .d-ref:hover { background: var(--card-hi); }
+  .d-ref span { color: var(--dim); }
+
+  /* ---- minimap ---- */
+  #minimap { position: fixed; right: 14px; bottom: 14px; z-index: 34; border: 1px solid var(--border); border-radius: 10px; background: rgba(16,16,20,0.9); cursor: pointer; transition: right 0.22s ease; }
+  body.detail-open #minimap { right: 354px; }
+
+  /* ---- hint ---- */
+  #hint { position: fixed; left: 286px; bottom: 14px; z-index: 20; font-size: 11px; color: var(--dim); background: rgba(16,16,20,0.8); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); }
+
+  @media (max-width: 860px) {
+    #menu-toggle { display: block; }
+    #sidebar { transform: translateX(-100%); transition: transform 0.2s ease; }
+    body.menu-open #sidebar { transform: none; }
+    #viewport { left: 0; }
+    #detail { width: min(340px, 92vw); }
+    #hint { display: none; }
+    #stats { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <button class="btn" id="menu-toggle">☰</button>
+  <h1><span>Edge8</span> · Company OS: database schema</h1>
+  <div id="stats"></div>
+  <div class="spacer"></div>
+  <div class="ctl">
+    <button class="btn" id="z-out" title="Zoom out">−</button>
+    <div id="zpct">100%</div>
+    <button class="btn" id="z-in" title="Zoom in">+</button>
+    <button class="btn" id="z-fit" title="Fit everything">Fit</button>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div id="searchwrap"><input id="search" type="search" placeholder="Search tables and columns…  ( / )" autocomplete="off"></div>
+  <div id="index"></div>
+</div>
+
+<div id="viewport"><div id="world"><svg id="edges"></svg></div></div>
+
+<div id="detail">
+  <div id="d-head">
+    <button id="d-close">×</button>
+    <div id="d-domain"></div>
+    <div id="d-name"></div>
+    <div id="d-rows"></div>
+    <div id="d-comment"></div>
+  </div>
+  <div id="d-body"></div>
+</div>
+
+<canvas id="minimap"></canvas>
+<div id="hint">Drag to pan · scroll to zoom · click a table for details</div>
+
+<script>
+const DATA = {"domains":[{"n":"People spine","color":"#6FF2C1","tables":["brands","companies","company_profile","departments","documents","legal_entities","lifecycle_transitions","people","people_sensitive","person_companies","person_qualifications","person_relationships","person_skills","platform_identities","skills","taggables","tags"]},{"n":"Revenue: CRM and sales","color":"#3B8CF5","tables":["affiliate_commissions","affiliate_payouts","affiliates","campaigns","deals","inquiries","interactions","lead","orders","pipeline_stages","pipelines","products","service_lines","subscriptions","token_purchases","touchpoints"]},{"n":"Revenue: events and content","color":"#8B7CF6","tables":["content_channels","content_ideas","content_items","content_media","content_pillars","content_schedules","event_agenda_blocks","event_agenda_staff","event_pnl_lines","event_registrations","event_talks","events","gallery_photo_people","gallery_photos","pillar_channels","talks"]},{"n":"Talent: recruiting","color":"#F59E0B","tables":["application_stage_log","application_stages","applications","candidate_profile","candidates","interview_interviewers","interview_scorecards","interviews","job_requisitions","offers","scorecard_scores","stage_template_stages","stage_templates"]},{"n":"Talent: team and HR","color":"#F97066","tables":["compensation","dayoff_snapshot","goals","holidays","leave_adjustments","leave_policies","onboarding_plans","onboarding_tasks","performance_reviews","positions","staff_assignments","team_members","time_off"]},{"n":"Talent: coaching","color":"#EC4899","tables":["coaching_checkins","coaching_commitments","coaching_context","coaching_one_on_ones","coaching_profiles","coaching_trends","one_on_one_sessions","one_on_ones"]},{"n":"Operations: finance and assets","color":"#22C55E","tables":["contractor_payments","contractor_work_events","contractor_work_requests","equipment","equipment_assignments","equipment_requests","expenses","fx_rates","invoices","qbo_connection","vendors"]},{"n":"Operations: meetings and scheduling","color":"#06B6D4","tables":["availability_blocks","bookings","meeting_action_items","meeting_links","meeting_participants","meetings"]},{"n":"Innovation: portal, programs and surveys","color":"#A3E635","tables":["ai_programs","assistant_conversations","ideas","portal_assume_sessions","portal_members","program_documents","program_plans","survey_answers","survey_fields","survey_responses","surveys","team_knowledge"]},{"n":"Platform: admin and audit","color":"#94A3B8","tables":["admins","audit_log","integration_sources"]}],"tables":{"admins":{"c":0,"r":3,"cols":[["id","uuid",5,0,0],["email","text",4,0,0],["display_name","text",0,0,0],["created_at","timestamptz",4,0,0],["created_by","text",0,0,0],["can_view_sensitive","bool",4,0,"True => this admin may view/edit wages and PII (compensation, people_sensitive, ID docs). Default false: being an admin is not enough. Env var SENSITIVE_VIEWERS is the break-glass fallback (covers env-only admins like the owner)."]]},"affiliate_commissions":{"c":0,"r":3,"cols":[["id","uuid",5,0,0],["affiliate_id","uuid",6,"affiliates.id",0],["order_id","uuid",2,"orders.id",0],["source_event","text",4,0,0],["source_ref","text",0,0,0],["gross_cents","bigint",4,0,0],["rate","numeric",0,0,"Realized rate once redeemed (0.20 work credit / 0.10 cash). Null while pending."],["commission_cents","bigint",0,0,"Realized commission = round(gross_cents * rate). Null while pending."],["payout_id","uuid",2,"affiliate_payouts.id",0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["redemption_choice","text",0,0,"How the affiliate takes this commission: work_credit (20%) or cash (10%). Null = pending choice."],["chosen_at","timestamptz",0,0,0]]},"affiliate_payouts":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["affiliate_id","uuid",6,"affiliates.id",0],["amount_cents","bigint",4,0,0],["method","text",0,0,0],["reference","text",0,0,0],["paid_at","timestamptz",0,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0]]},"affiliates":{"c":0,"r":10,"cols":[["id","uuid",5,0,0],["code","citext",4,0,0],["person_id","uuid",2,"people.id",0],["program_type","text",4,0,0],["rate","numeric",4,0,0],["stripe_coupon_id","text",0,0,0],["active","bool",4,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["company_id","uuid",2,"companies.id","The affiliate company when this is a company affiliate. person_id (kept) is the acting/portal contact. At least one of company_id/person_id is set."]]},"ai_programs":{"c":"Portal AI Programs: company-scoped client AI program records (draft/active/complete).","r":0,"cols":[["id","uuid",5,0,0],["company_id","uuid",6,"companies.id",0],["name","text",4,0,0],["status","text",4,0,0],["created_by","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"application_stage_log":{"c":0,"r":263,"cols":[["id","uuid",5,0,0],["application_id","uuid",6,"applications.id",0],["from_stage_id","uuid",2,"application_stages.id",0],["to_stage_id","uuid",2,"application_stages.id",0],["moved_by","uuid",2,"team_members.id",0],["note","text",0,0,0],["moved_at","timestamptz",4,0,0]]},"application_stages":{"c":0,"r":281,"cols":[["id","uuid",5,0,0],["job_requisition_id","uuid",6,"job_requisitions.id",0],["name","text",4,0,0],["stage_kind","text",4,0,0],["position","int",4,0,0],["is_terminal","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"applications":{"c":0,"r":309,"cols":[["id","uuid",5,0,0],["candidate_id","uuid",2,"candidates.id",0],["job_requisition_id","uuid",6,"job_requisitions.id",0],["current_stage_id","uuid",2,"application_stages.id",0],["source","text",4,0,0],["source_detail","text",0,0,0],["referrer_person_id","uuid",2,"people.id",0],["status","text",4,0,0],["rejection_reason","text",0,0,0],["applied_at","timestamptz",4,0,0],["decided_at","timestamptz",0,0,0],["rating","int",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["resume_assessment","text",0,0,0],["person_id","uuid",2,"people.id",0],["resume_document_id","uuid",2,"documents.id",0],["cover_letter","text",0,0,0],["answers","jsonb",4,0,0],["ai_summary","jsonb",0,0,0],["ai_rating","numeric",0,0,0],["ai_screen_status","text",0,0,0],["ai_screen_error","text",0,0,0],["ai_screened_at","timestamptz",0,0,0],["ai_model","text",0,0,0]]},"assistant_conversations":{"c":0,"r":10,"cols":[["id","uuid",5,0,0],["surface","text",4,0,0],["owner_auth_user_id","uuid",4,0,0],["owner_person_id","uuid",2,"people.id",0],["title","text",4,0,0],["messages","jsonb",4,0,0],["display_items","jsonb",4,0,0],["last_message_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["archived_at","timestamptz",0,0,0]]},"audit_log":{"c":0,"r":413,"cols":[["id","uuid",5,0,0],["actor_person_id","uuid",2,"people.id",0],["actor_label","text",0,0,0],["table_name","text",4,0,0],["record_id","uuid",0,0,0],["operation","text",4,0,0],["old_data","jsonb",0,0,0],["new_data","jsonb",0,0,0],["context","jsonb",4,0,0],["changed_at","timestamptz",4,0,0]]},"availability_blocks":{"c":0,"r":3,"cols":[["id","uuid",5,0,0],["start_date","date",4,0,0],["end_date","date",4,0,0],["source","text",4,0,0],["person_id","uuid",2,"people.id",0],["inquiry_id","uuid",2,"inquiries.id",0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"bookings":{"c":0,"r":1,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["product_id","uuid",2,"products.id",0],["order_id","uuid",2,"orders.id",0],["kind","text",4,0,0],["start_date","date",0,0,0],["end_date","date",0,0,0],["party_size","int",0,0,0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["status","text",4,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["amount_usd_cents","bigint",0,0,0]]},"brands":{"c":0,"r":5,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["primary_domain","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"campaigns":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["name","text",4,0,0],["channel","text",0,0,0],["status","text",4,0,0],["starts_at","timestamptz",0,0,0],["ends_at","timestamptz",0,0,0],["budget_cents","bigint",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"candidate_profile":{"c":0,"r":286,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["headline","text",0,0,0],["current_title","text",0,0,0],["portfolio_url","text",0,0,0],["do_not_hire","bool",4,0,0],["pool_status","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"candidates":{"c":0,"r":285,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["headline","text",0,0,0],["current_company_id","uuid",2,"companies.id",0],["current_title","text",0,0,0],["resume_document_id","uuid",2,"documents.id",0],["linkedin_url","text",0,0,0],["portfolio_url","text",0,0,0],["desired_salary_cents","bigint",0,0,0],["currency","text",0,0,0],["availability","text",0,0,0],["pool_status","text",4,0,0],["owner_recruiter_id","uuid",2,"team_members.id",0],["notes","text",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"coaching_checkins":{"c":0,"r":2,"cols":[["id","uuid",5,0,0],["coaching_profile_id","uuid",6,"coaching_profiles.id",0],["sent_at","timestamptz",4,0,0],["message_markdown","text",4,0,0],["responded_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0]]},"coaching_commitments":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["coaching_profile_id","uuid",6,"coaching_profiles.id",0],["one_on_one_id","uuid",2,"coaching_one_on_ones.id",0],["title","text",4,0,0],["owner","text",4,0,0],["due_on","date",0,0,0],["status","text",4,0,0],["status_note","text",0,0,0],["status_updated_by","uuid",2,"team_members.id",0],["status_updated_at","timestamptz",0,0,0],["closed_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"coaching_context":{"c":0,"r":6,"cols":[["id","uuid",5,0,0],["coach_id","uuid",2,"team_members.id",0],["kind","text",4,0,0],["title","text",4,0,0],["markdown","text",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"coaching_one_on_ones":{"c":0,"r":7,"cols":[["id","uuid",5,0,0],["coaching_profile_id","uuid",6,"coaching_profiles.id",0],["held_on","date",4,0,0],["status","text",4,0,0],["prep_markdown","text",0,0,0],["prep_generated_at","timestamptz",0,0,0],["transcript","text",0,0,0],["summary_markdown","text",0,0,0],["shared_summary_markdown","text",0,0,0],["shared_published_at","timestamptz",0,0,0],["ai_model","text",0,0,0],["ai_error","text",0,0,0],["archived_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"coaching_profiles":{"c":0,"r":6,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["coach_id","uuid",6,"team_members.id",0],["fast_goal","text",0,0,0],["fast_goal_status","text",4,0,0],["okrs_markdown","text",0,0,0],["private_profile_markdown","text",0,0,0],["cadence_days","int",4,0,0],["next_one_on_one_on","date",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"coaching_trends":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["coaching_profile_id","uuid",6,"coaching_profiles.id",0],["period","text",4,0,0],["report_markdown","text",0,0,0],["ai_model","text",0,0,0],["ai_error","text",0,0,0],["created_at","timestamptz",4,0,0]]},"companies":{"c":0,"r":131,"cols":[["id","uuid",5,0,0],["name","text",4,0,0],["industry","text",0,0,0],["size_band","text",0,0,0],["country","text",0,0,0],["owner_id","uuid",2,"people.id",0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["priority","text",0,0,0],["billing_address","text",0,0,0],["metadata","jsonb",4,0,0],["archived_at","timestamptz",0,0,0],["archived_by","text",0,0,0],["lifecycle_stage","text",4,0,0],["industry_normalized","text",0,0,0],["website_url","citext",0,0,0],["client_types","_text[]",4,0,0]]},"company_profile":{"c":0,"r":4,"cols":[["id","uuid",5,0,0],["label","text",4,0,0],["content","text",0,0,0],["updated_by","uuid",2,"people.id",0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"compensation":{"c":0,"r":36,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["comp_type","text",4,0,0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["pay_period","text",4,0,0],["effective_from","date",4,0,0],["effective_to","date",0,0,0],["is_current","bool",4,0,0],["change_reason","text",0,0,0],["approved_by","uuid",2,"team_members.id",0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["salary_vnd","bigint",0,0,"Monthly salary in whole VND (native). Paired with salary_usd_cents at a fixed 25,500 VND/USD. comp_type = salary. Dave/Mai only."],["salary_usd_cents","bigint",0,0,"Monthly salary in USD cents, converted from salary_vnd at a fixed 25,500 VND/USD (not live fx). Dave/Mai only."]]},"content_channels":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["channel_type","text",4,0,0],["integration_source_id","uuid",2,"integration_sources.id",0],["platform_identity_id","uuid",2,"platform_identities.id",0],["config","jsonb",4,0,0],["url","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"content_ideas":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["title","text",4,0,0],["summary","text",0,0,0],["pillar_id","uuid",2,"content_pillars.id",0],["status","text",4,0,0],["source","text",4,0,0],["source_meeting_id","uuid",2,"meetings.id",0],["source_interaction_id","uuid",2,"interactions.id",0],["created_by","uuid",2,"people.id",0],["owner_id","uuid",2,"people.id",0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"content_items":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["idea_id","uuid",2,"content_ideas.id",0],["channel_id","uuid",6,"content_channels.id",0],["content_type","text",4,0,0],["title","text",0,0,0],["excerpt","text",0,0,0],["body_markdown","text",0,0,0],["status","text",4,0,0],["generation_status","text",4,0,0],["seo_title_tag","text",0,0,0],["meta_description","text",0,0,0],["slug","text",0,0,0],["long_tail_keyword","text",0,0,0],["canonical_url","text",0,0,0],["published_url","text",0,0,0],["published_at","timestamptz",0,0,0],["created_by","uuid",2,"people.id",0],["owner_id","uuid",2,"people.id",0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"content_media":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["content_id","uuid",6,"content_items.id",0],["document_id","uuid",6,"documents.id",0],["position","int",4,0,0],["role","text",4,0,0],["created_at","timestamptz",4,0,0]]},"content_pillars":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["primary_keyword","text",0,0,0],["intent","text",0,0,0],["authority_url","text",0,0,0],["est_monthly_volume","int",0,0,0],["strategic_pct","numeric",0,0,0],["description","text",0,0,0],["owner_id","uuid",2,"people.id",0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"content_schedules":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["content_id","uuid",6,"content_items.id",0],["channel_id","uuid",6,"content_channels.id",0],["scheduled_for","timestamptz",4,0,0],["status","text",4,0,0],["published_at","timestamptz",0,0,0],["external_post_id","text",0,0,0],["failure_reason","text",0,0,0],["created_by","uuid",2,"people.id",0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"contractor_payments":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["period_month","date",4,0,0],["status","text",4,0,0],["total_regular_hours","numeric",4,0,0],["total_overtime_hours","numeric",4,0,0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["summary","text",0,0,0],["decided_by","text",0,0,0],["decided_at","timestamptz",0,0,0],["paid_at","timestamptz",0,0,0],["note","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"contractor_work_events":{"c":0,"r":7,"cols":[["id","uuid",5,0,0],["request_id","uuid",6,"contractor_work_requests.id",0],["actor_type","text",4,0,0],["actor","text",0,0,0],["type","text",4,0,0],["body","text",0,0,0],["meta","jsonb",4,0,0],["created_at","timestamptz",4,0,0]]},"contractor_work_requests":{"c":0,"r":3,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["title","text",4,0,0],["brief","text",4,0,0],["access_token","text",4,0,0],["status","text",4,0,0],["estimated_hours","numeric",0,0,0],["plan_text","text",0,0,0],["estimate_submitted_at","timestamptz",0,0,0],["decided_by","text",0,0,0],["decided_at","timestamptz",0,0,0],["actual_hours","numeric",0,0,0],["actual_overtime_hours","numeric",4,0,0],["work_summary","text",0,0,0],["work_link","text",0,0,0],["work_submitted_at","timestamptz",0,0,0],["accepted_by","text",0,0,0],["accepted_at","timestamptz",0,0,0],["payment_id","uuid",2,"contractor_payments.id",0],["created_by","text",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["client_company_id","uuid",2,"companies.id",0],["requested_by_person_id","uuid",2,"people.id",0],["origin","text",4,0,0],["billing_status","text",0,0,0],["billing_error","text",0,0,0],["billed_invoice_id","uuid",2,"invoices.id",0],["billed_amount_cents","bigint",0,0,0],["billed_rate_cents","bigint",0,0,0],["billed_at","timestamptz",0,0,0]]},"dayoff_snapshot":{"c":0,"r":1402,"cols":[["id","uuid",5,0,0],["endpoint","text",4,0,0],["params","jsonb",4,0,0],["dayoff_id","text",0,0,0],["payload","jsonb",4,0,0],["fetched_at","timestamptz",4,0,0]]},"deals":{"c":0,"r":134,"cols":[["id","uuid",5,0,0],["pipeline_id","uuid",6,"pipelines.id",0],["stage_id","uuid",2,"pipeline_stages.id",0],["title","text",4,0,0],["person_id","uuid",2,"people.id",0],["company_id","uuid",2,"companies.id",0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["status","text",4,0,0],["probability","int",0,0,0],["owner_id","uuid",2,"people.id",0],["affiliate_id","uuid",2,"affiliates.id",0],["source","text",0,0,0],["expected_close_date","date",0,0,0],["closed_at","timestamptz",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["service_line_id","uuid",2,"service_lines.id",0],["next_step","text",0,0,0],["next_step_date","date",0,0,0],["handoff_status","text",4,0,0],["handoff_rejected_reason","text",0,0,0],["handoff_note","text",0,0,0],["handoff_decided_at","timestamptz",0,0,0],["lost_reason","text",0,0,0],["archived_at","timestamptz",0,0,0],["archived_by","text",0,0,0],["amount_usd_cents","bigint",0,0,0],["fx_rate","numeric",0,0,0],["fx_rate_fetched_at","timestamptz",0,0,0],["proposal_url","text",0,0,"Link to the deal proposal document (free-form URL)."],["contract_url","text",0,0,"Link to the deal contract document (free-form URL)."],["referrer_id","uuid",2,"people.id",0],["position","int",4,0,0],["referrer_company_id","uuid",2,"companies.id","Company that directly referred this deal (mirrors person referrer_id). Attributes referred deals to a company affiliate."]]},"departments":{"c":0,"r":9,"cols":[["id","uuid",5,0,0],["parent_department_id","uuid",2,"departments.id",0],["slug","text",4,0,0],["name","text",4,0,0],["description","text",0,0,0],["head_team_member_id","uuid",2,"team_members.id",0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"documents":{"c":0,"r":275,"cols":[["id","uuid",5,0,0],["title","text",0,0,0],["storage_path","text",4,0,0],["mime_type","text",0,0,0],["byte_size","bigint",0,0,0],["uploaded_by","uuid",2,"people.id",0],["entity_type","text",0,0,0],["entity_id","uuid",0,0,0],["created_at","timestamptz",4,0,0]]},"equipment":{"c":0,"r":25,"cols":[["id","uuid",5,0,0],["asset_tag","text",4,0,0],["type","text",4,0,0],["name","text",4,0,0],["brand","text",0,0,0],["model","text",0,0,0],["serial_number","text",0,0,0],["processor","text",0,0,0],["ram","text",0,0,0],["storage","text",0,0,0],["screen_size","numeric",0,0,0],["purchase_date","date",0,0,0],["model_year","int",0,0,0],["vendor_id","uuid",2,"vendors.id",0],["vendor_name_raw","text",0,0,0],["invoice_ref","text",0,0,0],["cost_vnd","numeric",0,0,0],["cost_usd","numeric",0,0,0],["status","text",4,0,0],["condition","text",0,0,0],["current_holder_id","uuid",2,"people.id",0],["notes","text",0,0,0],["archived_at","timestamptz",0,0,0],["archived_by","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["image_url","text",0,0,0]]},"equipment_assignments":{"c":0,"r":29,"cols":[["id","uuid",5,0,0],["equipment_id","uuid",6,"equipment.id",0],["person_id","uuid",6,"people.id",0],["assigned_at","date",4,0,0],["returned_at","date",0,0,0],["condition_out","text",0,0,0],["condition_in","text",0,0,0],["note","text",0,0,0],["created_by","text",0,0,0],["created_at","timestamptz",4,0,0]]},"equipment_requests":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["type","text",4,0,0],["reason","text",0,0,0],["needed_by","date",0,0,0],["status","text",4,0,0],["decided_by","text",0,0,0],["decided_at","timestamptz",0,0,0],["decision_note","text",0,0,0],["created_at","timestamptz",4,0,0]]},"event_agenda_blocks":{"c":"Structured retreat agenda blocks behind the event Agenda tab. One set of blocks drives both the guest \"My Retreat\" itinerary (guest_visible) and the internal ops work schedule. Service-role only.","r":47,"cols":[["id","uuid",5,0,0],["event_id","uuid",6,"events.id",0],["day_index","int",4,0,0],["day_label","text",0,0,0],["day_date","date",0,0,0],["period","text",0,0,0],["time_label","text",0,0,0],["title","text",4,0,0],["body","text",0,0,0],["room","text",0,0,0],["guest_visible","bool",4,0,0],["sort_order","int",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"event_agenda_staff":{"c":"Which staff work each agenda block (the work-schedule half of the agenda). Ops-only: never surfaced to the guest hub. Carries no wages — the P&L flat $150/day covers cost.","r":0,"cols":[["id","uuid",5,0,0],["block_id","uuid",6,"event_agenda_blocks.id",0],["person_id","uuid",6,"people.id",0],["role","text",4,0,0],["note","text",0,0,0],["created_at","timestamptz",4,0,0]]},"event_pnl_lines":{"c":"Per-retreat P&L line items (revenue + expense) behind the event P&L tab. Native amount is truth; *_usd_cents is derived via fx_rates. Staff lines use a flat $150/day so real wages never leak to ops. Service-role only; hidden from the NL->SQL assistant.","r":58,"cols":[["id","uuid",5,0,0],["event_id","uuid",6,"events.id",0],["side","text",4,0,0],["classification","text",4,0,0],["description","text",0,0,0],["person_id","uuid",2,"people.id",0],["attendees","int",0,0,0],["staff_days","numeric",0,0,0],["estimated_cents","bigint",0,0,0],["estimated_currency","text",0,0,0],["estimated_usd_cents","bigint",0,0,0],["actual_cents","bigint",0,0,0],["actual_currency","text",0,0,0],["actual_usd_cents","bigint",0,0,0],["payment_status","text",4,0,0],["note","text",0,0,0],["sort_order","int",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"event_registrations":{"c":0,"r":8,"cols":[["id","uuid",5,0,0],["order_id","uuid",2,"orders.id",0],["product_id","uuid",2,"products.id",0],["person_id","uuid",6,"people.id",0],["attendee_name","text",0,0,0],["attendee_email","citext",0,0,0],["status","text",4,0,0],["created_at","timestamptz",4,0,0],["event_id","uuid",2,"events.id",0],["guest_count","int",4,0,0],["waitlist_position","int",0,0,0],["ticket_code","text",0,0,0],["checked_in_at","timestamptz",0,0,0],["confirmation_sent_at","timestamptz",0,0,0],["cancelled_at","timestamptz",0,0,0],["notes","text",0,0,0]]},"event_talks":{"c":0,"r":12,"cols":[["event_id","uuid",7,"events.id",0],["talk_id","uuid",7,"talks.id",0]]},"events":{"c":0,"r":21,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["type","text",4,0,0],["status","text",4,0,0],["visibility","text",4,0,0],["title","text",4,0,0],["blurb","text",0,0,0],["description","text",0,0,0],["location","text",0,0,0],["starts_at","timestamptz",0,0,0],["ends_at","timestamptz",0,0,0],["timezone","text",4,0,0],["capacity","int",0,0,0],["cover_image_url","text",0,0,0],["owner_person_id","uuid",2,"people.id",0],["landing_path","text",0,0,0],["feedback_survey_id","uuid",2,"surveys.id",0],["notes","text",0,0,0],["metadata","jsonb",4,0,0],["archived_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["media","jsonb",4,0,0],["attendee_count_override","int",0,0,0],["registered_count_override","int",0,0,"Manual override for the admin \"registered\" count. Used for events measured by headcount rather than a registration list. Null => derive from event_registrations."]]},"expenses":{"c":0,"r":30,"cols":[["id","uuid",5,0,0],["vendor_id","uuid",2,"vendors.id",0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["category","text",0,0,0],["incurred_on","date",0,0,0],["description","text",0,0,0],["paid","bool",4,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["source","text",4,0,0],["external_id","text",0,0,0],["txn_type","text",0,0,0],["lines","jsonb",4,0,0],["synced_at","timestamptz",0,0,0]]},"fx_rates":{"c":0,"r":3,"cols":[["currency","text",5,0,0],["rate_to_usd","numeric",4,0,0],["updated_at","timestamptz",4,0,0]]},"gallery_photo_people":{"c":"Tags linking a gallery photo to the people who appear in it. Powers \"photos of \u003cperson>\" for staff and the team assistant. Self-serve: any team member can tag.","r":0,"cols":[["photo_id","uuid",7,"gallery_photos.id",0],["person_id","uuid",7,"people.id",0],["tagged_by","uuid",2,"people.id",0],["created_at","timestamptz",4,0,0]]},"gallery_photos":{"c":"Internal team photo gallery. Public-bucket images; admin-managed, team-visible.","r":36,"cols":[["id","uuid",5,0,0],["image_url","text",4,0,0],["storage_path","text",4,0,0],["caption","text",0,0,0],["taken_on","date",0,0,0],["uploaded_by","text",0,0,0],["created_at","timestamptz",4,0,0],["category","text",0,0,0]]},"goals":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["parent_goal_id","uuid",2,"goals.id",0],["goal_type","text",4,0,0],["owner_team_member_id","uuid",2,"team_members.id",0],["department_id","uuid",2,"departments.id",0],["cycle_label","text",0,0,0],["title","text",4,0,0],["description","text",0,0,0],["metric_unit","text",0,0,0],["start_value","numeric",0,0,0],["target_value","numeric",0,0,0],["current_value","numeric",0,0,0],["progress_pct","numeric",4,0,0],["status","text",4,0,0],["due_date","date",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"holidays":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["date","date",4,0,0],["name","text",4,0,0],["country","text",0,0,0],["is_company_closure","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"ideas":{"c":0,"r":5,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["title","text",4,0,0],["problem","text",0,0,0],["data_needed","text",0,0,0],["workflow","text",0,0,0],["roi","text",0,0,0],["office","text",0,0,0],["ai_plan","text",0,0,0],["ai_model","text",0,0,0],["ai_error","text",0,0,0],["status","text",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["kind","text",4,0,0],["story","text",0,0,0],["takeaway","text",0,0,0],["source_urls","_text[]",0,0,0]]},"inquiries":{"c":0,"r":108,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["type","text",4,0,0],["subject","text",0,0,0],["message","text",0,0,0],["source","text",0,0,0],["source_site","text",0,0,0],["status","text",4,0,0],["deal_id","uuid",2,"deals.id",0],["affiliate_id","uuid",2,"affiliates.id",0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0]]},"integration_sources":{"c":0,"r":10,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["kind","text",0,0,0],["base_url","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"interactions":{"c":0,"r":172,"cols":[["id","uuid",5,0,0],["kind","text",4,0,0],["subject","text",0,0,0],["body","text",0,0,0],["occurred_at","timestamptz",4,0,0],["owner_id","uuid",2,"people.id",0],["person_id","uuid",2,"people.id",0],["company_id","uuid",2,"companies.id",0],["subject_type","text",0,0,0],["subject_id","uuid",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0]]},"interview_interviewers":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["interview_id","uuid",6,"interviews.id",0],["interviewer_id","uuid",6,"people.id",0],["role","text",4,0,0],["created_at","timestamptz",4,0,0]]},"interview_scorecards":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["interview_id","uuid",6,"interviews.id",0],["interviewer_id","uuid",6,"people.id",0],["recommendation","text",0,0,0],["overall_score","numeric",0,0,0],["summary","text",0,0,0],["submitted_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"interviews":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["application_id","uuid",6,"applications.id",0],["application_stage_id","uuid",2,"application_stages.id",0],["meeting_id","uuid",2,"meetings.id",0],["title","text",0,0,0],["mode","text",4,0,0],["scheduled_at","timestamptz",0,0,0],["duration_minutes","int",0,0,0],["location","text",0,0,0],["status","text",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"invoices":{"c":0,"r":201,"cols":[["id","uuid",5,0,0],["company_id","uuid",6,"companies.id",0],["source","text",4,0,0],["external_id","text",4,0,0],["doc_number","text",0,0,0],["txn_date","date",4,0,0],["due_date","date",0,0,0],["currency","text",4,0,0],["amount_cents","bigint",4,0,0],["balance_cents","bigint",4,0,0],["status","text",4,0,0],["memo","text",0,0,0],["payment_link","text",0,0,0],["lines","jsonb",4,0,0],["synced_at","timestamptz",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["customer_name","text",0,0,0]]},"job_requisitions":{"c":0,"r":56,"cols":[["id","uuid",5,0,0],["client_company_id","uuid",2,"companies.id",0],["department_id","uuid",2,"departments.id",0],["position_id","uuid",2,"positions.id",0],["stage_template_id","uuid",2,"stage_templates.id",0],["title","text",4,0,0],["headcount","int",4,0,0],["employment_type","text",4,0,0],["location","text",0,0,0],["remote_policy","text",0,0,0],["salary_min_cents","bigint",0,0,0],["salary_max_cents","bigint",0,0,0],["currency","text",4,0,0],["hiring_manager_id","uuid",2,"people.id",0],["recruiter_id","uuid",2,"team_members.id",0],["status","text",4,0,0],["opened_at","timestamptz",0,0,0],["closed_at","timestamptz",0,0,0],["description","text",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["candidate_ranking","text",0,0,0],["requirements","text",0,0,0],["responsibilities","text",0,0,0],["full_jd","text",0,0,0],["slug","text",0,0,0],["is_public","bool",4,0,0],["application_questions","jsonb",4,0,0]]},"lead":{"c":0,"r":44,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["status","text",4,0,0],["sla_due_at","timestamptz",0,0,0],["attempt_count","int",4,0,0],["disqualified_reason","text",0,0,0],["owner_id","uuid",2,"people.id",0],["source","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["pinned_at","timestamptz",0,0,0]]},"leave_adjustments":{"c":0,"r":52,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["leave_type","text",4,0,0],["delta_days","numeric",4,0,0],["kind","text",4,0,0],["reason","text",0,0,0],["effective_date","date",4,0,0],["source","text",0,0,0],["external_key","text",0,0,0],["created_by","uuid",2,"team_members.id",0],["created_at","timestamptz",4,0,0]]},"leave_policies":{"c":0,"r":2,"cols":[["id","uuid",5,0,0],["dayoff_id","int",0,0,0],["name","text",4,0,0],["rules","jsonb",4,0,0],["source","jsonb",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["auto_approve","bool",4,0,0]]},"legal_entities":{"c":0,"r":3,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["legal_name","text",0,0,0],["country","text",0,0,0],["entity_type","text",0,0,0],["base_currency","text",4,0,0],["tax_id","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"lifecycle_transitions":{"c":0,"r":63,"cols":[["id","uuid",5,0,0],["person_id","uuid",2,"people.id",0],["from_stage","text",0,0,0],["to_stage","text",0,0,0],["from_status","text",0,0,0],["to_status","text",0,0,0],["reason","text",0,0,0],["note","text",0,0,0],["changed_by","uuid",2,"people.id",0],["occurred_at","timestamptz",4,0,0],["company_id","uuid",2,"companies.id",0]]},"meeting_action_items":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["meeting_id","uuid",6,"meetings.id",0],["title","text",4,0,0],["detail","text",0,0,0],["assignee_id","uuid",2,"people.id",0],["due_date","date",0,0,0],["status","text",4,0,0],["position","int",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"meeting_links":{"c":0,"r":2,"cols":[["id","uuid",5,0,0],["meeting_id","uuid",6,"meetings.id",0],["entity_type","text",4,0,0],["entity_id","uuid",4,0,0],["created_at","timestamptz",4,0,0]]},"meeting_participants":{"c":0,"r":2,"cols":[["id","uuid",5,0,0],["meeting_id","uuid",6,"meetings.id",0],["person_id","uuid",2,"people.id",0],["external_email","citext",0,0,0],["display_name","text",0,0,0],["role","text",4,0,0],["attended","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"meetings":{"c":0,"r":358,"cols":[["id","uuid",5,0,0],["source","text",4,0,0],["external_id","text",0,0,0],["title","text",0,0,0],["meeting_type","text",0,0,0],["summary","text",0,0,0],["summary_encrypted","bool",4,0,0],["summary_ciphertext","text",0,0,0],["transcript_url","text",0,0,0],["recording_url","text",0,0,0],["minutes_url","text",0,0,0],["owner_id","uuid",2,"people.id",0],["started_at","timestamptz",0,0,0],["ended_at","timestamptz",0,0,0],["duration_seconds","int",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"offers":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["application_id","uuid",6,"applications.id",0],["position_id","uuid",2,"positions.id",0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["pay_period","text",4,0,0],["bonus_cents","bigint",0,0,0],["equity_note","text",0,0,0],["start_date","date",0,0,0],["expires_at","timestamptz",0,0,0],["status","text",4,0,0],["approved_by","uuid",2,"team_members.id",0],["contract_document_id","uuid",2,"documents.id",0],["sent_at","timestamptz",0,0,0],["responded_at","timestamptz",0,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"onboarding_plans":{"c":0,"r":8,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["stage","text",4,0,0],["plan_uploaded_by","uuid",2,"team_members.id",0],["plan_uploaded_at","timestamptz",0,0,0],["day8_survey_sent_at","timestamptz",0,0,0],["day8_response_id","uuid",0,0,0],["day45_email_sent_at","timestamptz",0,0,0],["day45_response_id","uuid",0,0,0],["decision","text",0,0,0],["decision_at","timestamptz",0,0,0],["decision_by","uuid",2,"team_members.id",0],["day60_promoted_at","timestamptz",0,0,0],["day180_email_sent_at","timestamptz",0,0,0],["completed_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["plan_url","text",0,0,0],["plan_path","text",0,0,0]]},"onboarding_tasks":{"c":0,"r":43,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",2,"team_members.id",0],["application_id","uuid",2,"applications.id",0],["title","text",4,0,0],["description","text",0,0,0],["category","text",0,0,0],["assignee_id","uuid",2,"team_members.id",0],["status","text",4,0,0],["due_date","date",0,0,0],["completed_at","timestamptz",0,0,0],["position","int",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"one_on_one_sessions":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["one_on_one_id","uuid",6,"one_on_ones.id",0],["meeting_id","uuid",6,"meetings.id",0],["created_at","timestamptz",4,0,0]]},"one_on_ones":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["manager_id","uuid",6,"team_members.id",0],["report_id","uuid",6,"team_members.id",0],["cadence","text",4,0,0],["status","text",4,0,0],["next_scheduled_at","timestamptz",0,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"orders":{"c":0,"r":8,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["product_id","uuid",2,"products.id",0],["payment_method","text",4,0,0],["stripe_session_id","text",0,0,0],["stripe_payment_intent_id","text",0,0,0],["stripe_customer_id","text",0,0,0],["amount_cents","bigint",4,0,0],["tax_cents","bigint",4,0,0],["currency","text",4,0,0],["status","text",4,0,0],["seat_hold_expires_at","timestamptz",0,0,0],["refunded_cents","bigint",4,0,0],["affiliate_id","uuid",2,"affiliates.id",0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["amount_usd_cents","bigint",0,0,0]]},"people":{"c":0,"r":618,"cols":[["id","uuid",5,0,0],["email","citext",4,0,0],["full_name","text",0,0,0],["first_name","text",0,0,0],["last_name","text",0,0,0],["preferred_name","text",0,0,0],["phone","text",0,0,0],["avatar_url","text",0,0,0],["country","text",0,0,0],["timezone","text",0,0,0],["is_team_member","bool",4,0,0],["do_not_contact","bool",4,0,0],["owner_id","uuid",2,"people.id",0],["source","text",0,0,0],["auth_user_id","uuid",0,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["gender","text",0,0,0],["persona","text",0,0,0],["linkedin_url","text",0,0,0],["city","text",0,0,0],["state_province","text",0,0,0],["metadata","jsonb",4,0,0],["archived_at","timestamptz",0,0,0],["archived_by","text",0,0,0],["emergency_contact_name","text",0,0,0],["emergency_contact_phone","text",0,0,0],["lark_email","citext",0,0,0],["graduated_from","text",0,0,0]]},"people_sensitive":{"c":"Restricted legal/payroll PII. Service-role + admin-audited UI only. Explicitly hidden from chatbot_reader. Never join into directory/portal reads.","r":29,"cols":[["person_id","uuid",7,"people.id",0],["date_of_birth","date",0,0,0],["national_id_number","text",0,0,0],["national_id_issue_date","date",0,0,0],["national_id_issue_place","text",0,0,0],["permanent_address","text",0,0,0],["current_address","text",0,0,0],["marital_status","text",0,0,0],["bank_name","text",0,0,0],["bank_account_number","text",0,0,0],["bank_branch","text",0,0,0],["tax_code","text",0,0,0],["social_insurance_number","text",0,0,0],["id_front_path","text",0,0,0],["id_back_path","text",0,0,0],["id_selfie_path","text",0,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["place_of_birth","text",0,0,0],["native_province","text",0,0,0]]},"performance_reviews":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["reviewer_id","uuid",2,"team_members.id",0],["cycle_label","text",0,0,0],["review_type","text",4,0,0],["period_start","date",0,0,0],["period_end","date",0,0,0],["overall_rating","text",0,0,0],["rating_scale","text",0,0,0],["summary","text",0,0,0],["status","text",4,0,0],["submitted_at","timestamptz",0,0,0],["acknowledged_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"person_companies":{"c":0,"r":128,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["company_id","uuid",6,"companies.id",0],["role","text",4,0,0],["title","text",0,0,0],["is_primary","bool",4,0,0],["ownership_pct","numeric",0,0,0],["start_date","date",0,0,0],["end_date","date",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"person_qualifications":{"c":0,"r":1,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["goal","text",0,0,0],["plan","text",0,0,0],["challenge","text",0,0,0],["timeline","text",0,0,0],["budget","text",0,0,0],["authority","text",0,0,0],["captured_by","uuid",2,"people.id",0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"person_relationships":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["from_person_id","uuid",6,"people.id",0],["to_person_id","uuid",6,"people.id",0],["relationship_type","text",4,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0]]},"person_skills":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["skill_id","uuid",6,"skills.id",0],["proficiency","text",4,0,0],["years","numeric",0,0,0],["is_primary","bool",4,0,0],["verified_by","uuid",2,"team_members.id",0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"pillar_channels":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["pillar_id","uuid",6,"content_pillars.id",0],["channel_id","uuid",6,"content_channels.id",0],["prompt","text",0,0,0],["is_primary","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"pipeline_stages":{"c":0,"r":7,"cols":[["id","uuid",5,0,0],["pipeline_id","uuid",6,"pipelines.id",0],["name","text",4,0,0],["position","int",4,0,0],["is_won","bool",4,0,0],["is_lost","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"pipelines":{"c":0,"r":1,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["kind","text",4,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"platform_identities":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["source_id","uuid",6,"integration_sources.id",0],["person_id","uuid",2,"people.id",0],["entity_type","text",0,0,0],["entity_id","uuid",0,0,0],["external_id","text",4,0,0],["external_email","citext",0,0,0],["role","text",0,0,0],["raw","jsonb",4,0,0],["synced_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"portal_assume_sessions":{"c":0,"r":30,"cols":[["id","uuid",5,0,0],["company_id","uuid",6,"companies.id",0],["person_id","uuid",6,"people.id",0],["started_by","text",4,0,0],["started_at","timestamptz",4,0,0],["expires_at","timestamptz",4,0,0],["ended_at","timestamptz",0,0,0],["ended_by","text",0,0,0]]},"portal_members":{"c":0,"r":9,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["company_id","uuid",2,"companies.id",0],["role","text",4,0,0],["status","text",4,0,0],["invited_by","text",0,0,0],["invited_at","timestamptz",4,0,0],["revoked_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"positions":{"c":0,"r":30,"cols":[["id","uuid",5,0,0],["department_id","uuid",2,"departments.id",0],["slug","text",0,0,0],["title","text",4,0,0],["level","text",0,0,0],["employment_type","text",4,0,0],["is_people_manager","bool",4,0,0],["description","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"products":{"c":0,"r":28,"cols":[["id","uuid",5,0,0],["type","text",4,0,0],["slug","text",4,0,0],["title","text",4,0,0],["subtitle","text",0,0,0],["description","text",0,0,0],["date_start","timestamptz",0,0,0],["date_end","timestamptz",0,0,0],["location","text",0,0,0],["capacity","int",0,0,0],["cohort_slug","text",0,0,0],["tier","text",0,0,0],["payment_method_local_vn","bool",4,0,0],["stripe_product_id","text",0,0,0],["stripe_price_id","text",0,0,0],["amount_cents","int",4,0,0],["currency","text",4,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["service_line_id","uuid",2,"service_lines.id",0],["amount_usd_cents","bigint",0,0,0],["event_id","uuid",2,"events.id",0],["sort_order","int",4,0,0]]},"program_documents":{"c":"Documents uploaded to an AI program, stored in the private program-documents bucket.","r":0,"cols":[["id","uuid",5,0,0],["ai_program_id","uuid",6,"ai_programs.id",0],["storage_path","text",4,0,0],["filename","text",4,0,0],["size_bytes","bigint",0,0,0],["uploaded_by","text",0,0,0],["created_at","timestamptz",4,0,0]]},"program_plans":{"c":"Plans within an AI program: uploaded-doc markers or chatbot-produced 5Ds briefs (brief_html).","r":0,"cols":[["id","uuid",5,0,0],["ai_program_id","uuid",6,"ai_programs.id",0],["title","text",4,0,0],["method","text",4,0,0],["brief_html","text",0,0,0],["created_by","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"qbo_connection":{"c":0,"r":1,"cols":[["id","text",5,0,0],["realm_id","text",4,0,0],["access_token","text",4,0,0],["refresh_token","text",4,0,0],["access_token_expires_at","timestamptz",4,0,0],["refresh_token_expires_at","timestamptz",4,0,0],["environment","text",4,0,0],["connected_by","text",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"scorecard_scores":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["scorecard_id","uuid",6,"interview_scorecards.id",0],["criterion","text",4,0,0],["score","numeric",0,0,0],["weight","numeric",4,0,0],["comment","text",0,0,0],["position","int",4,0,0],["created_at","timestamptz",4,0,0]]},"service_lines":{"c":0,"r":8,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["business_unit","text",4,0,0],["description","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0]]},"skills":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["category","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"staff_assignments":{"c":0,"r":15,"cols":[["id","uuid",5,0,0],["company_id","uuid",6,"companies.id",0],["team_member_id","uuid",6,"team_members.id",0],["role_title","text",0,0,0],["start_date","date",0,0,0],["end_date","date",0,0,0],["status","text",4,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"stage_template_stages":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["stage_template_id","uuid",6,"stage_templates.id",0],["name","text",4,0,0],["stage_kind","text",4,0,0],["position","int",4,0,0],["created_at","timestamptz",4,0,0]]},"stage_templates":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["description","text",0,0,0],["active","bool",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"subscriptions":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["product_id","uuid",2,"products.id",0],["stripe_customer_id","text",0,0,0],["stripe_subscription_id","text",0,0,0],["status","text",4,0,0],["current_period_end","timestamptz",0,0,0],["cancel_at_period_end","bool",4,0,0],["affiliate_id","uuid",2,"affiliates.id",0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"survey_answers":{"c":0,"r":763,"cols":[["id","uuid",5,0,0],["response_id","uuid",6,"survey_responses.id",0],["field_id","uuid",6,"survey_fields.id",0],["value","text",0,0,0],["value_json","jsonb",0,0,0],["created_at","timestamptz",4,0,0]]},"survey_fields":{"c":0,"r":48,"cols":[["id","uuid",5,0,0],["survey_id","uuid",6,"surveys.id",0],["position","int",4,0,0],["type","text",4,0,0],["label","text",4,0,0],["help_text","text",0,0,0],["required","bool",4,0,0],["config","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0]]},"survey_responses":{"c":0,"r":277,"cols":[["id","uuid",5,0,0],["survey_id","uuid",6,"surveys.id",0],["person_id","uuid",2,"people.id",0],["cohort_slug","text",0,0,0],["respondent_name","text",0,0,0],["respondent_email","text",0,0,0],["submitted_at","timestamptz",4,0,0],["created_at","timestamptz",4,0,0],["respondent_kind","text",0,0,0],["metadata","jsonb",4,0,0]]},"surveys":{"c":0,"r":6,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["name","text",4,0,0],["description","text",0,0,0],["status","text",4,0,0],["intro_text","text",0,0,0],["thank_you_text","text",0,0,0],["metadata","jsonb",4,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["is_anonymous","bool",4,0,0],["created_by","text",0,0,0],["archived_at","timestamptz",0,0,0],["purpose","text",0,0,0]]},"taggables":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["tag_id","uuid",6,"tags.id",0],["entity_type","text",4,0,0],["entity_id","uuid",4,0,0],["created_at","timestamptz",4,0,0]]},"tags":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["label","text",4,0,0],["color","text",0,0,0],["kind","text",0,0,0],["created_at","timestamptz",4,0,0]]},"talks":{"c":0,"r":4,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["title","text",4,0,0],["active","bool",4,0,0],["sort_order","int",4,0,0],["created_at","timestamptz",4,0,0]]},"team_knowledge":{"c":0,"r":5,"cols":[["id","uuid",5,0,0],["slug","text",4,0,0],["title","text",4,0,0],["category","text",0,0,0],["body","text",4,0,0],["tags","_text[]",4,0,0],["source","text",0,0,0],["updated_at","timestamptz",4,0,0],["created_at","timestamptz",4,0,0],["archived_at","timestamptz",0,0,0]]},"team_members":{"c":0,"r":51,"cols":[["id","uuid",5,0,0],["person_id","uuid",6,"people.id",0],["department_id","uuid",2,"departments.id",0],["position_id","uuid",2,"positions.id",0],["manager_id","uuid",2,"team_members.id",0],["employee_number","text",0,0,0],["employment_type","text",4,0,0],["work_location","text",0,0,0],["status","text",4,0,0],["start_date","date",0,0,0],["end_date","date",0,0,0],["termination_reason","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["leave_policy_id","uuid",2,"leave_policies.id",0],["dayoff_employee_id","int",0,0,0],["employment_stage","text",0,0,"Orthogonal to status. 'probation' while under review; null once confirmed."],["probation_ends_on","date",0,0,"Probation end (start + ~2 months). Drives the probation-review workflow."],["contract_start_date","date",0,0,0]]},"time_off":{"c":0,"r":296,"cols":[["id","uuid",5,0,0],["team_member_id","uuid",6,"team_members.id",0],["leave_type","text",4,0,0],["status","text",4,0,0],["start_date","date",4,0,0],["end_date","date",4,0,0],["is_half_day","bool",4,0,0],["hours","numeric",0,0,0],["reason","text",0,0,0],["approved_by","uuid",2,"team_members.id",0],["approved_at","timestamptz",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["external_source","text",0,0,0],["external_id","text",0,0,0],["days","numeric",0,0,0],["manager_note","text",0,0,0],["requested_at","timestamptz",0,0,0]]},"token_purchases":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["company_id","uuid",6,"companies.id",0],["person_id","uuid",6,"people.id",0],["order_id","uuid",2,"orders.id",0],["packs","int",4,0,0],["tokens","int",4,0,0],["amount_cents","bigint",4,0,0],["currency","text",4,0,0],["status","text",4,0,0],["stripe_session_id","text",0,0,0],["created_at","timestamptz",4,0,0],["paid_at","timestamptz",0,0,0]]},"touchpoints":{"c":0,"r":0,"cols":[["id","uuid",5,0,0],["person_id","uuid",2,"people.id",0],["affiliate_id","uuid",2,"affiliates.id",0],["campaign_id","uuid",2,"campaigns.id",0],["code","text",0,0,0],["source_site","text",0,0,0],["channel","text",0,0,0],["utm","jsonb",4,0,0],["landing_path","text",0,0,0],["referrer","text",0,0,0],["visitor_id","text",0,0,0],["user_agent","text",0,0,0],["ip","inet",0,0,0],["occurred_at","timestamptz",4,0,0]]},"vendors":{"c":0,"r":23,"cols":[["id","uuid",5,0,0],["name","text",4,0,0],["type","text",4,0,0],["status","text",4,0,0],["notes","text",0,0,0],["created_at","timestamptz",4,0,0],["updated_at","timestamptz",4,0,0],["price_range","text",0,0,0],["address","text",0,0,0],["phone","text",0,0,0],["tax_id","text",0,0,0],["bank_info","text",0,0,0],["primary_contact_name","text",0,0,0],["primary_contact_email","text",0,0,0],["primary_contact_phone","text",0,0,0],["secondary_contact_name","text",0,0,0],["secondary_contact_email","text",0,0,0],["secondary_contact_phone","text",0,0,0],["rating","text",0,0,0],["url","text",0,0,0],["archived_at","timestamptz",0,0,0],["archived_by","text",0,0,0],["metadata","jsonb",4,0,0]]}},"fks":[["survey_responses","person_id","people","id"],["survey_responses","survey_id","surveys","id"],["survey_fields","survey_id","surveys","id"],["availability_blocks","inquiry_id","inquiries","id"],["availability_blocks","person_id","people","id"],["event_talks","event_id","events","id"],["event_talks","talk_id","talks","id"],["expenses","vendor_id","vendors","id"],["coaching_profiles","coach_id","team_members","id"],["coaching_profiles","team_member_id","team_members","id"],["coaching_one_on_ones","coaching_profile_id","coaching_profiles","id"],["coaching_commitments","coaching_profile_id","coaching_profiles","id"],["coaching_commitments","one_on_one_id","coaching_one_on_ones","id"],["coaching_commitments","status_updated_by","team_members","id"],["coaching_checkins","coaching_profile_id","coaching_profiles","id"],["coaching_trends","coaching_profile_id","coaching_profiles","id"],["coaching_context","coach_id","team_members","id"],["job_requisitions","client_company_id","companies","id"],["job_requisitions","department_id","departments","id"],["job_requisitions","hiring_manager_id","people","id"],["job_requisitions","position_id","positions","id"],["job_requisitions","recruiter_id","team_members","id"],["job_requisitions","stage_template_id","stage_templates","id"],["people_sensitive","person_id","people","id"],["gallery_photo_people","person_id","people","id"],["gallery_photo_people","photo_id","gallery_photos","id"],["gallery_photo_people","tagged_by","people","id"],["survey_answers","field_id","survey_fields","id"],["survey_answers","response_id","survey_responses","id"],["contractor_payments","person_id","people","id"],["company_profile","updated_by","people","id"],["contractor_work_requests","billed_invoice_id","invoices","id"],["contractor_work_requests","client_company_id","companies","id"],["contractor_work_requests","payment_id","contractor_payments","id"],["contractor_work_requests","person_id","people","id"],["contractor_work_requests","requested_by_person_id","people","id"],["contractor_work_events","request_id","contractor_work_requests","id"],["platform_identities","person_id","people","id"],["platform_identities","source_id","integration_sources","id"],["person_relationships","from_person_id","people","id"],["person_relationships","to_person_id","people","id"],["documents","uploaded_by","people","id"],["companies","owner_id","people","id"],["audit_log","actor_person_id","people","id"],["interactions","company_id","companies","id"],["interactions","owner_id","people","id"],["interactions","person_id","people","id"],["people","owner_id","people","id"],["person_companies","company_id","companies","id"],["person_companies","person_id","people","id"],["taggables","tag_id","tags","id"],["event_registrations","event_id","events","id"],["event_registrations","order_id","orders","id"],["event_registrations","person_id","people","id"],["event_registrations","product_id","products","id"],["application_stage_log","application_id","applications","id"],["application_stage_log","from_stage_id","application_stages","id"],["application_stage_log","moved_by","team_members","id"],["application_stage_log","to_stage_id","application_stages","id"],["ideas","person_id","people","id"],["lead","owner_id","people","id"],["lead","person_id","people","id"],["inquiries","affiliate_id","affiliates","id"],["inquiries","deal_id","deals","id"],["inquiries","person_id","people","id"],["touchpoints","affiliate_id","affiliates","id"],["touchpoints","campaign_id","campaigns","id"],["touchpoints","person_id","people","id"],["bookings","order_id","orders","id"],["bookings","person_id","people","id"],["bookings","product_id","products","id"],["pipeline_stages","pipeline_id","pipelines","id"],["affiliates","company_id","companies","id"],["affiliates","person_id","people","id"],["affiliate_commissions","affiliate_id","affiliates","id"],["affiliate_commissions","order_id","orders","id"],["affiliate_commissions","payout_id","affiliate_payouts","id"],["affiliate_payouts","affiliate_id","affiliates","id"],["products","event_id","events","id"],["products","service_line_id","service_lines","id"],["orders","affiliate_id","affiliates","id"],["orders","person_id","people","id"],["orders","product_id","products","id"],["candidate_profile","person_id","people","id"],["lifecycle_transitions","changed_by","people","id"],["lifecycle_transitions","company_id","companies","id"],["lifecycle_transitions","person_id","people","id"],["token_purchases","company_id","companies","id"],["token_purchases","order_id","orders","id"],["token_purchases","person_id","people","id"],["event_agenda_blocks","event_id","events","id"],["event_agenda_staff","block_id","event_agenda_blocks","id"],["event_agenda_staff","person_id","people","id"],["person_qualifications","captured_by","people","id"],["person_qualifications","person_id","people","id"],["meetings","owner_id","people","id"],["meeting_participants","meeting_id","meetings","id"],["meeting_participants","person_id","people","id"],["deals","affiliate_id","affiliates","id"],["deals","company_id","companies","id"],["deals","owner_id","people","id"],["deals","person_id","people","id"],["deals","pipeline_id","pipelines","id"],["deals","referrer_company_id","companies","id"],["deals","referrer_id","people","id"],["deals","service_line_id","service_lines","id"],["deals","stage_id","pipeline_stages","id"],["meeting_action_items","assignee_id","people","id"],["meeting_action_items","meeting_id","meetings","id"],["scorecard_scores","scorecard_id","interview_scorecards","id"],["offers","application_id","applications","id"],["offers","approved_by","team_members","id"],["offers","contract_document_id","documents","id"],["offers","position_id","positions","id"],["one_on_ones","manager_id","team_members","id"],["one_on_ones","report_id","team_members","id"],["one_on_one_sessions","meeting_id","meetings","id"],["one_on_one_sessions","one_on_one_id","one_on_ones","id"],["performance_reviews","reviewer_id","team_members","id"],["performance_reviews","team_member_id","team_members","id"],["onboarding_tasks","application_id","applications","id"],["onboarding_tasks","assignee_id","team_members","id"],["onboarding_tasks","team_member_id","team_members","id"],["pillar_channels","channel_id","content_channels","id"],["pillar_channels","pillar_id","content_pillars","id"],["program_plans","ai_program_id","ai_programs","id"],["program_documents","ai_program_id","ai_programs","id"],["stage_template_stages","stage_template_id","stage_templates","id"],["meeting_links","meeting_id","meetings","id"],["ai_programs","company_id","companies","id"],["interview_interviewers","interview_id","interviews","id"],["interview_interviewers","interviewer_id","people","id"],["person_skills","person_id","people","id"],["person_skills","skill_id","skills","id"],["person_skills","verified_by","team_members","id"],["compensation","approved_by","team_members","id"],["compensation","team_member_id","team_members","id"],["equipment","current_holder_id","people","id"],["equipment","vendor_id","vendors","id"],["interview_scorecards","interview_id","interviews","id"],["interview_scorecards","interviewer_id","people","id"],["applications","candidate_id","candidates","id"],["applications","current_stage_id","application_stages","id"],["applications","job_requisition_id","job_requisitions","id"],["applications","person_id","people","id"],["applications","referrer_person_id","people","id"],["applications","resume_document_id","documents","id"],["candidates","current_company_id","companies","id"],["candidates","owner_recruiter_id","team_members","id"],["candidates","person_id","people","id"],["candidates","resume_document_id","documents","id"],["application_stages","job_requisition_id","job_requisitions","id"],["goals","department_id","departments","id"],["goals","owner_team_member_id","team_members","id"],["goals","parent_goal_id","goals","id"],["interviews","application_id","applications","id"],["interviews","application_stage_id","application_stages","id"],["interviews","meeting_id","meetings","id"],["subscriptions","affiliate_id","affiliates","id"],["subscriptions","person_id","people","id"],["subscriptions","product_id","products","id"],["departments","head_team_member_id","team_members","id"],["departments","parent_department_id","departments","id"],["positions","department_id","departments","id"],["equipment_assignments","equipment_id","equipment","id"],["equipment_assignments","person_id","people","id"],["time_off","approved_by","team_members","id"],["time_off","team_member_id","team_members","id"],["leave_adjustments","created_by","team_members","id"],["leave_adjustments","team_member_id","team_members","id"],["team_members","department_id","departments","id"],["team_members","leave_policy_id","leave_policies","id"],["team_members","manager_id","team_members","id"],["team_members","person_id","people","id"],["team_members","position_id","positions","id"],["onboarding_plans","decision_by","team_members","id"],["onboarding_plans","plan_uploaded_by","team_members","id"],["onboarding_plans","team_member_id","team_members","id"],["events","feedback_survey_id","surveys","id"],["events","owner_person_id","people","id"],["portal_members","company_id","companies","id"],["portal_members","person_id","people","id"],["event_pnl_lines","event_id","events","id"],["event_pnl_lines","person_id","people","id"],["staff_assignments","company_id","companies","id"],["staff_assignments","team_member_id","team_members","id"],["assistant_conversations","owner_person_id","people","id"],["invoices","company_id","companies","id"],["equipment_requests","person_id","people","id"],["content_media","content_id","content_items","id"],["content_media","document_id","documents","id"],["content_schedules","channel_id","content_channels","id"],["content_schedules","content_id","content_items","id"],["content_schedules","created_by","people","id"],["portal_assume_sessions","company_id","companies","id"],["portal_assume_sessions","person_id","people","id"],["content_channels","integration_source_id","integration_sources","id"],["content_channels","platform_identity_id","platform_identities","id"],["content_pillars","owner_id","people","id"],["content_items","channel_id","content_channels","id"],["content_items","created_by","people","id"],["content_items","idea_id","content_ideas","id"],["content_items","owner_id","people","id"],["content_ideas","created_by","people","id"],["content_ideas","owner_id","people","id"],["content_ideas","pillar_id","content_pillars","id"],["content_ideas","source_interaction_id","interactions","id"],["content_ideas","source_meeting_id","meetings","id"]],"meta":{"nTables":115,"nCols":1448,"nFks":208,"generated":"9 August 2026","project":"wwchefrgkkxmhlkntufm · schema company_os"}};
+
+// ---------------- layout ----------------
+const CARD_W = 250, ROW_H = 20, HDR_H = 42, GAP = 26, PAD = 30, TITLE_H = 52, DGAP = 90;
+const pos = {};            // table -> {x, y, w, h, dom}
+const domBoxes = [];       // {x, y, w, h, name, color}
+const domOf = {};
+DATA.domains.forEach((d, di) => d.tables.forEach(t => domOf[t] = di));
+
+(function layout() {
+  const sized = DATA.domains.map(d => {
+    const cards = d.tables.map(t => ({ t, h: HDR_H + DATA.tables[t].cols.length * ROW_H }));
+    const ncols = Math.max(1, Math.min(6, Math.ceil(Math.sqrt(cards.length * 1.6))));
+    const colH = new Array(ncols).fill(0);
+    const placed = cards.map(c => {
+      let ci = 0;
+      for (let i = 1; i < ncols; i++) if (colH[i] < colH[ci]) ci = i;
+      const p = { ...c, cx: ci, cy: colH[ci] };
+      colH[ci] += c.h + GAP;
+      return p;
+    });
+    const w = ncols * CARD_W + (ncols - 1) * GAP + PAD * 2;
+    const h = TITLE_H + Math.max(...colH) - GAP + PAD;
+    return { d, placed, w, h };
+  });
+
+  const totalArea = sized.reduce((s, x) => s + (x.w + DGAP) * (x.h + DGAP), 0);
+  const targetW = Math.max(2400, Math.sqrt(totalArea) * 1.5);
+  let x = 0, y = 0, rowH = 0;
+  for (const s of sized) {
+    if (x > 0 && x + s.w > targetW) { x = 0; y += rowH + DGAP; rowH = 0; }
+    domBoxes.push({ x, y, w: s.w, h: s.h, name: s.d.n, color: s.d.color });
+    for (const p of s.placed) {
+      pos[p.t] = { x: x + PAD + p.cx * (CARD_W + GAP), y: y + TITLE_H + p.cy, w: CARD_W, h: p.h, dom: DATA.domains.indexOf(s.d) };
+    }
+    x += s.w + DGAP; rowH = Math.max(rowH, s.h);
+  }
+})();
+const WORLD = domBoxes.reduce((b, d) => ({ w: Math.max(b.w, d.x + d.w), h: Math.max(b.h, d.y + d.h) }), { w: 0, h: 0 });
+
+// ---------------- render world ----------------
+const world = document.getElementById('world');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const fmtRows = n => n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
+
+let html = '';
+for (const d of domBoxes) {
+  html += '<div class="dom-box" style="left:' + d.x + 'px;top:' + d.y + 'px;width:' + d.w + 'px;height:' + d.h + 'px">'
+        + '<div class="dom-title" style="color:' + d.color + '">' + esc(d.name) + '</div></div>';
+}
+for (const [t, p] of Object.entries(pos)) {
+  const info = DATA.tables[t], color = DATA.domains[p.dom].color;
+  let rows = '';
+  for (const c of info.cols) {
+    const cls = (c[2] & 1 ? ' pk' : '') + (c[2] & 2 ? ' fk' : '');
+    rows += '<div class="tc-col' + cls + '"><span class="cn" title="' + esc(c[0]) + '">' + esc(c[0]) + '</span><span class="ct">' + esc(c[1]) + '</span></div>';
+  }
+  html += '<div class="tcard" data-t="' + esc(t) + '" style="left:' + p.x + 'px;top:' + p.y + 'px">'
+        + '<div class="tc-head" style="border-top-color:' + color + '"><div class="tc-name">' + esc(t) + '</div>'
+        + '<div class="tc-rows">' + fmtRows(info.r) + ' rows · ' + info.cols.length + ' cols</div></div>' + rows + '</div>';
+}
+world.insertAdjacentHTML('beforeend', html);
+
+// edges
+const svg = document.getElementById('edges');
+svg.setAttribute('width', WORLD.w); svg.setAttribute('height', WORLD.h);
+const colIdx = (t, c) => DATA.tables[t].cols.findIndex(x => x[0] === c);
+let paths = '';
+for (const [src, sc, tgt] of DATA.fks) {
+  const sp = pos[src], tp = pos[tgt];
+  if (!sp || !tp) continue;
+  const sy = sp.y + HDR_H + colIdx(src, sc) * ROW_H + ROW_H / 2;
+  const ty = tp.y + HDR_H / 2;
+  let dPath;
+  if (src === tgt) {
+    const x = sp.x + sp.w;
+    dPath = 'M ' + x + ' ' + sy + ' C ' + (x + 60) + ' ' + sy + ' ' + (x + 60) + ' ' + ty + ' ' + x + ' ' + ty;
+  } else {
+    const sRight = tp.x + tp.w / 2 > sp.x + sp.w / 2;
+    const sx = sRight ? sp.x + sp.w : sp.x;
+    const tx = sRight ? tp.x : tp.x + tp.w;
+    const dx = Math.min(180, Math.max(50, Math.abs(tx - sx) / 2)) * (sRight ? 1 : -1);
+    dPath = 'M ' + sx + ' ' + sy + ' C ' + (sx + dx) + ' ' + sy + ' ' + (tx - dx) + ' ' + ty + ' ' + tx + ' ' + ty;
+  }
+  paths += '<path d="' + dPath + '" data-s="' + esc(src) + '" data-g="' + esc(tgt) + '"/>';
+}
+svg.innerHTML = paths;
+
+// ---------------- pan / zoom ----------------
+const vp = document.getElementById('viewport');
+const view = { x: 0, y: 0, k: 1 };
+const KMIN = 0.04, KMAX = 2.5;
+function apply() {
+  world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.k + ')';
+  document.getElementById('zpct').textContent = Math.round(view.k * 100) + '%';
+  drawMinimap();
+}
+function fitAll() {
+  const r = vp.getBoundingClientRect();
+  view.k = Math.max(KMIN, Math.min(r.width / (WORLD.w + 120), r.height / (WORLD.h + 120)));
+  view.x = (r.width - WORLD.w * view.k) / 2;
+  view.y = (r.height - WORLD.h * view.k) / 2;
+  apply();
+}
+function zoomAt(cx, cy, factor) {
+  const k2 = Math.max(KMIN, Math.min(KMAX, view.k * factor));
+  view.x = cx - (cx - view.x) * (k2 / view.k);
+  view.y = cy - (cy - view.y) * (k2 / view.k);
+  view.k = k2;
+  apply();
+}
+let interacted = false;
+vp.addEventListener('wheel', e => {
+  e.preventDefault();
+  interacted = true;
+  const r = vp.getBoundingClientRect();
+  if (e.ctrlKey || !e.deltaX) zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.002));
+  else { view.x -= e.deltaX; view.y -= e.deltaY; apply(); }
+}, { passive: false });
+
+let drag = null;
+vp.addEventListener('pointerdown', e => {
+  interacted = true;
+  drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false };
+  vp.setPointerCapture(e.pointerId);
+});
+vp.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 5) { drag.moved = true; vp.classList.add('panning'); }
+  if (drag.moved) { view.x = drag.vx + dx; view.y = drag.vy + dy; apply(); }
+});
+vp.addEventListener('pointerup', e => {
+  vp.classList.remove('panning');
+  const wasClick = drag && !drag.moved;
+  drag = null;
+  if (!wasClick) return;
+  const card = e.target.closest('.tcard');
+  if (card) select(card.dataset.t); else deselect();
+});
+
+let anim = null;
+function flyTo(t) {
+  const p = pos[t], r = vp.getBoundingClientRect();
+  const k2 = Math.max(0.85, Math.min(1.1, view.k < 0.5 ? 0.9 : view.k));
+  const tx = r.width / 2 - (p.x + p.w / 2) * k2;
+  const ty = r.height / 2 - (p.y + Math.min(p.h, r.height / k2 * 0.8) / 2) * k2;
+  const from = { ...view }, t0 = performance.now();
+  cancelAnimationFrame(anim);
+  (function step(now) {
+    const u = Math.min(1, (now - t0) / 420), e2 = 1 - Math.pow(1 - u, 3);
+    view.x = from.x + (tx - from.x) * e2;
+    view.y = from.y + (ty - from.y) * e2;
+    view.k = from.k + (k2 - from.k) * e2;
+    apply();
+    if (u < 1) anim = requestAnimationFrame(step);
+  })(t0);
+}
+
+// ---------------- selection + detail ----------------
+let selected = null;
+const refsTo = {};
+for (const [src, sc, tgt, tc] of DATA.fks) (refsTo[tgt] = refsTo[tgt] || []).push([src, sc, tc]);
+
+function select(t, fly = true) {
+  interacted = true;
+  selected = t;
+  document.body.classList.add('has-sel', 'detail-open');
+  document.querySelectorAll('.tcard').forEach(c => {
+    c.classList.toggle('sel', c.dataset.t === t);
+    c.classList.remove('rel');
+  });
+  svg.querySelectorAll('path').forEach(p => {
+    p.classList.toggle('out', p.dataset.s === t);
+    p.classList.toggle('in', p.dataset.g === t && p.dataset.s !== t);
+  });
+  const related = new Set();
+  for (const [src, , tgt] of DATA.fks) {
+    if (src === t) related.add(tgt);
+    if (tgt === t) related.add(src);
+  }
+  related.delete(t);
+  related.forEach(rt => { const c = document.querySelector('.tcard[data-t="' + rt + '"]'); if (c) c.classList.add('rel'); });
+  document.querySelectorAll('.idx-item').forEach(i => i.classList.toggle('active', i.dataset.t === t));
+  renderDetail(t);
+  document.getElementById('detail').classList.add('open');
+  if (fly) flyTo(t);
+  history.replaceState(null, '', '#' + t);
+}
+function deselect() {
+  selected = null;
+  document.body.classList.remove('has-sel', 'detail-open');
+  document.querySelectorAll('.tcard.sel, .tcard.rel').forEach(c => c.classList.remove('sel', 'rel'));
+  svg.querySelectorAll('path.out, path.in').forEach(p => p.classList.remove('out', 'in'));
+  document.querySelectorAll('.idx-item.active').forEach(i => i.classList.remove('active'));
+  document.getElementById('detail').classList.remove('open');
+  history.replaceState(null, '', location.pathname);
+}
+document.getElementById('d-close').onclick = deselect;
+
+function renderDetail(t) {
+  const info = DATA.tables[t], di = domOf[t], d = DATA.domains[di];
+  document.getElementById('d-domain').innerHTML = '<span class="dom-dot" style="background:' + d.color + '"></span>' + esc(d.n);
+  document.getElementById('d-name').textContent = t;
+  document.getElementById('d-rows').textContent = info.r.toLocaleString('en-US') + ' rows · ' + info.cols.length + ' columns';
+  document.getElementById('d-comment').textContent = info.c || '';
+  let b = '<div class="d-sec">Columns</div>';
+  for (const c of info.cols) {
+    const badges = (c[2] & 1 ? '<span class="badge b-pk">PK</span>' : '') + (c[2] & 4 && !(c[2] & 1) ? '<span class="badge b-nn">NN</span>' : '');
+    let fk = '';
+    if (c[3]) {
+      const [ft] = String(c[3]).split('.');
+      const ext = !DATA.tables[ft];
+      fk = '<div class="d-fk' + (ext ? ' ext' : '') + '" ' + (ext ? '' : 'data-goto="' + esc(ft) + '"') + '>→ ' + esc(c[3]) + '</div>';
+    }
+    const cc = c[4] ? '<div class="d-ccomment">' + esc(c[4]) + '</div>' : '';
+    b += '<div class="d-col' + (c[2] & 1 ? ' pk' : '') + '"><span class="cn">' + esc(c[0]) + '</span><span class="ct">' + esc(c[1]) + '</span>' + badges + fk + cc + '</div>';
+  }
+  const refs = refsTo[t] || [];
+  if (refs.length) {
+    b += '<div class="d-sec">Referenced by (' + refs.length + ')</div>';
+    for (const [src, sc] of refs) b += '<div class="d-ref" data-goto="' + esc(src) + '">' + esc(src) + '<span>.' + esc(sc) + '</span></div>';
+  }
+  const body = document.getElementById('d-body');
+  body.innerHTML = b;
+  body.scrollTop = 0;
+  body.querySelectorAll('[data-goto]').forEach(el => el.onclick = () => select(el.dataset.goto));
+}
+
+// ---------------- sidebar index + search ----------------
+const idx = document.getElementById('index');
+function buildIndex(q) {
+  q = (q || '').trim().toLowerCase();
+  document.body.classList.toggle('searching', !!q);
+  let out = '', any = false;
+  for (const d of DATA.domains) {
+    let items = '';
+    for (const t of d.tables) {
+      const info = DATA.tables[t];
+      const nameHit = !q || t.toLowerCase().includes(q);
+      const colHits = q ? info.cols.filter(c => c[0].toLowerCase().includes(q)).slice(0, 6) : [];
+      const card = document.querySelector('.tcard[data-t="' + t + '"]');
+      if (card) card.classList.toggle('faded', !!q && !nameHit && !colHits.length);
+      if (!nameHit && !colHits.length) continue;
+      any = true;
+      items += '<div class="idx-item" data-t="' + esc(t) + '"><span>' + esc(t) + '</span><span class="rc">' + fmtRows(info.r) + '</span></div>';
+      for (const c of colHits) items += '<div class="idx-sub" data-t="' + esc(t) + '">· ' + esc(c[0]) + '</div>';
+    }
+    if (items) out += '<details class="dom-group" open><summary><span class="dom-dot" style="background:' + d.color + '"></span>' + esc(d.n) + '<span class="dom-count">' + d.tables.length + '</span></summary>' + items + '</details>';
+  }
+  idx.innerHTML = any ? out : '<div class="no-results">No tables or columns match.</div>';
+  idx.querySelectorAll('[data-t]').forEach(el => el.onclick = () => {
+    select(el.dataset.t);
+    if (window.innerWidth <= 860) document.body.classList.remove('menu-open');
+  });
+  if (selected) document.querySelectorAll('.idx-item').forEach(i => i.classList.toggle('active', i.dataset.t === selected));
+}
+const search = document.getElementById('search');
+search.addEventListener('input', () => buildIndex(search.value));
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== search) { e.preventDefault(); search.focus(); }
+  if (e.key === 'Escape') { if (document.activeElement === search) { search.value = ''; buildIndex(''); search.blur(); } else deselect(); }
+});
+
+// ---------------- minimap ----------------
+const mm = document.getElementById('minimap');
+const MMW = 210, mmScale = MMW / WORLD.w, MMH = Math.max(60, Math.round(WORLD.h * mmScale));
+mm.width = MMW * devicePixelRatio; mm.height = MMH * devicePixelRatio;
+mm.style.width = MMW + 'px'; mm.style.height = MMH + 'px';
+const mctx = mm.getContext('2d');
+function drawMinimap() {
+  mctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  mctx.clearRect(0, 0, MMW, MMH);
+  for (const d of domBoxes) {
+    mctx.fillStyle = d.color + '22';
+    mctx.strokeStyle = d.color + '66';
+    mctx.fillRect(d.x * mmScale, d.y * mmScale, d.w * mmScale, d.h * mmScale);
+    mctx.strokeRect(d.x * mmScale, d.y * mmScale, d.w * mmScale, d.h * mmScale);
+  }
+  const r = vp.getBoundingClientRect();
+  mctx.strokeStyle = '#EAEEF2';
+  mctx.lineWidth = 1.5;
+  mctx.strokeRect(-view.x / view.k * mmScale, -view.y / view.k * mmScale, r.width / view.k * mmScale, r.height / view.k * mmScale);
+}
+function mmJump(e) {
+  const r = mm.getBoundingClientRect();
+  const wx = (e.clientX - r.left) / mmScale, wy = (e.clientY - r.top) / mmScale;
+  const vr = vp.getBoundingClientRect();
+  view.x = vr.width / 2 - wx * view.k;
+  view.y = vr.height / 2 - wy * view.k;
+  apply();
+}
+mm.addEventListener('pointerdown', e => { mm.setPointerCapture(e.pointerId); mmJump(e); mm.onpointermove = mmJump; });
+mm.addEventListener('pointerup', () => mm.onpointermove = null);
+
+// ---------------- controls ----------------
+document.getElementById('z-in').onclick = () => { interacted = true; const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.35); };
+document.getElementById('z-out').onclick = () => { interacted = true; const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.35); };
+document.getElementById('z-fit').onclick = fitAll;
+document.getElementById('menu-toggle').onclick = () => document.body.classList.toggle('menu-open');
+window.addEventListener('resize', () => { if (!interacted) fitAll(); else apply(); });
+
+// ---------------- boot ----------------
+document.getElementById('stats').textContent =
+  DATA.meta.nTables + ' tables · ' + DATA.meta.nCols.toLocaleString('en-US') + ' columns · ' + DATA.meta.nFks + ' relationships · snapshot ' + DATA.meta.generated;
+buildIndex('');
+fitAll();
+// the embedding pane can settle its size after first paint: refit until first interaction
+[120, 400, 900].forEach(ms => setTimeout(() => { if (!interacted) fitAll(); }, ms));
+const hash = decodeURIComponent(location.hash.slice(1));
+if (hash && DATA.tables[hash]) select(hash, false);
+if (hash && DATA.tables[hash]) setTimeout(() => { if (selected === hash) flyTo(hash); }, 450);
+</script>
+</body>
+</html>
