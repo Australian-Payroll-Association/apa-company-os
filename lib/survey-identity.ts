@@ -12,14 +12,21 @@ import { companyOs } from "@/lib/supabase";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { PORTAL_STATUSES } from "@/lib/team-auth";
 
+// respondent_kind buckets:
+//   team     — staff (a team_members row that grants /team access) or an admin
+//   client   — a person already on file who is not staff. Every logged-in
+//              portal client is a client: holding a session means they are in
+//              our system, so they are identified and attributed, never "external".
+//   external — someone we only know from a survey (no prior record, or a record
+//              that itself originated from a survey). Never reached here, since
+//              an actor always has a session; produced by classifyEmail instead.
+export type RespondentKind = "team" | "client" | "external";
+
 export type SurveyActor = {
   personId: string | null; // null only for admins without a people row
   name: string;
   email: string;
-  // True for staff (a team_members row that grants /team access) and admins.
-  // A logged-in portal CLIENT resolves with isTeam=false: identified, but an
-  // external respondent for respondent_kind purposes.
-  isTeam: boolean;
+  kind: RespondentKind;
 };
 
 export async function resolveSurveyActor(): Promise<SurveyActor | null> {
@@ -46,7 +53,9 @@ export async function resolveSurveyActor(): Promise<SurveyActor | null> {
       personId: person.id,
       name: person.preferred_name || person.first_name || person.full_name || person.email,
       email: person.email,
-      isTeam: (memberships ?? []).length > 0,
+      // Logged in and not staff = a portal client. They hold a session, so they
+      // are on file regardless of how their record first entered the system.
+      kind: (memberships ?? []).length > 0 ? "team" : "client",
     };
   }
 
@@ -56,28 +65,33 @@ export async function resolveSurveyActor(): Promise<SurveyActor | null> {
       .select("id, full_name")
       .eq("email", email)
       .maybeSingle();
-    return { personId: byEmail?.id ?? null, name: byEmail?.full_name || email, email, isTeam: true };
+    return { personId: byEmail?.id ?? null, name: byEmail?.full_name || email, email, kind: "team" };
   }
 
   return null;
 }
 
-// Classify a TYPED email (the external-respondent flow, where there is no
-// session to trust) as team when it belongs to staff or an admin. A survey
-// link shared outside the portal — the common case — is filled out logged-out,
-// so without this every staff response is stamped "external" and pollutes the
-// team-vs-external roll-up. Mirrors the isTeam rule in resolveSurveyActor.
-export async function isTeamEmail(email: string): Promise<boolean> {
+// Classify a TYPED email (the logged-out flow, where there is no session to
+// trust) into a respondent_kind. A survey link shared outside the portal — the
+// common case — is filled out logged-out, so without this every known
+// respondent is stamped "external" and pollutes the roll-up. Call this BEFORE
+// getOrCreatePerson mints a record for a brand-new respondent, otherwise that
+// fresh row would make them look "on file".
+//   team     — staff or admin
+//   client   — already on file through a real relationship (a people row whose
+//              source is anything other than a survey)
+//   external — unknown to us, or a record that itself originated from a survey
+export async function classifyEmail(email: string): Promise<RespondentKind> {
   const normalized = email.trim().toLowerCase();
-  if (!normalized.includes("@")) return false;
-  if (await isAdminEmail(normalized)) return true;
+  if (!normalized.includes("@")) return "external";
+  if (await isAdminEmail(normalized)) return "team";
 
   const { data: person } = await companyOs
     .from("people")
-    .select("id")
+    .select("id, source")
     .eq("email", normalized)
     .maybeSingle();
-  if (!person) return false;
+  if (!person) return "external";
 
   const { data: memberships } = await companyOs
     .from("team_members")
@@ -85,5 +99,9 @@ export async function isTeamEmail(email: string): Promise<boolean> {
     .eq("person_id", person.id)
     .in("status", PORTAL_STATUSES)
     .limit(1);
-  return (memberships ?? []).length > 0;
+  if ((memberships ?? []).length > 0) return "team";
+
+  // A record whose only origin is a survey isn't "in our system" for this
+  // purpose. Any other source means a real relationship = client.
+  return person.source === "survey" ? "external" : "client";
 }

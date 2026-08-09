@@ -213,6 +213,8 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
   }
 
   const teamCount = responses.filter((r) => r.respondent_kind === "team").length;
+  const clientCount = responses.filter((r) => r.respondent_kind === "client").length;
+  const externalCount = responses.length - teamCount - clientCount;
 
   // Deep-link each linked respondent to their employee profile. Survey responses
   // carry person_id, but the profile route keys on team_directory.id (a distinct
@@ -264,7 +266,8 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard label="Responses" value={responses.length} />
         <MetricCard label="Team" value={teamCount} />
-        <MetricCard label="External" value={responses.length - teamCount} />
+        <MetricCard label="Client" value={clientCount} />
+        <MetricCard label="External" value={externalCount} />
       </div>
 
       {fields.length === 0 ? (
@@ -336,7 +339,15 @@ export default async function SurveyResultsPage({ params }: { params: { id: stri
                           )}
                         </td>
                         <td>
-                          <Badge tone={r.respondent_kind === "team" ? "info" : "neutral"}>
+                          <Badge
+                            tone={
+                              r.respondent_kind === "team"
+                                ? "info"
+                                : r.respondent_kind === "client"
+                                  ? "ok"
+                                  : "neutral"
+                            }
+                          >
                             {r.respondent_kind ?? "external"}
                           </Badge>
                         </td>
