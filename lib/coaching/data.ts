@@ -20,6 +20,9 @@
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
 
+// (getEdgesLadderOptions below is also consumed by lib/coaching/ai.ts to give
+// the generators live goal-ladder context.)
+
 // ---- date helpers (YYYY-MM-DD, Saigon-date semantics, onboarding-cycle's) ---
 
 export function saigonToday(): string {
