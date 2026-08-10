@@ -21,6 +21,79 @@ function refresh(id: string) {
   revalidatePath("/careers");
 }
 
+// ─── Create ──────────────────────────────────────────────────────────────────
+// New reqs open immediately (that's why a recruiter adds one) but stay
+// internal-only: is_public defaults false, so nothing leaks to /careers until
+// the posting editor publishes it. Every req gets the standard 5-stage
+// pipeline the rest of the ATS assumes.
+const DEFAULT_STAGES = [
+  { name: "Screen", stage_kind: "screen", position: 1, is_terminal: false },
+  { name: "Interview", stage_kind: "interview", position: 2, is_terminal: false },
+  { name: "Offer", stage_kind: "offer", position: 3, is_terminal: false },
+  { name: "Hired", stage_kind: "hired", position: 4, is_terminal: true },
+  { name: "Rejected", stage_kind: "rejected", position: 5, is_terminal: true },
+];
+
+export type NewJobReq = {
+  title: string;
+  employment_type: string;
+  location?: string | null;
+  remote_policy?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  currency?: string;
+  description?: string | null;
+};
+
+export async function createJobReq(input: NewJobReq): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Title is required." };
+  if (!EMPLOYMENT_TYPES.has(input.employment_type)) return { ok: false, error: "Unknown employment type." };
+  if (input.remote_policy && !REMOTE_POLICIES.has(input.remote_policy)) return { ok: false, error: "Unknown remote policy." };
+  if (input.salary_min != null && (!Number.isFinite(input.salary_min) || input.salary_min < 0))
+    return { ok: false, error: "Salary min must be zero or more." };
+  if (input.salary_max != null && (!Number.isFinite(input.salary_max) || input.salary_max < 0))
+    return { ok: false, error: "Salary max must be zero or more." };
+  if (input.salary_min != null && input.salary_max != null && input.salary_max < input.salary_min)
+    return { ok: false, error: "Salary max must be at least salary min." };
+
+  const { data, error } = await companyOs
+    .from("job_requisitions")
+    .insert({
+      title,
+      employment_type: input.employment_type,
+      location: input.location?.trim() || null,
+      remote_policy: input.remote_policy || null,
+      salary_min_cents: input.salary_min == null ? null : Math.round(input.salary_min * 100),
+      salary_max_cents: input.salary_max == null ? null : Math.round(input.salary_max * 100),
+      currency: input.currency?.trim().toLowerCase() || "usd",
+      description: input.description?.trim() || null,
+      status: "open",
+      opened_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not create the req." };
+
+  const { error: sErr } = await companyOs
+    .from("application_stages")
+    .insert(DEFAULT_STAGES.map((s) => ({ ...s, job_requisition_id: data.id })));
+  if (sErr) return { ok: false, error: `Req created, but its pipeline stages failed: ${sErr.message}` };
+
+  await recordAudit({
+    table: "job_requisitions",
+    recordId: data.id,
+    operation: "insert",
+    actor: admin.email,
+    newData: { title, employment_type: input.employment_type, status: "open" },
+    context: { via: "jobs_new_req" },
+  });
+  refresh(data.id);
+  return { ok: true, id: data.id };
+}
+
 // ─── Edit ────────────────────────────────────────────────────────────────────
 // Core req fields from the list shelf. Salary arrives in dollars (the only
 // place it converts to integer cents, mirroring updateDeal). Only keys present
