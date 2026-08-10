@@ -18,6 +18,13 @@ const ITEMS: LibraryItem[] = [
       'Indexed, zoomable map of the Company OS database: 115 tables across the people spine and the Four Offices, with every column, key, and relationship.',
   },
   {
+    category: 'data',
+    href: '/workflows/private/e8/eo-vietnam-regional-vs-global.html',
+    title: 'EO Vietnam: Regional vs Global',
+    description:
+      'Feature-by-feature comparison of the EO Vietnam Regional and Global HubSpot portals: deal and ticket pipelines, dashboards, and workflows, with expandable detail for each.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/e8/eight-edges-product-doc.html',
     title: 'Eight Edges: Product Doc',
