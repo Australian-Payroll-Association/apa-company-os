@@ -2315,3 +2315,169 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   border-color: var(--admin-accent);
   color: var(--admin-accent-strong);
 }
+
+/* ---- Team Coaching Cycle (/team/coaching + /team/my-coaching) ------------- */
+
+.coach-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.coach-card {
+  display: block;
+  text-decoration: none;
+  color: var(--admin-ink);
+  padding: 16px 18px;
+  transition: border-color 0.15s ease;
+}
+.coach-card:hover { border-color: var(--admin-accent); }
+.coach-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.coach-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.coach-avatar--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-tint, #eef2f7);
+  color: var(--admin-ink-2);
+  font-weight: 600;
+}
+.coach-card-name { font-weight: 600; font-size: 14px; }
+.coach-card-role { font-size: 12.5px; color: var(--admin-ink-2); }
+.coach-card-flag { margin-left: auto; }
+.coach-card-goal {
+  margin-top: 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.coach-card-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--admin-ink-2);
+}
+.coach-attention { margin-top: 16px; padding: 16px 18px; }
+.coach-attention-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+}
+
+.coach-profile { display: grid; gap: 16px; margin-top: 16px; }
+.coach-section { padding: 18px 20px; }
+.coach-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.coach-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.coach-add-row .admin-input { flex: 0 1 auto; width: auto; min-width: 140px; }
+.coach-add-row .admin-input:first-child { flex: 1 1 220px; }
+.coach-log-form { margin-top: 12px; padding: 14px; border: 1px dashed var(--admin-line); border-radius: var(--admin-radius-xs); }
+
+.coach-commitment {
+  border-top: 1px solid var(--admin-line);
+  padding: 10px 0;
+  display: grid;
+  gap: 8px;
+}
+.coach-commitment.is-closed {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--admin-ink-2);
+  font-size: 13px;
+}
+.coach-commitment-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+}
+.coach-commitment-title { font-weight: 500; }
+.coach-commitment-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-commitment-controls .admin-input { width: auto; min-width: 150px; flex: 0 1 auto; }
+.coach-commitment-controls input.admin-input { flex: 1 1 220px; }
+.coach-closed { margin-top: 10px; font-size: 13px; }
+.coach-closed summary { cursor: pointer; color: var(--admin-ink-2); }
+
+.coach-meeting { border-top: 1px solid var(--admin-line); margin-top: 12px; }
+.coach-meeting-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 12px 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.coach-meeting-caret { margin-left: auto; color: var(--admin-ink-2); }
+.coach-meeting-body { display: grid; gap: 16px; padding: 0 0 16px; }
+.coach-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.coach-block-actions { display: flex; gap: 8px; }
+.coach-summaries {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.coach-tier-label {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-ink-2);
+  margin-bottom: 6px;
+}
+.coach-transcript {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  background: var(--admin-tint, #f7f9fc);
+  border-radius: var(--admin-radius-xs);
+  padding: 12px;
+}
+.coach-block--danger { border-top: 1px dashed var(--admin-line); padding-top: 12px; }
+.coach-trend { border-top: 1px solid var(--admin-line); padding: 10px 0; font-size: 13.5px; }
+.coach-trend summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+
+.mycoach-recap { border-top: 1px solid var(--admin-line); padding: 12px 0; }
+.mycoach-goal {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 6px;
+}

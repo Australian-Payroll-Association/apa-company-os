@@ -13,30 +13,42 @@ import type { TeamRole } from "@/lib/team-auth";
 type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
-const ME: NavGroup[] = [
-  { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
-  {
-    label: "Me",
-    items: [
-      { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
-      { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
-      { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
-      { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
-      { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
-      { label: "Gallery", href: "/team/gallery", ico: "▦", enabled: true },
-    ],
-  },
-];
+// "My coaching" appears only for members who are in a coaching cycle
+// (an active coaching_profiles row of their own).
+function meGroups(isCoached: boolean): NavGroup[] {
+  return [
+    { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
+    {
+      label: "Me",
+      items: [
+        { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
+        { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
+        ...(isCoached
+          ? [{ label: "My coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
+          : []),
+        { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
+        { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
+        { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
+        { label: "Gallery", href: "/team/gallery", ico: "▦", enabled: true },
+      ],
+    },
+  ];
+}
 
-const MY_TEAM: NavGroup = {
-  label: "My Team",
-  items: [
-    { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
-    { label: "Approvals", href: "/team/approvals", ico: "✓" },
-    { label: "Team calendar", href: "/team/calendar", ico: "▦" },
-    { label: "My reports", href: "/team/reports", ico: "⇉" },
-  ],
-};
+// Coaching appears only for actors who coach ≥1 person (coaching_profiles
+// rows, not the manager role — dotted-line coaches included).
+function myTeamGroup(isCoach: boolean): NavGroup {
+  return {
+    label: "My Team",
+    items: [
+      { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
+      ...(isCoach ? [{ label: "Coaching", href: "/team/coaching", ico: "◎", enabled: true }] : []),
+      { label: "Approvals", href: "/team/approvals", ico: "✓" },
+      { label: "Team calendar", href: "/team/calendar", ico: "▦" },
+      { label: "My reports", href: "/team/reports", ico: "⇉" },
+    ],
+  };
+}
 
 // Mirror of AdminSidebar's VIEWS: Admin and Team are separate apps, the
 // switcher navigates between them. "Admin" is only live for team members who
@@ -63,16 +75,21 @@ export function TeamSidebar({
   name,
   role,
   isAdmin,
+  isCoach = false,
+  isCoached = false,
 }: {
   name: string;
   role: TeamRole;
   isAdmin: boolean;
+  isCoach?: boolean;
+  isCoached?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  const groups = role === "manager" ? [...ME, MY_TEAM] : ME;
+  const me = meGroups(isCoached);
+  const groups = role === "manager" || isCoach ? [...me, myTeamGroup(isCoach)] : me;
   const userInitials = initials(name);
 
   useEffect(() => {
