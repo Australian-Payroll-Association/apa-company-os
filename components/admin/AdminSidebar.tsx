@@ -124,6 +124,7 @@ const NAV: NavSection[] = [
       {
         subheading: "Workplace",
         items: [
+          { label: "Client Backlog", href: "/admin/operations/client-backlog", ico: "◔", enabled: true },
           { label: "Equipment", href: "/admin/operations/equipment", ico: "▤", enabled: true },
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
           { label: "Gallery", href: "/admin/operations/gallery", ico: "▦", enabled: true },
