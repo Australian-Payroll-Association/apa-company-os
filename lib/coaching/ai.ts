@@ -38,7 +38,6 @@ type ProfileContext = {
   memberName: string;
   positionTitle: string | null;
   retentionRoot: string | null;
-  okrsMarkdown: string | null;
   privateProfileMarkdown: string | null;
   cadenceDays: number;
 };
@@ -50,7 +49,7 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
   const { data } = await companyOs
     .from("coaching_profiles")
     .select(
-      "id, coach_id, retention_root, okrs_markdown, private_profile_markdown, cadence_days, " +
+      "id, coach_id, retention_root, private_profile_markdown, cadence_days, " +
         "team_members:team_members!team_member_id(people:people!person_id(full_name, preferred_name), " +
         "positions:positions!position_id(title))",
     )
@@ -72,7 +71,6 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
     memberName: person?.preferred_name || person?.full_name || "the team member",
     positionTitle: pos?.title ?? null,
     retentionRoot: (r.retention_root as string | null) ?? null,
-    okrsMarkdown: (r.okrs_markdown as string | null) ?? null,
     privateProfileMarkdown: (r.private_profile_markdown as string | null) ?? null,
     cadenceDays: (r.cadence_days as number) ?? 14,
   };
@@ -246,7 +244,6 @@ function personBlock(p: ProfileContext): string {
     p.retentionRoot
       ? `Loose engagement root (embeddedness read): ${p.retentionRoot}${p.retentionRoot === "watching" ? " (no confident read yet)" : ""}`
       : null,
-    p.okrsMarkdown ? `\n<okrs>\n${clip(p.okrsMarkdown, MAX_DOC_CHARS)}\n</okrs>` : null,
     p.privateProfileMarkdown
       ? `\n<coaching-reads>\n${clip(p.privateProfileMarkdown, MAX_DOC_CHARS)}\n</coaching-reads>`
       : null,

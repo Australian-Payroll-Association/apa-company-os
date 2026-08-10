@@ -12,10 +12,10 @@
 //                 input) and re-derives ownership before any write.
 //   member tier — every function prefixed my* filters team_member_id =
 //                 actor.teamMemberId and selects ONLY member-visible fields:
-//                 FAST goal, OKRs, commitments, check-ins, and shared recaps
-//                 that have been PUBLISHED. Prep, transcripts, private
-//                 summaries, private profile, trends and context never appear
-//                 in a member-tier select list.
+//                 FAST goals, priorities, published OCEAN, commitments,
+//                 check-ins, and shared recaps that have been PUBLISHED.
+//                 Prep, transcripts, private summaries, private profile,
+//                 trends and context never appear in a member-tier select.
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
@@ -180,7 +180,7 @@ export type CoachRosterRow = {
 };
 
 const PROFILE_SELECT =
-  "id, team_member_id, coach_id, fast_goal, fast_goal_status, okrs_markdown, " +
+  "id, team_member_id, coach_id, fast_goal, fast_goal_status, " +
   "private_profile_markdown, cadence_days, next_one_on_one_on, retention_root, active, " +
   MEMBER_EMBED;
 
@@ -564,7 +564,6 @@ export type CoachProfileDetail = {
   ocean: OceanProfile | null;
   retentionRoot: RetentionRoot | null;
   edges: EdgesOptions;
-  okrsMarkdown: string | null;
   privateProfileMarkdown: string | null;
   cadenceDays: number;
   nextOneOnOneOn: string | null;
@@ -647,7 +646,6 @@ export async function getCoachProfileDetail(
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
     retentionRoot: (p.retention_root as RetentionRoot | null) ?? null,
     edges,
-    okrsMarkdown: (p.okrs_markdown as string | null) ?? null,
     privateProfileMarkdown: (p.private_profile_markdown as string | null) ?? null,
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
@@ -944,15 +942,6 @@ export async function coachSetPrivateProfile(
   return patchProfile(profileId, { private_profile_markdown: markdown.trim() || null });
 }
 
-export async function coachSetOkrs(
-  actor: TeamActor,
-  profileId: string,
-  markdown: string,
-): Promise<Result> {
-  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
-  return patchProfile(profileId, { okrs_markdown: markdown.trim() || null });
-}
-
 // Create a 1-1 row. `held` logs a meeting that already happened (transcript
 // flow follows); `scheduled` books the next one and mirrors the date onto the
 // profile so cadence math and the cron see it.
@@ -1132,7 +1121,6 @@ export type MyCoaching = {
   priorities: CoachingPriority[];
   // The member's own OCEAN profile — present ONLY when the coach published it.
   ocean: OceanProfile | null;
-  okrsMarkdown: string | null;
   cadenceDays: number;
   nextOneOnOneOn: string | null;
   commitments: Commitment[];
@@ -1143,7 +1131,7 @@ export type MyCoaching = {
 export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null> {
   const { data } = await companyOs
     .from("coaching_profiles")
-    .select("id, coach_id, okrs_markdown, cadence_days, next_one_on_one_on")
+    .select("id, coach_id, cadence_days, next_one_on_one_on")
     .eq("team_member_id", actor.teamMemberId)
     .eq("active", true)
     .maybeSingle();
@@ -1211,7 +1199,6 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
     goals: ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges)),
     priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
-    okrsMarkdown: (p.okrs_markdown as string | null) ?? null,
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
     commitments: ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment),

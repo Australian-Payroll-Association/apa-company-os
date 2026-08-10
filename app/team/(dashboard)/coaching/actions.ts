@@ -18,7 +18,6 @@ import {
   coachSetCadence,
   coachSetMinutesLink,
   coachSetModeSplit,
-  coachSetOkrs,
   coachSetPrivateProfile,
   coachSetRetentionRoot,
   coachUpdateCommitment,
@@ -152,13 +151,6 @@ export async function setCadence(
 export async function savePrivateProfile(profileId: string, markdown: string): Promise<Result> {
   const actor = await requireTeamMember();
   const res = await coachSetPrivateProfile(actor, profileId, markdown);
-  if (res.ok) refresh(profileId);
-  return res;
-}
-
-export async function saveOkrs(profileId: string, markdown: string): Promise<Result> {
-  const actor = await requireTeamMember();
-  const res = await coachSetOkrs(actor, profileId, markdown);
   if (res.ok) refresh(profileId);
   return res;
 }

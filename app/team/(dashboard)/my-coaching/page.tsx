@@ -29,8 +29,7 @@ export default async function MyCoachingPage() {
   const my = await getMyCoaching(actor);
   if (!my) redirect("/team");
 
-  const [okrsHtml, recapsHtml, checkinsHtml] = await Promise.all([
-    my.okrsMarkdown ? coachingMarkdownToHtml(my.okrsMarkdown) : Promise.resolve(null),
+  const [recapsHtml, checkinsHtml] = await Promise.all([
     Promise.all(my.recaps.map((r) => coachingMarkdownToHtml(r.sharedSummaryMarkdown))),
     Promise.all(my.checkins.map((c) => coachingMarkdownToHtml(c.messageMarkdown))),
   ]);
@@ -91,14 +90,6 @@ export default async function MyCoachingPage() {
             </>
           )}
 
-          {okrsHtml && (
-            <>
-              <div className="coach-tier-label" style={{ marginTop: 16 }}>
-                Your OKRs
-              </div>
-              <div className="idea-plan" dangerouslySetInnerHTML={{ __html: okrsHtml }} />
-            </>
-          )}
         </section>
 
         {my.ocean && (
