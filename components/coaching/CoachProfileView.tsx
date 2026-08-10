@@ -104,20 +104,13 @@ export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail;
       <TrendsCard detail={detail} html={html} run={run} busy={busy} />
       <NotesCard
         title="Private coaching notes"
-        hint="How they're wired plus the retention read. Only you see this — it feeds the AI prep."
+        hint="How they're wired plus the retention read. Only you see this. It feeds the AI prep."
         initial={detail.privateProfileMarkdown ?? ""}
         rendered={html.privateProfile}
         onSave={(md) => run("Private notes", () => savePrivateProfile(detail.profileId, md))}
         busy={busy}
       />
-      <NotesCard
-        title="OKRs"
-        hint="Shared with the team member on their coaching page."
-        initial={detail.okrsMarkdown ?? ""}
-        rendered={html.okrs}
-        onSave={(md) => run("OKRs", () => saveOkrs(detail.profileId, md))}
-        busy={busy}
-      />
+      <CompanyOkrsCard detail={detail} html={html} run={run} busy={busy} />
     </div>
   );
 }
@@ -156,25 +149,34 @@ function LadderSelect({
       aria-label="Ladders to (Eight Edges)"
     >
       <option value="">No ladder</option>
-      <optgroup label="Key results">
-        {edges.keyResults.map((k) => (
-          <option key={k.id} value={`key_result:${k.id}`}>
-            {k.label}
-          </option>
-        ))}
-      </optgroup>
+      {edges.objectives.map((o, i) => (
+        <optgroup key={o.id} label={`O${i + 1}: ${o.label}`}>
+          <option value={`objective:${o.id}`}>The objective itself</option>
+          {edges.keyResults
+            .filter((k) => k.objectiveId === o.id)
+            .map((k, j) => (
+              <option key={k.id} value={`key_result:${k.id}`}>
+                {`KR${j + 1}: ${k.label}`}
+              </option>
+            ))}
+        </optgroup>
+      ))}
+      {edges.keyResults.some((k) => !k.objectiveId) && (
+        <optgroup label="Other key results">
+          {edges.keyResults
+            .filter((k) => !k.objectiveId)
+            .map((k) => (
+              <option key={k.id} value={`key_result:${k.id}`}>
+                {k.label}
+              </option>
+            ))}
+        </optgroup>
+      )}
       <optgroup label="Metrics (KPIs)">
         {edges.metrics.map((m) => (
           <option key={m.id} value={`metric:${m.id}`}>
             {m.label}
             {m.target != null ? ` (target ${m.target}${m.direction === "down" ? " ↓" : " ↑"})` : ""}
-          </option>
-        ))}
-      </optgroup>
-      <optgroup label="Objectives">
-        {edges.objectives.map((o) => (
-          <option key={o.id} value={`objective:${o.id}`}>
-            {o.label}
           </option>
         ))}
       </optgroup>
@@ -189,9 +191,9 @@ function LadderBadge({ ladder }: { ladder: EdgesLadder | null }) {
       <span className="admin-cell-muted">
         ⇗ {ladder.label}
         {ladder.latestValue != null && ladder.target != null
-          ? ` — latest ${ladder.latestValue} / target ${ladder.target}`
+          ? `, latest ${ladder.latestValue} / target ${ladder.target}`
           : ladder.target != null
-            ? ` — target ${ladder.target}`
+            ? `, target ${ladder.target}`
             : ""}
       </span>
     );
@@ -218,7 +220,7 @@ function GoalsCard({
   return (
     <section className="admin-card coach-section">
       <div className="admin-card-title">
-        FAST goals <span className="admin-cell-muted">(Frequent · Ambitious · Specific · Transparent — visible to the whole team)</span>
+        FAST goals <span className="admin-cell-muted">(Frequent · Ambitious · Specific · Transparent, visible to the whole team)</span>
       </div>
 
       {current.length === 0 && <div className="admin-empty">No goals yet. FAST starts with one.</div>}
@@ -357,7 +359,7 @@ function PrioritiesCard({
       <div className="coach-add-row">
         <input
           className="admin-input"
-          placeholder="New priority (e.g. P1 — Own AI Labs)…"
+          placeholder="New priority (e.g. P1: Own AI Labs)…"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -512,7 +514,7 @@ function OceanCard({
         <div className="admin-card-title">OCEAN profile</div>
         <div className="coach-block-actions">
           <span className={`admin-badge ${published ? "admin-badge--ok" : "admin-badge--warn"}`}>
-            {published ? "Published — they can read it" : "Draft — only you"}
+            {published ? "Published: they can read it" : "Draft: only you"}
           </span>
           <button className="admin-btn admin-btn--sm" onClick={() => setEditing((v) => !v)}>
             {editing ? "Cancel" : "Edit"}
@@ -562,7 +564,7 @@ function OceanCard({
             <textarea className="admin-input" rows={4} value={snapshot} onChange={(e) => setSnapshot(e.target.value)} />
           </div>
           <div className="admin-field">
-            <label className="admin-label">Growth guidance (second person — written to them)</label>
+            <label className="admin-label">Growth guidance (second person, written to them)</label>
             <textarea className="admin-input" rows={8} value={guidance} onChange={(e) => setGuidance(e.target.value)} />
           </div>
           <div className="admin-form-actions">
@@ -580,24 +582,17 @@ function OceanCard({
         </div>
       ) : o ? (
         <div className="coach-ocean">
-          <table className="admin-table coach-ocean-table">
-            <thead>
-              <tr>
-                <th>Trait</th>
-                <th>Rating</th>
-                <th>Evidence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {OCEAN_DIMENSIONS.map((k) => (
-                <tr key={k}>
-                  <td>{OCEAN_LABELS[k]}</td>
-                  <td>{o[k].rating ?? "—"}</td>
-                  <td className="admin-cell-muted">{o[k].evidence ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="coach-ocean-list">
+            {OCEAN_DIMENSIONS.map((k) => (
+              <div key={k} className="coach-ocean-line">
+                <div className="coach-ocean-line-head">
+                  <strong>{OCEAN_LABELS[k]}</strong>
+                  <span className="admin-badge admin-badge--info">{o[k].rating ?? "TBD"}</span>
+                </div>
+                {o[k].evidence && <div className="admin-cell-muted coach-ocean-line-evidence">{o[k].evidence}</div>}
+              </div>
+            ))}
+          </div>
           {o.snapshotMarkdown && (
             <div className="coach-block">
               <span className="admin-eyebrow">Snapshot</span>
@@ -869,7 +864,7 @@ function MeetingRow({
           {m.status}
         </span>
         {m.modeSplit && (
-          <span className="admin-badge admin-badge--info" title="Coach / Mentor / Direct — target 80/15/5">
+          <span className="admin-badge admin-badge--info" title="Coach / Mentor / Direct, target 80/15/5">
             {m.modeSplit.coach}/{m.modeSplit.mentor}/{m.modeSplit.direct}
           </span>
         )}
@@ -891,7 +886,7 @@ function MeetingRow({
           {/* Mode split (coach-only) */}
           <div className="coach-block">
             <div className="coach-block-head">
-              <span className="admin-eyebrow">Mode split — coach / mentor / direct (target 80/15/5)</span>
+              <span className="admin-eyebrow">Mode split: coach / mentor / direct (target 80/15/5)</span>
             </div>
             <div className="coach-add-row coach-mode-row">
               {(["coach", "mentor", "direct"] as const).map((k) => (
@@ -937,7 +932,7 @@ function MeetingRow({
                 rel="noreferrer"
                 className="admin-cell-muted"
               >
-                Recording linked ({m.transcriptSource === "minutes_auto" ? "auto-detected" : "linked"}) — open in Lark ↗
+                Recording linked ({m.transcriptSource === "minutes_auto" ? "auto-detected" : "linked"}): open in Lark ↗
               </a>
             ) : (
               <div className="coach-add-row">
@@ -984,7 +979,7 @@ function MeetingRow({
             {m.transcript ? (
               <details>
                 <summary className="admin-cell-muted">
-                  {m.transcript.length.toLocaleString()} characters — view
+                  {m.transcript.length.toLocaleString()} characters: view
                 </summary>
                 <pre className="coach-transcript">{m.transcript}</pre>
               </details>
@@ -995,7 +990,7 @@ function MeetingRow({
                   rows={5}
                   value={transcript}
                   onChange={(e) => setTranscript(e.target.value)}
-                  placeholder="Paste the transcript — the AI drafts both summaries and extracts commitments."
+                  placeholder="Paste the transcript. The AI drafts both summaries and extracts commitments."
                 />
                 <div className="admin-form-actions">
                   <button
@@ -1072,7 +1067,7 @@ function MeetingRow({
               ) : (
                 <div className="coach-summaries">
                   <div>
-                    <div className="coach-tier-label">Private — only you</div>
+                    <div className="coach-tier-label">Private: only you</div>
                     {html?.summary ? (
                       <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.summary }} />
                     ) : (
@@ -1081,7 +1076,7 @@ function MeetingRow({
                   </div>
                   <div>
                     <div className="coach-tier-label">
-                      Shared recap — {published ? "published to them" : "draft, they can't see it yet"}
+                      Shared recap: {published ? "published to them" : "draft, they can't see it yet"}
                     </div>
                     {html?.shared ? (
                       <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.shared }} />
@@ -1159,6 +1154,87 @@ function TrendsCard({
           )}
         </details>
       ))}
+    </section>
+  );
+}
+
+// ---- company OKRs + personal notes ------------------------------------------
+// The company tree comes straight from Eight Edges (objectives and their KRs),
+// so this card always matches /admin/edges/goals. The personal okrs_markdown
+// stays editable underneath for person-specific framing.
+
+function CompanyOkrsCard({
+  detail,
+  html,
+  run,
+  busy,
+}: {
+  detail: CoachProfileDetail;
+  html: RenderedHtml;
+  run: (label: string, fn: () => Promise<ActionResult>) => void;
+  busy: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [md, setMd] = useState(detail.okrsMarkdown ?? "");
+  const ladderedIds = new Set(
+    [...detail.goals, ...detail.priorities]
+      .map((g) => (g.ladder?.kind === "key_result" || g.ladder?.kind === "objective" ? g.ladder.id : null))
+      .filter(Boolean) as string[],
+  );
+
+  return (
+    <section className="admin-card coach-section">
+      <div className="admin-card-title">Company OKRs</div>
+      <div className="admin-hint">
+        The Eight Edges tree their goals ladder into. Highlighted rows are where {detail.member.name} plugs in.
+      </div>
+      <div className="coach-okr-tree">
+        {detail.edges.objectives.map((o, i) => (
+          <div key={o.id} className="coach-okr-objective">
+            <div className={`coach-okr-line${ladderedIds.has(o.id) ? " is-laddered" : ""}`}>
+              <strong>O{i + 1}</strong> {o.label}
+            </div>
+            <ul>
+              {detail.edges.keyResults
+                .filter((k) => k.objectiveId === o.id)
+                .map((k, j) => (
+                  <li key={k.id} className={`coach-okr-line${ladderedIds.has(k.id) ? " is-laddered" : ""}`}>
+                    <span className="admin-cell-muted">KR{j + 1}</span> {k.label}
+                    {ladderedIds.has(k.id) && <span className="admin-badge admin-badge--ok">their ladder</span>}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="coach-block-head" style={{ marginTop: 12 }}>
+        <span className="admin-eyebrow">Personal OKR notes (member-visible)</span>
+        <button className="admin-btn admin-btn--sm" onClick={() => setEditing((v) => !v)}>
+          {editing ? "Cancel" : "Edit"}
+        </button>
+      </div>
+      {editing ? (
+        <div className="admin-form">
+          <textarea className="admin-input" rows={8} value={md} onChange={(e) => setMd(e.target.value)} />
+          <div className="admin-form-actions">
+            <button
+              className="admin-btn admin-btn--primary"
+              disabled={busy}
+              onClick={() => {
+                run("OKRs", () => saveOkrs(detail.profileId, md));
+                setEditing(false);
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : html.okrs ? (
+        <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.okrs }} />
+      ) : (
+        <div className="admin-cell-muted">No personal notes.</div>
+      )}
     </section>
   );
 }

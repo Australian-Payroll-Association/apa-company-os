@@ -37,7 +37,7 @@ export default async function CoachingDashboardPage() {
           <ul className="coach-attention-list">
             {attention.map(({ name, profileId, a }, i) => (
               <li key={`${profileId}-${a.kind}-${i}`}>
-                <Link href={`/team/coaching/${profileId}`}>{name}</Link> — {attentionLabel(a)}
+                <Link href={`/team/coaching/${profileId}`}>{name}</Link>: {attentionLabel(a)}
               </li>
             ))}
           </ul>
@@ -127,7 +127,7 @@ function RosterCard({ row }: { row: CoachRosterRow }) {
         <span>
           <strong>{row.openCommitments}</strong> open commitment{row.openCommitments === 1 ? "" : "s"}
         </span>
-        <span title="Coach / Mentor / Direct on the last logged 1-1 — target 80/15/5">
+        <span title="Coach / Mentor / Direct on the last logged 1-1, target 80/15/5">
           Mode{" "}
           <strong>
             {row.lastModeSplit

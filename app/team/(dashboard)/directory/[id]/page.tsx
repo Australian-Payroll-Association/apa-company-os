@@ -93,13 +93,13 @@ export default async function MemberProfilePage({ params }: { params: { id: stri
           <section className="admin-card admin-section-card">
             <h2 className="admin-card-title">FAST goals</h2>
             <p className="admin-hint" style={{ marginTop: 0 }}>
-              Transparent by design — everyone&apos;s quarterly goals are visible to the whole team.
+              Transparent by design: everyone&apos;s quarterly goals are visible to the whole team.
             </p>
             <ul className="mycoach-priorities">
               {goals.map((g, i) => (
                 <li key={i}>
                   <strong>{g.title}</strong>
-                  {g.ladderLabel && <span className="admin-cell-muted"> — ladders to {g.ladderLabel}</span>}
+                  {g.ladderLabel && <span className="admin-cell-muted"> · ladders to {g.ladderLabel}</span>}
                 </li>
               ))}
             </ul>
