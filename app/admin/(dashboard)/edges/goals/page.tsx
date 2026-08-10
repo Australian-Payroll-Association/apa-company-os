@@ -53,11 +53,14 @@ function buildTree(objectives: ObjectiveRow[], krs: KrRow[]): ObjectiveNode[] {
 export default async function GoalsPage() {
   const q = currentQuarter();
 
-  const [stratRes, objRes, krRes, packetRes] = await Promise.all([
+  const [stratRes, objRes, krRes, packetRes, rosterRes, teamGoalsRes] = await Promise.all([
     companyOs.from("strategies").select("id, year, title, body_md").order("year", { ascending: false }).limit(1),
     companyOs.from("objectives").select(OBJECTIVE_SELECT).eq("quarter", q.label).neq("status", "dropped"),
     companyOs.from("key_results").select(KR_SELECT),
     companyOs.from("sync_packets").select("id").gte("week_start", q.start.toISOString().slice(0, 10)),
+    // O2-KR1 measured live: active coaching roster vs who has an active FAST goal.
+    companyOs.from("coaching_profiles").select("id").eq("active", true),
+    companyOs.from("coaching_goals").select("coaching_profile_id").eq("status", "active"),
   ]);
 
   const error =
@@ -84,6 +87,12 @@ export default async function GoalsPage() {
   const packetsThisQuarter = packetRes.data?.length ?? 0;
   const weeksElapsed = q.week;
   const alreadyMet = krs.filter((kr) => progressPct(kr) >= 100 && kr.status !== "done").length;
+  // Transparent = the coached team's FAST goals are set and team-visible.
+  const rosterCount = rosterRes.data?.length ?? 0;
+  const withGoal = new Set(
+    ((teamGoalsRes.data ?? []) as { coaching_profile_id: string }[]).map((g) => g.coaching_profile_id),
+  );
+  const rosterWithGoal = ((rosterRes.data ?? []) as { id: string }[]).filter((p) => withGoal.has(p.id)).length;
   const casting = {
     human: krs.filter((kr) => kr.delivery_mix === "human").length,
     blended: krs.filter((kr) => kr.delivery_mix === "blended").length,
@@ -112,7 +121,10 @@ export default async function GoalsPage() {
           frequent: { value: `${packetsThisQuarter}/${weeksElapsed} syncs`, tone: packetsThisQuarter >= weeksElapsed - 1 ? "ok" : "warn" },
           specific: { value: `${measurable}/${krs.length} measurable`, tone: measurable === krs.length ? "ok" : "warn" },
           ambitious: { value: alreadyMet > 0 ? `${alreadyMet} already met` : "none met early", tone: alreadyMet > 2 ? "warn" : "ok" },
-          transparent: { value: "100% visible", tone: "ok" },
+          transparent: {
+            value: rosterCount > 0 ? `${rosterWithGoal}/${rosterCount} team goals live` : "no roster",
+            tone: rosterCount > 0 && rosterWithGoal === rosterCount ? "ok" : "warn",
+          },
         }}
       />
     </>

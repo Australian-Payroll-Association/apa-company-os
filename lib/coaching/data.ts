@@ -1121,8 +1121,10 @@ export type MemberRecap = {
 export type MyCoaching = {
   profileId: string;
   coachName: string;
-  fastGoal: string | null;
-  fastGoalStatus: FastGoalStatus;
+  goals: CoachingGoal[];
+  priorities: CoachingPriority[];
+  // The member's own OCEAN profile — present ONLY when the coach published it.
+  ocean: OceanProfile | null;
   okrsMarkdown: string | null;
   cadenceDays: number;
   nextOneOnOneOn: string | null;
@@ -1134,7 +1136,7 @@ export type MyCoaching = {
 export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null> {
   const { data } = await companyOs
     .from("coaching_profiles")
-    .select("id, coach_id, fast_goal, fast_goal_status, okrs_markdown, cadence_days, next_one_on_one_on")
+    .select("id, coach_id, okrs_markdown, cadence_days, next_one_on_one_on")
     .eq("team_member_id", actor.teamMemberId)
     .eq("active", true)
     .maybeSingle();
@@ -1155,7 +1157,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       | null,
   );
 
-  const [recaps, commitments, checkins] = await Promise.all([
+  const [recaps, commitments, checkins, goals, priorities, ocean, edges] = await Promise.all([
     companyOs
       .from("coaching_one_on_ones")
       .select("id, held_on, shared_summary_markdown, shared_published_at")
@@ -1173,13 +1175,35 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       .select("id, sent_at, message_markdown, responded_at")
       .eq("coaching_profile_id", profileId)
       .order("sent_at", { ascending: false }),
+    companyOs
+      .from("coaching_goals")
+      .select(GOAL_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .in("status", ["draft", "active", "achieved"])
+      .order("sort_order")
+      .order("created_at"),
+    companyOs
+      .from("coaching_priorities")
+      .select(PRIORITY_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .eq("status", "active")
+      .order("sort_order"),
+    // Member tier: the published gate lives IN the query, not in the view.
+    companyOs
+      .from("coaching_ocean_profiles")
+      .select(OCEAN_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .eq("published", true)
+      .maybeSingle(),
+    getEdgesLadderOptions(),
   ]);
 
   return {
     profileId,
     coachName: displayName(coachPerson),
-    fastGoal: (p.fast_goal as string | null) ?? null,
-    fastGoalStatus: (p.fast_goal_status as FastGoalStatus) ?? "not_set",
+    goals: ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges)),
+    priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
+    ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
     okrsMarkdown: (p.okrs_markdown as string | null) ?? null,
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
@@ -1199,6 +1223,48 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       respondedAt: (c.responded_at as string | null) ?? null,
     })),
   };
+}
+
+// ---- team-wide tier ---------------------------------------------------------
+// FAST goals are Transparent (the T): any signed-in team member can read
+// anyone's ACTIVE goals — title, status, quarter, and ladder only. Nothing
+// else from the coaching tables crosses this boundary.
+
+export type TeamMemberGoal = {
+  title: string;
+  status: GoalStatus;
+  quarterLabel: string | null;
+  ladderLabel: string | null;
+};
+
+export async function getTeamMemberActiveGoals(teamMemberId: string): Promise<TeamMemberGoal[]> {
+  if (!teamMemberId) return [];
+  const { data: prof } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("team_member_id", teamMemberId)
+    .eq("active", true)
+    .maybeSingle();
+  if (!prof) return [];
+  const [{ data }, edges] = await Promise.all([
+    companyOs
+      .from("coaching_goals")
+      .select(GOAL_SELECT)
+      .eq("coaching_profile_id", (prof as { id: string }).id)
+      .eq("status", "active")
+      .order("sort_order")
+      .order("created_at"),
+    getEdgesLadderOptions(),
+  ]);
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
+    const g = toGoal(r, edges);
+    return {
+      title: g.title,
+      status: g.status,
+      quarterLabel: g.quarterLabel,
+      ladderLabel: g.ladder?.label ?? null,
+    };
+  });
 }
 
 // Member status update on a commitment on their OWN profile — status + note

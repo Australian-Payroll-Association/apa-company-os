@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getMemberProfile } from "@/lib/team/data";
+import { getTeamMemberActiveGoals } from "@/lib/coaching/data";
 import { formatDate, humanize } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ export default async function MemberProfilePage({ params }: { params: { id: stri
   await requireTeamMember();
   const profile = await getMemberProfile(params.id);
   if (!profile) notFound();
+  // FAST goals are Transparent by design — every team member sees everyone's.
+  const goals = await getTeamMemberActiveGoals(params.id);
 
   const meta = [
     profile.fullName && profile.fullName !== profile.name ? profile.fullName : null,
@@ -85,6 +88,23 @@ export default async function MemberProfilePage({ params }: { params: { id: stri
             <dd>{profile.startDate ? formatDate(profile.startDate) : "—"}</dd>
           </dl>
         </section>
+
+        {goals.length > 0 && (
+          <section className="admin-card admin-section-card">
+            <h2 className="admin-card-title">FAST goals</h2>
+            <p className="admin-hint" style={{ marginTop: 0 }}>
+              Transparent by design — everyone&apos;s quarterly goals are visible to the whole team.
+            </p>
+            <ul className="mycoach-priorities">
+              {goals.map((g, i) => (
+                <li key={i}>
+                  <strong>{g.title}</strong>
+                  {g.ladderLabel && <span className="admin-cell-muted"> — ladders to {g.ladderLabel}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {personal && (
           <section className="admin-card admin-section-card">
