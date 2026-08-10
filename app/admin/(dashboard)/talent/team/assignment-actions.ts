@@ -19,6 +19,7 @@ export async function createAssignment(input: {
   companyId: string;
   teamMemberId: string;
   roleTitle: string;
+  clientVisible?: boolean;
 }): Promise<Result> {
   const admin = await requireAdmin();
   if (!input.companyId || !input.teamMemberId) {
@@ -40,6 +41,7 @@ export async function createAssignment(input: {
       company_id: input.companyId,
       team_member_id: input.teamMemberId,
       role_title: input.roleTitle.trim() || null,
+      client_visible: input.clientVisible ?? true,
     })
     .select("id")
     .single();
@@ -54,6 +56,37 @@ export async function createAssignment(input: {
   });
 
   refresh(input.companyId, input.teamMemberId);
+  return { ok: true };
+}
+
+// Toggle whether an active assignment appears on the client's portal team
+// roster. Does not affect the team member's internal access (e.g. the client
+// roadmap in /team), which follows the assignment itself.
+export async function setAssignmentVisibility(id: string, clientVisible: boolean): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: row, error: rErr } = await companyOs
+    .from("staff_assignments")
+    .select("company_id, team_member_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (rErr || !row) return { ok: false, error: rErr?.message ?? "Assignment not found." };
+
+  const { error } = await companyOs
+    .from("staff_assignments")
+    .update({ client_visible: clientVisible })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "staff_assignments",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { action: "set_client_visible", client_visible: clientVisible },
+  });
+
+  refresh(row.company_id as string, row.team_member_id as string);
   return { ok: true };
 }
 

@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createAssignment, endAssignment } from "@/app/admin/(dashboard)/talent/team/assignment-actions";
-import type { AssignmentForTeamMember, CompanyOption } from "@/lib/admin/staff-assignments";
+import { createAssignment, endAssignment, setAssignmentVisibility } from "@/app/admin/(dashboard)/talent/team/assignment-actions";
+import { ASSIGNMENT_ROLES, type AssignmentForTeamMember, type CompanyOption } from "@/lib/admin/staff-assignments";
+import { Badge } from "@/components/admin/Badge";
 
 // "Assignments" block on the team-member detail page — which clients this
 // person is dedicated to, with add/end controls.
@@ -20,6 +21,7 @@ export function AssignmentsBlock({
   const [pending, start] = useTransition();
   const [companyId, setCompanyId] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
+  const [clientVisible, setClientVisible] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
   function handleAdd(e: React.FormEvent) {
@@ -27,14 +29,24 @@ export function AssignmentsBlock({
     if (!companyId) return;
     setMsg(null);
     start(async () => {
-      const res = await createAssignment({ companyId, teamMemberId, roleTitle });
+      const res = await createAssignment({ companyId, teamMemberId, roleTitle, clientVisible });
       if (res.ok) {
         setCompanyId("");
         setRoleTitle("");
+        setClientVisible(true);
         router.refresh();
       } else {
         setMsg(res.error);
       }
+    });
+  }
+
+  function toggleVisible(id: string, next: boolean) {
+    setMsg(null);
+    start(async () => {
+      const res = await setAssignmentVisibility(id, next);
+      if (res.ok) router.refresh();
+      else setMsg(res.error);
     });
   }
 
@@ -59,9 +71,24 @@ export function AssignmentsBlock({
             <div className="admin-list-row" key={a.id}>
               <div className="admin-list-main">
                 <div className="admin-list-title">{a.company_name || "—"}</div>
-                <div className="admin-list-sub">{a.role_title || "—"}</div>
+                <div className="admin-list-sub" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {a.role_title || "No role set"}
+                  {a.client_visible ? (
+                    <Badge tone="ok">On client team</Badge>
+                  ) : (
+                    <Badge tone="neutral">Internal only</Badge>
+                  )}
+                </div>
               </div>
-              <div className="admin-list-aside">
+              <div className="admin-list-aside" style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <button
+                  className="admin-btn admin-btn--sm"
+                  disabled={pending}
+                  onClick={() => toggleVisible(a.id, !a.client_visible)}
+                  title={a.client_visible ? "Hide from the client's team roster" : "Show on the client's team roster"}
+                >
+                  {a.client_visible ? "Make internal" : "Show to client"}
+                </button>
                 <button
                   className="admin-btn admin-btn--sm admin-btn--danger"
                   disabled={pending}
@@ -92,14 +119,24 @@ export function AssignmentsBlock({
           </select>
         </div>
         <div className="admin-field">
-          <label className="admin-label" htmlFor="assign-role-title-2">Role (client-visible, optional)</label>
-          <input
+          <label className="admin-label" htmlFor="assign-role-title-2">Role (client-visible label, optional)</label>
+          <select
             id="assign-role-title-2"
             className="admin-input"
             value={roleTitle}
             onChange={(e) => setRoleTitle(e.target.value)}
-            placeholder="e.g. AI Engineer"
-          />
+          >
+            <option value="">No role</option>
+            {ASSIGNMENT_ROLES.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field">
+          <label className="admin-label" style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={clientVisible} onChange={(e) => setClientVisible(e.target.checked)} />
+            Show on the client&apos;s team roster
+          </label>
         </div>
         <div className="admin-form-actions">
           <button type="submit" className="admin-btn admin-btn--primary" disabled={pending || !companyId}>
