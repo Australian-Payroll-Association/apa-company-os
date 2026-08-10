@@ -27,10 +27,26 @@ export type RankRow = {
   overview: string | null;
   strengths: string[];
   gaps: string[];
+  // Which screen the narrative came from: the role-family comparison or the
+  // per-application screen (fallback when the req has no role family).
+  screenSource: "family" | "app" | null;
   recruiterRating: string | null; // legacy imported score, e.g. "8.5/10" — read-only reference
 };
 
-type SortKey = "ai" | "recruiter";
+type SortKey = "name" | "family" | "req" | "ai" | "recruiter" | "status" | "applied";
+
+// Text columns open ascending (A→Z); numeric and date columns open descending
+// (best fit / newest first).
+const TEXT_KEYS = new Set<SortKey>(["name", "family", "req", "status"]);
+const SORT_LABEL: Record<SortKey, string> = {
+  name: "candidate",
+  family: "family",
+  req: "applied for",
+  ai: "AI fit",
+  recruiter: "recruiter rating",
+  status: "status",
+  applied: "applied date",
+};
 
 export function RankTable({
   rows,
@@ -73,23 +89,45 @@ export function RankTable({
           (r.email ?? "").toLowerCase().includes(q) ||
           r.reqTitles.some((t) => t.toLowerCase().includes(q)),
       );
-    const val = (r: RankRow) => (sort.key === "ai" ? r.rating : recruiterOf(r));
+    const val = (r: RankRow): string | number | null => {
+      switch (sort.key) {
+        case "name":
+          return r.name || null;
+        case "family":
+          return r.family ? families.find((f) => f.key === r.family)?.label ?? r.family : null;
+        case "req":
+          return r.reqTitles.join(", ") || null;
+        case "ai":
+          return r.rating;
+        case "recruiter":
+          return recruiterOf(r);
+        case "status":
+          return r.status;
+        case "applied":
+          return r.appliedAt ? new Date(r.appliedAt).getTime() : null;
+      }
+    };
     return [...filtered].sort((a, b) => {
       const av = val(a);
       const bv = val(b);
-      // Unrated always sinks to the bottom, regardless of direction.
+      // Empty values always sink to the bottom, regardless of direction.
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
-      return sort.dir === "desc" ? bv - av : av - bv;
+      const cmp = typeof av === "string" ? av.localeCompare(bv as string) : av - (bv as number);
+      return sort.dir === "desc" ? -cmp : cmp;
     });
     // recruiterOf depends on overrides; include it so the list re-sorts on edit.
-  }, [rows, poolRows, family, query, sort, overrides]);
+  }, [rows, poolRows, family, families, query, sort, overrides]);
 
   const selected = openId ? famRows.find((r) => r.applicationId === openId) ?? null : null;
 
   function onSort(key: SortKey) {
-    setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
+    setSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "desc" ? "asc" : "desc" }
+        : { key, dir: TEXT_KEYS.has(key) ? "asc" : "desc" },
+    );
   }
 
   async function setRecruiter(r: RankRow, star: number) {
@@ -148,7 +186,7 @@ export function RankTable({
           aria-label="Search candidates"
         />
         <span className="admin-cell-muted" style={{ fontSize: 12.5, marginLeft: "auto" }}>
-          Sorted by {sort.key === "ai" ? "AI fit" : "recruiter rating"} ({sort.dir === "desc" ? "high→low" : "low→high"})
+          Sorted by {SORT_LABEL[sort.key]} ({sort.dir === "desc" ? "high→low" : "low→high"})
         </span>
       </div>
 
@@ -164,9 +202,23 @@ export function RankTable({
             <thead>
               <tr>
                 <th style={{ width: 44 }}>#</th>
-                <th>Candidate</th>
-                {family === "" && <th>Family</th>}
-                <th>Applied for</th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("name")}>
+                    Candidate{sortArrow("name")}
+                  </button>
+                </th>
+                {family === "" && (
+                  <th>
+                    <button type="button" className="admin-th-sort" onClick={() => onSort("family")}>
+                      Family{sortArrow("family")}
+                    </button>
+                  </th>
+                )}
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("req")}>
+                    Applied for{sortArrow("req")}
+                  </button>
+                </th>
                 <th style={{ textAlign: "right" }}>
                   <button type="button" className="admin-th-sort" onClick={() => onSort("ai")}>
                     AI fit{sortArrow("ai")}
@@ -177,8 +229,16 @@ export function RankTable({
                     Recruiter{sortArrow("recruiter")}
                   </button>
                 </th>
-                <th>Status</th>
-                <th>Applied</th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("status")}>
+                    Status{sortArrow("status")}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("applied")}>
+                    Applied{sortArrow("applied")}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -321,7 +381,9 @@ export function RankTable({
                 </div>
                 {selected.strengths.length > 0 && (
                   <div>
-                    <div className="admin-label" style={{ marginBottom: 4 }}>Strengths</div>
+                    <div className="admin-label" style={{ marginBottom: 4 }}>
+                      {selected.screenSource === "app" ? "Skills & assessment" : "Strengths"}
+                    </div>
                     <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
                       {selected.strengths.map((s, j) => (
                         <li key={j}>{s}</li>

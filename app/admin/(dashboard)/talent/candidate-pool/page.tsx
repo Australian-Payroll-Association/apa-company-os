@@ -21,6 +21,7 @@ type RawApp = {
   status: string | null;
   rating: number | null;
   ai_rating: number | null;
+  ai_summary: { overview?: string; skills?: string[] } | null;
   applied_at: string | null;
   resume_document_id: string | null;
   person_id: string | null;
@@ -42,7 +43,7 @@ export default async function CandidatePoolPage() {
   const { data, error } = await companyOs
     .from("applications")
     .select(
-      "id, status, rating, ai_rating, applied_at, resume_document_id, person_id, metadata, people!person_id(id, full_name, email, phone, linkedin_url), job_requisitions(title, metadata)",
+      "id, status, rating, ai_rating, ai_summary, applied_at, resume_document_id, person_id, metadata, people!person_id(id, full_name, email, phone, linkedin_url), job_requisitions(title, metadata)",
     )
     .limit(2000);
 
@@ -88,6 +89,7 @@ export default async function CandidatePoolPage() {
       overview: screened ? screen!.overview : null,
       strengths: screened ? screen!.strengths : [],
       gaps: screened ? screen!.gaps : [],
+      screenSource: screened ? ("family" as const) : null,
       recruiterRating: recruiterRating(r.metadata?.recruiter_note),
     };
 
@@ -98,8 +100,14 @@ export default async function CandidatePoolPage() {
     }
 
     // Pool row: no family screen for this app? Fall back to the per-req AI
-    // screen score so as many candidates as possible carry a rating.
+    // screen (score AND notes) so as many candidates as possible carry both —
+    // showing a rating with "Not yet AI-screened" underneath reads as a bug.
     const poolRow: RankRow = { ...row, rating: row.rating ?? r.ai_rating };
+    if (!poolRow.overview && r.ai_summary?.overview) {
+      poolRow.overview = r.ai_summary.overview;
+      poolRow.strengths = Array.isArray(r.ai_summary.skills) ? r.ai_summary.skills : [];
+      poolRow.screenSource = "app";
+    }
     const prev = pool.get(p.id);
     pool.set(p.id, prev ? merge(prev, poolRow) : poolRow);
   }

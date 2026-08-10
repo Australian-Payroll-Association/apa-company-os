@@ -227,6 +227,8 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
         {saveStatus.state === "error" && <div className="admin-alert admin-alert--err">{saveStatus.error}</div>}
       </div>
 
+      {extras && <AiScreenSection extras={extras} />}
+
       {extras && (extras.coverLetter || extras.answers.length > 0) && (
         <div style={{ marginTop: 18 }}>
           {extras.coverLetter && (
@@ -281,6 +283,52 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
       <ApplicationNotes applicationId={app.id} />
     </>
+  );
+}
+
+// The AI screen result, same template the req page's ranking table expands to:
+// overview, skills/gaps, and the English/salary/notice line. Rendered only
+// once a screen has run — an application with no resume has nothing to show.
+function AiScreenSection({ extras }: { extras: ApplicationExtras }) {
+  if (!extras.aiStatus && !extras.aiSummary) return null;
+  const s = extras.aiSummary;
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div className="admin-label" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+        <span>
+          AI screen{extras.aiRating != null && <> — {extras.aiRating}/5</>}
+        </span>
+        {extras.aiScreenedAt && <span className="admin-cell-muted">{formatDate(extras.aiScreenedAt)}</span>}
+      </div>
+      {extras.aiStatus === "failed" && extras.aiError && (
+        <div className="admin-alert admin-alert--err">Scan failed: {extras.aiError}</div>
+      )}
+      {extras.aiStatus === "pending" && <div className="admin-hint">Screen in progress…</div>}
+      {s ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 14 }}>
+          <div style={{ whiteSpace: "pre-wrap" }}>{s.overview}</div>
+          <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+            {s.skills.map((sk, j) => (
+              <li key={j}>{sk}</li>
+            ))}
+          </ul>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <span>
+              <span className="admin-label">English</span> {s.english}
+            </span>
+            <span>
+              <span className="admin-label">Salary expectation</span> {s.salary_expectation}
+            </span>
+            <span>
+              <span className="admin-label">Notice period</span> {s.notice_period}
+            </span>
+          </div>
+        </div>
+      ) : (
+        extras.aiStatus !== "failed" &&
+        extras.aiStatus !== "pending" && <div className="admin-hint">No screen result yet.</div>
+      )}
+    </div>
   );
 }
 
