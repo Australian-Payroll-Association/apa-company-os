@@ -10,6 +10,16 @@
   ],
   "redirects": [
     {
+      "source": "/workflows/one-on-one",
+      "destination": "/workflows/one-on-one-coaching",
+      "permanent": true
+    },
+    {
+      "source": "/workflows/one-on-one/",
+      "destination": "/workflows/one-on-one-coaching/",
+      "permanent": true
+    },
+    {
       "source": "/workflows/onboarding-plans",
       "destination": "/workflows/edge8-onboarding-cycle",
       "permanent": true

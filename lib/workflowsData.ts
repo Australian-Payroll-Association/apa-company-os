@@ -9,12 +9,21 @@ export type Workflow = {
 
 export const allWorkflows: Workflow[] = [
   {
-    slug: 'one-on-one',
-    title: '1-1 Leadership Workflow',
+    slug: 'one-on-one-coaching',
+    title: 'The Biweekly 1-1 Coaching Cycle',
     category: 'Talent',
     excerpt:
-      'A biweekly coaching cadence where AI prepares every meeting, a human runs it, and AI captures every commitment.',
-    date: '2026-04-14',
+      'AI preps every 1-1, a human holds it, and AI drafts a two-tier recap that publishes only after the coach reviews it. Check-ins loop into the next prep, and monthly trends feed the coaching focus back in.',
+    date: '2026-08-10',
+    steps: 5,
+  },
+  {
+    slug: 'leadership-coach-program',
+    title: 'The Leadership Coach: AI Program Plan',
+    category: 'Talent',
+    excerpt:
+      'The 5D program plan behind our coaching system: the problem, the data, the workflow design, the ROI, and the deployment, with two-tier privacy enforced in code instead of discipline.',
+    date: '2026-08-10',
     steps: 5,
   },
   {
