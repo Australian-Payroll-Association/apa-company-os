@@ -2,7 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { getCoachRoster, type CoachRosterRow, type RosterAttention } from "@/lib/coaching/data";
+import {
+  canManageRoster,
+  getCoachRoster,
+  getRosterCandidates,
+  type CoachRosterRow,
+  type RosterAttention,
+} from "@/lib/coaching/data";
+import { AddToRoster } from "@/components/coaching/AddToRoster";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +25,11 @@ export const metadata = {
 export default async function CoachingDashboardPage() {
   const actor = await requireTeamMember();
   const roster = await getCoachRoster(actor);
-  if (roster.length === 0) redirect("/team");
+  // Managers with an empty roster still land here so they can add their
+  // first person; everyone else without a roster has no business on the page.
+  const manageable = await canManageRoster(actor);
+  if (roster.length === 0 && !manageable) redirect("/team");
+  const candidates = manageable ? await getRosterCandidates(actor) : [];
 
   const attention = roster.flatMap((r) =>
     r.attention.map((a) => ({ name: r.member.name, profileId: r.profileId, a })),
@@ -49,6 +60,8 @@ export default async function CoachingDashboardPage() {
           <RosterCard key={r.profileId} row={r} />
         ))}
       </div>
+
+      <AddToRoster candidates={candidates} />
     </>
   );
 }
