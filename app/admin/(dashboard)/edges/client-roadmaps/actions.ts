@@ -151,3 +151,20 @@ export async function restoreBacklogItem(id: string): Promise<Result> {
   refresh();
   return { ok: true };
 }
+
+// The client-facing overview shown at the top of the roadmap. One row per
+// company; upsert on company_id.
+export async function saveRoadmapOverview(companyId: string, body: string): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!companyId) return { ok: false, error: "Pick a client first." };
+  const { error } = await companyOs
+    .from("client_roadmap_overview")
+    .upsert(
+      { company_id: companyId, body, updated_at: new Date().toISOString(), updated_by: admin.email },
+      { onConflict: "company_id" },
+    );
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "client_roadmap_overview", recordId: companyId, operation: "update", actor: admin.email });
+  refresh();
+  return { ok: true };
+}

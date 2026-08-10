@@ -20,6 +20,7 @@ const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   staff_assignments: { column: "company_id", scope: "company" },
   event_registrations: { column: "person_id", scope: "person" },
   client_backlog_items: { column: "company_id", scope: "company" },
+  client_roadmap_overview: { column: "company_id", scope: "company" },
 };
 
 function scopeIds(actor: PortalActor, scope: ScopeKind): string[] {

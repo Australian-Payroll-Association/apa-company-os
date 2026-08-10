@@ -6,6 +6,7 @@ import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { BACKLOG_SELECT, type BacklogItem } from "@/lib/client-backlog";
 import { CompanyPicker } from "./CompanyPicker";
 import { BacklogAdminEditor } from "./BacklogAdminEditor";
+import { OverviewEditor } from "./OverviewEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,12 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
       .order("group_key", { ascending: true })
       .order("sort_order", { ascending: true });
     if (!showArchived) query = query.is("archived_at", null);
-    const { data } = await query;
+    const [{ data }, { data: overviewRow }] = await Promise.all([
+      query,
+      companyOs.from("client_roadmap_overview").select("body").eq("company_id", selected.id).maybeSingle(),
+    ]);
     const items = (data ?? []) as unknown as BacklogItem[];
+    const overviewBody = (overviewRow as { body: string } | null)?.body ?? "";
     const proposedCount = items.filter((i) => i.status === "proposed").length;
 
     return (
@@ -53,6 +58,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
           sub={`${items.length} item${items.length === 1 ? "" : "s"}${proposedCount ? ` · ${proposedCount} client proposal${proposedCount === 1 ? "" : "s"} to review` : ""}`}
           action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
         />
+        <OverviewEditor companyId={selected.id} initialBody={overviewBody} />
         <BacklogAdminEditor companyId={selected.id} items={items} showArchived={showArchived} />
       </>
     );

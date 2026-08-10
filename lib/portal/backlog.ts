@@ -24,6 +24,16 @@ export async function hasBacklog(actor: PortalActor): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+// The client-facing overview shown at the top of the roadmap. Company-scoped;
+// returns null when Edge8 has not written one yet.
+export async function getOverviewForActor(actor: PortalActor): Promise<string | null> {
+  if (actor.companyScope.length === 0) return null;
+  const { data } = await portalRead(actor, "client_roadmap_overview", "company_id, body").limit(1);
+  const row = (data ?? [])[0] as unknown as { body: string } | undefined;
+  const body = row?.body?.trim();
+  return body ? body : null;
+}
+
 export async function getBacklogForActor(actor: PortalActor): Promise<BacklogItem[]> {
   if (actor.companyScope.length === 0) return [];
   const { data } = await portalRead(actor, "client_backlog_items", BACKLOG_SELECT)
