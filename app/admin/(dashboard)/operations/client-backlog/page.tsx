@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
+import { Badge } from "@/components/admin/Badge";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { BACKLOG_SELECT, type BacklogItem } from "@/lib/client-backlog";
 import { CompanyPicker } from "./CompanyPicker";
@@ -30,7 +32,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
 
   const selected = clients.find((c) => c.id === companyId) ?? null;
 
-  let items: BacklogItem[] = [];
+  // ── Detail view: one client's backlog ──────────────────────────────
   if (selected) {
     let query = companyOs
       .from("client_backlog_items")
@@ -40,35 +42,103 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
       .order("sort_order", { ascending: true });
     if (!showArchived) query = query.is("archived_at", null);
     const { data } = await query;
-    items = (data ?? []) as unknown as BacklogItem[];
+    const items = (data ?? []) as unknown as BacklogItem[];
+    const proposedCount = items.filter((i) => i.status === "proposed").length;
+
+    return (
+      <>
+        <PageHead
+          eyebrow={<Link href="/admin/operations/client-backlog">← All clients</Link>}
+          title={selected.name}
+          sub={`${items.length} item${items.length === 1 ? "" : "s"}${proposedCount ? ` · ${proposedCount} client proposal${proposedCount === 1 ? "" : "s"} to review` : ""}`}
+          action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
+        />
+        <BacklogAdminEditor companyId={selected.id} items={items} showArchived={showArchived} />
+      </>
+    );
   }
 
-  const proposedCount = items.filter((i) => i.status === "proposed").length;
+  // ── Index view: all clients with backlog counts ────────────────────
+  const clientIds = clients.map((c) => c.id);
+  const countsByCompany = new Map<string, { total: number; proposals: number }>();
+  if (clientIds.length > 0) {
+    const { data: rows } = await companyOs
+      .from("client_backlog_items")
+      .select("company_id, status")
+      .in("company_id", clientIds)
+      .is("archived_at", null);
+    for (const r of (rows ?? []) as Array<{ company_id: string; status: string }>) {
+      const c = countsByCompany.get(r.company_id) ?? { total: 0, proposals: 0 };
+      c.total += 1;
+      if (r.status === "proposed") c.proposals += 1;
+      countsByCompany.set(r.company_id, c);
+    }
+  }
+
+  // Clients with a backlog first (most proposals, then most items), then the rest A–Z.
+  const withBacklog = clients
+    .filter((c) => countsByCompany.has(c.id))
+    .sort((a, b) => {
+      const ca = countsByCompany.get(a.id)!;
+      const cb = countsByCompany.get(b.id)!;
+      return cb.proposals - ca.proposals || cb.total - ca.total || a.name.localeCompare(b.name);
+    });
+  const withoutBacklog = clients.filter((c) => !countsByCompany.has(c.id));
 
   return (
     <>
       <PageHead
         eyebrow="Operations"
         title="Client Backlog"
-        sub={
-          selected
-            ? `${selected.name} · ${items.length} item${items.length === 1 ? "" : "s"}${proposedCount ? ` · ${proposedCount} client proposal${proposedCount === 1 ? "" : "s"} to review` : ""}`
-            : "Pick a client to view and edit their AI Program backlog."
-        }
-        action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
+        sub="Each client's AI Program backlog — what they see in their portal. Open one to edit items, set priorities, and review their proposals."
       />
 
-      {!selected ? (
-        <div className="admin-card" style={{ padding: 22 }}>
-          <p style={{ margin: 0, color: "var(--admin-muted, #797c82)" }}>
-            Select a client above. The backlog is what the client sees in their portal — Edge8
-            authors items and proposes priorities; the client re-prioritises and can propose their
-            own items for you to accept here.
-          </p>
-        </div>
-      ) : (
-        <BacklogAdminEditor companyId={selected.id} items={items} showArchived={showArchived} />
-      )}
+      <div className="admin-card" style={{ padding: 0, overflow: "hidden" }}>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th style={{ width: 110, textAlign: "right" }}>Items</th>
+              <th style={{ width: 200 }}>To review</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...withBacklog, ...withoutBacklog].map((c) => {
+              const counts = countsByCompany.get(c.id);
+              return (
+                <tr key={c.id}>
+                  <td>
+                    <Link href={`/admin/operations/client-backlog?company=${c.id}`} className="admin-cell-strong">
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {counts ? counts.total : <span className="admin-cell-muted">—</span>}
+                  </td>
+                  <td>
+                    {counts && counts.proposals > 0 ? (
+                      <Badge tone="warn">
+                        {counts.proposals} proposal{counts.proposals === 1 ? "" : "s"}
+                      </Badge>
+                    ) : counts ? (
+                      <span className="admin-cell-muted">—</span>
+                    ) : (
+                      <span className="admin-cell-muted">no backlog yet</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {clients.length === 0 && (
+              <tr>
+                <td colSpan={3} className="admin-cell-muted" style={{ padding: 18 }}>
+                  No client companies found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
