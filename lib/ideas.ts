@@ -31,6 +31,20 @@ export function officeTone(office: string | null): BadgeTone {
   }
 }
 
+// The two questions on the onboarding deck's closing slide: "What should we
+// build?" (build) and "What have I learned?" (learning).
+export const IDEA_KINDS = ["build", "learning"] as const;
+export type IdeaKind = (typeof IDEA_KINDS)[number];
+
+export const IDEA_KIND_LABEL: Record<IdeaKind, string> = {
+  build: "Build idea",
+  learning: "Learning",
+};
+
+export function ideaKindTone(kind: string | null): BadgeTone {
+  return kind === "learning" ? "info" : "neutral";
+}
+
 export const IDEA_STATUSES = ["new", "in_review", "approved", "declined", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 

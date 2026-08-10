@@ -4,10 +4,24 @@ import { companyOs } from "@/lib/supabase";
 // relation (docs/plans/2026-07-11-client-portal-design.md). Admin surfaces only;
 // /portal reads through lib/portal/data.ts instead.
 
+// Client-visible role titles offered in the assign dropdown. Curated so the
+// label a client sees on their team is consistent; edit this list to change it.
+export const ASSIGNMENT_ROLES = [
+  "AI Officer",
+  "AI Engineer",
+  "Database Specialist",
+  "Solutions Architect",
+  "Project Lead",
+  "Account Manager",
+  "Designer",
+  "QA Specialist",
+] as const;
+
 export type AssignmentForCompany = {
   id: string;
   team_member_id: string;
   role_title: string | null;
+  client_visible: boolean;
   start_date: string | null;
   end_date: string | null;
   status: string;
@@ -21,6 +35,7 @@ export type AssignmentForTeamMember = {
   company_id: string;
   company_name: string | null;
   role_title: string | null;
+  client_visible: boolean;
   start_date: string | null;
   end_date: string | null;
   status: string;
@@ -33,7 +48,7 @@ export async function getAssignmentsForCompany(companyId: string): Promise<Assig
   const { data } = await companyOs
     .from("staff_assignments")
     .select(
-      "id, team_member_id, role_title, start_date, end_date, status, " +
+      "id, team_member_id, role_title, client_visible, start_date, end_date, status, " +
         "team_members!team_member_id(people:people!person_id(full_name, email), positions:positions!position_id(title))",
     )
     .eq("company_id", companyId)
@@ -49,6 +64,7 @@ export async function getAssignmentsForCompany(companyId: string): Promise<Assig
       id: r.id as string,
       team_member_id: r.team_member_id as string,
       role_title: (r.role_title as string | null) ?? null,
+      client_visible: (r.client_visible as boolean | null) ?? true,
       start_date: (r.start_date as string | null) ?? null,
       end_date: (r.end_date as string | null) ?? null,
       status: r.status as string,
@@ -62,7 +78,7 @@ export async function getAssignmentsForCompany(companyId: string): Promise<Assig
 export async function getAssignmentsForTeamMember(teamMemberId: string): Promise<AssignmentForTeamMember[]> {
   const { data } = await companyOs
     .from("staff_assignments")
-    .select("id, company_id, role_title, start_date, end_date, status, companies:companies!company_id(name)")
+    .select("id, company_id, role_title, client_visible, start_date, end_date, status, companies:companies!company_id(name)")
     .eq("team_member_id", teamMemberId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
@@ -75,6 +91,7 @@ export async function getAssignmentsForTeamMember(teamMemberId: string): Promise
       company_id: r.company_id as string,
       company_name: company?.name ?? null,
       role_title: (r.role_title as string | null) ?? null,
+      client_visible: (r.client_visible as boolean | null) ?? true,
       start_date: (r.start_date as string | null) ?? null,
       end_date: (r.end_date as string | null) ?? null,
       status: r.status as string,

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 08 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 08 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 08: Track Fitness Check-ups</h2><div class="meta"><div class="r"><div class="k">Status</div><div>Potential process. It is not what Work Healthy Australia does today. It is drawn because the sweep of KINNECT, Jobfit, Sonic HealthPlus, the Netherlands, Japan, the United Kingdom, Germany and Finland found it in all of them, and because 01 to 05 and 09 cannot deliver it as they stand.</div></div><div class="r"><div class="k">Prerequisite</div><div>Requirements and intervals on the Site and the Role from Processes 01 and 03. Every other date is set by the process that made the judgement: credential expiries from 02, review dates on temporary determinations from 05b, control plan review dates from 07, and certificate expiries from 06.</div></div><div class="r"><div class="k">Trigger</div><div>A date. Nothing in this process waits for a person to ask.</div></div><div class="r"><div class="k">Output</div><div>A Service Order for each due item, raised without an Employer request and scheduled through Process 04.</div></div><div class="r"><div class="k">Output</div><div>A due and overdue position per Site, crossing the wall as dates and counts with no clinical detail.</div></div><div class="r"><div class="k">Rule</div><div>The requirement lives on the Site and the Role, never on the person. There is no worker roster, because a person is not onboarded as an employee, so the Role comes in on the Service Order from the Employer who nominated them. What is due is computed from that Role and that Site, and it changes when the Employer nominates against a different one.</div></div><div class="r"><div class="k">Rule</div><div>Two things set an interval and both are read. A test carries its own validity period, which is a property of the test. A Site or a Role may require it sooner. The shorter of the two wins, and neither can extend the other.</div></div><div class="r"><div class="k">Open</div><div>Whether credential expiries belong here. Process 08 reads them today, but a First Aid ticket is not a fitness check-up. Either they move, or this process is named slightly narrower than its contents. Not ruled.</div></div><div class="r"><div class="k">Rule</div><div>This is the only process in the set that watches a calendar. Nothing else waits on a date. Other processes decide what the date should be and hand it here, which is why 06 and 08 both end by setting one.</div></div><div class="r"><div class="k">Rule</div><div>It raises the Service Order and stops. Process 04 schedules it and Process 05 performs it. Nothing is rendered here.</div></div><div class="r"><div class="k">Roles</div><div>Admin, Clinicians, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 2040 580" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="1800" height="340" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="0" x2="2010" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="145" font-size="27" font-weight="700" fill="#FFFFFF">Admin</text>
+<text x="20" y="169" font-size="18" fill="#DDD4E4">Setup, accounts,</text>
+<text x="20" y="191" font-size="18" fill="#DDD4E4">authorization. No clinical</text>
+<text x="20" y="213" font-size="18" fill="#DDD4E4">detail.</text>
+<rect x="210" y="340" width="1800" height="200" fill="#FAF8FB"/>
+<rect x="0" y="340" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="340" x2="2010" y2="340" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="426" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="450" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="472" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="540" x2="2010" y2="540" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="340" x2="2010" y2="340" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="323" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="347" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 170 L 545 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 170 L 810 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 960 105 L 960 60 L 1145 60" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1024" y="65" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 960 235 L 960 280 L 1128 280" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1024" y="285" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1375 60 L 1445 60" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1675 60 L 1728 60" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1560 113 L 1560 387" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1576" y="250" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Dates and counts only</text>
+<g><rect x="228" y="139" width="264" height="62" rx="31" fill="#532C6D"/><text x="360" y="177" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">A date passes</text></g>
+<g><rect x="545" y="91" width="230" height="158" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="125" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Compute what is due:</text><text x="660" y="151" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">test validity, Site</text><text x="660" y="177" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">and Role intervals,</text><text x="660" y="203" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">plus dates set</text><text x="660" y="229" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">elsewhere.</text><rect x="736" y="236" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 743 249 H 755 M 749 243 V 255" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><path d="M 960 105 L 1110 170 L 960 235 L 810 170 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="166" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Anything due</text><text x="960" y="188" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">or overdue?</text></g>
+<g><rect x="1145" y="20" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="54" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Raise a Service Order</text><text x="1260" y="80" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">for each due item</text></g>
+<g><rect x="1128" y="240" width="264" height="80" rx="40" fill="#532C6D"/><text x="1260" y="274" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Nothing due. Wait</text><text x="1260" y="300" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">for the next date.</text></g>
+<g><rect x="1445" y="7" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="41" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Publish the due and</text><text x="1560" y="67" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">overdue position</text><text x="1560" y="93" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">per Site</text></g>
+<g><rect x="1728" y="20" width="264" height="80" rx="40" fill="#532C6D"/><text x="1860" y="54" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Service Orders raised.</text><text x="1860" y="80" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Schedule in Process 04.</text></g>
+<g><rect x="1428" y="387" width="264" height="106" rx="53" fill="#532C6D"/><text x="1560" y="421" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Alert: due and overdue</text><text x="1560" y="447" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">position. Dates and</text><text x="1560" y="473" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">counts only.</text></g>
+</svg></div></div>
+</div></body></html>

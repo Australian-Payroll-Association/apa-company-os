@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vercel vs AWS — Platform &amp; Cost Comparison</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --ink: #1c1917;
+    --ink-soft: #57534e;
+    --line: #e7e5e4;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --vercel: #171717;
+    --aws: #b45309;
+    --warn-bg: #fffbeb;
+    --warn-line: #fde68a;
+    --good: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131211;
+      --surface: #1c1a19;
+      --ink: #e7e5e4;
+      --ink-soft: #a8a29e;
+      --line: #2e2b29;
+      --accent: #2dd4bf;
+      --accent-soft: #123f3a;
+      --vercel: #e7e5e4;
+      --aws: #f59e0b;
+      --warn-bg: #2a2415;
+      --warn-line: #57450e;
+      --good: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .subtitle { color: var(--ink-soft); margin-bottom: 2.2rem; max-width: 62ch; }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.6rem 0 1rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    letter-spacing: -0.01em;
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; margin-top: 1.5rem; }
+  p { margin-bottom: 0.9rem; color: var(--ink); }
+  p.note { color: var(--ink-soft); font-size: 0.9rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+  th, td { padding: 0.7rem 0.9rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  thead th {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-soft); background: color-mix(in srgb, var(--surface) 60%, var(--bg));
+  }
+  th.col-vercel { color: var(--vercel); }
+  th.col-aws { color: var(--aws); }
+  td:first-child { font-weight: 600; width: 22%; }
+  .pill {
+    display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+    padding: 0.1rem 0.55rem; border-radius: 99px; background: var(--accent-soft); color: var(--accent);
+    vertical-align: middle;
+  }
+  .cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.2rem;
+  }
+  .card h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .card .price { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0.2rem 0 0.5rem; }
+  .card .price small { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+  .card ul { margin: 0.4rem 0 0 1.1rem; font-size: 0.86rem; color: var(--ink-soft); }
+  .card ul li { margin-bottom: 0.25rem; }
+  .tag { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tag.vercel { color: var(--vercel); }
+  .tag.aws { color: var(--aws); }
+  .callout {
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px;
+    padding: 0.9rem 1.1rem; margin: 1.2rem 0; font-size: 0.92rem;
+  }
+  .callout strong { display: block; margin-bottom: 0.2rem; }
+  .verdict { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1.2rem 0; }
+  .verdict p { margin-bottom: 0.5rem; }
+  .good { color: var(--good); font-weight: 600; }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85em;
+    background: color-mix(in srgb, var(--line) 50%, var(--surface)); padding: 0.1em 0.4em; border-radius: 4px;
+  }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vercel vs AWS</h1>
+  <p class="subtitle">Platform and cost comparison for the current stack — Next.js apps deployed via <code>git push</code> → CI/CD, with Claude Code operating the tooling. Prepared August 2026.</p>
+
+  <h2>How Claude Code hooks into each</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th></th><th class="col-vercel">Vercel (current)</th><th class="col-aws">AWS</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Primary interface</td>
+          <td>Vercel MCP (OAuth'd, read-only per house rules) + Vercel CLI</td>
+          <td>AWS CLI via Bash — covers ~300 services; broader than any MCP</td>
+        </tr>
+        <tr>
+          <td>MCP servers</td>
+          <td>Official Vercel MCP, already connected</td>
+          <td>AWS Labs suite: <code>aws-api</code>, CloudWatch, CDK, Terraform, cost analysis, docs lookup</td>
+        </tr>
+        <tr>
+          <td>Deploy trigger</td>
+          <td><code>git push</code> → Vercel builds &amp; ships automatically</td>
+          <td><code>git push</code> → GitHub Actions → SST/CDK deploy (you assemble the pipeline once)</td>
+        </tr>
+        <tr>
+          <td>Auth model</td>
+          <td>One-time OAuth, done</td>
+          <td>IAM — best via <code>aws configure sso</code> (short-lived tokens, no keys on disk)</td>
+        </tr>
+        <tr>
+          <td>Read-only guardrail</td>
+          <td>Enforced by house rule (Vercel CLI/MCP read-only)</td>
+          <td>Enforced by IAM policy — give the local profile ReadOnlyAccess; writes go through CI only</td>
+        </tr>
+        <tr>
+          <td>Logs &amp; debugging</td>
+          <td>Build logs, runtime logs, analytics via MCP</td>
+          <td>CloudWatch Logs/Insights, X-Ray tracing — deeper but more assembly required</td>
+        </tr>
+        <tr>
+          <td>Setup effort</td>
+          <td>Zero — already running</td>
+          <td>~1 day one-time: SST or CDK in repo, OIDC role for CI, SSO profile locally</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Platform trade-offs</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th></th><th class="col-vercel">Vercel</th><th class="col-aws">AWS</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Philosophy</td>
+          <td>Opinionated — platform figures out builds, CDN, SSL, previews</td>
+          <td>Unopinionated — total control, you assemble every layer</td>
+        </tr>
+        <tr>
+          <td>Next.js fit</td>
+          <td>First-party (Vercel makes Next.js) — zero-config ISR, image optimization, edge</td>
+          <td>Good via SST / OpenNext — near-parity, occasionally lags new Next.js features</td>
+        </tr>
+        <tr>
+          <td>Preview deploys</td>
+          <td>Automatic per-PR, free with the plan</td>
+          <td>Possible (SST supports it) but you build and pay for each environment</td>
+        </tr>
+        <tr>
+          <td>Beyond web apps</td>
+          <td>Limited — functions max ~5 min, no queues, no private networking</td>
+          <td>Unlimited — long-running jobs, SQS queues, VPCs, RDS, batch, ML, anything</td>
+        </tr>
+        <tr>
+          <td>Ops burden</td>
+          <td>Near zero</td>
+          <td>Real — IAM hygiene, cost monitoring, dependency on your own IaC quality</td>
+        </tr>
+        <tr>
+          <td>Lock-in</td>
+          <td>Moderate — Next.js is portable, but platform features (analytics, edge config) are not</td>
+          <td>Low-to-moderate — IaC is portable-ish; services like DynamoDB are sticky</td>
+        </tr>
+        <tr>
+          <td>Cost predictability</td>
+          <td>High — flat seat price until you cross usage tiers</td>
+          <td>Lower — pure usage-based; cheap at low traffic, needs monitoring at scale</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Cost comparison</h2>
+  <p class="note">Estimates for a typical marketing/content Next.js site (like this one) at three traffic levels. AWS figures assume SST/OpenNext on Lambda + CloudFront + S3, us-east-1. All USD/month.</p>
+
+  <div class="cost-grid">
+    <div class="card">
+      <span class="tag vercel">Vercel</span>
+      <h3>Low traffic <span class="pill">~50k visits/mo</span></h3>
+      <div class="price">$0–20 <small>/mo</small></div>
+      <ul>
+        <li>Hobby tier: free (non-commercial only)</li>
+        <li>Pro: $20/seat, includes 1&nbsp;TB fast data transfer + generous function quota</li>
+        <li>Usage almost never exceeds included allowance at this level</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag aws">AWS</span>
+      <h3>Low traffic <span class="pill">~50k visits/mo</span></h3>
+      <div class="price">$1–10 <small>/mo</small></div>
+      <ul>
+        <li>Lambda: mostly inside free tier (1M req + 400k GB-s free)</li>
+        <li>CloudFront: ~$0.085/GB after 1&nbsp;TB free tier</li>
+        <li>S3 + Route 53: ~$1–2</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag vercel">Vercel</span>
+      <h3>Medium traffic <span class="pill">~500k visits/mo</span></h3>
+      <div class="price">$20–60 <small>/mo</small></div>
+      <ul>
+        <li>Pro seat(s) + occasional usage overage</li>
+        <li>Fast data transfer beyond 1&nbsp;TB: ~$0.15/GB</li>
+        <li>Image optimization &amp; edge requests can add $10–30 if media-heavy</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag aws">AWS</span>
+      <h3>Medium traffic <span class="pill">~500k visits/mo</span></h3>
+      <div class="price">$15–40 <small>/mo</small></div>
+      <ul>
+        <li>Lambda + API Gateway/Function URLs: $5–15</li>
+        <li>CloudFront transfer: $10–20</li>
+        <li>Assumes good caching; poor cache config can double this</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag vercel">Vercel</span>
+      <h3>High traffic <span class="pill">~5M visits/mo</span></h3>
+      <div class="price">$250–800+ <small>/mo</small></div>
+      <ul>
+        <li>Usage-based charges dominate the seat price</li>
+        <li>Bandwidth is the big line item at ~$0.15/GB</li>
+        <li>Enterprise plan often triggered around this scale</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag aws">AWS</span>
+      <h3>High traffic <span class="pill">~5M visits/mo</span></h3>
+      <div class="price">$100–350 <small>/mo</small></div>
+      <ul>
+        <li>CloudFront ~$0.085/GB — roughly half Vercel's bandwidth rate</li>
+        <li>Lambda scales linearly; consider provisioned concurrency for hot paths</li>
+        <li>This is where AWS clearly wins on raw dollars</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The hidden cost line</strong>
+    AWS's dollar advantage at scale buys real operational work: IAM upkeep, cost alarms, cache tuning, and owning your own deploy pipeline. At current traffic levels, the money saved is small enough that Vercel's zero-ops model is effectively cheaper once your time is priced in — in Human Tokens terms, an hour of skilled attention spent on infrastructure is worth more than the $10–30/mo delta.
+  </div>
+
+  <h2>Verdict for this stack</h2>
+  <div class="verdict">
+    <p><span class="good">Stay on Vercel</span> for the Next.js web properties while traffic and needs stay in the low-to-medium band. The workflow (git push → CI/CD, read-only MCP for status) is already exactly right, and Claude Code operates it fully today.</p>
+    <p><span class="good">Add AWS selectively</span> when a need appears that Vercel can't serve: long-running jobs, queues/workers, private networking, or heavy data workloads. A hybrid — Vercel for the front-ends, AWS for backend services — is a common and clean split, and Claude Code can drive both sides from the same session.</p>
+    <p><span class="good">Revisit a full migration</span> only if monthly Vercel spend passes roughly $300–500, at which point SST-on-AWS pays back the one-day setup within a couple of months.</p>
+  </div>
+
+  <footer>
+    Prices reflect published Vercel Pro and AWS on-demand rates as of early 2026 and are estimates — verify against current pricing pages and your actual usage before committing. Prepared for the ai-officer-web / Edge8 stack.
+  </footer>
+</main>
+</body>
+</html>

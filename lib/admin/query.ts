@@ -9,6 +9,13 @@ export type ListParams = {
   pageSize?: number;
   search?: string;
   searchColumns?: string[];
+  // Search columns on an embedded table instead of (or as well as) the base
+  // table's own — e.g. the person's name on team_members. The embed must be
+  // declared `!inner` in `select`, otherwise PostgREST narrows the embedded
+  // rows and still returns every parent. Note that searchColumns and
+  // searchEmbed are ANDed when both are given, so pass only one to get an
+  // "either" match.
+  searchEmbed?: { table: string; columns: string[] };
   sort?: string;
   dir?: "asc" | "desc";
   // `null` filters to IS NULL (e.g. persona: null for "unset").
@@ -52,15 +59,21 @@ export async function listEntity<T>(
   // Tokenized search: split on whitespace and AND the tokens together (each
   // successive .or() call is ANDed by PostgREST), so "john smith" requires
   // both tokens rather than matching the literal substring "john smith".
-  if (params.search && params.searchColumns?.length) {
+  if (params.search && (params.searchColumns?.length || params.searchEmbed)) {
     const tokens = params.search
       .replace(/[%,()]/g, " ")
       .trim()
       .split(/\s+/)
       .filter(Boolean);
     for (const token of tokens) {
-      const or = params.searchColumns.map((c) => `${c}.ilike.%${token}%`).join(",");
-      q = q.or(or);
+      if (params.searchColumns?.length) {
+        const or = params.searchColumns.map((c) => `${c}.ilike.%${token}%`).join(",");
+        q = q.or(or);
+      }
+      if (params.searchEmbed) {
+        const or = params.searchEmbed.columns.map((c) => `${c}.ilike.%${token}%`).join(",");
+        q = q.or(or, { referencedTable: params.searchEmbed.table });
+      }
     }
   }
 

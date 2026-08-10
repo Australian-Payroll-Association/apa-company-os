@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AIO LABZ Agentic AI track (A01-A06): the six missions from plan to production and how certification is issued automatically.">
+<title>Agentic AI workflows — AIO LABZ</title>
+<style>
+  html{-webkit-text-size-adjust:100%;}
+  img{max-width:100%;}
+  :root {
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+      --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+      --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+      --navy:#4a6c95; --on-navy:#f3f7fb;
+      --amber:#d3a13a; --amber-soft:#241f14;
+      --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb;
+    --amber:#d3a13a; --amber-soft:#241f14;
+    --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--serif);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; margin:0;}
+  .wrap{max-width:1040px; margin:0 auto; padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+
+  /* ── type roles ─────────────────────────────────────────── */
+  .eyebrow{font-family:var(--sans); font-size:.72rem; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .7rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem); font-weight:700; line-height:1.04;
+    letter-spacing:-.015em; margin:.2rem 0 0; text-wrap:balance; max-width:20ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem); font-weight:700; line-height:1.14;
+    letter-spacing:-.01em; margin:0 0 .9rem; text-wrap:balance; max-width:24ch;}
+  h3{font-size:1.12rem; font-weight:700; line-height:1.25; margin:0 0 .5rem;}
+  p{font-size:1.055rem; line-height:1.62; color:var(--ink-soft); margin:0 0 1.05rem; max-width:62ch;}
+  p strong,li strong{color:var(--ink); font-weight:700;}
+  em{color:var(--ink); font-style:italic;}
+  a{color:var(--navy); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+
+  /* ── header ─────────────────────────────────────────────── */
+  header.masthead{margin-bottom:clamp(2.6rem,6vw,4.2rem);}
+  .meta{font-family:var(--mono); font-size:.82rem; line-height:2; color:var(--ink-soft);
+    margin-top:1.6rem; padding-top:1.2rem; border-top:1px solid var(--line);}
+  .meta b{color:var(--ink); font-weight:700; display:inline-block; min-width:5.2rem;}
+  .meta .k{color:var(--muted);}
+
+  /* ── section rhythm ─────────────────────────────────────── */
+  section{margin-top:clamp(2.8rem,6vw,4.4rem); scroll-margin-top:2rem;}
+  .lead{max-width:62ch;}
+
+  /* ── badges ─────────────────────────────────────────────── */
+  .badge{display:inline-flex; align-items:center; gap:.4em; font-family:var(--sans);
+    font-size:.66rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    padding:.24em .6em; border-radius:2px; vertical-align:middle;}
+  .badge::before{content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor;}
+  .badge.live{color:var(--ok); background:color-mix(in srgb,var(--ok) 12%,transparent);}
+  .badge.soon{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .eyebrow .badge{margin-left:.6em;}
+
+  /* ── two-option comparison cards ────────────────────────── */
+  .cards2{display:grid; grid-template-columns:repeat(2,1fr); gap:1.4rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.cards2{grid-template-columns:1fr;}}
+  .optcard{background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;}
+  .optcard .cap{padding:1.05rem 1.3rem 1.15rem; color:var(--on-navy);}
+  .optcard.navy .cap{background:var(--navy);}
+  .optcard.amber .cap{background:var(--amber);}
+  .optcard .cap .k{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.13em;
+    text-transform:uppercase; opacity:.72; display:block; margin-bottom:.35rem;}
+  .optcard .cap h3{color:var(--on-navy); font-size:1.3rem; margin:0;}
+  .optcard .body{padding:1.15rem 1.3rem 1.3rem; display:flex; flex-direction:column; gap:.1rem; flex:1;}
+  .optcard .sub{font-family:var(--mono); font-size:.76rem; color:var(--muted);
+    padding-bottom:.9rem; margin-bottom:.4rem; border-bottom:1px solid var(--line-soft);}
+  .optcard .sub b{color:var(--ink-soft);}
+  ul.ticks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.62rem;}
+  ul.ticks li{font-size:.97rem; line-height:1.45; color:var(--ink-soft); padding-left:1.5rem; position:relative;}
+  ul.ticks li::before{content:""; position:absolute; left:.15rem; top:.5em; width:.42rem; height:.42rem;
+    border-radius:50%; background:var(--navy);}
+  .optcard.amber ul.ticks li::before{background:var(--amber);}
+  .optcard .foot{margin-top:auto; padding-top:1rem; font-size:.86rem; line-height:1.5; color:var(--muted); font-style:italic;}
+
+  /* ── callout ────────────────────────────────────────────── */
+  .callout{border-left:3px solid var(--amber); background:var(--amber-soft);
+    padding:1.05rem 1.25rem; margin:1.7rem 0; max-width:70ch; border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans); font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin-bottom:.5rem;}
+  .callout p{margin:0; font-size:.98rem; color:var(--ink-soft);}
+  .callout.navy{border-left-color:var(--navy); background:color-mix(in srgb,var(--navy) 7%,var(--surface));}
+  .callout.navy .k{color:var(--navy);}
+
+  /* ── state cards ────────────────────────────────────────── */
+  .states{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.states{grid-template-columns:1fr;}}
+  .state{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--c);
+    border-radius:3px; padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .state.invited{--c:var(--warn);} .state.active{--c:var(--ok);} .state.revoked{--c:var(--stop);}
+  .state h3{font-family:var(--sans); font-size:.78rem; font-weight:700; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--c); margin-bottom:1rem;}
+  .state .row{display:grid; grid-template-columns:5.2rem 1fr; gap:.5rem; margin-bottom:.85rem;}
+  .state .row:last-child{margin-bottom:0;}
+  .state .who{font-family:var(--sans); font-size:.64rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); padding-top:.15rem;}
+  .state .what{font-size:.92rem; line-height:1.4; color:var(--ink-soft);}
+
+  /* ── does/never action grid ─────────────────────────────── */
+  .actions{display:grid; grid-template-columns:repeat(2,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.actions{grid-template-columns:1fr;}}
+  .action{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.1rem 1.25rem 1.2rem; box-shadow:var(--shadow);}
+  .action h3{font-size:1.05rem; margin-bottom:.85rem;}
+  .dn{display:grid; grid-template-columns:3.4rem 1fr; gap:.45rem .7rem; align-items:start;}
+  .dn dt{font-family:var(--sans); font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding-top:.18rem;}
+  .dn dt.does{color:var(--ok);} .dn dt.never{color:var(--stop);}
+  .dn dd{margin:0; font-size:.9rem; line-height:1.42; color:var(--ink-soft);}
+
+  /* ── numbered steps ─────────────────────────────────────── */
+  ol.steps{list-style:none; counter-reset:s; margin:1.5rem 0; padding:0;
+    display:flex; flex-direction:column; gap:.9rem; max-width:66ch;}
+  ol.steps li{counter-increment:s; position:relative; padding-left:2.6rem; font-size:1rem;
+    line-height:1.5; color:var(--ink-soft); min-height:1.7rem;}
+  ol.steps li::before{content:counter(s); position:absolute; left:0; top:-.05rem; width:1.7rem; height:1.7rem;
+    display:grid; place-items:center; font-family:var(--mono); font-size:.82rem; font-weight:700;
+    color:var(--navy); background:var(--surface); border:1px solid var(--navy); border-radius:3px;}
+
+  /* ── table ──────────────────────────────────────────────── */
+  .tablewrap{overflow-x:auto; margin:1.6rem 0 .4rem; border:1px solid var(--line);
+    border-radius:4px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:.94rem;}
+  caption{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); text-align:left; padding:.95rem 1.15rem .2rem;}
+  th,td{text-align:left; padding:.7rem 1.15rem; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  thead th{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); background:var(--line-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);}
+  .tnote{font-size:.9rem; color:var(--muted); font-style:italic; margin-top:.7rem;}
+
+  /* ── ownership cards ────────────────────────────────────── */
+  .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--navy); margin-bottom:.7rem;}
+  .owner p{font-size:.92rem; line-height:1.5; margin:0; color:var(--ink-soft);}
+
+  /* ── file references ────────────────────────────────────── */
+  .files{display:flex; flex-direction:column; gap:.7rem; margin:1.4rem 0; max-width:74ch;}
+  .file{display:flex; flex-wrap:wrap; align-items:baseline; gap:.7rem;}
+  .file code{font-family:var(--mono); font-size:.8rem; background:var(--code-bg); color:var(--ink);
+    padding:.28rem .55rem; border-radius:3px; border:1px solid var(--line); white-space:nowrap;}
+  .file span{font-size:.95rem; color:var(--ink-soft);}
+
+  hr.rule{border:none; border-top:1px solid var(--line); margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem); padding-top:1.5rem; border-top:1px solid var(--line);
+    font-size:.9rem; line-height:1.6; color:var(--muted); max-width:70ch;}
+  footer.foot b{color:var(--ink-soft);}
+
+  /* ── motion ─────────────────────────────────────────────── */
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1; transform:none;}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1; transform:none; transition:none;}}
+  :focus-visible{outline:2px solid var(--navy); outline-offset:3px; border-radius:2px;}
+
+  /* ── workflow flow chain (mission-workflow pages) ─────────── */
+  .flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:.55rem; margin:1.5rem 0 .5rem;}
+  .fnode{flex:1 1 8rem; min-width:7rem; background:var(--surface); border:1px solid var(--line);
+    border-radius:4px; box-shadow:var(--shadow); padding:.8rem .85rem; display:flex; flex-direction:column; gap:.3rem;}
+  .fnode .c{font-family:var(--mono); font-size:.64rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--navy);}
+  .fnode .t{font-family:var(--sans); font-size:.92rem; font-weight:700; color:var(--ink); line-height:1.2;}
+  .fnode .d{font-size:.8rem; color:var(--muted); line-height:1.35;}
+  .fnode.goal{border-top:3px solid var(--amber);} .fnode.goal .c{color:var(--amber);}
+  .farrow{align-self:center; color:var(--muted); font-family:var(--mono); font-size:1rem; flex:0 0 auto;}
+  @media(max-width:720px){ .flow{flex-direction:column;} .fnode{flex:0 0 auto;} .farrow{transform:rotate(90deg); margin:.1rem 0;} }
+
+  /* actor tags (Learner / AI / Automatic) reuse the badge idiom */
+  .badge.you{color:var(--ok); background:color-mix(in srgb,var(--ok) 12%,transparent);}
+  .badge.ai{color:var(--navy); background:color-mix(in srgb,var(--navy) 14%,transparent);}
+  .badge.auto{color:var(--amber); background:color-mix(in srgb,var(--amber) 16%,transparent);}
+  .legend{display:flex; flex-wrap:wrap; gap:.6rem; margin:1.1rem 0 .2rem; align-items:center;}
+  .legend .lk{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+
+  /* the shared-loop wrapper */
+  .loop{border:1px dashed color-mix(in srgb,var(--navy) 45%,var(--line)); border-radius:5px;
+    padding:1.15rem 1.3rem 1.1rem; margin:1.3rem 0 .5rem; background:color-mix(in srgb,var(--navy) 4%,var(--surface));}
+  .loop .looptag{font-family:var(--sans); font-size:.64rem; font-weight:700; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--navy); margin:0 0 .8rem;}
+  .loop ol.steps{margin:.4rem 0 0;}
+
+  /* badges inline in steps / tables */
+  ol.steps li .badge{margin-left:.45rem; vertical-align:baseline;}
+  td .badge{font-size:.6rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · Agentic AI track · A01–A06</p>
+    <h1>Six missions, one system shipped</h1>
+    <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:60ch; margin-top:1rem;">
+      The Agentic AI for Business track is six missions. The learner builds one workflow of their own
+      the whole way through — from a funded plan to a live agent running in production — and the platform
+      grades every step and issues the credential on its own.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> &nbsp; AI Officer learner · Agentic AI for Business (A01–A06)</div>
+      <div><span class="k">Source</span> &nbsp; aiolabz-prompt-registry <span style="color:var(--muted)">(mission prompts + rubrics)</span> · aio-lab-be <span style="color:var(--muted)">(certification trigger)</span></div>
+      <div><span class="k">State</span> &nbsp; <span class="badge live">Live</span> six missions · AI-graded &nbsp;&nbsp; <span class="badge soon">To refine</span> A06 retake path</div>
+      <div><span class="k">Prepared</span> &nbsp; 5 August 2026 · from the mission registry</div>
+    </div>
+  </header>
+
+  <!-- ── at a glance ─────────────────────────────────────── -->
+  <section class="reveal">
+    <p class="eyebrow">At a glance</p>
+    <h2>The whole track on one screen</h2>
+    <p>Six missions, one after another, each building on the last. Finish them all — the sixth ships a
+      real page to production — and the certificate is issued automatically. The legend below marks who
+      does each part: the learner, the AI, or the platform on its own.</p>
+
+    <div class="legend">
+      <span class="lk">Who acts</span>
+      <span class="badge you">Learner</span>
+      <span class="badge ai">AI</span>
+      <span class="badge auto">Automatic</span>
+    </div>
+
+    <div class="flow">
+      <div class="fnode"><span class="c">A01</span><span class="t">Plan it</span><span class="d">The 5Ds brief</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">A02</span><span class="t">Package it</span><span class="d">Kill the setup tax</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">A03</span><span class="t">Wire it</span><span class="d">Remove yourself</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">A04</span><span class="t">Teach it to decide</span><span class="d">Classify + route</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">A05</span><span class="t">Make it an agent</span><span class="d">Mission + guardrails</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">A06</span><span class="t">Ship it</span><span class="d">Live on the internet</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode goal"><span class="c">Goal</span><span class="t">Certified</span><span class="d">Credential issued</span></div>
+    </div>
+
+    <h3 style="margin-top:2.4rem">How one mission runs</h3>
+    <p>All six missions follow the same five steps. Only the task changes.</p>
+    <div class="loop">
+      <div class="looptag">Repeats for every mission</div>
+      <ol class="steps">
+        <li>Open the mission from Mission Control. <span class="badge you">Learner</span></li>
+        <li>Work the challenge with your AI Buddy in chat. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+        <li>The deliverable is captured for you — no file to save. <span class="badge auto">Automatic</span></li>
+        <li>An AI grade card appears in the chat. <span class="badge ai">AI</span></li>
+        <li>Pass unlocks the next mission; below-pass reveals <b>Retake</b>. <span class="badge auto">Automatic</span></li>
+      </ol>
+    </div>
+    <div class="cards2">
+      <div class="optcard navy">
+        <div class="cap"><span class="k">Outcome one</span><h3>Pass</h3></div>
+        <div class="body"><ul class="ticks">
+          <li>The mission flips to <b>mastered</b> on the record.</li>
+          <li>The next mission unlocks.</li>
+          <li>A pass is final — it is never re-graded.</li>
+        </ul></div>
+      </div>
+      <div class="optcard amber">
+        <div class="cap"><span class="k">Outcome two</span><h3>Not yet</h3></div>
+        <div class="body"><ul class="ticks">
+          <li>The <b>Retake</b> button appears.</li>
+          <li>A retake is graded fresh from the top — a new, independent grade.</li>
+          <li>Never an edit of the old attempt.</li>
+        </ul></div>
+      </div>
+    </div>
+    <div class="callout"><div class="k">AI grades everything</div><p>There is no human grader and no manual save.
+      The platform captures each deliverable in the conversation and the AI writes the grade card the same
+      way every time.</p></div>
+
+    <h3 style="margin-top:2.4rem">What each mission leaves behind</h3>
+    <p>Every mission produces something real, and every artifact feeds the next.</p>
+    <div class="owners">
+      <div class="owner"><div class="k">A01 · Brief</div><p><b>AI Program Brief.</b> One workflow planned across all 5 Ds, with a problem statement, data map, and a workflow diagram.</p></div>
+      <div class="owner"><div class="k">A02 · Spec</div><p><b>Packaged AI Spec.</b> A RACE system prompt with defined inputs, outputs, edge cases, and test evidence.</p></div>
+      <div class="owner"><div class="k">A03 · Document</div><p><b>Wired Workflow Document.</b> Trigger to logged action in one runnable line, tested, with an ROI number.</p></div>
+      <div class="owner"><div class="k">A04 · Layer</div><p><b>AI Program Logic Layer.</b> A tested classify-route-respond layer that tells inputs apart.</p></div>
+      <div class="owner"><div class="k">A05 · Brief</div><p><b>Agent Launch Brief.</b> Mission, brain, tools, memory, guardrails, and stress-test results.</p></div>
+      <div class="owner"><div class="k">A06 · Map</div><p><b>Shipping Map.</b> A live <span class="mono">vercel.app</span> address, the four-tool stack, and the deploy loop.</p></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ── in detail ───────────────────────────────────────── -->
+  <section class="reveal">
+    <p class="eyebrow">In detail</p>
+    <h2>Each mission, written out</h2>
+    <p>Below, every mission and the certification are written in the full workflow format — the flow, then
+      the seven elements: trigger, inputs, decision, routing, output, delivery, and measurement.</p>
+  </section>
+
+  <!-- A01 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 1 · A01</p>
+    <h2>AI Program Planning</h2>
+    <p class="lead">Where the whole track starts. A fundable AI program is <em>one deliberately chosen
+      workflow</em> planned end to end through the 5 Ds — Define, Determine, Data, Design, Deploy — not a
+      vague wish for an AI teammate. The learner maps their real work, picks one opportunity, and defends
+      the problem statement against a skeptical CFO the coach roleplays in voice.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A01 from Mission Control. <span class="badge you">Learner</span></li>
+      <li>Map opportunities, pick one, and plan the 5 Ds with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The AI Program Brief is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered; below-pass → Retake. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>An AI Program Brief</b> — one workflow across all
+      5 Ds, with a named owner, a real cost number, a why-now, a measurable success, a data map, and a
+      visual workflow diagram someone else could follow. Captured in-conversation; the learner never saves a file.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the planning mission from Mission Control.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A01 textbook, the rubric, and the learner's real role, workflows, and cost numbers.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades roadmap coverage, problem-statement quality, and the FAST goal against the rubric.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>A pass is final; below-pass reveals a Retake with a fresh independent grade.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A 5Ds AI Program Brief — the chosen workflow, defended and planned end to end.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; the mission flips to mastered on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Whether it passed, the score, and how many retakes it took.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- A02 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 2 · A02</p>
+    <h2>From Prompts to Packaged AI</h2>
+    <p class="lead">Stop paying the setup tax. A named, documented <em>Packaged AI</em> — a system prompt
+      plus starters plus data — moves the instructions out of the learner's head and into the tool.
+      Working from a RACE structure (Role, Action, Context, Example), the learner packages their
+      most-repeated chat habit and tests it before sharing it.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A02 from Mission Control. <span class="badge you">Learner</span></li>
+      <li>Measure the setup tax, then package and test a prompt with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The Packaged AI Spec is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered; below-pass → Retake. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>A Packaged AI Spec</b> — a RACE system prompt,
+      defined inputs, outputs and edge cases, plus testing evidence (happy path, edge case, teammate test)
+      for one real workflow.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the packaging mission.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A02 textbook, the rubric, the learner's real setup-tax number, and what their AI's memory already holds.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades the RACE prompt, the I/O, and the testing evidence against the rubric.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>Pass is final; below-pass opens a Retake with its own grade.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A tested Packaged AI the whole team can run without the learner in the loop.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; the mission is mastered on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Result, score, and retakes.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- A03 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 3 · A03</p>
+    <h2>Wire the Workflow</h2>
+    <p class="lead">Take yourself out of the middle. A one-way automated workflow beats a fast AI step with
+      a human carrying it between systems. The learner wires the <em>trigger, data, AI step, action, and
+      log</em> into one straight line — a real, runnable Claude Routine — and tests it against real
+      examples until it holds.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A03 from Mission Control. <span class="badge you">Learner</span></li>
+      <li>Wire trigger → data → AI step → action → log, and test it, with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The Wired Workflow Document is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered; below-pass → Retake. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>A Wired Workflow Document</b> that traces straight
+      from a trigger to a delivered, logged action — with a runnable RACE-built AI step, real test results,
+      and a sized ROI number.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the end-to-end automation build.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A03 textbook, the rubric, the recurring "middleware" moment, and the A02 Packaged AI to reuse as the AI step.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades trigger, data, AI step, action, log, and ROI against the rubric.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>Pass is final; below-pass opens a Retake.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A runnable wired routine that removes the learner from the hand-off it used to require.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; the mission is mastered on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Result, score, and retakes.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- A04 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 4 · A04</p>
+    <h2>Teach Your Workflow to Decide</h2>
+    <p class="lead">A workflow gets genuinely useful only once it can tell different inputs apart and route
+      each to its own response, instead of answering everything the same way. On top of the Mission 3
+      workflow, the learner builds a <em>classify-route-respond</em> logic layer, then tests every path.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A04 from Mission Control. <span class="badge you">Learner</span></li>
+      <li>Define rules, build a classifier and router, and test every path with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The AI Program Logic Layer is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered; below-pass → Retake. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>An AI Program Logic Layer</b> — distinct input
+      types, a decision rule per type, a tested classifier prompt, a router that maps every type to its own
+      path, and an ROI number.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the decision-layer mission.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A04 textbook, the rubric, and the A03 workflow that answers everything the same way.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades the input types, rules, classifier, router, and an end-to-end test against the rubric.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>Pass is final; below-pass opens a Retake.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A classify-route-respond layer that handles each input on its own path.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; the mission is mastered on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Result, score, and retakes.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- A05 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 5 · A05</p>
+    <h2>Unleash the Agent</h2>
+    <p class="lead">An agent is not a bigger prompt. Give a real workflow a <em>mission, a brain, tools,
+      memory, and guardrails</em>, and it can reason through the messy cases a fixed logic layer had to
+      reject. The learner writes an Agent Brief, sets always/never/escalate guardrails, and proves it holds
+      the line across a happy, a messy, and an adversarial test before shipping the first run.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A05 from Mission Control. <span class="badge you">Learner</span></li>
+      <li>Write the brief, pick tools, set guardrails, and stress-test with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The Agent Launch Brief is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered; below-pass → Retake. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>An Agent Launch Brief</b> — mission, brain, tools
+      and memory; always/never/escalate guardrails; happy, edge and adversarial stress-test results; and a
+      baseline, target, and human-in-the-loop line.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the agent-building mission.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A05 textbook, the rubric, and the rule-breaking case the A04 logic layer had to reject.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades brief completeness, guardrail rigor, stress-test evidence, and the metrics and human-control plan.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>Pass is final; below-pass opens a Retake.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A real, tested agent with guardrails, run once against messy input.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; the mission is mastered on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Result, score, and retakes.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- A06 -->
+  <section class="reveal">
+    <p class="eyebrow">Mission 6 · A06</p>
+    <h2>From Prototype to Production</h2>
+    <p class="lead">The production ship — and the track's finish line. Shipping is a pipeline the learner
+      runs themselves: <em>Claude writes the code, GitHub stores it, Vercel ships it</em>, and changing the
+      code changes the live product with no extra button. In a live instructor-led session the learner puts
+      a real page online at an address they own, then changes it and watches Vercel redeploy by itself.
+      Mastering A06 is what triggers certification.</p>
+    <p class="eyebrow" style="margin-top:1.7rem">The flow</p>
+    <ol class="steps">
+      <li>Open A06 in the live session. <span class="badge you">Learner</span></li>
+      <li>Get keys, ship a page, then change it and watch it redeploy — with the AI Buddy. <span class="badge you">Learner</span> <span class="badge ai">AI</span></li>
+      <li>The Shipping Map is captured automatically. <span class="badge auto">Automatic</span></li>
+      <li>An AI grade card appears in chat. <span class="badge ai">AI</span></li>
+      <li>Pass → mastered → certification fires. <span class="badge auto">Automatic</span></li>
+    </ol>
+    <div class="callout"><div class="k">Artifact</div><p><b>A Shipping Map</b> — a real live
+      <span class="mono">vercel.app</span> address, the four-tool stack described through the learner's own
+      session (Claude, GitHub, Vercel, and the Supabase gap), the change-commit-redeploy loop, and a Next Ship.</p></div>
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge you">Learner</span></td><td>Opens the production-shipping session — the last mission before certification.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge ai">AI</span></td><td>The A06 textbook, the rubric, and the learner's own GitHub and Vercel accounts and the page they ship.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge ai">AI</span></td><td>Grades the recorded vercel.app address, the stack, the loop, and the Next Ship against the rubric.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>Sixth mastery makes all six courses complete; below-pass opens a Retake.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A live page on the internet at an address the learner owns, plus the Shipping Map.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td>The grade card renders in chat; mastered, and the certification handoff begins.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge ai">AI</span> <span class="badge auto">Auto</span></td><td>Result, score, retakes — and the sixth-of-six completion signal.</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- shared rules -->
+  <section class="reveal">
+    <p class="eyebrow">Applies to all six missions</p>
+    <h2>How the loop holds</h2>
+    <div class="cards2">
+      <div class="optcard navy">
+        <div class="cap"><span class="k">The rules</span><h3>What always holds</h3></div>
+        <div class="body"><ul class="ticks">
+          <li>One captured artifact per mission, from the learner's real work.</li>
+          <li>Grading checks completeness against the rubric — fully AI, no human.</li>
+          <li>The platform captures the deliverable in-conversation; no manual save.</li>
+          <li>A pass is final. Below-pass means Retake — a fresh, independent grade.</li>
+          <li>Missions unlock in order; the next opens only when the current is mastered.</li>
+        </ul></div>
+      </div>
+      <div class="optcard amber">
+        <div class="cap"><span class="k">The reasoning</span><h3>Why it works</h3></div>
+        <div class="body"><ul class="ticks">
+          <li>Each artifact feeds the next — plan, package, wire, decide, agent, ship.</li>
+          <li>The learner builds one workflow of their own, not six unrelated exercises.</li>
+          <li>The grade card is written by AI the same way every time — no subjective calls.</li>
+          <li>Retake-not-resubmit keeps every grade honestly and independently earned.</li>
+        </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- certification -->
+  <section class="reveal" id="certification">
+    <p class="eyebrow">Certification · runs once per learner</p>
+    <h2>Agentic AI certification</h2>
+    <p class="lead">The credential certifies something that <em>exists</em>. There is no separate capstone —
+      Mission 6 <em>is</em> the production ship. When all six missions are mastered, a database trigger issues
+      the certificate. The record and the certificate can never disagree, because one trigger checking all
+      six courses is the only writer.</p>
+
+    <div class="flow" style="margin-top:1.6rem">
+      <div class="fnode"><span class="c">Step 1</span><span class="t">Master A01–A05</span><span class="d">Plan → agent</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">Step 2</span><span class="t">A06 unlocks</span><span class="d">The production ship</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">Step 3</span><span class="t">Go live for real</span><span class="d">A real vercel.app URL</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><span class="c">Step 4</span><span class="t">AI grades A06</span><span class="d">Pass / not yet</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode goal"><span class="c">Step 5</span><span class="t">Certified</span><span class="d">Trigger issues it</span></div>
+    </div>
+
+    <p class="eyebrow" style="margin-top:2rem">Step by step</p>
+    <ol class="steps">
+      <li><b>Master all six missions.</b> Certification requires every published Agentic AI course, <span class="mono">A01</span>–<span class="mono">A06</span>, complete. A course completes when its one final-project activity passes. No partial credit — five of six is locked, not "almost certified." <span class="badge you">Learner</span></li>
+      <li><b>Mission 6 is the production ship.</b> Unlike a slide-deck capstone, A06 deploys a real page to a live <span class="mono">vercel.app</span> address. There is no separate capstone course to unlock. <span class="badge auto">Platform</span></li>
+      <li><b>The final project is graded.</b> A06's Shipping Map is graded for completeness against its rubric — fully AI, no human in the loop — resulting in <span class="mono">pass</span> or below-pass. An admin <span class="mono">force_complete</span> override exists for edge cases but clears the same bar. <span class="badge ai">AI</span></li>
+      <li><b>The trigger checks all six courses.</b> On any final-project pass, <span class="mono">trg_award_certification</span> asks <span class="mono">v_certification_progress</span> whether every published course in the certification is complete. Completion is derived, never stored — so the check is always live. <span class="badge auto">DB trigger</span></li>
+      <li><b>The certificate is issued.</b> When all six are complete, the trigger writes <span class="mono">earned_certification</span> (<span class="mono">on conflict do nothing</span>, so it never double-issues) and the Agentic AI badge appears. <span class="badge auto">DB trigger</span></li>
+    </ol>
+
+    <div class="tablewrap"><table><caption>The seven elements</caption>
+      <thead><tr><th>Element</th><th>Owner</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><b>01 · Trigger</b></td><td><span class="badge auto">Automatic</span></td><td>Any A01–A06 final-project assessment flips to <span class="mono">pass</span> — the credential writer fires.</td></tr>
+        <tr><td><b>02 · Inputs</b></td><td><span class="badge you">Learner</span> <span class="badge auto">Auto</span></td><td>All six final-project outcomes, the certification's published-course list, and the learner's live production page.</td></tr>
+        <tr><td><b>03 · Decision</b></td><td><span class="badge auto">Automatic</span></td><td><span class="mono">v_certification_progress.complete</span> — completed equals total published. Completeness, not taste.</td></tr>
+        <tr><td><b>04 · Routing</b></td><td><span class="badge auto">Automatic</span></td><td>If complete, insert <span class="mono">earned_certification</span>; otherwise the credential stays locked.</td></tr>
+        <tr><td><b>05 · Output</b></td><td><span class="badge you">Learner</span></td><td>A live system on the internet and the issued credential — proof of something that exists.</td></tr>
+        <tr><td><b>06 · Delivery</b></td><td><span class="badge auto">Automatic</span></td><td><span class="mono">earned_certification</span> is written and the Agentic AI badge renders on the record.</td></tr>
+        <tr><td><b>07 · Measurement</b></td><td><span class="badge auto">Automatic</span></td><td>Courses completed vs total published, final-project status, and issue date — the credential's paper trail.</td></tr>
+      </tbody></table></div>
+
+    <div class="callout navy"><div class="k">One source of truth</div><p>Completion is derived from the
+      assessments, never stored as a flag, and one trigger over all six courses is the single writer of the
+      credential. That is why the certificate and the record are always in sync.</p></div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- to refine -->
+  <section class="reveal">
+    <p class="eyebrow">To refine · open questions</p>
+    <h2>Decisions worth making</h2>
+    <p>The flows above describe what runs today. These are workflow-level questions still open.</p>
+    <div class="callout"><div class="k">A06 retake path</div><p>Missions A01–A05 have a clean pass / Retake
+      loop. A06 runs in a live instructor-led session and touches real GitHub and Vercel accounts, so a
+      below-pass is messier to retake cleanly. Worth deciding whether A06 uses the same locked fail → Retake
+      loop or a session-based recovery path.</p></div>
+    <div class="callout"><div class="k">Prerequisite ordering</div><p>Each mission's artifact feeds the next,
+      so the intended path is strictly sequential. Confirm whether the platform should hard-lock that order,
+      or let an experienced learner start mid-track and lose the carry-forward.</p></div>
+  </section>
+
+
+</div>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.forEach(function (e) { e.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+</body>
+</html>

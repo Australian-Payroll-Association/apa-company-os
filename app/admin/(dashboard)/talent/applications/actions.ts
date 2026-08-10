@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import type { AiScreenSummary } from "@/lib/resume-screen";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -43,7 +44,15 @@ export async function getApplicationStages(
   return { ok: true, stages };
 }
 
-export type ApplicationExtras = { coverLetter: string | null; answers: { q: string; a: string }[] };
+export type ApplicationExtras = {
+  coverLetter: string | null;
+  answers: { q: string; a: string }[];
+  aiRating: number | null;
+  aiStatus: string | null;
+  aiError: string | null;
+  aiScreenedAt: string | null;
+  aiSummary: AiScreenSummary | null;
+};
 
 // Cover letter + free-form answers are large per-application columns shown only
 // in the manage drawer, so they load lazily on open instead of shipping with the
@@ -54,7 +63,7 @@ export async function getApplicationExtras(
   await requireAdmin();
   const { data, error } = await companyOs
     .from("applications")
-    .select("cover_letter, answers")
+    .select("cover_letter, answers, ai_rating, ai_screen_status, ai_screen_error, ai_screened_at, ai_summary")
     .eq("id", applicationId)
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
@@ -63,6 +72,11 @@ export async function getApplicationExtras(
     extras: {
       coverLetter: (data?.cover_letter as string | null) ?? null,
       answers: Array.isArray(data?.answers) ? (data.answers as { q: string; a: string }[]) : [],
+      aiRating: (data?.ai_rating as number | null) ?? null,
+      aiStatus: (data?.ai_screen_status as string | null) ?? null,
+      aiError: (data?.ai_screen_error as string | null) ?? null,
+      aiScreenedAt: (data?.ai_screened_at as string | null) ?? null,
+      aiSummary: (data?.ai_summary as AiScreenSummary | null) ?? null,
     },
   };
 }

@@ -19,6 +19,9 @@ export function cleanCategory(v: string | null | undefined): GalleryCategory | n
   return v && CATEGORY_KEYS.has(v) ? (v as GalleryCategory) : null;
 }
 
+// A person tagged in a photo (see gallery_photo_people). name is a display name.
+export type TaggedPerson = { person_id: string; name: string; avatar_url: string | null };
+
 export type GalleryPhoto = {
   id: string;
   image_url: string;
@@ -26,18 +29,45 @@ export type GalleryPhoto = {
   taken_on: string | null;
   category: GalleryCategory | null;
   created_at: string;
+  people?: TaggedPerson[]; // who's tagged in it (attached by listGalleryPhotos)
 };
 export type Result = { ok: true } | { ok: false; error: string };
 
 const SELECT = "id, image_url, caption, taken_on, category, created_at";
 
-// Newest upload first.
+// Newest upload first, each photo carrying its people tags.
 export async function listGalleryPhotos(): Promise<GalleryPhoto[]> {
   const { data } = await companyOs
     .from("gallery_photos")
     .select(SELECT)
     .order("created_at", { ascending: false });
-  return (data ?? []) as GalleryPhoto[];
+  return attachTags((data ?? []) as GalleryPhoto[]);
+}
+
+// One extra query for all the tags on a page of photos, folded back onto each
+// row. The gallery is small and admin-curated, so a single IN beats a nested
+// PostgREST embed (which needs an FK hint here — two FKs point at people).
+async function attachTags(photos: GalleryPhoto[]): Promise<GalleryPhoto[]> {
+  if (photos.length === 0) return photos;
+  const { data } = await companyOs
+    .from("gallery_photo_people")
+    .select("photo_id, person_id, people:people!person_id(preferred_name, full_name, avatar_url)")
+    .in("photo_id", photos.map((p) => p.id));
+  type P = { preferred_name: string | null; full_name: string | null; avatar_url: string | null };
+  const byPhoto = new Map<string, TaggedPerson[]>();
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    const raw = row.people as P | P[] | null;
+    const p = Array.isArray(raw) ? raw[0] ?? null : raw;
+    const list = byPhoto.get(row.photo_id as string) ?? [];
+    list.push({
+      person_id: row.person_id as string,
+      name: p?.preferred_name || p?.full_name || "Unknown",
+      avatar_url: p?.avatar_url ?? null,
+    });
+    byPhoto.set(row.photo_id as string, list);
+  }
+  for (const list of byPhoto.values()) list.sort((a, b) => a.name.localeCompare(b.name));
+  return photos.map((p) => ({ ...p, people: byPhoto.get(p.id) ?? [] }));
 }
 
 // Fisher–Yates. The home page renders per-request (force-dynamic), so a plain
@@ -131,4 +161,59 @@ export async function deleteGalleryPhoto(id: string): Promise<Result> {
   if (error) return { ok: false, error: "Could not delete." };
   if (path) await supabase.storage.from("gallery").remove([path]);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Photo tagging
+// ---------------------------------------------------------------------------
+
+// Tag a person in a photo. Idempotent: re-tagging the same person is a no-op.
+// taggedBy is the tagger's people.id (null when unknown, e.g. an admin acting by
+// email). Callers must gate on requireAdmin()/requireTeamMember() first.
+export async function addPhotoTag(
+  photoId: string,
+  personId: string,
+  taggedBy: string | null,
+): Promise<Result> {
+  const { error } = await companyOs
+    .from("gallery_photo_people")
+    .upsert(
+      { photo_id: photoId, person_id: personId, tagged_by: taggedBy },
+      { onConflict: "photo_id,person_id", ignoreDuplicates: true },
+    );
+  return error ? { ok: false, error: "Could not add the tag." } : { ok: true };
+}
+
+export async function removePhotoTag(photoId: string, personId: string): Promise<Result> {
+  const { error } = await companyOs
+    .from("gallery_photo_people")
+    .delete()
+    .eq("photo_id", photoId)
+    .eq("person_id", personId);
+  return error ? { ok: false, error: "Could not remove the tag." } : { ok: true };
+}
+
+export type TaggablePerson = { person_id: string; name: string; avatar_url: string | null };
+
+// Current staff, for the "tag someone" picker: the same set the directory shows
+// (active, on leave, or on notice), one entry per person, name-sorted.
+export async function taggablePeople(): Promise<TaggablePerson[]> {
+  const { data } = await companyOs
+    .from("team_members")
+    .select("person_id, people:people!person_id(preferred_name, full_name, avatar_url)")
+    .in("status", ["active", "on_leave", "notice"]);
+  type P = { preferred_name: string | null; full_name: string | null; avatar_url: string | null };
+  const byPerson = new Map<string, TaggablePerson>();
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    const personId = row.person_id as string | null;
+    if (!personId || byPerson.has(personId)) continue;
+    const raw = row.people as P | P[] | null;
+    const p = Array.isArray(raw) ? raw[0] ?? null : raw;
+    byPerson.set(personId, {
+      person_id: personId,
+      name: p?.preferred_name || p?.full_name || "Unknown",
+      avatar_url: p?.avatar_url ?? null,
+    });
+  }
+  return [...byPerson.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

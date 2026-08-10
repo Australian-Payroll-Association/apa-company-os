@@ -42,18 +42,26 @@ export async function adminSetPersonAvatar(
 // the manual override.
 // Plain <form action>, so it returns void; failures log server-side and the
 // page re-renders with the stored value either way.
-export async function saveContractStartDate(teamMemberId: string, formData: FormData): Promise<void> {
+// Returned to the client form (useFormState) so the Save button can confirm
+// success or surface a real error instead of silently swallowing it.
+export type SaveResult = { ok: true } | { ok: false; error: string };
+
+export async function saveContractStartDate(
+  teamMemberId: string,
+  _prev: SaveResult | null,
+  formData: FormData,
+): Promise<SaveResult> {
   const admin = await requireAdmin();
   const raw = formData.get("contract_start_date");
   const value = typeof raw === "string" ? raw.trim() : "";
-  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return { ok: false, error: "Enter a valid date." };
   const { error } = await companyOs
     .from("team_members")
     .update({ contract_start_date: value || null })
     .eq("id", teamMemberId);
   if (error) {
     console.error("[talent] contract_start_date save failed:", error.message);
-    return;
+    return { ok: false, error: "Could not save. Please try again." };
   }
   await recordAudit({
     table: "team_members",
@@ -63,6 +71,7 @@ export async function saveContractStartDate(teamMemberId: string, formData: Form
     context: { field: "contract_start_date", value: value || null },
   });
   revalidatePath(`/admin/talent/team/${teamMemberId}`);
+  return { ok: true };
 }
 
 // Admin edits the restricted PII record. Gated by requireAdmin AND

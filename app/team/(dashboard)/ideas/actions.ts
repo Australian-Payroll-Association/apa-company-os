@@ -14,6 +14,30 @@ import { generateIdeaPlan } from "@/lib/ai/idea-plan";
 type SubmitResult = { ok: true; id: string } | { ok: false; error: string };
 
 const MAX_FIELD = 5000;
+const MAX_SOURCE_URLS = 10;
+const MAX_URL_LEN = 500;
+
+// Keep only well-formed http(s) links — a bad scheme here (e.g. javascript:)
+// would otherwise get rendered as a clickable href on the detail page.
+function cleanSourceUrls(urls: string[] | undefined): string[] | { error: string } {
+  const trimmed = (urls ?? []).map((u) => u.trim()).filter(Boolean);
+  if (trimmed.length > MAX_SOURCE_URLS) return { error: `Add at most ${MAX_SOURCE_URLS} source links.` };
+  const cleaned: string[] = [];
+  for (const u of trimmed) {
+    if (u.length > MAX_URL_LEN) return { error: "One of your source links is too long." };
+    let parsed: URL;
+    try {
+      parsed = new URL(u);
+    } catch {
+      return { error: `"${u}" doesn't look like a valid link.` };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { error: `"${u}" needs to be a regular http(s) link.` };
+    }
+    cleaned.push(parsed.toString());
+  }
+  return cleaned;
+}
 
 export async function submitIdea(input: {
   title: string;
@@ -50,6 +74,46 @@ export async function submitIdea(input: {
 
   // Best effort: the idea is already safe in the backlog. If generation fails,
   // the detail page explains and an admin can retry.
+  await generateIdeaPlan(data.id);
+
+  revalidatePath("/team/ideas");
+  return { ok: true, id: data.id };
+}
+
+// "What have I learned?" — the light half of Ideas that Spark Solutions.
+// Same ownership model as submitIdea; the Claude call is a quick editorial
+// polish for the team feed, not a product plan.
+export async function submitLearning(input: {
+  title: string;
+  story: string;
+  takeaway: string;
+  sourceUrls?: string[];
+}): Promise<SubmitResult> {
+  const actor = await requireTeamMember();
+
+  const title = input.title?.trim();
+  const story = input.story?.trim();
+  const takeaway = input.takeaway?.trim();
+
+  if (!title) return { ok: false, error: "Give your learning a short title." };
+  if (!story) return { ok: false, error: "Tell what happened — two honest sentences is enough." };
+  if (!takeaway) return { ok: false, error: "Name the takeaway — what should a teammate do differently?" };
+  for (const v of [title, story, takeaway]) {
+    if (v.length > MAX_FIELD) return { ok: false, error: "One of your answers is too long — keep each under 5,000 characters." };
+  }
+
+  const sourceUrls = cleanSourceUrls(input.sourceUrls);
+  if (!Array.isArray(sourceUrls)) return { ok: false, error: sourceUrls.error };
+
+  const { data, error } = await teamInsertOwn(actor, "ideas", {
+    kind: "learning",
+    title: title.slice(0, 200),
+    story,
+    takeaway,
+    source_urls: sourceUrls.length ? sourceUrls : null,
+  });
+  if (error || !data) return { ok: false, error: error ?? "Could not save your learning." };
+
   await generateIdeaPlan(data.id);
 
   revalidatePath("/team/ideas");

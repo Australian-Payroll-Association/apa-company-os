@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/admin/audit";
 import { getOrCreatePerson } from "@/lib/company-os";
 import { newTicketCode } from "@/lib/events-server";
 import { SEAT_HOLDING_STATUSES } from "@/lib/events";
+import { convertToUsdCents } from "@/lib/admin/fx";
 
 type Result = { ok: true; warning?: string } | { ok: false; error: string };
 
@@ -177,6 +178,114 @@ export async function promoteFromWaitlist(eventId: string, registrationId: strin
     actor: admin.email,
     newData: { status: "registered", waitlist_position: null },
     context: { via: "event_roster_promote" },
+  });
+  refresh(eventId);
+  return { ok: true };
+}
+
+// ─── Manual payment ──────────────────────────────────────────────────────────
+// Attendees added by hand have no Stripe order, so there's no amount on the
+// roster. This records a manual payment: it creates (or updates) a paid
+// company_os.orders row for the attendee and links it to their registration,
+// so the amount flows into the roster and the event revenue like any other.
+// Clearing the amount (0 or blank) removes the manual order again.
+
+export type RegistrationPaymentInput = { amountUsd: number | null; currency?: string };
+
+export async function setRegistrationPayment(
+  eventId: string,
+  registrationId: string,
+  input: RegistrationPaymentInput,
+): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: reg, error: rErr } = await companyOs
+    .from("event_registrations")
+    .select("id, person_id, product_id, order_id")
+    .eq("id", registrationId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (rErr) return { ok: false, error: rErr.message };
+  if (!reg) return { ok: false, error: "Registration not found." };
+  if (!reg.person_id) return { ok: false, error: "This attendee has no linked person to bill." };
+
+  // Clear: blank or zero removes any manual order and unlinks it.
+  if (input.amountUsd == null || input.amountUsd === 0) {
+    if (reg.order_id) {
+      await companyOs.from("event_registrations").update({ order_id: null }).eq("id", registrationId);
+      await companyOs.from("orders").delete().eq("id", reg.order_id).eq("payment_method", "manual");
+    }
+    await recordAudit({
+      table: "event_registrations",
+      recordId: registrationId,
+      operation: "update",
+      actor: admin.email,
+      newData: { payment: "cleared" },
+      context: { event_id: eventId, via: "roster_payment" },
+    });
+    refresh(eventId);
+    return { ok: true };
+  }
+
+  if (!Number.isFinite(input.amountUsd) || input.amountUsd < 0) {
+    return { ok: false, error: "Enter a valid amount (0 or more)." };
+  }
+  const currency = (input.currency ?? "usd").toLowerCase();
+  const amountCents = Math.round(input.amountUsd * 100);
+  let amountUsdCents = amountCents;
+  if (currency !== "usd") {
+    try {
+      amountUsdCents = (await convertToUsdCents(amountCents, currency)).amountUsdCents;
+    } catch {
+      amountUsdCents = amountCents;
+    }
+  }
+
+  if (reg.order_id) {
+    const { error } = await companyOs
+      .from("orders")
+      .update({
+        amount_cents: amountCents,
+        currency,
+        amount_usd_cents: amountUsdCents,
+        status: "paid",
+        payment_method: "manual",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reg.order_id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { data: order, error } = await companyOs
+      .from("orders")
+      .insert({
+        person_id: reg.person_id,
+        product_id: reg.product_id ?? null,
+        payment_method: "manual",
+        amount_cents: amountCents,
+        tax_cents: 0,
+        currency,
+        amount_usd_cents: amountUsdCents,
+        status: "paid",
+        refunded_cents: 0,
+        metadata: { via: "roster_manual_payment", event_id: eventId },
+      })
+      .select("id")
+      .single();
+    if (error) return { ok: false, error: error.message };
+    const { error: uErr } = await companyOs
+      .from("event_registrations")
+      .update({ order_id: order.id })
+      .eq("id", registrationId);
+    if (uErr) return { ok: false, error: uErr.message };
+  }
+
+  await recordAudit({
+    table: "event_registrations",
+    recordId: registrationId,
+    operation: "update",
+    actor: admin.email,
+    newData: { payment_amount_cents: amountCents, currency },
+    context: { event_id: eventId, via: "roster_payment" },
   });
   refresh(eventId);
   return { ok: true };

@@ -55,7 +55,7 @@ export type BoardCard = {
   decisionAt: string | null;
   promotedAt: string | null;
   day180SentAt: string | null;
-  tasks: { id: string; title: string; done: boolean }[];
+  tasks: { id: string; title: string; done: boolean; group: string }[];
 };
 
 const STAGE_ACCENTS: Record<string, string> = {
@@ -202,6 +202,18 @@ export function OnboardingCycleBoard({
       const res = await actions.setStartDate!(card.id, date);
       if (!res.ok) setError(res.error);
     });
+  }
+
+  // Tasks arrive ordered by category then position, so grouping is a walk that
+  // preserves that order — no sorting, which would scramble Week 10 before 2.
+  function taskGroups(tasks: BoardCard["tasks"]): [string, BoardCard["tasks"]][] {
+    const out: [string, BoardCard["tasks"]][] = [];
+    for (const t of tasks) {
+      const last = out[out.length - 1];
+      if (last && last[0] === t.group) last[1].push(t);
+      else out.push([t.group, [t]]);
+    }
+    return out;
   }
 
   function toggleTask(taskId: string, done: boolean) {
@@ -499,29 +511,52 @@ export function OnboardingCycleBoard({
             </section>
 
             <section>
-              <h3 style={{ fontSize: 13, marginBottom: 8 }}>Day 1 orientation</h3>
+              <h3 style={{ fontSize: 13, marginBottom: 8 }}>
+                Checklist
+                {selected.tasks.length > 0 && (
+                  <span className="admin-cell-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
+                    {selected.tasks.filter((t) => t.done).length} of {selected.tasks.length} done
+                  </span>
+                )}
+              </h3>
               {selected.tasks.length === 0 ? (
                 <p style={{ fontSize: 13 }} className="admin-cell-muted">
                   The three orientation sessions appear here once the journey starts.
                 </p>
               ) : (
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
-                  {selected.tasks.map((t) => (
-                    <li key={t.id} style={{ fontSize: 13 }}>
-                      <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={t.done}
-                          disabled={pending}
-                          onChange={(e) => toggleTask(t.id, e.target.checked)}
-                        />
-                        <span style={t.done ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>
-                          {t.title} · 1 hour
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+                <div style={{ display: "grid", gap: 16 }}>
+                  {taskGroups(selected.tasks).map(([group, items]) => {
+                    const done = items.filter((t) => t.done).length;
+                    return (
+                      <div key={group}>
+                        <div
+                          className="admin-cell-muted"
+                          style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}
+                        >
+                          {group} · {done}/{items.length}
+                        </div>
+                        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
+                          {items.map((t) => (
+                            <li key={t.id} style={{ fontSize: 13 }}>
+                              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={t.done}
+                                  disabled={pending}
+                                  onChange={(e) => toggleTask(t.id, e.target.checked)}
+                                  style={{ marginTop: 3 }}
+                                />
+                                <span style={t.done ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>
+                                  {t.title}
+                                </span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </section>
 

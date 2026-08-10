@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVP technical architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#04102D;--blue:#287BE8;--lightgray:#EAEEF2;--magenta:#D1458B;--mint:#0E9B6C;--muted:#6B7280;--border:#D4D9E0;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:#2A3044;font-family:'Inter',-apple-system,sans-serif;}
+.wrap{max-width:1660px;margin:0 auto;padding:36px 24px 60px;}
+h1{font-size:30px;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 4px;}
+.lede{font-size:14.5px;color:var(--muted);margin:0 0 16px;}
+.lede code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em;background:var(--lightgray);padding:2px 6px;border-radius:4px;color:var(--navy);}
+.key{display:flex;flex-wrap:wrap;gap:20px;font-size:12.5px;margin:0 0 18px;}
+.key i{display:inline-block;width:22px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:7px;font-style:normal;}
+svg{display:block;width:100%;height:auto;}
+svg text{font-family:'Inter',-apple-system,sans-serif;}
+footer{margin-top:20px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px;}
+@page{size:420mm 320mm;margin:10mm;}
+@media print{.wrap{padding:0;max-width:none;}svg{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body><div class="wrap">
+<h1>MVP technical architecture: Prove the service</h1>
+<div class="lede">How stage 1 is built. Everything here is proposed until the first step lands, and none of it is exotic. Companion to <code>MVP-Implementation-Plan.md</code>, 2 August 2026.</div>
+<div class="key">
+<span><i style="background:#fff;border:2px solid #04102D"></i>Tier of the running system</span>
+<span><i style="background:#EAF2FD;border:1.5px solid #287BE8"></i>Surface or component</span>
+<span><i style="background:#E7F6EF;border:1.5px solid #0E9B6C"></i>Engine, specified by its L2 page</span>
+<span><i style="background:#FBE7F1;border:2px solid #D1458B"></i>The wall, enforced by a schema grant</span>
+<span><i style="background:#fff;border:2px dashed #6B7280"></i>Populated in stage 2</span>
+</div>
+
+<svg viewBox="0 0 1620 950" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#2A3044"/></marker>
+</defs>
+
+<!-- ══════ TIER 1: SURFACES ══════ -->
+<rect x="64" y="24" width="1040" height="96" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="80" y="46" font-size="13" font-weight="700" fill="#04102D">One Next.js application, four route groups, strict TypeScript</text>
+<rect x="80" y="60" width="240" height="44" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="200" y="80" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Admin workspace</text>
+<text x="200" y="96" font-size="10.5" fill="#6B7280" text-anchor="middle">signed in · Admin role</text>
+<rect x="336" y="60" width="240" height="44" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="456" y="80" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Clinical workspace</text>
+<text x="456" y="96" font-size="10.5" fill="#6B7280" text-anchor="middle">signed in · Clinician, Practitioner</text>
+<rect x="592" y="60" width="240" height="44" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="712" y="80" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Patient</text>
+<text x="712" y="96" font-size="10.5" fill="#6B7280" text-anchor="middle">applicant by link · employee by account</text>
+<rect x="848" y="60" width="240" height="44" rx="7" fill="#FBE7F1" stroke="#D1458B" stroke-width="1.5"/>
+<text x="968" y="80" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Employer portal</text>
+<text x="968" y="96" font-size="10.5" fill="#6B7280" text-anchor="middle">signed in · reads the wall only</text>
+
+<line x1="584" y1="120" x2="584" y2="152" stroke="#2A3044" stroke-width="2" marker-end="url(#arr)"/>
+
+<!-- ══════ TIER 2: EDGE ══════ -->
+<rect x="64" y="152" width="1040" height="76" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="80" y="176" font-size="13" font-weight="700" fill="#04102D">Edge · one route guard</text>
+<text x="80" y="198" font-size="11.5" fill="#6B7280">The route guard protects every group and sends an unauthenticated request to sign-in. An applicant’s links carry a scoped token; an employee Patient signs in.</text>
+<text x="80" y="216" font-size="11.5" fill="#6B7280">Organization context is derived from the record and the URL, never from session state. A wrong-organization request fails closed with a plain sentence, before any work.</text>
+
+<line x1="584" y1="228" x2="584" y2="260" stroke="#2A3044" stroke-width="2" marker-end="url(#arr)"/>
+
+<!-- ══════ TIER 3: SERVER ══════ -->
+<rect x="64" y="260" width="1040" height="200" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="80" y="284" font-size="13" font-weight="700" fill="#04102D">Application server · server actions and route handlers</text>
+
+<rect x="80" y="296" width="480" height="150" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="98" y="320" font-size="12.5" font-weight="700" fill="#04102D">One authorization guard</text>
+<text x="98" y="342" font-size="11" fill="#6B7280">Every server action calls the same guard. It answers from</text>
+<text x="98" y="359" font-size="11" fill="#6B7280">the capability matrix for data scope, and from the service</text>
+<text x="98" y="376" font-size="11" fill="#6B7280">grants for function scope.</text>
+<text x="98" y="400" font-size="11" fill="#6B7280">No role name appears anywhere in application code, and</text>
+<text x="98" y="417" font-size="11" fill="#6B7280">the same two tables back the row-level security policies,</text>
+<text x="98" y="434" font-size="11" fill="#6B7280">so both layers derive from one source.</text>
+
+<rect x="576" y="296" width="512" height="150" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="594" y="320" font-size="12.5" font-weight="700" fill="#04102D">Six engines, each specified by its L2 page</text>
+<rect x="594" y="330" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="711" y="349" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">requirement resolution · 01-RD</text>
+<rect x="840" y="330" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="957" y="349" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">credential cycle · 02-CR</text>
+<rect x="594" y="364" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="711" y="383" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">measurement roll-up · 03-MS</text>
+<rect x="840" y="364" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="957" y="383" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">slot search · 04-SL</text>
+<rect x="594" y="398" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="711" y="417" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">consent set · 05a-CN</text>
+<rect x="840" y="398" width="234" height="28" rx="6" fill="#E7F6EF" stroke="#0E9B6C" stroke-width="1.3"/>
+<text x="957" y="417" font-size="10.5" font-weight="600" fill="#0E9B6C" text-anchor="middle">debrief allocation · 09-DB</text>
+<text x="594" y="440" font-size="11" fill="#6B7280">Each is a pure function over typed inputs, built and tested before its screens exist.</text>
+
+<line x1="584" y1="460" x2="584" y2="492" stroke="#2A3044" stroke-width="2" marker-end="url(#arr)"/>
+
+<!-- ══════ TIER 4: POSTGRES ══════ -->
+<rect x="64" y="492" width="1040" height="290" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="80" y="516" font-size="13" font-weight="700" fill="#04102D">Supabase Postgres · eighty-eight tables created in the first migration set, row-level security on every one, deny by default</text>
+
+<rect x="80" y="530" width="324" height="112" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="98" y="554" font-size="14" font-weight="700" fill="#04102D">core</text>
+<text x="386" y="554" font-size="10.5" fill="#6B7280" text-anchor="end">31 tables</text>
+<text x="98" y="576" font-size="10.5" fill="#6B7280">hierarchy · people · accounts and grants</text>
+<text x="98" y="593" font-size="10.5" fill="#6B7280">service orders · calendars · appointments</text>
+<text x="98" y="610" font-size="10.5" fill="#6B7280">the due-date ledger, written from the first day</text>
+<text x="98" y="627" font-size="10.5" fill="#6B7280">and read only when the clock turns on</text>
+
+<rect x="420" y="530" width="324" height="112" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="438" y="554" font-size="14" font-weight="700" fill="#04102D">clinical</text>
+<text x="726" y="554" font-size="10.5" fill="#6B7280" text-anchor="end">38 tables</text>
+<text x="438" y="576" font-size="10.5" fill="#6B7280">consents · encounters · measurements</text>
+<text x="438" y="593" font-size="10.5" fill="#6B7280">role requirements documents, versioned</text>
+<text x="438" y="610" font-size="10.5" fill="#6B7280">determinations · restrictions · reviews</text>
+<text x="438" y="627" font-size="10.5" fill="#6B7280">cases and risk wait here for stages 2 and 3</text>
+
+<rect x="760" y="530" width="324" height="112" rx="7" fill="#FBE7F1" stroke="#D1458B" stroke-width="2"/>
+<text x="778" y="554" font-size="14" font-weight="700" fill="#04102D">wall</text>
+<text x="1066" y="554" font-size="10.5" fill="#6B7280" text-anchor="end">4 tables</text>
+<text x="778" y="576" font-size="10.5" fill="#2A3044">release documents · audience classes</text>
+<text x="778" y="593" font-size="10.5" fill="#2A3044">the release log · group scores</text>
+<text x="778" y="615" font-size="10.5" font-weight="600" fill="#D1458B">The Employer's database role has usage on</text>
+<text x="778" y="631" font-size="10.5" font-weight="600" fill="#D1458B">this schema and on nothing else.</text>
+
+<rect x="80" y="656" width="324" height="112" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="98" y="680" font-size="14" font-weight="700" fill="#04102D">billing</text>
+<text x="386" y="680" font-size="10.5" fill="#6B7280" text-anchor="end">5 tables</text>
+<text x="98" y="702" font-size="10.5" fill="#6B7280">the debrief and its four minute categories</text>
+<text x="98" y="719" font-size="10.5" fill="#6B7280">delivery records against contracted services</text>
+<text x="98" y="736" font-size="10.5" fill="#6B7280">invoices and lines, tracing to locked minutes</text>
+<text x="98" y="753" font-size="10.5" fill="#6B7280">there is no billable event, because there is none</text>
+
+<rect x="420" y="656" width="324" height="112" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="438" y="680" font-size="14" font-weight="700" fill="#04102D">audit</text>
+<text x="726" y="680" font-size="10.5" fill="#6B7280" text-anchor="end">5 tables</text>
+<text x="438" y="702" font-size="10.5" fill="#6B7280">append-only entries: person, role, time, org</text>
+<text x="438" y="719" font-size="10.5" fill="#6B7280">notices with delivery confirmation</text>
+<text x="438" y="736" font-size="10.5" fill="#6B7280">retention clocks and disposal events</text>
+<text x="438" y="753" font-size="10.5" fill="#6B7280">the migration reconciliation evidence</text>
+
+<rect x="760" y="656" width="324" height="112" rx="7" fill="#fff" stroke="#6B7280" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="778" y="680" font-size="14" font-weight="700" fill="#6B7280">legacy</text>
+<text x="1066" y="680" font-size="10.5" fill="#6B7280" text-anchor="end">stage 2</text>
+<text x="778" y="702" font-size="10.5" fill="#6B7280">the archive: source tables that no process</text>
+<text x="778" y="719" font-size="10.5" fill="#6B7280">in this plan reads, held as faithful extracts</text>
+<text x="778" y="736" font-size="10.5" fill="#6B7280">read-only, platform administrator only,</text>
+<text x="778" y="753" font-size="10.5" fill="#6B7280">reachable through the lineage columns</text>
+
+<line x1="584" y1="782" x2="584" y2="814" stroke="#2A3044" stroke-width="2" marker-end="url(#arr)"/>
+
+<!-- ══════ TIER 5: PLATFORM SERVICES ══════ -->
+<rect x="64" y="814" width="1040" height="110" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="80" y="838" font-size="13" font-weight="700" fill="#04102D">Platform services</text>
+<rect x="80" y="850" width="240" height="60" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="200" y="870" font-size="12" font-weight="700" fill="#04102D" text-anchor="middle">Auth</text>
+<text x="200" y="887" font-size="10" fill="#6B7280" text-anchor="middle">the pool for the four staff roles</text>
+<text x="200" y="901" font-size="10" fill="#6B7280" text-anchor="middle">and employee Patients, never an applicant</text>
+<rect x="336" y="850" width="240" height="60" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="456" y="870" font-size="12" font-weight="700" fill="#04102D" text-anchor="middle">Storage</text>
+<text x="456" y="887" font-size="10" fill="#6B7280" text-anchor="middle">clinical evidence in its own</text>
+<text x="456" y="901" font-size="10" fill="#6B7280" text-anchor="middle">buckets, releases in a wall bucket</text>
+<rect x="592" y="850" width="240" height="60" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="712" y="870" font-size="12" font-weight="700" fill="#04102D" text-anchor="middle">Scheduled functions</text>
+<text x="712" y="887" font-size="10" fill="#6B7280" text-anchor="middle">issue the paperwork · retry a</text>
+<text x="712" y="901" font-size="10" fill="#6B7280" text-anchor="middle">notice · the weekly no-show report</text>
+<rect x="848" y="850" width="240" height="60" rx="7" fill="#EAF2FD" stroke="#287BE8" stroke-width="1.5"/>
+<text x="968" y="870" font-size="12" font-weight="700" fill="#04102D" text-anchor="middle">Email and SMS</text>
+<text x="968" y="887" font-size="10" fill="#6B7280" text-anchor="middle">every send writes a delivery</text>
+<text x="968" y="901" font-size="10" fill="#6B7280" text-anchor="middle">confirmation and a fallback</text>
+
+<!-- ══════ RIGHT: MIGRATION PIPELINE ══════ -->
+<rect x="1160" y="24" width="440" height="540" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="1180" y="50" font-size="13" font-weight="700" fill="#04102D">Migration rehearsal pipeline</text>
+<text x="1180" y="70" font-size="11" fill="#6B7280">Outside the application by design, and proven on a named slice</text>
+<text x="1180" y="86" font-size="11" fill="#6B7280">before stage 2 depends on it.</text>
+
+<rect x="1180" y="98" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="118" font-size="12" font-weight="700" fill="#04102D">1 · Extract</text>
+<text x="1196" y="136" font-size="10.5" fill="#6B7280">only the named slice, and only from the snapshot</text>
+<line x1="1380" y1="148" x2="1380" y2="162" stroke="#2A3044" stroke-width="1.8" marker-end="url(#arr)"/>
+
+<rect x="1180" y="162" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="182" font-size="12" font-weight="700" fill="#04102D">2 · Obfuscate at the source</text>
+<text x="1196" y="200" font-size="10.5" fill="#6B7280">format-preserving · the map stays with the custodian</text>
+<line x1="1380" y1="212" x2="1380" y2="226" stroke="#2A3044" stroke-width="1.8" marker-end="url(#arr)"/>
+
+<rect x="1180" y="226" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="246" font-size="12" font-weight="700" fill="#04102D">3 · Map and load</text>
+<text x="1196" y="264" font-size="10.5" fill="#6B7280">the same code stage 2 runs · lineage on every row</text>
+<line x1="1380" y1="276" x2="1380" y2="290" stroke="#2A3044" stroke-width="1.8" marker-end="url(#arr)"/>
+
+<rect x="1180" y="290" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="310" font-size="12" font-weight="700" fill="#04102D">4 · Unobfuscate on the target</text>
+<text x="1196" y="328" font-size="10.5" fill="#6B7280">run by the custodian, and lossless or it fails</text>
+<line x1="1380" y1="340" x2="1380" y2="354" stroke="#2A3044" stroke-width="1.8" marker-end="url(#arr)"/>
+
+<rect x="1180" y="354" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="374" font-size="12" font-weight="700" fill="#04102D">5 · Verify field for field</text>
+<text x="1196" y="392" font-size="10.5" fill="#6B7280">the comparison is stored as the evidence</text>
+<line x1="1380" y1="404" x2="1380" y2="418" stroke="#2A3044" stroke-width="1.8" marker-end="url(#arr)"/>
+
+<rect x="1180" y="418" width="400" height="50" rx="7" fill="#F7F9FC" stroke="#D4D9E0" stroke-width="1.5"/>
+<text x="1196" y="438" font-size="12" font-weight="700" fill="#04102D">6 · Runbook</text>
+<text x="1196" y="456" font-size="10.5" fill="#6B7280">a second operator reproduces the run, or it is not proven</text>
+
+<rect x="1180" y="486" width="400" height="62" rx="7" fill="#FBE7F1" stroke="#D1458B" stroke-width="1.5"/>
+<text x="1196" y="508" font-size="11" font-weight="600" fill="#D1458B">No identified health record enters the transform</text>
+<text x="1196" y="524" font-size="11" font-weight="600" fill="#D1458B">environment, and none enters any AI tooling context.</text>
+<text x="1196" y="540" font-size="11" fill="#2A3044">That is the property the privacy owner will ask about.</text>
+
+<!-- ══════ RIGHT: DELIVERY AND VERIFICATION ══════ -->
+<rect x="1160" y="596" width="440" height="328" rx="9" fill="#fff" stroke="#04102D" stroke-width="2"/>
+<text x="1180" y="622" font-size="13" font-weight="700" fill="#04102D">Delivery and verification</text>
+
+<text x="1180" y="650" font-size="11.5" font-weight="600" fill="#04102D">Three environments</text>
+<text x="1180" y="668" font-size="11" fill="#6B7280">Development, staging with fixture clients, and a pilot</text>
+<text x="1180" y="684" font-size="11" fill="#6B7280">production holding one client and no other.</text>
+
+<text x="1180" y="712" font-size="11.5" font-weight="600" fill="#04102D">Schema changes</text>
+<text x="1180" y="730" font-size="11" fill="#6B7280">Versioned migration files applied through the pipeline, in</text>
+<text x="1180" y="746" font-size="11" fill="#6B7280">order. Never applied by hand against production.</text>
+
+<text x="1180" y="774" font-size="11.5" font-weight="600" fill="#04102D">Deployment</text>
+<text x="1180" y="792" font-size="11" fill="#6B7280">A push through the pipeline, reviewed. There are no</text>
+<text x="1180" y="808" font-size="11" fill="#6B7280">command-line deploys, and point-in-time recovery is on</text>
+<text x="1180" y="824" font-size="11" fill="#6B7280">from the first day, with a restore tested before the pilot.</text>
+
+<text x="1180" y="852" font-size="11.5" font-weight="600" fill="#04102D">The harness, built in step 0</text>
+<text x="1180" y="870" font-size="11" fill="#6B7280">Role-stamped passes through real sign-ins with no bypass.</text>
+<text x="1180" y="886" font-size="11" fill="#6B7280">The safety gate on every table a step touches. The wall</text>
+<text x="1180" y="902" font-size="11" fill="#6B7280">gate on every Employer response, asserted from the schema.</text>
+</svg>
+
+<footer>Edge8 · Work Healthy Australia · 3 August 2026 · Authorization is answerable by a query, and the wall is a schema grant. Both are claims a verifier can test without reading the code. A Patient reaches their own record two ways: an applicant through a scoped, expiring link with no session, an employee by signing in. Every other policy in the product is scoped to a Client organization; a Patient’s is scoped to their own person record, because an employee must not see the colleague sitting next to them. An employee’s account is provisioned from their first Service Order, not from an onboarding step, because there is no worker roster.</footer>
+</div></body></html>

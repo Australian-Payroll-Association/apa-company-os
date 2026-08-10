@@ -50,9 +50,11 @@ type DealRow = {
   person_id: string | null;
   updated_at: string | null;
   referrer_id: string | null;
+  referrer_company_id: string | null;
   people: Embedded<{ full_name: string | null; email: string }>;
   companies: Embedded<{ name: string | null }>;
   referrer: Embedded<{ full_name: string | null; email: string }>;
+  referrer_company: Embedded<{ name: string | null }>;
 };
 type LeadRow = {
   id: string;
@@ -92,7 +94,7 @@ export default async function SalesCockpitPage() {
   let dealsQuery = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, referrer_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, referrer_id, referrer_company_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email), referrer_company:companies!referrer_company_id(name)",
     )
     .eq("status", "open")
     .is("archived_at", null)
@@ -190,6 +192,8 @@ export default async function SalesCockpitPage() {
       companyName: co?.name ?? null,
       referrerId: d.referrer_id,
       referrerName: rf?.full_name ?? rf?.email ?? null,
+      referrerCompanyId: d.referrer_company_id,
+      referrerCompanyName: one(d.referrer_company)?.name ?? null,
       amountCents: d.amount_cents,
       amountUsdCents: d.amount_usd_cents,
       currency: d.currency,

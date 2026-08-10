@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 01 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 01 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 01: Setup Workplace</h2><div class="meta"><div class="r"><div class="k">Trigger</div><div>An agreement is signed.</div></div><div class="r"><div class="k">Output</div><div>A new client is setup with their known hierarchy: Client organization &gt; Site &gt; Department &gt; Role. A Department is optional. A Site may have none.</div></div><div class="r"><div class="k">Output</div><div>The working days for the year on the Site and on each Department, and the working hours within those dates.</div></div><div class="r"><div class="k">Output</div><div>The contracted services and the term they run for.</div></div><div class="r"><div class="k">Output</div><div>The named client contacts, each with what they receive.</div></div><div class="r"><div class="k">Output</div><div>Requirement defaults on the Site and the Role, which every later Service Order resolves against without a case-by-case decision.</div></div><div class="r"><div class="k">Rule</div><div>A Client organization may sit under any number of parents, to any depth, because national and global umbrellas stack. Only the Australian Sites are in scope, and everything the processes need hangs off them.</div></div><div class="r"><div class="k">Rule</div><div>The contracted services say what a client is entitled to. They carry no rates, because billing is time entry and not a charge per service.</div></div><div class="r"><div class="k">Rule</div><div>Headcount sits on the Department and the Role, and so does whether workers rotate through tasks. Where they rotate, the demands that apply to a person are the union across the rotation, which is what Process 03 measures and Process 08 computes from.</div></div><div class="r"><div class="k">Rule</div><div>Nothing is deleted. A Site that closes, a Department that merges or a Role that retires is end-dated, so every historical record stays resolvable and drops out of the pickers.</div></div><div class="r"><div class="k">Roles</div><div>Admin</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 2940 250" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="2700" height="210" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="210" fill="#532C6D"/>
+<line x1="0" y1="0" x2="2910" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="80" font-size="27" font-weight="700" fill="#FFFFFF">Admin</text>
+<text x="20" y="104" font-size="18" fill="#DDD4E4">Setup, accounts,</text>
+<text x="20" y="126" font-size="18" fill="#DDD4E4">authorization. No clinical</text>
+<text x="20" y="148" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="210" x2="2910" y2="210" stroke="#CFCFCF" stroke-width="1"/>
+<path d="M 492 105 L 545 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 105 L 845 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 105 L 1110 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1410 105 L 1445 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1427" y="90" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1260 170 L 1260 216 L 960 216 L 960 158" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/><text x="1110" y="208" font-size="19" font-weight="600" fill="#5A5A5B" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1675 105 L 1745 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1975 105 L 2045 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2275 105 L 2345 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2575 105 L 2628 105" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<g><rect x="228" y="74" width="264" height="62" rx="31" fill="#532C6D"/><text x="360" y="112" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Agreement signed</text></g>
+<g><rect x="545" y="39" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="73" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Create the Client</text><text x="660" y="99" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">organization and its</text><text x="660" y="125" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Australian Sites.</text><text x="660" y="151" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Parents to any depth.</text></g>
+<g><rect x="845" y="52" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="86" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Create Departments</text><text x="960" y="112" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">where a Site has them,</text><text x="960" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">then the Roles</text></g>
+<g><path d="M 1260 40 L 1410 105 L 1260 170 L 1110 105 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="101" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Hierarchy complete</text><text x="1260" y="123" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">to Role level?</text></g>
+<g><rect x="1445" y="65" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="99" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Record the contracted</text><text x="1560" y="125" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">services and the term</text></g>
+<g><rect x="1745" y="52" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="86" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Name the client</text><text x="1860" y="112" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">contacts and what</text><text x="1860" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">each one receives</text></g>
+<g><rect x="2045" y="26" width="230" height="158" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="60" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Set the working days</text><text x="2160" y="86" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">for the year on the</text><text x="2160" y="112" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Site and each</text><text x="2160" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Department, and the</text><text x="2160" y="164" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">hours within them</text></g>
+<g><rect x="2345" y="52" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="86" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Set the requirement</text><text x="2460" y="112" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">defaults on each</text><text x="2460" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Site and Role</text><rect x="2536" y="145" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 2543 158 H 2555 M 2549 152 V 164" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="2628" y="65" width="264" height="80" rx="40" fill="#532C6D"/><text x="2760" y="99" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Client setup</text><text x="2760" y="125" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">complete</text></g>
+</svg></div></div>
+</div></body></html>

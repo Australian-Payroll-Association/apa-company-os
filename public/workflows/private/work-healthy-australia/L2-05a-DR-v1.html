@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L2 05a-DR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+
+.par{font-size:14px;color:#5A5A5B;margin:0 0 10px;}
+</style></head><body><div class="wrap">
+<h1>L2 05a-DR</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>L2 05a-DR: Admit at the door</h2><p class="par">Sits under Process 05a, the door: locate the Order, confirm identity, hold the record</p><div class="meta"><div class="r"><div class="k">Question it answers</div><div>How the door gets from a person standing in front of it to a record it may write into, when the Order may be missing or wrong, the identification may be absent or stale, and the person may already exist in the system once, several times, or not at all.</div></div><div class="r"><div class="k">Answer</div><div>Four checks in a fixed order, and only one of them ends the visit. Every defect in the Order has the same repair, the Employer, and most are fixed while the person waits. Identity is sighted, never asserted. The record is found within this Client or created, never joined across Clients. Only a wrong person stops the service outright.</div></div><div class="r"><div class="k">Rule</div><div>Every decision at the door is the Clinician's, which is why every diamond sits in the Clinician's lane. The Patient attends, presents and answers, and decides nothing here. The Employer repairs the one record that is theirs, the Order.</div></div><div class="r"><div class="k">Rule</div><div>The lookup has two speeds. The check-in code pulls up the Order and everything tied to it with certainty and no search. Without the code, the door searches by work email or employee number within this Client, which can mis-hit, and that risk is why the code exists.</div></div><div class="r"><div class="k">Rule</div><div>Everything wrong with the Order has one repair. No Order in the system: the named Employer contact raises one from wherever they are, the Order issues its code, the contact texts it, and the person re-enters minutes later. Wrong Site or Department: amended the same way. A name gone stale after a marriage or a change of name: amended the same way, because the name on the Order is the Employer's data, not the door's. Work Healthy Australia never edits an Order, and an Order the Employer never raises means nobody is served and nothing is recorded anywhere.</div></div><div class="r"><div class="k">Rule</div><div>No identification is not a stop, it is a re-book. The Order stays open and Process 04's no-show machinery books the return visit. Nothing about the attempt touches a Patient record, because no identity was confirmed against one.</div></div><div class="r"><div class="k">Rule</div><div>A wrong person is the only hard stop. The service ends, nothing is opened, read or amended, and the Employer hears service not completed with no reason attached. Every other failure at the door is repairable while the person waits.</div></div><div class="r"><div class="k">Rule</div><div>The duplicate search runs within this Client organization only, on the name and date of birth as they appear on the identification in hand, so the identity check and the duplicate check are one act on one document. One exact match, confirmed with the person, reuses the record. Nothing found creates one. Anything in between, a near name, the same birth date under a different spelling, is the Clinician's ruling in the room, never a merge the system performs on its own.</div></div><div class="r"><div class="k">Rule</div><div>No search ever crosses Client organizations. Nothing could be reused from a cross-Client match anyway, since history and consent are captured fresh per Client, and the search itself would be a use of another Client's records. The same person under three Clients is three records, and none of the three knows the others exist.</div></div><div class="r"><div class="k">Open</div><div>Whether the door re-sights identification on every visit or only the first under a Client. Sighting every visit is the strict reading of Gate 1. A lighter repeat-visit check, the code plus date of birth, is what most clinics practise. Not ruled.</div></div><div class="r"><div class="k">In IMS</div><div>The gate does not exist. The fit-gap records no identity gate object and no analogue for the correct-Patient check or the stop-without-trace. `PESCandidateOnboardCode` is the ancestor of the check-in code, a one-time code issued before attendance, tied to onboarding rather than to admission. Nothing performs a duplicate search at the door, so the gate, the search and the repair loop are all built new.</div></div><div class="r"><div class="k">Roles</div><div>Patients, Clinicians, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 3840 1260" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="3600" height="200" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="0" x2="3810" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="86" font-size="27" font-weight="700" fill="#FFFFFF">Patient</text>
+<text x="20" y="110" font-size="18" fill="#DDD4E4">Own record only. Consent</text>
+<text x="20" y="132" font-size="18" fill="#DDD4E4">gates collection.</text>
+<rect x="210" y="200" width="3600" height="640" fill="#FAF8FB"/>
+<rect x="0" y="200" width="210" height="640" fill="#532C6D"/>
+<line x1="0" y1="200" x2="3810" y2="200" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="506" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="530" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="552" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="840" width="3600" height="380" fill="#FFFFFF"/>
+<rect x="0" y="840" width="210" height="380" fill="#532C6D"/>
+<line x1="0" y1="840" x2="3810" y2="840" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="1016" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="1040" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="1062" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="1220" x2="3810" y2="1220" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="840" x2="3810" y2="840" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="823" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="847" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 100 L 660 100 L 660 454" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 520 L 810 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1110 520 L 1110 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1110" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 960 585 L 960 964" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="976" y="774" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 845 1030 L 660 1030 L 660 586" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/><text x="782" y="940" font-size="19" font-weight="600" fill="#5A5A5B" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Raised or amended</text>
+<path d="M 1410 520 L 1445 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1427" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1260 585 L 1260 707" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1276" y="646" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1675 520 L 1710 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2010 520 L 2045 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2027" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1860 585 L 1860 760 L 2010 760" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1924" y="765" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2160 825 L 2160 964" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2176" y="894" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes, the Employer's data</text>
+<path d="M 2310 760 L 2335 760" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2352" y="682" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No, not the person</text>
+<path d="M 2275 520 L 2345 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2575 520 L 2610 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2910 520 L 2945 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2927" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 2760 585 L 2760 760 L 2945 760" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2824" y="765" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No, nothing confirmed</text>
+<path d="M 3175 520 L 3228 520" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 3175 760 L 3360 760 L 3360 560" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2460 800 L 2460 1030 L 3535 1030" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2524" y="1035" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Service not completed only</text>
+<g><rect x="228" y="47" width="264" height="106" rx="53" fill="#532C6D"/><text x="360" y="81" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">A person at the door,</text><text x="360" y="107" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">with the code, the ID,</text><text x="360" y="133" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">or nothing</text></g>
+<g><rect x="545" y="454" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="488" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Pull up the Order:</text><text x="660" y="514" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">code, work email, or</text><text x="660" y="540" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">employee number,</text><text x="660" y="566" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">within this Client</text></g>
+<g><path d="M 960 455 L 1110 520 L 960 585 L 810 520 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="516" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Order located, and</text><text x="960" y="538" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">for this Site?</text></g>
+<g><rect x="845" y="964" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="998" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">The Employer contact</text><text x="960" y="1024" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">raises or amends the</text><text x="960" y="1050" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Order, and texts</text><text x="960" y="1076" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the code</text></g>
+<g><path d="M 1260 455 L 1410 520 L 1260 585 L 1110 520 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="516" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Government ID</text><text x="1260" y="538" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">in hand?</text></g>
+<g><rect x="1125" y="707" width="270" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><line x1="1139" y1="707" x2="1139" y2="813" stroke="#532C6D" stroke-width="2.5"/><line x1="1381" y1="707" x2="1381" y2="813" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="741" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Not served today. The</text><text x="1260" y="767" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Order stays open and</text><text x="1260" y="793" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Process 04 re-books.</text></g>
+<g><rect x="1445" y="454" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="488" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Sight the ID. Record</text><text x="1560" y="514" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the kind and the</text><text x="1560" y="540" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">match, never the</text><text x="1560" y="566" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">number.</text></g>
+<g><path d="M 1860 455 L 2010 520 L 1860 585 L 1710 520 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="516" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Person and name</text><text x="1860" y="538" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">match the Order?</text></g>
+<g><rect x="2045" y="467" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="501" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Search this Client</text><text x="2160" y="527" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">only: name and birth</text><text x="2160" y="553" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">date as on the ID</text></g>
+<g><path d="M 2160 695 L 2310 760 L 2160 825 L 2010 760 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="756" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">The Order's</text><text x="2160" y="778" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">name is stale?</text></g>
+<g><rect x="2045" y="964" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="998" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">The Employer contact</text><text x="2160" y="1024" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">amends the name on</text><text x="2160" y="1050" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the Order. Re-enter</text><text x="2160" y="1076" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">at the door.</text></g>
+<g><rect x="2345" y="441" width="230" height="158" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="475" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Confirm what returned</text><text x="2460" y="501" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">with the person. A</text><text x="2460" y="527" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">partial match is the</text><text x="2460" y="553" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Clinician's ruling,</text><text x="2460" y="579" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">never an auto merge.</text></g>
+<g><rect x="2335" y="720" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2460" y="754" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Stop. No record</text><text x="2460" y="780" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">opened or amended.</text></g>
+<g><path d="M 2760 455 L 2910 520 L 2760 585 L 2610 520 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2760" y="516" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">A confirmed match</text><text x="2760" y="538" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">for this Client?</text></g>
+<g><rect x="2945" y="480" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3060" y="514" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Reuse the record</text><text x="3060" y="540" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">held for this Client</text></g>
+<g><rect x="2945" y="720" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3060" y="754" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Create the record</text><text x="3060" y="780" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">for this Client</text></g>
+<g><rect x="3228" y="480" width="264" height="80" rx="40" fill="#532C6D"/><text x="3360" y="514" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">The record held.</text><text x="3360" y="540" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">On to the consents.</text></g>
+<g><rect x="3535" y="990" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="3660" y="1024" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Alert: service</text><text x="3660" y="1050" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">not completed.</text></g>
+</svg></div></div>
+</div></body></html>

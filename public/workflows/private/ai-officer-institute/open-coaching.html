@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Coaching · AI Officer Institute</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:   { DEFAULT: '#0b1220', 900: '#0b1220', 800: '#141d2e', 700: '#1e2942' },
+            paper: '#f6f7f9',
+            accent:{ DEFAULT: '#3b6ef5', 600: '#2f5ae0', 50: '#eef3ff' },
+          },
+          fontFamily: { sans: ['ui-sans-serif','system-ui','-apple-system','Segoe UI','Inter','sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { -webkit-font-smoothing: antialiased; }
+    .fade-in { animation: fade .35s ease both; }
+    @keyframes fade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  </style>
+</head>
+<body class="bg-paper text-ink-900 font-sans antialiased">
+
+  <!-- Top bar -->
+  <header class="sticky top-0 z-30 border-b border-black/5 bg-white/80 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+      <button onclick="goHome()" class="flex items-center gap-2.5">
+        <div class="grid h-8 w-8 place-items-center rounded-lg bg-ink-900 text-sm font-bold text-white">AI</div>
+        <div class="text-left leading-tight">
+          <p class="text-sm font-semibold">AI Officer Institute</p>
+          <p class="text-[11px] uppercase tracking-wide text-ink-900/50">Open Coaching</p>
+        </div>
+      </button>
+      <div class="flex items-center gap-3">
+        <div class="hidden items-center gap-2 sm:flex">
+          <span class="grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-bold text-white">VH</span>
+          <span class="text-sm text-ink-900/60">Viet Ha</span>
+        </div>
+        <button onclick="openForm('signup')" class="rounded-full bg-ink-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-ink-800">Sign up</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ HOME (hero + tabs + views) ============ -->
+  <div id="page-home">
+  <main class="mx-auto max-w-6xl px-5">
+
+    <!-- Hero -->
+    <section class="py-12 md:py-16">
+      <div class="max-w-2xl">
+        <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-ink-900/70">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          Live weekly · Open to all members
+        </span>
+        <h1 class="mt-5 text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+          Bring a challenge,<br />get coached.
+        </h1>
+        <p class="mt-4 text-lg text-ink-900/70">
+          Open Coaching is a live weekly session. Sign up, and optionally submit an AI challenge you're
+          wrestling with — the top topics get coached that day, in front of the whole group.
+        </p>
+
+        <div class="mt-7 flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3">
+            <svg class="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 6.75h15A.75.75 0 0120.25 7.5v12A.75.75 0 0119.5 20.25h-15A.75.75 0 013.75 19.5v-12A.75.75 0 014.5 6.75z"/></svg>
+            <div class="text-sm leading-tight">
+              <p class="font-semibold">Every Thursday</p>
+              <p class="text-ink-900/60">11:00 AM · GMT+7</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-dashed border-black/15 px-4 py-3 text-sm text-ink-900/55">
+            A US-friendly time is coming soon.
+          </div>
+        </div>
+
+        <div class="mt-7 flex flex-wrap gap-3">
+          <button onclick="openForm('signup')" class="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-600">Sign up for Thursday</button>
+          <button onclick="openForm('challenge')" class="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Submit a challenge</button>
+        </div>
+        <p class="mt-3 text-xs text-ink-900/50">Submitting a challenge is optional — you can just come to listen and ask questions.</p>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="sticky top-[57px] z-20 -mx-5 border-y border-black/5 bg-paper/90 px-5 py-3 backdrop-blur">
+      <div class="inline-flex rounded-full border border-black/10 bg-white p-1 text-sm">
+        <button id="tab-upcoming" onclick="switchTab('upcoming')" class="rounded-full px-4 py-1.5 font-medium">Upcoming</button>
+        <button id="tab-archive" onclick="switchTab('archive')" class="rounded-full px-4 py-1.5 font-medium text-ink-900/55">Archive</button>
+      </div>
+    </div>
+
+    <!-- ===== Upcoming ===== -->
+    <section id="view-upcoming" class="py-10">
+      <div class="grid gap-6 lg:grid-cols-3">
+
+        <!-- Next session card -->
+        <div class="lg:col-span-2 fade-in">
+          <div class="overflow-hidden rounded-2xl border border-black/10 bg-white">
+            <div class="flex flex-col gap-4 border-b border-black/5 bg-ink-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-white/50">Next session · #013</p>
+                <h2 class="mt-1 text-2xl font-bold">Thursday, Aug 7 · 11:00 AM GMT+7</h2>
+                <p class="mt-1 text-white/70">The top-voted topics below get coached live.</p>
+              </div>
+              <button onclick="openForm('signup')" class="shrink-0 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-white/90">Sign up</button>
+            </div>
+
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-ink-900/70">Submitted challenges</h3>
+                <span id="topic-count" class="text-xs font-medium text-ink-900/45"></span>
+              </div>
+              <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/5">
+                <div id="topic-bar" class="h-full rounded-full bg-accent transition-all"></div>
+              </div>
+
+              <ul id="topic-list" class="mt-4 space-y-3"></ul>
+
+              <button id="submit-cta" onclick="openForm('challenge')" class="mt-4 w-full rounded-xl border border-dashed border-black/20 py-3 text-sm font-medium text-ink-900/60 transition hover:border-accent hover:text-accent">
+                + Submit your own challenge for this session
+              </button>
+              <p id="full-note" class="mt-3 hidden rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+                This session is full — 8 topics is the max. Submit for a later Thursday, or come listen in.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <aside class="space-y-4">
+          <div class="rounded-2xl border border-black/10 bg-white p-6 fade-in">
+            <h3 class="text-sm font-semibold">How Open Coaching works</h3>
+            <ol class="mt-4 space-y-4">
+              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">1</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Sign up</span> — one tap. No challenge required.</p></li>
+              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">2</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Submit a challenge</span> (optional) — up to 8 topics per session, voted up by the group.</p></li>
+              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">3</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Get coached live</span> — the top topics are worked through with the whole group.</p></li>
+              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">4</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">View the session</span> — every one is recorded and published to the archive.</p></li>
+            </ol>
+          </div>
+          <div class="rounded-2xl border border-black/10 bg-ink-900 p-6 text-white fade-in">
+            <p class="text-sm font-semibold">Can't make it live?</p>
+            <p class="mt-1.5 text-sm text-white/70">Sign up anyway and we'll email you the recording as soon as it's published.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===== Archive ===== -->
+    <section id="view-archive" class="hidden py-10">
+      <div class="mb-6 flex items-end justify-between">
+        <div>
+          <h2 class="text-2xl font-bold">Archive</h2>
+          <p class="mt-1 text-ink-900/60">Every past session, recorded and published automatically.</p>
+        </div>
+        <input type="search" placeholder="Search topics…" class="hidden rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-accent sm:block" />
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="archive-grid"></div>
+    </section>
+
+    <footer class="border-t border-black/5 py-10 text-center text-xs text-ink-900/45">
+      Prototype · AI Officer Institute — Open Coaching. Mirrors caiocoach.com/coaching.
+    </footer>
+  </main>
+  </div>
+
+  <!-- ============ SESSION DETAIL PAGE ============ -->
+  <div id="page-session" class="hidden">
+    <div class="mx-auto max-w-5xl px-5 py-6">
+      <button onclick="goHome()" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-900/60 transition hover:text-ink-900">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        Back to archive
+      </button>
+      <div id="session-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ KEY LEARNINGS — FULL PAGE ============ -->
+  <div id="page-learnings" class="hidden">
+    <div class="mx-auto max-w-3xl px-5 py-6">
+      <div id="learnings-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== Sign up / Submit modal ===== -->
+  <div id="overlay" class="fixed inset-0 z-50 hidden items-end justify-center bg-ink-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+    <div class="w-full max-w-lg rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl fade-in">
+      <div id="form-state">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 id="modal-title" class="text-lg font-bold">Sign up for Thursday</h3>
+            <p id="modal-sub" class="mt-1 text-sm text-ink-900/60">We'll add it to your calendar and send the join link.</p>
+          </div>
+          <button onclick="closeForm()" class="rounded-full p-1.5 text-ink-900/40 transition hover:bg-black/5 hover:text-ink-900">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form onsubmit="submitForm(event)" class="mt-5 space-y-4">
+          <!-- Signed-in identity (no name/email fields) -->
+          <div class="flex items-center gap-3 rounded-xl border border-black/10 bg-paper/60 px-3 py-2.5">
+            <span class="grid h-9 w-9 place-items-center rounded-full bg-accent text-xs font-bold text-white">VH</span>
+            <div class="text-sm leading-tight">
+              <p class="font-medium">Signed in as Viet Ha</p>
+              <p class="text-xs text-ink-900/50">viet.ha@edge8.ai</p>
+            </div>
+          </div>
+
+          <label class="block">
+            <span class="text-xs font-medium text-ink-900/60">Which session?</span>
+            <select class="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-accent">
+              <option>Thursday, Aug 7 · 11:00 AM GMT+7</option>
+              <option>Thursday, Aug 14 · 11:00 AM GMT+7</option>
+              <option>Thursday, Aug 21 · 11:00 AM GMT+7</option>
+            </select>
+          </label>
+
+          <div id="challenge-fields" class="hidden space-y-4 border-t border-black/5 pt-4">
+            <label class="block">
+              <span class="text-xs font-medium text-ink-900/60">Your AI challenge <span class="font-normal text-ink-900/40">— optional</span></span>
+              <textarea rows="4" class="mt-1 w-full resize-none rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-accent" placeholder="What are you stuck on? The more concrete, the better the coaching."></textarea>
+              <span class="mt-1 block text-xs text-ink-900/45">Up to 8 topics per session — members vote the top ones up.</span>
+            </label>
+          </div>
+
+          <button type="button" id="toggle-challenge" onclick="toggleChallengeFields()" class="text-sm font-medium text-accent hover:text-accent-600">+ Add a challenge to submit</button>
+
+          <button type="submit" class="w-full rounded-full bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600">Confirm sign up</button>
+          <p class="text-center text-xs text-ink-900/45">Open to all members · you can just listen and ask questions.</p>
+        </form>
+      </div>
+
+      <div id="success-state" class="hidden py-6 text-center">
+        <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+          <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 class="mt-4 text-lg font-bold">You're in 🎉</h3>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-900/60">We've saved your spot and added it to your calendar. The join link is on its way.</p>
+        <button onclick="closeForm()" class="mt-6 rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Upcoming: submitted challenges (max 8) ----------
+    const MAX_TOPICS = 8;
+    const topics = [
+      { votes: 24, title: 'My RAG pipeline keeps citing the wrong document', desc: 'Chunks look fine in isolation but retrieval grabs neighbours. Where do I start debugging?', by: 'Priya S.' },
+      { votes: 18, title: 'How do I get my team to actually adopt the AI workflows?', desc: 'Everyone nods in the demo, nobody uses it the next week. Change-management help wanted.', by: 'Marcus T.' },
+      { votes: 15, title: 'Fine-tuning vs prompt engineering for a classifier', desc: 'Small labelled dataset, needs to run cheap at scale. What’s the honest tradeoff?', by: 'Lena K.' },
+      { votes: 12, title: 'Agent loops forever instead of stopping', desc: 'My tool-calling agent won’t decide it’s done. How do I design a clean stop condition?', by: 'Sam O.' },
+      { votes: 9,  title: 'Evals that actually catch regressions', desc: 'Vibes-based testing isn’t cutting it. What’s a lightweight eval setup to start with?', by: 'Dru A.' },
+      { votes: 7,  title: 'Cutting our token bill without hurting quality', desc: 'Costs tripled this quarter. Where’s the low-risk 40% to trim?', by: 'Eric M.' },
+      { votes: 5,  title: 'Keeping a chatbot safe from prompt injection', desc: 'It’s customer-facing. What defenses are worth the effort right now?', by: 'Julien P.' },
+      { votes: 3,  title: 'Choosing a vector DB without over-engineering', desc: 'Pgvector, Pinecone, or just in-memory? We’re at ~50k docs.', by: 'Nadia R.' },
+    ];
+
+    const upvote = (v) => `
+      <button class="flex w-11 shrink-0 flex-col items-center rounded-lg border border-black/10 bg-white py-1.5 text-ink-900/70 transition hover:border-accent hover:text-accent">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+        <span class="text-xs font-semibold">${v}</span>
+      </button>`;
+
+    function renderTopics() {
+      const shown = topics.slice(0, MAX_TOPICS);
+      document.getElementById('topic-list').innerHTML = shown.map(t => `
+        <li class="flex items-start gap-3 rounded-xl border border-black/5 bg-paper/60 p-3">
+          ${upvote(t.votes)}
+          <div>
+            <p class="text-sm font-semibold">${t.title}</p>
+            <p class="mt-0.5 text-sm text-ink-900/60">${t.desc}</p>
+            <p class="mt-1 text-xs text-ink-900/45">Submitted by ${t.by}</p>
+          </div>
+        </li>`).join('');
+      const n = shown.length, full = n >= MAX_TOPICS;
+      document.getElementById('topic-count').textContent = `${n} of ${MAX_TOPICS} topics`;
+      document.getElementById('topic-bar').style.width = `${(n / MAX_TOPICS) * 100}%`;
+      document.getElementById('submit-cta').classList.toggle('hidden', full);
+      document.getElementById('full-note').classList.toggle('hidden', !full);
+    }
+    renderTopics();
+
+    // ---------- Tabs ----------
+    function switchTab(tab) {
+      const isUp = tab === 'upcoming';
+      document.getElementById('view-upcoming').classList.toggle('hidden', !isUp);
+      document.getElementById('view-archive').classList.toggle('hidden', isUp);
+      const on = 'bg-ink-900 text-white', off = 'text-ink-900/55';
+      document.getElementById('tab-upcoming').className = 'rounded-full px-4 py-1.5 font-medium ' + (isUp ? on : off);
+      document.getElementById('tab-archive').className   = 'rounded-full px-4 py-1.5 font-medium ' + (isUp ? off : on);
+    }
+    switchTab('upcoming');
+
+    // ---------- Archive data (each session ≤ 8 topics) ----------
+    const palette = ['#3b6ef5','#7c3aed','#0ea5e9','#f59e0b','#ef4444','#10b981','#ec4899','#14b8a6'];
+    const initials = n => n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+    // Each topic: name, description, who submitted it, and whether it was
+    // actually coached live (did that person come and discuss it).
+    const sessions = [
+      {
+        n: '012', date: 'Jul 31, 2026', coach: 'Dave Cheng', headline: 'Wiring evals into your CI so quality stops regressing silently.',
+        topics: [
+          { name: 'Evals in CI', desc: 'My eval suite runs locally but never in CI — how do I wire it into every PR?', by: 'Priya Sharma', coached: true },
+          { name: 'Golden datasets', desc: 'How many hand-labelled cases is “enough” to start, and how do I keep them fresh?', by: 'Marcus Tan', coached: true },
+          { name: 'LLM-as-judge reliability', desc: 'Can I trust a model to grade another model’s output? When does it break?', by: 'Lena Koch', coached: true },
+          { name: 'Regression alerts', desc: 'I want to be paged when quality drops, not find out from a user. What’s the signal?', by: 'Sam Owusu', coached: false },
+          { name: 'Flaky test triage', desc: 'Some evals pass 8/10 runs. Do I gate on them or treat them as noise?', by: 'Dru Adeyemi', coached: false },
+        ],
+        attendees: ['Priya Sharma','Marcus Tan','Lena Koch','Sam Owusu','Dru Adeyemi','Eric Martins','Julien Petit','Nadia Rao','Viet Ha'],
+        learnings: [
+          'Start with 20 hand-picked golden cases before you automate anything — coverage beats cleverness.',
+          'Run evals on every PR, but gate merges only on the subset that’s stable; treat the rest as signals.',
+          'An LLM judge is fine for tone and format, but assert exact values for anything numeric or factual.',
+          'Version your eval set like code — a regression is only meaningful against a frozen baseline.',
+          'Keep a “known-hard” bucket separate from the gating set so ambition doesn’t block shipping.',
+          'When a judge and a human disagree, the disagreement itself is your best next test case.',
+        ],
+        resources: [
+          { label: 'Eval starter template (Notion)', kind: 'doc' },
+          { label: 'Slides: Evals in CI', kind: 'slides' },
+          { label: 'Sample GitHub Action workflow', kind: 'code' },
+        ],
+      },
+      {
+        n: '011', date: 'Jul 24, 2026', coach: 'Priya Sharma', headline: 'Cutting an agent’s token bill by 60% without losing accuracy.',
+        topics: [
+          { name: 'Prompt trimming', desc: 'My system prompt is 4k tokens on every call. What’s safe to cut?', by: 'Eric Martins', coached: true },
+          { name: 'Prompt & context caching', desc: 'We re-send the same context each turn. How do I cache it properly?', by: 'Marcus Tan', coached: true },
+          { name: 'Model routing', desc: 'Can I send the easy 80% to a cheaper model without users noticing?', by: 'Sam Owusu', coached: true },
+          { name: 'Batching requests', desc: 'Does batching actually save money, or just latency?', by: 'Nadia Rao', coached: false },
+          { name: 'Context-window sizing', desc: 'Bigger window vs retrieval — which is cheaper at our scale?', by: 'Lena Koch', coached: false },
+        ],
+        attendees: ['Dave Cheng','Marcus Tan','Sam Owusu','Eric Martins','Nadia Rao','Viet Ha','Lena Koch'],
+        learnings: [
+          'Route easy calls to a smaller model and reserve the frontier model for the hard 15%.',
+          'Cache system prompts and retrieved context — most bills are re-sending the same tokens.',
+          'Measure cost per successful task, not cost per call, or you’ll optimise the wrong thing.',
+          'Trim the prompt against your eval set, not by eye — cuts that “feel safe” often aren’t.',
+        ],
+        resources: [
+          { label: 'Cost-tracking dashboard template', kind: 'doc' },
+          { label: 'Routing decision cheatsheet', kind: 'doc' },
+        ],
+      },
+      {
+        n: '010', date: 'Jul 17, 2026', coach: 'Dave Cheng', headline: 'Structured outputs: getting reliable JSON out of any model.',
+        topics: [
+          { name: 'JSON mode vs prompting', desc: 'Do I need JSON mode, or is a good prompt enough?', by: 'Priya Sharma', coached: true },
+          { name: 'Schema design', desc: 'How flat should my schema be to keep the model from slipping?', by: 'Eric Martins', coached: true },
+          { name: 'Retries & repair', desc: 'The model returns broken JSON ~5% of the time. How do I recover?', by: 'Julien Petit', coached: true },
+          { name: 'Validation', desc: 'Where should validation live — client, API, or both?', by: 'Dru Adeyemi', coached: false },
+        ],
+        attendees: ['Priya Sharma','Julien Petit','Dru Adeyemi','Eric Martins','Viet Ha'],
+        learnings: [
+          'Constrain with a schema, not a prompt — a validator that retries beats begging in the system message.',
+          'Keep schemas flat and shallow; deeply nested objects are where models slip.',
+          'Always have a repair pass: re-prompt with the parse error rather than failing the whole run.',
+        ],
+        resources: [
+          { label: 'Zod schema examples', kind: 'code' },
+          { label: 'Slides: Structured outputs', kind: 'slides' },
+        ],
+      },
+      {
+        n: '009', date: 'Jul 10, 2026', coach: 'Marcus Tan', headline: 'Rolling out an internal assistant that people actually trust.',
+        topics: [
+          { name: 'Driving adoption', desc: 'Great demo, zero usage the next week. How do I make it stick?', by: 'Lena Koch', coached: true },
+          { name: 'Trust & citations', desc: 'People don’t believe the answers. What earns their trust?', by: 'Sam Owusu', coached: true },
+          { name: 'Onboarding new users', desc: 'What’s the first 5-minute experience that hooks someone?', by: 'Nadia Rao', coached: false },
+          { name: 'Feedback loops', desc: 'How do I collect and act on feedback without a big process?', by: 'Priya Sharma', coached: false },
+        ],
+        attendees: ['Dave Cheng','Lena Koch','Nadia Rao','Sam Owusu','Viet Ha','Priya Sharma'],
+        learnings: [
+          'Show sources on every answer — trust comes from citations, not confidence.',
+          'Launch to one enthusiastic team first; let their wins pull the rest in.',
+          'Make feedback one click, and be seen acting on it within the week.',
+        ],
+        resources: [
+          { label: 'Rollout playbook', kind: 'doc' },
+          { label: 'Adoption metrics template', kind: 'doc' },
+        ],
+      },
+      {
+        n: '008', date: 'Jul 3, 2026', coach: 'Dave Cheng', headline: 'When to use RAG, fine-tuning, or just a bigger context window.',
+        topics: [
+          { name: 'RAG vs fine-tuning', desc: 'Our knowledge changes weekly. Which approach fits?', by: 'Priya Sharma', coached: true },
+          { name: 'Context windows', desc: 'Can I skip the pipeline and just stuff everything in context?', by: 'Marcus Tan', coached: true },
+          { name: 'Chunking strategy', desc: 'My retrieval quality is poor. Is chunking the culprit?', by: 'Eric Martins', coached: true },
+          { name: 'Cost tradeoffs', desc: 'What’s the real cost difference between these at scale?', by: 'Dru Adeyemi', coached: false },
+        ],
+        attendees: ['Priya Sharma','Marcus Tan','Eric Martins','Dru Adeyemi','Viet Ha'],
+        learnings: [
+          'Reach for RAG when knowledge changes; fine-tune when behaviour or format must change.',
+          'A bigger context window is the cheapest experiment — try it before building a pipeline.',
+          'Chunk by meaning, not by character count, or retrieval quality collapses.',
+        ],
+        resources: [
+          { label: 'Decision flowchart (PDF)', kind: 'doc' },
+          { label: 'Slides: RAG vs fine-tuning', kind: 'slides' },
+        ],
+      },
+      {
+        n: '007', date: 'Jun 26, 2026', coach: 'Lena Koch', headline: 'Prompt-injection defenses for a customer-facing chatbot.',
+        topics: [
+          { name: 'Prompt injection basics', desc: 'What can actually go wrong on a public-facing bot?', by: 'Julien Petit', coached: true },
+          { name: 'Input filtering', desc: 'Is filtering user input worth it, or just theatre?', by: 'Sam Owusu', coached: true },
+          { name: 'Tool sandboxing', desc: 'How do I stop a jailbreak from reaching real actions?', by: 'Nadia Rao', coached: true },
+          { name: 'Least privilege', desc: 'How tightly should each tool’s permissions be scoped?', by: 'Dave Cheng', coached: false },
+        ],
+        attendees: ['Dave Cheng','Julien Petit','Sam Owusu','Nadia Rao','Viet Ha'],
+        learnings: [
+          'Never let model output trigger a privileged action without a human or a hard rule in between.',
+          'Treat retrieved content as untrusted input — it can carry instructions too.',
+          'Scope each tool to the least it needs; a compromised prompt can’t exceed the tool’s permissions.',
+        ],
+        resources: [
+          { label: 'Threat-model checklist', kind: 'doc' },
+          { label: 'Slides: Injection defenses', kind: 'slides' },
+        ],
+      },
+    ];
+
+    // ---------- Archive grid ----------
+    document.getElementById('archive-grid').innerHTML = sessions.map((s, i) => `
+      <article class="group flex flex-col rounded-2xl border border-black/10 bg-white p-5 transition hover:shadow-md">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wide text-ink-900/40">#${s.n} · ${s.date}</span>
+          <span class="rounded-full bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium text-accent">${s.topics.length} topics</span>
+        </div>
+        <p class="mt-3 flex-1 text-[15px] font-semibold leading-snug">${s.headline}</p>
+        <div class="mt-4 flex items-center gap-3">
+          <span class="grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-white" style="background:${palette[i % palette.length]}">${initials(s.coach)}</span>
+          <div class="leading-tight">
+            <p class="text-sm font-medium">${s.coach}</p>
+            <p class="text-xs text-ink-900/50">Coach · ${s.attendees.length} attended</p>
+          </div>
+        </div>
+        <button onclick="openSession(${i})" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-ink-900 py-2.5 text-sm font-semibold text-white transition group-hover:bg-ink-800">
+          View session
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </article>
+    `).join('');
+
+    // ---------- Session detail page ----------
+    const resIcon = {
+      doc:   '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h6l6 6v10a2 2 0 01-2 2z"/>',
+      slides:'<path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18v12H3zM3 4v12m9 0v4m-4 0h8"/>',
+      code:  '<path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-3 3 3 3m8-6l3 3-3 3"/>',
+    };
+
+    const PREVIEW_LEARNINGS = 3; // show this many in the box before "view all"
+
+    const learningItem = (l) => `
+      <li class="flex gap-3">
+        <svg class="mt-0.5 h-5 w-5 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        <p class="text-sm text-ink-900/80">${l}</p>
+      </li>`;
+
+    const coachedBadge = (coached) => coached
+      ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
+           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Coached
+         </span>`
+      : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-ink-900/45">
+           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>Not coached
+         </span>`;
+
+    const attendeesBox = (s) => `
+      <ul class="space-y-3">
+        ${s.attendees.map((a, k) => `
+          <li class="flex items-center gap-3">
+            <span class="grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold text-white" style="background:${palette[k % palette.length]}">${initials(a)}</span>
+            <span class="text-sm text-ink-900/80">${a}</span>
+          </li>`).join('')}
+      </ul>`;
+
+    function openSession(i) {
+      const s = sessions[i];
+      document.getElementById('session-body').innerHTML = `
+        <div class="fade-in">
+          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-900/45">
+            <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-emerald-600">Recorded</span>
+            <span>Session #${s.n} · ${s.date}</span>
+          </div>
+          <h1 class="mt-3 text-3xl font-bold leading-tight">${s.headline}</h1>
+          <div class="mt-3 flex items-center gap-3">
+            <span class="grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-white" style="background:${palette[i % palette.length]}">${initials(s.coach)}</span>
+            <p class="text-sm text-ink-900/70">Coached by <span class="font-medium text-ink-900">${s.coach}</span></p>
+          </div>
+
+          <!-- Video -->
+          <div class="mt-6 flex aspect-video w-full items-center justify-center rounded-2xl bg-ink-900 text-white">
+            <button class="flex flex-col items-center gap-3 transition hover:scale-105">
+              <span class="grid h-16 w-16 place-items-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur">
+                <svg class="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </span>
+              <span class="text-sm text-white/70">Play recording · 58 min</span>
+            </button>
+          </div>
+
+          <div class="mt-8 grid gap-8 lg:grid-cols-3 lg:items-start">
+            <div class="lg:col-span-2 space-y-8">
+              <!-- Key learnings (header outside; box; expandable to its own page) -->
+              <section>
+                <div class="mb-3 flex items-center justify-between">
+                  <h2 class="text-lg font-bold">Key learnings</h2>
+                  <span class="text-xs font-medium text-ink-900/45">${s.learnings.length} total</span>
+                </div>
+                <div class="rounded-2xl border border-black/10 bg-white p-5">
+                  <ul class="space-y-3">
+                    ${s.learnings.slice(0, PREVIEW_LEARNINGS).map(learningItem).join('')}
+                  </ul>
+                  ${s.learnings.length > PREVIEW_LEARNINGS ? `
+                    <button onclick="openLearnings(${i})" class="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-black/10 py-2.5 text-sm font-semibold text-ink-900/70 transition hover:border-accent hover:text-accent">
+                      View all ${s.learnings.length} key learnings
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>` : ''}
+                </div>
+              </section>
+
+              <!-- Topics coached (bigger: name · description · submitted by · coached indicator) -->
+              <section>
+                <h2 class="text-lg font-bold">Topics coached <span class="text-sm font-normal text-ink-900/45">(${s.topics.length} of 8)</span></h2>
+                <ul class="mt-3 space-y-3">
+                  ${s.topics.map(t => `
+                    <li class="rounded-xl border border-black/10 bg-white p-4">
+                      <div class="flex items-start justify-between gap-3">
+                        <p class="font-semibold">${t.name}</p>
+                        ${coachedBadge(t.coached)}
+                      </div>
+                      <p class="mt-1 text-sm text-ink-900/65">${t.desc}</p>
+                      <div class="mt-2.5 flex items-center gap-2">
+                        <span class="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-white" style="background:${palette[Math.max(0, s.attendees.indexOf(t.by)) % palette.length]}">${initials(t.by)}</span>
+                        <span class="text-xs text-ink-900/50">Submitted by ${t.by}</span>
+                      </div>
+                    </li>`).join('')}
+                </ul>
+              </section>
+            </div>
+
+            <!-- Sidebar: Attendees (header outside, top-aligned with Key learnings) then Resources -->
+            <aside class="space-y-8">
+              <section>
+                <div class="mb-3 flex items-center justify-between">
+                  <h2 class="text-lg font-bold">Attendees</h2>
+                  <span class="text-xs font-medium text-ink-900/45">${s.attendees.length}</span>
+                </div>
+                <div class="rounded-2xl border border-black/10 bg-white p-5">
+                  ${attendeesBox(s)}
+                </div>
+              </section>
+
+              <section>
+                <h2 class="mb-3 text-lg font-bold">Additional resources</h2>
+                <div class="rounded-2xl border border-black/10 bg-white p-3">
+                  <div class="space-y-1">
+                    ${s.resources.map(r => `
+                      <a href="#" class="flex items-center justify-between rounded-xl p-3 transition hover:bg-paper/70">
+                        <span class="flex items-center gap-3">
+                          <svg class="h-5 w-5 text-ink-900/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">${resIcon[r.kind]}</svg>
+                          <span class="text-sm font-medium">${r.label}</span>
+                        </span>
+                        <svg class="h-4 w-4 text-ink-900/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H8m9 0v9"/></svg>
+                      </a>`).join('')}
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>`;
+
+      document.getElementById('page-learnings').classList.add('hidden');
+      document.getElementById('page-home').classList.add('hidden');
+      document.getElementById('page-session').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    // ---------- Key learnings — full page ----------
+    function openLearnings(i) {
+      const s = sessions[i];
+      document.getElementById('learnings-body').innerHTML = `
+        <div class="fade-in">
+          <button onclick="openSession(${i})" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-900/60 transition hover:text-ink-900">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            Back to session #${s.n}
+          </button>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-900/45">Session #${s.n} · ${s.date} · ${s.coach}</p>
+          <h1 class="mt-2 text-3xl font-bold leading-tight">Key learnings</h1>
+          <p class="mt-1 text-ink-900/60">${s.learnings.length} takeaways from “${s.headline}”</p>
+          <div class="mt-6 rounded-2xl border border-black/10 bg-white p-6">
+            <ul class="space-y-4">
+              ${s.learnings.map(learningItem).join('')}
+            </ul>
+          </div>
+        </div>`;
+      document.getElementById('page-home').classList.add('hidden');
+      document.getElementById('page-session').classList.add('hidden');
+      document.getElementById('page-learnings').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    function goHome() {
+      document.getElementById('page-learnings').classList.add('hidden');
+      document.getElementById('page-session').classList.add('hidden');
+      document.getElementById('page-home').classList.remove('hidden');
+      switchTab('archive');
+      window.scrollTo(0, 0);
+    }
+
+    // ---------- Modal ----------
+    function openForm(mode = 'signup') {
+      document.getElementById('overlay').classList.remove('hidden');
+      document.getElementById('overlay').classList.add('flex');
+      document.getElementById('form-state').classList.remove('hidden');
+      document.getElementById('success-state').classList.add('hidden');
+      const wantChallenge = mode === 'challenge';
+      document.getElementById('challenge-fields').classList.toggle('hidden', !wantChallenge);
+      document.getElementById('toggle-challenge').classList.toggle('hidden', wantChallenge);
+      document.getElementById('modal-title').textContent = wantChallenge ? 'Submit a challenge' : 'Sign up for Thursday';
+      document.getElementById('modal-sub').textContent = wantChallenge
+        ? 'Sign up and share what you’re stuck on — members vote the top topics up.'
+        : 'We’ll add it to your calendar and send the join link.';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeForm() {
+      document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('overlay').classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+    function toggleChallengeFields() {
+      document.getElementById('challenge-fields').classList.remove('hidden');
+      document.getElementById('toggle-challenge').classList.add('hidden');
+    }
+    function submitForm(e) {
+      e.preventDefault();
+      document.getElementById('form-state').classList.add('hidden');
+      document.getElementById('success-state').classList.remove('hidden');
+    }
+    document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeForm(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeForm(); });
+  </script>
+</body>
+</html>

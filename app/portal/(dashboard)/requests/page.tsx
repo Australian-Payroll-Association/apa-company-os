@@ -93,7 +93,7 @@ export default async function PortalRequestsPage() {
             Plan an AI program: upload your documents, or build a 5Ds AI Program Brief with our guided assistant.
           </p>
           <div style={{ marginTop: "auto", paddingTop: 16 }}>
-            <Link href="/portal/projects/add" className="admin-btn admin-btn--primary">
+            <Link href="/portal/programs/add" className="admin-btn admin-btn--primary">
               Add AI Program Plan
             </Link>
           </div>

@@ -1,10 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { remark } from "remark";
-import remarkHtml from "remark-html";
 import { requireTeamMember } from "@/lib/team-auth";
 import { teamRead } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { getPlanMarkdown, isMarkdownPlan, signedPlanUrl } from "@/lib/onboarding-cycle";
+import { renderPlanMarkdown } from "@/lib/admin/plan-markdown";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +45,7 @@ export default async function TeamPlanViewPage({ params }: { params: { id: strin
 
   const markdown = await getPlanMarkdown(row.plan_path);
   if (!markdown) notFound();
-  // sanitize: true — manager-authored content, same discipline as ideas plans.
-  const html = String(await remark().use(remarkHtml, { sanitize: true }).process(markdown));
+  const html = await renderPlanMarkdown(markdown);
 
   const tm = Array.isArray(row.team_members) ? row.team_members[0] : row.team_members;
   const person = Array.isArray(tm?.people) ? tm?.people[0] : tm?.people;
@@ -57,7 +55,7 @@ export default async function TeamPlanViewPage({ params }: { params: { id: strin
     <>
       <PageHead eyebrow="Onboarding" title={`${name}'s onboarding plan`} sub="The plan their manager laid out for the first 180 days" />
       <div className="admin-card" style={{ padding: "24px 28px", maxWidth: 820 }}>
-        <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="plan-doc" dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     </>
   );

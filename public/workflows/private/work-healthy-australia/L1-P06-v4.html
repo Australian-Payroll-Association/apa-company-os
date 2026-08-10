@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 06 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 06 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 06: Manage the Unfit Case</h2><div class="meta"><div class="r"><div class="k">Status</div><div>Potential process. It is not what Work Healthy Australia does today. It is drawn because the sweep of KINNECT, Jobfit, Sonic HealthPlus, the Netherlands, Japan, the United Kingdom, Germany and Finland found it in all of them, and because 01 to 05 and 09 cannot deliver it as they stand.</div></div><div class="r"><div class="k">Prerequisite</div><div>A determination of not fit, or fit with restrictions to manage, from Process 05b.</div></div><div class="r"><div class="k">Trigger</div><div>The case is opened. Then every certificate expiry.</div></div><div class="r"><div class="k">Output</div><div>A suitable duties plan, agreed by the Patient and the Employer and revised against each new certificate.</div></div><div class="r"><div class="k">Output</div><div>A closed case once capacity is restored and durable.</div></div><div class="r"><div class="k">Rule</div><div>The case owns no calendar. The certificate's expiry is a date, and Process 08 is the only thing that watches dates. The case sets the date, hands it over, and stops until a determination comes back.</div></div><div class="r"><div class="k">Rule</div><div>An unfit case means a Patient who is not fit, or fit only with restrictions, for the Role as it stands. Most of the volume is the second kind.</div></div><div class="r"><div class="k">Rule</div><div>What crosses the wall is duties and dates. The Employer needs to know what the person may do and until when, and nothing else.</div></div><div class="r"><div class="k">Rule</div><div>This process holds the state and makes the judgements. It knows what one Patient may do right now and whether that has settled. Process 08 knows when something is due. That is the whole difference between them.</div></div><div class="r"><div class="k">Rule</div><div>Drawn for the Clinician. A Practitioner manages cases the same way inside their own Client organization.</div></div><div class="r"><div class="k">Rule</div><div>The case carries the claim reference where there is one, so external documents tie together. Work Healthy Australia does not manage the claim, and the insurer is not a party to this process.</div></div><div class="r"><div class="k">Rule</div><div>Whether a suitable duties plan is possible at all is a separate question from how it is drafted, and it is asked first. Where the Site has no duties that fit the measured restrictions, there is no plan to agree, and saying so is a different answer from an Employer who agreed and then did not implement. Conflating the two hides the case that needs the most attention.</div></div><div class="r"><div class="k">Rule</div><div>Agreeing the duties is not the same as putting them in place. The case checks that the agreed duties are actually being worked, and where they are not, that is raised with the Employer and recorded as a barrier.</div></div><div class="r"><div class="k">Rule</div><div>Barriers to recovery are recorded, and separately marked resolved. A case that will not close has a reason, and it is almost always here.</div></div><div class="r"><div class="k">Rule</div><div>Advice is split by who it is for. Advice to the Employer, advice about the work, and advice for the Patient at home are three different things, and only the first crosses the wall.</div></div><div class="r"><div class="k">Rule</div><div>Treatment is called from here and tracked, and it is not defined here. Work Healthy Australia refers, records attendance and progress, and re-assesses. What happens in a treatment session sits below this level, whoever delivers it.</div></div><div class="r"><div class="k">Roles</div><div>Patients, Clinicians, Practitioners, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 3840 860" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="3600" height="200" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="0" x2="3810" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="86" font-size="27" font-weight="700" fill="#FFFFFF">Patient</text>
+<text x="20" y="110" font-size="18" fill="#DDD4E4">Own record only. Consent</text>
+<text x="20" y="132" font-size="18" fill="#DDD4E4">gates collection.</text>
+<rect x="210" y="200" width="3600" height="420" fill="#FAF8FB"/>
+<rect x="0" y="200" width="210" height="420" fill="#532C6D"/>
+<line x1="0" y1="200" x2="3810" y2="200" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="396" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="420" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="442" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="620" width="3600" height="200" fill="#FFFFFF"/>
+<rect x="0" y="620" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="620" x2="3810" y2="620" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="706" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="730" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="752" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="820" x2="3810" y2="820" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="620" x2="3810" y2="620" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="603" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="627" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 410 L 545 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 410 L 845 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 410 L 1110 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1410 410 L 1410 410 L 1410 100 L 1445 100" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1410" y="382" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1410 410 L 1410 410 L 1410 720 L 1445 720" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1410" y="438" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1260 475 L 1260 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1276" y="577" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1675 100 L 1745 100" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1675 720 L 1710 720 L 1710 100 L 1745 100" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1975 100 L 2160 100 L 2160 345" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2310 410 L 2345 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2327" y="395" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 2160 475 L 2160 540 L 2335 540" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2224" y="545" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2460 500 L 2460 463" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2460 357 L 2460 333" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2595 280 L 2760 280 L 2760 344" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2575 410 L 2625 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2895 410 L 2910 410" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 3060 345 L 3060 280 L 3245 280" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="3124" y="285" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 3060 475 L 3060 540 L 3228 540" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="3124" y="545" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 3475 280 L 3660 280 L 3660 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="3567" y="258" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Capacity and dates only</text>
+<g><rect x="228" y="357" width="264" height="106" rx="53" fill="#532C6D"/><text x="360" y="391" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Not fit, or fit with</text><text x="360" y="417" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">restrictions. Open the</text><text x="360" y="443" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">case and link any claim.</text></g>
+<g><rect x="545" y="344" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="378" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Issue the certificate</text><text x="660" y="404" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">of capacity. Its</text><text x="660" y="430" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">expiry is the date</text><text x="660" y="456" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Process 08 raises.</text></g>
+<g><rect x="845" y="357" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="391" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Draft the suitable</text><text x="960" y="417" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">duties plan against</text><text x="960" y="443" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the Role requirements</text></g>
+<g><path d="M 1260 345 L 1410 410 L 1260 475 L 1110 410 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="406" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Any duties within</text><text x="1260" y="428" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">the restrictions?</text></g>
+<g><rect x="1135" y="680" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="1260" y="714" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">No duties fit the</text><text x="1260" y="740" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">restrictions.</text></g>
+<g><rect x="1445" y="60" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="94" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Patient agrees</text><text x="1560" y="120" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the plan</text></g>
+<g><rect x="1445" y="667" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="701" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Employer agrees</text><text x="1560" y="727" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the plan. Duties and</text><text x="1560" y="753" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">dates only.</text></g>
+<g><rect x="1745" y="60" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="94" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Work the suitable</text><text x="1860" y="120" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">duties</text></g>
+<g><path d="M 2160 345 L 2310 410 L 2160 475 L 2010 410 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="406" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Duties in place</text><text x="2160" y="428" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">as agreed?</text></g>
+<g><rect x="2345" y="357" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="391" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Record the barriers</text><text x="2460" y="417" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">to recovery and</text><text x="2460" y="443" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">which are resolved</text></g>
+<g><rect x="2335" y="500" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2460" y="534" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Not in place. Raised</text><text x="2460" y="560" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">with the Employer.</text></g>
+<g><rect x="2325" y="227" width="270" height="106" rx="8" fill="#F4F4F4" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="10 6"/><line x1="2339" y1="227" x2="2339" y2="333" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="6 5"/><line x1="2581" y1="227" x2="2581" y2="333" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="6 5"/><text x="2460" y="261" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Treatment.</text><text x="2460" y="287" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Referred and tracked.</text><text x="2460" y="313" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Not defined here.</text></g>
+<g><rect x="2625" y="344" width="270" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><line x1="2639" y1="344" x2="2639" y2="476" stroke="#532C6D" stroke-width="2.5"/><line x1="2881" y1="344" x2="2881" y2="476" stroke="#532C6D" stroke-width="2.5"/><text x="2760" y="378" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Re-assessment.</text><text x="2760" y="404" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Processes 04 and 05,</text><text x="2760" y="430" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">raised by 08 on the</text><text x="2760" y="456" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">certificate expiry.</text></g>
+<g><path d="M 3060 345 L 3210 410 L 3060 475 L 2910 410 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="3060" y="406" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Capacity restored</text><text x="3060" y="428" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">and durable?</text></g>
+<g><rect x="3245" y="249" width="230" height="62" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3360" y="287" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Close the case</text></g>
+<g><rect x="3228" y="487" width="264" height="106" rx="53" fill="#532C6D"/><text x="3360" y="521" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Revise the duties plan.</text><text x="3360" y="547" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Re-issue the certificate</text><text x="3360" y="573" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">with a new expiry.</text></g>
+<g><rect x="3528" y="680" width="264" height="80" rx="40" fill="#532C6D"/><text x="3660" y="714" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Alert: case closed.</text><text x="3660" y="740" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Capacity restored.</text></g>
+</svg></div></div>
+</div></body></html>

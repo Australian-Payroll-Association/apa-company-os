@@ -131,8 +131,10 @@ as "active" unless the user asks about archived records.
   byte_size, entity_type, entity_id (polymorphic owner), uploaded_by.
 - audit_log — change history: actor_person_id, actor_label, table_name, record_id,
   operation, old_data (jsonb), new_data (jsonb), changed_at.
-- ideas — team idea backlog: person_id, title, problem, roi, office, ai_plan,
-  status, created_at.
+- ideas — team idea backlog: kind ('build' = build idea with problem/roi +
+  ai_plan product plan; 'learning' = shared learning with story/takeaway +
+  ai_plan polished summary), person_id, title, office, ai_plan, status,
+  created_at.
 - company_profile — key/value company facts (label, content). admins — admin
   allowlist (email). integration_sources — external system registry.
 `.trim();

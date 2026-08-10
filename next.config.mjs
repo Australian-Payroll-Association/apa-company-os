@@ -4,6 +4,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // Resume uploads (recruiter intake, careers apply) arrive through server
+    // actions; the framework default of 1 MB silently rejected files the app
+    // itself allows up to 10 MB.
+    serverActions: { bodySizeLimit: "10mb" },
+  },
   async rewrites() {
     return [
       // The new-member onboarding form is a purpose-driven survey; serve it at a
@@ -15,6 +21,26 @@ const nextConfig = {
     return [
       // The talent Rank page was renamed to Candidate Pool.
       { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
+      // The AI Resume Screen workflow was folded into the end-to-end Recruitment workflow.
+      { source: '/workflows/ai-resume-screen', destination: '/workflows/recruitment', permanent: true },
+      // The onboarding deck moved into the private workflows library, now under the E8 brand.
+      { source: '/blueprints/team-onboarding', destination: '/workflows/private/e8/team-onboarding', permanent: true },
+      // The private workflows library was split into E8 and AIO Labs brands; the
+      // existing guides moved under /workflows/private/e8/. Keep shared links working.
+      { source: '/workflows/private/team-onboarding', destination: '/workflows/private/e8/team-onboarding', permanent: true },
+      { source: '/workflows/private/private-retreats', destination: '/workflows/private/e8/private-retreats', permanent: true },
+      { source: '/workflows/private/accounting-training', destination: '/workflows/private/e8/accounting-training', permanent: true },
+      { source: '/workflows/private/ai-retreat-work-healthy', destination: '/workflows/private/e8/ai-retreat-work-healthy', permanent: true },
+      { source: '/workflows/private/ai-retreat-austpayroll', destination: '/workflows/private/e8/ai-retreat-austpayroll', permanent: true },
+      { source: '/workflows/private/vung-tau-leg.html', destination: '/workflows/private/e8/vung-tau-leg.html', permanent: true },
+      // The "AIO Labs" brand was renamed to "AI Officer Institute"; the route dir moved
+      // from /workflows/private/aio-labs to /workflows/private/ai-officer-institute.
+      { source: '/workflows/private/aio-labs', destination: '/workflows/private/ai-officer-institute', permanent: true },
+      { source: '/workflows/private/aio-labs/ui-redesign-plan', destination: '/workflows/private/ai-officer-institute/ui-redesign-plan', permanent: true },
+      { source: '/workflows/private/aio-labs/agentic-ai-workflows.html', destination: '/workflows/private/ai-officer-institute/agentic-ai-workflows.html', permanent: true },
+      { source: '/workflows/private/aio-labs/gen-ai-workflows.html', destination: '/workflows/private/ai-officer-institute/gen-ai-workflows.html', permanent: true },
+      { source: '/workflows/private/aio-labs/aio-company-admin-workflow.html', destination: '/workflows/private/ai-officer-institute/aio-company-admin-workflow.html', permanent: true },
+      { source: '/workflows/private/aio-labs/aio-platform-admin-workflow.html', destination: '/workflows/private/ai-officer-institute/aio-platform-admin-workflow.html', permanent: true },
     ]
   },
 }

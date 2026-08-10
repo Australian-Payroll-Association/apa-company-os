@@ -1,16 +1,17 @@
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { listGalleryPhotos } from "@/lib/gallery";
+import { listGalleryPhotos, taggablePeople } from "@/lib/gallery";
 import { GalleryBrowser } from "@/components/team/GalleryBrowser";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Gallery", description: "Photos from the Edge8 team." };
 
-// Read-only team photo wall. Company-visible (no per-actor scope); admins add
-// photos in /admin/operations/gallery. Public-bucket images, so a plain <img>.
+// Company photo wall. Company-visible (no per-actor scope); admins add photos in
+// /admin/operations/gallery. Public-bucket images, so a plain <img>. Any team
+// member can tag the people in a photo.
 export default async function TeamGalleryPage() {
   await requireTeamMember();
-  const photos = await listGalleryPhotos();
+  const [photos, taggable] = await Promise.all([listGalleryPhotos(), taggablePeople()]);
 
   return (
     <>
@@ -22,7 +23,7 @@ export default async function TeamGalleryPage() {
       {photos.length === 0 ? (
         <div className="admin-empty">No photos yet. Check back soon.</div>
       ) : (
-        <GalleryBrowser photos={photos} />
+        <GalleryBrowser photos={photos} taggable={taggable} />
       )}
     </>
   );

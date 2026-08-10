@@ -2,17 +2,26 @@ import React from "react";
 
 // Minimal markdown renderer for assistant replies, shared by the admin and team
 // chat widgets so both format identically. Supports **bold**, `inline code`,
-// "- " bullet lists, line breaks, and clickable links — both [label](url) markdown
-// links and bare URLs (https://… and internal /team/… or /admin/… paths). Links
-// are how the assistants point people at a profile or record, so they must render
-// as real anchors, not dead text.
+// "- " bullet lists, line breaks, clickable links — both [label](url) markdown
+// links and bare URLs (https://… and internal /team/… or /admin/… paths) — and
+// inline photo thumbnails via ![alt](url). Links are how the assistants point
+// people at a profile or record, so they must render as real anchors, not dead
+// text; images let the team assistant show a person's photo.
 
-// Split tokens, longest/most-specific first so a markdown link is captured whole
-// before its inner path can match as a bare URL.
+// Split tokens, longest/most-specific first: the image token (leading "!") must
+// come before the link token so ![alt](url) is captured whole, and a markdown
+// link before its inner path can match as a bare URL.
 const TOKEN =
-  /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s)]+|\/(?:team|admin)\/[^\s)]+)/g;
+  /(\*\*[^*]+\*\*|`[^`]+`|!\[[^\]]*\]\([^)\s]+\)|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s)]+|\/(?:team|admin)\/[^\s)]+)/g;
 
 const MD_LINK = /^\[([^\]]+)\]\(([^)\s]+)\)$/;
+const MD_IMAGE = /^!\[([^\]]*)\]\(([^)\s]+)\)$/;
+
+// Only render an <img> for images hosted in our own public Supabase storage
+// buckets (avatars/gallery). Anything else is shown as a link instead, so a
+// coaxed reply can never load an off-domain tracking pixel from the chat pane.
+const SAFE_IMAGE =
+  /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/(?:avatars|gallery)\//i;
 
 function Anchor({ href, children }: { href: string; children: React.ReactNode }) {
   // External links open in a new tab; internal portal links navigate in place.
@@ -35,6 +44,20 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
     }
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
       return <code key={key}>{part.slice(1, -1)}</code>;
+    }
+    const img = MD_IMAGE.exec(part);
+    if (img) {
+      const [, alt, src] = img;
+      if (SAFE_IMAGE.test(src)) {
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img key={key} className="assistant-photo" src={src} alt={alt || "photo"} loading="lazy" />;
+      }
+      // Untrusted host: link to it rather than loading it inline.
+      return (
+        <Anchor key={key} href={src}>
+          {alt || src}
+        </Anchor>
+      );
     }
     const md = MD_LINK.exec(part);
     if (md) {

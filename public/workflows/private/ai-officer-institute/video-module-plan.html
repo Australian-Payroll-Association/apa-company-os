@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video: the front door to the program · AI Officer Institute</title>
+<meta name="robots" content="noindex,nofollow">
+</head>
+<body>
+<style>
+  html{-webkit-text-size-adjust:100%;} img{max-width:100%;}
+  :root{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4; --violet:#6a51b8;
+    --ok:#2e7a58; --warn:#b3701a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb; --amber:#d3a13a; --amber-soft:#241f14; --violet:#9a82e0;
+    --ok:#4ea27b; --warn:#cf9a4c; --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }}
+  :root[data-theme="light"]{--ground:#f5f6f8;--surface:#fff;--surface-2:#fbfcfd;--ink:#1e2733;--ink-soft:#4b5563;--muted:#8b95a1;--line:#e4e7ec;--line-soft:#eef1f4;--code-bg:#eef1f4;--navy:#3a5578;--amber:#b0810f;--amber-soft:#faf4e4;--violet:#6a51b8;--ok:#2e7a58;--warn:#b3701a;}
+  :root[data-theme="dark"]{--ground:#13171c;--surface:#1a1f26;--surface-2:#171c22;--ink:#e7ebf0;--ink-soft:#aeb8c4;--muted:#78838f;--line:#2a313a;--line-soft:#212831;--code-bg:#232a33;--navy:#4a6c95;--amber:#d3a13a;--amber-soft:#241f14;--violet:#9a82e0;--ok:#4ea27b;--warn:#cf9a4c;}
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground);color:var(--ink);font-family:var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;margin:0;}
+  .wrap{max-width:1040px;margin:0 auto;padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+  .eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:0 0 .7rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem);font-weight:700;line-height:1.04;letter-spacing:-.015em;margin:.2rem 0 0;text-wrap:balance;max-width:22ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem);font-weight:700;line-height:1.14;letter-spacing:-.01em;margin:0 0 .9rem;text-wrap:balance;max-width:28ch;}
+  h3{font-size:1.12rem;font-weight:700;line-height:1.25;margin:0 0 .5rem;}
+  p{font-size:1.055rem;line-height:1.62;color:var(--ink-soft);margin:0 0 1.05rem;max-width:64ch;}
+  p strong,li strong{color:var(--ink);font-weight:700;} em{color:var(--ink);font-style:italic;}
+  a{color:var(--navy);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+  code{font-family:var(--mono);font-size:.82em;background:var(--code-bg);color:var(--ink);padding:.1rem .38rem;border-radius:3px;border:1px solid var(--line);}
+
+  header.masthead{margin-bottom:clamp(2.6rem,6vw,4.2rem);}
+  .meta{font-family:var(--mono);font-size:.82rem;line-height:2;color:var(--ink-soft);margin-top:1.6rem;padding-top:1.2rem;border-top:1px solid var(--line);}
+  .meta .k{color:var(--muted);}
+  section{margin-top:clamp(2.8rem,6vw,4.4rem);scroll-margin-top:2rem;}
+  .lead{max-width:64ch;}
+
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:.55rem;margin:1.6rem 0 .5rem;}
+  .fnode{flex:1 1 8rem;min-width:7rem;background:var(--surface);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);padding:.85rem .9rem;display:flex;flex-direction:column;gap:.32rem;}
+  .fnode .c{font-family:var(--mono);font-size:.63rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--navy);}
+  .fnode .t{font-family:var(--sans);font-size:.94rem;font-weight:700;color:var(--ink);line-height:1.2;}
+  .fnode .d{font-size:.8rem;color:var(--muted);line-height:1.35;}
+  .fnode.core{border-top:3px solid var(--navy);}
+  .fnode.elect{border-top:3px solid var(--violet);} .fnode.elect .c{color:var(--violet);}
+  .fnode.goal{border-top:3px solid var(--amber);} .fnode.goal .c{color:var(--amber);}
+  .farrow{align-self:center;color:var(--muted);font-family:var(--mono);font-size:1rem;flex:0 0 auto;}
+  @media(max-width:720px){.flow{flex-direction:column;}.fnode{flex:0 0 auto;}.farrow{transform:rotate(90deg);margin:.1rem 0;}}
+
+  .pick{margin:1.6rem 0 .4rem;}
+  .pick .lab{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;}
+  .tracks{display:flex;flex-wrap:wrap;gap:.6rem;}
+  .trk{display:inline-flex;align-items:center;gap:.55rem;font-family:var(--sans);font-size:.95rem;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:40px;padding:.5rem 1.05rem;box-shadow:var(--shadow);}
+  .trk.ex{border-color:var(--navy);color:var(--navy);background:color-mix(in srgb,var(--navy) 8%,var(--surface));}
+  .trk .tagx{font-family:var(--sans);font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.2em .5em;border-radius:2px;color:var(--navy);background:color-mix(in srgb,var(--navy) 14%,transparent);}
+
+  .owners{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:1.15rem 1.25rem 1.3rem;box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono);font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin-bottom:.7rem;}
+  .owner.elect .k{color:var(--violet);} .owner.goal .k{color:var(--amber);}
+  .owner p{font-size:.93rem;line-height:1.5;margin:0 0 .5rem;color:var(--ink-soft);} .owner p:last-child{margin-bottom:0;}
+
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:1.15rem 1.25rem 1.3rem;box-shadow:var(--shadow);}
+  .panel h3{font-size:1.02rem;margin-bottom:.4rem;} .panel .row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.85rem;}
+
+  .tag{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.03em;padding:.3em .72em;border-radius:3px;display:inline-flex;line-height:1;}
+  .tag.rev{color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent);}
+  .tag.tal{color:var(--navy);background:color-mix(in srgb,var(--navy) 15%,transparent);}
+  .tag.ops{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent);}
+  .tag.inn{color:var(--violet);background:color-mix(in srgb,var(--violet) 17%,transparent);}
+  .tag.disc{color:var(--ink-soft);background:var(--line-soft);border:1px solid var(--line);}
+
+  ul.ticks{list-style:none;margin:1.2rem 0;padding:0;display:flex;flex-direction:column;gap:.7rem;max-width:66ch;}
+  ul.ticks li{font-size:1rem;line-height:1.5;color:var(--ink-soft);padding-left:1.5rem;position:relative;}
+  ul.ticks li::before{content:"";position:absolute;left:.15rem;top:.55em;width:.44rem;height:.44rem;border-radius:50%;background:var(--navy);}
+  ul.ticks li strong{color:var(--ink);}
+
+  .callout{border-left:3px solid var(--amber);background:var(--amber-soft);padding:1.05rem 1.25rem;margin:1.7rem 0;max-width:74ch;border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans);font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:.5rem;}
+  .callout p{margin:0;font-size:.98rem;color:var(--ink-soft);max-width:none;}
+  .callout.navy{border-left-color:var(--navy);background:color-mix(in srgb,var(--navy) 7%,var(--surface));} .callout.navy .k{color:var(--navy);}
+
+  hr.rule{border:none;border-top:1px solid var(--line);margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem);padding-top:1.5rem;border-top:1px solid var(--line);font-size:.9rem;line-height:1.7;color:var(--muted);max-width:74ch;}
+  footer.foot b{color:var(--ink-soft);}
+  :focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:2px;}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · AI Officer · Video</p>
+    <h1>Video: the front door to the program</h1>
+    <p class="lead" style="font-size:1.16rem;color:var(--ink);max-width:62ch;margin-top:1rem;">
+      A companion to the AI Program Plan, focused on the video module: a single library of full-length sessions
+      that learners browse, filter, and watch. Watch time is engagement data; certification credit is earned in
+      the challenge. AI Officer is the worked example.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> &nbsp; The video module: library, tags, filtering, the player, and watch time</div>
+      <div><span class="k">Companion to</span> &nbsp; AI Program Plan · Certification Data Architecture</div>
+      <div><span class="k">Prepared</span> &nbsp; 6 August 2026</div>
+    </div>
+  </header>
+
+  <!-- THE SHAPE -->
+  <section>
+    <p class="eyebrow">The shape</p>
+    <h2>One library, browsed in one place</h2>
+    <p class="lead">Video is where learning starts. Every full-length session lives in one general library, open to
+      browse across all three tracks. The learner's own track is featured and drives their progress; the rest are
+      there to explore.</p>
+
+    <div class="flow" role="img" aria-label="The video journey: a featured session leads into the full library, which the learner filters and searches to find a session, watches, and continues.">
+      <div class="fnode core"><span class="c">Featured</span><span class="t">Your track</span><span class="d">A spotlight session</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode"><span class="c">Library</span><span class="t">All sessions</span><span class="d">Full-length, one place</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode elect"><span class="c">Filter</span><span class="t">Find fast</span><span class="d">Tags &amp; search</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode"><span class="c">Watch</span><span class="t">The player</span><span class="d">Resume any time</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode goal"><span class="c">Continue</span><span class="t">Logged</span><span class="d">Seen by your coach</span></div>
+    </div>
+
+    <div class="owners">
+      <div class="owner"><div class="k">Library · full-length</div>
+        <p>Every <strong>standard session</strong> in one place, browsable across all three tracks. This is the general library — the complete sessions, not fragments.</p></div>
+      <div class="owner elect"><div class="k">Featured · your track</div>
+        <p>A spotlight session from the track you're enrolled in, with its description, tags, and a resume button.</p></div>
+      <div class="owner goal"><div class="k">Player · watch &amp; connect</div>
+        <p>Watch, see your time logged, and jump to the Mission Overview, Core Missions, Micro Sessions, and Blogs each video links to.</p></div>
+    </div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section>
+    <p class="eyebrow">Library</p>
+    <h2>A general library of full-length sessions</h2>
+    <p class="lead">The library holds the full-length standard sessions of the curriculum. It opens on a featured
+      session and a “jump back in” row, then lists the rest — aligned to their track so the shelf reads like the
+      program.</p>
+    <ul class="ticks">
+      <li><strong>Browse all, in one place.</strong> Full-length sessions across AI Officer, AI Engineering, and Leadership, side by side.</li>
+      <li><strong>Featured head.</strong> A session from the learner's own track, with details and resume.</li>
+      <li><strong>Jump back in.</strong> In-progress sessions surface first, so returning is one click.</li>
+      <li><strong>Thumbnails and duration</strong> on every card, with a viewing-progress bar.</li>
+    </ul>
+  </section>
+
+  <!-- FILTERING -->
+  <section>
+    <p class="eyebrow">Filtering</p>
+    <h2>Find the right session fast</h2>
+    <p class="lead">As the catalogue grows, learners narrow the library by tag. Filters combine — pick one or many
+      within a group, and stack groups together — with live counts and instant results.</p>
+    <ul class="ticks">
+      <li><strong>Track</strong> — AI Officer, AI Engineering, Leadership.</li>
+      <li><strong>Office</strong> — Revenue, Talent, Operations, Innovation.</li>
+      <li><strong>Tools</strong> — Claude, ChatGPT, and more as the catalogue grows.</li>
+      <li><strong>Length</strong> and <strong>Status</strong> — by duration, and by not started / in progress / watched.</li>
+    </ul>
+    <p>Each option shows how many sessions it would return, and options that would return nothing are dimmed.
+      Search runs across the same library. Sort by recommended, length, or title.</p>
+  </section>
+
+  <!-- TAGS -->
+  <section>
+    <p class="eyebrow">Tags</p>
+    <h2>Two independent tag axes</h2>
+    <p class="lead">Every session carries two tags on two independent axes: which office it is about, and which
+      discipline (certification) it most applies to. A session is one of each.</p>
+    <div class="grid2">
+      <div class="panel"><h3>Office</h3><p>What area of the business the session is about.</p>
+        <div class="row"><span class="tag rev">Revenue</span><span class="tag tal">Talent</span><span class="tag ops">Operations</span><span class="tag inn">Innovation</span></div></div>
+      <div class="panel"><h3>Discipline</h3><p>Which certification the session most applies to.</p>
+        <div class="row"><span class="tag disc">Leadership</span><span class="tag disc">AI Engineering</span><span class="tag disc">AI Officer</span></div></div>
+    </div>
+    <p style="margin-top:1.1rem;">More tag types slot into the same filter, for example tool tags such as
+      <span class="tag disc">Claude</span> or <span class="tag disc">ChatGPT</span>.</p>
+  </section>
+
+  <!-- PLAYER -->
+  <section>
+    <p class="eyebrow">The player</p>
+    <h2>Watch, connect, and keep going</h2>
+    <p class="lead">The player is the same for every session. It plays the full-length video, remembers where the
+      learner stopped, and points onward.</p>
+    <ul class="ticks">
+      <li><strong>Watch and resume.</strong> A progress bar remembers the learner's place across sessions.</li>
+      <li><strong>Connected to.</strong> Each video links out to its <strong>Mission Overview</strong>, <strong>Core Missions</strong>, <strong>Micro Sessions</strong>, and <strong>Blogs</strong>.</li>
+      <li><strong>Up next.</strong> Suggested sessions from the same track, with an autoplay option.</li>
+    </ul>
+  </section>
+
+  <!-- WATCH TIME -->
+  <section>
+    <p class="eyebrow">Watch time</p>
+    <h2>Watch time is data, not credit</h2>
+    <p class="lead">Video logs how much of each session a learner watches. That signal is for people, not for the
+      certification meter.</p>
+    <div class="callout navy">
+      <div class="k">How watch time works</div>
+      <p>Watch time is logged as <strong>engagement data for coaches and program managers</strong> — how far a
+        learner has watched, and where they stopped. It does <strong>not</strong> move the certification
+        percentage.</p>
+    </div>
+    <div class="callout">
+      <div class="k">Where credit comes from</div>
+      <p>Certification credit is earned by <strong>completing the session's challenge in the AI Buddy</strong>, not
+        by watch time. Completion counts Core and electives together against a fixed denominator, so watching alone
+        never marks a learner done.</p>
+    </div>
+  </section>
+
+  <!-- TRACKS -->
+  <section>
+    <p class="eyebrow">Tracks</p>
+    <h2>One track at a time, the whole library open</h2>
+    <p class="lead">A learner works toward one certification at a time. Their track is featured and earns their
+      credit; the other tracks stay open to watch, clearly marked as outside their certification.</p>
+    <div class="pick"><div class="lab">The three tracks</div>
+      <div class="tracks">
+        <span class="trk ex">AI Officer <span class="tagx">Enrolled</span></span>
+        <span class="trk">AI Engineering</span>
+        <span class="trk">Leadership</span>
+      </div>
+    </div>
+    <p style="margin-top:1.2rem;">Watching a session from another track is always allowed — the time is still
+      logged for the coach — but it is not part of the learner's current certification.</p>
+  </section>
+
+  <footer class="foot">
+    <p><b>Video</b>, the front door of the AI Officer Institute. Companion to the AI Program Plan and the
+      Certification Data Architecture brief. Video is one module: <b>micro-sessions</b> and <b>coaching</b> are
+      separate flows that video links out to.</p>
+  </footer>
+
+</div>
+</body>
+</html>

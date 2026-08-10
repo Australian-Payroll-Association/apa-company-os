@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the to-be processes were designed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#04102D; --blue:#287BE8; --lightgray:#EAEEF2; --white:#FFFFFF;
+  --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+  --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--white);color:var(--body);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:880px;margin:0 auto;padding:64px 28px 120px;}
+
+h1{font-size:40px;line-height:1.15;font-weight:700;color:var(--navy);letter-spacing:-0.02em;margin:0 0 10px;}
+h2{font-size:27px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;margin:64px 0 14px;padding-top:22px;border-top:1px solid var(--border);}
+h3{font-size:20px;font-weight:700;color:var(--navy);margin:38px 0 8px;}
+h4{font-size:16.5px;font-weight:600;color:var(--navy);margin:26px 0 6px;}
+h2:first-of-type{border-top:none;padding-top:0;}
+p{margin:0 0 15px;}
+a{color:var(--blue);}
+strong{font-weight:600;color:var(--navy);}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.87em;background:var(--lightgray);
+     padding:2px 6px;border-radius:4px;color:var(--navy);}
+hr{border:none;border-top:1px solid var(--border);margin:48px 0;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 6px;}
+li::marker{color:var(--blue);}
+
+.lede{font-size:18px;color:var(--muted);margin:0 0 34px;}
+.meta{font-size:13.5px;color:var(--muted);border-left:3px solid var(--blue);padding:10px 0 10px 16px;
+      background:var(--lightgray);border-radius:0 6px 6px 0;margin:0 0 34px;}
+
+table{width:100%;border-collapse:collapse;margin:20px 0 26px;font-size:14.5px;}
+th{text-align:left;font-weight:600;color:var(--navy);background:var(--lightgray);
+   padding:11px 13px;border-bottom:2px solid var(--border);vertical-align:top;}
+td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.tablewrap{overflow-x:auto;margin:20px 0 26px;}
+.tablewrap table{margin:0;}
+
+/* colour coding: dispositions */
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:0.01em;
+     padding:2px 9px;border-radius:999px;white-space:nowrap;}
+.tag-mvp{background:var(--blue);color:#fff;}
+.tag-reduced{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+.tag-deferred{background:var(--lightgray);color:var(--muted);border:1px solid var(--border);}
+.tag-retired{background:#FFEDE5;color:#B5431A;border:1px solid #FFC9B0;}
+.tag-blocking{background:var(--magenta);color:#fff;}
+
+/* colour coding: legacy systems vs business objects */
+.sys{display:inline-block;background:var(--navy);color:#fff;font-size:12.5px;font-weight:600;
+     padding:1px 8px;border-radius:4px;white-space:nowrap;}
+.obj{display:inline-block;background:#EAF2FE;color:#1A4E96;font-size:13px;font-weight:500;
+     padding:1px 8px;border-radius:4px;border:1px solid #CFE0FA;}
+
+.objgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin:12px 0 22px;}
+
+/* process cards */
+.proc{background:var(--lightgray);border-radius:10px;padding:22px 24px;margin:22px 0;}
+.proc h3{margin-top:0;}
+.proc p{margin-bottom:11px;}
+.proc p:last-child{margin-bottom:0;}
+.proc ol,.proc ul{margin-bottom:12px;}
+
+.band{margin:60px 0 8px;padding:16px 22px;background:var(--navy);color:#fff;border-radius:10px;}
+.band h2{border:none;padding:0;margin:0;color:#fff;font-size:22px;}
+.band .bsub{font-size:14px;color:#B9C4DA;margin-top:3px;}
+
+.callout{border-left:3px solid var(--orange);background:#FFF6F2;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;}
+.callout strong{color:#B5431A;}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.reveal.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+
+@media print{
+  /* reveals must never hide content on paper */
+  .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
+  body{font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:14pt;margin:22pt 0 8pt;padding-top:10pt;}
+  h3{font-size:12pt;margin:14pt 0 5pt;} h4{font-size:10.5pt;}
+  h2,h3,h4{break-after:avoid;page-break-after:avoid;}
+  .proc,.band,.callout,.meta,tr,li{break-inside:avoid;page-break-inside:avoid;}
+  table{font-size:9pt;}
+  .tablewrap{overflow:visible;}
+  .band{background:var(--navy) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .proc,.meta,th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tag,.sys,.obj{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a{color:var(--blue);text-decoration:none;}
+  footer{margin-top:24pt;}
+}
+@page{margin:16mm 14mm;}
+@media (max-width:640px){
+  .wrap{padding:40px 18px 80px;} h1{font-size:31px;} h2{font-size:23px;} body{font-size:16px;}
+}
+</style></head>
+<body><div class="wrap">
+<h1>How the to-be processes were designed</h1>
+<div class="meta">Written 2 August 2026. The method behind the Work Healthy Australia process set, why the three passes ran in the order they did, and what that order buys the implementation plan.</div>
+<h2 class="reveal">The short version</h2>
+<p class="reveal">The processes were drawn three times, against three different yardsticks, in a deliberate order.</p>
+<div class="tablewrap reveal"><table><thead><tr><th>Pass</th><th>Yardstick</th><th>Question it answers</th><th>Artefact</th></tr></thead><tbody><tr><td>1. Greenfield skeleton</td><td>The business itself</td><td>What has to happen for a signed agreement to become an invoice?</td><td>The L0 value chain and the first L1 swimlanes</td></tr><tr><td>2. Industry, national then worldwide</td><td>What good providers and regulators publish</td><td>What have we forgotten?</td><td><code>L1-Gap-Check-Against-Industry.md</code>, and the seven Standard Process Reference documents behind it</td></tr><tr><td>3. IMS and the legacy estate</td><td>What the current systems actually hold</td><td>What already exists, what must be built, and what must not be dropped?</td><td><code>Fit-Gap-New-Design-Against-IMS.md</code></td></tr></tbody></table></div>
+<p class="reveal">Each pass produced a version. The skeleton produced versions 1 and 2. The industry sweep produced version 3. The IMS fit and gap produced version 4.</p>
+<p class="reveal">The order is the whole method. Running it any other way produces a different and worse design, for reasons set out below.</p>
+<h2 class="reveal">Pass one: the greenfield skeleton</h2>
+<p class="reveal">The first draft was made from the business and nothing else. One question: what must happen, in what order, for a signed agreement to become an invoice.</p>
+<p class="reveal">That produced the value chain and the first swimlanes: set up the workplace, onboard the people, schedule the service, admit the Patient, render and determine, report and invoice. Every step was drawn with its actors in lanes, its decisions as diamonds, and the employer wall as a line that only certain things cross.</p>
+<p class="reveal"><strong>Why start here and not with the current system.</strong> A ten-year-old system contains three kinds of thing that look identical from the inside: real requirements, workarounds for limitations that no longer apply, and accidents nobody ever revisited. Starting from the system means inheriting all three and being unable to tell them apart. Starting from the business means every step has to earn its place by answering a question about the work, and anything the old system does that cannot be traced to such a question is visible as a candidate for deliberate removal rather than automatic carry-over.</p>
+<p class="reveal">The skeleton is not expected to be complete. It is expected to be honest, and to be a thing the next two passes can be run against.</p>
+<h2 class="reveal">Pass two: industry, national first then worldwide</h2>
+<p class="reveal">The skeleton was then checked against published practice, in two sweeps.</p>
+<p class="reveal"><strong>National first.</strong> KINNECT, Jobfit and Sonic HealthPlus. These are the commercial comparators, so what they publish is the competitive bar. KINNECT's platform turned out to divide almost exactly into four modules that map onto processes, which is a strong signal that the shapes are real rather than one company's preference.</p>
+<p class="reveal"><strong>Worldwide second.</strong> The Netherlands, Japan, the United Kingdom, Germany and Finland, plus the enterprise platforms. The reason for going abroad is not that overseas practice is better. It is that where a regulator forces the shape, the shape gets written down precisely. Dutch sick-leave law names the milestones and the weeks they fall in. The German split into mandatory, offered and worker-requested services is legislated. Japan's stress check programme states exactly what may cross to the employer and at what group size. Australian practice contains the same shapes, but usually as convention rather than text, so the overseas material is where the detail is legible.</p>
+<p class="reveal">Underneath both sweeps sit seven Standard Process Reference documents compiled from primary sources, one per service family, each ending with what still needed verification.</p>
+<p class="reveal"><strong>What this pass found.</strong> Three entire processes were missing, and no amount of internal review would have surfaced them, because they were absent from the current operation too.</p>
+<ul class="reveal"><li><strong>Define the Role Requirements.</strong> Every service in the skeleton measured a Patient against the Role requirements. Nothing created them.</li><li><strong>Track Fitness Check-ups.</strong> Every service began because a person asked for it. Nothing generated work from a date, which is the difference between selling services and selling a programme.</li><li><strong>Manage the Unfit Case.</strong> The skeleton answered the fitness question once. A case answers it repeatedly, on a certificate clock, until the answer is durable.</li></ul>
+<p class="reveal">It also found smaller things: a safety gate before functional testing, temporary against permanent on a determination, a dispute path after release, and billable events the skeleton had no concept of.</p>
+<p class="reveal"><strong>Why industry before legacy.</strong> This pass is about completeness, and completeness is the one thing the legacy system cannot tell you. IMS is missing plenty. Checking the skeleton against IMS first would have measured the design against something with the same blind spots, and would have concluded far too early that the design was complete.</p>
+<h2 class="reveal">Pass three: IMS and the legacy estate</h2>
+<p class="reveal">Only once the design was complete was it checked against the systems that exist.</p>
+<p class="reveal">The evidence base is the three production database schemas held in the repository: the live IMS database at 513 tables, the version 2 schema at 316, and the client portal at 39. Together with the scraped screen reference, they establish what the current estate can hold. Every step and every decision in the design was walked against them.</p>
+<p class="reveal">Each step came out with one of two verdicts.</p>
+<ul class="reveal"><li><strong>Covered.</strong> The step has a matching capability in the current estate. This is parity, and it is a migration rather than a build.</li><li><strong>New.</strong> The step has no analogue. This is greenfield, and it is a build.</li></ul>
+<p class="reveal">And separately, running the check in the other direction produced a third category: <strong>capabilities the current estate has that the new design had nowhere to put.</strong> Forty-three of those were raised. Each was put up as a proposal rather than an edit, because a practice in a ten-year-old system may be a requirement, may be a workaround for a limitation that no longer exists, or may simply be out of date. That is a judgement about the business, so it belongs to the business.</p>
+<p class="reveal">The result of that judgement was as important as the analysis. Five proposals were withdrawn outright once the rulings came back, including two that had been ranked at the top. The design changed on the ones that survived, and the practices deliberately not carried forward were named and recorded with the reason.</p>
+<p class="reveal"><strong>Why legacy last.</strong> Doing it last means the legacy evidence answers scoping questions rather than design questions. What should the process be is already settled by passes one and two. What IMS holds only decides how each step gets delivered, and in what order. That single ordering choice is what prevents the two failure modes that kill migrations: copying the old system's workarounds into the new one because they were there, and dropping a capability at cutover because nobody noticed it existed.</p>
+<p class="reveal">It also settled three scoping questions that had been treated as unfunded research. IMS does not raise work from a date, so the clock is greenfield and deferring it cannot breach a parity promise. IMS does hold a certificate of capacity and a duties plan, so the case is closer to parity than assumed. Task analysis lives in IMS with a full job demands record, so the yardstick is a migration and not a build.</p>
+<h2 class="reveal">What the order buys the implementation plan</h2>
+<p class="reveal"><strong>A backlog that is derived rather than negotiated.</strong> Every step in the set carries a verdict. Covered means migrate, New means build. The build list falls out of the analysis instead of being argued into existence.</p>
+<p class="reveal"><strong>A parity promise that can be checked.</strong> "No capability dropped" is usually a statement of intent. Here it is a table. Any claim that something has been lost can be tested against the row that covers it.</p>
+<p class="reveal"><strong>Sequencing that is safe.</strong> Work that is greenfield in both the old and new systems can be deferred without breaching parity, because there is nothing to drop. Work that is parity has to be in the first slice. That distinction is only available because the design existed before the comparison ran.</p>
+<p class="reveal"><strong>Decisions that stay decided.</strong> Every ruling is written onto the process page as a rule, with the reasoning and, where relevant, the alternative that was rejected. The wall passing only the determination is recorded as a decision, not a fact, with the note that Britain does the opposite. The same for anonymous surveys and for the Patient not receiving the determination. A rule with its reasoning attached does not get re-litigated every time someone new reads the diagram.</p>
+<p class="reveal"><strong>Acceptance criteria that already exist.</strong> The maps are the QA yardstick. Every decision diamond has named exits, so coverage can be counted rather than asserted, and a scenario walk-through has something to be walked against.</p>
+<p class="reveal"><strong>A named list of what was deliberately left behind.</strong> Practices that turned out to be workarounds or out of date are recorded with the reason they are not being carried, so nobody re-introduces them later in good faith.</p>
+<h2 class="reveal">What the method does not give you</h2>
+<p class="reveal">Schema proves what a system can hold. It does not prove what is used. A table with no rows is an abandoned capability whatever the screen suggests, and that has already caught us once on a different system. Every verdict of Covered means the capability exists, and row counts against the named tables are what would turn that into a statement about the working business. That is a query, not a project, and it is the obvious next step.</p>
+<p class="reveal">Two questions also remain open that no amount of analysis will close, because they are commercial rather than technical. Whether treatment records still belong inside the estate once treatment is treated as external. And whether Work Healthy Australia intends to sell monitoring programmes rather than individually requested services, which decides whether the clock is the product or merely a gap.</p>
+<footer>Edge8 · Work Healthy Australia · 30 July 2026</footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body></html>

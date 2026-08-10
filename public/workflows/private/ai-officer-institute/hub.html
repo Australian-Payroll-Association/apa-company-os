@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>AI Officer Institute · Learning Hub (Prototype)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          // Unified brand palette (Edge8 / AI Officer Institute)
+          ink:    { DEFAULT:'#04102d', 900:'#04102d', 800:'#0a1a3d', 700:'#14233f' },
+          paper:  '#f7f8fa',
+          accent: { DEFAULT:'#287be8', 600:'#236bc9', 700:'#1c58a8', 50:'#e7f1ff', 100:'#cbe1ff' },
+          officer:{ DEFAULT:'#d1458b', bg:'#ffeff7', fg:'#a03168' },
+          eng:    { DEFAULT:'#287be8', bg:'#e7f1ff', fg:'#1c58a8' },
+          lead:   { DEFAULT:'#64d7ac', bg:'#e3fff4', fg:'#377b61' }, // mint-600 / mint-100 / mint-900 (globals.css)
+          emerald:{ 50:'#f0fdf4', 100:'#dcfce7', 200:'#bbf7d0', 500:'#22c55e', 600:'#16a34a', 700:'#15803d' }, // repo green scale (globals.css)
+        },
+        fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','Segoe UI','sans-serif'] },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { -webkit-font-smoothing:antialiased; }
+  .fade-in { animation: fade .35s ease both; }
+  @keyframes fade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .tnum { font-variant-numeric: tabular-nums; }
+  /* DS: JetBrains Mono for numeric display — scoped to the three synced modules */
+  #view-videos .tnum, #view-micro .tnum, #view-coaching .tnum,
+  #view-videos .dur, #view-videos .tlbl, #view-videos .up .st .d,
+  #view-videos .vstat .n { font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; }
+
+  /* Shared certification-category pills + free-flowing tags */
+  .pill-cat { font-size:11px; font-weight:700; padding:2px 9px; border-radius:9999px; white-space:nowrap; display:inline-flex; align-items:center; }
+  .pill-officer { background:#ffeff7; color:#a03168; }
+  .pill-eng     { background:#e7f1ff; color:#1c58a8; }
+  .pill-lead    { background:#e3fff4; color:#377b61; } /* mint-100 / mint-900 */
+  .pill-micro   { background:#edf2ff; color:#0e348f; } /* deep-navy-50 / deep-navy-800 */
+  .tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:9999px; white-space:nowrap; color:#475569; background:#fff; border:1px solid #e2e8f0; }
+
+  /* Sidebar */
+  .navitem { display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:10px; font-size:14px; font-weight:600; color:#475569; cursor:pointer; transition:background .12s,color .12s; width:100%; text-align:left; }
+  .navitem:hover { background:#f1f3f6; color:#04102d; }
+  .navitem.active { background:#eef2fb; color:#04102d; }
+  .navitem.active svg { color:#287be8; }
+  .navitem svg { width:19px; height:19px; flex:none; color:#94a3b8; }
+  .navgroup { font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#94a3b8; padding:0 12px; }
+
+  /* ───────── Video library (scoped so generic class names don't leak) ───────── */
+  #view-videos {
+    --navy:#04102d; --blue:#287be8; --blue-600:#236bc9; --blue-700:#1c58a8; --blue-50:#e7f1ff; --blue-100:#cbe1ff; --cta:#092244;
+    --gray-50:#fafafa; --gray-100:#eaeef2; --gray-300:#d4d4d4; --gray-400:#a3a3a3; --gray-500:#737373;
+    --border:#e2e8f0; --text:#04102d; --text-2:#475569; --text-3:#64748b;
+    --t-officer:#d1458b; --t-officer-bg:#ffeff7; --t-officer-fg:#a03168;
+    --t-eng:#287be8; --t-eng-bg:#e7f1ff; --t-eng-fg:#1c58a8;
+    --t-lead:#64d7ac; --t-lead-bg:#e3fff4; --t-lead-fg:#377b61; /* mint-600/100/900 */
+    --t-micro:#1258ff; --t-micro-bg:#edf2ff; --t-micro-fg:#0e348f; /* deep-navy-500/50/800 */
+    --success:#16a34a; --amber:#b8943f; --amber-bg:#faf4e4; /* green-600 / trophy-gold */
+    --r-sm:6px; --r-md:8px; --r-lg:10px; --r-xl:14px; --r-2xl:16px; --r-3xl:20px; --r-full:9999px;
+    --sh-sm:0 1px 3px rgba(4,16,45,.07); --sh-hover:0 6px 24px rgba(4,16,45,.10); --sh-lg:0 12px 34px rgba(4,16,45,.16);
+
+    .tnum { font-variant-numeric:tabular-nums; }
+    .vhead { display:flex; align-items:center; gap:16px; margin:4px 0 18px; flex-wrap:wrap; }
+    .vsearch { flex:1; min-width:220px; max-width:440px; display:flex; align-items:center; gap:10px; background:var(--gray-50); border:1.5px solid var(--border); border-radius:var(--r-full); padding:10px 18px; color:var(--gray-400); transition:.15s; }
+    .vsearch:focus-within { border-color:var(--blue); background:#fff; box-shadow:0 0 0 4px var(--blue-50); }
+    .vsearch input { border:none; background:none; outline:none; flex:1; font-size:15px; color:var(--text); }
+    .previewas { position:relative; flex:none; }
+    .previewas>button { display:flex; align-items:center; gap:7px; border:1px dashed var(--border); border-radius:var(--r-full); padding:8px 13px; font-size:12px; font-weight:600; color:var(--text-2); background:#fff; }
+    .previewas>button:hover { border-color:var(--blue); color:var(--blue); }
+    .previewas .menu { position:absolute; right:0; top:calc(100% + 8px); background:#fff; border:1px solid var(--border); border-radius:var(--r-xl); box-shadow:var(--sh-lg); padding:6px; min-width:230px; display:none; z-index:40; }
+    .previewas.open .menu { display:block; }
+    .previewas .menu .lbl { font-size:10.5px; font-weight:700; letter-spacing:.1em; color:var(--gray-400); text-transform:uppercase; padding:8px 10px 4px; }
+    .previewas .menu button { display:flex; width:100%; align-items:center; gap:9px; padding:9px 10px; border-radius:var(--r-md); font-size:13.5px; font-weight:600; text-align:left; background:none; border:none; cursor:pointer; color:var(--text); }
+    .previewas .menu button:hover { background:var(--gray-50); }
+    .previewas .menu .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+    .previewas .menu button.on { color:var(--blue-700); }
+    .previewas .menu button.on::after { content:"✓"; margin-left:auto; }
+
+    /* stats strip */
+    .vstats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    .vstat { flex:1; min-width:150px; border:1px solid var(--border); border-radius:var(--r-xl); background:#fff; padding:13px 16px; box-shadow:var(--sh-sm); }
+    .vstat .n { font-size:22px; font-weight:800; letter-spacing:-.5px; color:var(--navy); }
+    .vstat .l { font-size:12px; color:var(--text-3); font-weight:600; margin-top:2px; }
+    .vstat .b { font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-700); background:var(--blue-50); border-radius:var(--r-full); padding:2px 8px; float:right; }
+
+    /* recently watched rail */
+    .rail { margin-bottom:22px; }
+    .rail-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .rail-head .t { font-weight:700; font-size:15px; letter-spacing:-.2px; color:var(--navy); }
+    .rail-scroll { display:flex; gap:14px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin; }
+    .rail-card { flex:none; width:210px; cursor:pointer; }
+    .rail-card .thumb { aspect-ratio:16/9; }
+
+    button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+    a { color:inherit; text-decoration:none; }
+
+    .featured { margin:4px 0 22px; border-radius:var(--r-3xl); overflow:hidden; background:var(--navy); color:#fff; box-shadow:var(--sh-lg); }
+    .featured-grid { display:grid; grid-template-columns:1.15fr .95fr; }
+    @media(max-width:820px){ .featured-grid { grid-template-columns:1fr; } }
+    .featured-media { position:relative; min-height:300px; background-size:cover; background-position:center; cursor:pointer; }
+    .featured-media::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,rgba(4,16,45,.10),rgba(4,16,45,.72)); }
+    @media(max-width:820px){ .featured-media { min-height:190px; } }
+    .featured-body { padding:34px; display:flex; flex-direction:column; justify-content:center; gap:13px; }
+    @media(max-width:820px){ .featured-body { padding:24px; } }
+    .kick { display:flex; align-items:center; gap:10px; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#8fb6ff; }
+    .featured h2 { margin:0; font-weight:700; font-size:30px; line-height:34px; letter-spacing:-.7px; color:#fff; }
+    @media(max-width:820px){ .featured h2 { font-size:24px; line-height:28px; } }
+    .featured p { margin:0; color:#c7d2e6; font-size:15px; max-width:52ch; }
+    .featured-meta { display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:#9fb0cc; font-size:13px; }
+    .featured-credit { display:flex; flex-direction:column; gap:7px; margin-top:2px; }
+    .fc-top { display:flex; justify-content:space-between; font-size:12.5px; color:#c7d2e6; font-weight:500; }
+    .fc-bar { height:7px; border-radius:var(--r-full); background:rgba(255,255,255,.16); overflow:hidden; }
+    .fc-bar>i { display:block; height:100%; background:linear-gradient(90deg,#5ba2ff,var(--blue)); }
+    .featured-actions { display:flex; gap:12px; align-items:center; margin-top:4px; flex-wrap:wrap; }
+    .btn-play { display:inline-flex; align-items:center; gap:9px; background:#fff; color:var(--navy); font-weight:700; padding:11px 20px; border-radius:var(--r-full); font-size:14px; }
+    .btn-ghost { display:inline-flex; align-items:center; gap:8px; color:#dbe4f2; font-weight:600; font-size:13.5px; border:1px solid rgba(255,255,255,.22); padding:10px 17px; border-radius:var(--r-full); }
+    .btn-ghost:hover { background:rgba(255,255,255,.08); }
+    .fmedia-tri { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:66px; height:66px; border-radius:50%; background:rgba(255,255,255,.94); display:grid; place-items:center; z-index:2; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+
+    .lib-layout { display:grid; grid-template-columns:248px 1fr; gap:28px; align-items:start; }
+    @media(max-width:900px){ .lib-layout { grid-template-columns:1fr; } }
+    .filters { position:sticky; top:16px; display:flex; flex-direction:column; gap:10px; }
+    @media(max-width:900px){
+      .filters { position:fixed; inset:0 0 0 auto; width:min(340px,86vw); top:0; background:#fff; z-index:60; padding:20px; overflow:auto; box-shadow:var(--sh-lg); transform:translateX(100%); transition:transform .22s; border-left:1px solid var(--border); }
+      .filters.open { transform:none; }
+    }
+    .fscrim { display:none; } @media(max-width:900px){ .fscrim.open { display:block; position:fixed; inset:0; background:rgba(4,16,45,.4); z-index:55; } }
+    .fgroup { border:1px solid var(--border); border-radius:var(--r-xl); background:#fff; overflow:hidden; }
+    .fg-head { display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; padding:13px 15px; font-size:13.5px; font-weight:700; color:var(--text); }
+    .fg-head:hover { background:var(--gray-50); }
+    .fg-head .fg-n { display:inline-grid; place-items:center; min-width:19px; height:19px; padding:0 5px; margin-left:8px; border-radius:var(--r-full); background:var(--blue); color:#fff; font-size:11px; font-weight:700; }
+    .fg-head .chev { color:var(--gray-400); transition:transform .18s; } .fgroup.open .fg-head .chev { transform:rotate(180deg); }
+    .fg-body { display:none; padding:4px 8px 10px; } .fgroup.open .fg-body { display:block; }
+    .fopt { position:relative; display:flex; align-items:center; gap:10px; padding:8px; border-radius:var(--r-md); cursor:pointer; font-size:13.5px; color:var(--text-2); }
+    .fopt:hover { background:var(--gray-50); }
+    .fopt input { position:absolute; opacity:0; width:0; height:0; }
+    .fopt .box { width:18px; height:18px; border:1.5px solid var(--gray-300); border-radius:5px; flex:none; display:grid; place-items:center; transition:.12s; }
+    .fopt input:checked+.box { background:var(--blue); border-color:var(--blue); }
+    .fopt input:checked+.box::after { content:""; width:5px; height:9px; border:2px solid #fff; border-top:0; border-left:0; transform:rotate(45deg) translateY(-1px); }
+    .fopt .swatch { width:10px; height:10px; border-radius:50%; flex:none; }
+    .fopt .ol { flex:1; color:var(--text); } .fopt .oc { font-size:12px; color:var(--gray-400); font-weight:600; }
+    .fopt.dim { opacity:.4; cursor:default; } .fopt.dim:hover { background:none; }
+
+    .rtoolbar { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .filterbtn { display:none; align-items:center; gap:7px; border:1.5px solid var(--border); border-radius:var(--r-full); padding:9px 15px; font-size:13.5px; font-weight:600; }
+    @media(max-width:900px){ .filterbtn { display:inline-flex; } }
+    .rcount { font-size:14px; font-weight:600; color:var(--text); }
+    .sortsel { margin-left:auto; display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-3); font-weight:600; }
+    .sortsel select { font-family:inherit; font-size:13.5px; font-weight:600; color:var(--text); border:1.5px solid var(--border); border-radius:var(--r-md); padding:8px 10px; background:#fff; cursor:pointer; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; align-items:center; }
+    .achip { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; background:var(--blue-50); color:var(--blue-700); border:1px solid var(--blue-100); border-radius:var(--r-full); padding:5px 6px 5px 12px; }
+    .achip .sw { width:8px; height:8px; border-radius:50%; }
+    .achip button { width:18px; height:18px; border-radius:50%; display:grid; place-items:center; font-size:13px; color:var(--blue-700); background:rgba(40,123,232,.12); line-height:1; }
+    .achip button:hover { background:var(--blue); color:#fff; }
+    .clearall { font-size:12.5px; font-weight:700; color:var(--text-3); text-decoration:underline; text-underline-offset:2px; padding:4px 6px; }
+    .clearall:hover { color:var(--blue); }
+
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+    @media(max-width:1024px){ .grid { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:560px){ .grid { grid-template-columns:1fr; } }
+    .card { cursor:pointer; display:flex; flex-direction:column; gap:9px; }
+    .thumb { position:relative; aspect-ratio:16/9; border-radius:var(--r-2xl); overflow:hidden; background-size:cover; background-position:center; box-shadow:var(--sh-sm); transition:.2s cubic-bezier(0.4,0,0.2,1); }
+    .card:hover .thumb { transform:translateY(-1px); box-shadow:var(--sh-hover); }
+    .card.other .thumb { filter:saturate(.72); }
+    .thumb .dur { position:absolute; right:8px; bottom:8px; background:rgba(4,16,45,.86); color:#fff; font-size:12px; font-weight:600; padding:2px 7px; border-radius:var(--r-sm); }
+    .thumb .done { position:absolute; left:8px; bottom:8px; background:var(--success); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:var(--r-full); }
+    .thumb .prog { position:absolute; left:0; right:0; bottom:0; height:4px; background:rgba(255,255,255,.34); } .thumb .prog>i { display:block; height:100%; background:var(--blue); }
+    .card-title { font-weight:600; font-size:15px; line-height:20px; letter-spacing:-.2px; color:var(--navy); }
+    .card-tags { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .pill { font-size:11px; font-weight:700; padding:2px 9px; border-radius:var(--r-full); white-space:nowrap; }
+    .pill.officer { background:var(--t-officer-bg); color:var(--t-officer-fg); }
+    .pill.eng { background:var(--t-eng-bg); color:var(--t-eng-fg); }
+    .pill.lead { background:var(--t-lead-bg); color:var(--t-lead-fg); }
+    .pill.micro { background:var(--t-micro-bg); color:var(--t-micro-fg); }
+    .pill.tag { background:transparent; color:var(--text-3); border:1px solid var(--border); font-weight:600; }
+    .pill.nocredit { background:transparent; color:var(--gray-500); border:1px solid var(--border); }
+    .watched { font-size:12px; color:var(--blue-700); font-weight:600; }
+    mark { background:#ffe9a8; color:inherit; border-radius:3px; padding:0 1px; }
+    .empty { grid-column:1/-1; padding:56px; text-align:center; color:var(--text-2); border:1px dashed var(--border); border-radius:var(--r-2xl); background:var(--gray-50); }
+    .empty b { color:var(--text); display:block; margin-bottom:10px; }
+
+    .detail-grid { display:grid; grid-template-columns:1fr 360px; gap:34px; padding:6px 0 40px; }
+    @media(max-width:1000px){ .detail-grid { grid-template-columns:1fr; } }
+    .player { position:relative; aspect-ratio:16/9; border-radius:var(--r-2xl); overflow:hidden; background:#000 center/cover no-repeat; box-shadow:var(--sh-lg); cursor:pointer; }
+    .player .veil { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.4)); }
+    .player .bigplay { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:82px; height:82px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; box-shadow:0 10px 30px rgba(0,0,0,.45); transition:.15s; }
+    .player.playing .bigplay { opacity:0; pointer-events:none; }
+    .player .scrub { position:absolute; left:0; right:0; bottom:0; height:6px; background:rgba(255,255,255,.28); } .player .scrub>i { display:block; height:100%; width:0; background:var(--blue); }
+    .player .tlbl { position:absolute; right:12px; bottom:14px; font-size:12px; color:#fff; font-weight:600; background:rgba(0,0,0,.5); padding:2px 8px; border-radius:var(--r-sm); }
+    .v-title { font-weight:700; font-size:26px; line-height:30px; letter-spacing:-.6px; margin:18px 0 10px; color:var(--navy); }
+    .v-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--text-3); font-size:13.5px; } .v-divider { width:1px; height:16px; background:var(--border); }
+    .credit { margin:18px 0; border:1px solid var(--border); border-left:4px solid var(--blue); background:var(--blue-50); border-radius:var(--r-xl); padding:16px 18px; }
+    .credit-top { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:14px; font-weight:600; } .credit-top .pct { color:var(--blue-700); }
+    .credit-bar { height:8px; border-radius:var(--r-full); background:#fff; overflow:hidden; margin-top:10px; border:1px solid var(--border); } .credit-bar>i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--blue),var(--blue-600)); transition:width .2s; }
+    .credit-sub { font-size:13px; color:var(--text-2); margin-top:8px; }
+    .certnote { display:flex; align-items:center; gap:11px; font-size:13px; color:var(--text-2); border:1px dashed var(--border); border-radius:var(--r-lg); padding:13px 15px; margin:14px 0; line-height:1.4; }
+    .certnote .ic { flex:none; font-size:16px; } .certnote b { color:var(--text); }
+    .certnote .cta { margin-left:auto; flex:none; background:var(--cta); color:#fff; font-weight:600; font-size:12.5px; padding:9px 15px; border-radius:var(--r-full); white-space:nowrap; }
+    .certnote.explore { border-style:solid; border-color:var(--amber); background:var(--amber-bg); color:#6b5310; } .certnote.explore b { color:#4a3a0b; }
+    .panel { border:1px solid var(--border); border-radius:var(--r-2xl); padding:18px 20px; margin:18px 0; background:#fff; box-shadow:var(--sh-sm); }
+    .panel h3 { font-size:12.5px; font-weight:800; letter-spacing:.05em; margin:0 0 12px; text-transform:uppercase; color:var(--text-3); }
+    .links { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; } @media(max-width:620px){ .links { grid-template-columns:1fr; } }
+    .linkcard { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--border); border-radius:var(--r-lg); transition:.15s; } .linkcard:hover { border-color:var(--blue); background:var(--blue-50); }
+    .linkcard .ic { width:38px; height:38px; border-radius:var(--r-lg); display:grid; place-items:center; background:var(--gray-100); color:var(--blue-700); flex:none; }
+    .linkcard .lt { font-weight:600; font-size:14px; } .linkcard .ls { font-size:12px; color:var(--text-3); }
+    .up-head { display:flex; align-items:center; justify-content:space-between; margin:2px 0 14px; } .up-head .t { font-weight:700; font-size:17px; letter-spacing:-.3px; color:var(--navy); }
+    .autoplay { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2); font-weight:500; }
+    .switch { width:38px; height:22px; border-radius:var(--r-full); background:var(--blue); position:relative; transition:.15s; } .switch::after { content:""; position:absolute; top:2px; left:18px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+    .switch.off { background:var(--gray-300); } .switch.off::after { left:2px; }
+    .up { display:flex; gap:11px; margin-bottom:12px; cursor:pointer; padding:6px; border-radius:var(--r-xl); transition:.12s; } .up:hover { background:var(--gray-50); }
+    .up.next { outline:2px solid var(--blue); outline-offset:0; background:var(--blue-50); }
+    .up .st { position:relative; flex:none; width:150px; aspect-ratio:16/9; border-radius:var(--r-lg); overflow:hidden; background-size:cover; background-position:center; }
+    .up .st .d { position:absolute; right:5px; bottom:5px; background:rgba(4,16,45,.86); color:#fff; font-size:11px; font-weight:600; padding:1px 6px; border-radius:4px; }
+    .up .st .p { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.35); } .up .st .p>i { display:block; height:100%; background:var(--blue); }
+    .up-body { min-width:0; } .up-tag { font-size:10.5px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; margin-bottom:3px; } .up-tag.next { color:var(--blue-700); }
+    .up-title { font-size:14px; font-weight:600; line-height:19px; letter-spacing:-.2px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; } .up-sub { font-size:12px; color:var(--text-3); margin-top:3px; }
+    .back { display:inline-flex; align-items:center; gap:7px; font-size:14px; font-weight:600; color:var(--text-2); margin:2px 0 4px; cursor:pointer; } .back:hover { color:var(--blue); }
+  }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body class="bg-paper text-ink-900 font-sans antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-black/5 bg-white">
+    <div class="flex items-center justify-between px-4 py-4">
+      <div class="flex items-center gap-2.5">
+        <img src="assets/AIO_logo_navy.svg" alt="AI Officer" class="h-9 w-auto" />
+        <div class="leading-tight sidebar-label">
+          <p class="text-[13px] font-bold">AI Officer</p>
+          <p class="text-[11px] text-ink-900/45">Institute</p>
+        </div>
+      </div>
+      <button onclick="toggleSidebar()" class="rounded-lg p-1.5 text-ink-900/40 transition hover:bg-black/5 hover:text-ink-900" title="Collapse">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+      <p class="navgroup mb-1.5 mt-1">Learn</p>
+      <button class="navitem" data-view="home" onclick="showView('home')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+        <span class="sidebar-label">Home</span>
+      </button>
+      <button class="navitem" data-view="certification" onclick="showView('certification')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 13l-1.5 8L12 18l4.5 3L15 13"/></svg>
+        <span class="sidebar-label">Certification</span>
+      </button>
+      <button class="navitem" data-view="micro" onclick="showView('micro')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg>
+        <span class="sidebar-label">Micro Sessions</span>
+      </button>
+      <button class="navitem" data-view="videos" onclick="showView('videos')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="15" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M17 9l5-3v12l-5-3"/></svg>
+        <span class="sidebar-label">Videos</span>
+      </button>
+
+      <p class="navgroup mb-1.5 mt-4">Community</p>
+      <button class="navitem" data-view="blog" onclick="showView('blog')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M8 16h5"/></svg>
+        <span class="sidebar-label">Blog</span>
+      </button>
+      <button class="navitem" data-view="coaching" onclick="showView('coaching')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5M21 12a8 8 0 01-11.2 7.3L3 21l1.7-6A8 8 0 1121 12z"/></svg>
+        <span class="sidebar-label">Coaching</span>
+      </button>
+    </nav>
+
+    <div class="border-t border-black/5 p-3">
+      <button class="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-black/5">
+        <span class="grid h-9 w-9 place-items-center rounded-full bg-accent text-xs font-bold text-white">DH</span>
+        <span class="sidebar-label flex-1 leading-tight">
+          <span class="block text-[13px] font-semibold">Dave Hajdu</span>
+          <span class="block text-[11px] text-ink-900/45">AI Officer track</span>
+        </span>
+        <svg class="sidebar-label h-4 w-4 text-ink-900/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div id="main" class="ml-60 flex min-h-screen flex-1 flex-col transition-[margin] duration-200">
+
+    <!-- Top bar -->
+    <header class="sticky top-0 z-30 flex items-center justify-between border-b border-black/5 bg-white/85 px-6 py-3 backdrop-blur">
+      <p id="topbar-title" class="text-xs font-bold uppercase tracking-widest text-ink-900/45">Home</p>
+      <div class="flex items-center gap-2.5">
+        <span class="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink-900/70 sm:inline-flex">🔥 0 day streak</span>
+        <button class="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H8m9 0v9"/></svg>Feedback
+        </button>
+        <button onclick="showView('coaching')" class="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-ink-800">
+          <span class="grid h-4 w-4 place-items-center rounded-full bg-white/20 text-[9px]">◆</span>AI Buddy
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <div class="mx-auto max-w-6xl px-6 py-8">
+
+        <!-- ═════════ HOME ═════════ -->
+        <section id="view-home" class="view">
+          <div class="fade-in">
+            <h1 class="text-3xl font-bold tracking-tight">Good morning, <span class="text-accent">Dave</span> 👋</h1>
+            <p class="mt-2 text-ink-900/60">Three ways to keep moving toward your AI Officer certificate. Pick up where you left off.</p>
+
+            <!-- jump-in cards -->
+            <div class="mt-8 grid gap-5 md:grid-cols-3">
+              <button onclick="showView('coaching')" class="group rounded-2xl border border-black/10 bg-white p-6 text-left transition hover:shadow-md">
+                <span class="grid h-11 w-11 place-items-center rounded-xl bg-accent-50 text-accent">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5M21 12a8 8 0 01-11.2 7.3L3 21l1.7-6A8 8 0 1121 12z"/></svg>
+                </span>
+                <h3 class="mt-4 text-lg font-bold">Coaching</h3>
+                <p class="mt-1 text-sm text-ink-900/60">Bring a challenge, get coached live every Thursday.</p>
+                <p class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">Next session Aug 13 <span class="transition group-hover:translate-x-0.5">→</span></p>
+              </button>
+              <button onclick="showView('micro')" class="group rounded-2xl border border-black/10 bg-white p-6 text-left transition hover:shadow-md">
+                <span class="grid h-11 w-11 place-items-center rounded-xl bg-officer-bg text-officer-fg">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg>
+                </span>
+                <h3 class="mt-4 text-lg font-bold">Micro Sessions</h3>
+                <p class="mt-1 text-sm text-ink-900/60">One topic, one sitting, one elective credit. Tuesdays 4pm.</p>
+                <p class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-officer-fg">This week: Prompt Ops <span class="transition group-hover:translate-x-0.5">→</span></p>
+              </button>
+              <button onclick="showView('videos')" class="group rounded-2xl border border-black/10 bg-white p-6 text-left transition hover:shadow-md">
+                <span class="grid h-11 w-11 place-items-center rounded-xl bg-accent-50 text-accent">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="15" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M17 9l5-3v12l-5-3"/></svg>
+                </span>
+                <h3 class="mt-4 text-lg font-bold">Videos</h3>
+                <p class="mt-1 text-sm text-ink-900/60">The full session library. Resume, explore, and go deeper.</p>
+                <p class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">Resume: The AI Officer Operating Model <span class="transition group-hover:translate-x-0.5">→</span></p>
+              </button>
+            </div>
+
+            <!-- certificate strip -->
+            <div class="mt-6 rounded-2xl border border-black/10 bg-white p-6">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-ink-900/45">Your certificate</p>
+                  <h3 class="mt-1 text-lg font-bold">AI Officer</h3>
+                </div>
+                <button onclick="showView('certification')" class="rounded-full border border-black/15 bg-white px-4 py-2 text-sm font-semibold transition hover:border-black/30">View certificate →</button>
+              </div>
+              <div class="mt-4 flex items-center gap-3">
+                <div class="h-2 flex-1 overflow-hidden rounded-full bg-black/5"><div class="h-full rounded-full bg-accent" style="width:45%"></div></div>
+                <span class="text-sm font-semibold text-accent tnum">45%</span>
+              </div>
+              <p class="mt-2 text-sm text-ink-900/55"><b class="text-ink-900">6 of 10</b> core missions · <b class="text-ink-900">3 of 10</b> electives · 11 requirements to go</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═════════ COACHING ═════════ -->
+        <section id="view-coaching" class="view hidden">
+          <!-- home -->
+          <div id="co-home">
+            <section class="pb-6 pt-1">
+              <div class="grid items-start gap-10 lg:grid-cols-[1fr,340px]">
+              <div class="max-w-2xl">
+                <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-ink-900/70">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Live weekly · Open to all members
+                </span>
+                <h1 class="mt-5 text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">Bring a challenge,<br />get coached.</h1>
+                <p class="mt-4 text-lg text-ink-900/70">Open Coaching is a live weekly session. Sign up, and optionally submit a coaching topic you're wrestling with. The top topics get coached that day, in front of the whole group.</p>
+                <div class="mt-7 flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3">
+                    <svg class="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 6.75h15A.75.75 0 0120.25 7.5v12A.75.75 0 0119.5 20.25h-15A.75.75 0 013.75 19.5v-12A.75.75 0 014.5 6.75z"/></svg>
+                    <div class="text-sm leading-tight"><p class="font-semibold">Every Thursday</p><p class="text-ink-900/60">11:00 AM · GMT+7</p></div>
+                  </div>
+                  <div class="rounded-xl border border-dashed border-black/15 px-4 py-3 text-sm text-ink-900/55">A US-friendly time is coming soon.</div>
+                </div>
+                <div class="mt-7 flex flex-wrap gap-3">
+                  <button onclick="coOpenForm('signup')" class="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-600">Sign up for Thursday</button>
+                  <button onclick="coOpenForm('challenge')" class="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Submit a coaching topic</button>
+                </div>
+                <p class="mt-3 text-xs text-ink-900/50">Submitting a coaching topic is optional. You can just come to listen and ask questions.</p>
+              </div>
+              <div class="relative mt-8 hidden overflow-hidden rounded-2xl lg:block" style="aspect-ratio:4/3" id="co-hero-rotator">
+                <img src="assets/leadership-doubled-room.webp" alt="Open coaching session" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:1;transition:opacity .6s cubic-bezier(0.4,0,0.2,1);transform:rotate(90deg) scale(1.34)" />
+                <img src="assets/leadership-doubled-teaching.webp" alt="Coaching a topic live" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <img src="assets/dr-holtom-dave-dao.webp" alt="Coaches in session" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <img src="assets/dao-nguyen-speaking.webp" alt="Live group coaching" class="co-hero-slide absolute inset-0 h-full w-full object-cover" style="opacity:0;transition:opacity .6s cubic-bezier(0.4,0,0.2,1)" />
+                <div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(4,16,45,.35),rgba(40,123,232,.15))"></div>
+                <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5" id="co-hero-dots"></div>
+              </div>
+              <script>
+              (function(){
+                const slides = document.querySelectorAll('#co-hero-rotator .co-hero-slide');
+                const dotsWrap = document.getElementById('co-hero-dots');
+                if (!slides.length || !dotsWrap) return;
+                let cur = 0;
+                dotsWrap.innerHTML = [...slides].map((_,i)=>`<button data-i="${i}" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,${i===0?'.95':'.45'});transition:background .15s"></button>`).join('');
+                const dots = dotsWrap.querySelectorAll('button');
+                function go(n){ cur = n % slides.length; slides.forEach((s,i)=>s.style.opacity = i===cur?1:0); dots.forEach((d,i)=>d.style.background = `rgba(255,255,255,${i===cur?'.95':'.45'})`); }
+                let timer = setInterval(()=>go(cur+1), 5000);
+                dots.forEach(d=>d.addEventListener('click', e=>{ clearInterval(timer); go(+e.currentTarget.dataset.i); timer = setInterval(()=>go(cur+1), 5000); }));
+              })();
+              </script>
+              </div>
+            </section>
+
+            <div class="sticky top-[57px] z-20 -mx-6 border-y border-black/5 bg-paper/90 px-6 py-3 backdrop-blur">
+              <div class="inline-flex rounded-full border border-black/10 bg-white p-1 text-sm">
+                <button id="co-tab-upcoming" onclick="coSwitchTab('upcoming')" class="rounded-full px-4 py-1.5 font-medium">Upcoming</button>
+                <button id="co-tab-archive" onclick="coSwitchTab('archive')" class="rounded-full px-4 py-1.5 font-medium text-ink-900/55">Archive</button>
+              </div>
+            </div>
+
+            <section id="co-view-upcoming" class="py-8">
+              <div class="grid gap-6 lg:grid-cols-3">
+                <div class="lg:col-span-2 fade-in">
+                  <div class="overflow-hidden rounded-2xl border border-black/10 bg-white">
+                    <div class="flex flex-col gap-4 border-b border-black/5 bg-ink-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p class="text-xs uppercase tracking-wide text-white/50">Next session · #013</p>
+                        <h2 class="mt-1 text-2xl font-bold">Thursday, Aug 13 · 11:00 AM GMT+7</h2>
+                        <p class="mt-1 text-white/70">The top-voted topics below get coached live.</p>
+                      </div>
+                      <button onclick="coOpenForm('signup')" class="shrink-0 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-white/90">Sign up</button>
+                    </div>
+                    <div class="p-6">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-ink-900/70">Submitted coaching topics</h3>
+                        <span id="co-topic-count" class="text-xs font-medium text-ink-900/45"></span>
+                      </div>
+                      <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/5"><div id="co-topic-bar" class="h-full rounded-full bg-accent transition-all"></div></div>
+                      <ul id="co-topic-list" class="mt-4 space-y-3"></ul>
+                      <button id="co-submit-cta" onclick="coOpenForm('challenge')" class="mt-4 w-full rounded-xl border border-dashed border-black/20 py-3 text-sm font-medium text-ink-900/60 transition hover:border-accent hover:text-accent">+ Submit your own coaching topic for this session</button>
+                      <p id="co-full-note" class="mt-3 hidden rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">This session is full — 8 topics is the max. Submit for a later Thursday, or come listen in.</p>
+                    </div>
+                  </div>
+                </div>
+                <aside class="space-y-4">
+                  <div class="rounded-2xl border border-black/10 bg-white p-6 fade-in">
+                    <h3 class="text-sm font-semibold">How Open Coaching works</h3>
+                    <ol class="mt-4 space-y-4">
+                      <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">1</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Sign up</span> — one tap. No topic required.</p></li>
+                      <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">2</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Submit a coaching topic</span> (optional) — up to 8 topics per session, voted up by the group.</p></li>
+                      <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">3</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">Get coached live</span> — the top topics are worked through with the whole group.</p></li>
+                      <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-50 text-xs font-bold text-accent">4</span><p class="text-sm text-ink-900/70"><span class="font-medium text-ink-900">View the session</span> — every one is recorded and published to the archive.</p></li>
+                    </ol>
+                  </div>
+                  <div class="rounded-2xl border border-black/10 bg-ink-900 p-6 text-white fade-in">
+                    <p class="text-sm font-semibold">Can't make it live?</p>
+                    <p class="mt-1.5 text-sm text-white/70">Sign up anyway and we'll email you the recording as soon as it's published.</p>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section id="co-view-archive" class="hidden py-8">
+              <div class="mb-6">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                  <div><h2 class="text-2xl font-bold">Archive</h2><p class="mt-1 text-ink-900/60">Every past session, recorded and published automatically.</p></div>
+                  <label class="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3.5 py-2 text-sm">
+                    <svg class="h-4 w-4 text-ink-900/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg>
+                    <input id="co-arch-search" oninput="coArchFilter()" placeholder="Search topic, tag, or coach…" class="w-56 max-w-full bg-transparent outline-none placeholder:text-ink-900/40" />
+                  </label>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-1.5" id="co-arch-filters">
+                  <button class="co-afc rounded-full border border-accent bg-accent-50 px-3 py-1 text-xs font-semibold text-accent" data-cat="all" onclick="coArchSetCat('all')">All</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="officer" onclick="coArchSetCat('officer')">AI Officer</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="eng" onclick="coArchSetCat('eng')">AI Engineer</button>
+                  <button class="co-afc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="lead" onclick="coArchSetCat('lead')">Leadership</button>
+                </div>
+              </div>
+              <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="co-archive-grid"></div>
+              <p id="co-arch-empty" class="hidden py-10 text-center text-sm text-ink-900/50">No sessions match. Try another search or clear the filters.</p>
+            </section>
+          </div>
+
+          <!-- session detail -->
+          <div id="co-session" class="hidden">
+            <button onclick="coHome()" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-900/60 transition hover:text-ink-900">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back to archive
+            </button>
+            <div id="co-session-body"></div>
+          </div>
+
+          <!-- learnings -->
+          <div id="co-learnings" class="hidden"><div id="co-learnings-body"></div></div>
+        </section>
+
+        <!-- ═════════ MICRO SESSIONS ═════════ -->
+        <section id="view-micro" class="view hidden">
+          <div id="ms-home">
+            <section class="pb-4 pt-1">
+              <div class="max-w-2xl">
+                <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-ink-900/70">
+                  <span class="h-1.5 w-1.5 rounded-full bg-officer"></span>Electives · earn credit toward your certificate
+                </span>
+                <h1 class="mt-5 text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">One topic.<br />One sitting. One credit.</h1>
+                <p class="mt-4 text-lg text-ink-900/70">A micro session is a small elective: sign up, attend, and submit the challenge. Complete it and one elective credit is added to your certificate. No topic to pitch, no voting. Just one focused topic each week.</p>
+                <div class="mt-7 flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3">
+                    <svg class="h-5 w-5 text-officer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 6.75h15A.75.75 0 0120.25 7.5v12A.75.75 0 0119.5 20.25h-15A.75.75 0 013.75 19.5v-12A.75.75 0 014.5 6.75z"/></svg>
+                    <div class="text-sm leading-tight"><p class="font-semibold">Every Tuesday</p><p class="text-ink-900/60">4:00 PM · GMT+7</p></div>
+                  </div>
+                  <div class="rounded-xl border border-dashed border-black/15 px-4 py-3 text-sm text-ink-900/55">A US-friendly time is coming soon.</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- this week's micro session + tracker -->
+            <section class="py-6">
+              <div class="grid gap-6 lg:grid-cols-3">
+                <div class="lg:col-span-2 fade-in">
+                  <div class="overflow-hidden rounded-2xl border border-black/10 bg-white">
+                    <div class="border-b border-black/5 bg-ink-900 p-6 text-white">
+                      <p class="text-xs uppercase tracking-wide text-white/50">This week's micro session · Tue Aug 11 · 4:00 PM GMT+7</p>
+                      <h2 class="mt-1 text-2xl font-bold" id="ms-next-title">Prompt Ops</h2>
+                      <div class="mt-2 flex flex-wrap items-center gap-2" id="ms-next-tags"></div>
+                      <p class="mt-3 max-w-xl text-white/70">One video, one short reading, one challenge. Finish all three and you earn one elective toward your AI Officer certificate.</p>
+                    </div>
+                    <div class="p-6">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-ink-900/70">Your path to credit</h3>
+                        <span class="text-xs font-medium text-ink-900/45" id="ms-step-count">0 of 3 done</span>
+                      </div>
+                      <ol id="ms-stepper" class="mt-4 space-y-3">
+                        <li class="ms-step flex items-center gap-3 rounded-xl border border-black/10 bg-white p-3" data-step="watch">
+                          <span class="ms-dot grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-paper text-sm font-bold text-ink-900/50">1</span>
+                          <span class="flex-1"><span class="block text-sm font-semibold">Attend &amp; watch</span><span class="block text-xs text-ink-900/50">Minutes watched are logged</span></span>
+                        </li>
+                        <li class="ms-step flex items-center gap-3 rounded-xl border border-black/10 bg-white p-3" data-step="read">
+                          <span class="ms-dot grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-paper text-sm font-bold text-ink-900/50">2</span>
+                          <span class="flex-1"><span class="block text-sm font-semibold">Read the textbook</span><span class="block text-xs text-ink-900/50">One short reading</span></span>
+                        </li>
+                        <li class="ms-step flex items-center gap-3 rounded-xl border border-black/10 bg-white p-3" data-step="challenge">
+                          <span class="ms-dot grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-paper text-sm font-bold text-ink-900/50">3</span>
+                          <span class="flex-1"><span class="block text-sm font-semibold">Submit the challenge</span><span class="block text-xs text-ink-900/50">This is what earns your credit</span></span>
+                        </li>
+                      </ol>
+                      <div class="mt-5 flex flex-wrap gap-3">
+                        <button id="ms-signup-btn" onclick="msSignUp()" class="whitespace-nowrap rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-600">Sign up for Tuesday</button>
+                        <button id="ms-start-btn" onclick="msOpenSession()" class="whitespace-nowrap rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold transition hover:border-black/30">Start now</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- data logged -->
+                <aside class="space-y-4">
+                  <div class="rounded-2xl border border-black/10 bg-white p-6 fade-in">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-sm font-semibold">Your data · Prompt Ops</h3>
+                      <span class="rounded-full bg-officer-bg px-2 py-0.5 text-[11px] font-semibold text-officer-fg">tracked</span>
+                    </div>
+                    <ul class="mt-4 space-y-3 text-sm" id="ms-data">
+                      <li class="flex items-center justify-between"><span class="text-ink-900/60">1 · Signed up</span><span id="ms-d-signup" class="font-semibold text-ink-900/35">—</span></li>
+                      <li class="flex items-center justify-between"><span class="text-ink-900/60">2 · Attended</span><span id="ms-d-attend" class="font-semibold text-ink-900/35">—</span></li>
+                      <li class="flex items-center justify-between"><span class="text-ink-900/60">3 · Minutes watched</span><span id="ms-d-minutes" class="font-semibold text-ink-900/35 tnum">0</span></li>
+                      <li class="flex items-center justify-between"><span class="text-ink-900/60">4 · Challenge submitted</span><span id="ms-d-submit" class="font-semibold text-ink-900/35">—</span></li>
+                      <li class="flex items-center justify-between"><span class="text-ink-900/60">5 · Challenge score</span><span id="ms-d-score" class="font-semibold text-ink-900/35 tnum">—</span></li>
+                    </ul>
+                    <p class="mt-4 border-t border-black/5 pt-3 text-xs text-ink-900/45">These five points are logged for your coach and program manager. Credit is earned by submitting the challenge, not by watch time. The pass mark is 70% (placeholder); a score below it is a Redo you can resubmit, no penalty.</p>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <!-- catalog -->
+            <div class="sticky top-[57px] z-20 -mx-6 border-y border-black/5 bg-paper/90 px-6 py-3 backdrop-blur">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="inline-flex rounded-full border border-black/10 bg-white p-1 text-sm">
+                  <button id="ms-tab-available" onclick="msSwitchTab('available')" class="rounded-full px-4 py-1.5 font-medium">Available</button>
+                  <button id="ms-tab-completed" onclick="msSwitchTab('completed')" class="rounded-full px-4 py-1.5 font-medium text-ink-900/55">Completed &amp; past</button>
+                </div>
+                <div class="flex flex-wrap gap-1.5" id="ms-filters">
+                  <button class="ms-fc rounded-full border border-accent bg-accent-50 px-3 py-1 text-xs font-semibold text-accent" data-cat="all">All</button>
+                  <button class="ms-fc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="officer">AI Officer</button>
+                  <button class="ms-fc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="eng">AI Engineer</button>
+                  <button class="ms-fc rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-ink-900/60" data-cat="lead">Leadership</button>
+                </div>
+              </div>
+            </div>
+            <section class="py-8"><p class="mb-4 rounded-xl border border-officer/30 bg-officer-bg/50 px-4 py-2.5 text-sm text-ink-900/70">Any elective counts once toward the certificate you're working on now, even a <b>Leadership</b> elective can count toward your <b>AI Officer</b> certificate.</p><div class="overflow-hidden rounded-2xl border border-black/10 bg-white" id="ms-catalog"></div></section>
+          </div>
+
+          <!-- session flow -->
+          <div id="ms-session" class="hidden"><div id="ms-session-body"></div></div>
+        </section>
+
+        <!-- ═════════ VIDEOS ═════════ -->
+        <section id="view-videos" class="view hidden">
+          <div class="fscrim" id="vid-fscrim" onclick="vidTogglePanel()"></div>
+          <div class="vhead">
+            <label class="vsearch">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="vid-search" placeholder="Search the video library…" oninput="vidOnSearch(this.value)"/>
+            </label>
+            <div class="previewas" id="vid-previewas">
+              <button onclick="vidTogglePreviewMenu(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Preview as</button>
+              <div class="menu"><div class="lbl">Enrolled track (credit goes here)</div><div id="vid-previewOptions"></div></div>
+            </div>
+          </div>
+          <div id="vid-library"></div>
+          <div id="vid-detail" style="display:none"></div>
+        </section>
+
+        <!-- ═════════ CERTIFICATION (placeholder) ═════════ -->
+        <section id="view-certification" class="view hidden">
+          <div class="fade-in">
+            <h1 class="text-3xl font-bold tracking-tight">AI Officer certificate</h1>
+            <p class="mt-2 max-w-2xl text-ink-900/60">Finish your core missions and your elective micro sessions. Both count together, and your credential issues automatically. No final exam, no capstone.</p>
+            <div class="mt-8 grid gap-5 md:grid-cols-2">
+              <div class="rounded-2xl border border-black/10 bg-white p-6">
+                <div class="flex items-center justify-between"><h3 class="font-bold">Core — missions</h3><span class="text-sm font-semibold text-accent tnum">6 / 10</span></div>
+                <div class="mt-3 h-2 overflow-hidden rounded-full bg-black/5"><div class="h-full rounded-full bg-accent" style="width:60%"></div></div>
+                <p class="mt-2 text-sm text-ink-900/55">Generative first, then Agentic. 4 missions left.</p>
+              </div>
+              <div class="rounded-2xl border border-black/10 bg-white p-6">
+                <div class="flex items-center justify-between"><h3 class="font-bold">Electives — micro sessions</h3><span class="text-sm font-semibold text-officer-fg tnum">3 / 10</span></div>
+                <div class="mt-3 h-2 overflow-hidden rounded-full bg-black/5"><div class="h-full rounded-full bg-officer" style="width:30%"></div></div>
+                <p class="mt-2 text-sm text-ink-900/55">Any micro session counts once. <button onclick="showView('micro')" class="font-semibold text-officer-fg underline underline-offset-2">Browse micro sessions →</button></p>
+              </div>
+            </div>
+            <p class="mt-6 rounded-xl border border-dashed border-black/15 bg-white px-4 py-3 text-sm text-ink-900/55">Full certificate view is a placeholder in this prototype.</p>
+          </div>
+        </section>
+
+        <!-- ═════════ BLOG (placeholder) ═════════ -->
+        <section id="view-blog" class="view hidden">
+          <div class="fade-in">
+            <h1 class="text-3xl font-bold tracking-tight">Blog</h1>
+            <p class="mt-2 max-w-2xl text-ink-900/60">Written companions to the sessions: field notes, playbooks, and deep dives from coaches and the community.</p>
+            <p class="mt-6 rounded-xl border border-dashed border-black/15 bg-white px-4 py-3 text-sm text-ink-900/55">Blog index is a placeholder in this prototype.</p>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Coaching modal -->
+<div id="co-overlay" class="fixed inset-0 z-50 hidden items-end justify-center bg-ink-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+  <div class="w-full max-w-lg rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl fade-in">
+    <div id="co-form-state">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 id="co-modal-title" class="text-lg font-bold">Sign up for Thursday</h3>
+          <p id="co-modal-sub" class="mt-1 text-sm text-ink-900/60">We'll add it to your calendar and send the join link.</p>
+        </div>
+        <button onclick="coCloseForm()" class="rounded-full p-1.5 text-ink-900/40 transition hover:bg-black/5 hover:text-ink-900"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form onsubmit="coSubmitForm(event)" class="mt-5 space-y-4">
+        <div class="flex items-center gap-3 rounded-xl border border-black/10 bg-paper/60 px-3 py-2.5">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-accent text-xs font-bold text-white">DH</span>
+          <div class="text-sm leading-tight"><p class="font-medium">Signed in as Dave Hajdu</p><p class="text-xs text-ink-900/50">dave@edge8.co</p></div>
+        </div>
+        <label class="block">
+          <span class="text-xs font-medium text-ink-900/60">Which session?</span>
+          <select class="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-accent">
+            <option>Thursday, Aug 13 · 11:00 AM GMT+7</option>
+            <option>Thursday, Aug 20 · 11:00 AM GMT+7</option>
+            <option>Thursday, Aug 27 · 11:00 AM GMT+7</option>
+          </select>
+        </label>
+        <div id="co-challenge-fields" class="hidden space-y-4 border-t border-black/5 pt-4">
+          <label class="block">
+            <span class="text-xs font-medium text-ink-900/60">Your coaching topic <span class="font-normal text-ink-900/40">— optional</span></span>
+            <textarea rows="4" class="mt-1 w-full resize-none rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-accent" placeholder="What are you stuck on? The more concrete, the better the coaching."></textarea>
+            <span class="mt-1 block text-xs text-ink-900/45">Up to 8 topics per session — members vote the top ones up.</span>
+          </label>
+        </div>
+        <button type="button" id="co-toggle-challenge" onclick="coToggleChallengeFields()" class="text-sm font-medium text-accent hover:text-accent-600">+ Add a coaching topic to submit</button>
+        <button type="submit" class="w-full rounded-full bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent-600">Confirm sign up</button>
+        <p class="text-center text-xs text-ink-900/45">Open to all members · you can just listen and ask questions.</p>
+      </form>
+    </div>
+    <div id="co-success-state" class="hidden py-6 text-center">
+      <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600"><svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+      <h3 class="mt-4 text-lg font-bold">You're in 🎉</h3>
+      <p class="mx-auto mt-1 max-w-sm text-sm text-ink-900/60">We've saved your spot and added it to your calendar. The join link is on its way.</p>
+      <button onclick="coCloseForm()" class="mt-6 rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════ SHELL ═══════════════════ */
+const VIEW_TITLES = { home:'Home', coaching:'Coaching', micro:'Micro Sessions', videos:'Videos', certification:'Certification', blog:'Blog' };
+let vidBooted = false;
+function showView(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  const el = document.getElementById('view-'+name); if (el) el.classList.remove('hidden');
+  document.querySelectorAll('.navitem').forEach(n => n.classList.toggle('active', n.dataset.view === name));
+  document.getElementById('topbar-title').textContent = VIEW_TITLES[name] || '';
+  if (name === 'videos' && !vidBooted) { vidBoot(); vidBooted = true; }
+  window.scrollTo(0, 0);
+}
+function toggleSidebar(){
+  const collapsed = document.getElementById('sidebar').classList.toggle('w-60') === false;
+  const sb = document.getElementById('sidebar'), main = document.getElementById('main');
+  if (collapsed){ sb.classList.add('w-16'); main.classList.remove('ml-60'); main.classList.add('ml-16');
+    document.querySelectorAll('.sidebar-label').forEach(l => l.classList.add('hidden'));
+  } else { sb.classList.remove('w-16'); sb.classList.add('w-60'); main.classList.remove('ml-16'); main.classList.add('ml-60');
+    document.querySelectorAll('.sidebar-label').forEach(l => l.classList.remove('hidden')); }
+}
+</script>
+
+<script>
+/* ═══════════════════ COACHING ═══════════════════ */
+(function(){
+  const CATS = { officer:'AI Officer', eng:'AI Engineer', lead:'Leadership' };
+  const catPill = c => `<span class="pill-cat pill-${c}">${CATS[c]}</span>`;
+  const tagPills = ts => (ts||[]).map(t => `<span class="tag">${t}</span>`).join('');
+
+  const MAX_TOPICS = 8;
+  const topics = [
+    { votes:24, title:'My RAG pipeline keeps citing the wrong document', desc:'Chunks look fine in isolation but retrieval grabs neighbours. Where do I start debugging?', by:'Priya S.', cat:'eng', tags:['RAG','Retrieval'] },
+    { votes:18, title:'How do I get my team to actually adopt the AI workflows?', desc:'Everyone nods in the demo, nobody uses it the next week. Change-management help wanted.', by:'Marcus T.', cat:'officer', tags:['Adoption','Change management'] },
+    { votes:15, title:'Fine-tuning vs prompt engineering for a classifier', desc:'Small labelled dataset, needs to run cheap at scale. What is the honest tradeoff?', by:'Lena K.', cat:'eng', tags:['Fine-tuning','Classifiers'] },
+    { votes:12, title:'Agent loops forever instead of stopping', desc:'My tool-calling agent will not decide it is done. How do I design a clean stop condition?', by:'Sam O.', cat:'eng', tags:['Agents','Tool use'] },
+    { votes:9,  title:'Evals that actually catch regressions', desc:'Vibes-based testing is not cutting it. What is a lightweight eval setup to start with?', by:'Dru A.', cat:'eng', tags:['Evals','Testing'] },
+    { votes:7,  title:'Cutting our token bill without hurting quality', desc:'Costs tripled this quarter. Where is the low-risk 40% to trim?', by:'Eric M.', cat:'officer', tags:['Cost','Efficiency'] },
+    { votes:5,  title:'Keeping a chatbot safe from prompt injection', desc:'It is customer-facing. What defenses are worth the effort right now?', by:'Julien P.', cat:'eng', tags:['Security','Safety'] },
+    { votes:3,  title:'Choosing a vector DB without over-engineering', desc:'Pgvector, Pinecone, or just in-memory? We are at ~50k docs.', by:'Nadia R.', cat:'eng', tags:['Vector DB','Infra'] },
+  ];
+  const upvote = v => `<button class="flex w-11 shrink-0 flex-col items-center rounded-lg border border-black/10 bg-white py-1.5 text-ink-900/70 transition hover:border-accent hover:text-accent"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg><span class="text-xs font-semibold">${v}</span></button>`;
+  function renderTopics(){
+    const shown = topics.slice(0, MAX_TOPICS);
+    document.getElementById('co-topic-list').innerHTML = shown.map(t => `
+      <li class="flex items-start gap-3 rounded-xl border border-black/5 bg-paper/60 p-3">
+        ${upvote(t.votes)}
+        <div class="min-w-0">
+          <p class="text-sm font-semibold">${t.title}</p>
+          <p class="mt-0.5 text-sm text-ink-900/60">${t.desc}</p>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5">${catPill(t.cat)}${tagPills(t.tags)}</div>
+          <p class="mt-1.5 text-xs text-ink-900/45">Submitted by ${t.by}</p>
+        </div>
+      </li>`).join('');
+    const n = shown.length, full = n >= MAX_TOPICS;
+    document.getElementById('co-topic-count').textContent = `${n} of ${MAX_TOPICS} topics`;
+    document.getElementById('co-topic-bar').style.width = `${(n/MAX_TOPICS)*100}%`;
+    document.getElementById('co-submit-cta').classList.toggle('hidden', full);
+    document.getElementById('co-full-note').classList.toggle('hidden', !full);
+  }
+  renderTopics();
+
+  window.coSwitchTab = function(tab){
+    const isUp = tab === 'upcoming';
+    document.getElementById('co-view-upcoming').classList.toggle('hidden', !isUp);
+    document.getElementById('co-view-archive').classList.toggle('hidden', isUp);
+    const on = 'bg-ink-900 text-white', off = 'text-ink-900/55';
+    document.getElementById('co-tab-upcoming').className = 'rounded-full px-4 py-1.5 font-medium ' + (isUp ? on : off);
+    document.getElementById('co-tab-archive').className   = 'rounded-full px-4 py-1.5 font-medium ' + (isUp ? off : on);
+  };
+  coSwitchTab('upcoming');
+
+  const palette = ['#287be8','#d1458b','#1258ff','#b8943f','#dc2626','#22c55e','#e966a5','#64d7ac'];
+  const initials = n => n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const sessions = [
+    { n:'012', date:'Jul 30, 2026', coach:'Dave Cheng', cat:'eng', tags:['Evals','CI'], headline:'Wiring evals into your CI so quality stops regressing silently.',
+      topics:[ {name:'Evals in CI',desc:'My eval suite runs locally but never in CI — how do I wire it into every PR?',by:'Priya Sharma',coached:true},{name:'Golden datasets',desc:'How many hand-labelled cases is enough to start, and how do I keep them fresh?',by:'Marcus Tan',coached:true},{name:'LLM-as-judge reliability',desc:'Can I trust a model to grade another model output? When does it break?',by:'Lena Koch',coached:true},{name:'Regression alerts',desc:'I want to be paged when quality drops, not find out from a user. What is the signal?',by:'Sam Owusu',coached:false},{name:'Flaky test triage',desc:'Some evals pass 8/10 runs. Do I gate on them or treat them as noise?',by:'Dru Adeyemi',coached:false} ],
+      attendees:['Priya Sharma','Marcus Tan','Lena Koch','Sam Owusu','Dru Adeyemi','Eric Martins','Julien Petit','Nadia Rao','Dave Hajdu'],
+      learnings:['Start with 20 hand-picked golden cases before you automate anything — coverage beats cleverness.','Run evals on every PR, but gate merges only on the subset that is stable; treat the rest as signals.','An LLM judge is fine for tone and format, but assert exact values for anything numeric or factual.','Version your eval set like code — a regression is only meaningful against a frozen baseline.','Keep a known-hard bucket separate from the gating set so ambition does not block shipping.','When a judge and a human disagree, the disagreement itself is your best next test case.'],
+      resources:[{label:'Eval starter template (Notion)',kind:'doc'},{label:'Slides: Evals in CI',kind:'slides'},{label:'Sample GitHub Action workflow',kind:'code'}] },
+    { n:'011', date:'Jul 23, 2026', coach:'Priya Sharma', cat:'officer', tags:['Cost','Routing'], headline:'Cutting an agent token bill by 60% without losing accuracy.',
+      topics:[ {name:'Prompt trimming',desc:'My system prompt is 4k tokens on every call. What is safe to cut?',by:'Eric Martins',coached:true},{name:'Prompt & context caching',desc:'We re-send the same context each turn. How do I cache it properly?',by:'Marcus Tan',coached:true},{name:'Model routing',desc:'Can I send the easy 80% to a cheaper model without users noticing?',by:'Sam Owusu',coached:true},{name:'Batching requests',desc:'Does batching actually save money, or just latency?',by:'Nadia Rao',coached:false},{name:'Context-window sizing',desc:'Bigger window vs retrieval — which is cheaper at our scale?',by:'Lena Koch',coached:false} ],
+      attendees:['Dave Cheng','Marcus Tan','Sam Owusu','Eric Martins','Nadia Rao','Dave Hajdu','Lena Koch'],
+      learnings:['Route easy calls to a smaller model and reserve the frontier model for the hard 15%.','Cache system prompts and retrieved context — most bills are re-sending the same tokens.','Measure cost per successful task, not cost per call, or you will optimise the wrong thing.','Trim the prompt against your eval set, not by eye — cuts that feel safe often are not.'],
+      resources:[{label:'Cost-tracking dashboard template',kind:'doc'},{label:'Routing decision cheatsheet',kind:'doc'}] },
+    { n:'010', date:'Jul 16, 2026', coach:'Dave Cheng', cat:'eng', tags:['Structured output','JSON'], headline:'Structured outputs: getting reliable JSON out of any model.',
+      topics:[ {name:'JSON mode vs prompting',desc:'Do I need JSON mode, or is a good prompt enough?',by:'Priya Sharma',coached:true},{name:'Schema design',desc:'How flat should my schema be to keep the model from slipping?',by:'Eric Martins',coached:true},{name:'Retries & repair',desc:'The model returns broken JSON ~5% of the time. How do I recover?',by:'Julien Petit',coached:true},{name:'Validation',desc:'Where should validation live — client, API, or both?',by:'Dru Adeyemi',coached:false} ],
+      attendees:['Priya Sharma','Julien Petit','Dru Adeyemi','Eric Martins','Dave Hajdu'],
+      learnings:['Constrain with a schema, not a prompt — a validator that retries beats begging in the system message.','Keep schemas flat and shallow; deeply nested objects are where models slip.','Always have a repair pass: re-prompt with the parse error rather than failing the whole run.'],
+      resources:[{label:'Zod schema examples',kind:'code'},{label:'Slides: Structured outputs',kind:'slides'}] },
+    { n:'009', date:'Jul 9, 2026', coach:'Marcus Tan', cat:'lead', tags:['Adoption','Trust'], headline:'Rolling out an internal assistant that people actually trust.',
+      topics:[ {name:'Driving adoption',desc:'Great demo, zero usage the next week. How do I make it stick?',by:'Lena Koch',coached:true},{name:'Trust & citations',desc:'People do not believe the answers. What earns their trust?',by:'Sam Owusu',coached:true},{name:'Onboarding new users',desc:'What is the first 5-minute experience that hooks someone?',by:'Nadia Rao',coached:false},{name:'Feedback loops',desc:'How do I collect and act on feedback without a big process?',by:'Priya Sharma',coached:false} ],
+      attendees:['Dave Cheng','Lena Koch','Nadia Rao','Sam Owusu','Dave Hajdu','Priya Sharma'],
+      learnings:['Show sources on every answer — trust comes from citations, not confidence.','Launch to one enthusiastic team first; let their wins pull the rest in.','Make feedback one click, and be seen acting on it within the week.'],
+      resources:[{label:'Rollout playbook',kind:'doc'},{label:'Adoption metrics template',kind:'doc'}] },
+    { n:'008', date:'Jul 2, 2026', coach:'Dave Cheng', cat:'eng', tags:['RAG','Fine-tuning'], headline:'When to use RAG, fine-tuning, or just a bigger context window.',
+      topics:[ {name:'RAG vs fine-tuning',desc:'Our knowledge changes weekly. Which approach fits?',by:'Priya Sharma',coached:true},{name:'Context windows',desc:'Can I skip the pipeline and just stuff everything in context?',by:'Marcus Tan',coached:true},{name:'Chunking strategy',desc:'My retrieval quality is poor. Is chunking the culprit?',by:'Eric Martins',coached:true},{name:'Cost tradeoffs',desc:'What is the real cost difference between these at scale?',by:'Dru Adeyemi',coached:false} ],
+      attendees:['Priya Sharma','Marcus Tan','Eric Martins','Dru Adeyemi','Dave Hajdu'],
+      learnings:['Reach for RAG when knowledge changes; fine-tune when behaviour or format must change.','A bigger context window is the cheapest experiment — try it before building a pipeline.','Chunk by meaning, not by character count, or retrieval quality collapses.'],
+      resources:[{label:'Decision flowchart (PDF)',kind:'doc'},{label:'Slides: RAG vs fine-tuning',kind:'slides'}] },
+    { n:'007', date:'Jun 25, 2026', coach:'Lena Koch', cat:'eng', tags:['Security','Injection'], headline:'Prompt-injection defenses for a customer-facing chatbot.',
+      topics:[ {name:'Prompt injection basics',desc:'What can actually go wrong on a public-facing bot?',by:'Julien Petit',coached:true},{name:'Input filtering',desc:'Is filtering user input worth it, or just theatre?',by:'Sam Owusu',coached:true},{name:'Tool sandboxing',desc:'How do I stop a jailbreak from reaching real actions?',by:'Nadia Rao',coached:true},{name:'Least privilege',desc:'How tightly should each tool permissions be scoped?',by:'Dave Cheng',coached:false} ],
+      attendees:['Dave Cheng','Julien Petit','Sam Owusu','Nadia Rao','Dave Hajdu'],
+      learnings:['Never let model output trigger a privileged action without a human or a hard rule in between.','Treat retrieved content as untrusted input — it can carry instructions too.','Scope each tool to the least it needs; a compromised prompt cannot exceed the tool permissions.'],
+      resources:[{label:'Threat-model checklist',kind:'doc'},{label:'Slides: Injection defenses',kind:'slides'}] },
+  ];
+
+  // Archive is filterable by search (topic, tag, coach, headline) and by discipline.
+  let coArchState = { q:'', cat:'all' };
+  function coArchMatch(s){
+    if (coArchState.cat!=='all' && s.cat!==coArchState.cat) return false;
+    const q = coArchState.q; if (!q) return true;
+    const hay = [s.headline, s.coach, ...(s.tags||[]), ...((s.topics||[]).map(t=>t.name+' '+t.desc))].join(' ').toLowerCase();
+    return hay.includes(q);
+  }
+  const coArchCard = (s,i) => `
+    <article class="group flex flex-col rounded-2xl border border-black/10 bg-white p-5 transition hover:shadow-md">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ink-900/40">#${s.n} · ${s.date}</span>
+        <span class="rounded-full bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium text-accent">${s.topics.length} topics</span>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">${catPill(s.cat)}${tagPills(s.tags)}</div>
+      <p class="mt-3 flex-1 text-[15px] font-semibold leading-snug">${s.headline}</p>
+      <div class="mt-4 flex items-center gap-3">
+        <span class="grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-white" style="background:${palette[i%palette.length]}">${initials(s.coach)}</span>
+        <div class="leading-tight"><p class="text-sm font-medium">${s.coach}</p><p class="text-xs text-ink-900/50">Coach · ${s.attendees.length} attended</p></div>
+      </div>
+      <button onclick="coOpenSession(${i})" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-ink-900 py-2.5 text-sm font-semibold text-white transition group-hover:bg-ink-800">View session<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+    </article>`;
+  function renderArchive(){
+    const rows = sessions.map((s,i)=>({s,i})).filter(o=>coArchMatch(o.s));
+    document.getElementById('co-archive-grid').innerHTML = rows.map(o=>coArchCard(o.s,o.i)).join('');
+    const empty = document.getElementById('co-arch-empty'); if (empty) empty.classList.toggle('hidden', rows.length>0);
+  }
+  window.coArchFilter = function(){ const el=document.getElementById('co-arch-search'); coArchState.q=(el?el.value:'').toLowerCase().trim(); renderArchive(); };
+  window.coArchSetCat = function(cat){ coArchState.cat=cat; document.querySelectorAll('#co-arch-filters .co-afc').forEach(b=>{ const on=b.dataset.cat===cat; b.className='co-afc rounded-full border px-3 py-1 text-xs font-semibold '+(on?'border-accent bg-accent-50 text-accent':'border-black/10 bg-white text-ink-900/60'); }); renderArchive(); };
+  renderArchive();
+
+  const resIcon = { doc:'<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h6l6 6v10a2 2 0 01-2 2z"/>', slides:'<path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18v12H3zM3 4v12m9 0v4m-4 0h8"/>', code:'<path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-3 3 3 3m8-6l3 3-3 3"/>' };
+  const PREVIEW_LEARNINGS = 3;
+  const learningItem = l => `<li class="flex gap-3"><svg class="mt-0.5 h-5 w-5 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><p class="text-sm text-ink-900/80">${l}</p></li>`;
+  const coachedBadge = c => c
+    ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Coached</span>`
+    : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-ink-900/45"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>Not coached</span>`;
+  const attendeesBox = s => `<ul class="space-y-3">${s.attendees.map((a,k)=>`<li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold text-white" style="background:${palette[k%palette.length]}">${initials(a)}</span><span class="text-sm text-ink-900/80">${a}</span></li>`).join('')}</ul>`;
+
+  function coShow(pane){ ['co-home','co-session','co-learnings'].forEach(p=>document.getElementById(p).classList.toggle('hidden', p!==pane)); window.scrollTo(0,0); }
+  window.coHome = function(){ coShow('co-home'); coSwitchTab('archive'); };
+
+  window.coOpenSession = function(i){
+    const s = sessions[i];
+    document.getElementById('co-session-body').innerHTML = `
+      <div class="fade-in">
+        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-900/45">
+          <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-emerald-600">Recorded</span><span>Session #${s.n} · ${s.date}</span>
+        </div>
+        <h1 class="mt-3 text-3xl font-bold leading-tight">${s.headline}</h1>
+        <div class="mt-3 flex flex-wrap items-center gap-2">${catPill(s.cat)}${tagPills(s.tags)}</div>
+        <div class="mt-3 flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-white" style="background:${palette[i%palette.length]}">${initials(s.coach)}</span><p class="text-sm text-ink-900/70">Coached by <span class="font-medium text-ink-900">${s.coach}</span></p></div>
+        <div class="mt-6 flex aspect-video w-full items-center justify-center rounded-2xl bg-ink-900 text-white"><button class="flex flex-col items-center gap-3 transition hover:scale-105"><span class="grid h-16 w-16 place-items-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur"><svg class="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="text-sm text-white/70">Play recording · 58 min</span></button></div>
+        <div class="mt-8 grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2 space-y-8">
+            <section>
+              <div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-bold">Key learnings</h2><span class="text-xs font-medium text-ink-900/45">${s.learnings.length} total</span></div>
+              <div class="rounded-2xl border border-black/10 bg-white p-5">
+                <ul class="space-y-3">${s.learnings.slice(0,PREVIEW_LEARNINGS).map(learningItem).join('')}</ul>
+                ${s.learnings.length>PREVIEW_LEARNINGS?`<button onclick="coOpenLearnings(${i})" class="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-black/10 py-2.5 text-sm font-semibold text-ink-900/70 transition hover:border-accent hover:text-accent">View all ${s.learnings.length} key learnings<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>`:''}
+              </div>
+            </section>
+            <section>
+              <h2 class="text-lg font-bold">Topics coached <span class="text-sm font-normal text-ink-900/45">(${s.topics.length} of 8)</span></h2>
+              <ul class="mt-3 space-y-3">${s.topics.map(t=>`<li class="rounded-xl border border-black/10 bg-white p-4"><div class="flex items-start justify-between gap-3"><p class="font-semibold">${t.name}</p>${coachedBadge(t.coached)}</div><p class="mt-1 text-sm text-ink-900/65">${t.desc}</p><div class="mt-2.5 flex items-center gap-2"><span class="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-white" style="background:${palette[Math.max(0,s.attendees.indexOf(t.by))%palette.length]}">${initials(t.by)}</span><span class="text-xs text-ink-900/50">Submitted by ${t.by}</span></div></li>`).join('')}</ul>
+            </section>
+          </div>
+          <aside class="space-y-8">
+            <section><div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-bold">Attendees</h2><span class="text-xs font-medium text-ink-900/45">${s.attendees.length}</span></div><div class="rounded-2xl border border-black/10 bg-white p-5">${attendeesBox(s)}</div></section>
+            <section><h2 class="mb-3 text-lg font-bold">Additional resources</h2><div class="rounded-2xl border border-black/10 bg-white p-3"><div class="space-y-1">${s.resources.map(r=>`<a href="#" onclick="return false" class="flex items-center justify-between rounded-xl p-3 transition hover:bg-paper/70"><span class="flex items-center gap-3"><svg class="h-5 w-5 text-ink-900/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">${resIcon[r.kind]}</svg><span class="text-sm font-medium">${r.label}</span></span><svg class="h-4 w-4 text-ink-900/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H8m9 0v9"/></svg></a>`).join('')}</div></div></section>
+          </aside>
+        </div>
+      </div>`;
+    coShow('co-session');
+  };
+
+  window.coOpenLearnings = function(i){
+    const s = sessions[i];
+    document.getElementById('co-learnings-body').innerHTML = `
+      <div class="fade-in">
+        <button onclick="coOpenSession(${i})" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-900/60 transition hover:text-ink-900"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back to session #${s.n}</button>
+        <p class="text-xs font-semibold uppercase tracking-wide text-ink-900/45">Session #${s.n} · ${s.date} · ${s.coach}</p>
+        <h1 class="mt-2 text-3xl font-bold leading-tight">Key learnings</h1>
+        <p class="mt-1 text-ink-900/60">${s.learnings.length} takeaways from "${s.headline}"</p>
+        <div class="mt-6 rounded-2xl border border-black/10 bg-white p-6"><ul class="space-y-4">${s.learnings.map(learningItem).join('')}</ul></div>
+      </div>`;
+    coShow('co-learnings');
+  };
+
+  // modal
+  window.coOpenForm = function(mode){
+    mode = mode || 'signup';
+    document.getElementById('co-overlay').classList.remove('hidden');
+    document.getElementById('co-overlay').classList.add('flex');
+    document.getElementById('co-form-state').classList.remove('hidden');
+    document.getElementById('co-success-state').classList.add('hidden');
+    const wantChallenge = mode === 'challenge';
+    document.getElementById('co-challenge-fields').classList.toggle('hidden', !wantChallenge);
+    document.getElementById('co-toggle-challenge').classList.toggle('hidden', wantChallenge);
+    document.getElementById('co-modal-title').textContent = wantChallenge ? 'Submit a coaching topic' : 'Sign up for Thursday';
+    document.getElementById('co-modal-sub').textContent = wantChallenge ? 'Sign up and share what you are stuck on — members vote the top topics up.' : "We'll add it to your calendar and send the join link.";
+    document.body.style.overflow = 'hidden';
+  };
+  window.coCloseForm = function(){ document.getElementById('co-overlay').classList.add('hidden'); document.getElementById('co-overlay').classList.remove('flex'); document.body.style.overflow=''; };
+  window.coToggleChallengeFields = function(){ document.getElementById('co-challenge-fields').classList.remove('hidden'); document.getElementById('co-toggle-challenge').classList.add('hidden'); };
+  window.coSubmitForm = function(e){ e.preventDefault(); document.getElementById('co-form-state').classList.add('hidden'); document.getElementById('co-success-state').classList.remove('hidden'); };
+  document.getElementById('co-overlay').addEventListener('click', e => { if (e.target.id === 'co-overlay') coCloseForm(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') coCloseForm(); });
+})();
+</script>
+
+<script>
+/* ═══════════════════ MICRO SESSIONS ═══════════════════ */
+(function(){
+  const CATS = { officer:'AI Officer', eng:'AI Engineer', lead:'Leadership' };
+  const catPill = c => `<span class="pill-cat pill-${c}">${CATS[c]}</span>`;
+  const catPillLight = c => `<span class="pill-cat" style="background:rgba(255,255,255,.18);color:#fff">${CATS[c]}</span>`;
+  const tagPills = ts => (ts||[]).map(t => `<span class="tag">${t}</span>`).join('');
+  const tagPillsLight = ts => (ts||[]).map(t => `<span class="tag" style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.25)">${t}</span>`).join('');
+
+  // The active (this week) micro session + its logged data points
+  const PASS_MARK = 70; // placeholder pass mark (set the real threshold with the team)
+  const active = { title:'Prompt Ops', cat:'officer', tags:['Prompting','Operations'],
+    data:{ signup:false, attend:false, minutes:0, submit:false, score:null } };
+
+  // Catalog: single topic each
+  const MSIMG = {};
+  const available = [
+    { title:'Prompt Ops', cat:'officer', tags:['Prompting','Operations'], when:'Tue Aug 11 · 4:00 PM GMT+7', live:true, status:'active' },
+    { title:'Revenue signals with AI', cat:'officer', tags:['Revenue','Analytics'], when:'On-demand', live:false, status:'new' },
+    { title:'Prototyping with agents', cat:'eng', tags:['Agents','Prototyping'], when:'On-demand', live:false, status:'new' },
+    { title:'Leading an AI-native team', cat:'lead', tags:['Leadership','Change'], when:'On-demand', live:false, status:'new' },
+  ];
+  const completed = [
+    { title:'Hiring & coaching with AI', cat:'lead', tags:['Hiring','Talent'], data:{ signup:true, attend:true, minutes:18, submit:true, score:92 }, note:'Completed' },
+    { title:'Ops automation basics', cat:'officer', tags:['Automation','Ops'], data:{ signup:true, attend:false, minutes:12, submit:true, score:85 }, note:'Recording' },
+    { title:'Structured outputs', cat:'eng', tags:['JSON','Schemas'], data:{ signup:true, attend:true, minutes:21, submit:true, score:96 }, note:'Completed' },
+    { title:'Data storytelling basics', cat:'officer', tags:['Analytics','Comms'], data:{ signup:true, attend:true, minutes:15, submit:true, score:58 }, note:'Resubmit' },
+  ];
+
+  // ── this-week card ──
+  document.getElementById('ms-next-tags').innerHTML = catPillLight(active.cat) + tagPillsLight(active.tags);
+
+  const STEP_ORDER = ['watch','read','challenge'];
+  function renderStepper(){
+    const done = { watch:active.data.attend, read:active.data.read, challenge:active.data.submit };
+    let n = 0;
+    document.querySelectorAll('#ms-stepper .ms-step').forEach((li,idx) => {
+      const k = li.dataset.step, isDone = !!done[k]; if (isDone) n++;
+      const dot = li.querySelector('.ms-dot');
+      li.classList.toggle('border-officer', isDone);
+      if (isDone){ dot.textContent = '✓'; dot.className = 'ms-dot grid h-8 w-8 shrink-0 place-items-center rounded-full bg-officer text-sm font-bold text-white'; }
+      else { dot.textContent = idx+1; dot.className = 'ms-dot grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-paper text-sm font-bold text-ink-900/50'; }
+    });
+    document.getElementById('ms-step-count').textContent = n + ' of 3 done';
+  }
+  function renderData(){
+    const d = active.data, set = (id,val,on) => { const el = document.getElementById(id); el.textContent = val; el.classList.toggle('text-ink-900/35', !on); el.classList.toggle('text-emerald-600', !!on); };
+    set('ms-d-signup', d.signup?'✓ Yes':'—', d.signup);
+    set('ms-d-attend', d.attend?'✓ Yes':'—', d.attend);
+    const mins = document.getElementById('ms-d-minutes'); mins.textContent = d.minutes; mins.classList.toggle('text-ink-900/35', d.minutes===0); mins.classList.toggle('text-ink-900', d.minutes>0);
+    set('ms-d-submit', d.submit?'✓ Yes':'—', d.submit);
+    const sc = document.getElementById('ms-d-score'); if (d.score==null){ sc.textContent='—'; sc.className='font-semibold text-ink-900/35 tnum'; } else { const pass=d.score>=PASS_MARK; sc.className='font-semibold tnum '+(pass?'text-officer-fg':'text-amber-600'); sc.innerHTML=d.score+'% <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold '+(pass?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600')+'">'+(pass?'Pass':'Redo')+'</span>'; }
+  }
+  renderStepper(); renderData();
+
+  window.msSignUp = function(){ active.data.signup = true; renderData(); document.getElementById('ms-signup-btn').textContent = '✓ Signed up'; };
+
+  // ── catalog ──
+  let msFilter = 'all', msTab = 'available';
+  function statusPill(s){ return { active:'<span class="rounded-full bg-officer-bg px-2 py-0.5 text-[11px] font-semibold text-officer-fg">This week</span>', new:'<span class="rounded-full bg-accent-50 px-2 py-0.5 text-[11px] font-semibold text-accent">Available</span>' }[s] || ''; }
+  const cover = (c,txt) => `<div class="relative grid h-[52px] w-[76px] shrink-0 place-items-center rounded-lg text-sm font-bold text-white" style="background:${ {officer:'linear-gradient(135deg,#a03168,#d1458b)',eng:'linear-gradient(135deg,#1c58a8,#287be8)',lead:'linear-gradient(135deg,#377b61,#64d7ac)'}[c] };font-family:'JetBrains Mono',Menlo,monospace">${txt}</div>`;
+  const initials2 = t => t.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  function renderCatalog(){
+    const rows = (msTab==='available'?available:completed).filter(x => msFilter==='all' || x.cat===msFilter);
+    if (!rows.length){ document.getElementById('ms-catalog').innerHTML = `<div class="p-10 text-center text-sm text-ink-900/50">No micro sessions in this category yet.</div>`; return; }
+    document.getElementById('ms-catalog').innerHTML = rows.map((x,i) => {
+      const isCompleted = msTab==='completed';
+      const right = isCompleted
+        ? `<div class="text-right"><div class="text-sm font-semibold tnum ${x.data.score>=PASS_MARK?'text-officer-fg':'text-amber-600'}">${x.data.score}% <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${x.data.score>=PASS_MARK?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${x.data.score>=PASS_MARK?'Pass':'Redo'}</span></div><div class="text-xs text-ink-900/45">${x.data.minutes} min · ${x.note}</div></div>`
+        : `<button onclick="${x.status==='active'?'msOpenSession()':'msOpenSession()'}" class="shrink-0 rounded-full ${x.status==='active'?'bg-accent text-white hover:bg-accent-600':'border border-black/15 bg-white'} px-4 py-2 text-sm font-semibold transition hover:brightness-105">${x.status==='active'?'Continue →':'Start'}</button>`;
+      return `<div class="flex items-center gap-4 border-b border-black/5 p-4 last:border-0">
+        ${cover(x.cat, ('0'+(i+1)).slice(-2))}
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2"><span class="font-semibold">${x.title}</span>${isCompleted?(x.data.score>=PASS_MARK?'<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">Credit earned</span>':'<span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">Redo to earn credit</span>'):statusPill(x.status)}</div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5">${catPill(x.cat)}${tagPills(x.tags)}</div>
+          <p class="mt-1.5 text-xs text-ink-900/45">${isCompleted?('Signed up · '+(x.data.attend?'attended':'watched recording')+' · challenge submitted'):x.when}${!isCompleted&&x.live?' · live option':''}</p>
+        </div>
+        ${right}
+      </div>`;
+    }).join('');
+  }
+  window.msSwitchTab = function(tab){
+    msTab = tab;
+    const on = 'bg-ink-900 text-white', off = 'text-ink-900/55';
+    document.getElementById('ms-tab-available').className = 'rounded-full px-4 py-1.5 font-medium ' + (tab==='available'?on:off);
+    document.getElementById('ms-tab-completed').className = 'rounded-full px-4 py-1.5 font-medium ' + (tab==='completed'?on:off);
+    renderCatalog();
+  };
+  document.querySelectorAll('#ms-filters .ms-fc').forEach(b => b.addEventListener('click', () => {
+    msFilter = b.dataset.cat;
+    document.querySelectorAll('#ms-filters .ms-fc').forEach(x => { const on = x===b; x.className = 'ms-fc rounded-full border px-3 py-1 text-xs font-semibold ' + (on?'border-accent bg-accent-50 text-accent':'border-black/10 bg-white text-ink-900/60'); });
+    renderCatalog();
+  }));
+  msSwitchTab('available');
+
+  // ── session flow (watch → read → challenge → credit) ──
+  function msShow(pane){ document.getElementById('ms-home').classList.toggle('hidden', pane!=='home'); document.getElementById('ms-session').classList.toggle('hidden', pane!=='session'); window.scrollTo(0,0); }
+  window.msBackHome = function(){ msShow('home'); };
+
+  window.msOpenSession = function(){
+    if (!active.data.signup) active.data.signup = true;
+    renderData();
+    renderSession();
+    msShow('session');
+  };
+
+  function renderSession(){
+    const d = active.data;
+    document.getElementById('ms-session-body').innerHTML = `
+      <button onclick="msBackHome()" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-900/60 transition hover:text-ink-900"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back to micro sessions</button>
+      <div class="fade-in overflow-hidden rounded-2xl border border-black/10 bg-white">
+        <div class="border-b border-black/5 bg-ink-900 p-6 text-white">
+          <div class="flex flex-wrap items-center gap-2">${catPillLight(active.cat)}${tagPillsLight(active.tags)}</div>
+          <h1 class="mt-3 text-3xl font-bold">${active.title}</h1>
+          <p class="mt-2 max-w-xl text-white/70">One video, one short reading, one challenge. Submitting the challenge earns <b class="text-white">+1 elective</b> toward your AI Officer certificate.</p>
+        </div>
+        <div class="grid gap-0 md:grid-cols-3">
+          <div class="space-y-6 p-6 md:col-span-2">
+            <!-- video -->
+            <div>
+              <div id="ms-player" class="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-ink-900 text-white">
+                <button id="ms-play" onclick="msPlay()" class="grid h-16 w-16 place-items-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur transition hover:scale-105"><svg class="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-white/20"><div id="ms-watchfill" class="h-full bg-accent" style="width:${Math.min(100,Math.round(d.minutes/22*100))}%"></div></div>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-xs"><span class="text-ink-900/50">Minutes watched are logged · target 22 min</span><span id="ms-watchpct" class="font-semibold text-accent tnum">${d.minutes} min</span></div>
+            </div>
+            <!-- reading -->
+            <div class="rounded-xl border border-black/10 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-900/45">Textbook</p>
+              <p class="mt-1 text-sm text-ink-900/70">One short reading, scoped to ${active.title}.</p>
+              <button id="ms-read-btn" onclick="msMarkRead()" class="mt-3 rounded-full border border-black/15 bg-white px-4 py-2 text-sm font-semibold transition hover:border-black/30 ${d.read?'opacity-50':''}" ${d.read?'disabled':''}>${d.read?'✓ Read':'Mark read'}</button>
+            </div>
+            <!-- challenge -->
+            <div class="rounded-xl border border-black/10 p-4">
+              <div class="flex items-center gap-2"><span class="grid h-6 w-6 place-items-center rounded-full bg-ink-900 text-[11px] font-bold text-white">◆</span><p class="text-sm font-semibold">The challenge · work it in the AI Buddy</p></div>
+              <textarea id="ms-answer" rows="4" class="mt-3 w-full resize-none rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-accent" placeholder="Draft your answer with the AI Buddy…" ${d.submit?'disabled':''}>${d.submit?'Submitted for grading.':''}</textarea>
+              <div class="mt-3 flex items-center justify-between">
+                <span class="text-xs text-ink-900/50">Submitting sends your work for grading — this is what earns credit.</span>
+                <button id="ms-submit-btn" onclick="msSubmit()" class="whitespace-nowrap rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-600 ${d.submit?'opacity-50':''}" ${d.submit?'disabled':''}>${d.submit?'Submitted ✓':'Submit & earn credit'}</button>
+              </div>
+            </div>
+            <div id="ms-celebrate" class="hidden rounded-2xl border border-officer bg-officer-bg p-6 text-center">
+              <div class="text-4xl">🎓</div>
+              <h2 class="mt-2 text-xl font-bold">Elective earned!</h2>
+              <p class="mt-1 text-sm text-ink-900/70">${active.title} complete — <b>+1 elective</b> added to your AI Officer certificate.</p>
+              <p id="ms-jump" class="mt-2 font-bold text-officer-fg tnum"></p>
+              <button onclick="showView('certification')" class="mt-4 rounded-full bg-officer px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105">See my certificate →</button>
+            </div>
+          </div>
+          <!-- side -->
+          <aside class="space-y-4 border-t border-black/5 p-6 md:border-l md:border-t-0">
+            <div class="rounded-xl border border-officer/40 bg-officer-bg/40 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-officer-fg">Counts toward your certificate</p><p class="mt-1 text-sm text-ink-900/70">Applies to <b>AI Officer</b>. Counts once; can't be reused for a later certificate.</p></div>
+            <div class="rounded-xl border border-black/10 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-900/45">Live option</p>
+              <p class="mt-1 text-sm text-ink-900/70">Prefer to learn with others? Join the live sitting on Tuesday and meet the community.</p>
+              <button id="ms-rsvp" onclick="msRsvp()" class="mt-3 rounded-full border border-black/15 bg-white px-4 py-2 text-sm font-semibold transition hover:border-black/30">RSVP to live</button>
+            </div>
+          </aside>
+        </div>
+      </div>`;
+  }
+
+  let msTimer = null;
+  window.msPlay = function(){
+    const btn = document.getElementById('ms-play'); if (msTimer){ clearInterval(msTimer); msTimer=null; return; }
+    btn.style.opacity = '.35';
+    msTimer = setInterval(() => {
+      active.data.attend = true;
+      active.data.minutes = Math.min(22, active.data.minutes + 2);
+      const pct = Math.round(active.data.minutes/22*100);
+      const wf = document.getElementById('ms-watchfill'); if (wf) wf.style.width = pct+'%';
+      const wp = document.getElementById('ms-watchpct'); if (wp) wp.textContent = active.data.minutes+' min';
+      renderData(); renderStepper();
+      if (active.data.minutes >= 22){ clearInterval(msTimer); msTimer=null; if(btn) btn.style.opacity=''; }
+    }, 260);
+  };
+  window.msMarkRead = function(){ active.data.read = true; renderStepper(); const b = document.getElementById('ms-read-btn'); if(b){ b.textContent='✓ Read'; b.disabled=true; b.classList.add('opacity-50'); } };
+  window.msRsvp = function(){ const b = document.getElementById('ms-rsvp'); if(b){ b.textContent='✓ RSVP\'d — join link sent'; b.classList.add('bg-emerald-50','text-emerald-700','border-emerald-200'); } };
+  window.msSubmit = function(){
+    if (active.data.submit) return;
+    active.data.submit = true; active.data.score = 94;
+    renderStepper(); renderData();
+    const b = document.getElementById('ms-submit-btn'); if(b){ b.textContent='Submitted ✓'; b.disabled=true; b.classList.add('opacity-50'); }
+    const ta = document.getElementById('ms-answer'); if(ta) ta.disabled = true;
+    const cel = document.getElementById('ms-celebrate'); if(cel){ cel.classList.remove('hidden'); document.getElementById('ms-jump').textContent = 'Passed · 45% → 50% · score 94%'; cel.scrollIntoView({behavior:'smooth', block:'center'}); }
+  };
+})();
+</script>
+
+<script>
+/* ═══════════════════ VIDEOS ═══════════════════ */
+(function(){
+  const TRACKS = [{key:'officer',label:'AI Officer'},{key:'eng',label:'AI Engineer'},{key:'lead',label:'Leadership'}];
+  const trackLabel = k => (TRACKS.find(t=>t.key===k)||{}).label || k;
+  const trackKeyByLabel = l => (TRACKS.find(t=>t.label===l)||{}).key;
+  function grad(a,b){ return `linear-gradient(135deg,${a},${b})`; }
+  const P = { officerA:grad('#1a264f','#a03168'),officerB:grad('#04102d','#d1458b'),officerC:grad('#46142d','#b73978'),
+    engA:grad('#0a235f','#287be8'),engB:grad('#04102d','#2c87ff'),engC:grad('#10386c','#5ba2ff'),
+    leadA:grad('#224a3b','#64d7ac'),leadB:grad('#377b61','#9affd9'),leadC:grad('#224a3b','#59c09a'),
+    microA:grad('#0a235f','#1258ff'),microB:grad('#04102d','#3d76ff') }; /* deep-navy scale */
+
+  // category: officer|eng|lead  (credit track) ; kind:'micro' flags micro-session recordings
+  const VIDEOS = [
+    {id:'o1',track:'officer',kind:'session',tags:['Operations','Strategy','Claude'],title:'The AI Officer Operating Model',dur:'42:10',progress:0.35,bg:P.officerA,rw:1,desc:'How an AI Officer sets strategy, governance, and an operating rhythm for an AI-first organization — the flagship session of the track.'},
+    {id:'o2',track:'officer',kind:'session',tags:['Governance','Policy','Claude'],title:'AI Governance in Practice',dur:'39:05',progress:0,bg:P.officerB,desc:'Turning AI principles into policies, reviews, and an approval flow people actually follow.'},
+    {id:'o3',track:'officer',kind:'session',tags:['Revenue','Business case','ChatGPT'],title:'Board-Ready AI Business Cases',dur:'35:12',progress:0.6,bg:P.officerC,rw:3,desc:'Framing AI investments so a board sees the return, the risk, and the timeline.'},
+    {id:'m1',track:'officer',kind:'micro',tags:['Prompting','Operations'],title:'Micro: Prompt Ops',dur:'12:40',progress:0,bg:P.microA,desc:'The Prompt Ops micro session recording — a tight, single-topic elective on operationalizing prompts.'},
+    {id:'m2',track:'eng',kind:'micro',tags:['JSON','Schemas'],title:'Micro: Structured Outputs',dur:'14:02',progress:1,bg:P.microB,rw:2,desc:'The Structured Outputs micro session recording — reliable JSON from any model, in one sitting.'},
+    {id:'e1',track:'eng',kind:'session',tags:['Agents','Evals','Cursor'],title:'Shipping Your First Production Agent',dur:'51:04',progress:0.72,bg:P.engA,rw:4,desc:'An end-to-end build: tools, evals, and the guardrails that make an agent safe to ship.'},
+    {id:'e2',track:'eng',kind:'session',tags:['Evals','Testing','n8n'],title:'Evals: Measuring What Your AI Does',dur:'46:30',progress:0,bg:P.engB,desc:'Building an eval harness so you can trust — and improve — model behaviour over time.'},
+    {id:'e3',track:'eng',kind:'session',tags:['Automation','Sprint','Cursor'],title:'From Idea to Automation in a Week',dur:'55:41',progress:0,bg:P.engC,desc:'A week-long sprint template that takes a rough idea to a working automation.'},
+    {id:'l1',track:'lead',kind:'session',tags:['Change','Adoption','ChatGPT'],title:'Leading Teams Through AI Change',dur:'38:22',progress:0,bg:P.leadA,desc:'The change-management playbook for bringing a whole team along on AI adoption.'},
+    {id:'l2',track:'lead',kind:'session',tags:['Hiring','Talent','Gemini'],title:'Hiring for an AI-Native Org',dur:'33:58',progress:0,bg:P.leadB,desc:'What roles change, what to screen for, and how to structure an AI-native team.'},
+    {id:'l3',track:'lead',kind:'session',tags:['Narrative','Revenue','Claude'],title:'The AI Value Narrative',dur:'29:44',progress:0,bg:P.leadC,desc:'Telling the story of AI value to customers, boards, and your own teams.'}
+  ];
+  const FEATURED = { officer:'o1', eng:'e1', lead:'l1' };
+  const student = { name:'Dave Hajdu', track:'officer' };
+
+  // ── facets: Category (the same 3 cert categories + Micro-Sessions), free-flowing Tags, Length, Status ──
+  const LENGTHS = [{v:'Under 30 min',lo:0,hi:30},{v:'30–45 min',lo:30,hi:45},{v:'45 min +',lo:45,hi:1e9}];
+  const STATUSES = ['Not started','In progress','Watched'];
+  const CATEGORIES = ['AI Officer','AI Engineer','Leadership','Micro-Sessions'];
+  const ALL_TAGS = [...new Set(VIDEOS.flatMap(v=>v.tags))].sort();
+  const FACETS = [
+    {key:'category',label:'Category',opts:CATEGORIES},
+    {key:'tags',label:'Tags',opts:ALL_TAGS},
+    {key:'length',label:'Length',opts:LENGTHS.map(l=>l.v)},
+    {key:'status',label:'Status',opts:STATUSES}
+  ];
+  let state = { filters:{category:new Set(),tags:new Set(),length:new Set(),status:new Set()}, q:'', sort:'reco', panel:false };
+  const expanded = new Set(['category','tags']);
+
+  const $ = s => document.querySelector(s);
+  const isOwn = v => v.track === student.track;
+  function playIcon(c='#04102d',s=22){ return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${c}"><path d="M8 5v14l11-7z"/></svg>`; }
+  function esc(t){ return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function hl(t){ if(!state.q) return esc(t); const i=t.toLowerCase().indexOf(state.q); if(i<0) return esc(t); return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+state.q.length))+'</mark>'+esc(t.slice(i+state.q.length)); }
+  const catKey = v => v.kind==='micro' ? 'micro' : v.track;
+  const catPillOf = v => v.kind==='micro' ? `<span class="pill micro">Micro-Session</span>` : `<span class="pill ${v.track}">${trackLabel(v.track)}</span>`;
+  const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const durMin = d => { const [m,s]=d.split(':').map(Number); return m+s/60; };
+  const lengthOf = v => (LENGTHS.find(l=>durMin(v.dur)>=l.lo&&durMin(v.dur)<l.hi)||{}).v;
+  const statusOf = v => v.progress>=1?'Watched':v.progress>0?'In progress':'Not started';
+
+  function trackColors(k){ return ({officer:['#2a0e22','#d1458b'],eng:['#04143a','#287be8'],lead:['#224a3b','#64d7ac'],micro:['#04102d','#1258ff']})[k]||['#04102d','#287be8']; }
+  function wrapTitle(t,max,maxLines){ max=max||24; maxLines=maxLines||2; const words=t.split(/\s+/),lines=[]; let cur='';
+    for(const w of words){ const test=cur?cur+' '+w:w; if(test.length<=max)cur=test; else{ if(cur)lines.push(cur); cur=w; if(lines.length===maxLines)break; } }
+    if(lines.length<maxLines&&cur)lines.push(cur);
+    const used=lines.join(' ').split(/\s+/).filter(Boolean).length;
+    if(used<words.length)lines[lines.length-1]=lines[lines.length-1].replace(/[…]?$/,'')+'…';
+    return lines.slice(0,maxLines); }
+  function thumb(v,play){
+    play=play!==false; const k=catKey(v), c=trackColors(k), d=c[0], l=c[1];
+    const seed=[...v.id].reduce((a,ch)=>a+ch.charCodeAt(0),0), m=seed%3;
+    const motif=m===0?`<g fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="2"><circle cx="258" cy="42" r="18"/><circle cx="258" cy="42" r="32"/><circle cx="258" cy="42" r="46"/></g>`
+      :m===1?`<g fill="#fff" fill-opacity="0.13">`+[0,1,2,3,4,5].map(i=>`<rect x="${152+i*22}" y="${44-(i%3)*10}" width="13" height="${34+(i%3)*22}" rx="3"/>`).join('')+`</g>`
+      :`<g fill="#fff" fill-opacity="0.15">`+Array.from({length:18},(_,i)=>`<circle cx="${198+(i%6)*20}" cy="${24+Math.floor(i/6)*20}" r="3"/>`).join('')+`</g>`;
+    const lines=wrapTitle(v.title,24,2).map((ln,i)=>`<text x="18" y="${130+i*21}" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">${esc(ln)}</text>`).join('');
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><defs>`
+      +`<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${d}"/><stop offset="1" stop-color="${l}"/></linearGradient>`
+      +`<linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0.4" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.62"/></linearGradient></defs>`
+      +`<rect width="320" height="180" fill="url(#g)"/>${motif}`
+      +(play?`<circle cx="160" cy="82" r="23" fill="#fff" fill-opacity="0.92"/><path d="M154 72 L154 92 L172 82 Z" fill="${d}"/>`:``)
+      +`<rect width="320" height="180" fill="url(#s)"/>`
+      +`<text x="18" y="26" fill="#fff" fill-opacity="0.8" font-family="Inter,Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">AI OFFICER INSTITUTE</text>`
+      +`<text x="302" y="27" text-anchor="end" fill="#fff" fill-opacity="0.85" font-family="JetBrains Mono,Menlo,monospace" font-size="11" font-weight="700" letter-spacing="1">${v.kind==='micro'?'MICRO':'SESSION'} ${('0'+v.id.slice(1)).slice(-2)}</text>`
+      +lines+`</svg>`;
+    return 'data:image/svg+xml,'+encodeURIComponent(svg);
+  }
+
+  function buildPreviewMenu(){ $('#vid-previewOptions').innerHTML = TRACKS.map(t=>`<button class="${t.key===student.track?'on':''}" onclick="vidSetTrack('${t.key}')"><span class="dot" style="background:var(--t-${t.key})"></span>${t.label}</button>`).join(''); }
+  window.vidTogglePreviewMenu = function(e){ e.stopPropagation(); $('#vid-previewas').classList.toggle('open'); };
+  document.addEventListener('click', () => { const p=$('#vid-previewas'); if(p) p.classList.remove('open'); });
+  window.vidSetTrack = function(k){ student.track=k; clearAll(true); $('#vid-previewas').classList.remove('open'); buildPreviewMenu(); vidCloseDetail(); renderLibrary(); };
+
+  function optMatch(key,val,v){
+    if(key==='category') return val==='Micro-Sessions' ? v.kind==='micro' : trackLabel(v.track)===val;
+    if(key==='tags') return (v.tags||[]).includes(val);
+    if(key==='length') return lengthOf(v)===val;
+    if(key==='status') return statusOf(v)===val;
+    return false;
+  }
+  function groupMatch(key,v){ const set=state.filters[key]; return !set.size || [...set].some(val=>optMatch(key,val,v)); }
+  function qMatch(v){ return !state.q || `${v.title} ${v.desc} ${trackLabel(v.track)} ${(v.tags||[]).join(' ')}`.toLowerCase().includes(state.q); }
+  const videoMatches = v => FACETS.every(f=>groupMatch(f.key,v)) && qMatch(v);
+  const matchExcept = (v,ex) => FACETS.every(f=>f.key===ex||groupMatch(f.key,v)) && qMatch(v);
+  const countFor = (key,val) => VIDEOS.filter(v=>matchExcept(v,key)&&optMatch(key,val,v)).length;
+  const activeCount = () => FACETS.reduce((n,f)=>n+state.filters[f.key].size,0);
+
+  window.vidToggleFacet = function(key,val){ const set=state.filters[key]; set.has(val)?set.delete(val):set.add(val); renderLibrary(); };
+  function clearAll(silent){ FACETS.forEach(f=>state.filters[f.key].clear()); state.q=''; const si=$('#vid-search'); if(si)si.value=''; if(!silent)renderLibrary(); }
+  window.vidClearAll = () => clearAll(false);
+  window.vidToggleGroup = function(key){ expanded.has(key)?expanded.delete(key):expanded.add(key); renderLibrary(); };
+  window.vidSetSort = function(v){ state.sort=v; renderLibrary(); };
+  window.vidTogglePanel = function(){ state.panel=!state.panel; $('#vid-fscrim').classList.toggle('open',state.panel); renderLibrary(); };
+  window.vidOnSearch = function(v){ state.q=v.trim().toLowerCase(); renderLibrary(); };
+
+  // 30-day engagement stats (mock, derived)
+  function stats(){ const watched = VIDEOS.filter(v=>v.progress>0); const mins = watched.reduce((a,v)=>a+durMin(v.dur)*v.progress,0); return { count: watched.length, mins: Math.round(mins) }; }
+
+  function railCard(v){ const pct=Math.round(v.progress*100),done=v.progress>=1;
+    return `<div class="rail-card" onclick="vidOpenDetail('${v.id}')"><div class="thumb" style="background-image:url('${thumb(v)}')"><span class="dur tnum">${v.dur}</span>${done?`<span class="done">✓</span>`:`<div class="prog"><i style="width:${pct}%"></i></div>`}</div><div class="card-title" style="margin-top:7px;font-size:13.5px;line-height:18px">${esc(v.title)}</div><div class="watched">${done?'✓ Watched':'▸ '+pct+'% · resume'}</div></div>`; }
+
+  function card(v){ const own=isOwn(v),pct=Math.round(v.progress*100),done=v.progress>=1;
+    const note=done?`<div class="watched">✓ Fully watched</div>`:v.progress>0?`<div class="watched">▸ ${pct}% watched · resume</div>`:'';
+    const tags=(v.tags||[]).slice(0,2).map(t=>`<span class="pill tag">${t}</span>`).join('');
+    return `<article class="card ${own?'':'other'}" onclick="vidOpenDetail('${v.id}')">
+      <div class="thumb" style="background-image:url('${thumb(v)}')"><span class="dur tnum">${v.dur}</span>${done?`<span class="done">✓ Watched</span>`:(v.progress>0?`<div class="prog"><i style="width:${pct}%"></i></div>`:'')}</div>
+      <div class="card-title">${hl(v.title)}</div>
+      <div class="card-tags">${catPillOf(v)}${own||v.kind==='micro'?'':'<span class="pill nocredit">Other track</span>'}</div>
+      <div class="card-tags">${tags}</div>${note}</article>`; }
+
+  function renderLibrary(){
+    const anyFilter = activeCount()>0 || !!state.q;
+    const f = VIDEOS.find(v=>v.id===FEATURED[student.track]), fpct=Math.round(f.progress*100);
+    const st = stats();
+    const statStrip = anyFilter ? '' : `<div class="vstats">
+      <div class="vstat"><span class="b">30d</span><div class="n tnum">${st.count}</div><div class="l">Videos watched</div></div>
+      <div class="vstat"><span class="b">30d</span><div class="n tnum">${st.mins}</div><div class="l">Total minutes</div></div>
+      <div class="vstat"><span class="b">Track</span><div class="n" style="font-size:17px">${trackLabel(student.track)}</div><div class="l">Certification credit goes here</div></div>
+    </div>`;
+    const featured = anyFilter ? '' : `<section class="featured"><div class="featured-grid">
+      <div class="featured-media" style="background-image:url('${thumb(f,false)}')" onclick="vidOpenDetail('${f.id}')"><div class="fmedia-tri">${playIcon('#04102d',24)}</div></div>
+      <div class="featured-body">
+        <div class="kick">${catPillOf(f)}<span>Featured in your track</span></div>
+        <h2>${f.title}</h2><p>${f.desc}</p>
+        <div class="featured-meta"><span>Full-length session</span><span>·</span><span class="tnum">${f.dur}</span><span>·</span><span>${f.tags[0]}</span></div>
+        <div class="featured-credit"><div class="fc-top"><span>Your viewing progress · logged for your coach</span><span class="tnum">${fpct}% watched</span></div><div class="fc-bar"><i style="width:${fpct}%"></i></div></div>
+        <div class="featured-actions"><button class="btn-play" onclick="event.stopPropagation();vidOpenDetail('${f.id}')">${playIcon('#04102d',18)} ${f.progress>0?'Resume watching':'Start watching'}</button><a class="btn-ghost" href="#" onclick="vidOpenDetail('${f.id}');return false;">Details</a></div>
+      </div></div></section>`;
+
+    const recent = VIDEOS.filter(v=>v.progress>0 && v.rw).sort((a,b)=>a.rw-b.rw);
+    const rail = anyFilter||!recent.length ? '' : `<div class="rail"><div class="rail-head"><span class="t">Recently watched</span></div><div class="rail-scroll">${recent.map(railCard).join('')}</div></div>`;
+
+    const chev='<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>';
+    const sidebar=`<aside class="filters ${state.panel?'open':''}">
+      ${FACETS.map(f2=>{ const open=expanded.has(f2.key),sel=state.filters[f2.key];
+        return `<div class="fgroup ${open?'open':''}"><button class="fg-head" onclick="vidToggleGroup('${f2.key}')"><span>${f2.label}${sel.size?`<span class="fg-n">${sel.size}</span>`:''}</span>${chev}</button>
+          <div class="fg-body">${f2.opts.map(o=>{ const c=countFor(f2.key,o),on=sel.has(o),dim=c===0&&!on;
+            const sw=f2.key==='category'?`<span class="swatch" style="background:var(--t-${o==='Micro-Sessions'?'micro':trackKeyByLabel(o)})"></span>`:'';
+            return `<label class="fopt ${on?'on':''} ${dim?'dim':''}"><input type="checkbox" ${on?'checked':''} ${dim?'disabled':''} onchange="vidToggleFacet('${f2.key}','${o.replace(/'/g,"\\'")}')"/><span class="box"></span>${sw}<span class="ol">${o}</span><span class="oc tnum">${c}</span></label>`;
+          }).join('')}</div></div>`; }).join('')}
+    </aside>`;
+
+    const list=VIDEOS.filter(videoMatches);
+    const sorted=[...list].sort((a,b)=>{ if(state.sort==='short')return durMin(a.dur)-durMin(b.dur); if(state.sort==='long')return durMin(b.dur)-durMin(a.dur); if(state.sort==='az')return a.title.localeCompare(b.title);
+      const ao=isOwn(a)?0:1,bo=isOwn(b)?0:1; return ao!==bo?ao-bo:VIDEOS.indexOf(a)-VIDEOS.indexOf(b); });
+
+    const chips=[]; FACETS.forEach(f2=>state.filters[f2.key].forEach(v=>chips.push({key:f2.key,v})));
+    const chipbar=(chips.length||state.q)?`<div class="chips">${state.q?`<span class="achip">"${esc(state.q)}"<button aria-label="Clear search" onclick="document.getElementById('vid-search').value='';vidOnSearch('')">×</button></span>`:''}${chips.map(c=>{const sw=c.key==='category'?`<span class="sw" style="background:var(--t-${c.v==='Micro-Sessions'?'micro':trackKeyByLabel(c.v)})"></span>`:'';return `<span class="achip">${sw}${esc(c.v)}<button aria-label="Remove" onclick="vidToggleFacet('${c.key}','${c.v.replace(/'/g,"\\'")}')">×</button></span>`;}).join('')}<button class="clearall" onclick="vidClearAll()">Clear all</button></div>`:'';
+
+    const toolbar=`<div class="rtoolbar"><button class="filterbtn" onclick="vidTogglePanel()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${activeCount()?` · ${activeCount()}`:''}</button><span class="rcount tnum">${sorted.length} video${sorted.length!==1?'s':''}</span><label class="sortsel">Sort<select onchange="vidSetSort(this.value)"><option value="reco" ${state.sort==='reco'?'selected':''}>Recommended</option><option value="short" ${state.sort==='short'?'selected':''}>Shortest first</option><option value="long" ${state.sort==='long'?'selected':''}>Longest first</option><option value="az" ${state.sort==='az'?'selected':''}>A–Z</option></select></label></div>`;
+
+    const grid=sorted.length?`<div class="grid">${sorted.map(card).join('')}</div>`:`<div class="grid"><div class="empty"><b>No videos match these filters.</b>Try removing a filter.<br><br><button class="clearall" onclick="vidClearAll()">Clear all filters</button></div></div>`;
+
+    $('#vid-library').innerHTML = statStrip + featured + rail + `<div class="lib-layout">${sidebar}<div class="results">${toolbar}${chipbar}${grid}</div></div>`;
+  }
+
+  let playTimer=null, playState={pct:0,video:null};
+  window.vidOpenDetail = function(id){ renderDetail(id); $('#vid-library').style.display='none'; $('#vid-detail').style.display='block'; window.scrollTo(0,0); };
+  window.vidCloseDetail = function(){ if(playTimer){clearInterval(playTimer);playTimer=null;} $('#vid-detail').style.display='none'; $('#vid-library').style.display='block'; };
+  function renderDetail(id){
+    const v=VIDEOS.find(x=>x.id===id); if(!v){ vidCloseDetail(); return; }
+    const own=isOwn(v),startPct=Math.round(v.progress*100),ownLabel=trackLabel(student.track);
+    const sug=[...VIDEOS.filter(x=>x.id!==v.id&&x.track===v.track),...VIDEOS.filter(x=>x.id!==v.id&&x.track!==v.track)];
+    const linkOuts=[{t:'Mission Overview',s:'Where this fits in the program',ic:'map'},{t:'Core Missions',s:'The graded work for this track',ic:'target'},{t:'Micro Sessions',s:'Related electives',ic:'layers'},{t:'Blog',s:'Written companions to this video',ic:'file'}];
+    const icon=n=>({map:'<path d="M9 3 4 5v16l5-2 6 2 5-2V3l-5 2-6-2Z"/><path d="M9 3v16M15 5v16"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',layers:'<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/>',file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6"/>'}[n]);
+    const creditBlock=`<div class="credit"><div class="credit-top"><span>Your viewing progress</span><span class="pct tnum" id="vid-creditPct">${startPct}%</span></div><div class="credit-bar"><i id="vid-creditBar" style="width:${startPct}%"></i></div><div class="credit-sub" id="vid-creditSub">Watch time is logged for your coach and program manager — it doesn't change your certification %.</div></div>
+      ${own?`<div class="certnote"><span class="ic">🎓</span><span><b>Counts toward your ${ownLabel} certification</b> when you complete this session's challenge in the AI Buddy — not from watch time.</span><a class="cta" href="#" onclick="showView('micro');return false;">Go to challenge</a></div>`:`<div class="certnote explore"><span class="ic">🔍</span><span>This is a <b>${trackLabel(v.track)}</b> session — <b>not part of your ${ownLabel} certification</b>. Watch freely; your viewing is still logged for your coach.</span></div>`}`;
+    $('#vid-detail').innerHTML=`
+      <a class="back" onclick="vidCloseDetail()">← Back to the video library</a>
+      <div class="detail-grid"><div class="detail-main">
+        <div class="player" id="vid-player" style="background-image:url('${thumb(v,false)}')" onclick="vidTogglePlay()"><div class="veil"></div><div class="bigplay">${playIcon('#04102d',30)}</div><div class="tlbl tnum" id="vid-tlbl">${startPct}% · ${v.dur}</div><div class="scrub"><i id="vid-scrub" style="width:${startPct}%"></i></div></div>
+        <h1 class="v-title">${v.title}</h1>
+        <div class="v-meta"><span>Full-length session</span><span>·</span><span class="tnum">${v.dur}</span><span class="v-divider"></span>${catPillOf(v)}${(v.tags||[]).map(t=>`<span class="pill tag">${t}</span>`).join('')}${own?'':'<span class="pill nocredit">Not your track</span>'}</div>
+        ${creditBlock}
+        <p style="color:var(--text-2);font-size:15px;max-width:65ch;">${v.desc}</p>
+        <div class="panel"><h3>Connected to</h3><div class="links">${linkOuts.map(l=>`<a class="linkcard" href="#" onclick="return false"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${icon(l.ic)}</svg></span><span><span class="lt">${l.t}</span><br><span class="ls">${l.s}</span></span></a>`).join('')}</div></div>
+      </div>
+      <aside class="detail-side">
+        <div class="up-head"><span class="t">Up next</span><span class="autoplay">Autoplay <span class="switch" id="vid-autoplay" onclick="this.classList.toggle('off')"></span></span></div>
+        ${sug.map((s,i)=>{const p=Math.round(s.progress*100),isNext=i===0,so=isOwn(s);return `<div class="up ${isNext?'next':''}" onclick="vidOpenDetail('${s.id}')"><div class="st" style="background-image:url('${thumb(s)}')"><span class="d tnum">${s.dur}</span>${s.progress>0?`<div class="p"><i style="width:${p}%"></i></div>`:''}</div><div class="up-body">${isNext?`<div class="up-tag next">Next up</div>`:`<div class="up-tag" style="color:var(--t-${catKey(s)}-fg,var(--text-3))">${s.kind==='micro'?'Micro-Session':trackLabel(s.track)}${so||s.kind==='micro'?'':' · other track'}</div>`}<div class="up-title">${s.title}</div><div class="up-sub">${s.tags[0]} · ${s.progress>0?p+'% watched':'Not started'}</div></div></div>`;}).join('')}
+      </aside></div>`;
+    playState={pct:v.progress,video:v};
+  }
+  window.vidTogglePlay = function(){
+    const p=$('#vid-player'); if(!p)return; if(playTimer){ clearInterval(playTimer); playTimer=null; p.classList.remove('playing'); if(playState.video)playState.video.progress=playState.pct; return; }
+    p.classList.add('playing'); const sub=$('#vid-creditSub'); if(sub)sub.textContent="Playing — watch time is being logged for your coach (it doesn't change your certification %).";
+    playTimer=setInterval(()=>{ playState.pct=Math.min(1,playState.pct+0.01); const pct=Math.round(playState.pct*100);
+      $('#vid-scrub').style.width=pct+'%'; $('#vid-creditBar').style.width=pct+'%'; $('#vid-creditPct').textContent=pct+'%'; $('#vid-tlbl').textContent=pct+'% · '+playState.video.dur;
+      if(playState.pct>=1){ clearInterval(playTimer); playTimer=null; p.classList.remove('playing'); const s=$('#vid-creditSub'); if(s)s.innerHTML="✓ Fully watched — logged for your coach. Certification credit is earned by completing the challenge, not by watch time."; playState.video.progress=1; } },120);
+  };
+
+  // boot (called lazily the first time Videos is shown)
+  window.vidBoot = function(){ buildPreviewMenu(); renderLibrary(); };
+})();
+</script>
+
+<script>
+  // land on Home
+  showView('home');
+</script>
+</body>
+</html>

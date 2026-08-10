@@ -14,6 +14,9 @@ import { RosterTab, type RosterRegistration, type RosterTier } from "./RosterTab
 import { EventSettings, type EventSettingsData, type SettingsTier, type SurveyOption } from "./EventSettings";
 import { getEventPnlLines } from "@/lib/admin/event-pnl";
 import { PnlTab } from "./PnlTab";
+import { getEventAgenda } from "@/lib/admin/event-agenda";
+import { AgendaTab } from "./AgendaTab";
+import { TeamMembersTab } from "./TeamMembersTab";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +46,8 @@ type EventDbRow = {
   archived_at: string | null;
   feedback_survey_id: string | null;
   attendee_count_override: number | null;
+  registered_count_override: number | null;
+  metadata: Record<string, unknown> | null;
 };
 
 type TierDbRow = {
@@ -81,11 +86,11 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes, agendaBlocks, cloneSourcesRes] = await Promise.all([
     companyOs
       .from("events")
       .select(
-        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override"
+        "id, slug, type, status, visibility, title, location, starts_at, ends_at, capacity, landing_path, notes, blurb, description, cover_image_url, media, archived_at, feedback_survey_id, attendee_count_override, registered_count_override, metadata"
       )
       .eq("id", params.id)
       .maybeSingle(),
@@ -115,7 +120,20 @@ export default async function EventDetailPage({ params }: { params: { id: string
       .select("person_id, full_name")
       .not("person_id", "is", null)
       .order("full_name", { ascending: true }),
+    getEventAgenda(params.id),
+    companyOs
+      .from("events")
+      .select("id, title")
+      .is("archived_at", null)
+      .neq("id", params.id)
+      .order("starts_at", { ascending: false, nullsFirst: false })
+      .limit(50),
   ]);
+
+  const cloneSources = ((cloneSourcesRes.data ?? []) as { id: string; title: string }[]).map((e) => ({
+    id: e.id,
+    title: e.title,
+  }));
 
   const pnlPeople = ((peopleRes.data ?? []) as { person_id: string; full_name: string | null }[])
     .filter((p) => p.person_id)
@@ -169,6 +187,10 @@ export default async function EventDetailPage({ params }: { params: { id: string
   const registeredSeats = registrations
     .filter((r) => COUNTED_STATUSES.has(r.status))
     .reduce((s, r) => s + 1 + r.guestCount, 0);
+  // Manual overrides win over the derived count: client keynotes/workshops have
+  // no signups, so the admin enters the headcount by hand.
+  const usingManualCount = event.registered_count_override != null || event.attendee_count_override != null;
+  const effectiveRegistered = event.registered_count_override ?? event.attendee_count_override ?? registeredSeats;
   const pendingCount = registrations.filter((r) => r.status === "pending_payment").length;
   const waitlistedCount = registrations.filter((r) => r.status === "waitlisted").length;
   const checkedInCount = registrations.filter((r) => !!r.checkedInAt).length;
@@ -192,18 +214,85 @@ export default async function EventDetailPage({ params }: { params: { id: string
     }
   }
 
+  // My Retreat access code (from the event metadata) and the guest hub link.
+  const accessCode = typeof event.metadata?.access_code === "string" ? (event.metadata.access_code as string) : null;
+  const myRetreatUrl = `${origin}/my-retreat/${event.slug}`;
+
+  // Feedback results: survey responses stamped with this event's cohort_slug,
+  // tallied per survey.
+  const { data: fbRows } = await companyOs
+    .from("survey_responses")
+    .select("submitted_at, surveys(id, slug, name)")
+    .eq("cohort_slug", event.slug);
+  const fbBySurvey = new Map<string, { id: string; name: string; slug: string; count: number; last: string | null }>();
+  for (const r of (fbRows ?? []) as { submitted_at: string | null; surveys: { id: string; slug: string; name: string } | { id: string; slug: string; name: string }[] | null }[]) {
+    const s = one(r.surveys);
+    if (!s) continue;
+    const cur = fbBySurvey.get(s.id) ?? { id: s.id, name: s.name, slug: s.slug, count: 0, last: null };
+    cur.count += 1;
+    if (r.submitted_at && (!cur.last || r.submitted_at > cur.last)) cur.last = r.submitted_at;
+    fbBySurvey.set(s.id, cur);
+  }
+  const feedback = Array.from(fbBySurvey.values()).sort((a, b) => b.count - a.count);
+  const feedbackTotal = feedback.reduce((s, f) => s + f.count, 0);
+
   const overview = (
     <>
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard
           label="Registered"
-          value={event.capacity ? `${registeredSeats} / ${event.capacity}` : String(registeredSeats)}
-          sub={waitlistedCount ? `${waitlistedCount} waitlisted` : "seats incl. guests"}
+          value={event.capacity ? `${effectiveRegistered} / ${event.capacity}` : String(effectiveRegistered)}
+          sub={usingManualCount ? "manual count" : waitlistedCount ? `${waitlistedCount} waitlisted` : "seats incl. guests"}
         />
         <MetricCard label="Paid / Pending" value={formatCents(collectedUsdCents, "usd")} sub={pendingCount ? `${formatCents(pendingUsdCents, "usd")} pending (${pendingCount})` : "no pending orders"} />
-        <MetricCard label="Checked in" value={checkedInCount} sub={`of ${registeredSeats || 0} registered`} />
+        <MetricCard label="Checked in" value={checkedInCount} sub={`of ${effectiveRegistered || 0} registered`} />
         <MetricCard label="Revenue" value={formatCents(collectedUsdCents, "usd")} sub="USD · registered+" />
       </div>
+
+      {(accessCode || feedback.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 20 }}>
+          {accessCode && (
+            <div className="admin-card admin-section-card">
+              <div className="admin-card-title">My Retreat access</div>
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div>
+                  <div className="admin-cell-muted" style={{ fontSize: 12 }}>Access code</div>
+                  <code className="admin-cell-mono" style={{ fontSize: 20, fontWeight: 700 }}>{accessCode}</code>
+                </div>
+                <div>
+                  <div className="admin-cell-muted" style={{ fontSize: 12 }}>Guest link</div>
+                  <a className="admin-cell-mono" href={myRetreatUrl} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all" }}>
+                    {origin}/my-retreat
+                  </a>
+                </div>
+                <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                  Guests enter the code, then their email, to open their itinerary and surveys.
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="admin-card admin-section-card">
+            <div className="admin-card-title">Feedback ({feedbackTotal})</div>
+            {feedback.length === 0 ? (
+              <div className="admin-empty" style={{ marginTop: 10 }}>No survey responses yet for this event.</div>
+            ) : (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                {feedback.map((f) => (
+                  <div key={f.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+                    <Link href={`/admin/operations/surveys/${f.id}`} style={{ fontWeight: 600 }}>
+                      {f.name}
+                    </Link>
+                    <span className="admin-cell-muted" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                      {f.count} {f.count === 1 ? "response" : "responses"}
+                      {f.last ? ` · last ${formatDate(f.last)}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: feedbackQr ? "1fr 1fr" : "1fr", gap: 20 }}>
         <QrBlock title="Signup link" url={signupUrl} png={signupQr} downloadName={`${event.slug}-signup-qr.png`} />
@@ -291,6 +380,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     archivedAt: event.archived_at,
     totalRegistrations: registrations.length,
     attendeeCountOverride: event.attendee_count_override,
+    registeredCountOverride: event.registered_count_override,
   };
 
   const talkOptions = ((talksRes.data ?? []) as { id: string; title: string }[]).map((t) => ({
@@ -311,7 +401,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
       <Tabs
         tabs={[
           { key: "overview", label: "Overview", content: overview },
-          { key: "roster", label: "Roster", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
+          { key: "roster", label: "Attendees", count: registrations.length, content: <RosterTab eventId={event.id} eventSlug={event.slug} tiers={rosterTiers} registrations={registrations} /> },
           { key: "revenue", label: "Revenue", content: revenue },
           {
             key: "pnl",
@@ -324,6 +414,17 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 people={pnlPeople}
               />
             ),
+          },
+          {
+            key: "agenda",
+            label: "Agenda",
+            count: agendaBlocks.length,
+            content: <AgendaTab eventId={event.id} blocks={agendaBlocks} people={pnlPeople} cloneSources={cloneSources} />,
+          },
+          {
+            key: "team",
+            label: "Team Members",
+            content: <TeamMembersTab blocks={agendaBlocks} />,
           },
           { key: "settings", label: "Settings", content: <EventSettings event={settingsData} tiers={settingsTiers} surveys={surveys} talks={talkOptions} selectedTalkIds={selectedTalkIds} /> },
         ]}

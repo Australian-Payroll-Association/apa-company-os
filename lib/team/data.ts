@@ -19,6 +19,11 @@ const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   ideas: { column: "person_id", scope: "person" },
   onboarding_plans: { column: "team_member_id", scope: "team_member" },
   onboarding_tasks: { column: "team_member_id", scope: "team_member" },
+  // Equipment is scoped on the CURRENT holder, so an employee sees only what
+  // they are holding right now — never the register, and never an item they
+  // handed back (its custody row stays, but the item is someone else's).
+  equipment: { column: "current_holder_id", scope: "person" },
+  equipment_requests: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {
@@ -352,6 +357,67 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
     };
   });
   return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Ideas that Spark Solutions: ideas and learnings are company-visible by
+// design (the Learn and Share value — the whole team sees the feed), so like
+// getDirectory these take no per-actor filter. The safety boundary is the
+// FIXED column list (nothing beyond what the submitter typed plus their name)
+// and the archived exclusion — archiving in the admin backlog is how a post
+// is taken off the team feed. Widening the columns is a reviewed change.
+export type SharedIdea = {
+  id: string;
+  kind: string;
+  person_id: string;
+  title: string;
+  problem: string | null;
+  data_needed: string | null;
+  workflow: string | null;
+  roi: string | null;
+  story: string | null;
+  takeaway: string | null;
+  source_urls: string[] | null;
+  office: string | null;
+  ai_plan: string | null;
+  ai_error: string | null;
+  status: string;
+  created_at: string;
+  submitterName: string;
+};
+
+const SHARED_IDEA_SELECT =
+  "id, kind, person_id, title, problem, data_needed, workflow, roi, story, takeaway, source_urls, " +
+  "office, ai_plan, ai_error, status, created_at, " +
+  "people:people!person_id(full_name, preferred_name)";
+
+function toSharedIdea(r: Record<string, unknown>): SharedIdea {
+  const person = one(r.people as ManagerName | ManagerName[] | null);
+  const { people: _people, ...rest } = r;
+  return { ...(rest as Omit<SharedIdea, "submitterName">), submitterName: nameOf(person) ?? "—" };
+}
+
+export async function getSharedIdeas(): Promise<SharedIdea[]> {
+  const { data } = await companyOs
+    .from("ideas")
+    .select(SHARED_IDEA_SELECT)
+    .neq("status", "archived")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(toSharedIdea);
+}
+
+// Single idea for the detail page. Archived rows stay visible to their own
+// submitter (their history) but disappear for everyone else.
+export async function getSharedIdea(actor: TeamActor, id: string): Promise<SharedIdea | null> {
+  const { data } = await companyOs
+    .from("ideas")
+    .select(SHARED_IDEA_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  const idea = toSharedIdea(data as unknown as Record<string, unknown>);
+  if (idea.status === "archived" && idea.person_id !== actor.personId) return null;
+  return idea;
 }
 
 // A colleague's company-visible profile: the directory-safe fields plus the

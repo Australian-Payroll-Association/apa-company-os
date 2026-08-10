@@ -23,6 +23,9 @@ import {
   activateAffiliate,
   deactivateAffiliate,
   sendAffiliateInvite,
+  activateCompanyAffiliate,
+  deactivateCompanyAffiliate,
+  sendCompanyAffiliateInvite,
 } from "./actions";
 
 // Client-owned shelf for the affiliates list — one drawer at the provider
@@ -155,10 +158,10 @@ function AffiliateShelfBody({ row }: { row: AffiliateGroup }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await getAffiliateShelf(row.personId);
+    const r = await getAffiliateShelf({ companyId: row.companyId, personId: row.personId });
     setData(r);
     setLoading(false);
-  }, [row.personId]);
+  }, [row.companyId, row.personId]);
 
   useEffect(() => {
     setMsg(null);
@@ -176,6 +179,10 @@ function AffiliateShelfBody({ row }: { row: AffiliateGroup }) {
   }
 
   const active = data?.active ?? row.active;
+  const isCompany = row.kind === "company";
+  const activateFn = () => (isCompany ? activateCompanyAffiliate(row.companyId as string) : activateAffiliate(row.personId as string));
+  const deactivateFn = () => (isCompany ? deactivateCompanyAffiliate(row.companyId as string) : deactivateAffiliate(row.personId as string));
+  const inviteFn = () => (isCompany ? sendCompanyAffiliateInvite(row.companyId as string) : sendAffiliateInvite(row.personId as string));
 
   return (
     <div className="admin-shelf-sections">
@@ -190,20 +197,20 @@ function AffiliateShelfBody({ row }: { row: AffiliateGroup }) {
               className="admin-btn admin-btn--sm"
               label="Deactivate"
               title="Deactivate affiliate"
-              body={`Deactivate ${row.fullName || row.email}? Their code stops accruing but history is kept.`}
+              body={`Deactivate ${row.fullName || row.email}? The code stops accruing but history is kept.`}
               confirmLabel="Deactivate"
-              onConfirm={() => deactivateAffiliate(row.personId)}
+              onConfirm={deactivateFn}
               onDone={() => {
                 void load();
                 router.refresh();
               }}
             />
           ) : (
-            <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" disabled={busy} onClick={() => run(() => activateAffiliate(row.personId))}>
+            <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" disabled={busy} onClick={() => run(activateFn)}>
               Activate affiliate
             </button>
           )}
-          <button type="button" className="admin-btn admin-btn--sm" disabled={busy} onClick={() => run(() => sendAffiliateInvite(row.personId))}>
+          <button type="button" className="admin-btn admin-btn--sm" disabled={busy} onClick={() => run(inviteFn)}>
             Send portal invite
           </button>
         </div>
@@ -282,9 +289,15 @@ function AffiliateShelfBody({ row }: { row: AffiliateGroup }) {
       </section>
 
       <div>
-        <Link href={`/admin/contacts/${row.personId}`} className="admin-btn admin-btn--primary">
-          Open contact
-        </Link>
+        {isCompany ? (
+          <Link href={`/admin/revenue/companies/${row.companyId}`} className="admin-btn admin-btn--primary">
+            Open company
+          </Link>
+        ) : (
+          <Link href={`/admin/contacts/${row.personId}`} className="admin-btn admin-btn--primary">
+            Open contact
+          </Link>
+        )}
       </div>
     </div>
   );

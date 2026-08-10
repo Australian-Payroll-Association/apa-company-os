@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coaching · Scheduling · Video — V2 ERD delta</title>
+</head>
+<body>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --ink:#1c2430; --ink2:#5b6674; --ink3:#8a94a2;
+  --line:#d6dce4; --hair:#e6eaef;
+  --new:#15803d; --new-bg:#e9f5ec; --new-line:#3f9e63;
+  --ext:#b45309; --ext-bg:#fdf3e3; --ext-line:#cf8a2e;
+  --old:#64748b; --old-line:#a7b2c0;
+  --plan:#5b5fd6; --plan-line:#8286e8;
+  --warn:#b3261e;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+/* Deliberately single-theme: always light, regardless of OS/viewer theme. */
+:root[data-theme="dark"], :root[data-theme="light"]{
+  --bg:#f4f6f8; --card:#ffffff; --ink:#1c2430; --ink2:#5b6674; --ink3:#8a94a2;
+  --line:#d6dce4; --hair:#e6eaef;
+  --new:#15803d; --new-bg:#e9f5ec; --new-line:#3f9e63;
+  --ext:#b45309; --ext-bg:#fdf3e3; --ext-line:#cf8a2e;
+  --old:#64748b; --old-line:#a7b2c0;
+  --plan:#5b5fd6; --plan-line:#8286e8;
+  --warn:#b3261e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+header{max-width:1200px;margin:0 auto;padding:34px 24px 10px}
+header h1{margin:0 0 4px;font-size:23px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+header .sub{color:var(--ink2);font-size:13.5px;max-width:74ch}
+header .sub code{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 4px;font-size:12.5px;color:var(--ink2);align-items:center}
+.legend .sw{display:inline-flex;align-items:center;gap:7px}
+.legend .box{width:13px;height:13px;border-radius:3px;border:1.5px solid}
+.legend .box.n{background:var(--new-bg);border-color:var(--new)}
+.legend .box.e{background:var(--ext-bg);border-color:var(--ext)}
+.legend .box.o{background:var(--card);border-color:var(--old-line)}
+.legend .ln{width:26px;height:0;border-top:2px solid}
+.legend .ln.n{border-color:var(--new-line)}
+.legend .ln.o{border-color:var(--old-line)}
+.legend .ln.p{border-top-style:dashed;border-color:var(--plan-line)}
+.counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.counts .c{font-size:12px;padding:4px 11px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--card)}
+.counts .c b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.counts .c.n b{color:var(--new)} .counts .c.e b{color:var(--ext)} .counts .c.d b{color:var(--warn)}
+
+.toolbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;gap:7px;width:max-content;
+  margin:14px 24px 0 auto;padding:7px 12px;background:var(--card);border:1px solid var(--line);border-radius:999px;
+  box-shadow:0 2px 10px rgba(16,24,36,.10);font-size:12px;color:var(--ink2)}
+.toolbar .tl{font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 2px}
+.toolbar button{font:inherit;font-size:12px;color:var(--ink2);background:transparent;border:1px solid var(--line);
+  border-radius:7px;padding:3px 9px;cursor:pointer;line-height:1.3}
+.toolbar button:hover{color:var(--ink);border-color:var(--old-line)}
+.toolbar button.on{background:var(--hair);color:var(--ink);border-color:var(--old-line)}
+.toolbar #zpct{min-width:44px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink)}
+.toolbar .sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.viewport{overflow-x:auto;padding:8px 24px 20px}
+#canvas{position:relative;width:max-content;min-width:100%;margin:0 auto;padding:118px 10px 14px}
+#wires{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#cols{position:relative;display:flex;gap:112px;align-items:flex-start;padding:6px 4px}
+.zone{width:294px;flex:none;display:flex;flex-direction:column;gap:26px}
+.zone.slim{width:268px}
+#canvas[data-edges="new"] #wires .edge.e-o{display:none}
+#canvas[data-edges="none"] #wires .edge{display:none}
+.pgroup{border:1.5px dashed var(--old-line);border-radius:12px;padding:10px 9px 9px;display:flex;flex-direction:column;gap:12px;
+  background:color-mix(in srgb, var(--card) 42%, transparent)}
+.pgroup .plabel{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.02em;color:var(--ink2);padding:0 2px}
+.pgroup .plabel .why{font-family:var(--sans);font-weight:650;font-size:9px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);border:1px solid var(--line);border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.pgroup .pnote{font-family:var(--sans);font-size:10.5px;line-height:1.5;color:var(--ink2);padding:0 2px}
+.pgroup .pnote b{color:var(--ink)}
+.zhead{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:0 2px 2px;border-bottom:1px solid var(--line)}
+.tbl{background:var(--card);border:1.5px solid var(--old-line);border-radius:8px;font-family:var(--mono);font-size:11.5px;
+  box-shadow:0 1px 2px rgba(16,24,36,.06);transition:opacity .15s ease, box-shadow .15s ease}
+.tbl.new{border-color:var(--new)}
+.tbl.ext{border-color:var(--ext)}
+.tbl .th{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--hair);border-radius:7px 7px 0 0}
+.tbl.new .th{background:var(--new-bg)} .tbl.ext .th{background:var(--ext-bg)}
+.tbl .th .nm{font-weight:700;font-size:12.5px;letter-spacing:-.01em}
+.tbl .th .chip{margin-left:auto;font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.07em;padding:2px 7px;border-radius:99px}
+.tbl.new .th .chip{color:var(--new);border:1px solid var(--new)}
+.tbl.ext .th .chip{color:var(--ext);border:1px solid var(--ext)}
+.tbl.old .th .chip{color:var(--ink3);border:1px solid var(--old-line)}
+.row{display:flex;align-items:baseline;gap:6px;padding:3.5px 10px;border-bottom:1px solid var(--hair)}
+.row:last-of-type{border-bottom:none}
+.row .cn{white-space:nowrap}
+.row .ct{color:var(--ink3);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:right}
+.row .b{font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;letter-spacing:.03em;font-family:var(--sans);white-space:nowrap}
+.b.pk{background:var(--ink);color:var(--card)}
+.b.fk{border:1px solid var(--ink3);color:var(--ink2)}
+.b.uk{border:1px solid var(--ink3);color:var(--ink2);border-style:dashed}
+.b.nu{color:var(--ink3)}
+.b.nw{background:var(--new);color:#fff}
+.b.ch{border:1px solid var(--ext);color:var(--ext)}
+.b.pl{border:1px dashed var(--plan);color:var(--plan)}
+.b.wr{color:var(--warn);border:1px solid var(--warn)}
+.row.isnew{background:color-mix(in srgb,var(--new-bg) 55%, transparent)}
+.row.isplan .cn,.row.isplan .ct{color:var(--plan)}
+.row.dim .cn,.row.dim .ct{color:var(--ink3)}
+.foot{padding:6px 10px 8px;font-family:var(--sans);font-size:10.8px;line-height:1.45;color:var(--ink2);border-top:1px dashed var(--hair)}
+.foot b{color:var(--ink)}
+#canvas.focus .tbl{opacity:.32}
+#canvas.focus .tbl.hot{opacity:1;box-shadow:0 2px 10px rgba(16,24,36,.16)}
+#wires path{fill:none;stroke-width:1.6;transition:opacity .15s ease}
+#wires path.n{stroke:var(--new-line)}
+#wires path.o{stroke:var(--old-line)}
+#wires path.p{stroke:var(--plan-line);stroke-dasharray:5 4}
+#wires circle{stroke:none}
+#canvas.focus #wires .edge{opacity:.07}
+#canvas.focus #wires .edge.hot{opacity:1}
+#canvas.focus #wires .edge.hot path{stroke-width:2.2}
+
+main{max-width:1200px;margin:0 auto;padding:8px 24px 60px}
+section{margin-top:34px}
+section h2{font-size:15px;font-weight:650;letter-spacing:.01em;margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px 26px}
+.d{font-size:13.5px;color:var(--ink2);padding-left:14px;position:relative}
+.d::before{content:"";position:absolute;left:0;top:.52em;width:6px;height:6px;border-radius:2px;background:var(--new)}
+.d b{color:var(--ink);font-weight:600}
+.d code{font-family:var(--mono);font-size:11.5px;background:var(--hair);padding:1px 5px;border-radius:4px}
+section.pend .d::before{background:var(--ext)}
+section.seam .d::before{background:var(--old)}
+.srcnote{margin-top:44px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line);padding-top:14px}
+.srcnote code{font-family:var(--mono)}
+@media (prefers-reduced-motion: reduce){ .tbl,#wires path,#wires .edge{transition:none} }
+</style>
+
+<header>
+  <h1>Coaching · Scheduling · Video — the V2 ERD delta</h1>
+  <div class="sub">
+    Two primitives (a <b>schedulable live event</b> + the <b>video asset model shipped 2026-08-06</b>) carrying three features:
+    group coaching, micro-sessions, and the video library. Grounded against the live snapshot
+    <code>tests/integration/schema/snapshots/live_schema.json</code> (50 tables), grilling rounds 1–2, and
+    <b>Dave's round-3 review (2026-08-07)</b>: <code>micro_session</code> folds into <code>course</code>, placements and
+    category links collapse to one table each, and graduation follows the college core-plus-electives model.
+    <b>Round 4 (hub.html prototype review)</b>: topic voting, elective-credit allocation, and event categorization
+    become first-class; the credit rules the prototype encodes are locked.
+  </div>
+  <div class="legend">
+    <span class="sw"><span class="box n"></span> new table</span>
+    <span class="sw"><span class="box e"></span> existing, extended (new columns highlighted)</span>
+    <span class="sw"><span class="box o"></span> existing, untouched</span>
+    <span class="sw"><span class="ln n"></span> new FK</span>
+    <span class="sw"><span class="ln o"></span> existing FK</span>
+    <span class="sw">hover to isolate · click to pin · ⌘/Ctrl+scroll to zoom</span>
+  </div>
+  <div class="counts">
+    <span class="c n"><b>9</b> new tables</span>
+    <span class="c e"><b>4</b> extended</span>
+    <span class="c"><b>5</b> untouched anchors shown</span>
+    <span class="c d"><b>2</b> deleted (micro_session · micro_session_completion — stale pilot, fresh content)</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="tl">Zoom</span>
+  <button id="zout" title="Zoom out">−</button>
+  <span id="zpct">100%</span>
+  <button id="zin" title="Zoom in">+</button>
+  <button id="zfit">Fit width</button>
+  <button id="z100">Reset</button>
+  <span class="sep"></span>
+  <span class="tl">Links</span>
+  <button class="ef on" data-e="all">All</button>
+  <button class="ef" data-e="new">New only</button>
+  <button class="ef" data-e="none">Hidden</button>
+</div>
+
+<div class="viewport">
+  <div id="canvas">
+    <div id="cols"></div>
+    <svg id="wires" aria-hidden="true"></svg>
+  </div>
+</div>
+
+<main>
+  <section>
+    <h2>Locked decisions (rounds 1–3, 2026-08-07)</h2>
+    <div class="dgrid">
+      <div class="d"><b><code>micro_session</code> is DELETED, not migrated.</b> A micro-session IS a <code>course</code> row — <code>type='micro_session'</code>. Both carry a pass score; the old table's scheduling/host columns move to <code>live_event</code>, and its content was stale pilot data (we're re-authoring). <code>micro_session_completion</code> dies with it — completion rides normal course progress.</div>
+      <div class="d"><b>Graduation = college model.</b> <code>course.requirement</code> = <code>core | elective</code>; <code>certification.electives_required</code>. Complete = all core courses + at least N electives. Micro-sessions count — as electives.</div>
+      <div class="d"><b>Elective credit is spent once, globally.</b> An elective applies to whatever certification the student is pursuing when they pass — even cross-track (a Leadership elective can count toward AI Officer). Applied to Agentic ⇒ never reusable for Leadership. <code>elective_credit</code> persists the allocation: <code>UNIQUE(user_id, course_id)</code>, with <code>certification_id</code> recording where it was spent. The course's own <code>certification_id</code> is just its home-track label.</div>
+      <div class="d"><b>Credit comes from the graded challenge, never watch time</b> (locked by the prototype). Micro-session credit = submission → assessment ≥ pass mark. Watch minutes are logged for the coach and program manager only.</div>
+      <div class="d"><b>Coaching earns no credit</b> — confirmed by the prototype: coaching is community; micro-sessions are the electives.</div>
+      <div class="d"><b>Topic voting is first-class</b> — "the top-voted topics get coached." <code>topic_vote</code>: one row per (topic, member), UNIQUE pair. Vote counts are aggregates, never a column.</div>
+      <div class="d"><b>Coaching sessions are categorized + tagged like videos</b> — the archive filters by track and searches tags. <code>category_link</code> gains <code>live_event_id</code>; <code>live_event</code> gets <code>tags text[]</code>.</div>
+      <div class="d"><b>One generic <code>live_event</code> table, one pointer.</b> <code>event_type</code> = <code>coaching | class</code>; single nullable <code>course_id</code>. Coaching has no course (FK NULL); a class of any type points at its course. <code>CHECK event_surface_shape</code> ties type↔FK. Re-runs: one course, many events.</div>
+      <div class="d"><b>Homework needs zero schema surgery.</b> A micro-session's assignment is an <code>activity</code> row under its course — <code>submission</code>, <code>assessment</code>, scorer, grade card all untouched. The old plan's nullable-FK + resolver branch is dead.</div>
+      <div class="d"><b>One <code>video_placement</code> table</b> — a nullable real FK per surface + <code>CHECK</code> exactly-one-set. "Where does this video appear" and "all videos on this course" are single queries; Postgres still enforces every reference. New surface = add a column, not a table. (Supersedes the per-surface <code>video_on_*</code> doctrine.)</div>
+      <div class="d"><b><code>category</code> has a <code>type</code></b> — <code>certification | collection</code>, extensible — so surfaces can display the right slice (the 3 certifications are the main categories; more taxonomies can join later). One <code>category_link</code> join table, same exactly-one-of idiom. <code>tags text[]</code> stays a free folksonomy on <code>video</code>.</div>
+      <div class="d"><b>Signup is one row with a lifecycle</b> — <code>signed_up_at</code> / <code>attended_at</code> / <code>cancelled_at</code>; partial <code>UNIQUE</code> on live rows. Walk-ins get an attended-only row. Archive attendee list = <code>attended_at IS NOT NULL</code>.</div>
+      <div class="d"><b>Topics are body-only</b>, visible to the group, with a NULLABLE event FK — "move to next week" = re-point the FK. Max 8 accepted per event is an app rule, never a constraint.</div>
+      <div class="d"><b><code>key_learnings</code> + <code>resources</code> live on <code>live_event</code></b> — coaching, micro-session classes, and cert classes inherit them for free. Both are <code>jsonb</code> lists: learnings render as discrete takeaways, resources as <code>[{title,url,kind}]</code>.</div>
+      <div class="d"><b>Polished-replaces-Zoom = <code>video.superseded_by_video_id</code>.</b> Display rule everywhere: hide superseded. Nothing is deleted — the transcript source survives.</div>
+      <div class="d"><b>Watch tracking = one upsert row per (user, video).</b> Fed by FE IFrame-Player heartbeats — our own build; YouTube's APIs cannot attribute minutes to a logged-in learner. Completion threshold is an app rule.</div>
+      <div class="d"><b>One track at a time = soft pointer</b> <code>app_user.current_certification_id</code> — switchable, no entitlement state machine.</div>
+      <div class="d"><b>Coaching recordings are <code>video</code> rows</b> via a <code>video_placement</code> on the event — never a bare URL (the <code>recording_url</code> pattern #1100 is retiring). They stay <code>status='draft'</code> → library-hidden unless deliberately published.</div>
+      <div class="d"><b>House conventions:</b> uuidv7 PKs, <code>text + CHECK</code> (never native enums — the <code>material_type</code> lesson), <code>trg_touch</code> timestamps, RLS enabled with no policies (service-role only, like <code>video</code>).</div>
+    </div>
+  </section>
+
+  <section class="pend">
+    <h2>Assumptions pending Dave</h2>
+    <div class="dgrid">
+      <div class="d"><b><code>electives_required</code> per certification</b> — the number itself is unset (prototype shows 10). Also: can a standard course be an elective, or only micro-sessions? Schema allows either.</div>
+      <div class="d"><b>Archive session numbering (#012)</b> — computed ordinal over completed coaching events, or a stored column. Assumed computed; no schema either way.</div>
+      <div class="d"><b>"Replace" resolved as display-rule</b> (keep both videos, hide superseded) — Khoa's call; confirm in passing since deletion would destroy the transcript that key-learnings generation needs.</div>
+    </div>
+  </section>
+
+  <section class="seam">
+    <h2>Impacted code seams</h2>
+    <div class="dgrid">
+      <div class="d"><b>Grading pipeline: zero change.</b> Micro-session homework is an <code>activity</code> — <code>submission_resolver.py</code> keeps its single path. (The previous draft's resolver branch is cancelled.)</div>
+      <div class="d"><b>Progress computation grows the elective rule</b> — cert complete = all-core-complete + <code>count(elective_credit WHERE certification_id = this cert) ≥ electives_required</code>. Passing an elective's challenge writes the <code>elective_credit</code> row against <code>app_user.current_certification_id</code> — insert-or-nothing (spent-once).</div>
+      <div class="d"><b><code>micro_session</code> endpoints + FE pages repoint</b> to <code>course</code> filtered on <code>type='micro_session'</code>; the table, its completion table, and <code>video_on_micro_session</code> writers are deleted, not migrated (nothing live to customers).</div>
+      <div class="d"><b>Library query grows three reads:</b> <code>category_link</code> join, hide-superseded filter, per-user watch stats.</div>
+      <div class="d"><b>New FE↔BE seam:</b> player wrapper posts progress heartbeats → <code>video_watch</code> upsert endpoint. This is what makes "watched the recording ⇒ credit" enforceable.</div>
+      <div class="d"><b>"All live sessions we run"</b> — Dave's analytics ask — stays one query over <code>live_event</code>, no UNION.</div>
+    </div>
+  </section>
+
+  <div class="srcnote">
+    Sources: <code>REQUIREMENTS.md</code> (this folder) · <code>DATA_MODEL_V2.md</code> §6.7, §14.11–§14.12 ·
+    ADR-0001 video-as-a-first-class-asset · live schema snapshot 2026-08-06 · Dave's round-3 review 2026-08-07
+    (micro_session→course merge, single placement + category-link tables, elective graduation model) ·
+    round-4 hub.html prototype review (topic_vote, elective_credit spent-once ledger, event categories/tags,
+    credit-from-graded-challenge locked). Diagram shows the related subset — 18 tables.
+  </div>
+</main>
+
+<script>
+const TABLES = [
+// ---------------- Zone 0 · Scheduling ----------------
+{id:'live_event', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'event_type', t:'text', b:['CHECK']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
+  {n:'title', t:'text', b:['NULL']},
+  {n:'scheduled_at', t:'timestamptz', b:[]},
+  {n:'duration_min', t:'int', b:['NULL']},
+  {n:'meeting_url', t:'text', b:['NULL']},
+  {n:'location_type · in_person_location', t:'text', b:['NULL'], dim:1},
+  {n:'host_name · host_email · host_avatar_url', t:'text', b:['NULL']},
+  {n:'status', t:'text', b:['CHECK']},
+  {n:'key_learnings', t:'jsonb', b:['NULL']},
+  {n:'resources', t:'jsonb', b:['NULL']},
+  {n:'tags', t:'text[] + GIN', b:[]},
+  {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
+], foot:'<b>event_type</b>: coaching | class — CHECK <b>event_surface_shape</b>: coaching ⇒ course_id IS NULL, class ⇒ NOT NULL. <b>status</b>: scheduled | completed | cancelled. key_learnings = ["…"] list; resources = [{title,url,kind}]. Host + location ride the occurrence. Archive # = computed ordinal. Re-runs: one course → many events.'},
+
+{id:'event_signup', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'live_event_id', t:'uuid', b:['FK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'signed_up_at', t:'timestamptz', b:[]},
+  {n:'attended_at', t:'timestamptz', b:['NULL']},
+  {n:'cancelled_at', t:'timestamptz', b:['NULL']},
+], foot:'UNIQUE(live_event_id, user_id) WHERE cancelled_at IS NULL. Logged-in only — no PII beyond the app_user FK (F1-R2). Walk-in = attended-only row.'},
+
+{id:'coaching_topic', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'live_event_id', t:'uuid', b:['FK','NULL']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'body', t:'text', b:[]},
+  {n:'status', t:'text', b:['CHECK']},
+  {n:'display_order', t:'int', b:['NULL']},
+  {n:'created_at · updated_at', t:'trg_touch', b:[], dim:1},
+], foot:'<b>status</b>: submitted | accepted | deferred | done ("Coached" badge = done). Deferral to next week = re-point live_event_id. ≤8 accepted / event = app rule. Visible to the group (pilot behavior).'},
+
+{id:'topic_vote', zone:0, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'coaching_topic_id', t:'uuid', b:['FK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'created_at', t:'timestamptz', b:[], dim:1},
+], foot:'UNIQUE(coaching_topic_id, user_id) — one vote per member. "Top-voted topics get coached" = ORDER BY count(*). Unvoting deletes the row; no vote-count column anywhere.'},
+
+// ---------------- Zone 1 · Work & grading ----------------
+{id:'submission', zone:1, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'activity_id', t:'uuid', b:['FK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'content · attempt_no · submitted_at', t:'', b:[], dim:1},
+], foot:'<b>Untouched.</b> Micro-session homework is an activity row under its course — no nullable-FK surgery, no resolver branch, grading pipeline unchanged.'},
+
+{id:'assessment', zone:1, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'submission_id', t:'uuid', b:['FK','UK']},
+  {n:'score · component_scores', t:'', b:[], dim:1},
+  {n:'feedback · status · graded_at', t:'', b:[], dim:1},
+], foot:'Untouched — 1:1 with submission. Micro-session homework reuses this exactly.'},
+
+{id:'elective_credit', zone:1, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'course_id', t:'uuid', b:['FK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'earned_at', t:'timestamptz', b:[]},
+], foot:'<b>The spent-once ledger.</b> UNIQUE(user_id, course_id) — an elective applies exactly once, ever. certification_id = where it was spent (the cert being pursued at pass time; cross-track allowed). Written when the graded challenge passes. Applied to Agentic ⇒ never reusable for Leadership.'},
+
+// ---------------- Zone 2 · Identity & curriculum ----------------
+{id:'app_user', zone:2, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'email · full_name · status', t:'', b:[], dim:1},
+  {n:'… 9 more', t:'', b:[], dim:1},
+  {n:'current_certification_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+], foot:'Soft "one track at a time" pointer — switchable; a hard rule would be an app gate at entitlement-grant, not schema.'},
+
+{id:'certification', zone:2, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'slug · title · status', t:'', b:[], dim:1},
+  {n:'electives_required', t:'int', b:['NEW'], nw:1},
+], foot:'College model: graduate = complete every core course + at least <b>electives_required</b> electives.'},
+
+{id:'course_group', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'title · display_order', t:'', b:[], dim:1},
+]},
+
+{id:'course', zone:2, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'certification_id', t:'uuid', b:['FK']},
+  {n:'course_group_id', t:'uuid', b:['FK','CHANGED','NULL']},
+  {n:'slug · code · title · pass_score', t:'', b:[], dim:1},
+  {n:'status · display_order', t:'', b:[], dim:1},
+  {n:'type', t:'text', b:['NEW','CHECK'], nw:1},
+  {n:'requirement', t:'text', b:['NEW','CHECK'], nw:1},
+], foot:'<b>Absorbs micro_session</b> (table deleted — stale pilot content, re-authoring). <b>type</b>: standard | micro_session. <b>requirement</b>: core | elective (micro-sessions = electives). For electives, <b>certification_id is the home-track label only</b> — credit destination lives in elective_credit. <b>course_group_id becomes NULLABLE</b> — micro-sessions need no group. Homework = its activity rows; scheduling = live_event rows.'},
+
+{id:'activity', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'course_id', t:'uuid', b:['FK']},
+  {n:'instructions · rubric · solution', t:'', b:[], dim:1},
+  {n:'is_assessable · is_final_project', t:'', b:[], dim:1},
+], foot:'A micro-session\'s assignment is just an activity here — instructions + rubric already exist.'},
+
+{id:'activity_step', zone:2, status:'old', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'activity_id', t:'uuid', b:['FK']},
+  {n:'step_key · step_index · content', t:'', b:[], dim:1},
+]},
+
+// ---------------- Zone 3 · Placements & links ----------------
+{id:'video_placement', zone:3, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
+  {n:'activity_step_id', t:'uuid', b:['FK','NULL']},
+  {n:'live_event_id', t:'uuid', b:['FK','NULL']},
+  {n:'blog_slug', t:'text — NO FK', b:['NULL']},
+  {n:'anchor', t:'text', b:['NULL']},
+  {n:'display_order', t:'int', b:[]},
+], foot:'<b>Replaces the five video_on_&lt;surface&gt; tables.</b> CHECK exactly-one location set; partial UNIQUE(video_id, location) per column. One master "where does this video appear" list — every FK still real, cascades per column delete the placement, never the asset. New surface = add a column. Blogs are files on disk — slug only, no FK by construction. 1 course → many videos via display_order.'},
+
+{id:'category_link', zone:3, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'category_id', t:'uuid', b:['FK']},
+  {n:'video_id', t:'uuid', b:['FK','NULL']},
+  {n:'course_id', t:'uuid', b:['FK','NULL']},
+  {n:'live_event_id', t:'uuid', b:['FK','NULL']},
+], foot:'CHECK exactly-one of (video_id, course_id, live_event_id); partial UNIQUE per pair. Same one-table idiom as video_placement — a new categorizable surface = add a column. Coaching archive filters ride this.'},
+
+// ---------------- Zone 4 · Video assets ----------------
+{id:'video', zone:4, status:'ext', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'title', t:'text', b:[]},
+  {n:'source_type', t:'text', b:['CHECK']},
+  {n:'source_url', t:'text', b:['NULL']},
+  {n:'storage_* · file_*', t:'upload fields', b:[], dim:1},
+  {n:'duration_seconds', t:'int', b:['NULL']},
+  {n:'status', t:'catalog_status', b:[]},
+  {n:'superseded_by_video_id', t:'uuid', b:['NEW','FK','NULL'], nw:1},
+  {n:'tags', t:'text[] + GIN', b:['NEW'], nw:1},
+], foot:'<b>The one master list</b> — every video is exactly one row here; placements only point at it. <b>source_type</b>: upload | youtube | vimeo | external. Display rule everywhere: hide superseded (polished replaces Zoom, nothing deleted). YouTube-first V1; premium/self-host = additive later.'},
+
+{id:'video_watch', zone:4, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'user_id', t:'uuid', b:['FK']},
+  {n:'video_id', t:'uuid', b:['FK']},
+  {n:'watched_seconds', t:'int', b:[]},
+  {n:'furthest_position_seconds', t:'int', b:[]},
+  {n:'completed_at', t:'timestamptz', b:['NULL']},
+  {n:'last_watched_at', t:'timestamptz', b:[]},
+], foot:'UNIQUE(user_id, video_id) — one upsert row. Fed by FE IFrame-Player heartbeats (our build; YouTube APIs can\'t attribute per-learner minutes). Answers: count, total minutes, finished?, recently-watched.'},
+
+{id:'category', zone:4, status:'new', cols:[
+  {n:'id', t:'uuid', b:['PK']},
+  {n:'type', t:'text', b:['CHECK']},
+  {n:'name', t:'text', b:['UK']},
+  {n:'slug', t:'text', b:['UK']},
+  {n:'display_order', t:'int', b:[]},
+], foot:'<b>type</b>: certification | collection — text+CHECK, extensible when new taxonomies appear. Seed: the 3 certifications (type=certification) + Micro-sessions (type=collection). A surface filters by type to show the right slice. Admin-curated; orthogonal to free-form video.tags.'},
+];
+
+const ZONES = [
+  {t:'Scheduling — net new', slim:false},
+  {t:'Work & grading', slim:false},
+  {t:'Identity & curriculum', slim:true},
+  {t:'Placements & links', slim:false},
+  {t:'Video assets', slim:false},
+];
+
+const EDGES = [
+  // scheduling (new)
+  {f:'live_event.course_id',        to:'course.id',     s:'n'},
+  {f:'event_signup.live_event_id',  to:'live_event.id', s:'n'},
+  {f:'event_signup.user_id',        to:'app_user.id',   s:'n'},
+  {f:'coaching_topic.live_event_id',to:'live_event.id', s:'n'},
+  {f:'coaching_topic.user_id',      to:'app_user.id',   s:'n'},
+  {f:'topic_vote.coaching_topic_id',to:'coaching_topic.id', s:'n'},
+  {f:'topic_vote.user_id',          to:'app_user.id',   s:'n'},
+  // elective credit ledger (new)
+  {f:'elective_credit.user_id',          to:'app_user.id',      s:'n'},
+  {f:'elective_credit.course_id',        to:'course.id',        s:'n'},
+  {f:'elective_credit.certification_id', to:'certification.id', s:'n'},
+  // placements + category links (new)
+  {f:'video_placement.video_id',         to:'video.id',         s:'n'},
+  {f:'video_placement.course_id',        to:'course.id',        s:'n'},
+  {f:'video_placement.activity_step_id', to:'activity_step.id', s:'n'},
+  {f:'video_placement.live_event_id',    to:'live_event.id',    s:'n'},
+  {f:'category_link.category_id', to:'category.id', s:'n'},
+  {f:'category_link.video_id',    to:'video.id',    s:'n'},
+  {f:'category_link.course_id',   to:'course.id',   s:'n'},
+  {f:'category_link.live_event_id', to:'live_event.id', s:'n'},
+  // video library (new)
+  {f:'video_watch.user_id',   to:'app_user.id', s:'n'},
+  {f:'video_watch.video_id',  to:'video.id',    s:'n'},
+  {f:'video.superseded_by_video_id', to:'video.id', s:'n', self:1},
+  {f:'app_user.current_certification_id', to:'certification.id', s:'n'},
+  // existing fabric
+  {f:'submission.activity_id', to:'activity.id',  s:'o'},
+  {f:'submission.user_id',     to:'app_user.id',  s:'o'},
+  {f:'assessment.submission_id', to:'submission.id', s:'o'},
+  {f:'course_group.certification_id', to:'certification.id', s:'o'},
+  {f:'course.certification_id', to:'certification.id', s:'o'},
+  {f:'course.course_group_id',  to:'course_group.id',  s:'o'},
+  {f:'activity.course_id',      to:'course.id',        s:'o'},
+  {f:'activity_step.activity_id', to:'activity.id',    s:'o'},
+];
+
+const BADGE = {PK:'pk',FK:'fk',UK:'uk',NULL:'nu',NEW:'nw',CHECK:'ch',PLAN:'pl',CHANGED:'ch',RETIRING:'wr'};
+const CHIP = {new:'NEW', ext:'EXTENDED', old:'EXISTING'};
+
+const GROUPS = {};
+
+const cols = document.getElementById('cols');
+const zoneEls = ZONES.map(z=>{
+  const d = document.createElement('div');
+  d.className = 'zone'+(z.slim?' slim':'');
+  d.innerHTML = `<div class="zhead">${z.t}</div>`;
+  cols.appendChild(d);
+  return d;
+});
+const groupBoxes = {};
+for(const t of TABLES){
+  const el = document.createElement('div');
+  el.className = `tbl ${t.status}`;
+  el.dataset.table = t.id;
+  let h = `<div class="th"><span class="nm">${t.id}</span><span class="chip">${CHIP[t.status]}</span></div>`;
+  for(const c of t.cols){
+    const cls = ['row']; if(c.nw)cls.push('isnew'); if(c.plan)cls.push('isplan'); if(c.dim)cls.push('dim');
+    const badges = (c.b||[]).map(b=>`<span class="b ${BADGE[b]||'nu'}">${b==='NULL'?'∅':b}</span>`).join('');
+    h += `<div class="${cls.join(' ')}" data-t="${t.id}" data-c="${c.n.split(' ')[0]}"><span class="cn">${c.n}</span>${badges}<span class="ct">${c.t||''}</span></div>`;
+  }
+  if(t.foot) h += `<div class="foot">${t.foot}</div>`;
+  el.innerHTML = h;
+  if(t.group){
+    const key = t.zone+'|'+t.group;
+    let box = groupBoxes[key];
+    if(!box){
+      const G = GROUPS[t.group];
+      box = document.createElement('div');
+      box.className = 'pgroup';
+      box.innerHTML = `<div class="plabel">${G.label}<span class="why">${G.why}</span></div>`;
+      const note = document.createElement('div');
+      note.className = 'pnote'; note.innerHTML = G.note;
+      box._note = note;
+      zoneEls[t.zone].appendChild(box);
+      groupBoxes[key] = box;
+    }
+    box.insertBefore(el, box._note.parentNode === box ? box._note : null);
+    if(box._note.parentNode !== box) box.appendChild(box._note);
+  } else {
+    zoneEls[t.zone].appendChild(el);
+  }
+}
+
+const svg = document.getElementById('wires');
+const canvas = document.getElementById('canvas');
+const viewport = document.querySelector('.viewport');
+const colsEl = document.getElementById('cols');
+const zoneOf = {}; TABLES.forEach(t=>zoneOf[t.id]=t.zone);
+let Z = 1;
+
+function rowEl(ref){
+  const [t,c] = ref.split('.');
+  return document.querySelector(`.row[data-t="${t}"][data-c="${c}"]`) ||
+         document.querySelector(`.tbl[data-table="${t}"] .th`);
+}
+// Orthogonal polyline with rounded corners.
+function rounded(pts, r){
+  let d = `M ${pts[0][0]},${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const [x,y]=pts[i], [px,py]=pts[i-1], [nx,ny]=pts[i+1];
+    const r1 = Math.min(r, Math.hypot(x-px,y-py)/2), r2 = Math.min(r, Math.hypot(nx-x,ny-y)/2);
+    const ax = x - Math.sign(x-px)*r1, ay = y - Math.sign(y-py)*r1;
+    const bx = x + Math.sign(nx-x)*r2, by = y + Math.sign(ny-y)*r2;
+    d += ` L ${ax},${ay} Q ${x},${y} ${bx},${by}`;
+  }
+  d += ` L ${pts[pts.length-1][0]},${pts[pts.length-1][1]}`;
+  return d;
+}
+function draw(){
+  const cr = canvas.getBoundingClientRect();
+  const eff = (cr.width / canvas.offsetWidth) || 1;   // zoom-corrected
+  svg.setAttribute('width', canvas.offsetWidth);
+  svg.setAttribute('height', canvas.offsetHeight);
+  svg.innerHTML = '';
+  const styles = getComputedStyle(document.documentElement);
+  const color = s => styles.getPropertyValue(s==='n'?'--new-line':s==='p'?'--plan-line':'--old-line').trim();
+  const P = el => { const r = el.getBoundingClientRect();
+    return {l:(r.left-cr.left)/eff, r:(r.right-cr.left)/eff, t:(r.top-cr.top)/eff, b:(r.bottom-cr.top)/eff}; };
+  const zrs = zoneEls.map(z=>P(z));
+  const gutter = i => (zrs[i].r + zrs[i+1].l)/2;
+  const colsTop = P(colsEl).t;
+  let lane = 0, loopLane = {};
+  for(const e of EDGES){
+    const a = rowEl(e.f), b = rowEl(e.to);
+    if(!a||!b) continue;
+    const ta = e.f.split('.')[0], tb = e.to.split('.')[0];
+    const za = zoneOf[ta], zb = zoneOf[tb];
+    const pa = P(a), pb = P(b);
+    const y1 = (pa.t+pa.b)/2, y2 = (pb.t+pb.b)/2;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','edge e-'+e.s);
+    g.dataset.tables = ta+' '+tb;
+    let d, x1, x2;
+    if(e.self){
+      x1 = pa.r; x2 = pb.r;
+      d = `M ${x1},${y1} C ${x1+34},${y1} ${x2+34},${y2} ${x2},${y2}`;
+    } else if(za === zb){
+      // Same column: loop out the right gutter, staggered so parallel loops don't stack.
+      const k = 'z'+za; loopLane[k] = (loopLane[k]||0)+1;
+      const dx = 26 + (loopLane[k]%4)*11;
+      x1 = pa.r; x2 = pb.r;
+      d = `M ${x1},${y1} C ${x1+dx},${y1} ${x2+dx},${y2} ${x2},${y2}`;
+    } else if(Math.abs(za-zb) >= 2){
+      // Long span: route over the top in its own lane — never across a table.
+      const dir = zb > za ? 1 : -1;
+      const jit = ((lane%5)-2)*7;
+      const g1 = gutter(dir>0 ? za : za-1) + jit;
+      const g2 = gutter(dir>0 ? zb-1 : zb) + jit;
+      const busY = colsTop - 20 - (lane++ % 8)*12;
+      x1 = dir>0 ? pa.r : pa.l;
+      x2 = dir>0 ? pb.l : pb.r;
+      d = rounded([[x1,y1],[g1,y1],[g1,busY],[g2,busY],[g2,y2],[x2,y2]], 12);
+    } else {
+      // Adjacent columns: bezier confined to the shared gutter.
+      const fromRight = zb > za;
+      x1 = fromRight ? pa.r : pa.l;
+      x2 = fromRight ? pb.l : pb.r;
+      const dx = Math.max(30, Math.min(90, Math.abs(x2-x1)*0.45)) * (fromRight?1:-1);
+      d = `M ${x1},${y1} C ${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+    }
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',d); p.setAttribute('class',e.s);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',x1); dot.setAttribute('cy',y1); dot.setAttribute('r',3);
+    dot.setAttribute('fill',color(e.s));
+    const dot2 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot2.setAttribute('cx',x2); dot2.setAttribute('cy',y2); dot2.setAttribute('r',2.2);
+    dot2.setAttribute('fill',color(e.s)); dot2.setAttribute('fill-opacity','.55');
+    g.append(p,dot,dot2);
+    svg.appendChild(g);
+  }
+}
+draw();
+addEventListener('resize', draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+document.fonts && document.fonts.ready.then(draw);
+
+// --- zoom ---
+function applyZoom(z){
+  Z = Math.min(2, Math.max(0.4, Math.round(z*20)/20));
+  canvas.style.zoom = Z;
+  document.getElementById('zpct').textContent = Math.round(Z*100)+'%';
+  draw();
+}
+document.getElementById('zin').addEventListener('click', ()=>applyZoom(Z+0.1));
+document.getElementById('zout').addEventListener('click', ()=>applyZoom(Z-0.1));
+document.getElementById('z100').addEventListener('click', ()=>applyZoom(1));
+document.getElementById('zfit').addEventListener('click', ()=>applyZoom((viewport.clientWidth-56)/canvas.offsetWidth));
+viewport.addEventListener('wheel', e=>{
+  if(!(e.ctrlKey||e.metaKey)) return;
+  e.preventDefault();
+  applyZoom(Z * (e.deltaY < 0 ? 1.1 : 0.9));
+}, {passive:false});
+
+// --- link visibility filter ---
+document.querySelectorAll('.toolbar .ef').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.toolbar .ef').forEach(x=>x.classList.toggle('on', x===b));
+    canvas.dataset.edges = b.dataset.e;
+  });
+});
+
+let pinned = null;
+function focus(tbl){
+  canvas.classList.add('focus');
+  document.querySelectorAll('.tbl').forEach(t=>t.classList.toggle('hot', t.dataset.table===tbl));
+  document.querySelectorAll('#wires .edge').forEach(g=>{
+    const hit = g.dataset.tables.split(' ').includes(tbl);
+    g.classList.toggle('hot', hit);
+    if(hit) g.dataset.tables.split(' ').forEach(n=>{
+      const el = document.querySelector(`.tbl[data-table="${n}"]`);
+      if(el) el.classList.add('hot');
+    });
+  });
+}
+function blur(){ if(pinned) return focus(pinned);
+  canvas.classList.remove('focus');
+  document.querySelectorAll('.tbl.hot,#wires .edge.hot').forEach(e=>e.classList.remove('hot'));
+}
+document.querySelectorAll('.tbl').forEach(t=>{
+  t.addEventListener('mouseenter',()=>focus(t.dataset.table));
+  t.addEventListener('mouseleave',blur);
+  t.addEventListener('click',()=>{ pinned = pinned===t.dataset.table?null:t.dataset.table; pinned?focus(pinned):blur(); });
+});
+</script>
+</body>
+</html>

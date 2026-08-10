@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L2 05a-CN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+
+.par{font-size:14px;color:#5A5A5B;margin:0 0 10px;}
+</style></head><body><div class="wrap">
+<h1>L2 05a-CN</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>L2 05a-CN: Confirm the consents</h2><p class="par">Sits under Process 05a, gate 2: Consent</p><div class="meta"><div class="r"><div class="k">Question it answers</div><div>How nine separate consents behave as one gate, and what happens when any single one is missing.</div></div><div class="r"><div class="k">Answer</div><div>The required set is computed from the service, every one of them must be satisfied, and any single refusal ends the Service Order. There is no partial admission.</div></div><div class="r"><div class="k">Rule</div><div>Consent is recorded against the person and the Client organization, not against the visit or the Service Order. That is what stops the Patient being asked the same thing on every visit. Later visits under that Client check what is held. They do not ask again.</div></div><div class="r"><div class="k">Rule</div><div>The required set varies by service, the stored set does not. A pre-employment screen may require drug and alcohol consent where a complaint does not. So a person who has consented before can still have something outstanding, and it is only ever the difference that is asked for, never the whole set again.</div></div><div class="r"><div class="k">Rule</div><div>Each consent is held against the version of the wording that was signed. When the wording changes, what was held against the old version is no longer current, and that one alone is asked again.</div></div><div class="r"><div class="k">Rule</div><div>Refusing is a legitimate recorded outcome, not an error. The service does not proceed, and the Employer is told it was not completed, with no reason attached and no indication of which gate stopped it.</div></div><div class="r"><div class="k">The nine</div><div>1. Take part in the assessment. 2. Collect and hold personal and health information. 3. Release the outcome to the Employer. 4. Contact the Patient's own treating doctor. 5. Drug and alcohol testing. 6. Receive survey invitations electronically. 7. Use de-identified data to improve the service. 8. Use data in research. 9. Informed consent to the procedure, which is taken in 05b because it is consent to an act rather than to holding a record.</div></div><div class="r"><div class="k">In IMS</div><div>Storage exists for most of the set and the computation does not. `PatientConsent` holds it against an entity with a given date and a separate confirm date, which is the once-then-check pattern this process depends on. `ConsentSignature` carries privacy policy, electronic survey, research and drug and alcohol as separate grants, with a version and the signed file. `ConsentVerbal` is the procedure consent, and `PatientSurveyConsent` the survey one. `PESPatientDeclined` records a refusal. Six of the nine have a home. What is absent is the front of the process: nothing computes which consents a given service requires, so nothing can work out what is outstanding.</div></div><div class="r"><div class="k">Roles</div><div>Patients, Clinicians, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 2640 660" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="2400" height="420" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="420" fill="#532C6D"/>
+<line x1="0" y1="0" x2="2610" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="196" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="220" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="242" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="420" width="2400" height="200" fill="#FAF8FB"/>
+<rect x="0" y="420" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="420" x2="2610" y2="420" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="506" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="530" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="552" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="620" x2="2610" y2="620" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="420" x2="2610" y2="420" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="403" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="427" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 210 L 545 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 775 210 L 845 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 210 L 1110 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1410 210 L 1410 210 L 1410 100 L 1445 100" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1410" y="180" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1410 210 L 1445 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1427" y="234" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 1675 210 L 1710 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2010 210 L 2045 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2027" y="195" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1860 275 L 1860 320 L 2035 320" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1924" y="325" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2275 210 L 2328 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1675 100 L 2310 100 L 2310 210 L 2328 210" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2285 320 L 2460 320 L 2460 480" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<g><rect x="228" y="170" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="204" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">A Service Order</text><text x="360" y="230" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">to admit</text></g>
+<g><rect x="545" y="157" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="191" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Compute the set this</text><text x="660" y="217" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">service requires,</text><text x="660" y="243" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">from the nine</text></g>
+<g><rect x="845" y="157" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="191" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Check each against</text><text x="960" y="217" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">what is held for</text><text x="960" y="243" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">this Client</text></g>
+<g><path d="M 1260 145 L 1410 210 L 1260 275 L 1110 210 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="206" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">All held and</text><text x="1260" y="228" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">current?</text></g>
+<g><rect x="1445" y="69" width="230" height="62" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="107" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Nothing outstanding</text></g>
+<g><rect x="1445" y="144" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="178" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Ask only for the</text><text x="1560" y="204" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">ones outstanding.</text><text x="1560" y="230" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">The Patient gives,</text><text x="1560" y="256" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">or refuses.</text></g>
+<g><path d="M 1860 145 L 2010 210 L 1860 275 L 1710 210 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="206" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Every one</text><text x="1860" y="228" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">given?</text></g>
+<g><rect x="2045" y="157" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="191" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Record against the</text><text x="2160" y="217" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">person and the Client.</text><text x="2160" y="243" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Later visits check.</text></g>
+<g><rect x="2035" y="280" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2160" y="314" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Any refusal ends it.</text><text x="2160" y="340" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Service not rendered.</text></g>
+<g><rect x="2328" y="170" width="264" height="80" rx="40" fill="#532C6D"/><text x="2460" y="204" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">All required consents</text><text x="2460" y="230" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">captured. Proceed.</text></g>
+<g><rect x="2335" y="480" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2460" y="514" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Alert: service</text><text x="2460" y="540" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">not completed.</text></g>
+</svg></div></div>
+</div></body></html>

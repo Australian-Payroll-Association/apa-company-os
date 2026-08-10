@@ -5,7 +5,9 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
+import { ContractStartForm } from "./ContractStartForm";
 import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
+import { listCustodyForPerson } from "@/lib/admin/equipment";
 import { AssignmentsBlock } from "@/components/admin/AssignmentsBlock";
 import { AvatarUpload } from "@/components/team/AvatarUpload";
 import { SensitiveDetails } from "@/components/admin/SensitiveDetails";
@@ -99,7 +101,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   // fire it all in one parallel wave instead of four serial ones. Survey
   // responses, avatar, and PII are person-keyed — skipped when there's no linked
   // person (nothing could be attributed to the row).
-  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes, salaryHistory] =
+  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes, salaryHistory, custody] =
     await Promise.all([
       m.person_id ? getPersonSurveyResponses(m.person_id) : Promise.resolve([]),
       getAssignmentsForTeamMember(m.id),
@@ -123,6 +125,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         .eq("id", params.id)
         .maybeSingle(),
       canSeePII ? getSalaryHistory(m.id) : Promise.resolve([]),
+      m.person_id ? listCustodyForPerson(m.person_id) : Promise.resolve([]),
     ]);
   const cycle = cycleRes.data as {
     employment_stage: string | null;
@@ -155,6 +158,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   const hasPersonal = Boolean(graduatedFrom || emergencyContact || hobbies.length || funFact);
 
   const requests = (leaveRes.data ?? []) as LeaveRow[];
+  // Open custody periods are what actually matters at offboarding: anything
+  // without a returned_at is still physically with this person.
+  const heldNow = custody.filter((c) => !c.returned_at);
+  const isLeaving = m.status === "notice" || m.status === "terminated" || m.status === "alumni";
   const name = m.full_name || m.email;
   const total = num(m.total_days);
   const used = num(m.used_days);
@@ -233,20 +240,10 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
                 {/* Admin-editable: when the full-time labor contract begins. A
                     probation extension moves it +30 automatically; this is the
                     manual control. */}
-                <form
+                <ContractStartForm
                   action={saveContractStartDate.bind(null, m.id)}
-                  style={{ display: "flex", gap: 8, alignItems: "center" }}
-                >
-                  <input
-                    type="date"
-                    name="contract_start_date"
-                    defaultValue={cycle?.contract_start_date ?? ""}
-                    style={{ fontSize: 13 }}
-                  />
-                  <button type="submit" className="btn btn-secondary" style={{ padding: "4px 10px", fontSize: 12 }}>
-                    Save
-                  </button>
-                </form>
+                  defaultValue={cycle?.contract_start_date ?? ""}
+                />
               </dd>
               {m.end_date && (
                 <>
@@ -302,10 +299,15 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
           <div className="admin-card admin-section-card">
             <h2 className="admin-card-title">Portal access</h2>
             <p className="admin-page-sub" style={{ marginTop: 0 }}>{m.email}</p>
-            {m.person_id ? (
-              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
-            ) : (
+            {!m.person_id ? (
               <span className="admin-cell-muted">No linked person record.</span>
+            ) : m.status === "terminated" || m.status === "alumni" ? (
+              // Past employees are never (re-)invited: show standing status only.
+              <span className="admin-cell-muted">
+                {portalStatus === "active" ? "Signed in" : portalStatus === "invited" ? "Invited, never signed in" : "Not invited"}
+              </span>
+            ) : (
+              <InvitePortalButton teamMemberId={m.id} status={portalStatus} full />
             )}
           </div>
 
@@ -358,6 +360,55 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Equipment ({heldNow.length})</h2>
+            {custody.length === 0 ? (
+              <div className="admin-empty">Nothing has been assigned to this person.</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Tag</th>
+                      <th>Type</th>
+                      <th>Held</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {custody.map((c) => (
+                      <tr key={c.id}>
+                        <td>
+                          <span className="admin-cell-strong">{c.equipment?.name ?? "Removed item"}</span>
+                          {c.equipment?.serial_number && (
+                            <div className="admin-cell-muted">{c.equipment.serial_number}</div>
+                          )}
+                        </td>
+                        <td className="admin-cell-mono">{c.equipment?.asset_tag ?? "—"}</td>
+                        <td>{c.equipment ? humanize(c.equipment.type) : "—"}</td>
+                        <td>
+                          {formatDate(c.assigned_at)} →{" "}
+                          {c.returned_at ? (
+                            formatDate(c.returned_at)
+                          ) : (
+                            <Badge tone="ok">Still has it</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {isLeaving && heldNow.length > 0 && (
+              <div className="admin-alert admin-alert--err" style={{ marginTop: 12 }}>
+                Leaving with {heldNow.length} {heldNow.length === 1 ? "item" : "items"} still out.
+                Close {heldNow.length === 1 ? "it" : "them"} on the{" "}
+                <Link href="/admin/operations/equipment">equipment register</Link> before the last day.
               </div>
             )}
           </div>

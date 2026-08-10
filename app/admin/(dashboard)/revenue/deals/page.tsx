@@ -55,9 +55,11 @@ type Row = {
   archived_at: string | null;
   updated_at: string | null;
   referrer_id: string | null;
+  referrer_company_id: string | null;
   people: Embedded<{ full_name: string | null; email: string }>;
   companies: Embedded<{ name: string | null }>;
   referrer: Embedded<{ full_name: string | null; email: string }>;
+  referrer_company: Embedded<{ name: string | null }>;
 };
 
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
@@ -90,7 +92,7 @@ export default async function DealsPage() {
   let query = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, position, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email)",
+      "id, title, stage_id, position, amount_cents, amount_usd_cents, currency, probability, status, expected_close_date, source, person_id, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, archived_at, updated_at, referrer_id, referrer_company_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email), referrer_company:companies!referrer_company_id(name)",
     )
     .order("position", { ascending: true })
     .limit(500);
@@ -113,6 +115,8 @@ export default async function DealsPage() {
       companyName: co?.name ?? null,
       referrerId: r.referrer_id,
       referrerName: rf?.full_name ?? rf?.email ?? null,
+      referrerCompanyId: r.referrer_company_id,
+      referrerCompanyName: one(r.referrer_company)?.name ?? null,
       amountCents: r.amount_cents,
       amountUsdCents: r.amount_usd_cents,
       currency: r.currency,

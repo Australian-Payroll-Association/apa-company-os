@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 03 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 03 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 03: Define the Role Requirements</h2><div class="meta"><div class="r"><div class="k">Prerequisite</div><div>Sites and Roles exist in the hierarchy.</div></div><div class="r"><div class="k">Trigger</div><div>An Employer commissions the work, or the work a Role covers changes, or the review date falls due.</div></div><div class="r"><div class="k">Output</div><div>A signed Role requirements document: the measured demands of the work. Every determination in Process 05b is made against it.</div></div><div class="r"><div class="k">Output</div><div>The monitoring intervals that Process 08 reads.</div></div><div class="r"><div class="k">Rule</div><div>The demands are measured on site by watching the work being performed. A job description is not evidence of what a job requires.</div></div><div class="r"><div class="k">Rule</div><div>The document is the Employer's to sign. Until it is signed it is a draft and nothing may be determined against it.</div></div><div class="r"><div class="k">Rule</div><div>The demands are recorded as measured values on the same scale the functional tests report, so Process 05b can compare the two. A document written as prose cannot be measured against.</div></div><div class="r"><div class="k">Rule</div><div>The evidence is attached to the document: photographs, video, and the employer's own procedures. A signature on evidence nobody can see is not a yardstick.</div></div><div class="r"><div class="k">Rule</div><div>Each task carries its risk rating, because the measurement that produces the demand also produces the risk. Process 07 reads these ratings and works at the Site and group level, above the single task.</div></div><div class="r"><div class="k">The instruments</div><div>Which instrument is used is a choice below this level, and the step does not change when it changes. What the current estate already runs: ManTRA across five body regions, scoring time, duration, cycle, repetition, force, speed, exertion, awkwardness, vibration and cumulative risk; a risk matrix of probability, exposure and consequence; an overall demand rating from sedentary to very heavy; and minimum grip, pinch, shoulder push, shoulder pull and back ratings that the functional tests are compared against. Published alongside them: JobFit's PEFA sequence, REBA for whole-body posture, and the NIOSH equation for lifting. All produce a number on a scale, which is all this process requires of them.</div></div><div class="r"><div class="k">Rule</div><div>A published document is never edited. A change publishes a new version and links back to the one it replaces. Work already booked completes against the version it started under, and new Service Orders pick up the new one.</div></div><div class="r"><div class="k">Roles</div><div>Clinicians, Practitioners, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 2640 920" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="2400" height="340" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="0" x2="2610" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="156" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="180" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="202" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="340" width="2400" height="340" fill="#FAF8FB"/>
+<rect x="0" y="340" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="340" x2="2610" y2="340" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="496" font-size="27" font-weight="700" fill="#FFFFFF">Practitioner</text>
+<text x="20" y="520" font-size="18" fill="#DDD4E4">One Client organization</text>
+<text x="20" y="542" font-size="18" fill="#DDD4E4">only.</text>
+<rect x="210" y="680" width="2400" height="200" fill="#FFFFFF"/>
+<rect x="0" y="680" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="680" x2="2610" y2="680" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="766" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="790" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="812" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="880" x2="2610" y2="880" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="680" x2="2610" y2="680" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="663" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="687" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 780 L 510 780 L 510 170 L 545 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 780 L 660 780 L 660 575" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 60 L 660 60 L 660 117" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 810 510 L 960 510 L 960 440" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="885" y="490" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 810 510 L 960 510 L 960 580" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="885" y="540" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 775 170 L 845 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 960 360 L 960 236" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 170 L 1145 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1375 170 L 1445 170" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1560 210 L 1560 780 L 1745 780" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1975 780 L 2160 780 L 2160 235" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2310 170 L 2460 170 L 2460 113" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2385" y="150" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 2310 170 L 2460 170 L 2460 227" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2385" y="200" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<g><rect x="228" y="740" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="774" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Commission the Role</text><text x="360" y="800" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">requirements for a Site</text></g>
+<g><rect x="228" y="7" width="264" height="106" rx="53" fill="#532C6D"/><text x="360" y="41" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Task or equipment</text><text x="360" y="67" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">changes, or the review</text><text x="360" y="93" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">date falls due</text></g>
+<g><rect x="545" y="117" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="151" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Attend the Site.</text><text x="660" y="177" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Observe the work</text><text x="660" y="203" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">being performed.</text></g>
+<g><path d="M 660 445 L 810 510 L 660 575 L 510 510 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="495" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Site in the</text><text x="660" y="517" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Practitioner's own</text><text x="660" y="539" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Client organization?</text></g>
+<g><rect x="845" y="360" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="394" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Observe. Own Client</text><text x="960" y="420" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">organization only.</text></g>
+<g><rect x="835" y="580" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="960" y="614" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">No Site or Role</text><text x="960" y="640" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">data returned</text></g>
+<g><rect x="845" y="104" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Capture the evidence:</text><text x="960" y="164" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">photographs, video,</text><text x="960" y="190" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">and the employer's</text><text x="960" y="216" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">own procedures</text></g>
+<g><rect x="1145" y="104" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="138" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Measure the demands</text><text x="1260" y="164" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">of each task on the</text><text x="1260" y="190" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">scale the tests use.</text><text x="1260" y="216" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Rate the task risk.</text><rect x="1336" y="223" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 1343 236 H 1355 M 1349 230 V 242" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="1445" y="130" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="164" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Compile to a Role</text><text x="1560" y="190" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">requirements document</text></g>
+<g><rect x="1745" y="740" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="774" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Review and sign</text><text x="1860" y="800" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the document</text></g>
+<g><path d="M 2160 105 L 2310 170 L 2160 235 L 2010 170 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="166" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Signed by the</text><text x="2160" y="188" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Employer?</text></g>
+<g><rect x="2345" y="7" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="41" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Publish as the</text><text x="2460" y="67" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">yardstick. Set the</text><text x="2460" y="93" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">review date.</text></g>
+<g><rect x="2335" y="227" width="250" height="106" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2460" y="261" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Not signed. Revise with</text><text x="2460" y="287" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">the supervisors and</text><text x="2460" y="313" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">workers, then re-submit.</text></g>
+</svg></div></div>
+</div></body></html>

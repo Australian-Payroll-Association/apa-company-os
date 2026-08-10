@@ -23,6 +23,7 @@ function meGroups(isCoached: boolean): NavGroup[] {
       items: [
         { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
         { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
+        { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
         ...(isCoached
           ? [{ label: "My coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
           : []),
@@ -77,18 +78,30 @@ export function TeamSidebar({
   isAdmin,
   isCoach = false,
   isCoached = false,
+  hasClients = false,
 }: {
   name: string;
   role: TeamRole;
   isAdmin: boolean;
   isCoach?: boolean;
   isCoached?: boolean;
+  // Team members assigned to a client see a "Clients" link right below Home.
+  hasClients?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  const me = meGroups(isCoached);
+  const base = meGroups(isCoached);
+  const me: NavGroup[] = hasClients
+    ? [
+        {
+          label: null,
+          items: [base[0].items[0], { label: "Clients", href: "/team/clients", ico: "◔", enabled: true }],
+        },
+        base[1],
+      ]
+    : base;
   const groups = role === "manager" || isCoach ? [...me, myTeamGroup(isCoach)] : me;
   const userInitials = initials(name);
 

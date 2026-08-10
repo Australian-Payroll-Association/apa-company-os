@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="AIO LABZ micro-sessions plan: the finalized shape of the elective unit — what it is, the learner flow, how credit is earned and counted, the two tag axes, and the optional live sitting. Companion to the Certification data architecture and the AI Program Plan.">
+<title>Micro-sessions plan · AIO LABZ</title>
+<style>
+  html{-webkit-text-size-adjust:100%;}
+  img{max-width:100%;}
+  :root {
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --violet:#6a51b8;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+      --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+      --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+      --navy:#4a6c95; --on-navy:#f3f7fb;
+      --amber:#d3a13a; --amber-soft:#241f14;
+      --violet:#9a82e0;
+      --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --violet:#6a51b8;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb;
+    --amber:#d3a13a; --amber-soft:#241f14;
+    --violet:#9a82e0;
+    --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--serif);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; margin:0;}
+  .wrap{max-width:1040px; margin:0 auto; padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+
+  .eyebrow{font-family:var(--sans); font-size:.72rem; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .7rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem); font-weight:700; line-height:1.04;
+    letter-spacing:-.015em; margin:.2rem 0 0; text-wrap:balance; max-width:22ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem); font-weight:700; line-height:1.14;
+    letter-spacing:-.01em; margin:0 0 .9rem; text-wrap:balance; max-width:26ch;}
+  h3{font-size:1.12rem; font-weight:700; line-height:1.25; margin:0 0 .5rem;}
+  p{font-size:1.055rem; line-height:1.62; color:var(--ink-soft); margin:0 0 1.05rem; max-width:64ch;}
+  p strong,li strong{color:var(--ink); font-weight:700;}
+  em{color:var(--ink); font-style:italic;}
+  a{color:var(--navy); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+  code{font-family:var(--mono); font-size:.82em; background:var(--code-bg); color:var(--ink);
+    padding:.1rem .38rem; border-radius:3px; border:1px solid var(--line);}
+
+  header.masthead{margin-bottom:clamp(2.6rem,6vw,4.2rem);}
+  .meta{font-family:var(--mono); font-size:.82rem; line-height:2; color:var(--ink-soft);
+    margin-top:1.6rem; padding-top:1.2rem; border-top:1px solid var(--line);}
+  .meta .k{color:var(--muted);}
+
+  section{margin-top:clamp(2.8rem,6vw,4.4rem); scroll-margin-top:2rem;}
+  .lead{max-width:64ch;}
+
+  .badge{display:inline-flex; align-items:center; gap:.4em; font-family:var(--sans);
+    font-size:.66rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    padding:.24em .6em; border-radius:2px; vertical-align:middle;}
+  .badge::before{content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor;}
+  .badge.ok{color:var(--ok); background:color-mix(in srgb,var(--ok) 12%,transparent);}
+  .badge.prop{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .badge.gap{color:var(--navy); background:color-mix(in srgb,var(--navy) 14%,transparent);}
+  .eyebrow .badge{margin-left:.6em;}
+
+  .flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:.55rem; margin:1.6rem 0 .5rem;}
+  .fnode{flex:1 1 8rem; min-width:7rem; background:var(--surface); border:1px solid var(--line);
+    border-radius:4px; box-shadow:var(--shadow); padding:.85rem .9rem; display:flex; flex-direction:column; gap:.32rem;}
+  .fnode .c{font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--navy);}
+  .fnode .t{font-family:var(--sans); font-size:.94rem; font-weight:700; color:var(--ink); line-height:1.2;}
+  .fnode .d{font-size:.8rem; color:var(--muted); line-height:1.35;}
+  .fnode.core{border-top:3px solid var(--navy);}
+  .fnode.elect{border-top:3px solid var(--violet);} .fnode.elect .c{color:var(--violet);}
+  .fnode.goal{border-top:3px solid var(--amber);} .fnode.goal .c{color:var(--amber);}
+  .farrow{align-self:center; color:var(--muted); font-family:var(--mono); font-size:1rem; flex:0 0 auto;}
+  @media(max-width:720px){ .flow{flex-direction:column;} .fnode{flex:0 0 auto;} .farrow{transform:rotate(90deg); margin:.1rem 0;} }
+
+  .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--navy); margin-bottom:.7rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;}
+  .owner.elect .k{color:var(--violet);}
+  .owner.goal .k{color:var(--amber);}
+  .owner p{font-size:.93rem; line-height:1.5; margin:0 0 .5rem; color:var(--ink-soft);}
+  .owner p:last-child{margin-bottom:0;}
+
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .panel h3{font-size:1.02rem; margin-bottom:.4rem;}
+  .panel .row{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.85rem;}
+
+  .tag{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:.3em .72em; border-radius:3px; display:inline-flex; line-height:1;}
+  .tag.rev{color:var(--amber); background:color-mix(in srgb,var(--amber) 15%,transparent);}
+  .tag.tal{color:var(--navy); background:color-mix(in srgb,var(--navy) 15%,transparent);}
+  .tag.ops{color:var(--ok); background:color-mix(in srgb,var(--ok) 15%,transparent);}
+  .tag.inn{color:var(--violet); background:color-mix(in srgb,var(--violet) 17%,transparent);}
+  .tag.disc{color:var(--ink-soft); background:var(--line-soft); border:1px solid var(--line);}
+
+  ul.ticks{list-style:none; margin:1.2rem 0; padding:0; display:flex; flex-direction:column; gap:.7rem; max-width:66ch;}
+  ul.ticks li{font-size:1rem; line-height:1.5; color:var(--ink-soft); padding-left:1.5rem; position:relative;}
+  ul.ticks li::before{content:""; position:absolute; left:.15rem; top:.55em; width:.44rem; height:.44rem; border-radius:50%; background:var(--navy);}
+  ul.ticks li strong{color:var(--ink);}
+
+  .callout{border-left:3px solid var(--amber); background:var(--amber-soft);
+    padding:1.05rem 1.25rem; margin:1.7rem 0; max-width:74ch; border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans); font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin-bottom:.5rem;}
+  .callout p{margin:0; font-size:.98rem; color:var(--ink-soft); max-width:none;}
+  .callout.navy{border-left-color:var(--navy); background:color-mix(in srgb,var(--navy) 7%,var(--surface));}
+  .callout.navy .k{color:var(--navy);}
+
+  ol.steps{list-style:none; counter-reset:s; margin:1.5rem 0; padding:0;
+    display:flex; flex-direction:column; gap:.9rem; max-width:70ch;}
+  ol.steps li{counter-increment:s; position:relative; padding-left:2.6rem; font-size:1rem;
+    line-height:1.5; color:var(--ink-soft); min-height:1.7rem;}
+  ol.steps li strong{color:var(--ink);}
+  ol.steps li::before{content:counter(s); position:absolute; left:0; top:-.05rem; width:1.7rem; height:1.7rem;
+    display:grid; place-items:center; font-family:var(--mono); font-size:.82rem; font-weight:700;
+    color:var(--navy); background:var(--surface); border:1px solid var(--navy); border-radius:3px;}
+
+  .tablewrap{overflow-x:auto; margin:1.6rem 0 .4rem; border:1px solid var(--line);
+    border-radius:4px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:.94rem;}
+  caption{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); text-align:left; padding:.95rem 1.15rem .2rem;}
+  th,td{text-align:left; padding:.7rem 1.15rem; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  thead th{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); background:var(--line-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);}
+  td .mono, th .mono{font-size:.86rem;}
+  .tnote{font-size:.9rem; color:var(--muted); font-style:italic; margin-top:.7rem;}
+
+  hr.rule{border:none; border-top:1px solid var(--line); margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem); padding-top:1.5rem; border-top:1px solid var(--line);
+    font-size:.9rem; line-height:1.7; color:var(--muted); max-width:74ch;}
+  footer.foot b{color:var(--ink-soft);}
+  :focus-visible{outline:2px solid var(--navy); outline-offset:3px; border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · AI Officer · Micro-sessions plan</p>
+    <h1>The micro-session, finalized</h1>
+    <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:62ch; margin-top:1rem;">
+      The plan for the elective unit of the AI Officer Institute. A micro-session is a small, on-demand
+      lesson — <strong>one video, one textbook, one short challenge</strong> — built from the same screens as a
+      standard session. Complete the challenge in the AI Buddy and you earn <strong>one elective</strong> toward the
+      certificate you are working on. This page is the settled shape: what it is, the flow, and the details.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> &nbsp; Micro-session: content, learner flow, credit, tags, optional live sitting</div>
+      <div><span class="k">Source</span> &nbsp; AI Program Plan (Video, Micro Sessions and Coaching) · Certification data architecture · aiolabz-fe components</div>
+      <div><span class="k">State</span> &nbsp; <span class="badge ok">Built</span> list · detail · challenge · sign-up &nbsp;&nbsp; <span class="badge gap">The gap</span> electives in completion math &nbsp;&nbsp; <span class="badge prop">To decide</span> elective count · two-axis tags</div>
+      <div><span class="k">Prepared</span> &nbsp; 6 August 2026 · companion to the AI Program Plan</div>
+    </div>
+  </header>
+
+  <!-- WHAT IT IS -->
+  <section>
+    <p class="eyebrow">What it is</p>
+    <h2>A small elective, on the screens learners already know</h2>
+    <p class="lead">A micro-session is exactly like a standard session, only smaller — so nothing new has to be
+      learned to use it. It is <strong>on-demand first</strong>: a learner can start any time and work through it
+      alone. A live sitting is an <em>optional</em> add-on, not the default.</p>
+    <ul class="ticks">
+      <li><strong>Content:</strong> one video, one textbook, and one short challenge.</li>
+      <li><strong>Identical UI:</strong> the micro-session screens match a standard session — same player, same reading pane, same challenge and AI Buddy.</li>
+      <li><strong>Earns one elective:</strong> completing it contributes one required elective toward the current certificate.</li>
+      <li><strong>Optional live sitting:</strong> the same session can also run live — sign up, get a Zoom link, join, and build a community around the topic.</li>
+    </ul>
+  </section>
+
+  <!-- THE FLOW -->
+  <section>
+    <p class="eyebrow">The learner flow</p>
+    <h2>Browse, do three things, earn the credit</h2>
+    <p class="lead">One linear path, the same credit loop as every other unit: watch, read, do the challenge, submit.
+      The challenge submission is the single act that earns the credit.</p>
+
+    <div class="flow" role="img" aria-label="Flow: browse the catalog, open a micro-session, watch the video, read the textbook, complete the challenge in the AI Buddy and submit, then one elective is credited to the current certification.">
+      <div class="fnode"><span class="c">1 · Browse</span><span class="t">Catalog</span><span class="d">Available &amp; past, filter by discipline</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode core"><span class="c">2 · Video</span><span class="t">Watch</span><span class="d">Watch time is tracked</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode core"><span class="c">3 · Textbook</span><span class="t">Read</span><span class="d">One short reading</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode elect"><span class="c">4 · Challenge</span><span class="t">AI Buddy</span><span class="d">Complete &amp; submit</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode goal"><span class="c">5 · Result</span><span class="t">+1 elective</span><span class="d">Credited to the current certificate</span></div>
+    </div>
+
+    <ol class="steps">
+      <li><strong>Browse the catalog.</strong> Available (on-demand and upcoming live) and a past/completed archive; browse or filter by discipline.</li>
+      <li><strong>Open the session and watch the video.</strong> The full video plays; watch time counts toward progress.</li>
+      <li><strong>Read the textbook.</strong> One short reading scoped to the topic.</li>
+      <li><strong>Complete the challenge in the AI Buddy and submit.</strong> This is the act that earns credit — identical to a standard session.</li>
+      <li><strong>The elective is credited</strong> to the certificate the learner is currently working on, and it moves them one step closer to issuance.</li>
+    </ol>
+  </section>
+
+  <!-- CREDIT RULE -->
+  <section>
+    <p class="eyebrow">Credit</p>
+    <h2>One elective, applied once</h2>
+    <p class="lead">Credit is earned by submitting the challenge, not by attending anything. Where that credit lands
+      follows one clear rule.</p>
+    <div class="callout navy">
+      <div class="k">Credit rule</div>
+      <p>A learner can apply <strong>any</strong> micro-session to the certification they are <em>currently</em>
+        working on — like taking an elective in college (a Leadership-tagged session can count toward an AI Officer
+        certification). It applies to that certification <strong>once</strong>; the same micro-session cannot be
+        reused for a later certification. This is marked in the database. The Discipline tag is only a hint about
+        which certificate a session <em>most</em> fits — it never limits what is eligible.</p>
+    </div>
+  </section>
+
+  <!-- TAGS -->
+  <section>
+    <p class="eyebrow">Tags</p>
+    <h2>Two independent tag axes</h2>
+    <p class="lead">Every micro-session carries two tags on two independent axes: which office it is about, and which
+      discipline (certification) it most applies to. A session is one of each.</p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Office</h3>
+        <p style="font-size:.93rem;color:var(--ink-soft);">What area of the business the session is about.</p>
+        <div class="row">
+          <span class="tag rev">Revenue</span>
+          <span class="tag tal">Talent</span>
+          <span class="tag ops">Operations</span>
+          <span class="tag inn">Innovation</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Discipline</h3>
+        <p style="font-size:.93rem;color:var(--ink-soft);">Which certification the session most applies to.</p>
+        <div class="row">
+          <span class="tag disc">Leadership</span>
+          <span class="tag disc">AI Engineering</span>
+          <span class="tag disc">AI Officer</span>
+        </div>
+      </div>
+    </div>
+    <p class="tnote">Worked example: a short <strong>“Prompt Ops”</strong> session reads as an <span class="tag ops">Operations</span>
+      topic in the <span class="tag disc">AI Officer</span> discipline. More tag types will be added later as the
+      catalog grows — for example tool tags such as Claude or ChatGPT.</p>
+  </section>
+
+  <!-- LIVE OPTION -->
+  <section>
+    <p class="eyebrow">Live option</p>
+    <h2>An optional live sitting, with the states already defined</h2>
+    <p class="lead">A micro-session can also be offered live. It never changes how credit is earned — the challenge
+      submission still does that — it just adds a way to learn the topic together.</p>
+    <ul class="ticks">
+      <li><strong>Sign up:</strong> a learner RSVPs, receives a Zoom link, and joins.</li>
+      <li><strong>Community:</strong> the live sitting builds a community around the topic; the recording is archived afterward.</li>
+      <li><strong>Button states:</strong> <span class="mono">Start</span> (on-demand default) — and when a live sitting exists, <span class="mono">RSVP → View Session → View Recording</span>.</li>
+      <li><strong>Status:</strong> <span class="mono">Upcoming · Missed · Completed</span> for a live sitting.</li>
+    </ul>
+  </section>
+
+  <!-- SESSION TYPES -->
+  <section>
+    <p class="eyebrow">Where it sits</p>
+    <h2>One of three session types, one credit loop</h2>
+    <p class="lead">Standard sessions, micro-sessions, and coaching differ in size and setting, not in how credit is
+      earned. The micro-session is the small elective in the middle.</p>
+    <div class="owners">
+      <div class="owner">
+        <div class="k">Standard session</div>
+        <p>The full-length session, the baseline unit of the curriculum. The Core missions are built from these.</p>
+      </div>
+      <div class="owner elect">
+        <div class="k">Micro-session</div>
+        <p>The small elective: one video, one textbook, one short challenge. Identical screens to a standard session, plus an optional live sign-up.</p>
+      </div>
+      <div class="owner goal">
+        <div class="k">Coaching</div>
+        <p>A live community session — bring a real AI challenge, get coached, and the recording is archived so others learn from it.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- HOW IT COUNTS -->
+  <section>
+    <p class="eyebrow">How it counts</p>
+    <h2>Core plus Electives — no capstone</h2>
+    <p class="lead">Micro-sessions are the elective half of a certification. Completion counts the Core missions and
+      the required electives <strong>together</strong>, and the credential issues automatically when both are done.
+      There is no capstone.</p>
+
+    <div class="flow" role="img" aria-label="A certification is the required Core of missions plus the required elective micro-sessions; when both are complete the credential is issued automatically, with no capstone.">
+      <div class="fnode core"><span class="c">Core · required</span><span class="t">Missions</span><span class="d">AI Officer: 10, Generative then Agentic</span></div>
+      <span class="farrow" aria-hidden="true">+</span>
+      <div class="fnode elect"><span class="c">Electives · required</span><span class="t">Micro-sessions</span><span class="d">Target 10 (proposed)</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode goal"><span class="c">Result</span><span class="t">Credential</span><span class="d">Issued automatically · no capstone</span></div>
+    </div>
+
+    <div class="callout navy">
+      <div class="k">The rule that must hold</div>
+      <p>Completion percentage must count <strong>Core and Electives together</strong>, and the completion
+        denominator must stay fixed at all the Core courses. When the Generative group was hidden as “coming soon”,
+        the denominator shrank from 10 to 6, so students who finished only the 6 Agentic courses were shown as done
+        and no credential ever issued (incident <code>BE #942</code>). Hiding content is presentational only — it must
+        never change what “finished” means.</p>
+    </div>
+  </section>
+
+  <!-- CURRENT STATE VS TARGET -->
+  <section>
+    <p class="eyebrow">Current state vs. target</p>
+    <h2>Most of the micro-session is built; the gap is the credit math</h2>
+    <p class="lead">Grounding the plan in what the platform already does, so the work is a delta, not a rebuild.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Where each piece stands</caption>
+        <thead>
+          <tr><th>Piece</th><th>State</th><th>Where it stands</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Catalog — list &amp; detail</b></td>
+            <td><span class="badge ok">Built</span></td>
+            <td>List, detail, and the challenge flow exist; the screens already mirror a standard session.</td>
+          </tr>
+          <tr>
+            <td><b>Challenge → credit</b></td>
+            <td><span class="badge ok">Built</span></td>
+            <td>The AI Buddy challenge and submission are the shared component missions already use.</td>
+          </tr>
+          <tr>
+            <td><b>Live sign-up</b></td>
+            <td><span class="badge ok">Built</span></td>
+            <td>RSVP, live-session URL, host, and location type exist; states are defined (RSVP / View Session / View Recording).</td>
+          </tr>
+          <tr>
+            <td><b>Two-axis tags (Office × Discipline)</b></td>
+            <td><span class="badge prop">New</span></td>
+            <td>Not yet in the codebase — a new tag dimension to add, following the existing tag → badge pattern.</td>
+          </tr>
+          <tr>
+            <td><b>Electives in completion math</b></td>
+            <td><span class="badge gap">The gap</span></td>
+            <td>Progress counts missions only today; electives are tracked but do not roll into the certificate's completion. This is the core change.</td>
+          </tr>
+          <tr>
+            <td><b>Fixed denominator</b></td>
+            <td><span class="badge gap">The gap</span></td>
+            <td>Per <code>BE #942</code>, hiding a group shrank the denominator; it must stay fixed at all Core courses.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TO DECIDE -->
+  <section>
+    <p class="eyebrow">To decide</p>
+    <h2>The few things still to lock</h2>
+    <p class="lead">Everything above is settled behaviour or a known build. These are the open decisions to confirm
+      before implementation.</p>
+    <ul class="ticks">
+      <li><strong>Required elective count, per track.</strong> A target of 10 required micro-sessions is proposed but not settled — and it cannot be uniform: the AI Engineer Core is only 8 courses (<span class="mono">E01–E08</span>), so the rule needs to be defined per certification, not one number for all.</li>
+      <li><strong>Two-axis tags need building.</strong> Office and Discipline do not exist in code yet; confirm the values (Office = Revenue / Talent / Operations / Innovation; Discipline = Leadership / AI Engineering / AI Officer) and add them.</li>
+      <li><strong>Wire electives into completion.</strong> Extend the certificate's completion to count Core + Electives together, with the denominator fixed.</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <p><b>Micro-sessions plan</b> — the finalized shape of the elective unit for the AI Officer Institute. Companion
+      to the <b>Certification data architecture</b> and the <b>AI Program Plan (Video, Micro Sessions and Coaching)</b>.
+      Prepared 6 August 2026 for review.</p>
+    <p>Settled behaviour is drawn from those two documents and the components already in the codebase. Items marked
+      <b>To decide</b> — the per-track elective count and the two-axis tags — are for confirmation, not current behaviour.</p>
+  </footer>
+
+</div>
+</body>
+</html>

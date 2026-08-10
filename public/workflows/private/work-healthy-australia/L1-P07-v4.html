@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 version 4, process 07 only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#532C6D;--tint:#EDE8F1;--tint2:#DDD4E4;--grey:#5A5A5B;
+      --greyl:#CFCFCF;--yellow:#FEE199;--orange:#F5AB96;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;color:var(--grey);font-family:'Source Sans 3',-apple-system,sans-serif;
+     font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1600px;margin:0 auto;padding:40px 26px 70px;}
+h1{font-size:32px;font-weight:700;color:var(--purple);margin:0 0 6px;}
+h2{font-size:23px;font-weight:700;color:var(--purple);margin:0 0 10px;}
+.key{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 30px;font-size:13.5px;}
+.key i{display:inline-block;width:26px;height:15px;border-radius:3px;border:2px solid var(--purple);
+       vertical-align:-3px;margin-right:6px;font-style:normal;}
+.k-step{background:#fff;} .k-dec{background:var(--yellow);} .k-alert{background:var(--orange);}
+.k-pre{background:#fff;box-shadow:inset 4px 0 0 -1px var(--purple),inset -4px 0 0 -1px var(--purple);}
+.k-ext{background:#F4F4F4;border-style:dashed;border-color:var(--grey);}
+.k-l2{background:#fff;position:relative;}
+.k-l2::after{content:"+";position:absolute;right:-4px;top:-6px;font-size:15px;font-weight:700;
+             color:var(--purple);line-height:1;background:#fff;border:2px solid var(--purple);
+             border-radius:4px;padding:0 2px;}
+.k-term{background:var(--purple);} .k-wall{background:repeating-linear-gradient(90deg,
+       var(--grey) 0 7px,#fff 7px 12px);border-color:var(--grey);}
+.proc{margin:0 0 46px;}
+.meta{border:1px solid var(--greyl);border-radius:9px;overflow:hidden;margin:0 0 14px;}
+.meta div.r{display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #EFEFEF;font-size:14px;}
+.meta div.r:last-child{border-bottom:none;}
+.meta .k{flex:0 0 110px;font-weight:600;color:var(--purple);}
+svg.lanes{width:100%;height:auto;display:block;border:1px solid var(--greyl);border-radius:9px;}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+body{overflow-x:hidden;}
+.wrap{overflow-x:hidden;}
+.proc,.meta{max-width:100%;}
+@media (max-width:1500px){svg.lanes{min-width:1440px;}}
+@media print{
+  @page{size:594mm 420mm;margin:10mm;}
+  body{font-size:11pt;}
+  .wrap{max-width:none;padding:0;}
+  h1{font-size:22pt;} h2{font-size:15pt;}
+  .proc{break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always;}
+  .proc:last-child{break-after:auto;page-break-after:auto;}
+  .meta,svg.lanes{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .key{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style></head><body><div class="wrap">
+<h1>L1 version 4, process 07 only</h1>
+<div class="key"><span><i class="k-term"></i>Trigger or output</span><span><i class="k-step"></i>Process step</span><span><i class="k-dec"></i>Decision</span><span><i class="k-alert"></i>Alert</span><span><i class="k-l2"></i>Opens as an L2 subprocess</span><span><i class="k-pre"></i>Another of our processes, called from here</span><span><i class="k-ext"></i>Outside our design. Called and tracked, not defined</span><span><i class="k-wall"></i>The employer wall</span></div>
+<div class="proc"><h2>Process 07: Assess and Control Workplace Risk</h2><div class="meta"><div class="r"><div class="k">Status</div><div>Potential process. It is not what Work Healthy Australia does today. It is drawn because the sweep of KINNECT, Jobfit, Sonic HealthPlus, the Netherlands, Japan, the United Kingdom, Germany and Finland found it in all of them, and because 01 to 05 and 09 cannot deliver it as they stand.</div></div><div class="r"><div class="k">Prerequisite</div><div>A Site, Department or Role to assess, and published Role requirements from Process 03 to assess against.</div></div><div class="r"><div class="k">Trigger</div><div>An Employer requests an assessment, or the review date falls due and Process 08 raises it.</div></div><div class="r"><div class="k">Output</div><div>Findings and a control plan for the Site, Department or Role. Never per Patient.</div></div><div class="r"><div class="k">Output</div><div>A review date, which Process 08 turns into the next assessment.</div></div><div class="r"><div class="k">Rule</div><div>The subject is the work, not the people in it. Surveying a group is one way to find a hazard, alongside observing the work being performed, measuring exposure, and reading the incident record.</div></div><div class="r"><div class="k">Rule</div><div>A hazard enters the plan only if it could make someone unfit to perform their Role. That is what the assessment reads the Role requirements for, and it is the join between this process and 05b.</div></div><div class="r"><div class="k">Rule</div><div>No identity gate and no consent gate, because there is no individual subject. Where a method does collect responses from individuals, the release gate is whether the finding can be published without identifying anyone, since a small enough group identifies its members by arithmetic.</div></div><div class="r"><div class="k">Rule</div><div>Work Healthy Australia identifies, assesses and advises. Implementing the controls is the Employer's duty and cannot be handed to the provider. Safe Work Australia and ISO 45003 both put it there.</div></div><div class="r"><div class="k">Rule</div><div>A person who wants something for themselves self-refers, which raises a Service Order and enters Process 05 with its own identity and consent gates. This process never refers anyone, because it never identifies anyone.</div></div><div class="r"><div class="k">Rule</div><div>Each hazard carries a rating, not a yes or no. A rating is what lets a control plan be ordered, and what lets residual risk be recorded once a control is in place. The decision on the diagram is only whether the hazard reaches fitness at all.</div></div><div class="r"><div class="k">Rule</div><div>Implementing controls is the Employer's duty. Recording which controls were implemented and when is not, and without it the review date has nothing to review.</div></div><div class="r"><div class="k">Rule</div><div>The incident record is one of the four ways a hazard is found, and it is written at the Site when the incident happens. A recorded incident is itself a trigger for this process.</div></div><div class="r"><div class="k">Rule</div><div>The findings go back to the people who answered before any action planning. Under the published method that is a consultation duty, not a courtesy. The review date carries the re-survey.</div></div><div class="r"><div class="k">Open</div><div>Anonymous against confidential for the survey method. Anonymous means the respondent gets no personal result, so nothing triggers a self-referral. Confidential means a personal result to the worker alone and a self-request route. Ruled anonymous; the consequence is recorded and not resolved.</div></div><div class="r"><div class="k">MVP scope</div><div>Surveys only, as the identification method. Observation, exposure measurement and incident review are the same spine with a different method in the middle, and are not in the first slice.</div></div><div class="r"><div class="k">Roles</div><div>Patients, Clinicians, Practitioners, Employers</div></div></div><div class="svgwrap"><svg class="lanes" viewBox="0 -14 3540 1300" xmlns="http://www.w3.org/2000/svg" role="img">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#532C6D"/></marker><marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A5A5B"/></marker></defs>
+<rect x="210" y="0" width="3300" height="200" fill="#FFFFFF"/>
+<rect x="0" y="0" width="210" height="200" fill="#532C6D"/>
+<line x1="0" y1="0" x2="3510" y2="0" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="86" font-size="27" font-weight="700" fill="#FFFFFF">Patient</text>
+<text x="20" y="110" font-size="18" fill="#DDD4E4">Own record only. Consent</text>
+<text x="20" y="132" font-size="18" fill="#DDD4E4">gates collection.</text>
+<rect x="210" y="200" width="3300" height="380" fill="#FAF8FB"/>
+<rect x="0" y="200" width="210" height="380" fill="#532C6D"/>
+<line x1="0" y1="200" x2="3510" y2="200" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="376" font-size="27" font-weight="700" fill="#FFFFFF">Clinician</text>
+<text x="20" y="400" font-size="18" fill="#DDD4E4">Every Client organization.</text>
+<text x="20" y="422" font-size="18" fill="#DDD4E4">Every service.</text>
+<rect x="210" y="580" width="3300" height="340" fill="#FFFFFF"/>
+<rect x="0" y="580" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="580" x2="3510" y2="580" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="736" font-size="27" font-weight="700" fill="#FFFFFF">Practitioner</text>
+<text x="20" y="760" font-size="18" fill="#DDD4E4">One Client organization</text>
+<text x="20" y="782" font-size="18" fill="#DDD4E4">only.</text>
+<rect x="210" y="920" width="3300" height="340" fill="#FAF8FB"/>
+<rect x="0" y="920" width="210" height="340" fill="#532C6D"/>
+<line x1="0" y1="920" x2="3510" y2="920" stroke="#CFCFCF" stroke-width="1"/>
+<text x="20" y="1076" font-size="27" font-weight="700" fill="#FFFFFF">Employer</text>
+<text x="20" y="1100" font-size="18" fill="#DDD4E4">Outputs only. No clinical</text>
+<text x="20" y="1122" font-size="18" fill="#DDD4E4">detail.</text>
+<line x1="0" y1="1260" x2="3510" y2="1260" stroke="#CFCFCF" stroke-width="1"/>
+<line x1="0" y1="920" x2="3510" y2="920" stroke="#5A5A5B" stroke-width="5" stroke-dasharray="14 8"/>
+<rect x="218" y="903" width="180" height="34" rx="6" fill="#5A5A5B"/>
+<text x="308" y="927" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">THE EMPLOYER WALL</text>
+<path d="M 492 500 L 660 500 L 660 443" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 3192 980 L 3360 980 L 3360 443" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2875 280 L 3060 280 L 3060 140" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 1090 L 510 1090 L 510 390 L 545 390" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 1090 L 660 1090 L 660 815" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 492 280 L 660 280 L 660 337" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 810 750 L 960 750 L 960 680" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="885" y="730" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 810 750 L 960 750 L 960 820" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="885" y="780" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 775 390 L 845 390" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 390 L 1260 390 L 1260 166" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1075 640 L 1260 640 L 1260 166" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1375 100 L 1560 100 L 1560 324" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1675 390 L 1710 390" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 1860 325 L 1860 280 L 2045 280" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1924" y="285" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 1860 455 L 1860 500 L 2028 500" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="1924" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2275 280 L 2310 280" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/>
+<path d="M 2610 280 L 2645 280" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2627" y="265" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Yes</text>
+<path d="M 2460 345 L 2460 500 L 2635 500" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2524" y="505" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">No</text>
+<path d="M 2760 553 L 2760 1147" fill="none" stroke="#5A5A5B" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arg)"/>
+<path d="M 2875 280 L 3060 280 L 3060 927" fill="none" stroke="#532C6D" stroke-width="2.5" marker-end="url(#ar)"/><text x="2967" y="258" font-size="19" font-weight="600" fill="#532C6D" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round">Findings and plan only</text>
+<g><rect x="228" y="1037" width="264" height="106" rx="53" fill="#532C6D"/><text x="360" y="1071" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Request an assessment</text><text x="360" y="1097" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">for a Site, Department</text><text x="360" y="1123" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">or Role</text></g>
+<g><rect x="228" y="240" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="274" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Review date falls due.</text><text x="360" y="300" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Raised by Process 08.</text></g>
+<g><rect x="228" y="460" width="264" height="80" rx="40" fill="#532C6D"/><text x="360" y="494" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">An incident is</text><text x="360" y="520" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">recorded at the Site</text></g>
+<g><rect x="545" y="337" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="371" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Define the Site,</text><text x="660" y="397" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Department or Role</text><text x="660" y="423" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">to assess</text></g>
+<g><path d="M 660 685 L 810 750 L 660 815 L 510 750 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="660" y="735" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Site in the</text><text x="660" y="757" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Practitioner's own</text><text x="660" y="779" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Client organization?</text></g>
+<g><rect x="845" y="324" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="358" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Identify the hazards.</text><text x="960" y="384" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Survey, observe,</text><text x="960" y="410" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">measure, or read</text><text x="960" y="436" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the incident record.</text></g>
+<g><rect x="845" y="600" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="960" y="634" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Identify. Own Client</text><text x="960" y="660" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">organization only.</text></g>
+<g><rect x="835" y="820" width="250" height="80" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="960" y="854" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">No Site or group</text><text x="960" y="880" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">data returned</text></g>
+<g><rect x="1145" y="34" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1260" y="68" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Take part where the</text><text x="1260" y="94" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">method needs people.</text><text x="1260" y="120" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">No identifier is</text><text x="1260" y="146" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">collected.</text></g>
+<g><rect x="1445" y="324" width="230" height="132" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="1560" y="358" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Assess each hazard</text><text x="1560" y="384" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">against the Role</text><text x="1560" y="410" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">requirements. Rate</text><text x="1560" y="436" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">the risk.</text></g>
+<g><path d="M 1860 325 L 2010 390 L 1860 455 L 1710 390 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="1860" y="375" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Could it make</text><text x="1860" y="397" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">someone unfit</text><text x="1860" y="419" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">to perform?</text></g>
+<g><rect x="2045" y="240" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2160" y="274" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Produce the findings</text><text x="2160" y="300" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">and the control plan</text></g>
+<g><rect x="2028" y="447" width="264" height="106" rx="53" fill="#532C6D"/><text x="2160" y="481" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">No risk to fitness.</text><text x="2160" y="507" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Recorded, no</text><text x="2160" y="533" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">control needed.</text></g>
+<g><path d="M 2460 215 L 2610 280 L 2460 345 L 2310 280 z" fill="#FEE199" stroke="#532C6D" stroke-width="2.5"/><text x="2460" y="276" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">Release without</text><text x="2460" y="298" font-size="18" fill="#5A5A5B" font-weight="400" text-anchor="middle">identifying anyone?</text><rect x="2505" y="299" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><path d="M 2512 312 H 2524 M 2518 306 V 318" stroke="#532C6D" stroke-width="2.5" stroke-linecap="round"/></g>
+<g><rect x="2645" y="227" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="2760" y="261" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Release. Set the</text><text x="2760" y="287" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">review date for</text><text x="2760" y="313" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Process 08.</text></g>
+<g><rect x="2635" y="447" width="250" height="106" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2760" y="481" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Withheld. Releasing</text><text x="2760" y="507" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">it would identify</text><text x="2760" y="533" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">someone.</text></g>
+<g><rect x="2635" y="1147" width="250" height="106" rx="8" fill="#F5AB96" stroke="#532C6D" stroke-width="2"/><text x="2760" y="1181" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Alert: no report.</text><text x="2760" y="1207" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">Releasing it would</text><text x="2760" y="1233" font-size="21" fill="#5A5A5B" font-weight="400" text-anchor="middle">identify someone.</text></g>
+<g><rect x="2928" y="927" width="264" height="106" rx="53" fill="#532C6D"/><text x="3060" y="961" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Implement the controls.</text><text x="3060" y="987" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">The duty is the</text><text x="3060" y="1013" font-size="21" fill="#FFFFFF" font-weight="700" text-anchor="middle">Employer's.</text></g>
+<g><rect x="3245" y="337" width="230" height="106" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3360" y="371" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Record which controls</text><text x="3360" y="397" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">were implemented</text><text x="3360" y="423" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">and when</text></g>
+<g><rect x="2945" y="60" width="230" height="80" rx="8" fill="#FFFFFF" stroke="#532C6D" stroke-width="2.5"/><text x="3060" y="94" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">Receive the findings</text><text x="3060" y="120" font-size="21" fill="#532C6D" font-weight="400" text-anchor="middle">for your own group</text></g>
+</svg></div></div>
+</div></body></html>

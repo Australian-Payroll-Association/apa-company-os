@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AIO LABZ certification data architecture: how a certification is structured as Core missions plus elective micro-sessions plus a capstone, and how a learner earns credit. Companion to the AI Program Plan.">
+<title>Certification data architecture · AIO LABZ</title>
+<style>
+  html{-webkit-text-size-adjust:100%;}
+  img{max-width:100%;}
+  :root {
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --violet:#6a51b8;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+      --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+      --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+      --navy:#4a6c95; --on-navy:#f3f7fb;
+      --amber:#d3a13a; --amber-soft:#241f14;
+      --violet:#9a82e0;
+      --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --violet:#6a51b8;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb;
+    --amber:#d3a13a; --amber-soft:#241f14;
+    --violet:#9a82e0;
+    --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--serif);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; margin:0;}
+  .wrap{max-width:1040px; margin:0 auto; padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+
+  /* type roles */
+  .eyebrow{font-family:var(--sans); font-size:.72rem; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .7rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem); font-weight:700; line-height:1.04;
+    letter-spacing:-.015em; margin:.2rem 0 0; text-wrap:balance; max-width:22ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem); font-weight:700; line-height:1.14;
+    letter-spacing:-.01em; margin:0 0 .9rem; text-wrap:balance; max-width:26ch;}
+  h3{font-size:1.12rem; font-weight:700; line-height:1.25; margin:0 0 .5rem;}
+  p{font-size:1.055rem; line-height:1.62; color:var(--ink-soft); margin:0 0 1.05rem; max-width:64ch;}
+  p strong,li strong{color:var(--ink); font-weight:700;}
+  em{color:var(--ink); font-style:italic;}
+  a{color:var(--navy); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+  code{font-family:var(--mono); font-size:.82em; background:var(--code-bg); color:var(--ink);
+    padding:.1rem .38rem; border-radius:3px; border:1px solid var(--line);}
+
+  /* header */
+  header.masthead{margin-bottom:clamp(2.6rem,6vw,4.2rem);}
+  .meta{font-family:var(--mono); font-size:.82rem; line-height:2; color:var(--ink-soft);
+    margin-top:1.6rem; padding-top:1.2rem; border-top:1px solid var(--line);}
+  .meta .k{color:var(--muted);}
+
+  section{margin-top:clamp(2.8rem,6vw,4.4rem); scroll-margin-top:2rem;}
+  .lead{max-width:64ch;}
+
+  /* badges */
+  .badge{display:inline-flex; align-items:center; gap:.4em; font-family:var(--sans);
+    font-size:.66rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    padding:.24em .6em; border-radius:2px; vertical-align:middle;}
+  .badge::before{content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor;}
+  .badge.ok{color:var(--ok); background:color-mix(in srgb,var(--ok) 12%,transparent);}
+  .badge.prop{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .badge.gap{color:var(--navy); background:color-mix(in srgb,var(--navy) 14%,transparent);}
+  .eyebrow .badge{margin-left:.6em;}
+
+  /* flow chain */
+  .flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:.55rem; margin:1.6rem 0 .5rem;}
+  .fnode{flex:1 1 8rem; min-width:7rem; background:var(--surface); border:1px solid var(--line);
+    border-radius:4px; box-shadow:var(--shadow); padding:.85rem .9rem; display:flex; flex-direction:column; gap:.32rem;}
+  .fnode .c{font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--navy);}
+  .fnode .t{font-family:var(--sans); font-size:.94rem; font-weight:700; color:var(--ink); line-height:1.2;}
+  .fnode .d{font-size:.8rem; color:var(--muted); line-height:1.35;}
+  .fnode.core{border-top:3px solid var(--navy);}
+  .fnode.elect{border-top:3px solid var(--violet);} .fnode.elect .c{color:var(--violet);}
+  .fnode.goal{border-top:3px solid var(--amber);} .fnode.goal .c{color:var(--amber);}
+  .farrow{align-self:center; color:var(--muted); font-family:var(--mono); font-size:1rem; flex:0 0 auto;}
+  @media(max-width:720px){ .flow{flex-direction:column;} .fnode{flex:0 0 auto;} .farrow{transform:rotate(90deg); margin:.1rem 0;} }
+
+  /* track picker */
+  .pick{margin:1.6rem 0 .4rem;}
+  .pick .lab{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.75rem;}
+  .tracks{display:flex; flex-wrap:wrap; gap:.6rem;}
+  .trk{display:inline-flex; align-items:center; gap:.55rem; font-family:var(--sans); font-size:.95rem; font-weight:700;
+    color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:40px; padding:.5rem 1.05rem; box-shadow:var(--shadow);}
+  .trk.ex{border-color:var(--navy); color:var(--navy); background:color-mix(in srgb,var(--navy) 8%,var(--surface));}
+  .trk.soon{color:var(--muted);}
+  .trk .tagx{font-family:var(--sans); font-size:.6rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:.2em .5em; border-radius:2px;}
+  .trk.ex .tagx{color:var(--navy); background:color-mix(in srgb,var(--navy) 14%,transparent);}
+  .trk.soon .tagx{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+  .pickcap{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:1.4rem 0 -.4rem;}
+
+  /* 3-up definition cards */
+  .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--navy); margin-bottom:.7rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;}
+  .owner.elect .k{color:var(--violet);}
+  .owner.goal .k{color:var(--amber);}
+  .owner p{font-size:.93rem; line-height:1.5; margin:0 0 .5rem; color:var(--ink-soft);}
+  .owner p:last-child{margin-bottom:0;}
+  .bignum{font-family:var(--sans); font-size:1.9rem; font-weight:800; letter-spacing:-.02em; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1;}
+  .bignum small{font-family:var(--mono); font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:0; margin-left:.4rem; text-transform:uppercase;}
+
+  /* two-up */
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .panel h3{font-size:1.02rem; margin-bottom:.4rem;}
+  .panel .row{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.85rem;}
+
+  /* office / discipline tags */
+  .tag{font-family:var(--sans); font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:.3em .72em; border-radius:3px; display:inline-flex; line-height:1;}
+  .tag.rev{color:var(--amber); background:color-mix(in srgb,var(--amber) 15%,transparent);}
+  .tag.tal{color:var(--navy); background:color-mix(in srgb,var(--navy) 15%,transparent);}
+  .tag.ops{color:var(--ok); background:color-mix(in srgb,var(--ok) 15%,transparent);}
+  .tag.inn{color:var(--violet); background:color-mix(in srgb,var(--violet) 17%,transparent);}
+  .tag.disc{color:var(--ink-soft); background:var(--line-soft); border:1px solid var(--line);}
+
+  /* lists */
+  ul.ticks{list-style:none; margin:1.2rem 0; padding:0; display:flex; flex-direction:column; gap:.7rem; max-width:66ch;}
+  ul.ticks li{font-size:1rem; line-height:1.5; color:var(--ink-soft); padding-left:1.5rem; position:relative;}
+  ul.ticks li::before{content:""; position:absolute; left:.15rem; top:.55em; width:.44rem; height:.44rem; border-radius:50%; background:var(--navy);}
+  ul.ticks li strong{color:var(--ink);}
+
+  /* callout */
+  .callout{border-left:3px solid var(--amber); background:var(--amber-soft);
+    padding:1.05rem 1.25rem; margin:1.7rem 0; max-width:74ch; border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans); font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin-bottom:.5rem;}
+  .callout p{margin:0; font-size:.98rem; color:var(--ink-soft); max-width:none;}
+  .callout.navy{border-left-color:var(--navy); background:color-mix(in srgb,var(--navy) 7%,var(--surface));}
+  .callout.navy .k{color:var(--navy);}
+
+  /* numbered steps */
+  ol.steps{list-style:none; counter-reset:s; margin:1.5rem 0; padding:0;
+    display:flex; flex-direction:column; gap:.9rem; max-width:70ch;}
+  ol.steps li{counter-increment:s; position:relative; padding-left:2.6rem; font-size:1rem;
+    line-height:1.5; color:var(--ink-soft); min-height:1.7rem;}
+  ol.steps li strong{color:var(--ink);}
+  ol.steps li::before{content:counter(s); position:absolute; left:0; top:-.05rem; width:1.7rem; height:1.7rem;
+    display:grid; place-items:center; font-family:var(--mono); font-size:.82rem; font-weight:700;
+    color:var(--navy); background:var(--surface); border:1px solid var(--navy); border-radius:3px;}
+
+  /* table */
+  .tablewrap{overflow-x:auto; margin:1.6rem 0 .4rem; border:1px solid var(--line);
+    border-radius:4px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:.94rem;}
+  caption{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); text-align:left; padding:.95rem 1.15rem .2rem;}
+  th,td{text-align:left; padding:.7rem 1.15rem; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  thead th{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); background:var(--line-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);}
+  td .mono, th .mono{font-size:.86rem;}
+  tfoot td{font-weight:700; color:var(--ink); background:var(--surface-2); border-top:1px solid var(--line);}
+  .tnote{font-size:.9rem; color:var(--muted); font-style:italic; margin-top:.7rem;}
+
+  hr.rule{border:none; border-top:1px solid var(--line); margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem); padding-top:1.5rem; border-top:1px solid var(--line);
+    font-size:.9rem; line-height:1.7; color:var(--muted); max-width:74ch;}
+  footer.foot b{color:var(--ink-soft);}
+  :focus-visible{outline:2px solid var(--navy); outline-offset:3px; border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · AI Officer · Certification architecture</p>
+    <h1>Core, electives, and the capstone</h1>
+    <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:62ch; margin-top:1rem;">
+      A companion to the AI Program Plan, focused on the part that matters most: how a certification is
+      structured. Every certification is a required <strong>Core</strong> of missions, a set of
+      elective <strong>micro-sessions</strong>, and a <strong>capstone</strong> that unlocks only when both
+      are done. AI Officer is the worked example.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> &nbsp; AI Officer certification: Core (missions) + Electives (micro-sessions) + Capstone</div>
+      <div><span class="k">Basis</span> &nbsp; The AI Program Plan, plus how the program is structured today</div>
+      <div><span class="k">State</span> &nbsp; <span class="badge ok">Verified</span> 10-mission core &nbsp;&nbsp; <span class="badge prop">Proposed</span> elective count · capstone gate</div>
+      <div><span class="k">Prepared</span> &nbsp; 5 August 2026 · companion to the AI Program Plan</div>
+    </div>
+  </header>
+
+  <!-- THE SHAPE -->
+  <section>
+    <p class="eyebrow">The shape</p>
+    <h2>One track. Core plus Electives. Then the capstone.</h2>
+    <p class="lead">A learner works toward one certification track at a time (Leadership, AI Engineering, or
+      AI Officer). Credit is earned the same way in every unit: watch the video, read the textbook, do the
+      challenge in the AI Buddy, submit. The certification is what those units add up to.</p>
+
+    <div class="pick">
+      <div class="lab">Step 1: pick one track (a learner works one at a time, no order between them)</div>
+      <div class="tracks">
+        <span class="trk soon">Leadership <span class="tagx">Coming soon</span></span>
+        <span class="trk">AI Engineering</span>
+        <span class="trk ex">AI Officer <span class="tagx">This brief</span></span>
+      </div>
+    </div>
+
+    <p class="pickcap">Step 2: then, within the chosen track</p>
+    <div class="flow" role="img" aria-label="A learner picks one of three tracks (Leadership is not open yet). Within the chosen track, shown here for AI Officer, they complete the Core of 10 missions and the elective micro-sessions, then the capstone unlocks and the credential is issued.">
+      <div class="fnode core"><span class="c">Core</span><span class="t">10 missions</span><span class="d">Generative then Agentic</span></div>
+      <span class="farrow" aria-hidden="true">+</span>
+      <div class="fnode elect"><span class="c">Electives</span><span class="t">Micro-sessions</span><span class="d">10 (proposed)</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode goal"><span class="c">Capstone</span><span class="t">Final project</span><span class="d">Unlocks when both are done</span></div>
+      <span class="farrow" aria-hidden="true">&rarr;</span>
+      <div class="fnode"><span class="c">Result</span><span class="t">Credential</span><span class="d">Issued automatically</span></div>
+    </div>
+
+    <div class="owners">
+      <div class="owner">
+        <div class="k">Core · required</div>
+        <p><strong>Missions</strong>, the backbone. For AI Officer this is 10 missions organised into two course groups you move through in order.</p>
+      </div>
+      <div class="owner elect">
+        <div class="k">Electives · required to finish</div>
+        <p><strong>Micro-sessions</strong>: small, one video, one textbook, one small challenge. Any micro-session can count toward the current certification, once.</p>
+      </div>
+      <div class="owner goal">
+        <div class="k">Capstone · final</div>
+        <p>The proof-of-competence project. It stays locked until the Core and the Electives are both complete, then issuing the credential is automatic.</p>
+      </div>
+    </div>
+    <p class="tnote">Every track uses this same shape; only the Core differs. AI Officer is 10 missions (Generative
+      then Agentic), AI Engineering is 8 (<span class="mono">E01 – E08</span>), and Leadership is grouped as Lead
+      Yourself, Lead Team, Lead Org. Leadership and Business AI Essentials are not open to learners yet.</p>
+  </section>
+
+  <!-- CORE -->
+  <section>
+    <p class="eyebrow">Core</p>
+    <h2>The 10 missions, Generative then Agentic</h2>
+    <p class="lead">The AI Officer Core is 10 courses, not 3. It splits into two groups, and the journey runs
+      Generative first, then Agentic. The prototype label "Foundation 3/3" was only ever the first group, which
+      is what made the whole certification look small.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>AI Officer Core, by course group</caption>
+        <thead>
+          <tr><th>Course group</th><th>Course codes</th><th>Count</th><th>Order</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Generative AI Foundations</b></td><td><span class="mono">G01 – G04</span></td><td>4</td><td>First</td></tr>
+          <tr><td><b>Agentic AI</b></td><td><span class="mono">A01 – A06</span></td><td>6</td><td>Second</td></tr>
+        </tbody>
+        <tfoot>
+          <tr><td>Total Core</td><td></td><td>10</td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="tnote">This 10-mission shape is the one the whole program is consistent on, so it stays the safe
+      anchor for this brief.</p>
+
+    <div class="callout navy">
+      <div class="k">Why completion has to count everything</div>
+      <p>A learner's progress needs to count the <strong>Core and the Electives together</strong>, and "finished"
+        has to mean all 10 missions. Even when part of the program is hidden from view, the certificate must not
+        look complete early: someone who has done only the Agentic half should not be told they are done. Getting
+        this right is what makes the progress number trustworthy.</p>
+    </div>
+  </section>
+
+  <!-- ELECTIVES -->
+  <section>
+    <p class="eyebrow">Electives</p>
+    <h2>Micro-sessions that count toward the certification</h2>
+    <p class="lead">Micro-sessions are the electives. They are exactly like a normal session, only small, so the
+      screens and the credit mechanic are ones the learner already knows.</p>
+    <ul class="ticks">
+      <li><strong>Content:</strong> a video, a textbook, and a small challenge.</li>
+      <li><strong>Identical UI:</strong> the micro-session screens match a standard session, so the flow is familiar.</li>
+      <li><strong>Live option:</strong> the screen can show the upcoming live session. A learner signs up, gets a Zoom link, and joins, building a community around the topic.</li>
+      <li><strong>Earning credit:</strong> the same as a standard session, complete the challenge in the AI Buddy and submit.</li>
+    </ul>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>How many are required</h3>
+        <p><span class="bignum">10<small>proposed</small></span></p>
+        <p style="margin-top:.7rem;">A target of 10 required micro-sessions per certification is proposed, not yet
+          settled. It cannot be uniform as written: the AI Engineer Core is only 8 courses (<span class="mono">E01 – E08</span>),
+          so the elective rule needs to be defined per track.</p>
+      </div>
+      <div class="panel">
+        <h3>An example elective</h3>
+        <p>Every micro-session carries two tags, one per axis (see below).</p>
+        <div class="row">
+          <span class="tag ops">Operations</span>
+          <span class="tag disc">AI Officer</span>
+        </div>
+        <p style="margin-top:.85rem;">So a short "Prompt Ops" session reads as an Operations topic that fits the
+          AI Officer discipline.</p>
+      </div>
+    </div>
+
+    <div class="callout navy">
+      <div class="k">Credit rule</div>
+      <p>A learner can apply <strong>any</strong> micro-session to the certification they are <em>currently</em>
+        working on, like taking an elective in college (a Leadership class can count toward an AI Officer
+        certification). It applies to that certification <strong>once</strong>, the same micro-session cannot be
+        reused for a later certification. This is marked in the database.</p>
+    </div>
+  </section>
+
+  <!-- TAG AXES -->
+  <section>
+    <p class="eyebrow">Tags</p>
+    <h2>Two independent tag axes</h2>
+    <p class="lead">Every micro-session carries two tags on two independent axes: which office it is about, and
+      which discipline (certification) it most applies to. A session is one of each.</p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Office</h3>
+        <p>What area of the business the session is about.</p>
+        <div class="row">
+          <span class="tag rev">Revenue</span>
+          <span class="tag tal">Talent</span>
+          <span class="tag ops">Operations</span>
+          <span class="tag inn">Innovation</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Discipline</h3>
+        <p>Which certification the session most applies to.</p>
+        <div class="row">
+          <span class="tag disc">Leadership</span>
+          <span class="tag disc">AI Engineering</span>
+          <span class="tag disc">AI Officer</span>
+        </div>
+      </div>
+    </div>
+    <p class="tnote">More tag types will be added later as the catalog grows, for example tool tags such as Claude or ChatGPT.</p>
+  </section>
+
+  <!-- SESSION TYPES -->
+  <section>
+    <p class="eyebrow">Session types</p>
+    <h2>Three ways to learn, one credit loop</h2>
+    <p class="lead">Standard sessions, micro-sessions, and coaching differ in size and setting, not in how credit
+      is earned. In all three the learner completes a challenge in the AI Buddy and submits it.</p>
+    <div class="owners">
+      <div class="owner">
+        <div class="k">Standard session</div>
+        <p>The existing full-length session, the baseline unit of the curriculum. Missions are built from these.</p>
+      </div>
+      <div class="owner elect">
+        <div class="k">Micro-session</div>
+        <p>A small elective: one video, one textbook, one small challenge. Identical screens to a standard session, plus an optional live sign-up.</p>
+      </div>
+      <div class="owner goal">
+        <div class="k">Coaching</div>
+        <p>A live community session. Bring a real AI challenge, get coached, and the recording is archived so others learn from it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COACHING -->
+  <section>
+    <p class="eyebrow">Coaching</p>
+    <h2>Open Coaching: bring a challenge, get coached</h2>
+    <p class="lead">Open Coaching mirrors the prototype already running at
+      <a href="https://www.caiocoach.com/coaching" target="_blank" rel="noopener noreferrer">caiocoach.com/coaching</a>
+      (our own site), brought into the AI Officer Institute. Like micro-sessions, coaching has an Upcoming view
+      and an Archive.</p>
+    <ul class="ticks">
+      <li><strong>Cadence:</strong> every Thursday at 11:00 AM GMT+7. A second time for the US will likely be added later.</li>
+      <li><strong>Sign up and submit:</strong> anyone can sign up and submit an AI challenge they are having, and the top topics get coached that day.</li>
+      <li><strong>Open to all:</strong> attendees can listen in and ask questions.</li>
+      <li><strong>Recorded and published:</strong> each session is recorded and automatically published to the archive.</li>
+    </ul>
+  </section>
+
+  <hr class="rule">
+
+  <!-- CURRENT STATE -->
+  <section>
+    <p class="eyebrow">Current state vs. target</p>
+    <h2>Most pieces exist; the new part is counting electives</h2>
+    <p class="lead">A quick read on what already exists, so the conversation is about what is new, not a rebuild.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Where each piece stands</caption>
+        <thead>
+          <tr><th>Piece</th><th>State</th><th>Where it stands</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>How a certification is built</b></td>
+            <td><span class="badge ok">Built</span></td>
+            <td>A certification already holds its mission groups, workshops, micro-sessions, and a capstone, plus a minimum number of electives.</td>
+          </tr>
+          <tr>
+            <td><b>Micro-sessions</b></td>
+            <td><span class="badge ok">Built</span></td>
+            <td>Browsing, the detail screen, the challenge flow, sign-up, and the live-session link already exist, and the screens already mirror a standard session.</td>
+          </tr>
+          <tr>
+            <td><b>Coaching</b></td>
+            <td><span class="badge prop">Partial</span></td>
+            <td>A coaching view exists; the Upcoming and Archive experience for AIO LABZ still needs finishing.</td>
+          </tr>
+          <tr>
+            <td><b>Two-axis tagging</b></td>
+            <td><span class="badge prop">Partial</span></td>
+            <td>Office and Discipline tags on each micro-session, used to match electives to a track.</td>
+          </tr>
+          <tr>
+            <td><b>Completion = Core + Electives</b></td>
+            <td><span class="badge gap">The gap</span></td>
+            <td>Today progress counts missions only. Electives are tracked, but do not yet add to the certification's progress. This is the main change.</td>
+          </tr>
+          <tr>
+            <td><b>Counting the full program</b></td>
+            <td><span class="badge gap">The gap</span></td>
+            <td>Progress has to be measured against all 10 missions. Hiding part of the program from view should never make a learner look finished early.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <div class="k">A couple of numbers still to confirm</div>
+      <p>A few track details are worth confirming with the team, for example the exact number of sessions in
+        AI Engineering, and whether Leadership and Business AI Essentials are in the picture yet. AI Officer's
+        shape is settled, so it stays the anchor for this brief.</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><b>Certification data architecture</b>, a design brief for the AI Officer Institute. Companion to the AI
+      Program Plan. Prepared 5 August 2026 for review.</p>
+    <p>Scope note: this brief is about how the program is structured, not the visual design. The micro-session and
+      coaching screens are partly built and being finished separately. Items marked <b>Proposed</b> (the 10-elective
+      count, and whether the capstone waits for electives too) are still to be agreed, not decided.</p>
+  </footer>
+
+</div>
+</body>
+</html>

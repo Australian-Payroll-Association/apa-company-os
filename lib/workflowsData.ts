@@ -45,13 +45,13 @@ export const allWorkflows: Workflow[] = [
     steps: 7,
   },
   {
-    slug: 'ai-resume-screen',
-    title: 'AI Resume Screen + Talent Rank',
+    slug: 'recruitment',
+    title: 'Recruitment: Three Loops, One Pool',
     category: 'Talent',
     excerpt:
-      'Every application is read and scored by AI, stack-ranked per role family, then rated by a human recruiter. Two gates, no resume unread.',
-    date: '2026-07-16',
-    steps: 6,
+      'Not a pipeline: demand, sourcing, and selection run as continuous loops around one candidate pool that never forgets. Backward moves are normal, and every exit is a pool entry.',
+    date: '2026-08-10',
+    steps: 14,
   },
   {
     slug: 'new-member-onboarding',

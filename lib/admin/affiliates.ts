@@ -1,17 +1,25 @@
 import { companyOs } from "@/lib/supabase";
 
-// Affiliate aggregator for the Revenue office. One affiliate PERSON can hold
-// several codes (historically Tracy/Nilssen did; the program is now one active
-// code per person but inactive codes and their commissions are kept). Referral
-// linkage lives in the CRM two ways and BOTH are resolved here:
-//   - deals.affiliate_id  → a code tag (Stripe checkout / manual)
-//   - deals.referrer_id   → the referring person directly (e.g. Brad Giles)
+// Affiliate aggregator for the Revenue office. An affiliate is EITHER a COMPANY
+// (the primary case) or an individual. A company affiliate keeps a contact
+// person (affiliates.person_id) as its portal/redemption contact, but the code
+// and its work credit belong to the company. Referral linkage lives in the CRM
+// three ways and ALL are resolved here:
+//   - deals.affiliate_id         → a code tag (Stripe checkout / manual)
+//   - deals.referrer_company_id  → the referring company directly
+//   - deals.referrer_id          → the referring person directly (e.g. Brad Giles)
 //
 // Commission rate is a REDEMPTION CHOICE, not a code property: 20% as work
 // credit, 10% as cash. A commission is "pending" until the affiliate chooses.
 
 export const WORK_CREDIT_RATE = 0.2;
 export const CASH_RATE = 0.1;
+
+export type AffiliateKind = "company" | "person";
+
+// Discriminated identity for an affiliate group — companyId when it is a company
+// affiliate, else personId. groupKey is the stable non-null key (companyId ?? personId).
+export type AffiliateIdentity = { companyId?: string | null; personId?: string | null };
 
 export type AffiliateCode = {
   id: string;
@@ -56,9 +64,12 @@ type Totals = {
 };
 
 export type AffiliateGroup = Totals & {
-  personId: string;
-  fullName: string | null;
-  email: string;
+  groupKey: string; // stable id: companyId for a company affiliate, else personId
+  kind: AffiliateKind;
+  companyId: string | null;
+  personId: string | null; // the (contact) person, if any
+  fullName: string | null; // company name for a company affiliate, else person name
+  email: string; // primary-contact email for a company affiliate, else person email
   codes: AffiliateCode[];
   active: boolean; // holds at least one active code
   referredDealCount: number;
@@ -66,7 +77,9 @@ export type AffiliateGroup = Totals & {
 };
 
 export type Affiliate360 = Totals & {
-  personId: string;
+  kind: AffiliateKind;
+  companyId: string | null;
+  personId: string | null;
   fullName: string | null;
   email: string;
   codes: AffiliateCode[];
@@ -103,6 +116,9 @@ function applyCommission(t: Totals, c: { gross_cents: number; commission_cents: 
   }
 }
 
+type PersonEmbed = { id: string; full_name: string | null; email: string; archived_at: string | null };
+type CompanyEmbed = { id: string; name: string | null; archived_at: string | null };
+
 type AffiliateRow = {
   id: string;
   code: string;
@@ -111,10 +127,12 @@ type AffiliateRow = {
   stripe_coupon_id: string | null;
   created_at: string;
   person_id: string | null;
-  people: Embedded<{ id: string; full_name: string | null; email: string; archived_at: string | null }>;
+  company_id: string | null;
+  people: Embedded<PersonEmbed>;
+  companies: Embedded<CompanyEmbed>;
 };
 
-function toCode(r: AffiliateRow): AffiliateCode {
+function toCode(r: { id: string; code: string; program_type: string | null; active: boolean | null; stripe_coupon_id: string | null; created_at: string }): AffiliateCode {
   return {
     id: r.id,
     code: r.code,
@@ -125,56 +143,102 @@ function toCode(r: AffiliateRow): AffiliateCode {
   };
 }
 
-// Person-grouped list for /admin/revenue/affiliates. Small table (one row per
-// affiliate person) so we fetch all three sources whole and aggregate in JS
-// rather than paginating — there are only a handful of affiliates.
+// Resolve each company's portal/display contact: the is_primary contact, else
+// the first non-archived linked person. Used to label a company affiliate and
+// to target its portal invite / redemption.
+async function primaryContactsFor(companyIds: string[]): Promise<Map<string, { personId: string; fullName: string | null; email: string }>> {
+  const map = new Map<string, { personId: string; fullName: string | null; email: string }>();
+  if (!companyIds.length) return map;
+  const { data } = await companyOs
+    .from("person_companies")
+    .select("company_id, is_primary, people(id, full_name, email, archived_at)")
+    .in("company_id", companyIds);
+  const byCompany = new Map<string, Array<{ isPrimary: boolean; person: PersonEmbed }>>();
+  for (const r of (data ?? []) as Array<{ company_id: string; is_primary: boolean | null; people: Embedded<PersonEmbed> }>) {
+    const p = one(r.people);
+    if (!p || p.archived_at) continue;
+    const list = byCompany.get(r.company_id) ?? [];
+    list.push({ isPrimary: !!r.is_primary, person: p });
+    byCompany.set(r.company_id, list);
+  }
+  for (const [cid, list] of byCompany) {
+    const chosen = list.find((x) => x.isPrimary) ?? list[0];
+    if (chosen) map.set(cid, { personId: chosen.person.id, fullName: chosen.person.full_name, email: chosen.person.email });
+  }
+  return map;
+}
+
+// Grouped list for /admin/revenue/affiliates. Small table (one row per affiliate
+// entity — company or person) so we fetch all sources whole and aggregate in JS.
 export async function getAffiliateGroups(): Promise<AffiliateGroup[]> {
   const [{ data: affRows }, { data: commRows }, { data: dealRows }] = await Promise.all([
     companyOs
       .from("affiliates")
-      .select("id, code, program_type, active, stripe_coupon_id, created_at, person_id, people(id, full_name, email, archived_at)")
+      .select("id, code, program_type, active, stripe_coupon_id, created_at, person_id, company_id, people(id, full_name, email, archived_at), companies(id, name, archived_at)")
       .order("created_at", { ascending: true }),
     companyOs.from("affiliate_commissions").select("affiliate_id, gross_cents, commission_cents, redemption_choice, payout_id"),
     companyOs
       .from("deals")
-      .select("id, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id")
-      .or("referrer_id.not.is.null,affiliate_id.not.is.null"),
+      .select("id, status, amount_cents, amount_usd_cents, currency, referrer_id, referrer_company_id, affiliate_id")
+      .or("referrer_id.not.is.null,referrer_company_id.not.is.null,affiliate_id.not.is.null"),
   ]);
 
-  const codeToPerson = new Map<string, string>(); // affiliate.id -> person_id
+  const rows = (affRows ?? []) as AffiliateRow[];
+  const companyIds = [...new Set(rows.map((r) => r.company_id).filter(Boolean) as string[])];
+  const primaryContacts = await primaryContactsFor(companyIds);
+
+  const codeToGroup = new Map<string, string>(); // affiliate.id -> groupKey
+  const personToGroup = new Map<string, string>(); // contact person_id -> groupKey (for referrer_id deals)
   const groups = new Map<string, AffiliateGroup>();
 
-  for (const raw of (affRows ?? []) as AffiliateRow[]) {
+  for (const raw of rows) {
+    const isCompany = !!raw.company_id;
+    const company = one(raw.companies);
     const person = one(raw.people);
-    if (!raw.person_id || !person || person.archived_at) continue;
-    codeToPerson.set(raw.id, raw.person_id);
-    let g = groups.get(raw.person_id);
+    // Drop rows whose resolved entity is missing or archived.
+    if (isCompany ? !company || company.archived_at : !raw.person_id || !person || person.archived_at) continue;
+
+    const groupKey = (raw.company_id ?? raw.person_id) as string;
+    codeToGroup.set(raw.id, groupKey);
+    if (raw.person_id) personToGroup.set(raw.person_id, groupKey);
+
+    let g = groups.get(groupKey);
     if (!g) {
+      const primary = isCompany ? primaryContacts.get(raw.company_id as string) : null;
       g = {
         ...emptyTotals(),
-        personId: raw.person_id,
-        fullName: person.full_name,
-        email: person.email,
+        groupKey,
+        kind: isCompany ? "company" : "person",
+        companyId: raw.company_id ?? null,
+        personId: isCompany ? primary?.personId ?? raw.person_id ?? null : raw.person_id,
+        fullName: isCompany ? company?.name ?? null : person?.full_name ?? null,
+        email: isCompany ? primary?.email ?? person?.email ?? "" : person?.email ?? "",
         codes: [],
         active: false,
         referredDealCount: 0,
         referredOpenPipelineCents: 0,
       };
-      groups.set(raw.person_id, g);
+      groups.set(groupKey, g);
     }
     g.codes.push(toCode(raw));
     if (raw.active) g.active = true;
   }
 
   for (const c of (commRows ?? []) as Array<{ affiliate_id: string; gross_cents: number; commission_cents: number | null; redemption_choice: string | null; payout_id: string | null }>) {
-    const personId = codeToPerson.get(c.affiliate_id);
-    const g = personId && groups.get(personId);
+    const key = codeToGroup.get(c.affiliate_id);
+    const g = key ? groups.get(key) : undefined;
     if (g) applyCommission(g, c);
   }
 
-  for (const d of (dealRows ?? []) as Array<{ id: string; status: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; referrer_id: string | null; affiliate_id: string | null }>) {
-    const personId = (d.affiliate_id && codeToPerson.get(d.affiliate_id)) || d.referrer_id || null;
-    const g = personId && groups.get(personId);
+  for (const d of (dealRows ?? []) as Array<{ id: string; status: string | null; amount_cents: number | null; amount_usd_cents: number | null; currency: string | null; referrer_id: string | null; referrer_company_id: string | null; affiliate_id: string | null }>) {
+    // Attribution precedence: code tag, then direct company referral, then
+    // direct person referral. Each deal counts once, toward a single group.
+    const key =
+      (d.affiliate_id && codeToGroup.get(d.affiliate_id)) ||
+      (d.referrer_company_id && groups.has(d.referrer_company_id) ? d.referrer_company_id : null) ||
+      (d.referrer_id && personToGroup.get(d.referrer_id)) ||
+      null;
+    const g = key ? groups.get(key) : undefined;
     if (!g) continue;
     g.referredDealCount += 1;
     if (d.status === OPEN_STATUS) g.referredOpenPipelineCents += dealAmount(d).cents ?? 0;
@@ -183,24 +247,49 @@ export async function getAffiliateGroups(): Promise<AffiliateGroup[]> {
   return [...groups.values()].sort((a, b) => (a.fullName || a.email).localeCompare(b.fullName || b.email));
 }
 
-// Full 360 for one affiliate person — powers the admin shelf and (reshaped) the
-// client-portal Referrals page.
-export async function getAffiliate360(personId: string): Promise<Affiliate360 | null> {
-  const { data: person } = await companyOs
-    .from("people")
-    .select("id, full_name, email")
-    .eq("id", personId)
-    .maybeSingle();
-  if (!person) return null;
+// Full 360 for one affiliate (company or person) — powers the admin shelf and
+// (reshaped) the client-portal Referrals page.
+export async function getAffiliate360(identity: AffiliateIdentity): Promise<Affiliate360 | null> {
+  const companyId = identity.companyId ?? null;
+  const personId = identity.personId ?? null;
+  if (!companyId && !personId) return null;
 
-  const { data: affRows } = await companyOs
+  let kind: AffiliateKind;
+  let fullName: string | null;
+  let email: string;
+  let contactPersonId: string | null = personId;
+
+  if (companyId) {
+    const { data: company } = await companyOs.from("companies").select("id, name").eq("id", companyId).maybeSingle();
+    if (!company) return null;
+    kind = "company";
+    fullName = (company.name as string | null) ?? null;
+    const primary = (await primaryContactsFor([companyId])).get(companyId);
+    contactPersonId = primary?.personId ?? personId ?? null;
+    email = primary?.email ?? "";
+  } else {
+    const { data: person } = await companyOs.from("people").select("id, full_name, email").eq("id", personId as string).maybeSingle();
+    if (!person) return null;
+    kind = "person";
+    fullName = (person.full_name as string | null) ?? null;
+    email = (person.email as string) ?? "";
+    contactPersonId = person.id as string;
+  }
+
+  const codeQuery = companyOs
     .from("affiliates")
     .select("id, code, program_type, active, stripe_coupon_id, created_at")
-    .eq("person_id", personId)
     .order("created_at", { ascending: true });
-  const codes = (affRows ?? []) as Array<Omit<AffiliateRow, "person_id" | "people">>;
+  const { data: affRows } = await (companyId ? codeQuery.eq("company_id", companyId) : codeQuery.eq("person_id", personId as string));
+  const codes = (affRows ?? []) as Array<{ id: string; code: string; program_type: string | null; active: boolean | null; stripe_coupon_id: string | null; created_at: string }>;
   const codeIds = codes.map((c) => c.id);
   const codeById = new Map(codes.map((c) => [c.id, c.code] as const));
+
+  // Referred deals: code-tagged, or directly referred by this company / contact.
+  const dealOrParts: string[] = [];
+  if (companyId) dealOrParts.push(`referrer_company_id.eq.${companyId}`);
+  if (contactPersonId) dealOrParts.push(`referrer_id.eq.${contactPersonId}`);
+  if (codeIds.length) dealOrParts.push(`affiliate_id.in.(${codeIds.join(",")})`);
 
   const [{ data: commRows }, { data: dealRows }] = await Promise.all([
     codeIds.length
@@ -210,11 +299,13 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
           .in("affiliate_id", codeIds)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
-    companyOs
-      .from("deals")
-      .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, proposal_url, companies!company_id(name)")
-      .or(`referrer_id.eq.${personId}${codeIds.length ? `,affiliate_id.in.(${codeIds.join(",")})` : ""}`)
-      .order("created_at", { ascending: false }),
+    dealOrParts.length
+      ? companyOs
+          .from("deals")
+          .select("id, title, status, amount_cents, amount_usd_cents, currency, referrer_id, affiliate_id, proposal_url, companies!company_id(name)")
+          .or(dealOrParts.join(","))
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
   ]);
 
   const totals = emptyTotals();
@@ -252,27 +343,23 @@ export async function getAffiliate360(personId: string): Promise<Affiliate360 | 
 
   return {
     ...totals,
-    personId: person.id,
-    fullName: person.full_name,
-    email: person.email,
-    codes: codes.map((c) => ({
-      id: c.id,
-      code: c.code,
-      programType: c.program_type,
-      active: !!c.active,
-      stripeCouponId: c.stripe_coupon_id,
-      createdAt: c.created_at,
-    })),
+    kind,
+    companyId,
+    personId: contactPersonId,
+    fullName,
+    email,
+    codes: codes.map(toCode),
     active: codes.some((c) => c.active),
     commissions,
     referredDeals,
   };
 }
 
-// Deterministic code from a person's name: uppercase alphanumerics, capped, with
-// a numeric suffix on collision. Mirrors the existing codes (BRADGILES, ERIC).
-export async function generateAffiliateCode(fullName: string | null, email: string): Promise<string> {
-  const base = (fullName || email.split("@")[0] || "AFFILIATE")
+// Deterministic code from a name (a company name for a company affiliate, else a
+// person name): uppercase alphanumerics, capped, numeric suffix on collision.
+// Mirrors the existing codes (BRADGILES, ERIC, WORKHEALTHY).
+export async function generateAffiliateCode(name: string | null, email: string): Promise<string> {
+  const base = (name || email.split("@")[0] || "AFFILIATE")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 16) || "AFFILIATE";

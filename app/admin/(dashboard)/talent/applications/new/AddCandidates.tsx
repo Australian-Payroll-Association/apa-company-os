@@ -12,7 +12,10 @@ import {
 
 export type JobReqOption = { id: string; title: string; location: string | null };
 
-const MAX_BATCH = 10;
+const MAX_BATCH = 25;
+// Extractions run a few at a time: each is its own Claude call, and firing a
+// whole 25-file batch at once risks API rate limits with no user benefit.
+const EXTRACT_CONCURRENCY = 4;
 const RESUME_ACCEPT =
   ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -38,12 +41,12 @@ const EMPTY_FIELDS: FieldValues = {
   portfolioUrl: "",
 };
 
-export function AddCandidates({ jobReqs }: { jobReqs: JobReqOption[] }) {
+export function AddCandidates({ jobReqs, initialReqId = "" }: { jobReqs: JobReqOption[]; initialReqId?: string }) {
   return (
     <Tabs
       tabs={[
-        { key: "resumes", label: "From resumes", content: <ResumeIntake jobReqs={jobReqs} /> },
-        { key: "manual", label: "Manual entry", content: <ManualEntry jobReqs={jobReqs} /> },
+        { key: "resumes", label: "From resumes", content: <ResumeIntake jobReqs={jobReqs} initialReqId={initialReqId} /> },
+        { key: "manual", label: "Manual entry", content: <ManualEntry jobReqs={jobReqs} initialReqId={initialReqId} /> },
       ]}
     />
   );
@@ -172,8 +175,8 @@ type Draft = {
 
 let draftSeq = 0;
 
-function ResumeIntake({ jobReqs }: { jobReqs: JobReqOption[] }) {
-  const [reqId, setReqId] = useState("");
+function ResumeIntake({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; initialReqId: string }) {
+  const [reqId, setReqId] = useState(initialReqId);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -197,30 +200,37 @@ function ResumeIntake({ jobReqs }: { jobReqs: JobReqOption[] }) {
     }));
     setDrafts((cur) => [...cur, ...fresh]);
 
+    const extractOne = async (file: File, key: string) => {
+      const fd = new FormData();
+      fd.append("resume", file);
+      try {
+        const r = await extractResumeDraft(fd);
+        if (!r.ok) return patch(key, { state: "failed", error: r.error });
+        patch(key, {
+          state: "ready",
+          upload: r.upload,
+          extractError: r.extractError,
+          fields: {
+            fullName: r.fields?.full_name ?? "",
+            email: r.fields?.email ?? "",
+            phone: r.fields?.phone ?? "",
+            linkedinUrl: r.fields?.linkedin_url ?? "",
+            headline: r.fields?.headline ?? "",
+            currentTitle: r.fields?.current_title ?? "",
+            portfolioUrl: r.fields?.portfolio_url ?? "",
+          },
+        });
+      } catch {
+        patch(key, { state: "failed", error: "Something went wrong reading this file." });
+      }
+    };
+
+    let next = 0;
     await Promise.all(
-      files.map(async (file, i) => {
-        const key = fresh[i].key;
-        const fd = new FormData();
-        fd.append("resume", file);
-        try {
-          const r = await extractResumeDraft(fd);
-          if (!r.ok) return patch(key, { state: "failed", error: r.error });
-          patch(key, {
-            state: "ready",
-            upload: r.upload,
-            extractError: r.extractError,
-            fields: {
-              fullName: r.fields?.full_name ?? "",
-              email: r.fields?.email ?? "",
-              phone: r.fields?.phone ?? "",
-              linkedinUrl: r.fields?.linkedin_url ?? "",
-              headline: r.fields?.headline ?? "",
-              currentTitle: r.fields?.current_title ?? "",
-              portfolioUrl: r.fields?.portfolio_url ?? "",
-            },
-          });
-        } catch {
-          patch(key, { state: "failed", error: "Something went wrong reading this file." });
+      Array.from({ length: Math.min(EXTRACT_CONCURRENCY, files.length) }, async () => {
+        while (next < files.length) {
+          const i = next++;
+          await extractOne(files[i], fresh[i].key);
         }
       }),
     );
@@ -279,8 +289,8 @@ function ResumeIntake({ jobReqs }: { jobReqs: JobReqOption[] }) {
             </div>
           </div>
           <div className="admin-hint">
-            PDF or .docx, up to {MAX_BATCH} at a time. Each resume is read by AI to prefill a draft — review and save
-            each candidate below.
+            PDF or .docx (resumes, not job descriptions), up to {MAX_BATCH} at a time, max 10 MB each. Each resume is
+            read by AI to prefill a draft — review and save each candidate below.
           </div>
         </div>
       </div>
@@ -369,8 +379,8 @@ function ResumeIntake({ jobReqs }: { jobReqs: JobReqOption[] }) {
 
 // ─── Tab 2: manual entry ─────────────────────────────────────────────────────
 
-function ManualEntry({ jobReqs }: { jobReqs: JobReqOption[] }) {
-  const [reqId, setReqId] = useState("");
+function ManualEntry({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; initialReqId: string }) {
+  const [reqId, setReqId] = useState(initialReqId);
   const [fields, setFields] = useState<FieldValues>(EMPTY_FIELDS);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);

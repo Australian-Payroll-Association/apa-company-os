@@ -1,7 +1,10 @@
 // Client-facing referral / affiliate view. A dedicated, reviewed helper in the
-// same spirit as lib/portal/invoices.ts: every read is scoped to the actor's
-// OWN person id (their affiliate codes and the commissions on them), never by
-// email and never widened. An affiliate sees only their own referral activity.
+// same spirit as lib/portal/invoices.ts. An affiliate can be the actor as a
+// PERSON (affiliates.person_id) or as the PRIMARY CONTACT of a company affiliate
+// (affiliates.company_id where the actor is person_companies.is_primary). The
+// is_primary gate is the ownership boundary — we never widen to all portal
+// members of a company, or a non-primary member could redeem the company's
+// commissions (IDOR). An affiliate sees only their own referral activity.
 //
 // Rate is a redemption CHOICE: 20% taken as work credit, or 10% as cash. A
 // commission is pending until the affiliate chooses; the choice is what this
@@ -45,27 +48,52 @@ export type PortalReferrals = {
 type Embedded<T> = T | T[] | null;
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
-async function affiliateCodeIds(personId: string): Promise<{ ids: string[]; activeCode: string | null }> {
+// Companies for which this person is the PRIMARY contact — the ownership set for
+// company-affiliate entitlement. Deliberately is_primary only.
+async function actorPrimaryCompanyIds(personId: string): Promise<string[]> {
   const { data } = await companyOs
-    .from("affiliates")
-    .select("id, code, active")
-    .eq("person_id", personId);
+    .from("person_companies")
+    .select("company_id")
+    .eq("person_id", personId)
+    .eq("is_primary", true)
+    .not("company_id", "is", null);
+  return [...new Set(((data ?? []) as Array<{ company_id: string | null }>).map((r) => r.company_id).filter(Boolean) as string[])];
+}
+
+// The affiliate rows this actor owns: their own person codes plus any company
+// affiliate they are the primary contact of.
+async function actorAffiliateRows(actor: PortalActor): Promise<{ ids: string[]; activeCode: string | null; companyIds: string[] }> {
+  const companyIds = await actorPrimaryCompanyIds(actor.personId);
+  const orParts = [`person_id.eq.${actor.personId}`];
+  if (companyIds.length) orParts.push(`company_id.in.(${companyIds.join(",")})`);
+  const { data } = await companyOs.from("affiliates").select("id, code, active").or(orParts.join(","));
   const rows = (data ?? []) as Array<{ id: string; code: string; active: boolean | null }>;
-  return { ids: rows.map((r) => r.id), activeCode: rows.find((r) => r.active)?.code ?? rows[0]?.code ?? null };
+  return {
+    ids: rows.map((r) => r.id),
+    activeCode: rows.find((r) => r.active)?.code ?? rows[0]?.code ?? null,
+    companyIds,
+  };
 }
 
 export async function hasAffiliateCode(actor: PortalActor): Promise<boolean> {
+  const companyIds = await actorPrimaryCompanyIds(actor.personId);
+  const orParts = [`person_id.eq.${actor.personId}`];
+  if (companyIds.length) orParts.push(`company_id.in.(${companyIds.join(",")})`);
   const { data } = await companyOs
     .from("affiliates")
     .select("id")
-    .eq("person_id", actor.personId)
     .eq("active", true)
+    .or(orParts.join(","))
     .limit(1);
   return (data ?? []).length > 0;
 }
 
 export async function getReferralsForActor(actor: PortalActor): Promise<PortalReferrals> {
-  const { ids, activeCode } = await affiliateCodeIds(actor.personId);
+  const { ids, activeCode, companyIds } = await actorAffiliateRows(actor);
+
+  const dealOrParts = [`referrer_id.eq.${actor.personId}`];
+  if (companyIds.length) dealOrParts.push(`referrer_company_id.in.(${companyIds.join(",")})`);
+  if (ids.length) dealOrParts.push(`affiliate_id.in.(${ids.join(",")})`);
 
   const [{ data: commRows }, { data: dealRows }] = await Promise.all([
     ids.length
@@ -78,7 +106,7 @@ export async function getReferralsForActor(actor: PortalActor): Promise<PortalRe
     companyOs
       .from("deals")
       .select("id, title, status, referrer_id, affiliate_id, companies!company_id(name)")
-      .or(`referrer_id.eq.${actor.personId}${ids.length ? `,affiliate_id.in.(${ids.join(",")})` : ""}`)
+      .or(dealOrParts.join(","))
       .order("created_at", { ascending: false }),
   ]);
 
@@ -129,7 +157,7 @@ export async function chooseRedemptionForActor(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (choice !== "work_credit" && choice !== "cash") return { ok: false, error: "Invalid choice." };
 
-  const { ids } = await affiliateCodeIds(actor.personId);
+  const { ids } = await actorAffiliateRows(actor);
   if (ids.length === 0) return { ok: false, error: "No affiliate code on file." };
 
   const { data: comm } = await companyOs

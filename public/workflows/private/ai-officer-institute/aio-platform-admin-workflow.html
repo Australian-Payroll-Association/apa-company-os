@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AIO LABZ Platform Admin (Edge8 staff) workflow: cross-company back-office + the /platform console, with clear live / flag-gated / built-unmounted status.">
+<title>Platform Admin workflow — AIO LABZ</title>
+<style>
+  html{-webkit-text-size-adjust:100%;}
+  img{max-width:100%;}
+  :root {
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a; --slate:#6b7684;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+      --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+      --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+      --navy:#4a6c95; --on-navy:#f3f7fb;
+      --amber:#d3a13a; --amber-soft:#241f14;
+      --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d; --slate:#8b95a1;
+      --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f5f6f8; --surface:#ffffff; --surface-2:#fbfcfd;
+    --ink:#1e2733; --ink-soft:#4b5563; --muted:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --code-bg:#eef1f4;
+    --navy:#3a5578; --on-navy:#ffffff;
+    --amber:#b0810f; --amber-soft:#faf4e4;
+    --ok:#2e7a58; --warn:#b3701a; --stop:#a83a3a; --slate:#6b7684;
+    --shadow:0 1px 2px rgba(30,39,51,.04), 0 4px 18px rgba(30,39,51,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#13171c; --surface:#1a1f26; --surface-2:#171c22;
+    --ink:#e7ebf0; --ink-soft:#aeb8c4; --muted:#78838f;
+    --line:#2a313a; --line-soft:#212831; --code-bg:#232a33;
+    --navy:#4a6c95; --on-navy:#f3f7fb;
+    --amber:#d3a13a; --amber-soft:#241f14;
+    --ok:#4ea27b; --warn:#cf9a4c; --stop:#cf6d6d; --slate:#8b95a1;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 20px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground); color:var(--ink); font-family:var(--serif);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; margin:0;}
+  .wrap{max-width:1040px; margin:0 auto; padding:clamp(2.4rem,6vw,5.5rem) clamp(1.2rem,5vw,2.6rem) 4rem;}
+
+  .eyebrow{font-family:var(--sans); font-size:.72rem; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .7rem; display:flex; align-items:center; flex-wrap:wrap; gap:.55rem;}
+  h1{font-size:clamp(2.1rem,5.2vw,3.15rem); font-weight:700; line-height:1.04;
+    letter-spacing:-.015em; margin:.2rem 0 0; text-wrap:balance; max-width:20ch;}
+  h2{font-size:clamp(1.5rem,3.3vw,1.95rem); font-weight:700; line-height:1.14;
+    letter-spacing:-.01em; margin:0 0 .9rem; text-wrap:balance; max-width:26ch;}
+  h3{font-size:1.12rem; font-weight:700; line-height:1.25; margin:0 0 .5rem;}
+  p{font-size:1.055rem; line-height:1.62; color:var(--ink-soft); margin:0 0 1.05rem; max-width:62ch;}
+  p strong,li strong{color:var(--ink); font-weight:700;}
+  em{color:var(--ink); font-style:italic;}
+  a{color:var(--navy); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--navy) 35%,transparent);}
+  a:hover{border-bottom-color:var(--navy);}
+  .mono{font-family:var(--mono);}
+  .flagname{font-family:var(--mono); font-size:.72rem; color:var(--muted); text-transform:none; letter-spacing:0;}
+
+  header.masthead{margin-bottom:clamp(2.4rem,5vw,3.4rem);}
+  .meta{font-family:var(--mono); font-size:.82rem; line-height:2; color:var(--ink-soft);
+    margin-top:1.6rem; padding-top:1.2rem; border-top:1px solid var(--line);}
+  .meta .k{color:var(--muted); display:inline-block; min-width:5.4rem;}
+  .meta b{color:var(--ink); font-weight:700;}
+
+  section{margin-top:clamp(2.8rem,6vw,4.4rem); scroll-margin-top:2rem;}
+  .lead{max-width:62ch;}
+
+  /* badges */
+  .badge{display:inline-flex; align-items:center; gap:.42em; font-family:var(--sans);
+    font-size:.66rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    padding:.24em .62em; border-radius:2px; white-space:nowrap;}
+  .badge::before{content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor; flex:none;}
+  .badge.live{color:var(--ok); background:color-mix(in srgb,var(--ok) 13%,transparent);}
+  .badge.flag{color:var(--warn); background:color-mix(in srgb,var(--warn) 15%,transparent);}
+  .badge.built{color:var(--slate); background:color-mix(in srgb,var(--slate) 17%,transparent);}
+
+  /* status legend */
+  .legend{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.7rem 0 .4rem;}
+  @media(max-width:760px){.legend{grid-template-columns:1fr;}}
+  .lg{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--c);
+    border-radius:3px; padding:1.1rem 1.2rem 1.25rem; box-shadow:var(--shadow);}
+  .lg.live{--c:var(--ok);} .lg.flag{--c:var(--warn);} .lg.built{--c:var(--slate);}
+  .lg .badge{margin-bottom:.75rem;}
+  .lg p{font-size:.92rem; line-height:1.45; margin:0; color:var(--ink-soft);}
+  .lg .how{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:.7rem; display:block;}
+
+  /* two-option comparison cards */
+  .cards2{display:grid; grid-template-columns:repeat(2,1fr); gap:1.4rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:720px){.cards2{grid-template-columns:1fr;}}
+  .optcard{background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;}
+  .optcard .cap{padding:1.05rem 1.3rem 1.15rem; color:var(--on-navy);}
+  .optcard.navy .cap{background:var(--navy);}
+  .optcard.amber .cap{background:var(--amber);}
+  .optcard .cap .k{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.13em;
+    text-transform:uppercase; opacity:.72; display:block; margin-bottom:.35rem;}
+  .optcard .cap h3{color:var(--on-navy); font-size:1.3rem; margin:0;}
+  .optcard .body{padding:1.15rem 1.3rem 1.3rem; display:flex; flex-direction:column; gap:.1rem; flex:1;}
+  .optcard .sub{font-family:var(--mono); font-size:.76rem; color:var(--muted);
+    padding-bottom:.9rem; margin-bottom:.4rem; border-bottom:1px solid var(--line-soft);}
+  .optcard .sub b{color:var(--ink-soft);}
+  ul.ticks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.62rem;}
+  ul.ticks li{font-size:.97rem; line-height:1.45; color:var(--ink-soft); padding-left:1.5rem; position:relative;}
+  ul.ticks li::before{content:""; position:absolute; left:.15rem; top:.5em; width:.42rem; height:.42rem;
+    border-radius:50%; background:var(--navy);}
+  .optcard.amber ul.ticks li::before{background:var(--amber);}
+  .optcard .foot{margin-top:auto; padding-top:1rem; font-size:.86rem; line-height:1.5; color:var(--muted); font-style:italic;}
+
+  /* callout */
+  .callout{border-left:3px solid var(--amber); background:var(--amber-soft);
+    padding:1.05rem 1.25rem; margin:1.7rem 0; max-width:72ch; border-radius:0 3px 3px 0;}
+  .callout .k{font-family:var(--sans); font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--amber); margin-bottom:.5rem;}
+  .callout p{margin:0; font-size:.98rem; color:var(--ink-soft);}
+  .callout.navy{border-left-color:var(--navy); background:color-mix(in srgb,var(--navy) 7%,var(--surface));}
+  .callout.navy .k{color:var(--navy);}
+  .callout.stop{border-left-color:var(--stop); background:color-mix(in srgb,var(--stop) 7%,var(--surface));}
+  .callout.stop .k{color:var(--stop);}
+
+  /* workflow blocks with status */
+  .wf{background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    box-shadow:var(--shadow); padding:1.3rem 1.4rem 1.4rem; margin:1.3rem 0;}
+  .wf .wfhead{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:.6rem; margin-bottom:.2rem;}
+  .wf h3{margin:0;}
+  .wf .path{font-family:var(--mono); font-size:.74rem; color:var(--muted); margin:.35rem 0 .8rem;}
+  .wf p{margin:0 0 .4rem; font-size:.98rem; max-width:74ch;}
+  .wf p:last-child{margin-bottom:0;}
+
+  /* does/never */
+  .dn{display:grid; grid-template-columns:3.6rem 1fr; gap:.45rem .7rem; align-items:start; margin-top:.7rem;}
+  .dn dt{font-family:var(--sans); font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding-top:.18rem;}
+  .dn dt.does{color:var(--ok);} .dn dt.never{color:var(--stop);}
+  .dn dd{margin:0; font-size:.9rem; line-height:1.42; color:var(--ink-soft);}
+
+  /* numbered steps */
+  ol.steps{list-style:none; counter-reset:s; margin:1rem 0 .2rem; padding:0;
+    display:flex; flex-direction:column; gap:.85rem; max-width:70ch;}
+  ol.steps li{counter-increment:s; position:relative; padding-left:2.6rem; font-size:.98rem;
+    line-height:1.48; color:var(--ink-soft); min-height:1.7rem;}
+  ol.steps li::before{content:counter(s); position:absolute; left:0; top:-.05rem; width:1.7rem; height:1.7rem;
+    display:grid; place-items:center; font-family:var(--mono); font-size:.82rem; font-weight:700;
+    color:var(--navy); background:var(--surface); border:1px solid var(--navy); border-radius:3px;}
+
+  /* table */
+  .tablewrap{overflow-x:auto; margin:1.5rem 0 .4rem; border:1px solid var(--line);
+    border-radius:4px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:560px; font-size:.93rem;}
+  caption{font-family:var(--sans); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); text-align:left; padding:.95rem 1.15rem .2rem;}
+  th,td{text-align:left; padding:.7rem 1.1rem; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  thead th{font-family:var(--sans); font-size:.64rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); background:var(--line-soft);}
+  tbody tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);} td code{font-family:var(--mono); font-size:.78rem; color:var(--ink-soft);}
+
+  /* ownership */
+  .owners{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.8rem 0 .4rem;}
+  @media(max-width:760px){.owners{grid-template-columns:1fr;}}
+  .owner{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);}
+  .owner .k{font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--navy); margin-bottom:.7rem;}
+  .owner p{font-size:.9rem; line-height:1.5; margin:0; color:var(--ink-soft);}
+
+  /* file refs */
+  .files{display:flex; flex-direction:column; gap:.7rem; margin:1.4rem 0; max-width:80ch;}
+  .file{display:flex; flex-wrap:wrap; align-items:baseline; gap:.7rem;}
+  .file code{font-family:var(--mono); font-size:.8rem; background:var(--code-bg); color:var(--ink);
+    padding:.28rem .55rem; border-radius:3px; border:1px solid var(--line); white-space:nowrap;}
+  .file span{font-size:.94rem; color:var(--ink-soft);}
+
+  hr.rule{border:none; border-top:1px solid var(--line); margin:clamp(2.6rem,6vw,4rem) 0;}
+  footer.foot{margin-top:clamp(2.6rem,6vw,4rem); padding-top:1.5rem; border-top:1px solid var(--line);
+    font-size:.9rem; line-height:1.6; color:var(--muted); max-width:72ch;}
+  footer.foot b{color:var(--ink-soft);}
+
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1; transform:none;}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1; transform:none; transition:none;}}
+  :focus-visible{outline:2px solid var(--navy); outline-offset:3px; border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AIO LABZ · Admin view · Workflow 02</p>
+    <h1>Edge8 staff &amp; the platform back-office</h1>
+    <p class="lead" style="font-size:1.16rem; color:var(--ink); max-width:60ch; margin-top:1rem;">
+      What Edge8's own admins can do across every company — and, just as important, how much of that
+      surface is switched off today. Status is the story here.</p>
+    <div class="meta">
+      <div><span class="k">Scope</span> Edge8 staff — <b>user_role.role = admin / super_admin</b>, plus the platform-operator allowlist</div>
+      <div><span class="k">Source</span> router/aio/admin/*.py · mount reality from main.py <span style="color:var(--muted)">V2_LAUNCH_ROUTERS</span></div>
+      <div><span class="k">Prepared</span> 3 August 2026 · detected from code</div>
+    </div>
+  </header>
+
+  <!-- 1 ─ framing: most is off -->
+  <section class="reveal">
+    <p class="eyebrow">The one thing to understand first</p>
+    <h2>Most of this is deliberately switched off</h2>
+    <p>At the V2 launch, only the student-journey surface and a few admin panels were wired into the
+      app. The rest of the back-office is <em>written and reviewed</em>, but not mounted — it returns a
+      clean <span class="mono">404</span> in production until its Phase-6 migration lands. Two more
+      subsystems sit behind environment flags that default to <strong>off</strong>.</p>
+    <p>So "what an Edge8 admin can do" only makes sense alongside "…and is it turned on?" Every workflow
+      below carries one of three status tags.</p>
+    <div class="legend">
+      <div class="lg live">
+        <span class="badge live">Live</span>
+        <p>Mounted in production right now. Anyone with the right credential can use it today.</p>
+        <span class="how">in main.py → V2_LAUNCH_ROUTERS</span>
+      </div>
+      <div class="lg flag">
+        <span class="badge flag">Flag-gated</span>
+        <p>Fully built and wired, but only mounts when its environment flag is on. Off in prod today —
+          flipping it is a deliberate, staged step.</p>
+        <span class="how">gated by an env flag, default OFF</span>
+      </div>
+      <div class="lg built">
+        <span class="badge built">Built · unmounted</span>
+        <p>The code exists but isn't wired into the app, so it 404s in production. Restoring it is
+          Phase-6 backlog work, not a config toggle.</p>
+        <span class="how">imported, absent from the mount list</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 ─ two ways in -->
+  <section class="reveal">
+    <p class="eyebrow">Two ways in</p>
+    <h2>Edge8 staff have two separate credentials</h2>
+    <p>There isn't one "admin login". Two independent credential systems occupy adjacent space by
+      design, and which one you hold decides what you can reach.</p>
+    <div class="cards2">
+      <div class="optcard navy">
+        <div class="cap"><span class="k">Credential one</span><h3>System admin</h3></div>
+        <div class="body">
+          <div class="sub"><b>user_role.role = admin / super_admin</b> · the legacy path</div>
+          <ul class="ticks">
+            <li>A normal session plus an <span class="mono">admin</span>/<span class="mono">super_admin</span> role row.</li>
+            <li>Re-checked from the database on every request — a tampered cookie gets nowhere.</li>
+            <li>Opens the back-office routers and cross-company reads.</li>
+            <li>Held by very few accounts — three, as of 1 Aug 2026.</li>
+          </ul>
+          <p class="foot">How Edge8 devs and staff reach the back office today.</p>
+        </div>
+      </div>
+      <div class="optcard amber">
+        <div class="cap"><span class="k">Credential two</span><h3>Platform operator</h3></div>
+        <div class="body">
+          <div class="sub"><b>the /platform console</b> · a separate allowlist</div>
+          <ul class="ticks">
+            <li>Signs in through the console's own OTP login — a distinct <span class="mono">platform_session</span>.</li>
+            <li>Gated purely by an operator allowlist; it never consults <span class="mono">user_role</span>.</li>
+            <li>Phase-1 scope: cross-company reads plus the support inbox.</li>
+            <li>Every change it makes writes an audit-log row.</li>
+          </ul>
+          <p class="foot">Turned off in production today — <span class="mono">FEATURE_PLATFORM_CONSOLE</span>.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout navy">
+      <div class="k">One control, two keys</div>
+      <p>Creating a company accepts <em>either</em> credential — a system admin, or an elevated console
+        operator. It's the one place the two systems meet; everything else stays on its own side of the
+        line.</p>
+    </div>
+  </section>
+
+  <!-- 3 ─ live today -->
+  <section class="reveal">
+    <p class="eyebrow">Running in production now</p>
+    <h2>What's live today</h2>
+    <p>Three back-office capabilities are mounted at launch. Everything here is reachable by a system
+      admin right now.</p>
+
+    <div class="wf">
+      <div class="wfhead"><h3>Company onboarding</h3><span class="badge live">Live</span></div>
+      <div class="path">router/aio/admin/companies.py · POST /admin/companies</div>
+      <p>One call stands a whole tenant up. In sequence it:</p>
+      <ol class="steps">
+        <li>Creates the <strong>company</strong>.</li>
+        <li>Opens an active <strong>contract</strong> with a generated join code.</li>
+        <li>Sets the <strong>seat cap</strong> from the chosen plan.</li>
+        <li>Seats the client <strong>manager</strong> (seat #1) and emails them the join link.</li>
+        <li>Writes an <strong>audit row</strong> that records whether the manager was actually told.</li>
+      </ol>
+      <p style="margin-top:.9rem;">Accepts a system admin <em>or</em> an elevated console operator — though with the console off, only system admins reach it today.</p>
+    </div>
+
+    <div class="wf">
+      <div class="wfhead"><h3>Companies overview</h3><span class="badge live">Live</span></div>
+      <div class="path">router/aio/admin/companies.py · GET /admin/companies</div>
+      <p>Every company with its contracts and <strong>live seat usage</strong> — used-versus-cap across all
+        tenants, in one read.</p>
+    </div>
+
+    <div class="wf">
+      <div class="wfhead"><h3>Cross-company student monitoring</h3><span class="badge live">Live</span></div>
+      <div class="path">router/aio/admin/student_activity.py · students_engagement.py</div>
+      <p>A system admin sees engagement rhythm, per-activity detail, work products and artifacts for any
+        learner, across every company. The same endpoints scope a company manager to their own people —
+        one gate, two audiences. Read-only throughout.</p>
+    </div>
+  </section>
+
+  <!-- 4 ─ behind a flag -->
+  <section class="reveal">
+    <p class="eyebrow">Built &amp; wired · waiting on a flag</p>
+    <h2>Behind a default-off flag</h2>
+    <p>Two subsystems are complete but mount only when their flag is switched on — a deliberate, staged
+      decision, especially for the destructive one.</p>
+
+    <div class="wf">
+      <div class="wfhead"><h3>The Platform Console</h3><span class="badge flag">Flag-gated</span></div>
+      <div class="path">router/aio/admin/platform.py · <span style="color:var(--warn)">FEATURE_PLATFORM_CONSOLE</span> — default OFF</div>
+      <p>The whole <span class="mono">/platform</span> surface for console operators. Phase 1 is reads plus
+        the support inbox; every mutation is audited. It carries:</p>
+      <ul class="ticks" style="margin:.8rem 0 .2rem;">
+        <li><strong>Native login</strong> — request an OTP to an allowlisted email, verify, get a console session.</li>
+        <li><strong>Cross-company management</strong> — list → company detail (profile, contracts, seats, members) → edit profile (audited, emails every manager) → resend any seat's invite, for any company.</li>
+        <li><strong>Student-progress roster</strong> — per-mission status and rollups across all companies.</li>
+        <li><strong>Support triage</strong> — list → detail → assign (emails the assignee) → message / update → resolve (emails the requester).</li>
+        <li><strong>Bug reports</strong> — list and detail.</li>
+        <li><strong>Staff directory</strong> — the picker for assignments.</li>
+      </ul>
+    </div>
+
+    <div class="wf">
+      <div class="wfhead"><h3>Destructive student remediation</h3><span class="badge flag">Flag-gated</span></div>
+      <div class="path">router/aio/admin/remediation.py · <span style="color:var(--warn)">ADMIN_REMEDIATION_V1</span> — default OFF</div>
+      <p>The irreversible tools, mounted only on a deliberate flip so they simply don't exist in prod
+        until then. Three actions, each guarded:</p>
+      <ul class="ticks" style="margin:.8rem 0 .2rem;">
+        <li><strong>Reset activity progress</strong> — a read-only <em>preview</em> (impact counts + a cert-revoke warning) then <em>execute</em> (snapshot → foreign-key-safe hard delete → reconcile completion and certification).</li>
+        <li><strong>Reset a student's password</strong> — issues a one-time password via the auth provider.</li>
+        <li><strong>Remove a graded submission</strong> — surgical delete with an un-pass reconcile; <strong>platform/system admin only</strong>, managers excluded.</li>
+      </ul>
+      <dl class="dn">
+        <dt class="does">Guard</dt><dd>Each destructive call requires you to type the target's email back before it runs.</dd>
+        <dt class="never">Scope</dt><dd>A company manager may run the two milder actions on their own people; only platform can remove a grade. Out-of-scope targets return 404, never 403.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- 5 ─ built but unmounted -->
+  <section class="reveal">
+    <p class="eyebrow">Code exists · not wired in · 404 today</p>
+    <h2>Built but unmounted <span class="badge built" style="font-size:.6rem; vertical-align:middle;">Phase-6 backlog</span></h2>
+    <p>These routers are imported but left out of the mount list, so they return a clean
+      <span class="mono">404</span> in production. Restoring one is migration work, not a toggle.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Back-office on the shelf</caption>
+        <thead><tr><th>Capability</th><th>What it does</th><th>File · flag</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Contract provisioning &amp; lifecycle</b></td>
+            <td>Create a contract → seed domain whitelist + email allowlist → mint single-use join codes; then mint more, add/remove allowlist (welcome emails), add domains, deactivate a leaked code, bulk-send invitations.</td>
+            <td><code>contracts.py</code><br><code>ADMIN_CONTRACTS_API</code> (reserved)</td>
+          </tr>
+          <tr>
+            <td><b>Cohort membership</b></td>
+            <td>Assign students to a cohort or remove them. <em>Note: still imports an old-schema module — not V2-ready.</em></td>
+            <td><code>cohorts.py</code></td>
+          </tr>
+          <tr>
+            <td><b>Content-readiness audit</b></td>
+            <td>View or run a content-readiness report; posts a Slack summary when something's not OK.</td>
+            <td><code>content_readiness.py</code></td>
+          </tr>
+          <tr>
+            <td><b>MCP API-key management</b></td>
+            <td>Generate an MCP key (shown once), list keys, revoke a key.</td>
+            <td><code>mcp_keys.py</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="callout" style="max-width:72ch; font-style:normal;">Restoring a router used to be a one-line
+      edit to the mount list. As of 3 Aug 2026 that's only true for these four — a further fourteen dead
+      back-office modules were <strong>deleted</strong> outright (they queried tables the V2 schema no longer
+      has), so they aren't "unmounted", they're gone.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- 6 ─ safety rails -->
+  <section class="reveal">
+    <p class="eyebrow">The rules underneath</p>
+    <h2>Guardrails that apply everywhere</h2>
+    <p>Three conventions hold across the whole back-office, live or not.</p>
+    <div class="owners">
+      <div class="owner">
+        <div class="k">Audit trail</div>
+        <p>Every console mutation, and both halves of a company's life (created <em>and</em> edited), write a
+          row to <span class="mono">platform_audit_log</span> — who, what, when, from one place.</p>
+      </div>
+      <div class="owner">
+        <div class="k">Deny = 404</div>
+        <p>Out-of-scope reads return 404, never 403, so the API never confirms that a record you're not
+          allowed to see even exists.</p>
+      </div>
+      <div class="owner">
+        <div class="k">Destructive = typed confirm</div>
+        <p>Reset, password-reset and remove-submission each make you type the target's email back before
+          they run — no single-click irreversibles.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 ─ who can do what -->
+  <section class="reveal">
+    <p class="eyebrow">Who can do what</p>
+    <h2>Three tiers, one boundary</h2>
+    <div class="owners">
+      <div class="owner">
+        <div class="k">System admin — Edge8</div>
+        <p>Everything the back office exposes, cross-company and unscoped. Very few accounts. This is the
+          <strong>platform</strong> tier.</p>
+      </div>
+      <div class="owner">
+        <div class="k">Platform operator — console</div>
+        <p>Reads plus the support inbox today; a separate allowlist, no <span class="mono">user_role</span>
+          needed, every action audited. An extra lock <em>within</em> the platform tier.</p>
+      </div>
+      <div class="owner">
+        <div class="k">Company manager</div>
+        <p>Their own company only — see <strong>Workflow 01</strong>. Can run the milder remediation actions
+          on their own people; grade-removal stays with platform. The <strong>admin</strong> tier.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <div class="k">The canonical model</div>
+      <p>There are three tiers only — <strong>platform</strong>, <strong>admin</strong>, <strong>learner</strong> —
+        resolved in one place (<span class="mono">progress_authz.resolve_tier()</span>).
+        <span class="mono">platform_operator</span> is an extra console lock within platform, not a fourth
+        tier.</p>
+    </div>
+  </section>
+
+  <!-- 8 ─ where the detail lives -->
+  <section class="reveal">
+    <p class="eyebrow">Where the detail lives</p>
+    <h2>In the code</h2>
+    <p>Detected from the live backend. The mount list in <span class="mono">main.py</span> is what decides
+      live versus unmounted; the flag defaults decide the rest.</p>
+    <div class="files">
+      <div class="file"><code>main.py → V2_LAUNCH_ROUTERS</code><span>the mount list — the single source of truth for live vs. 404</span></div>
+      <div class="file"><code>router/aio/admin/companies.py</code><span>company onboarding + overview — <b>live</b></span></div>
+      <div class="file"><code>router/aio/admin/{student_activity,students_engagement}.py</code><span>cross-company monitoring — <b>live</b></span></div>
+      <div class="file"><code>router/aio/admin/platform.py</code><span>the /platform console — <b>flag</b> FEATURE_PLATFORM_CONSOLE</span></div>
+      <div class="file"><code>router/aio/admin/remediation.py</code><span>destructive remediation — <b>flag</b> ADMIN_REMEDIATION_V1</span></div>
+      <div class="file"><code>router/aio/admin/contracts.py</code><span>contract lifecycle — <b>built · unmounted</b> (ADMIN_CONTRACTS_API)</span></div>
+      <div class="file"><code>router/aio/admin/{cohorts,content_readiness,mcp_keys}.py</code><span>backlog — <b>built · unmounted</b></span></div>
+      <div class="file"><code>router/aio/admin/_deps.py</code><span>require_admin + the two-credential split</span></div>
+      <div class="file"><code>docs/…/0005-canonical-auth-tiers.md · ENV_FLAGS.md</code><span>the tier model and the full flag inventory</span></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <b>AIO LABZ · Admin view · Platform Admin (Edge8 staff) workflow.</b> Detected from the live backend
+    on 3 August 2026; status taken from the <span class="mono">main.py</span> mount list and env-flag
+    defaults on that date. <b>This is a detected map, not a spec</b> — flags flip and the backlog moves,
+    so confirm status against <span class="mono">main.py</span> before relying on it. Companion to
+    Workflow 01 (Company Admin).
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.forEach(function (e) { e.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+</body>
+</html>

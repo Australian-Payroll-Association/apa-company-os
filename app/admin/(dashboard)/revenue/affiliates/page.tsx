@@ -43,7 +43,7 @@ export default async function AffiliatesPage() {
         <MetricCard
           label="Active affiliates"
           value={activeCount}
-          sub={pending > 0 ? `${pending} commission${pending === 1 ? "" : "s"} pending choice` : `of ${groups.length} people`}
+          sub={pending > 0 ? `${pending} commission${pending === 1 ? "" : "s"} pending choice` : `of ${groups.length} affiliate${groups.length === 1 ? "" : "s"}`}
         />
       </div>
 
@@ -69,10 +69,13 @@ export default async function AffiliatesPage() {
                 </tr>
               ) : (
                 groups.map((g) => (
-                  <AffiliateShelfRow row={g} key={g.personId}>
+                  <AffiliateShelfRow row={g} key={g.groupKey}>
                     <td>
-                      <span className="admin-cell-strong">{g.fullName || g.email}</span>
-                      {g.fullName && <div className="admin-cell-muted">{g.email}</div>}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span className="admin-cell-strong">{g.fullName || g.email}</span>
+                        {g.kind === "company" && <Badge tone="info">Company</Badge>}
+                      </span>
+                      {g.fullName && g.email && <div className="admin-cell-muted">{g.email}</div>}
                     </td>
                     <td className="admin-cell-mono">
                       {g.codes.filter((c) => c.active).map((c) => c.code).join(", ") || <span className="admin-cell-muted">—</span>}

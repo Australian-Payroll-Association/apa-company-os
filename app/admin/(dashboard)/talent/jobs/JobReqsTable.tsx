@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
+import { JobReqCreate } from "./JobReqCreate";
 import { JobReqManage, type JobReqManageData } from "./JobReqManage";
 
 export type JobReqRow = JobReqManageData & { createdAt: string };
@@ -104,6 +105,9 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
             </option>
           ))}
         </select>
+        <div style={{ marginLeft: "auto" }}>
+          <JobReqCreate />
+        </div>
       </div>
 
       <div className="admin-table-wrap">

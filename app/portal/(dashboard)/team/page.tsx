@@ -106,7 +106,10 @@ export default async function PortalTeamPage() {
             const name = m.fullName || "Team member";
             const addr = address(m);
             return (
-              <div className="admin-card admin-section-card" key={m.teamMemberId}>
+              // marginTop: 0 cancels the global `.admin-section-card + .admin-section-card`
+              // stacking margin, which otherwise pushes every card after the first
+              // 16px down inside its stretched grid track (staggered, unequal cards).
+              <div className="admin-card admin-section-card" style={{ marginTop: 0 }} key={m.teamMemberId}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
                   <Avatar name={name} avatarUrl={m.avatarUrl} />
                   <h2 className="admin-card-title" style={{ margin: 0 }}>{name}</h2>

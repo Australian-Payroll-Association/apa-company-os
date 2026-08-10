@@ -61,6 +61,7 @@ export type EventSettingsData = {
   archivedAt: string | null;
   totalRegistrations: number;
   attendeeCountOverride: number | null;
+  registeredCountOverride: number | null;
 };
 
 export type SurveyOption = { id: string; name: string };
@@ -83,6 +84,7 @@ type EventFieldForm = {
   description: string;
   surveyId: string;
   attendeeOverride: string;
+  registeredOverride: string;
 };
 
 // Settings tab of the event page: everything editable in one place — event
@@ -123,6 +125,7 @@ export function EventSettings({
       description: event.description ?? "",
       surveyId: event.feedbackSurveyId ?? "",
       attendeeOverride: event.attendeeCountOverride?.toString() ?? "",
+      registeredOverride: event.registeredCountOverride?.toString() ?? "",
     },
     saveEventField,
   );
@@ -141,6 +144,7 @@ export function EventSettings({
     description,
     surveyId,
     attendeeOverride,
+    registeredOverride,
   } = form;
 
   const isArchived = !!event.archivedAt;
@@ -190,6 +194,16 @@ export function EventSettings({
           };
         }
         return updateEvent(event.id, { attendee_count_override: override });
+      }
+      case "registeredOverride": {
+        const override = value.trim() === "" ? null : Number(value);
+        if (override !== null && (!Number.isInteger(override) || override < 0)) {
+          return {
+            ok: false as const,
+            error: "Registered count must be a non-negative whole number, or blank to count registrations.",
+          };
+        }
+        return updateEvent(event.id, { registered_count_override: override });
       }
       default:
         return { ok: true as const };
@@ -346,20 +360,38 @@ export function EventSettings({
             placeholder="Uncapped"
           />
         </div>
-        <div className="admin-field">
-          <label className="admin-label">Attendee count (override)</label>
-          <input
-            className="admin-input"
-            type="number"
-            min={0}
-            value={attendeeOverride}
-            onChange={(e) => field("attendeeOverride", e.target.value)}
-            onBlur={(e) => commit("attendeeOverride", e.target.value)}
-            placeholder="Count registrations"
-          />
-          <div className="admin-hint">
-            For engagements with no signups (client keynotes and workshops), enter the headcount here. Blank = derive
-            from registrations. Feeds the public workshop attendees counter.
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="admin-field">
+            <label className="admin-label">Registered (override)</label>
+            <input
+              className="admin-input"
+              type="number"
+              min={0}
+              value={registeredOverride}
+              onChange={(e) => field("registeredOverride", e.target.value)}
+              onBlur={(e) => commit("registeredOverride", e.target.value)}
+              placeholder="Count registrations"
+            />
+            <div className="admin-hint">
+              Manual registered count for events with no signups (client keynotes and workshops). Blank = count real
+              registrations. Shows on the Overview.
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Attendees (override)</label>
+            <input
+              className="admin-input"
+              type="number"
+              min={0}
+              value={attendeeOverride}
+              onChange={(e) => field("attendeeOverride", e.target.value)}
+              onBlur={(e) => commit("attendeeOverride", e.target.value)}
+              placeholder="Count registrations"
+            />
+            <div className="admin-hint">
+              Headcount who actually attended. Blank = derive from registrations. Feeds the public workshop attendees
+              counter.
+            </div>
           </div>
         </div>
         {talks.length > 0 && (
@@ -399,7 +431,7 @@ export function EventSettings({
             ))}
           </select>
           <div className="admin-hint">
-            One survey serves many events — responses are stamped with this event's slug, so reuse the same survey per
+            One survey serves many events. Responses are stamped with this event's slug, so reuse the same survey per
             event type to keep trends comparable.
           </div>
         </div>
@@ -457,7 +489,7 @@ export function EventSettings({
             <span className="admin-danger-row-text">
               {hasHistory
                 ? `Archiving is blocked while ${event.totalRegistrations} registration${event.totalRegistrations === 1 ? "" : "s"} reference this event — set status to Cancelled or Closed instead.`
-                : "Archive this event. Reversible — it's hidden from the default list but nothing is deleted."}
+                : "Archive this event. Reversible: it's hidden from the default list but nothing is deleted."}
             </span>
             <ConfirmButton
               label="Archive"
@@ -578,7 +610,7 @@ function TiersSection({
       )}
 
       {tiers.length === 0 ? (
-        <div className="admin-empty">No tickets — the event registers as free.</div>
+        <div className="admin-empty">No tickets. The event registers as free.</div>
       ) : (
         <div className="admin-list">
           {tiers.map((t) => (
@@ -601,7 +633,7 @@ function TiersSection({
         </div>
       )}
       <div className="admin-hint" style={{ marginTop: 6 }}>
-        Prices are fixed once a ticket is on sale — deactivate it and add a new one to reprice.
+        Prices are fixed once a ticket is on sale. Deactivate it and add a new one to reprice.
       </div>
     </div>
   );
@@ -676,7 +708,7 @@ function MediaSection({
             style={{ borderRadius: 8, objectFit: "cover", border: "1px solid var(--admin-border, #e2e2e8)" }}
           />
         ) : (
-          <span className="admin-cell-muted">None — the signup page renders without a hero.</span>
+          <span className="admin-cell-muted">None. The signup page renders without a hero.</span>
         )}
         <label className="admin-btn" style={{ cursor: "pointer" }}>
           {busy === "cover" ? "Uploading…" : coverImageUrl ? "Replace" : "Upload"}

@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { GALLERY_CATEGORIES, type GalleryPhoto } from "@/lib/gallery";
+import { GALLERY_CATEGORIES, type GalleryPhoto, type TaggablePerson } from "@/lib/gallery";
 import { formatDate } from "@/lib/admin/format";
+import { PhotoTagPicker } from "@/components/gallery/PhotoTagPicker";
+import { tagPhotoPerson, untagPhotoPerson } from "@/app/team/(dashboard)/gallery/actions";
 
 // Client-side category filter over the team photo wall. Small dataset, so the
-// tabs filter in memory. Empty categories are hidden from the tab bar.
-export function GalleryBrowser({ photos }: { photos: GalleryPhoto[] }) {
+// tabs filter in memory. Empty categories are hidden from the tab bar. Any team
+// member can tag the people in a photo (self-serve).
+export function GalleryBrowser({
+  photos,
+  taggable,
+}: {
+  photos: GalleryPhoto[];
+  taggable: TaggablePerson[];
+}) {
   const [filter, setFilter] = useState("");
   const cats = GALLERY_CATEGORIES.map((c) => ({
     ...c,
@@ -31,17 +40,28 @@ export function GalleryBrowser({ photos }: { photos: GalleryPhoto[] }) {
 
       <div className="gallery-masonry">
         {shown.map((p) => (
-          <a key={p.id} className="gallery-tile" href={p.image_url} target="_blank" rel="noreferrer">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.image_url} alt={p.caption || "Team photo"} />
-            {(p.caption || p.taken_on) && (
-              <span className="gallery-tile-cap">
-                {p.caption}
-                {p.caption && p.taken_on ? " · " : ""}
-                {p.taken_on ? formatDate(p.taken_on) : ""}
-              </span>
-            )}
-          </a>
+          <div key={p.id} className="gallery-tile">
+            <a className="gallery-tile-media" href={p.image_url} target="_blank" rel="noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.image_url} alt={p.caption || "Team photo"} />
+              {(p.caption || p.taken_on) && (
+                <span className="gallery-tile-cap">
+                  {p.caption}
+                  {p.caption && p.taken_on ? " · " : ""}
+                  {p.taken_on ? formatDate(p.taken_on) : ""}
+                </span>
+              )}
+            </a>
+            <div className="gallery-tile-tags">
+              <PhotoTagPicker
+                photoId={p.id}
+                tags={p.people ?? []}
+                taggable={taggable}
+                onAdd={tagPhotoPerson}
+                onRemove={untagPhotoPerson}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </>

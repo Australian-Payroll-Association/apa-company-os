@@ -10,7 +10,7 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
-import { ViewAsClientButton } from "@/components/admin/ViewAsClientButton";
+import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
 import { CompanyEditForm } from "../CompanyEditForm";
@@ -26,7 +26,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
   const data = await getCompany360(params.id);
   if (!data) notFound();
 
-  const { company, deals, people } = data;
+  const { company, deals, people, affiliate: companyAffiliate } = data;
   const name = company.name || "(no name)";
   const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy] =
     await Promise.all([
@@ -53,7 +53,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
     null,
   );
   const affiliateContacts = people.filter((p) => p.affiliateActive);
-  const hasReferralContext = referredBy.length > 0 || affiliateContacts.length > 0;
+  const hasReferralContext = referredBy.length > 0 || affiliateContacts.length > 0 || !!companyAffiliate;
 
   const tabs: TabDef[] = [
     {
@@ -112,9 +112,6 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
           <Empty text="Link a contact on the People tab first, then invite them here." />
         ) : (
           <div>
-            <div style={{ marginBottom: 12 }}>
-              <ViewAsClientButton companyId={company.id} />
-            </div>
             <div className="admin-list">
             {people.map((p) => {
               const membership = portalMemberships.get(p.id);
@@ -151,16 +148,26 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
   ];
 
   return (
-    <>
+    <div style={{ maxWidth: 1200 }}>
       <PageHead
         eyebrow={<Link href="/admin/revenue/companies">← Companies</Link>}
         title={name}
         sub={company.website_url || undefined}
         action={
-          <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {company.archived_at && <Badge tone="neutral">Archived</Badge>}
-            {company.priority && <Badge>{humanize(company.priority)}</Badge>}
-          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              {company.archived_at && <Badge tone="neutral">Archived</Badge>}
+              {company.priority && <Badge>{humanize(company.priority)}</Badge>}
+            </span>
+            <CrmCommandBar
+              kind="company"
+              id={company.id}
+              name={name}
+              archived={!!company.archived_at}
+              assumeCompanyId={company.id}
+              affiliate={{ active: !!companyAffiliate?.active, code: companyAffiliate?.code ?? null }}
+            />
+          </div>
         }
       />
 
@@ -170,12 +177,32 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         <MetricCard label="Open pipeline" value={openValueCents ? formatCents(openValueCents, "usd") : "—"} sub={lastActivity ? `last deal ${formatDate(lastActivity)}` : "no deals"} />
         <MetricCard label="People" value={people.length} sub={`${activeMemberCount} with portal`} />
         <MetricCard label="Invoices" value={invoices.length} sub={invoices.length ? "in QuickBooks" : "none synced"} />
+        {companyAffiliate?.active && (
+          <MetricCard
+            label="Commissions"
+            value={formatCents(companyAffiliate.realizedCents, "usd")}
+            sub={companyAffiliate.unpaidCents > 0 ? `${formatCents(companyAffiliate.unpaidCents, "usd")} unpaid` : "as an affiliate"}
+          />
+        )}
       </div>
 
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <div className="admin-shelf-heading" style={{ marginBottom: 8 }}>Referral &amp; affiliates</div>
         {hasReferralContext ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            {companyAffiliate?.active && (
+              <div>
+                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>This company is an affiliate</div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  {companyAffiliate.code && <Badge tone="ok">{companyAffiliate.code}</Badge>}
+                  <span className="admin-cell-strong">{formatCents(companyAffiliate.realizedCents, "usd")} earned</span>
+                  {companyAffiliate.unpaidCents > 0 && (
+                    <span className="admin-cell-muted">· {formatCents(companyAffiliate.unpaidCents, "usd")} unpaid</span>
+                  )}
+                  {companyAffiliate.pendingCount > 0 && <Badge tone="warn">{companyAffiliate.pendingCount} pending choice</Badge>}
+                </div>
+              </div>
+            )}
             {referredBy.length > 0 && (
               <div>
                 <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 2 }}>Referred by</div>
@@ -198,13 +225,13 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
           </div>
         ) : (
           <div className="admin-cell-muted">
-            No referral link. Any contact here can be made an affiliate from the{" "}
-            <Link href="/admin/revenue/affiliates">Affiliates</Link> page or the company shelf.
+            No referral link. Make this company an affiliate from the actions above, or link a referring
+            contact or company on its deals.
           </div>
         )}
       </div>
 
-      <div className="admin-360">
+      <div className="admin-360" style={{ gridTemplateColumns: "340px minmax(0, 1fr)" }}>
         <div>
           <div className="admin-card admin-section-card">
             <CompanyEditForm
@@ -228,7 +255,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
           />
 
           <div className="admin-card admin-section-card">
-            <CompanyDangerZone companyId={company.id} companyName={name} archived={!!company.archived_at} />
+            <CompanyDangerZone companyId={company.id} companyName={name} />
           </div>
         </div>
 
@@ -236,6 +263,6 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
           <Tabs tabs={tabs} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

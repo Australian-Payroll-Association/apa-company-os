@@ -56,6 +56,7 @@ export async function hasAssignedStaff(actor: PortalActor): Promise<boolean> {
   if (actor.companyScope.length === 0) return false;
   const { data } = await portalRead(actor, "staff_assignments", "id")
     .eq("status", "active")
+    .eq("client_visible", true)
     .limit(1);
   return (data ?? []).length > 0;
 }
@@ -66,10 +67,9 @@ export async function hasAssignedStaff(actor: PortalActor): Promise<boolean> {
 // direct company_id column, so this two-step lookup is required there too.
 export async function getAssignedTeamMemberIds(actor: PortalActor): Promise<string[]> {
   if (actor.companyScope.length === 0) return [];
-  const { data } = await portalRead(actor, "staff_assignments", "team_member_id").eq(
-    "status",
-    "active",
-  );
+  const { data } = await portalRead(actor, "staff_assignments", "team_member_id")
+    .eq("status", "active")
+    .eq("client_visible", true);
   const rows = (data ?? []) as unknown as { team_member_id: string }[];
   return [...new Set(rows.map((r) => r.team_member_id))];
 }
@@ -81,7 +81,9 @@ export async function getAssignedTeam(actor: PortalActor): Promise<PortalTeamMem
     actor,
     "staff_assignments",
     "team_member_id, role_title",
-  ).eq("status", "active");
+  )
+    .eq("status", "active")
+    .eq("client_visible", true);
   const assignments = (assignmentRows ?? []) as unknown as {
     team_member_id: string;
     role_title: string | null;

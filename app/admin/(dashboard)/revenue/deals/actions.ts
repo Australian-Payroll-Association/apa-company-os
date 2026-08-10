@@ -765,3 +765,64 @@ export async function createReferrerForDeal(
   refresh();
   return { ok: true, referrer: personHit(person), created };
 }
+
+// ─── Referring company ───────────────────────────────────────────────────────
+// A deal can also credit a referring company directly, via deals.referrer_company_id.
+// This is a separate field from the person referrer above — companies are picked,
+// never created here.
+export type CompanyHit = { id: string; name: string | null };
+
+// Typeahead for the referring-company picker. Strips PostgREST filter
+// metacharacters from the raw term exactly like searchPeople.
+export async function searchCompanies(query: string): Promise<CompanyHit[]> {
+  await requireAdmin();
+
+  const term = query.trim().replace(/[,%()*\\]/g, "");
+  if (term.length < 2) return [];
+  const like = `%${term}%`;
+
+  const { data, error } = await companyOs
+    .from("companies")
+    .select("id, name")
+    .is("archived_at", null)
+    .ilike("name", like)
+    .order("name")
+    .limit(8);
+  if (error) return [];
+  return (data ?? []).map((row) => ({ id: row.id, name: row.name }));
+}
+
+// Link an existing company as the deal's referring company, or clear it with null.
+export async function setDealReferrerCompany(
+  dealId: string,
+  referrerCompanyId: string | null,
+): Promise<{ ok: true; referrerCompany: CompanyHit | null } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  let referrerCompany: CompanyHit | null = null;
+  if (referrerCompanyId) {
+    const { data: company, error: cErr } = await companyOs
+      .from("companies")
+      .select("id, name, archived_at")
+      .eq("id", referrerCompanyId)
+      .maybeSingle();
+    if (cErr) return { ok: false, error: cErr.message };
+    if (!company || company.archived_at) return { ok: false, error: "That company no longer exists." };
+    referrerCompany = { id: company.id, name: company.name };
+  }
+
+  const { error } = await companyOs
+    .from("deals")
+    .update({ referrer_company_id: referrerCompanyId })
+    .eq("id", dealId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "deals",
+    recordId: dealId,
+    operation: "update",
+    actor: admin.email,
+    newData: { referrer_company_id: referrerCompanyId },
+  });
+  refresh();
+  return { ok: true, referrerCompany };
+}
