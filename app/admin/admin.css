@@ -2599,6 +2599,15 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .coach-trend { border-top: 1px solid var(--admin-line); padding: 10px 0; font-size: 13.5px; }
 .coach-trend summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
 
+/* v2: OCEAN editor, mode split, priorities */
+.coach-ocean-row { align-items: flex-start; }
+.coach-ocean-rating { flex: 0 0 180px; }
+.coach-ocean-evidence { flex: 1; }
+.coach-ocean-table td { vertical-align: top; }
+.coach-ocean-guidance { white-space: pre-wrap; }
+.coach-mode-row .admin-input { max-width: 90px; }
+.coach-priority-detail { flex-basis: 100%; margin: 2px 0 6px; font-size: 12.5px; }
+
 .mycoach-recap { border-top: 1px solid var(--admin-line); padding: 12px 0; }
 .mycoach-goal {
   font-size: 15px;

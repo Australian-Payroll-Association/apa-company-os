@@ -75,14 +75,14 @@ function fmt(iso: string | null): string {
   });
 }
 
-function RosterCard({ row }: { row: CoachRosterRow }) {
-  const goalBadge =
-    row.fastGoalStatus === "set" ? null : (
-      <span className={`admin-badge ${row.fastGoalStatus === "draft" ? "admin-badge--warn" : "admin-badge--err"}`}>
-        {row.fastGoalStatus === "draft" ? "Draft goal" : "No goal"}
-      </span>
-    );
+const ROOT_LABELS: Record<string, string> = {
+  belonging: "Belonging",
+  links: "Links",
+  sacrifice: "Sacrifice",
+  watching: "Watching",
+};
 
+function RosterCard({ row }: { row: CoachRosterRow }) {
   return (
     <Link href={`/team/coaching/${row.profileId}`} className="admin-card coach-card">
       <div className="coach-card-head">
@@ -106,8 +106,12 @@ function RosterCard({ row }: { row: CoachRosterRow }) {
       </div>
 
       <div className="coach-card-goal">
-        {row.fastGoal ? <span>{row.fastGoal}</span> : <span className="admin-cell-muted">FAST goal not set yet</span>}
-        {goalBadge}
+        {row.activeGoals.length > 0 ? (
+          <span>{row.activeGoals.join(" · ")}</span>
+        ) : (
+          <span className="admin-cell-muted">No active FAST goal</span>
+        )}
+        {row.activeGoals.length === 0 && <span className="admin-badge admin-badge--err">No goal</span>}
       </div>
 
       <div className="coach-card-meta">
@@ -122,6 +126,17 @@ function RosterCard({ row }: { row: CoachRosterRow }) {
         </span>
         <span>
           <strong>{row.openCommitments}</strong> open commitment{row.openCommitments === 1 ? "" : "s"}
+        </span>
+        <span title="Coach / Mentor / Direct on the last logged 1-1 — target 80/15/5">
+          Mode{" "}
+          <strong>
+            {row.lastModeSplit
+              ? `${row.lastModeSplit.coach}/${row.lastModeSplit.mentor}/${row.lastModeSplit.direct}`
+              : "—"}
+          </strong>
+        </span>
+        <span title="Loose engagement root (retention read)">
+          Root <strong>{row.retentionRoot ? ROOT_LABELS[row.retentionRoot] : "—"}</strong>
         </span>
       </div>
     </Link>
