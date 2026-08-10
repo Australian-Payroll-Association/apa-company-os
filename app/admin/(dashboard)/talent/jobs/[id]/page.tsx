@@ -139,6 +139,13 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
         eyebrow={<Link href="/admin/talent/jobs">← Job Reqs</Link>}
         title={req.title || "(untitled req)"}
         sub={[co, salary].filter(Boolean).join(" · ") || undefined}
+        action={
+          req.status === "open" ? (
+            <Link href={`/admin/talent/applications/new?req=${req.id}`} className="admin-btn admin-btn--primary">
+              Add applicants
+            </Link>
+          ) : undefined
+        }
       />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>

@@ -4,6 +4,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // Resume uploads (recruiter intake, careers apply) arrive through server
+    // actions; the framework default of 1 MB silently rejected files the app
+    // itself allows up to 10 MB.
+    serverActions: { bodySizeLimit: "10mb" },
+  },
   async rewrites() {
     return [
       // The new-member onboarding form is a purpose-driven survey; serve it at a

@@ -12,8 +12,13 @@ export const metadata = {
 
 // Recruiter intake: sourced candidates enter the pipeline here rather than via
 // the public careers form. Only open reqs are offered — sourcing into a closed
-// role is always a mistake.
-export default async function AddCandidatesPage() {
+// role is always a mistake. ?req=<id> preselects the position (the req page's
+// "Add applicants" button links here with it).
+export default async function AddCandidatesPage({
+  searchParams,
+}: {
+  searchParams: { req?: string | string[] };
+}) {
   const { data, error } = await companyOs
     .from("job_requisitions")
     .select("id, title, location")
@@ -25,6 +30,9 @@ export default async function AddCandidatesPage() {
     title: (r.title as string | null) ?? "(untitled req)",
     location: (r.location as string | null) ?? null,
   }));
+
+  const reqParam = Array.isArray(searchParams.req) ? searchParams.req[0] : searchParams.req;
+  const initialReqId = jobReqs.some((r) => r.id === reqParam) ? reqParam! : "";
 
   return (
     <>
@@ -43,7 +51,7 @@ export default async function AddCandidatesPage() {
           {error.message}
         </div>
       )}
-      <AddCandidates jobReqs={jobReqs} />
+      <AddCandidates jobReqs={jobReqs} initialReqId={initialReqId} />
     </>
   );
 }
