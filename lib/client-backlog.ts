@@ -77,6 +77,7 @@ export type BacklogItem = {
   source: BacklogSource;
   status: BacklogStatus;
   sort_order: number;
+  client_sort_order: number | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -85,7 +86,13 @@ export type BacklogItem = {
 export const BACKLOG_SELECT =
   "id, company_id, group_key, ref, title, who, today_state, build_desc, needs, " +
   "token_low, token_high, edge8_priority, client_priority, client_note, source, " +
-  "status, sort_order, archived_at, created_at, updated_at";
+  "status, sort_order, client_sort_order, archived_at, created_at, updated_at";
+
+// The order an item sits at in the client's view: their dragged order when set,
+// otherwise Edge8's sort_order.
+export function effectiveSort(item: Pick<BacklogItem, "sort_order" | "client_sort_order">): number {
+  return item.client_sort_order ?? item.sort_order;
+}
 
 // The priority actually in effect for a row: the client's choice wins when set,
 // otherwise Edge8's proposal stands.

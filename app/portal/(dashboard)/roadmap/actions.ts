@@ -6,10 +6,18 @@ import {
   setClientPriorityForActor,
   setClientNoteForActor,
   proposeItemForActor,
+  reorderGroupForActor,
 } from "@/lib/portal/backlog";
 import type { BacklogGroupKey } from "@/lib/client-backlog";
 
 const BASE = "/portal/roadmap";
+
+export async function reorderMyGroup(groupKey: BacklogGroupKey, orderedIds: string[]) {
+  const actor = await requirePortalMember();
+  const r = await reorderGroupForActor(actor, groupKey, orderedIds);
+  if (r.ok) revalidatePath(BASE);
+  return r;
+}
 
 export async function setMyPriority(itemId: string, priority: string | null) {
   const actor = await requirePortalMember();

@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd";
 import {
   BACKLOG_GROUPS,
   BACKLOG_PRIORITIES,
@@ -13,7 +19,7 @@ import {
   type BacklogItem,
   type BacklogPriority,
 } from "@/lib/client-backlog";
-import { setMyPriority, proposeMyItem } from "./actions";
+import { setMyPriority, proposeMyItem, reorderMyGroup } from "./actions";
 
 const STYLES = `
 .cbp { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 940px; }
@@ -25,7 +31,11 @@ const STYLES = `
 .cbp .cbp-step { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; background:rgba(40,123,232,.1); color:#287BE8; }
 .cbp .cbp-group-title { font-weight:700; font-size:15px; }
 .cbp .cbp-group-intro { color:#797c82; font-size:13px; margin:2px 0 12px; }
-.cbp .cbp-item { border:1px solid var(--admin-border,#E6E6E6); border-radius:12px; padding:13px 15px; margin-bottom:9px; background:#fff; }
+.cbp .cbp-item { border:1px solid var(--admin-border,#E6E6E6); border-radius:12px; padding:13px 15px 13px 12px; margin-bottom:9px; background:#fff; display:flex; gap:10px; align-items:flex-start; }
+.cbp .cbp-item.dragging { box-shadow:0 8px 24px rgba(16,16,20,.14); border-color:#287BE8; }
+.cbp .cbp-handle { flex:none; cursor:grab; color:#b8bfc9; font-size:16px; line-height:1.2; padding:2px 2px 0; user-select:none; touch-action:none; }
+.cbp .cbp-handle:hover { color:#287BE8; }
+.cbp .cbp-main { flex:1; min-width:0; }
 .cbp .cbp-item-top { display:flex; gap:9px; align-items:flex-start; flex-wrap:wrap; }
 .cbp .cbp-ref { flex:none; font-size:12px; font-weight:700; color:#287BE8; background:rgba(40,123,232,.1); border-radius:6px; padding:3px 7px; }
 .cbp .cbp-title { font-weight:650; font-size:14px; flex:1 1 220px; }
@@ -52,6 +62,14 @@ const STYLES = `
 .cbp .cbp-err { color:#c0392b; font-size:12px; margin-top:6px; }
 `;
 
+// Rebuild the flat item list from a single group's reordered array, preserving
+// every other group's order and the overall group sequence.
+function rebuild(all: BacklogItem[], group: BacklogGroupKey, reordered: BacklogItem[]): BacklogItem[] {
+  return BACKLOG_GROUPS.flatMap((g) =>
+    g === group ? reordered : all.filter((i) => i.group_key === g),
+  );
+}
+
 export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; companyId: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -61,11 +79,15 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
   const [pNote, setPNote] = useState("");
   const [pPriority, setPPriority] = useState<BacklogPriority>("next");
 
+  // Local copy so drag + priority edits feel instant; re-sync after a refresh.
+  const [ordered, setOrdered] = useState<BacklogItem[]>(items);
+  useEffect(() => setOrdered(items), [items]);
+
   const counts = useMemo(() => {
     const c: Record<BacklogPriority, number> = { now: 0, next: 0, later: 0, park: 0 };
-    for (const it of items) c[effectivePriority(it)] += 1;
+    for (const it of ordered) c[effectivePriority(it)] += 1;
     return c;
-  }, [items]);
+  }, [ordered]);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
     setErr(null);
@@ -79,50 +101,86 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
     });
   }
 
-  function renderItem(it: BacklogItem) {
+  function onDragEnd(result: DropResult) {
+    const { source, destination } = result;
+    if (!destination || destination.droppableId !== source.droppableId) return;
+    if (destination.index === source.index) return;
+    const group = source.droppableId as BacklogGroupKey;
+    const arr = ordered.filter((i) => i.group_key === group);
+    const [moved] = arr.splice(source.index, 1);
+    arr.splice(destination.index, 0, moved);
+    const next = rebuild(ordered, group, arr);
+    setOrdered(next); // optimistic
+    const ids = arr.map((i) => i.id);
+    setErr(null);
+    start(async () => {
+      const r = await reorderMyGroup(group, ids);
+      if (!r.ok) {
+        setErr(r.error ?? "Couldn't save the new order.");
+        setOrdered(items); // roll back to server truth
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  function renderItem(it: BacklogItem, index: number) {
     const eff = effectivePriority(it);
     const tok = tokenLabel(it.token_low, it.token_high);
     return (
-      <div key={it.id} className="cbp-item">
-        <div className="cbp-item-top">
-          {it.ref && <span className="cbp-ref">{it.ref}</span>}
-          <span className="cbp-title">{it.title}</span>
-          <span className="cbp-pills">
-            {BACKLOG_PRIORITIES.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`cbp-pill${eff === p ? ` on-${p}` : ""}`}
-                disabled={pending}
-                onClick={() => run(() => setMyPriority(it.id, it.client_priority === p ? null : p))}
-                title={it.client_priority ? "Your priority" : "Edge8 proposed — click to set yours"}
-              >
-                {PRIORITY_LABEL[p]}
-              </button>
-            ))}
-          </span>
-        </div>
-        <div className="cbp-body">
-          {it.who && <div><span className="k">Who: </span>{it.who}</div>}
-          {it.today_state && <div><span className="k">Today: </span>{it.today_state}</div>}
-          {it.build_desc && <div><span className="k">What we&apos;d build: </span>{it.build_desc}</div>}
-          <div className="cbp-chips">
-            {(it.needs ?? []).map((n) => <span key={n} className="cbp-chip">{n}</span>)}
-            {tok && <span className="cbp-chip tok">est. {tok} Human Tokens</span>}
-            {it.source === "client" && (
-              <span className="cbp-chip proposed">{it.status === "proposed" ? "your proposal — awaiting Edge8" : "your idea"}</span>
-            )}
-            {it.client_priority && it.client_priority !== it.edge8_priority && (
-              <span className="cbp-chip mine">you changed from Edge8&apos;s {PRIORITY_LABEL[it.edge8_priority]}</span>
-            )}
-          </div>
-          {it.client_priority && (
-            <div className="cbp-hint">
-              You set this. Click the highlighted pill again to revert to Edge8&apos;s suggestion ({PRIORITY_LABEL[it.edge8_priority]}).
+      <Draggable draggableId={it.id} index={index} key={it.id}>
+        {(provided, snapshot) => (
+          <div
+            className={`cbp-item${snapshot.isDragging ? " dragging" : ""}`}
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+          >
+            <span className="cbp-handle" {...provided.dragHandleProps} title="Drag to reorder" aria-label="Drag to reorder">
+              ⠿
+            </span>
+            <div className="cbp-main">
+              <div className="cbp-item-top">
+                {it.ref && <span className="cbp-ref">{it.ref}</span>}
+                <span className="cbp-title">{it.title}</span>
+                <span className="cbp-pills">
+                  {BACKLOG_PRIORITIES.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`cbp-pill${eff === p ? ` on-${p}` : ""}`}
+                      disabled={pending}
+                      onClick={() => run(() => setMyPriority(it.id, it.client_priority === p ? null : p))}
+                      title={it.client_priority ? "Your priority" : "Edge8 proposed — click to set yours"}
+                    >
+                      {PRIORITY_LABEL[p]}
+                    </button>
+                  ))}
+                </span>
+              </div>
+              <div className="cbp-body">
+                {it.who && <div><span className="k">Who: </span>{it.who}</div>}
+                {it.today_state && <div><span className="k">Today: </span>{it.today_state}</div>}
+                {it.build_desc && <div><span className="k">What we&apos;d build: </span>{it.build_desc}</div>}
+                <div className="cbp-chips">
+                  {(it.needs ?? []).map((n) => <span key={n} className="cbp-chip">{n}</span>)}
+                  {tok && <span className="cbp-chip tok">est. {tok} Human Tokens</span>}
+                  {it.source === "client" && (
+                    <span className="cbp-chip proposed">{it.status === "proposed" ? "your proposal — awaiting Edge8" : "your idea"}</span>
+                  )}
+                  {it.client_priority && it.client_priority !== it.edge8_priority && (
+                    <span className="cbp-chip mine">you changed from Edge8&apos;s {PRIORITY_LABEL[it.edge8_priority]}</span>
+                  )}
+                </div>
+                {it.client_priority && (
+                  <div className="cbp-hint">
+                    You set this. Click the highlighted pill again to revert to Edge8&apos;s suggestion ({PRIORITY_LABEL[it.edge8_priority]}).
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </Draggable>
     );
   }
 
@@ -132,9 +190,10 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
       <p className="cbp-intro">
         <strong>Step 1</strong> gets your data into one central database (read-only, masked). That
         unlocks every report here. <strong>Step 2</strong> picks a short list of workflows to
-        automate, which we choose together. Set your priority on any item, and use <em>Propose an
-        item</em> to add your own — it comes to us to review. Human Token estimates are
-        pre-research ranges (1 Human Token = 1 hour of Edge8 expert time).
+        automate, which we choose together. Set your priority on any item, drag the handle to
+        reorder within a section, and use <em>Propose an item</em> to add your own — it comes to us
+        to review. Human Token estimates are pre-research ranges (1 Human Token = 1 hour of Edge8
+        expert time).
       </p>
 
       <div className="cbp-counts">
@@ -145,48 +204,58 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
 
       {err && <div className="cbp-err">{err}</div>}
 
-      {BACKLOG_GROUPS.map((g) => {
-        const groupItems = items.filter((i) => i.group_key === g);
-        const meta = GROUP_META[g];
-        return (
-          <div key={g} className="cbp-group">
-            <div className="cbp-group-head">
-              <span className="cbp-step">{meta.step}</span>
-              <span className="cbp-group-title">{meta.title}</span>
-            </div>
-            <div className="cbp-group-intro">{meta.intro}</div>
-            {groupItems.map(renderItem)}
-
-            {companyId && (proposeGroup === g ? (
-              <div className="cbp-propose">
-                <input placeholder="Short title for your idea" value={pTitle} onChange={(e) => setPTitle(e.target.value)} autoFocus />
-                <textarea placeholder="Optional: a sentence on what you're after" value={pNote} onChange={(e) => setPNote(e.target.value)} />
-                <select value={pPriority} onChange={(e) => setPPriority(e.target.value as BacklogPriority)}>
-                  {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
-                </select>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    className="cbp-btn"
-                    disabled={pending || !pTitle.trim()}
-                    onClick={() => run(
-                      () => proposeMyItem({ companyId, groupKey: g, title: pTitle, note: pNote, priority: pPriority }),
-                      () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); },
-                    )}
-                  >
-                    Send to Edge8
-                  </button>
-                  <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); }}>Cancel</button>
-                </div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        {BACKLOG_GROUPS.map((g) => {
+          const groupItems = ordered.filter((i) => i.group_key === g);
+          const meta = GROUP_META[g];
+          return (
+            <div key={g} className="cbp-group">
+              <div className="cbp-group-head">
+                <span className="cbp-step">{meta.step}</span>
+                <span className="cbp-group-title">{meta.title}</span>
               </div>
-            ) : (
-              <button type="button" className="cbp-link" style={{ marginTop: 6 }} onClick={() => setProposeGroup(g)}>
-                + Propose an item for {meta.step}
-              </button>
-            ))}
-          </div>
-        );
-      })}
+              <div className="cbp-group-intro">{meta.intro}</div>
+
+              <Droppable droppableId={g}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps}>
+                    {groupItems.map((it, i) => renderItem(it, i))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+
+              {companyId && (proposeGroup === g ? (
+                <div className="cbp-propose">
+                  <input placeholder="Short title for your idea" value={pTitle} onChange={(e) => setPTitle(e.target.value)} autoFocus />
+                  <textarea placeholder="Optional: a sentence on what you're after" value={pNote} onChange={(e) => setPNote(e.target.value)} />
+                  <select value={pPriority} onChange={(e) => setPPriority(e.target.value as BacklogPriority)}>
+                    {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
+                  </select>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="cbp-btn"
+                      disabled={pending || !pTitle.trim()}
+                      onClick={() => run(
+                        () => proposeMyItem({ companyId, groupKey: g, title: pTitle, note: pNote, priority: pPriority }),
+                        () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); },
+                      )}
+                    >
+                      Send to Edge8
+                    </button>
+                    <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="cbp-link" style={{ marginTop: 6 }} onClick={() => setProposeGroup(g)}>
+                  + Propose an item for {meta.step}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </DragDropContext>
     </div>
   );
 }

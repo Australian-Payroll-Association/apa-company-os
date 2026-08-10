@@ -96,9 +96,47 @@ export async function getBacklogForActor(actor: PortalActor): Promise<BacklogIte
   if (actor.companyScope.length === 0) return [];
   const { data } = await portalRead(actor, "client_backlog_items", BACKLOG_SELECT)
     .is("archived_at", null)
-    .order("group_key", { ascending: true })
-    .order("sort_order", { ascending: true });
-  return (data ?? []) as unknown as BacklogItem[];
+    .order("group_key", { ascending: true });
+  const items = (data ?? []) as unknown as BacklogItem[];
+  // Effective order within a group is the client's dragged order when set,
+  // else Edge8's sort_order. Sort here since PostgREST can't coalesce in order.
+  return items.sort(
+    (a, b) => (a.client_sort_order ?? a.sort_order) - (b.client_sort_order ?? b.sort_order),
+  );
+}
+
+// Persist the client's dragged order for one group: writes client_sort_order to
+// every item id in the given order. Every id is re-checked against the actor's
+// scope AND confirmed to sit in that group before any write (IDOR guard).
+export async function reorderGroupForActor(
+  actor: PortalActor,
+  groupKey: string,
+  orderedIds: string[],
+): Promise<Result> {
+  if (actor.companyScope.length === 0) return { ok: false, error: "No company in scope." };
+  if (orderedIds.length === 0) return { ok: true };
+
+  // Load the group's items in scope; the set must match the ids we were given.
+  const { data } = await portalRead(actor, "client_backlog_items", "id, group_key")
+    .eq("group_key", groupKey)
+    .is("archived_at", null);
+  const scoped = new Set(((data ?? []) as unknown as Array<{ id: string }>).map((r) => r.id));
+  if (orderedIds.length !== scoped.size || !orderedIds.every((id) => scoped.has(id))) {
+    return { ok: false, error: "Item set does not match this group." };
+  }
+
+  const now = new Date().toISOString();
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      companyOs
+        .from("client_backlog_items")
+        .update({ client_sort_order: i * 10, updated_at: now })
+        .eq("id", id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+  return { ok: true };
 }
 
 // The client sets (or clears) their own priority on one item. Ownership is
