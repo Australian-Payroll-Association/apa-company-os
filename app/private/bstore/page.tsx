@@ -211,6 +211,15 @@ const CONTENT_HTML = `
       <strong>Attendees:</strong> David Hajdu (Edge8) &middot; Quan (Edge8, process &amp; database) &middot; Sean Rohald (Bstore, founder)
     </div>
   </header>
+
+  <section style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <div style="flex:1 1 260px;">
+      <strong>New: Automation Backlog</strong><br>
+      <span style="color:var(--muted); font-size:14px;">Every opportunity from your Step 1 audits, grouped and prioritised &mdash; adjust the priorities and send them back.</span>
+    </div>
+    <a href="/private/bstore/backlog" style="flex:none; background:var(--accent); color:#fff; font-weight:600; font-size:14px; padding:10px 18px; border-radius:40px;">Open the backlog &rarr;</a>
+  </section>
+
   ${checklistHtml()}
 
   <section>
