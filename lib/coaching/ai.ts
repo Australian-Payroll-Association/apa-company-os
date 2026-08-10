@@ -16,7 +16,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
-import { OPEN_COMMITMENT_STATUSES, saigonToday } from "@/lib/coaching/data";
+import { OPEN_COMMITMENT_STATUSES, getEdgesLadderOptions, saigonToday } from "@/lib/coaching/data";
 
 const MODEL = process.env.COACHING_CLAUDE_MODEL || "claude-opus-4-8";
 
@@ -37,8 +37,7 @@ type ProfileContext = {
   coachId: string;
   memberName: string;
   positionTitle: string | null;
-  fastGoal: string | null;
-  fastGoalStatus: string;
+  retentionRoot: string | null;
   okrsMarkdown: string | null;
   privateProfileMarkdown: string | null;
   cadenceDays: number;
@@ -51,7 +50,7 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
   const { data } = await companyOs
     .from("coaching_profiles")
     .select(
-      "id, coach_id, fast_goal, fast_goal_status, okrs_markdown, private_profile_markdown, cadence_days, " +
+      "id, coach_id, retention_root, okrs_markdown, private_profile_markdown, cadence_days, " +
         "team_members:team_members!team_member_id(people:people!person_id(full_name, preferred_name), " +
         "positions:positions!position_id(title))",
     )
@@ -72,12 +71,115 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
     coachId: r.coach_id as string,
     memberName: person?.preferred_name || person?.full_name || "the team member",
     positionTitle: pos?.title ?? null,
-    fastGoal: (r.fast_goal as string | null) ?? null,
-    fastGoalStatus: (r.fast_goal_status as string) ?? "not_set",
+    retentionRoot: (r.retention_root as string | null) ?? null,
     okrsMarkdown: (r.okrs_markdown as string | null) ?? null,
     privateProfileMarkdown: (r.private_profile_markdown as string | null) ?? null,
     cadenceDays: (r.cadence_days as number) ?? 14,
   };
+}
+
+// FAST goals with their Eight Edges ladder, live metric readings included.
+async function loadGoalsBlock(profileId: string): Promise<string> {
+  const [{ data }, edges] = await Promise.all([
+    companyOs
+      .from("coaching_goals")
+      .select("title, status, quarter_label, objective_id, key_result_id, metric_id")
+      .eq("coaching_profile_id", profileId)
+      .in("status", ["active", "draft"])
+      .order("sort_order"),
+    getEdgesLadderOptions(),
+  ]);
+  const rows = (data ?? []) as Array<{
+    title: string;
+    status: string;
+    quarter_label: string | null;
+    objective_id: string | null;
+    key_result_id: string | null;
+    metric_id: string | null;
+  }>;
+  if (rows.length === 0) return "(no FAST goals set yet)";
+  return rows
+    .map((g) => {
+      let ladder = "";
+      if (g.key_result_id) {
+        const k = edges.keyResults.find((x) => x.id === g.key_result_id);
+        if (k) ladder = ` — ladders to KR: ${k.label}`;
+      } else if (g.metric_id) {
+        const m = edges.metrics.find((x) => x.id === g.metric_id);
+        if (m)
+          ladder = ` — ladders to KPI: ${m.label}${
+            m.target != null ? ` (target ${m.target}, ${m.direction}${m.latestValue != null ? `, latest ${m.latestValue}` : ""})` : ""
+          }`;
+      } else if (g.objective_id) {
+        const o = edges.objectives.find((x) => x.id === g.objective_id);
+        if (o) ladder = ` — ladders to objective: ${o.label}`;
+      }
+      return `- [${g.status}${g.quarter_label ? `, ${g.quarter_label}` : ""}] ${g.title}${ladder}`;
+    })
+    .join("\n");
+}
+
+async function loadPrioritiesBlock(profileId: string): Promise<string> {
+  const { data } = await companyOs
+    .from("coaching_priorities")
+    .select("title, detail_markdown")
+    .eq("coaching_profile_id", profileId)
+    .eq("status", "active")
+    .order("sort_order");
+  const rows = (data ?? []) as Array<{ title: string; detail_markdown: string | null }>;
+  if (rows.length === 0) return "(no standing priorities)";
+  return rows.map((p) => `- ${p.title}${p.detail_markdown ? ` — ${p.detail_markdown}` : ""}`).join("\n");
+}
+
+// The structured OCEAN read — coach tier, so unpublished rows count too.
+async function loadOceanBlock(profileId: string): Promise<string> {
+  const { data } = await companyOs
+    .from("coaching_ocean_profiles")
+    .select(
+      "openness_rating, openness_evidence, conscientiousness_rating, conscientiousness_evidence, " +
+        "extraversion_rating, extraversion_evidence, agreeableness_rating, agreeableness_evidence, " +
+        "neuroticism_rating, neuroticism_evidence, snapshot_markdown",
+    )
+    .eq("coaching_profile_id", profileId)
+    .maybeSingle();
+  if (!data) return "(no OCEAN read on file)";
+  const r = data as unknown as Record<string, string | null>;
+  const dim = (label: string, key: string) =>
+    r[`${key}_rating`] ? `- ${label}: ${r[`${key}_rating`]}${r[`${key}_evidence`] ? ` — ${r[`${key}_evidence`]}` : ""}` : null;
+  return [
+    dim("Openness", "openness"),
+    dim("Conscientiousness", "conscientiousness"),
+    dim("Extraversion", "extraversion"),
+    dim("Agreeableness", "agreeableness"),
+    dim("Neuroticism", "neuroticism"),
+    r.snapshot_markdown ? `\nSnapshot: ${clip(r.snapshot_markdown, 2000)}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Recent C/M/D mode splits, newest first — the coach's own trajectory.
+async function loadModeHistoryBlock(profileId: string): Promise<string> {
+  const { data } = await companyOs
+    .from("coaching_one_on_ones")
+    .select("held_on, mode_coach_pct, mode_mentor_pct, mode_direct_pct")
+    .eq("coaching_profile_id", profileId)
+    .eq("status", "held")
+    .is("archived_at", null)
+    .not("mode_coach_pct", "is", null)
+    .order("held_on", { ascending: false })
+    .limit(6);
+  const rows = (data ?? []) as Array<{
+    held_on: string;
+    mode_coach_pct: number;
+    mode_mentor_pct: number;
+    mode_direct_pct: number;
+  }>;
+  if (rows.length === 0) return "(no mode splits logged yet; target is 80 coach / 15 mentor / 5 direct)";
+  return (
+    rows.map((m) => `- ${m.held_on}: ${m.mode_coach_pct} coach / ${m.mode_mentor_pct} mentor / ${m.mode_direct_pct} direct`).join("\n") +
+    "\nTarget: 80 coach / 15 mentor / 5 direct."
+  );
 }
 
 // The coach's context documents: their own rows plus company-wide (null coach).
@@ -141,7 +243,9 @@ function personBlock(p: ProfileContext): string {
   return [
     `Name: ${p.memberName}`,
     p.positionTitle ? `Role: ${p.positionTitle}` : null,
-    `FAST goal (${p.fastGoalStatus}): ${p.fastGoal ?? "not set yet"}`,
+    p.retentionRoot
+      ? `Loose engagement root (embeddedness read): ${p.retentionRoot}${p.retentionRoot === "watching" ? " (no confident read yet)" : ""}`
+      : null,
     p.okrsMarkdown ? `\n<okrs>\n${clip(p.okrsMarkdown, MAX_DOC_CHARS)}\n</okrs>` : null,
     p.privateProfileMarkdown
       ? `\n<coaching-reads>\n${clip(p.privateProfileMarkdown, MAX_DOC_CHARS)}\n</coaching-reads>`
@@ -181,9 +285,12 @@ async function textCompletion(system: string, user: string, maxTokens: number): 
 const PREP_SYSTEM = `You prepare a leader for a biweekly 1-1 coaching conversation with one of their people. You write the prep the leader skims in two minutes before walking into the room.
 
 Produce Markdown with exactly these ## sections, in order:
-## Focus areas — 2-3 topics to prioritize, one-sentence rationale each, based on open commitments, goal/OKR progress, and recent context.
-## Coaching questions — 3-5 open-ended questions tailored to this person right now. They must reflect the coaching profile and sound like the coach, not a template.
-## Context reminders — bullets: status of previous commitments, personal context to handle with care, upcoming milestones, relevant company context.
+## Recommended mode — the coach/mentor/direct split to aim for in this meeting (target 80/15/5), one sentence on why, grounded in the coach's recent mode history and this person's OCEAN wiring.
+## Focus areas — 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked.
+## Coaching questions — 3-5 open-ended GROW questions tailored to this person right now, led by the goal question. They must reflect the coaching profile and the OCEAN read and sound like the coach, not a template.
+## Context reminders — bullets: status of previous commitments, standing priorities to touch, personal context to handle with care, upcoming milestones, relevant company context.
+## Retention check — one specific thing to listen for, tied to the person's current loose engagement root. If the root is "watching", the check is about forming a first confident read.
+## One question to avoid — the single question or move most likely to backfire with this person's wiring, and what to do instead.
 ## Open commitments — carry forward each open commitment with whatever status is known.
 
 ${VOICE_RULES}`;
@@ -208,15 +315,19 @@ export async function generatePrep(meetingId: string): Promise<Ok | Err> {
 
     const profile = await loadProfileContext(m.coaching_profile_id);
     if (!profile) return { ok: false, error: "Profile not found." };
-    const [docs, summaries, commitments] = await Promise.all([
+    const [docs, summaries, commitments, goals, priorities, oceanBlock, modeHistory] = await Promise.all([
       loadCoachDocs(profile.coachId),
       loadRecentSummaries(m.coaching_profile_id, 2),
       loadOpenCommitments(m.coaching_profile_id),
+      loadGoalsBlock(m.coaching_profile_id),
+      loadPrioritiesBlock(m.coaching_profile_id),
+      loadOceanBlock(m.coaching_profile_id),
+      loadModeHistoryBlock(m.coaching_profile_id),
     ]);
 
     const prep = await textCompletion(
       PREP_SYSTEM,
-      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# Last meetings\n${summaries}\n\n# Open commitments\n${commitments}\n\n# The upcoming 1-1\nScheduled for ${m.held_on} (today is ${saigonToday()}). Write the prep.`,
+      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# OCEAN read\n${oceanBlock}\n\n# FAST goals\n${goals}\n\n# Standing priorities\n${priorities}\n\n# The coach's recent mode splits\n${modeHistory}\n\n# Last meetings\n${summaries}\n\n# Open commitments\n${commitments}\n\n# The upcoming 1-1\nScheduled for ${m.held_on} (today is ${saigonToday()}). Write the prep.`,
       4000,
     );
 
@@ -244,12 +355,24 @@ export async function generatePrep(meetingId: string): Promise<Ok | Err> {
 const SUMMARY_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["summary_markdown", "shared_summary_markdown", "commitments"],
+  required: ["summary_markdown", "shared_summary_markdown", "commitments", "mode_split_estimate"],
   properties: {
     summary_markdown: {
       type: "string",
       description:
-        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance — decisions, concerns, energy and tone); 'Commitments' (each commitment, its owner, timeline, and any OKR connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care — this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, goals/OKRs, and company context).",
+        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance — decisions, concerns, energy and tone); 'Goal progress' (what the transcript shows about each FAST goal: moved, stalled, or blocked, with the evidence); 'Commitments' (each commitment, its owner, timeline, and any OKR connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care — this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, goals/OKRs, and company context).",
+    },
+    mode_split_estimate: {
+      type: "object",
+      additionalProperties: false,
+      required: ["coach", "mentor", "direct"],
+      description:
+        "Estimate of how the leader's talk time split across the three modes, as integer percentages summing to 100. coach = asking questions and drawing the person out; mentor = teaching from experience; direct = giving instructions or answers. Judge from who talks, who proposes, and who decides in the transcript.",
+      properties: {
+        coach: { type: "integer", minimum: 0, maximum: 100 },
+        mentor: { type: "integer", minimum: 0, maximum: 100 },
+        direct: { type: "integer", minimum: 0, maximum: 100 },
+      },
     },
     shared_summary_markdown: {
       type: "string",
@@ -316,9 +439,10 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
 
     const profile = await loadProfileContext(m.coaching_profile_id);
     if (!profile) return { ok: false, error: "Profile not found." };
-    const [docs, commitments] = await Promise.all([
+    const [docs, commitments, goals] = await Promise.all([
       loadCoachDocs(profile.coachId),
       loadOpenCommitments(m.coaching_profile_id),
+      loadGoalsBlock(m.coaching_profile_id),
     ]);
 
     const response = await anthropic.messages.create({
@@ -329,7 +453,7 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
       messages: [
         {
           role: "user",
-          content: `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# Open commitments going into this meeting\n${commitments}\n\n# The prep for this meeting\n${m.prep_markdown ? clip(m.prep_markdown, MAX_DOC_CHARS) : "(none)"}\n\n# Transcript of the 1-1 on ${m.held_on}\n${clip(m.transcript, MAX_TRANSCRIPT_CHARS)}\n\nWrite the private summary, the shared recap, and extract every commitment.`,
+          content: `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals\n${goals}\n\n# Open commitments going into this meeting\n${commitments}\n\n# The prep for this meeting\n${m.prep_markdown ? clip(m.prep_markdown, MAX_DOC_CHARS) : "(none)"}\n\n# Transcript of the 1-1 on ${m.held_on}\n${clip(m.transcript, MAX_TRANSCRIPT_CHARS)}\n\nWrite the private summary, the shared recap, the mode split estimate, and extract every commitment.`,
         },
       ],
     });
@@ -340,9 +464,27 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
       summary_markdown: string;
       shared_summary_markdown: string;
       commitments: Array<{ title: string; owner: "coach" | "member"; due_on?: string }>;
+      mode_split_estimate?: { coach: number; mentor: number; direct: number };
     };
     if (!parsed.summary_markdown?.trim() || !parsed.shared_summary_markdown?.trim())
       return fail("Model output was missing a summary tier.");
+
+    // The AI's mode estimate lands only where the coach hasn't logged one —
+    // a coach-entered split is never overwritten.
+    const est = parsed.mode_split_estimate;
+    const modePatch: Record<string, number> = {};
+    if (est && est.coach + est.mentor + est.direct === 100) {
+      const { data: current } = await companyOs
+        .from("coaching_one_on_ones")
+        .select("mode_coach_pct")
+        .eq("id", meetingId)
+        .maybeSingle();
+      if ((current as { mode_coach_pct: number | null } | null)?.mode_coach_pct == null) {
+        modePatch.mode_coach_pct = est.coach;
+        modePatch.mode_mentor_pct = est.mentor;
+        modePatch.mode_direct_pct = est.direct;
+      }
+    }
 
     // The shared recap stays a DRAFT (shared_published_at untouched) — the
     // coach reviews and publishes explicitly.
@@ -355,6 +497,7 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
         ai_model: MODEL,
         ai_error: null,
         updated_at: new Date().toISOString(),
+        ...modePatch,
       })
       .eq("id", meetingId);
     if (upErr) return fail(upErr.message);
@@ -398,6 +541,7 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
 const CHECKIN_SYSTEM = `You write a short mid-cycle check-in message from a coach to their team member, halfway between biweekly 1-1s.
 
 The message must:
+- Open with one line connected to their FAST goal — FAST means Frequent, so the goal is touched every time.
 - Reference each open commitment by name and ask for a brief status update on each.
 - Feel like a nudge from a coach who pays attention — not a project manager chasing tickets.
 - Be brief: a few warm sentences plus the commitment list. Write in second person, to the member.
@@ -419,10 +563,13 @@ export async function generateCheckinMessage(
   ].join("\n");
   if (!profile) return { markdown: fallback, ai: false };
   try {
-    const docs = await loadCoachDocs(profile.coachId);
+    const [docs, goals] = await Promise.all([
+      loadCoachDocs(profile.coachId),
+      loadGoalsBlock(profileId),
+    ]);
     const markdown = await textCompletion(
       CHECKIN_SYSTEM,
-      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# Their open commitments\n${commitments}\n\nWrite the check-in message.`,
+      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# Their FAST goals\n${goals}\n\n# Their open commitments\n${commitments}\n\nWrite the check-in message.`,
       1500,
     );
     return { markdown, ai: true };
@@ -438,10 +585,12 @@ const TREND_SYSTEM = `You write a monthly coaching trend report about one team m
 
 Produce Markdown with exactly these ## sections, in order:
 ## Growth trajectory — growing, plateauing, or struggling, with specific evidence.
+## Goal progress — each FAST goal against its ladder target: moving, stalled, or blocked, with the numbers where the goal is metric-linked.
 ## Recurring themes — topics and patterns that keep coming up.
 ## Commitment follow-through — completed vs in progress vs dropped, and the pattern in what gets done.
+## Mode trajectory — the coach's C/M/D splits this month vs the 80/15/5 target and vs prior months: moving the right way or not, and what to change.
 ## Coaching opportunities — specific things to coach next cycle (never generic "develop leadership skills"; name the observed behavior and the move).
-## Flags — burnout signals, disengagement, recurring blockers, escalating personal situations. Omit the section if there are none.
+## Flags — burnout signals, disengagement, recurring blockers, escalating personal situations, retention-root shifts. Omit the section if there are none.
 ## Quarter comparison — better, worse, or flat vs the prior period, if prior data exists.
 
 ${VOICE_RULES}`;
@@ -475,11 +624,13 @@ export async function generateTrendReport(profileId: string, period: string): Pr
     const inMonth = (monthMeetings ?? []) as Array<{ held_on: string; summary_markdown: string }>;
     if (inMonth.length === 0) return { ok: false, error: `No summarized 1-1s in ${period}.` };
 
-    const [docs, commitments, priorTrend, checkins] = await Promise.all([
+    const [docs, commitments, priorTrend, checkins, goals, modeHistory] = await Promise.all([
       loadCoachDocs(profile.coachId),
       loadAllCommitmentsBlock(profileId),
       loadPriorTrend(profileId, period),
       loadCheckinsBlock(profileId, monthStart),
+      loadGoalsBlock(profileId),
+      loadModeHistoryBlock(profileId),
     ]);
 
     const meetingsBlock = inMonth
@@ -488,7 +639,7 @@ export async function generateTrendReport(profileId: string, period: string): Pr
 
     const report = await textCompletion(
       TREND_SYSTEM,
-      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# This month's 1-1 summaries (${period})\n${meetingsBlock}\n\n# The commitment ledger\n${commitments}\n\n# Check-ins this month\n${checkins}\n\n# Prior trend report\n${priorTrend}\n\nWrite the ${period} trend report.`,
+      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals with ladders\n${goals}\n\n# Mode split history\n${modeHistory}\n\n# This month's 1-1 summaries (${period})\n${meetingsBlock}\n\n# The commitment ledger\n${commitments}\n\n# Check-ins this month\n${checkins}\n\n# Prior trend report\n${priorTrend}\n\nWrite the ${period} trend report.`,
       8000,
     );
 
