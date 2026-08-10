@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getBacklogForActor } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
@@ -7,7 +8,7 @@ import { BacklogPortalView } from "./BacklogPortalView";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "AI Program",
+  title: "Roadmap",
 };
 
 export default async function PortalBacklogPage() {
@@ -21,8 +22,8 @@ export default async function PortalBacklogPage() {
   return (
     <>
       <PageHead
-        eyebrow="Your roadmap"
-        title="AI Program"
+        eyebrow={<Link href="/portal/projects">← Programs</Link>}
+        title="Roadmap"
         sub="Every opportunity from your workflow audits, grouped and prioritised. Set your own priority on any item, and propose new ones for Edge8 to pick up."
       />
       <BacklogPortalView items={items} companyId={companyId} />

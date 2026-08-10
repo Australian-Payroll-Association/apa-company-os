@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { listProgramsForActor, type PortalAiProgram } from "@/lib/portal/ai-programs";
+import { hasBacklog } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
@@ -8,12 +9,36 @@ import { formatDate, humanize } from "@/lib/admin/format";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "AI Programs",
+  title: "Programs",
   description: "Plan and manage your AI programs with Edge8.",
 };
 
 function methodLabel(method: string): string {
   return method === "chat" ? "Guided plan" : "Documents";
+}
+
+// The roadmap is the whole prioritised program of work; individual programs are
+// the pieces you plan and submit. A prominent link to it sits at the top of this
+// page when Edge8 has published a roadmap for the client.
+function RoadmapCard() {
+  return (
+    <Link
+      href="/portal/backlog"
+      className="admin-card admin-section-card"
+      style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit", marginBottom: 16 }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h2 className="admin-card-title" style={{ marginBottom: 4 }}>Roadmap</h2>
+        <p className="admin-page-sub" style={{ margin: 0 }}>
+          Your full prioritised program of work — every opportunity, grouped and ranked. Set your
+          own priorities and propose new items.
+        </p>
+      </div>
+      <span className="admin-btn admin-btn--primary" style={{ flex: "none", pointerEvents: "none" }}>
+        Open roadmap →
+      </span>
+    </Link>
+  );
 }
 
 // Flattened plan view for the "Program Plans" row, newest first.
@@ -25,16 +50,20 @@ function allPlans(programs: PortalAiProgram[]) {
 
 export default async function AiProgramsPage() {
   const actor = await requirePortalMember();
-  const programs = await listProgramsForActor(actor);
+  const [programs, roadmap] = await Promise.all([
+    listProgramsForActor(actor),
+    hasBacklog(actor),
+  ]);
 
   if (programs.length === 0) {
     return (
       <div style={{ maxWidth: 880 }}>
         <PageHead
           eyebrow="Client Portal"
-          title="AI Programs"
+          title="Programs"
           sub="This is where you plan and manage AI programs with Edge8. Start one two ways: upload your own documents, or build a plan with our guided assistant."
         />
+        {roadmap && <RoadmapCard />}
         <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ gridAutoRows: "1fr" }}>
           <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
             <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Create a plan</h2>
@@ -69,7 +98,7 @@ export default async function AiProgramsPage() {
     <div style={{ maxWidth: 880 }}>
       <PageHead
         eyebrow="Client Portal"
-        title="AI Programs"
+        title="Programs"
         sub={`${programs.length} ${programs.length === 1 ? "program" : "programs"}.`}
         action={
           <Link href="/portal/projects/add" className="admin-btn admin-btn--primary">
@@ -77,6 +106,8 @@ export default async function AiProgramsPage() {
           </Link>
         }
       />
+
+      {roadmap && <RoadmapCard />}
 
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Your programs</h2>

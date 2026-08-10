@@ -20,7 +20,7 @@ export function CompanyPicker({
     if (companyId) params.set("company", companyId);
     if (archived) params.set("archived", "1");
     const qs = params.toString();
-    router.push(`/admin/operations/client-backlog${qs ? `?${qs}` : ""}`);
+    router.push(`/admin/edges/client-roadmaps${qs ? `?${qs}` : ""}`);
   }
 
   return (

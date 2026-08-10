@@ -17,7 +17,6 @@ export type PortalEntitlements = {
   invoices: boolean;
   events: boolean;
   referrals: boolean;
-  backlog: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -28,13 +27,11 @@ const NAV: NavItem[] = [
   // Requests has no entitlement key on purpose: being a portal member IS the
   // entitlement to ask for work; all data inside is company-scoped anyway.
   { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
-  // AI Program backlog: visible once Edge8 has seeded this client's backlog.
-  { label: "AI Program", href: "/portal/backlog", ico: "◔", built: true, entitlementKey: "backlog" },
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
   // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
   // token/staff-based gating is refined later with the Human Token Tracker.
-  { label: "AI Programs", href: "/portal/projects", ico: "⇉", built: true },
+  { label: "Programs", href: "/portal/projects", ico: "⇉", built: true },
   { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
   { label: "My Events", href: "/portal/events", ico: "▦", built: true, entitlementKey: "events" },
   { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },

@@ -15,7 +15,7 @@ import {
 } from "@/lib/client-backlog";
 
 const TABLE = "client_backlog_items";
-const BASE = "/admin/operations/client-backlog";
+const BASE = "/admin/edges/client-roadmaps";
 
 function refresh() {
   revalidatePath(BASE);

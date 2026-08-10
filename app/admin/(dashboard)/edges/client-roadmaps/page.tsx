@@ -10,8 +10,8 @@ import { BacklogAdminEditor } from "./BacklogAdminEditor";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Client Backlog",
-  description: "Per-client AI Program backlog — items, priorities and client proposals.",
+  title: "Client Roadmaps",
+  description: "Per-client AI Program roadmap — items, priorities and client proposals.",
 };
 
 const CLIENT_STAGES = ["customer", "evangelist"];
@@ -48,7 +48,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
     return (
       <>
         <PageHead
-          eyebrow={<Link href="/admin/operations/client-backlog">← All clients</Link>}
+          eyebrow={<Link href="/admin/edges/client-roadmaps">← All clients</Link>}
           title={selected.name}
           sub={`${items.length} item${items.length === 1 ? "" : "s"}${proposedCount ? ` · ${proposedCount} client proposal${proposedCount === 1 ? "" : "s"} to review` : ""}`}
           action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
@@ -88,9 +88,9 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
   return (
     <>
       <PageHead
-        eyebrow="Operations"
-        title="Client Backlog"
-        sub="Each client's AI Program backlog — what they see in their portal. Open one to edit items, set priorities, and review their proposals."
+        eyebrow="Edges"
+        title="Client Roadmaps"
+        sub="Each client's AI Program roadmap — what they see in their portal. Open one to edit items, set priorities, and review their proposals."
       />
 
       <div className="admin-card" style={{ padding: 0, overflow: "hidden" }}>
@@ -108,7 +108,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
               return (
                 <tr key={c.id}>
                   <td>
-                    <Link href={`/admin/operations/client-backlog?company=${c.id}`} className="admin-cell-strong">
+                    <Link href={`/admin/edges/client-roadmaps?company=${c.id}`} className="admin-cell-strong">
                       {c.name}
                     </Link>
                   </td>

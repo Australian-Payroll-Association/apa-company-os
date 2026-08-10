@@ -37,6 +37,7 @@ const NAV: NavSection[] = [
           { label: "Sync", href: "/admin/edges/sync", ico: "☰", enabled: true },
           { label: "Issues", href: "/admin/edges/issues", ico: "◉", enabled: true },
           { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
+          { label: "Client Roadmaps", href: "/admin/edges/client-roadmaps", ico: "◔", enabled: true },
         ],
       },
     ],
@@ -124,7 +125,6 @@ const NAV: NavSection[] = [
       {
         subheading: "Workplace",
         items: [
-          { label: "Client Backlog", href: "/admin/operations/client-backlog", ico: "◔", enabled: true },
           { label: "Equipment", href: "/admin/operations/equipment", ico: "▤", enabled: true },
           { label: "Vendors", href: "/admin/operations/vendors", ico: "▥", enabled: true },
           { label: "Gallery", href: "/admin/operations/gallery", ico: "▦", enabled: true },
