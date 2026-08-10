@@ -8,10 +8,12 @@ import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
 import { portalRead, assertInScope } from "@/lib/portal/data";
 import {
+  BACKLOG_GROUPS,
   BACKLOG_SELECT,
   isBacklogPriority,
   type BacklogItem,
   type BacklogGroupKey,
+  type BacklogPriority,
 } from "@/lib/client-backlog";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -22,6 +24,62 @@ export async function hasBacklog(actor: PortalActor): Promise<boolean> {
     .is("archived_at", null)
     .limit(1);
   return (data ?? []).length > 0;
+}
+
+export type RoadmapPreviewItem = {
+  id: string;
+  ref: string | null;
+  title: string;
+  priority: BacklogPriority;
+  groupKey: BacklogGroupKey;
+};
+
+const PRIORITY_RANK: Record<BacklogPriority, number> = { now: 0, next: 1, later: 2, park: 3 };
+const GROUP_RANK: Record<string, number> = Object.fromEntries(BACKLOG_GROUPS.map((g, i) => [g, i]));
+
+// The next few items on the roadmap for the home page: highest effective
+// priority first (client choice wins over Edge8's), parked items excluded.
+// Returns the top `limit` plus the total active count for "view all".
+export async function getRoadmapPreviewForActor(
+  actor: PortalActor,
+  limit = 3,
+): Promise<{ items: RoadmapPreviewItem[]; total: number }> {
+  if (actor.companyScope.length === 0) return { items: [], total: 0 };
+  const { data } = await portalRead(
+    actor,
+    "client_backlog_items",
+    "id, ref, title, group_key, edge8_priority, client_priority, sort_order",
+  ).is("archived_at", null);
+  const rows = (data ?? []) as unknown as Array<{
+    id: string;
+    ref: string | null;
+    title: string;
+    group_key: BacklogGroupKey;
+    edge8_priority: BacklogPriority;
+    client_priority: BacklogPriority | null;
+    sort_order: number;
+  }>;
+
+  const ranked = rows
+    .map((r) => ({ ...r, priority: r.client_priority ?? r.edge8_priority }))
+    .filter((r) => r.priority !== "park")
+    .sort(
+      (a, b) =>
+        PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
+        (GROUP_RANK[a.group_key] ?? 99) - (GROUP_RANK[b.group_key] ?? 99) ||
+        a.sort_order - b.sort_order,
+    );
+
+  return {
+    total: rows.length,
+    items: ranked.slice(0, limit).map((r) => ({
+      id: r.id,
+      ref: r.ref,
+      title: r.title,
+      priority: r.priority,
+      groupKey: r.group_key,
+    })),
+  };
 }
 
 // The client-facing overview shown at the top of the roadmap. Company-scoped;

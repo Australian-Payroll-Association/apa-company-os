@@ -7,11 +7,20 @@ import { listWorkRequestsForActor } from "@/lib/portal/work-requests";
 import { getMyEvents } from "@/lib/portal/events";
 import { getTokenBalance } from "@/lib/portal/tokens";
 import { hasAffiliateCode } from "@/lib/portal/referrals";
+import { getRoadmapPreviewForActor } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { Badge } from "@/components/admin/Badge";
+import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { PRIORITY_LABEL, type BacklogPriority } from "@/lib/client-backlog";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { formatHours } from "@/lib/admin/contractors";
+
+const PRIORITY_TONE: Record<BacklogPriority, BadgeTone> = {
+  now: "info",
+  next: "ok",
+  later: "neutral",
+  park: "warn",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +52,7 @@ function eventRange(startsAt: string | null, endsAt: string | null): string {
 export default async function PortalHome() {
   const actor = await requirePortalMember();
 
-  const [team, timeOff, invoices, requests, events, tokens, hasReferrals] = await Promise.all([
+  const [team, timeOff, invoices, requests, events, tokens, hasReferrals, roadmap] = await Promise.all([
     getAssignedTeam(actor),
     getAssignedTimeOff(actor),
     getInvoicesForActor(actor),
@@ -51,6 +60,7 @@ export default async function PortalHome() {
     getMyEvents(actor),
     getTokenBalance(actor),
     hasAffiliateCode(actor),
+    getRoadmapPreviewForActor(actor, 3),
   ]);
 
   const firstName = actor.displayName.split(/\s+/)[0] || actor.displayName;
@@ -220,6 +230,50 @@ export default async function PortalHome() {
           />
         )}
       </div>
+
+      {roadmap.total > 0 && (
+        <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
+            <h2 className="admin-card-title" style={{ margin: 0 }}>
+              Roadmap
+              <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12.5, marginLeft: 8 }}>
+                next up
+              </span>
+            </h2>
+            <Link href="/portal/roadmap" className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+              View all {roadmap.total} →
+            </Link>
+          </div>
+          <div className="admin-list">
+            {roadmap.items.map((it) => (
+              <Link
+                key={it.id}
+                href="/portal/roadmap"
+                className="admin-list-row"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="admin-list-main">
+                  <div className="admin-list-title">
+                    {it.ref ? `${it.ref} · ` : ""}
+                    {it.title}
+                  </div>
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone={PRIORITY_TONE[it.priority]}>{PRIORITY_LABEL[it.priority]}</Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasStaff && (
         <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
