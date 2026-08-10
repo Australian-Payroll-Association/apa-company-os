@@ -589,6 +589,35 @@ const STYLES = `
   .bstore-doc .btn:hover { opacity: 0.9; }
   .bstore-doc .btn.ghost { background: #fff; color: var(--accent); }
   .bstore-doc footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .bstore-doc .dm-flow { display: flex; gap: 12px; align-items: stretch; margin: 14px 0 10px; }
+  .bstore-doc .dm-col { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .bstore-doc .dm-col-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); text-align: center; margin-bottom: 2px;
+  }
+  .bstore-doc .dm-box {
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px;
+    font-size: 13px; font-weight: 600; background: #fff; text-align: center;
+  }
+  .bstore-doc .dm-box small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .bstore-doc .dm-core {
+    border: 2px solid var(--accent); border-radius: 14px; padding: 12px;
+    background: var(--accent-soft); display: flex; flex-direction: column; gap: 8px;
+    justify-content: center;
+  }
+  .bstore-doc .dm-core-title { text-align: center; font-weight: 700; font-size: 14px; color: var(--accent); }
+  .bstore-doc .dm-core .dm-box { border-color: rgba(40,123,232,0.35); }
+  .bstore-doc .dm-arrow {
+    flex: none; align-self: center; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; color: var(--muted); font-size: 11px; font-weight: 600; text-align: center;
+    width: 84px;
+  }
+  .bstore-doc .dm-arrow .ar { color: var(--accent); font-size: 20px; line-height: 1; }
+  .bstore-doc .dm-arrow .ar.back { color: #b06508; }
+  @media (max-width: 720px) {
+    .bstore-doc .dm-flow { flex-direction: column; }
+    .bstore-doc .dm-arrow { width: auto; transform: rotate(90deg); margin: 2px 0; }
+  }
 `;
 
 export default function BstoreBacklogPage() {
@@ -801,6 +830,57 @@ export default function BstoreBacklogPage() {
             expert time). The Foundation fee covers the database, the first syncs and 2 to 4
             builds chosen from this backlog; beyond that, work draws on prepaid token packs with a
             written estimate approved before each build.
+          </p>
+        </section>
+
+        <section className="bl-section">
+          <h2>The central database at the core</h2>
+          <p className="group-intro" style={{ margin: "8px 0 0" }}>
+            Data sync is required for everything on this page. The centralized database is the
+            core: sources feed it one way, everything you get out of it reads from it. The schema
+            starts from Edge8&apos;s Company OS template (about 80 tables covering CRM, HR,
+            commerce, content and reporting), trimmed and fitted to a retailer.
+          </p>
+          <div className="dm-flow">
+            <div className="dm-col">
+              <div className="dm-col-label">Your systems</div>
+              <div className="dm-box">MYOB Acumatica<small>ERP: sales, stock, POs, payroll</small></div>
+              <div className="dm-box">Wageloch<small>hours &amp; rosters</small></div>
+              <div className="dm-box">Shopify<small>online orders</small></div>
+              <div className="dm-box">REDO<small>returns</small></div>
+              <div className="dm-box">Klaviyo + ad platforms<small>marketing metrics</small></div>
+            </div>
+            <div className="dm-arrow">
+              <span className="ar">&rarr;</span>
+              Step 1<br />one-way sync, masked in transit
+            </div>
+            <div className="dm-col">
+              <div className="dm-core">
+                <div className="dm-core-title">Bstore central database (your Supabase)</div>
+                <div className="dm-box">People &amp; org<small>employees, stores, roles</small></div>
+                <div className="dm-box">Products &amp; stock<small>styles, SOH by store, POs</small></div>
+                <div className="dm-box">Sales &amp; orders<small>POS + online, fulfilment</small></div>
+                <div className="dm-box">Customers &amp; returns<small>orders, returns, tickets</small></div>
+                <div className="dm-box">Labour &amp; marketing<small>hours, cost, campaign metrics</small></div>
+              </div>
+            </div>
+            <div className="dm-arrow">
+              <span className="ar">&rarr;</span>
+              reads
+              <span className="ar back">&#8617;</span>
+              Step 2<br />approved write-backs
+            </div>
+            <div className="dm-col">
+              <div className="dm-col-label">What you get</div>
+              <div className="dm-box">Reports on demand<small>R1&ndash;R8</small></div>
+              <div className="dm-box">Q&amp;A assistants<small>ask the database directly</small></div>
+              <div className="dm-box">Automations<small>A1&ndash;A10, human-approved</small></div>
+              <div className="dm-box">Bstore portal<small>role-based views (N1)</small></div>
+            </div>
+          </div>
+          <p style={{ fontSize: 13, color: "#797c82", marginBottom: 0 }}>
+            One direction in Step 1: nothing writes back to your systems until a Step 2 automation
+            is chosen, researched and approved. Bstore owns the database and every credential.
           </p>
         </section>
 
