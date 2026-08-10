@@ -108,7 +108,7 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
           {it.build_desc && <div><span className="k">What we&apos;d build: </span>{it.build_desc}</div>}
           <div className="cbp-chips">
             {(it.needs ?? []).map((n) => <span key={n} className="cbp-chip">{n}</span>)}
-            {tok && <span className="cbp-chip tok">est. {tok} tokens</span>}
+            {tok && <span className="cbp-chip tok">est. {tok} Human Tokens</span>}
             {it.source === "client" && (
               <span className="cbp-chip proposed">{it.status === "proposed" ? "your proposal — awaiting Edge8" : "your idea"}</span>
             )}
@@ -133,8 +133,8 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
         <strong>Step 1</strong> gets your data into one central database (read-only, masked). That
         unlocks every report here. <strong>Step 2</strong> picks a short list of workflows to
         automate, which we choose together. Set your priority on any item, and use <em>Propose an
-        item</em> to add your own — it comes to us to review. Token estimates are pre-research
-        ranges (1 token = 1 hour of Edge8 time).
+        item</em> to add your own — it comes to us to review. Human Token estimates are
+        pre-research ranges (1 Human Token = 1 hour of Edge8 expert time).
       </p>
 
       <div className="cbp-counts">

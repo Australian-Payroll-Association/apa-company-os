@@ -26,7 +26,7 @@ export default async function AddAiProgramPage() {
             writing a problem statement and FAST goal, and assembling a 5Ds AI Program Brief you can save and download.
           </p>
           <div style={{ marginTop: "auto", paddingTop: 16 }}>
-            <Link href="/portal/projects/add/plan" className="admin-btn admin-btn--primary">
+            <Link href="/portal/programs/add/plan" className="admin-btn admin-btn--primary">
               Build a plan
             </Link>
           </div>
@@ -38,14 +38,14 @@ export default async function AddAiProgramPage() {
             Everything stays private to your company.
           </p>
           <div style={{ marginTop: "auto", paddingTop: 16 }}>
-            <Link href="/portal/projects/add/upload" className="admin-btn">
+            <Link href="/portal/programs/add/upload" className="admin-btn">
               Upload documents
             </Link>
           </div>
         </div>
       </div>
       <div style={{ marginTop: 18 }}>
-        <Link href="/portal/projects" className="admin-btn admin-btn--sm">← Back to AI Programs</Link>
+        <Link href="/portal/programs" className="admin-btn admin-btn--sm">← Back to Programs</Link>
       </div>
     </div>
   );

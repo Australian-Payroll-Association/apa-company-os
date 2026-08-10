@@ -159,7 +159,7 @@ export function BacklogAdminEditor({
           {it.build_desc && <div><span className="k">Build: </span>{it.build_desc}</div>}
           <div className="cbe-chips">
             {(it.needs ?? []).map((n) => <span key={n} className="cbe-chip">{n}</span>)}
-            {tok && <span className="cbe-chip tok">est. {tok} tokens</span>}
+            {tok && <span className="cbe-chip tok">est. {tok} Human Tokens</span>}
             {it.source === "client" && <span className="cbe-chip client">client proposed</span>}
             {it.status !== "accepted" && it.source === "edge8" && <span className="cbe-chip">{it.status}</span>}
             {it.client_priority && (
@@ -196,11 +196,11 @@ export function BacklogAdminEditor({
               <input value={d.needsCsv ?? ""} onChange={(e) => setD({ needsCsv: e.target.value })} />
             </div>
             <div>
-              <label>Token low</label>
+              <label>Human Tokens (low)</label>
               <input type="number" value={d.token_low ?? ""} onChange={(e) => setD({ token_low: e.target.value === "" ? null : Number(e.target.value) })} />
             </div>
             <div>
-              <label>Token high</label>
+              <label>Human Tokens (high)</label>
               <input type="number" value={d.token_high ?? ""} onChange={(e) => setD({ token_high: e.target.value === "" ? null : Number(e.target.value) })} />
             </div>
             <div className="full">

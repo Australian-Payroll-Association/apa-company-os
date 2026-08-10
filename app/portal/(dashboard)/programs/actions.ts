@@ -16,8 +16,8 @@ import {
 // client-supplied ids).
 
 function refresh(programId?: string) {
-  revalidatePath("/portal/projects");
-  if (programId) revalidatePath(`/portal/projects/${programId}`);
+  revalidatePath("/portal/programs");
+  if (programId) revalidatePath(`/portal/programs/${programId}`);
 }
 
 export async function createUploadProgramAction(input: {

@@ -75,7 +75,7 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
         )}
       </div>
 
-      <Link href="/portal/projects" className="admin-btn admin-btn--sm">← Back to AI Programs</Link>
+      <Link href="/portal/programs" className="admin-btn admin-btn--sm">← Back to Programs</Link>
     </div>
   );
 }

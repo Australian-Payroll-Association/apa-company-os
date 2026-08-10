@@ -176,7 +176,7 @@ export function PlanChat({ companies }: { companies: CompanyOption[] }) {
       setSaving(false);
       return;
     }
-    router.push(`/portal/projects/${r.programId}`);
+    router.push(`/portal/programs/${r.programId}`);
   }
 
   return (

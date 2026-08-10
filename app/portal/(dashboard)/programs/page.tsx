@@ -23,7 +23,7 @@ function methodLabel(method: string): string {
 function RoadmapCard() {
   return (
     <Link
-      href="/portal/backlog"
+      href="/portal/roadmap"
       className="admin-card admin-section-card"
       style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit", marginBottom: 16 }}
     >
@@ -71,7 +71,7 @@ export default async function AiProgramsPage() {
               A guided assistant walks you through mapping opportunities, picking one, and building a 5Ds AI Program Brief you can save and share.
             </p>
             <div style={{ marginTop: "auto", paddingTop: 16 }}>
-              <Link href="/portal/projects/add/plan" className="admin-btn admin-btn--primary">
+              <Link href="/portal/programs/add/plan" className="admin-btn admin-btn--primary">
                 Build a plan
               </Link>
             </div>
@@ -82,7 +82,7 @@ export default async function AiProgramsPage() {
               Already have a brief, plan, or supporting docs? Name the program and upload your files.
             </p>
             <div style={{ marginTop: "auto", paddingTop: 16 }}>
-              <Link href="/portal/projects/add/upload" className="admin-btn">
+              <Link href="/portal/programs/add/upload" className="admin-btn">
                 Upload documents
               </Link>
             </div>
@@ -101,7 +101,7 @@ export default async function AiProgramsPage() {
         title="Programs"
         sub={`${programs.length} ${programs.length === 1 ? "program" : "programs"}.`}
         action={
-          <Link href="/portal/projects/add" className="admin-btn admin-btn--primary">
+          <Link href="/portal/programs/add" className="admin-btn admin-btn--primary">
             Add AI Program Plan
           </Link>
         }
@@ -115,7 +115,7 @@ export default async function AiProgramsPage() {
           {programs.map((p) => (
             <Link
               key={p.id}
-              href={`/portal/projects/${p.id}`}
+              href={`/portal/programs/${p.id}`}
               className="admin-list-row"
               style={{ textDecoration: "none", color: "inherit" }}
             >
@@ -142,7 +142,7 @@ export default async function AiProgramsPage() {
             {plans.map((pl) => (
               <Link
                 key={pl.id}
-                href={`/portal/projects/${pl.programId}`}
+                href={`/portal/programs/${pl.programId}`}
                 className="admin-list-row"
                 style={{ textDecoration: "none", color: "inherit" }}
               >

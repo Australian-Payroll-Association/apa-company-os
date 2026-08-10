@@ -26,7 +26,7 @@ export default async function UploadProgramPage() {
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <UploadProgramForm companies={companies} />
       </div>
-      <Link href="/portal/projects/add" className="admin-btn admin-btn--sm">← Back</Link>
+      <Link href="/portal/programs/add" className="admin-btn admin-btn--sm">← Back</Link>
     </div>
   );
 }

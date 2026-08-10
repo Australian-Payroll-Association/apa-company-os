@@ -9,7 +9,7 @@ import {
 } from "@/lib/portal/backlog";
 import type { BacklogGroupKey } from "@/lib/client-backlog";
 
-const BASE = "/portal/backlog";
+const BASE = "/portal/roadmap";
 
 export async function setMyPriority(itemId: string, priority: string | null) {
   const actor = await requirePortalMember();

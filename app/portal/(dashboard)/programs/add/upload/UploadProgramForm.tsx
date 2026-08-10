@@ -117,7 +117,7 @@ export function UploadProgramForm({ companies }: { companies: CompanyOption[] })
 
     setBusy(false);
     // Head to the program: any failed files can be retried there later.
-    router.push(`/portal/projects/${programId}`);
+    router.push(`/portal/programs/${programId}`);
   }
 
   return (

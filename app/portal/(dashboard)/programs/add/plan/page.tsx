@@ -25,7 +25,7 @@ export default async function PlanBuilderPage() {
       />
       <PlanChat companies={companies} />
       <div style={{ marginTop: 14 }}>
-        <Link href="/portal/projects/add" className="admin-btn admin-btn--sm">← Back</Link>
+        <Link href="/portal/programs/add" className="admin-btn admin-btn--sm">← Back</Link>
       </div>
     </div>
   );
