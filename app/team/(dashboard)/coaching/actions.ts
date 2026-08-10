@@ -1,0 +1,194 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireTeamMember } from "@/lib/team-auth";
+import {
+  assertCoachOwnsMeeting,
+  assertCoachOwnsProfile,
+  coachAddCommitment,
+  coachArchiveMeeting,
+  coachCreateOneOnOne,
+  coachPublishSharedRecap,
+  coachSaveSummaries,
+  coachSaveTranscript,
+  coachSetCadence,
+  coachSetFastGoal,
+  coachSetOkrs,
+  coachSetPrivateProfile,
+  coachUpdateCommitment,
+  type CommitmentOwner,
+  type CommitmentStatus,
+  type FastGoalStatus,
+} from "@/lib/coaching/data";
+import { generatePrep, generateTrendReport, summarizeMeeting } from "@/lib/coaching/ai";
+
+// Coach-side actions for /team/coaching. Same discipline as the onboarding
+// actions: requireTeamMember() plus ownership assertions in lib/coaching/data
+// — every helper re-derives coach ownership server-side, so a client-forged
+// profile/meeting/commitment id belonging to someone else's report is a no-op.
+// The AI calls (prep, summarize, trend) additionally assert ownership HERE
+// before invoking the generator, because the generators themselves are
+// authorization-free (the cron calls them too).
+
+type Result = { ok: true } | { ok: false; error: string };
+
+function refresh(profileId?: string) {
+  revalidatePath("/team/coaching");
+  if (profileId) revalidatePath(`/team/coaching/${profileId}`);
+}
+
+export async function setFastGoal(
+  profileId: string,
+  goal: string,
+  status: FastGoalStatus,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetFastGoal(actor, profileId, goal, status);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function setCadence(
+  profileId: string,
+  cadenceDays: number,
+  nextOneOnOneOn: string | null,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetCadence(actor, profileId, cadenceDays, nextOneOnOneOn);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function savePrivateProfile(profileId: string, markdown: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetPrivateProfile(actor, profileId, markdown);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function saveOkrs(profileId: string, markdown: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetOkrs(actor, profileId, markdown);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+// Book the next 1-1 (a scheduled row + the profile's next date).
+export async function scheduleOneOnOne(profileId: string, date: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachCreateOneOnOne(actor, profileId, date, "scheduled");
+  if (res.ok) refresh(profileId);
+  return res.ok ? { ok: true } : res;
+}
+
+// Log a 1-1 that already happened. With a transcript, the AI summary runs
+// inline (the coach lands on the drafted summaries when the page refreshes).
+export async function logOneOnOne(
+  profileId: string,
+  date: string,
+  transcript: string,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const created = await coachCreateOneOnOne(actor, profileId, date, "held");
+  if (!created.ok) return created;
+  const text = transcript.trim();
+  if (text) {
+    const saved = await coachSaveTranscript(actor, created.id, text);
+    if (!saved.ok) return saved;
+    await summarizeMeeting(created.id); // fail-soft: ai_error lands on the row
+  }
+  refresh(profileId);
+  return { ok: true };
+}
+
+export async function saveTranscript(meetingId: string, transcript: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSaveTranscript(actor, meetingId, transcript);
+  if (!res.ok) return res;
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  await summarizeMeeting(meetingId);
+  refresh(owned?.profileId);
+  return { ok: true };
+}
+
+export async function generatePrepAction(meetingId: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  if (!owned) return { ok: false, error: "Not found." };
+  const res = await generatePrep(meetingId);
+  refresh(owned.profileId);
+  return res;
+}
+
+export async function summarizeAction(meetingId: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  if (!owned) return { ok: false, error: "Not found." };
+  const res = await summarizeMeeting(meetingId);
+  refresh(owned.profileId);
+  return res;
+}
+
+export async function saveSummaries(
+  meetingId: string,
+  summaryMarkdown: string,
+  sharedSummaryMarkdown: string,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSaveSummaries(actor, meetingId, summaryMarkdown, sharedSummaryMarkdown);
+  if (res.ok) {
+    const owned = await assertCoachOwnsMeeting(actor, meetingId);
+    refresh(owned?.profileId);
+  }
+  return res;
+}
+
+export async function publishRecap(meetingId: string, publish: boolean): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachPublishSharedRecap(actor, meetingId, publish);
+  if (res.ok) {
+    const owned = await assertCoachOwnsMeeting(actor, meetingId);
+    refresh(owned?.profileId);
+  }
+  return res;
+}
+
+export async function archiveMeeting(meetingId: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  const res = await coachArchiveMeeting(actor, meetingId);
+  if (res.ok) refresh(owned?.profileId);
+  return res;
+}
+
+export async function addCommitment(
+  profileId: string,
+  title: string,
+  owner: CommitmentOwner,
+  dueOn: string | null,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachAddCommitment(actor, profileId, { title, owner, dueOn });
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function updateCommitmentStatus(
+  commitmentId: string,
+  status: CommitmentStatus,
+  note: string,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachUpdateCommitment(actor, commitmentId, { status, statusNote: note });
+  if (res.ok) refresh();
+  return res;
+}
+
+// Run (or re-run) the trend report for a month, e.g. "2026-07".
+export async function runTrendReport(profileId: string, period: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  const res = await generateTrendReport(profileId, period);
+  refresh(profileId);
+  return res;
+}
