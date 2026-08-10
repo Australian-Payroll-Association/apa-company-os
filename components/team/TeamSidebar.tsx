@@ -64,16 +64,28 @@ export function TeamSidebar({
   name,
   role,
   isAdmin,
+  hasClients = false,
 }: {
   name: string;
   role: TeamRole;
   isAdmin: boolean;
+  // Team members assigned to a client see a "Clients" link right below Home.
+  hasClients?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  const groups = role === "manager" ? [...ME, MY_TEAM] : ME;
+  const meGroups: NavGroup[] = hasClients
+    ? [
+        {
+          label: null,
+          items: [ME[0].items[0], { label: "Clients", href: "/team/clients", ico: "◔", enabled: true }],
+        },
+        ME[1],
+      ]
+    : ME;
+  const groups = role === "manager" ? [...meGroups, MY_TEAM] : meGroups;
   const userInitials = initials(name);
 
   useEffect(() => {

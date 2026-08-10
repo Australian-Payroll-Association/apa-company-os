@@ -1,7 +1,17 @@
 import { requireTeamMember } from "@/lib/team-auth";
 import { getOwnProfile, teamRead } from "@/lib/team/data";
+import { getClientRoadmapSnippets } from "@/lib/team/clients";
 import { PageHead } from "@/components/admin/PageHead";
+import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { PRIORITY_LABEL, type BacklogPriority } from "@/lib/client-backlog";
 import { formatDate, humanize } from "@/lib/admin/format";
+
+const PRIORITY_TONE: Record<BacklogPriority, BadgeTone> = {
+  now: "info",
+  next: "ok",
+  later: "neutral",
+  park: "warn",
+};
 import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
 import { TeamCollage } from "@/components/team/TeamCollage";
 import { StartHerePanel, bucketForRole } from "@/components/team/StartHerePanel";
@@ -97,6 +107,7 @@ function HubCard({ item }: { item: HubItem }) {
 export default async function TeamHome() {
   const actor = await requireTeamMember();
   const profile = await getOwnProfile(actor);
+  const clientSnippets = await getClientRoadmapSnippets(actor, 3);
   // Exactly four photos and four faces, drawn fresh on every load — a fixed
   // composition with rotating content, not a wall of everything.
   const [collagePhotos, collagePeople] = await Promise.all([
@@ -185,12 +196,45 @@ export default async function TeamHome() {
         </div>
       </div>
 
-      {isFirstUse && coreTeaching && (
-        <StartHerePanel
-          coreTeaching={coreTeaching}
-          recentPosts={recentPosts}
-          roleBucket={roleBucket}
-        />
+      {clientSnippets.length > 0 && (
+        <>
+          <h2 className="team-hub-heading">Your clients</h2>
+          {clientSnippets.map((s) => (
+            <div key={s.company.id} className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+                <h3 className="admin-card-title" style={{ margin: 0 }}>
+                  {s.company.name}
+                  <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12.5, marginLeft: 8 }}>
+                    roadmap · next up
+                  </span>
+                </h3>
+                <Link href={`/team/clients/${s.company.id}`} className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+                  View all {s.total} →
+                </Link>
+              </div>
+              <div className="admin-list">
+                {s.items.map((it) => (
+                  <Link
+                    key={it.id}
+                    href={`/team/clients/${s.company.id}`}
+                    className="admin-list-row"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    <div className="admin-list-main">
+                      <div className="admin-list-title">
+                        {it.ref ? `${it.ref} · ` : ""}
+                        {it.title}
+                      </div>
+                    </div>
+                    <div className="admin-list-aside">
+                      <Badge tone={PRIORITY_TONE[it.priority]}>{PRIORITY_LABEL[it.priority]}</Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
       )}
 
       <h2 className="team-hub-heading">Your workspace</h2>
@@ -199,6 +243,14 @@ export default async function TeamHome() {
           <HubCard key={item.title} item={item} />
         ))}
       </div>
+
+      {isFirstUse && coreTeaching && (
+        <StartHerePanel
+          coreTeaching={coreTeaching}
+          recentPosts={recentPosts}
+          roleBucket={roleBucket}
+        />
+      )}
 
       {/* Coming features state the ambition without competing with the live
           tools: one quiet row of pills instead of a second card grid. */}
