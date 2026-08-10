@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getMemberProfile } from "@/lib/team/data";
-import { getTeamMemberActiveGoals } from "@/lib/coaching/data";
+import { getCoachingProfileIdForMember, getTeamMemberActiveGoals } from "@/lib/coaching/data";
+import { TeamGoalsEditor } from "@/components/coaching/TeamGoalsEditor";
 import { formatDate, humanize } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
@@ -28,11 +29,16 @@ function initials(name: string): string {
 // directory and org chart, and limited to the same safe fields plus the
 // get-to-know-you extras (hometown, education, hobbies). No contact details.
 export default async function MemberProfilePage({ params }: { params: { id: string } }) {
-  await requireTeamMember();
+  const actor = await requireTeamMember();
   const profile = await getMemberProfile(params.id);
   if (!profile) notFound();
-  // FAST goals are Transparent by design — every team member sees everyone's.
-  const goals = await getTeamMemberActiveGoals(params.id);
+  // FAST goals are Transparent by design: every team member sees everyone's
+  // and can comment. Managers can add, edit, or delete goals right here.
+  const [goals, coachingProfileId] = await Promise.all([
+    getTeamMemberActiveGoals(params.id),
+    getCoachingProfileIdForMember(params.id),
+  ]);
+  const canManageGoals = actor.role === "manager" && Boolean(coachingProfileId);
 
   const meta = [
     profile.fullName && profile.fullName !== profile.name ? profile.fullName : null,
@@ -89,20 +95,14 @@ export default async function MemberProfilePage({ params }: { params: { id: stri
           </dl>
         </section>
 
-        {goals.length > 0 && (
+        {(goals.length > 0 || canManageGoals) && coachingProfileId && (
           <section className="admin-card admin-section-card">
             <h2 className="admin-card-title">FAST goals</h2>
             <p className="admin-hint" style={{ marginTop: 0 }}>
-              Transparent by design: everyone&apos;s quarterly goals are visible to the whole team.
+              Transparent by design: everyone&apos;s quarterly goals are visible to the whole team,
+              and anyone can comment.
             </p>
-            <ul className="mycoach-priorities">
-              {goals.map((g, i) => (
-                <li key={i}>
-                  <strong>{g.title}</strong>
-                  {g.ladderLabel && <span className="admin-cell-muted"> · ladders to {g.ladderLabel}</span>}
-                </li>
-              ))}
-            </ul>
+            <TeamGoalsEditor profileId={coachingProfileId} goals={goals} canManage={canManageGoals} />
           </section>
         )}
 

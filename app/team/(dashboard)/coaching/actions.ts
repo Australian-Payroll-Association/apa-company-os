@@ -9,6 +9,7 @@ import {
   coachAddGoal,
   coachAddPriority,
   coachAddToRoster,
+  addGoalComment,
   coachArchiveMeeting,
   coachCreateOneOnOne,
   coachPublishOcean,
@@ -21,6 +22,7 @@ import {
   coachSetModeSplit,
   coachSetPrivateProfile,
   coachSetRetentionRoot,
+  coachDeleteGoal,
   coachUpdateCommitment,
   coachUpdateGoal,
   coachUpdatePriority,
@@ -48,6 +50,21 @@ type Result = { ok: true } | { ok: false; error: string };
 function refresh(profileId?: string) {
   revalidatePath("/team/coaching");
   if (profileId) revalidatePath(`/team/coaching/${profileId}`);
+  // Goals also render on directory profiles (team-wide transparency).
+  revalidatePath("/team/directory");
+}
+
+// Comments on FAST goals: open to every team member (goals are transparent,
+// so is the discussion). Revalidates all three surfaces that render them.
+export async function commentOnGoal(goalId: string, body: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await addGoalComment(actor, goalId, body);
+  if (res.ok) {
+    revalidatePath("/team/coaching");
+    revalidatePath("/team/my-coaching");
+    revalidatePath("/team/directory");
+  }
+  return res;
 }
 
 export async function addToRoster(teamMemberId: string, firstOneOnOne: string | null): Promise<Result> {
@@ -77,6 +94,13 @@ export async function updateGoal(
 ): Promise<Result> {
   const actor = await requireTeamMember();
   const res = await coachUpdateGoal(actor, goalId, patch);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function deleteGoal(profileId: string, goalId: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachDeleteGoal(actor, goalId);
   if (res.ok) refresh(profileId);
   return res;
 }
