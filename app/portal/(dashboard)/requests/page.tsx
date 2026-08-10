@@ -71,7 +71,7 @@ export default async function PortalRequestsPage() {
               : "Pre-buy packs of skilled hours: 40 tokens per pack, $2,000."}
           </p>
           <div style={{ marginTop: "auto", paddingTop: 16 }}>
-            <Link href="/portal/tokens" className="admin-btn">
+            <Link href="/portal/tokens" className="admin-btn admin-btn--primary">
               {tokens.balanceTokens > 0 ? "View & buy tokens" : "Buy token packs"}
             </Link>
           </div>
