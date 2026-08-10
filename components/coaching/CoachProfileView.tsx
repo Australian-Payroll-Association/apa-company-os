@@ -32,7 +32,6 @@ import {
   publishRecap,
   runTrendReport,
   saveOcean,
-  saveOkrs,
   savePrivateProfile,
   saveSummaries,
   saveTranscript,
@@ -54,7 +53,6 @@ import {
 export type RenderedHtml = {
   meetings: Record<string, { prep: string | null; summary: string | null; shared: string | null }>;
   trends: Record<string, string | null>;
-  okrs: string | null;
   privateProfile: string | null;
 };
 
@@ -110,7 +108,7 @@ export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail;
         onSave={(md) => run("Private notes", () => savePrivateProfile(detail.profileId, md))}
         busy={busy}
       />
-      <CompanyOkrsCard detail={detail} html={html} run={run} busy={busy} />
+      <CompanyOkrsCard detail={detail} />
     </div>
   );
 }
@@ -1158,24 +1156,12 @@ function TrendsCard({
   );
 }
 
-// ---- company OKRs + personal notes ------------------------------------------
+// ---- company OKRs -----------------------------------------------------------
 // The company tree comes straight from Eight Edges (objectives and their KRs),
-// so this card always matches /admin/edges/goals. The personal okrs_markdown
-// stays editable underneath for person-specific framing.
+// so this card always matches /admin/edges/goals. There is no personal OKR
+// layer: the person-level system is FAST goals, full stop.
 
-function CompanyOkrsCard({
-  detail,
-  html,
-  run,
-  busy,
-}: {
-  detail: CoachProfileDetail;
-  html: RenderedHtml;
-  run: (label: string, fn: () => Promise<ActionResult>) => void;
-  busy: boolean;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [md, setMd] = useState(detail.okrsMarkdown ?? "");
+function CompanyOkrsCard({ detail }: { detail: CoachProfileDetail }) {
   const ladderedIds = new Set(
     [...detail.goals, ...detail.priorities]
       .map((g) => (g.ladder?.kind === "key_result" || g.ladder?.kind === "objective" ? g.ladder.id : null))
@@ -1207,34 +1193,6 @@ function CompanyOkrsCard({
           </div>
         ))}
       </div>
-
-      <div className="coach-block-head" style={{ marginTop: 12 }}>
-        <span className="admin-eyebrow">Personal OKR notes (member-visible)</span>
-        <button className="admin-btn admin-btn--sm" onClick={() => setEditing((v) => !v)}>
-          {editing ? "Cancel" : "Edit"}
-        </button>
-      </div>
-      {editing ? (
-        <div className="admin-form">
-          <textarea className="admin-input" rows={8} value={md} onChange={(e) => setMd(e.target.value)} />
-          <div className="admin-form-actions">
-            <button
-              className="admin-btn admin-btn--primary"
-              disabled={busy}
-              onClick={() => {
-                run("OKRs", () => saveOkrs(detail.profileId, md));
-                setEditing(false);
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      ) : html.okrs ? (
-        <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.okrs }} />
-      ) : (
-        <div className="admin-cell-muted">No personal notes.</div>
-      )}
     </section>
   );
 }

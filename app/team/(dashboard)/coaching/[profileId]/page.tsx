@@ -20,7 +20,7 @@ export default async function CoachProfilePage({ params }: { params: { profileId
 
   // Render every markdown field server-side once; the client edits raw
   // markdown and displays these.
-  const html: RenderedHtml = { meetings: {}, trends: {}, okrs: null, privateProfile: null };
+  const html: RenderedHtml = { meetings: {}, trends: {}, privateProfile: null };
   await Promise.all([
     ...detail.meetings.map(async (m) => {
       html.meetings[m.id] = {
@@ -32,9 +32,6 @@ export default async function CoachProfilePage({ params }: { params: { profileId
     ...detail.trends.map(async (t) => {
       html.trends[t.id] = t.reportMarkdown ? await coachingMarkdownToHtml(t.reportMarkdown) : null;
     }),
-    (async () => {
-      html.okrs = detail.okrsMarkdown ? await coachingMarkdownToHtml(detail.okrsMarkdown) : null;
-    })(),
     (async () => {
       html.privateProfile = detail.privateProfileMarkdown
         ? await coachingMarkdownToHtml(detail.privateProfileMarkdown)
