@@ -14,7 +14,7 @@ export default async function AddAiProgramPage() {
   return (
     <div style={{ maxWidth: 880 }}>
       <PageHead
-        eyebrow="AI Programs"
+        eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
         title="Add AI Program Plan"
         sub="Two ways to start a program. Build a plan from scratch with our guided assistant, or upload documents you already have."
       />
@@ -43,9 +43,6 @@ export default async function AddAiProgramPage() {
             </Link>
           </div>
         </div>
-      </div>
-      <div style={{ marginTop: 18 }}>
-        <Link href="/portal/programs" className="admin-btn admin-btn--sm">← Back to Programs</Link>
       </div>
     </div>
   );

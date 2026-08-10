@@ -19,14 +19,11 @@ export default async function PlanBuilderPage() {
   return (
     <div style={{ maxWidth: 760 }}>
       <PageHead
-        eyebrow="AI Programs"
+        eyebrow={<Link href="/portal/programs/add">← Add a program</Link>}
         title="Build a plan"
         sub="Work through four short activities with the assistant. At the end you'll get a 5Ds AI Program Brief you can save and download."
       />
       <PlanChat companies={companies} />
-      <div style={{ marginTop: 14 }}>
-        <Link href="/portal/programs/add" className="admin-btn admin-btn--sm">← Back</Link>
-      </div>
     </div>
   );
 }

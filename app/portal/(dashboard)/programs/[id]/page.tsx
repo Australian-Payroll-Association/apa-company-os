@@ -34,7 +34,7 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
   return (
     <div style={{ maxWidth: 880 }}>
       <PageHead
-        eyebrow="AI Programs"
+        eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
         title={program.name}
         sub={`Created ${formatDate(program.createdAt)}`}
         action={<Badge tone={statusTone(program.status)}>{humanize(program.status)}</Badge>}
@@ -75,7 +75,6 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
         )}
       </div>
 
-      <Link href="/portal/programs" className="admin-btn admin-btn--sm">← Back to Programs</Link>
     </div>
   );
 }

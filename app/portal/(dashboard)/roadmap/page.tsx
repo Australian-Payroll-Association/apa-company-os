@@ -26,7 +26,7 @@ export default async function PortalBacklogPage() {
   return (
     <>
       <PageHead
-        eyebrow={<Link href="/portal/programs">← Programs</Link>}
+        eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
         title="Roadmap"
         sub="Every opportunity from your workflow audits, grouped and prioritised. Set your own priority on any item, and propose new ones for Edge8 to pick up."
       />

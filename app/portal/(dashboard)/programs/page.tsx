@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
-import { listProgramsForActor, type PortalAiProgram } from "@/lib/portal/ai-programs";
+import { listProgramsForActor } from "@/lib/portal/ai-programs";
 import { hasBacklog } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -12,10 +12,6 @@ export const metadata = {
   title: "Programs",
   description: "Plan and manage your AI programs with Edge8.",
 };
-
-function methodLabel(method: string): string {
-  return method === "chat" ? "Guided plan" : "Documents";
-}
 
 // The roadmap is the whole prioritised program of work; individual programs are
 // the pieces you plan and submit. A prominent link to it sits at the top of this
@@ -39,13 +35,6 @@ function RoadmapCard() {
       </span>
     </Link>
   );
-}
-
-// Flattened plan view for the "Program Plans" row, newest first.
-function allPlans(programs: PortalAiProgram[]) {
-  return programs
-    .flatMap((p) => p.plans.map((pl) => ({ ...pl, programId: p.id, programName: p.name })))
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 export default async function AiProgramsPage() {
@@ -92,8 +81,6 @@ export default async function AiProgramsPage() {
     );
   }
 
-  const plans = allPlans(programs);
-
   return (
     <div style={{ maxWidth: 880 }}>
       <PageHead
@@ -123,7 +110,13 @@ export default async function AiProgramsPage() {
                 <div className="admin-list-title">{p.name}</div>
                 <div className="admin-list-sub">
                   {formatDate(p.createdAt)}
-                  {p.plans.length > 0 && ` · ${p.plans.length} ${p.plans.length === 1 ? "plan" : "plans"}`}
+                  {(() => {
+                    // A "plan" is the 5Ds brief built via the guided assistant. Upload
+                    // programs create a technical plan row we don't surface as a plan —
+                    // they're a documents container.
+                    const realPlans = p.plans.filter((pl) => pl.method === "chat").length;
+                    return realPlans > 0 ? ` · ${realPlans} ${realPlans === 1 ? "plan" : "plans"}` : "";
+                  })()}
                   {p.documents.length > 0 && ` · ${p.documents.length} ${p.documents.length === 1 ? "document" : "documents"}`}
                 </div>
               </div>
@@ -134,33 +127,6 @@ export default async function AiProgramsPage() {
           ))}
         </div>
       </div>
-
-      {plans.length > 0 && (
-        <div className="admin-card admin-section-card">
-          <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Program plans</h2>
-          <div className="admin-list">
-            {plans.map((pl) => (
-              <Link
-                key={pl.id}
-                href={`/portal/programs/${pl.programId}`}
-                className="admin-list-row"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div className="admin-list-main">
-                  <div className="admin-list-title">{pl.title}</div>
-                  <div className="admin-list-sub">
-                    {pl.programName} · {formatDate(pl.createdAt)}
-                  </div>
-                </div>
-                <div className="admin-list-aside">
-                  <Badge>{methodLabel(pl.method)}</Badge>
-                  {pl.method === "chat" && pl.hasBrief && <Badge tone="ok">Brief ready</Badge>}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

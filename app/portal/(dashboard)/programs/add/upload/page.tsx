@@ -19,14 +19,13 @@ export default async function UploadProgramPage() {
   return (
     <div style={{ maxWidth: 880 }}>
       <PageHead
-        eyebrow="AI Programs"
+        eyebrow={<Link href="/portal/programs/add">← Add a program</Link>}
         title="Upload documents"
         sub="Name your program and upload the documents you already have. Files stay private to your company."
       />
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <UploadProgramForm companies={companies} />
       </div>
-      <Link href="/portal/programs/add" className="admin-btn admin-btn--sm">← Back</Link>
     </div>
   );
 }
