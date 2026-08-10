@@ -45,13 +45,13 @@ export const allWorkflows: Workflow[] = [
     steps: 7,
   },
   {
-    slug: 'ai-resume-screen',
-    title: 'AI Resume Screen + Talent Rank',
+    slug: 'recruitment',
+    title: 'Recruitment: Open Req to Hire',
     category: 'Talent',
     excerpt:
-      'Every application is read and scored by AI, stack-ranked per role family, then rated by a human recruiter. Two gates, no resume unread.',
-    date: '2026-07-16',
-    steps: 6,
+      'A role goes from open req to signed hire in one system: a one-click pipeline, two intake doors, an AI read on every resume, human interviews, and a candidate pool that never forgets.',
+    date: '2026-08-10',
+    steps: 7,
   },
   {
     slug: 'new-member-onboarding',

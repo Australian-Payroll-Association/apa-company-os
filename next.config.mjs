@@ -21,6 +21,8 @@ const nextConfig = {
     return [
       // The talent Rank page was renamed to Candidate Pool.
       { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
+      // The AI Resume Screen workflow was folded into the end-to-end Recruitment workflow.
+      { source: '/workflows/ai-resume-screen', destination: '/workflows/recruitment', permanent: true },
       // The onboarding deck moved into the private workflows library, now under the E8 brand.
       { source: '/blueprints/team-onboarding', destination: '/workflows/private/e8/team-onboarding', permanent: true },
       // The private workflows library was split into E8 and AIO Labs brands; the
