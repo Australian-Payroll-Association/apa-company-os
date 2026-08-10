@@ -730,7 +730,7 @@ export default function BstoreBacklogPage() {
           }}
         >
           <h1 style={{ margin: "0 0 4px", fontSize: "20px", color: "#101014" }}>
-            Bstore - Automation Backlog
+            Bstore - AI Program
           </h1>
           <p style={{ margin: "0 0 18px", fontSize: "14px", color: "#797c82" }}>
             Enter the access code to view this document.
@@ -782,7 +782,7 @@ export default function BstoreBacklogPage() {
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="wrap">
         <header className="bl-head">
-          <h1>Bstore &middot; Automation Backlog</h1>
+          <h1>Bstore &middot; AI Program</h1>
           <div className="meta">
             Every opportunity from your Step 1 AI Framework audits, consolidated and grouped.
             <br />

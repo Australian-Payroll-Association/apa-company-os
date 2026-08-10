@@ -218,7 +218,7 @@ const CONTENT_HTML = `
     <h2><span class="num">&#9733;</span>Resources</h2>
     <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <div style="flex:1 1 260px;">
-        <strong>Automation Backlog &amp; Roadmap</strong><br>
+        <strong>AI Program &amp; Roadmap</strong><br>
         <span style="color:var(--muted); font-size:14px;">Every opportunity from your Step 1 audits, grouped and prioritised &mdash; adjust the priorities and send them back.</span>
       </div>
       <a href="/private/bstore/backlog" style="flex:none; background:var(--accent); color:#fff; font-weight:600; font-size:14px; padding:10px 18px; border-radius:40px;">Open the roadmap &rarr;</a>

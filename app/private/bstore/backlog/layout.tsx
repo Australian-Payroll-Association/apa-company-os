@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Bstore - Automation Backlog",
+  title: "Bstore - AI Program",
   robots: { index: false, follow: false },
 };
 
