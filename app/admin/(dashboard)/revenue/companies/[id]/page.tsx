@@ -148,7 +148,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
   ];
 
   return (
-    <>
+    <div style={{ maxWidth: 1200 }}>
       <PageHead
         eyebrow={<Link href="/admin/revenue/companies">← Companies</Link>}
         title={name}
@@ -231,7 +231,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      <div className="admin-360">
+      <div className="admin-360" style={{ gridTemplateColumns: "340px minmax(0, 1fr)" }}>
         <div>
           <div className="admin-card admin-section-card">
             <CompanyEditForm
@@ -263,6 +263,6 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
           <Tabs tabs={tabs} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
