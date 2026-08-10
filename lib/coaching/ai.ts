@@ -256,6 +256,7 @@ function personBlock(p: ProfileContext): string {
 }
 
 const VOICE_RULES = `Ground rules:
+- Never use em dashes anywhere in your output. Use commas, colons, periods, or parentheses instead.
 - Write in the coach's voice, guided by the communication style and coaching profile in the context documents. Warm, direct, growth-oriented — never corporate, never clinical.
 - They are COMMITMENTS, never "tasks" or "action items".
 - Never invent information. If notes are missing, work with what exists and say so.
@@ -555,7 +556,7 @@ export async function generateCheckinMessage(
   const profile = await loadProfileContext(profileId);
   const commitments = await loadOpenCommitments(profileId);
   const fallback = [
-    `Quick mid-cycle check-in — how are these coming along?`,
+    `Quick mid-cycle check-in: how are these coming along?`,
     ``,
     commitments,
     ``,

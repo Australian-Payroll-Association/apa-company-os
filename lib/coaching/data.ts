@@ -240,14 +240,14 @@ export type OceanDimensionKey = (typeof OCEAN_DIMENSIONS)[number];
 // metric-linked goal can show live progress. All three tables are small.
 export type EdgesOptions = {
   objectives: { id: string; label: string }[];
-  keyResults: { id: string; label: string }[];
+  keyResults: { id: string; label: string; objectiveId: string | null }[];
   metrics: { id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null }[];
 };
 
 export async function getEdgesLadderOptions(): Promise<EdgesOptions> {
   const [objs, krs, mets] = await Promise.all([
     companyOs.from("objectives").select("id, title, sort_order").order("sort_order"),
-    companyOs.from("key_results").select("id, title, sort_order").order("sort_order"),
+    companyOs.from("key_results").select("id, title, objective_id, sort_order").order("sort_order"),
     companyOs.from("metrics").select("id, name, target, direction").order("name"),
   ]);
   const metricRows = ((mets.data ?? []) as { id: string; name: string; target: number | null; direction: "up" | "down" }[]);
@@ -264,7 +264,11 @@ export async function getEdgesLadderOptions(): Promise<EdgesOptions> {
   }
   return {
     objectives: ((objs.data ?? []) as { id: string; title: string }[]).map((o) => ({ id: o.id, label: o.title })),
-    keyResults: ((krs.data ?? []) as { id: string; title: string }[]).map((k) => ({ id: k.id, label: k.title })),
+    keyResults: ((krs.data ?? []) as { id: string; title: string; objective_id: string | null }[]).map((k) => ({
+      id: k.id,
+      label: k.title,
+      objectiveId: k.objective_id,
+    })),
     metrics: metricRows.map((m) => ({
       id: m.id,
       label: m.name,

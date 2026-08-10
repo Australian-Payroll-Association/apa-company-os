@@ -2612,6 +2612,22 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .mycoach-goal .admin-badge { margin-left: 8px; }
 .mycoach-priorities { margin: 6px 0 0; padding-left: 18px; }
 .mycoach-priorities li { margin: 4px 0; }
+.coach-ocean-list { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 4px; }
+.coach-ocean-line { border-top: 1px solid var(--admin-line); padding: 7px 0; }
+.coach-ocean-line:first-child { border-top: 0; }
+.coach-ocean-line-head { display: flex; align-items: baseline; gap: 10px; }
+.coach-ocean-line-evidence { margin-top: 2px; font-size: 12.5px; }
+.coach-okr-tree { margin-top: 8px; }
+.coach-okr-objective { margin-bottom: 10px; }
+.coach-okr-objective ul { margin: 4px 0 0; padding-left: 20px; list-style: none; }
+.coach-okr-line { padding: 2px 0; }
+.coach-okr-line.is-laddered { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); border-radius: 4px; padding-left: 4px; }
+.coach-okr-line .admin-badge { margin-left: 8px; }
+.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.edges-fast-person { border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
+.edges-fast-name { font-weight: 600; margin-bottom: 6px; }
+.edges-fast-goal { margin: 6px 0; font-size: 13px; }
+.edges-fast-goal .admin-cell-muted { font-size: 12px; }
 
 .mycoach-recap { border-top: 1px solid var(--admin-line); padding: 12px 0; }
 .mycoach-goal {

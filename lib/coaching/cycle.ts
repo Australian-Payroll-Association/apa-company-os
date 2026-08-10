@@ -165,7 +165,7 @@ async function syncMinutesForProfile(
           email: coach?.email ?? null,
           subject: `1-1 recap drafted: ${p.memberName} (${m.held_on})`,
           html:
-            `<p>The transcript of your 1-1 with <strong>${p.memberName}</strong> on <strong>${m.held_on}</strong> came in from Lark Minutes, and the recap is drafted — review both tiers and publish the shared one when it reads right.</p>` +
+            `<p>The transcript of your 1-1 with <strong>${p.memberName}</strong> on <strong>${m.held_on}</strong> came in from Lark Minutes, and the recap is drafted. Review both tiers and publish the shared one when it reads right.</p>` +
             `<p><a href="${profileLink}">Review the recap</a></p>`,
           larkText: `1-1 recap drafted for ${p.memberName} (${m.held_on}). Review and publish: ${profileLink}`,
           logKind: "recap_drafted",
@@ -283,7 +283,7 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
             email: coach?.email ?? null,
             subject: `1-1 prep ready: ${p.memberName} on ${next}`,
             html:
-              `<p>Your 1-1 with <strong>${p.memberName}</strong> is on <strong>${next}</strong>. The prep is ready — two minutes to skim it:</p>` +
+              `<p>Your 1-1 with <strong>${p.memberName}</strong> is on <strong>${next}</strong>. The prep is ready, two minutes to skim it:</p>` +
               `<p><a href="${profileLink}">Open ${p.memberName}'s coaching page</a></p>`,
             larkText: `1-1 prep ready: ${p.memberName} on ${next}. Two minutes to skim: ${profileLink}`,
             logKind: "prep_ready",
@@ -301,7 +301,7 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
           email: coach.email,
           subject: `1-1 overdue: ${p.memberName} (${since} days since the last one)`,
           html:
-            `<p>Your last 1-1 with <strong>${p.memberName}</strong> was <strong>${lastHeld}</strong> — ${since} days ago on a ${p.cadence_days}-day cadence, and nothing is scheduled.</p>` +
+            `<p>Your last 1-1 with <strong>${p.memberName}</strong> was <strong>${lastHeld}</strong>, ${since} days ago on a ${p.cadence_days}-day cadence, and nothing is scheduled.</p>` +
             `<p><a href="${profileLink}">Schedule the next one</a>. This reminder repeats weekly.</p>`,
           larkText: `1-1 overdue: ${p.memberName}, ${since} days since the last one. Schedule the next: ${profileLink}`,
           logKind: "overdue_nudge",
@@ -381,7 +381,7 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
               email: coach?.email ?? null,
               subject: `Monthly coaching trends: ${p.memberName} (${period})`,
               html:
-                `<p>The ${period} trend report for <strong>${p.memberName}</strong> is ready — growth trajectory, recurring themes, follow-through, and flags.</p>` +
+                `<p>The ${period} trend report for <strong>${p.memberName}</strong> is ready: growth trajectory, recurring themes, follow-through, and flags.</p>` +
                 `<p><a href="${profileLink}">Read it on their coaching page</a></p>`,
               larkText: `Monthly coaching trends ready: ${p.memberName} (${period}). Read: ${profileLink}`,
               logKind: "trend_ready",

@@ -137,13 +137,41 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   // than its manager. Resolving the ids in a second pass keeps it correct.
   const authIds = rows.map((r) => one(r.people)?.auth_user_id).filter((x): x is string => !!x);
   const managerIds = [...new Set(rows.map((r) => r.manager_id).filter((x): x is string => !!x))];
+  const rowIds = rows.map((r) => r.id);
 
-  const [signedIn, managerRes] = await Promise.all([
+  const [signedIn, managerRes, coachingRes] = await Promise.all([
     getSignedInAuthUserIds(authIds),
     managerIds.length
       ? companyOs.from("team_members").select("id, people!person_id(full_name)").in("id", managerIds)
       : Promise.resolve({ data: null }),
+    rowIds.length
+      ? companyOs.from("coaching_profiles").select("id, team_member_id").in("team_member_id", rowIds)
+      : Promise.resolve({ data: null }),
   ]);
+
+  // Last held 1-1 per visible team member (coaching profile -> newest held row).
+  const profileByMember = new Map<string, string>();
+  for (const p of ((coachingRes.data as { id: string; team_member_id: string }[] | null) ?? [])) {
+    profileByMember.set(p.team_member_id, p.id);
+  }
+  const lastOneOnOne = new Map<string, string>(); // team_member_id -> held_on
+  if (profileByMember.size > 0) {
+    const { data: meetings } = await companyOs
+      .from("coaching_one_on_ones")
+      .select("coaching_profile_id, held_on")
+      .in("coaching_profile_id", [...profileByMember.values()])
+      .eq("status", "held")
+      .is("archived_at", null);
+    const latestByProfile = new Map<string, string>();
+    for (const m of ((meetings as { coaching_profile_id: string; held_on: string }[] | null) ?? [])) {
+      const cur = latestByProfile.get(m.coaching_profile_id);
+      if (!cur || m.held_on > cur) latestByProfile.set(m.coaching_profile_id, m.held_on);
+    }
+    for (const [memberId, profileId] of profileByMember) {
+      const held = latestByProfile.get(profileId);
+      if (held) lastOneOnOne.set(memberId, held);
+    }
+  }
 
   type ManagerRow = { id: string; people: { full_name: string | null } | { full_name: string | null }[] | null };
   const managerName = new Map<string, string>();
@@ -168,6 +196,14 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     { key: "work_location", header: "Location", sortable: true, cell: (r) => r.work_location || dash },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : dash) },
     { key: "start_date", header: "Started", sortable: true, cell: (r) => (r.start_date ? formatDate(r.start_date) : dash) },
+    {
+      key: "last_one_on_one",
+      header: "Last 1-1",
+      cell: (r) => {
+        const held = lastOneOnOne.get(r.id);
+        return held ? formatDate(held) : dash;
+      },
+    },
     {
       key: "portal",
       header: "Portal",

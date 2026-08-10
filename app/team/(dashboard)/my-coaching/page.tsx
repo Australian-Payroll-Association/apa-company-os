@@ -50,7 +50,7 @@ export default async function MyCoachingPage() {
           </div>
           {my.goals.length === 0 && (
             <div className="admin-empty">
-              No FAST goal set yet — that&apos;s the first thing to shape with {my.coachName} in your next 1-1.
+              No FAST goal set yet. That&apos;s the first thing to shape with {my.coachName} in your next 1-1.
             </div>
           )}
           {my.goals.map((g) => (
@@ -67,7 +67,7 @@ export default async function MyCoachingPage() {
                 <div className="admin-cell-muted">
                   Ladders to: {g.ladder.label}
                   {g.ladder.kind === "metric" && g.ladder.latestValue != null && g.ladder.target != null
-                    ? ` — latest ${g.ladder.latestValue} / target ${g.ladder.target}`
+                    ? `, latest ${g.ladder.latestValue} / target ${g.ladder.target}`
                     : ""}
                 </div>
               )}
@@ -77,13 +77,13 @@ export default async function MyCoachingPage() {
           {my.priorities.length > 0 && (
             <>
               <div className="coach-tier-label" style={{ marginTop: 16 }}>
-                Priorities — reviewed every 1-1
+                Priorities (reviewed every 1-1)
               </div>
               <ul className="mycoach-priorities">
                 {my.priorities.map((p) => (
                   <li key={p.id}>
                     <strong>{p.title}</strong>
-                    {p.detailMarkdown ? <span className="admin-cell-muted"> — {p.detailMarkdown}</span> : null}
+                    {p.detailMarkdown ? <span className="admin-cell-muted">: {p.detailMarkdown}</span> : null}
                     {p.ladder ? <span className="admin-cell-muted"> (ladders to {p.ladder.label})</span> : null}
                   </li>
                 ))}
@@ -106,34 +106,27 @@ export default async function MyCoachingPage() {
             <div className="admin-card-title">Your OCEAN profile</div>
             <div className="admin-hint">
               How {my.coachName} reads your working style, with the behavior behind each read. It&apos;s a
-              conversation starter for your 1-1s, not a verdict — bring anything you see differently.
+              conversation starter for your 1-1s, not a verdict, so bring anything you see differently.
             </div>
-            <table className="admin-table coach-ocean-table">
-              <thead>
-                <tr>
-                  <th>Trait</th>
-                  <th>Read</th>
-                  <th>What it&apos;s based on</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(
-                  [
-                    ["Openness", my.ocean.openness],
-                    ["Conscientiousness", my.ocean.conscientiousness],
-                    ["Extraversion", my.ocean.extraversion],
-                    ["Agreeableness", my.ocean.agreeableness],
-                    ["Neuroticism", my.ocean.neuroticism],
-                  ] as const
-                ).map(([label, dim]) => (
-                  <tr key={label}>
-                    <td>{label}</td>
-                    <td>{dim.rating ?? "—"}</td>
-                    <td className="admin-cell-muted">{dim.evidence ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="coach-ocean-list">
+              {(
+                [
+                  ["Openness", my.ocean.openness],
+                  ["Conscientiousness", my.ocean.conscientiousness],
+                  ["Extraversion", my.ocean.extraversion],
+                  ["Agreeableness", my.ocean.agreeableness],
+                  ["Neuroticism", my.ocean.neuroticism],
+                ] as const
+              ).map(([label, dim]) => (
+                <div key={label} className="coach-ocean-line">
+                  <div className="coach-ocean-line-head">
+                    <strong>{label}</strong>
+                    <span className="admin-badge admin-badge--info">{dim.rating ?? "TBD"}</span>
+                  </div>
+                  {dim.evidence && <div className="admin-cell-muted coach-ocean-line-evidence">{dim.evidence}</div>}
+                </div>
+              ))}
+            </div>
             {my.ocean.snapshotMarkdown && (
               <div className="coach-block">
                 <span className="admin-eyebrow">Snapshot</span>
@@ -152,7 +145,7 @@ export default async function MyCoachingPage() {
         <section className="admin-card coach-section">
           <div className="admin-card-title">Your commitments</div>
           <div className="admin-hint">
-            Update the status any time — it feeds your next 1-1 and answers the mid-cycle check-in.
+            Update the status any time. It feeds your next 1-1 and answers the mid-cycle check-in.
           </div>
           <MyCommitments commitments={my.commitments} />
         </section>
