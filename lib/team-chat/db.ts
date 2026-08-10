@@ -33,7 +33,7 @@ const BLOCKED_SCHEMA =
 // instead of a bare "permission denied", and as one more layer against a model
 // being steered toward payroll/PII. The grants remain the hard boundary.
 const BLOCKED_TABLE =
-  /\b(?:people_sensitive|compensation|performance_reviews|one_on_ones|goals|applications|candidates|candidate_profile|survey_responses|survey_answers|audit_log|coaching_profiles|coaching_one_on_ones|coaching_commitments|coaching_checkins|coaching_trends|coaching_context)\b/i;
+  /\b(?:people_sensitive|compensation|performance_reviews|one_on_ones|goals|applications|candidates|candidate_profile|survey_responses|survey_answers|audit_log|coaching_profiles|coaching_one_on_ones|coaching_commitments|coaching_checkins|coaching_trends|coaching_context|coaching_goals|coaching_priorities|coaching_ocean_profiles)\b/i;
 
 let client: ReturnType<typeof postgres> | null = null;
 
