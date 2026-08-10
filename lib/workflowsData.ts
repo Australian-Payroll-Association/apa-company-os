@@ -46,12 +46,12 @@ export const allWorkflows: Workflow[] = [
   },
   {
     slug: 'recruitment',
-    title: 'Recruitment: Open Req to Hire',
+    title: 'Recruitment: Three Loops, One Pool',
     category: 'Talent',
     excerpt:
-      'A role goes from open req to signed hire in one system: a one-click pipeline, two intake doors, an AI read on every resume, human interviews, and a candidate pool that never forgets.',
+      'Not a pipeline: demand, sourcing, and selection run as continuous loops around one candidate pool that never forgets. Backward moves are normal, and every exit is a pool entry.',
     date: '2026-08-10',
-    steps: 7,
+    steps: 14,
   },
   {
     slug: 'new-member-onboarding',
