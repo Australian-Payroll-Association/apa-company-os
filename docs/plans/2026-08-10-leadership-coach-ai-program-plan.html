@@ -74,7 +74,8 @@
     <strong>Owner:</strong> Dave Hajdu &nbsp;·&nbsp; <strong>Date:</strong> 2026-08-10 &nbsp;·&nbsp;
     <strong>Framework:</strong> the 5 Ds of AI program planning (A01: Define, Discover, Design, Determine, Deploy)<br>
     <strong>Status:</strong> design approved, build starting &nbsp;·&nbsp;
-    <strong>Replaces:</strong> v1 (Lark as system of record + local routines), fully retiring Lark for 1-1s
+    <strong>Replaces:</strong> v1 (Lark as system of record + local routines). Lark stays as the
+    messaging channel and transcript source; it retires as the system of record
   </div>
 </header>
 
@@ -127,8 +128,10 @@ invents facts about people; thin reads are marked low-confidence, and an unset g
     <td>Importing from the Lark accountability tables <span class="pill build">build</span></td></tr>
 <tr><td>Retention read (loose engagement root: fit / links / sacrifice)</td>
     <td>New field on <code>coaching_profiles</code></td><td><span class="pill build">build</span></td></tr>
-<tr><td>Transcripts source</td><td>Pasted into the portal at log time (Lark Minutes export until a recorder integration exists)</td>
-    <td>manual step</td></tr>
+<tr><td>Transcripts source</td><td>Lark Minutes, auto-detected: the cron polls for new Minutes and matches
+    them to scheduled 1-1s by date + participants, then pulls the transcript via the Lark API.
+    Fallback: paste a Minutes link or raw text on the Log 1-1 form</td>
+    <td><span class="pill build">build</span></td></tr>
 </table></div>
 
 <h2><span class="d">3D</span>Design the workflow</h2>
@@ -171,8 +174,9 @@ invents facts about people; thin reads are marked low-confidence, and an unset g
   for, retention check, one question to avoid</td><td>Days before the 1-1</td><td>AI (cron)</td></tr>
 <tr><td>02</td><td>The 1-1 (GROW, mode chosen deliberately: coach / mentor / direct, target 80/15/5)</td>
   <td>Anchor day</td><td><strong>Human — the only human step</strong></td></tr>
-<tr><td>03</td><td>Recap: paste transcript → private summary + shared recap + extracted commitments +
-  mode split estimate. I review and edit both tiers; the shared tier publishes only when I save it.</td>
+<tr><td>03</td><td>Recap: transcript auto-pulled from Lark Minutes → private summary + shared recap +
+  extracted commitments + mode split estimate. I review and edit both tiers; the shared tier
+  publishes only when I save it.</td>
   <td>Right after</td><td>AI + my review</td></tr>
 <tr><td>04</td><td>Mid-cycle check-in: warm nudge on each open commitment, emailed with a portal link</td>
   <td>Off-week</td><td>System</td></tr>
@@ -240,10 +244,41 @@ data never transits an assistant.</p>
   <li><strong>Interface:</strong> the Team portal. Coach at <code>/team/coaching</code>, member at
   <code>/team/my-coaching</code>, goals transparent on team profiles.</li>
   <li><strong>Scheduler:</strong> daily Vercel cron at 07:45 Saigon — prep nudges, overdue-1-1 flags,
-  mid-cycle check-ins, monthly trends. Email via Resend.</li>
+  mid-cycle check-ins, monthly trends, Minutes auto-detection. Every nudge goes out as a Lark DM
+  and a Resend email.</li>
   <li><strong>AI:</strong> Claude Opus for prep, recap, and trends (coaching nuance justifies the
   tier). Every call fail-soft; errors land on the row, never block the workflow.</li>
 </ul>
+
+<h3>Tools and integrations</h3>
+<div class="tablewrap"><table>
+<tr><th>Tool</th><th>Role in the system</th><th>Wiring</th></tr>
+<tr><td><strong>Lark — messaging</strong></td>
+    <td>All nudges go as Lark DMs: prep-ready to the coach, mid-cycle check-in to the member,
+    overdue-1-1 flags. Same message also sent by email so nothing is missed. Links land on the portal.</td>
+    <td>Lark bot (app credentials) called from the cron; <code>LARK_APP_ID</code> /
+    <code>LARK_APP_SECRET</code> in Vercel env</td></tr>
+<tr><td><strong>Lark — Minutes</strong></td>
+    <td>Transcript source. The cron auto-detects new Minutes, matches them to scheduled 1-1s by
+    date + participants, pulls the transcript, and drafts the recap for my review. Fallback: paste a
+    Minutes link or raw text on the Log 1-1 form.</td>
+    <td>Lark Minutes API via the same app credentials</td></tr>
+<tr><td><strong>Resend — email</strong></td>
+    <td>Email twin of every Lark nudge, via the existing transactional sender
+    (<code>logMeta.source: "coaching-cycle"</code>).</td>
+    <td>Already live in the app</td></tr>
+<tr><td><strong>Eight Edges</strong></td>
+    <td>The goal tree FAST goals ladder into. A coaching goal's "Ladders to O1-KR1" is a real FK to
+    <code>objectives</code> / <code>key_results</code> / <code>metrics</code>; metric-linked goals show
+    live weekly readings in the 1-1 view; and the FAST health chips on
+    <code>/admin/edges/goals</code> read <code>coaching_goals</code> directly, so O2-KR1
+    ("100% of the team has a FAST goal") is measured, not asserted. Personal KPIs are Edges
+    metrics owned by the person.</td>
+    <td>Shipped last week (PRs #486–#496); FKs + one chip query</td></tr>
+<tr><td><strong>Claude API</strong></td>
+    <td>Prep, recap, trends. Opus tier; fail-soft on every call.</td>
+    <td><code>ANTHROPIC_API_KEY</code> in Vercel (verify), optional <code>COACHING_CLAUDE_MODEL</code></td></tr>
+</table></div>
 
 <h3>Guardrails, always on</h3>
 <ul>
@@ -264,7 +299,8 @@ data never transits an assistant.</p>
 <tr><td>4</td><td>UI + AI updates; verify with <code>tsc</code> + <code>next build</code>; batch PR</td><td>Claude</td></tr>
 <tr><td>5</td><td>Review OCEAN rewrites + merge the PR <span class="pill you">Dave</span></td><td>Dave</td></tr>
 <tr><td>6</td><td>Kill the local scheduled routines (biweekly prep, recap sweep)</td><td>Dave + Claude</td></tr>
-<tr><td>7</td><td>Retire the Lark coaching space (archive, stop writes)</td><td>Dave</td></tr>
+<tr><td>7</td><td>Retire the Lark coaching wiki + Base as system of record (archive, stop writes).
+  Lark itself stays for DMs and Minutes</td><td>Dave</td></tr>
 </table></div>
 
 <footer>
