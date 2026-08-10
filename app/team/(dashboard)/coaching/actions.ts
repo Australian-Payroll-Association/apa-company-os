@@ -6,19 +6,32 @@ import {
   assertCoachOwnsMeeting,
   assertCoachOwnsProfile,
   coachAddCommitment,
+  coachAddGoal,
+  coachAddPriority,
   coachArchiveMeeting,
   coachCreateOneOnOne,
+  coachPublishOcean,
   coachPublishSharedRecap,
+  coachSaveOcean,
   coachSaveSummaries,
   coachSaveTranscript,
   coachSetCadence,
-  coachSetFastGoal,
+  coachSetMinutesLink,
+  coachSetModeSplit,
   coachSetOkrs,
   coachSetPrivateProfile,
+  coachSetRetentionRoot,
   coachUpdateCommitment,
+  coachUpdateGoal,
+  coachUpdatePriority,
   type CommitmentOwner,
   type CommitmentStatus,
-  type FastGoalStatus,
+  type GoalStatus,
+  type LadderInput,
+  type ModeSplit,
+  type OceanInput,
+  type PriorityStatus,
+  type RetentionRoot,
 } from "@/lib/coaching/data";
 import { generatePrep, generateTrendReport, summarizeMeeting } from "@/lib/coaching/ai";
 
@@ -37,14 +50,91 @@ function refresh(profileId?: string) {
   if (profileId) revalidatePath(`/team/coaching/${profileId}`);
 }
 
-export async function setFastGoal(
+export async function addGoal(
   profileId: string,
-  goal: string,
-  status: FastGoalStatus,
+  title: string,
+  status: GoalStatus,
+  quarterLabel: string | null,
+  ladder: LadderInput,
 ): Promise<Result> {
   const actor = await requireTeamMember();
-  const res = await coachSetFastGoal(actor, profileId, goal, status);
+  const res = await coachAddGoal(actor, profileId, { title, status, quarterLabel, ladder });
   if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function updateGoal(
+  profileId: string,
+  goalId: string,
+  patch: { title?: string; status?: GoalStatus; quarterLabel?: string | null; ladder?: LadderInput },
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachUpdateGoal(actor, goalId, patch);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function addPriority(
+  profileId: string,
+  title: string,
+  detail: string,
+  ladder: LadderInput,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachAddPriority(actor, profileId, { title, detail, ladder });
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function updatePriority(
+  profileId: string,
+  priorityId: string,
+  patch: { title?: string; detail?: string; status?: PriorityStatus; ladder?: LadderInput },
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachUpdatePriority(actor, priorityId, patch);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function saveOcean(profileId: string, input: OceanInput): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSaveOcean(actor, profileId, input);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function publishOcean(profileId: string, publish: boolean): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachPublishOcean(actor, profileId, publish);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function setRetentionRoot(profileId: string, root: RetentionRoot | null): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetRetentionRoot(actor, profileId, root);
+  if (res.ok) refresh(profileId);
+  return res;
+}
+
+export async function setModeSplit(meetingId: string, split: ModeSplit | null): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetModeSplit(actor, meetingId, split);
+  if (res.ok) {
+    const owned = await assertCoachOwnsMeeting(actor, meetingId);
+    refresh(owned?.profileId);
+  }
+  return res;
+}
+
+export async function setMinutesLink(meetingId: string, url: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachSetMinutesLink(actor, meetingId, url);
+  if (res.ok) {
+    const owned = await assertCoachOwnsMeeting(actor, meetingId);
+    refresh(owned?.profileId);
+  }
   return res;
 }
 

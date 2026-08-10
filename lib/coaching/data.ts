@@ -41,8 +41,25 @@ export function diffDays(fromISO: string, toISO: string): number {
 // ---- shared shapes ----------------------------------------------------------
 
 export type FastGoalStatus = "not_set" | "draft" | "set";
+export type GoalStatus = "draft" | "active" | "achieved" | "dropped";
+export type PriorityStatus = "active" | "retired";
+export type RetentionRoot = "belonging" | "links" | "sacrifice" | "watching";
 export type OneOnOneStatus = "scheduled" | "held" | "skipped";
 export type CommitmentOwner = "coach" | "member";
+
+export const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
+  draft: "Draft",
+  active: "Active",
+  achieved: "Achieved",
+  dropped: "Dropped",
+};
+
+export const RETENTION_ROOT_LABELS: Record<RetentionRoot, string> = {
+  belonging: "Belonging (fit)",
+  links: "Links",
+  sacrifice: "Sacrifice",
+  watching: "Watching",
+};
 export type CommitmentStatus =
   | "open"
   | "on_track"
@@ -148,8 +165,9 @@ export type RosterAttention =
 export type CoachRosterRow = {
   profileId: string;
   member: CoachingMember;
-  fastGoal: string | null;
-  fastGoalStatus: FastGoalStatus;
+  activeGoals: string[];
+  retentionRoot: RetentionRoot | null;
+  lastModeSplit: ModeSplit | null;
   cadenceDays: number;
   nextOneOnOneOn: string | null;
   lastHeldOn: string | null;
@@ -160,8 +178,174 @@ export type CoachRosterRow = {
 
 const PROFILE_SELECT =
   "id, team_member_id, coach_id, fast_goal, fast_goal_status, okrs_markdown, " +
-  "private_profile_markdown, cadence_days, next_one_on_one_on, active, " +
+  "private_profile_markdown, cadence_days, next_one_on_one_on, retention_root, active, " +
   MEMBER_EMBED;
+
+// ---- FAST goals, priorities, OCEAN (v2) -------------------------------------
+// Goals are TEAM-WIDE readable (the T in FAST); priorities are coach+member;
+// the OCEAN profile is coach-authored and member-visible only once published.
+
+export type EdgesLadder =
+  | { kind: "objective"; id: string; label: string }
+  | { kind: "key_result"; id: string; label: string }
+  | { kind: "metric"; id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null };
+
+export type CoachingGoal = {
+  id: string;
+  title: string;
+  descriptionMarkdown: string | null;
+  status: GoalStatus;
+  quarterLabel: string | null;
+  ladder: EdgesLadder | null;
+  sortOrder: number;
+};
+
+export type CoachingPriority = {
+  id: string;
+  title: string;
+  detailMarkdown: string | null;
+  status: PriorityStatus;
+  ladder: EdgesLadder | null;
+  sortOrder: number;
+};
+
+export type OceanDimension = { rating: string | null; evidence: string | null };
+
+export type OceanProfile = {
+  id: string;
+  openness: OceanDimension;
+  conscientiousness: OceanDimension;
+  extraversion: OceanDimension;
+  agreeableness: OceanDimension;
+  neuroticism: OceanDimension;
+  snapshotMarkdown: string | null;
+  guidanceMarkdown: string | null;
+  published: boolean;
+  updatedAt: string;
+};
+
+export const OCEAN_DIMENSIONS = [
+  "openness",
+  "conscientiousness",
+  "extraversion",
+  "agreeableness",
+  "neuroticism",
+] as const;
+export type OceanDimensionKey = (typeof OCEAN_DIMENSIONS)[number];
+
+// Everything the ladder picker offers, plus latest weekly readings so a
+// metric-linked goal can show live progress. All three tables are small.
+export type EdgesOptions = {
+  objectives: { id: string; label: string }[];
+  keyResults: { id: string; label: string }[];
+  metrics: { id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null }[];
+};
+
+export async function getEdgesLadderOptions(): Promise<EdgesOptions> {
+  const [objs, krs, mets] = await Promise.all([
+    companyOs.from("objectives").select("id, title, sort_order").order("sort_order"),
+    companyOs.from("key_results").select("id, title, sort_order").order("sort_order"),
+    companyOs.from("metrics").select("id, name, target, direction").order("name"),
+  ]);
+  const metricRows = ((mets.data ?? []) as { id: string; name: string; target: number | null; direction: "up" | "down" }[]);
+  const latest = new Map<string, number>();
+  if (metricRows.length) {
+    const { data: readings } = await companyOs
+      .from("metric_readings")
+      .select("metric_id, week_start, value")
+      .in("metric_id", metricRows.map((m) => m.id))
+      .order("week_start", { ascending: false });
+    for (const r of (readings ?? []) as { metric_id: string; value: number }[]) {
+      if (!latest.has(r.metric_id)) latest.set(r.metric_id, r.value);
+    }
+  }
+  return {
+    objectives: ((objs.data ?? []) as { id: string; title: string }[]).map((o) => ({ id: o.id, label: o.title })),
+    keyResults: ((krs.data ?? []) as { id: string; title: string }[]).map((k) => ({ id: k.id, label: k.title })),
+    metrics: metricRows.map((m) => ({
+      id: m.id,
+      label: m.name,
+      target: m.target,
+      direction: m.direction,
+      latestValue: latest.get(m.id) ?? null,
+    })),
+  };
+}
+
+function resolveLadder(
+  r: { objective_id: string | null; key_result_id: string | null; metric_id: string | null },
+  edges: EdgesOptions,
+): EdgesLadder | null {
+  if (r.objective_id) {
+    const o = edges.objectives.find((x) => x.id === r.objective_id);
+    return o ? { kind: "objective", id: o.id, label: o.label } : null;
+  }
+  if (r.key_result_id) {
+    const k = edges.keyResults.find((x) => x.id === r.key_result_id);
+    return k ? { kind: "key_result", id: k.id, label: k.label } : null;
+  }
+  if (r.metric_id) {
+    const m = edges.metrics.find((x) => x.id === r.metric_id);
+    return m
+      ? { kind: "metric", id: m.id, label: m.label, target: m.target, direction: m.direction, latestValue: m.latestValue }
+      : null;
+  }
+  return null;
+}
+
+const GOAL_SELECT =
+  "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, metric_id, sort_order";
+const PRIORITY_SELECT =
+  "id, coaching_profile_id, title, detail_markdown, status, objective_id, key_result_id, metric_id, sort_order";
+
+type LadderRow = { objective_id: string | null; key_result_id: string | null; metric_id: string | null };
+
+function toGoal(r: Record<string, unknown>, edges: EdgesOptions): CoachingGoal {
+  return {
+    id: r.id as string,
+    title: r.title as string,
+    descriptionMarkdown: (r.description_markdown as string | null) ?? null,
+    status: r.status as GoalStatus,
+    quarterLabel: (r.quarter_label as string | null) ?? null,
+    ladder: resolveLadder(r as unknown as LadderRow, edges),
+    sortOrder: (r.sort_order as number) ?? 0,
+  };
+}
+
+function toPriority(r: Record<string, unknown>, edges: EdgesOptions): CoachingPriority {
+  return {
+    id: r.id as string,
+    title: r.title as string,
+    detailMarkdown: (r.detail_markdown as string | null) ?? null,
+    status: r.status as PriorityStatus,
+    ladder: resolveLadder(r as unknown as LadderRow, edges),
+    sortOrder: (r.sort_order as number) ?? 0,
+  };
+}
+
+const OCEAN_SELECT =
+  "id, coaching_profile_id, openness_rating, openness_evidence, conscientiousness_rating, conscientiousness_evidence, " +
+  "extraversion_rating, extraversion_evidence, agreeableness_rating, agreeableness_evidence, " +
+  "neuroticism_rating, neuroticism_evidence, snapshot_markdown, guidance_markdown, published, updated_at";
+
+function toOcean(r: Record<string, unknown>): OceanProfile {
+  const dim = (k: string): OceanDimension => ({
+    rating: (r[`${k}_rating`] as string | null) ?? null,
+    evidence: (r[`${k}_evidence`] as string | null) ?? null,
+  });
+  return {
+    id: r.id as string,
+    openness: dim("openness"),
+    conscientiousness: dim("conscientiousness"),
+    extraversion: dim("extraversion"),
+    agreeableness: dim("agreeableness"),
+    neuroticism: dim("neuroticism"),
+    snapshotMarkdown: (r.snapshot_markdown as string | null) ?? null,
+    guidanceMarkdown: (r.guidance_markdown as string | null) ?? null,
+    published: Boolean(r.published),
+    updatedAt: r.updated_at as string,
+  };
+}
 
 // True if the actor coaches at least one active profile — drives the sidebar
 // entry and the /team/coaching gate. Coaching is granted by rows, not role:
@@ -198,10 +382,10 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
   if (profiles.length === 0) return [];
   const ids = profiles.map((p) => p.id as string);
 
-  const [meetingsRes, commitmentsRes, checkinsRes] = await Promise.all([
+  const [meetingsRes, commitmentsRes, checkinsRes, goalsRes] = await Promise.all([
     companyOs
       .from("coaching_one_on_ones")
-      .select("coaching_profile_id, held_on, status")
+      .select("coaching_profile_id, held_on, status, mode_coach_pct, mode_mentor_pct, mode_direct_pct")
       .in("coaching_profile_id", ids)
       .is("archived_at", null)
       .eq("status", "held"),
@@ -215,14 +399,42 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
       .select("coaching_profile_id, sent_at, responded_at")
       .in("coaching_profile_id", ids)
       .order("sent_at", { ascending: false }),
+    companyOs
+      .from("coaching_goals")
+      .select("coaching_profile_id, title, status, sort_order")
+      .in("coaching_profile_id", ids)
+      .eq("status", "active")
+      .order("sort_order"),
   ]);
 
   const lastHeld = new Map<string, string>();
   const heldCount = new Map<string, number>();
-  for (const m of (meetingsRes.data ?? []) as Array<{ coaching_profile_id: string; held_on: string }>) {
+  const lastMode = new Map<string, { held_on: string; split: ModeSplit }>();
+  for (const m of (meetingsRes.data ?? []) as Array<{
+    coaching_profile_id: string;
+    held_on: string;
+    mode_coach_pct: number | null;
+    mode_mentor_pct: number | null;
+    mode_direct_pct: number | null;
+  }>) {
     heldCount.set(m.coaching_profile_id, (heldCount.get(m.coaching_profile_id) ?? 0) + 1);
     const cur = lastHeld.get(m.coaching_profile_id);
     if (!cur || m.held_on > cur) lastHeld.set(m.coaching_profile_id, m.held_on);
+    if (m.mode_coach_pct != null) {
+      const prev = lastMode.get(m.coaching_profile_id);
+      if (!prev || m.held_on > prev.held_on) {
+        lastMode.set(m.coaching_profile_id, {
+          held_on: m.held_on,
+          split: { coach: m.mode_coach_pct, mentor: m.mode_mentor_pct ?? 0, direct: m.mode_direct_pct ?? 0 },
+        });
+      }
+    }
+  }
+  const activeGoals = new Map<string, string[]>();
+  for (const g of (goalsRes.data ?? []) as Array<{ coaching_profile_id: string; title: string }>) {
+    const list = activeGoals.get(g.coaching_profile_id) ?? [];
+    list.push(g.title);
+    activeGoals.set(g.coaching_profile_id, list);
   }
   const openCount = new Map<string, number>();
   for (const c of (commitmentsRes.data ?? []) as Array<{ coaching_profile_id: string }>) {
@@ -249,7 +461,8 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
       const since = diffDays(last, today);
       if (since > cadence + 3) attention.push({ kind: "overdue", daysSince: since });
     }
-    if ((p.fast_goal_status as FastGoalStatus) !== "set") attention.push({ kind: "goal_not_set" });
+    const goals = activeGoals.get(id) ?? [];
+    if (goals.length === 0) attention.push({ kind: "goal_not_set" });
     const checkin = latestCheckin.get(id);
     if (checkin && !checkin.responded_at && diffDays(checkin.sent_at.slice(0, 10), today) >= 2) {
       attention.push({ kind: "checkin_unanswered" });
@@ -257,8 +470,9 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
     return {
       profileId: id,
       member: toMember(p),
-      fastGoal: (p.fast_goal as string | null) ?? null,
-      fastGoalStatus: (p.fast_goal_status as FastGoalStatus) ?? "not_set",
+      activeGoals: goals,
+      retentionRoot: (p.retention_root as RetentionRoot | null) ?? null,
+      lastModeSplit: lastMode.get(id)?.split ?? null,
       cadenceDays: cadence,
       nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
       lastHeldOn: last,
@@ -270,6 +484,8 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
   return rows.sort((a, b) => a.member.name.localeCompare(b.member.name));
 }
 
+export type ModeSplit = { coach: number; mentor: number; direct: number };
+
 export type OneOnOne = {
   id: string;
   heldOn: string;
@@ -280,13 +496,17 @@ export type OneOnOne = {
   summaryMarkdown: string | null;
   sharedSummaryMarkdown: string | null;
   sharedPublishedAt: string | null;
+  modeSplit: ModeSplit | null;
+  minutesToken: string | null;
+  transcriptSource: "minutes_auto" | "minutes_link" | "manual" | null;
   aiModel: string | null;
   aiError: string | null;
 };
 
 const MEETING_SELECT =
   "id, coaching_profile_id, held_on, status, prep_markdown, prep_generated_at, transcript, " +
-  "summary_markdown, shared_summary_markdown, shared_published_at, ai_model, ai_error";
+  "summary_markdown, shared_summary_markdown, shared_published_at, " +
+  "mode_coach_pct, mode_mentor_pct, mode_direct_pct, minutes_token, transcript_source, ai_model, ai_error";
 
 function toOneOnOne(r: Record<string, unknown>): OneOnOne {
   return {
@@ -299,6 +519,16 @@ function toOneOnOne(r: Record<string, unknown>): OneOnOne {
     summaryMarkdown: (r.summary_markdown as string | null) ?? null,
     sharedSummaryMarkdown: (r.shared_summary_markdown as string | null) ?? null,
     sharedPublishedAt: (r.shared_published_at as string | null) ?? null,
+    modeSplit:
+      r.mode_coach_pct == null
+        ? null
+        : {
+            coach: r.mode_coach_pct as number,
+            mentor: r.mode_mentor_pct as number,
+            direct: r.mode_direct_pct as number,
+          },
+    minutesToken: (r.minutes_token as string | null) ?? null,
+    transcriptSource: (r.transcript_source as "minutes_auto" | "minutes_link" | "manual" | null) ?? null,
     aiModel: (r.ai_model as string | null) ?? null,
     aiError: (r.ai_error as string | null) ?? null,
   };
@@ -322,8 +552,11 @@ export type TrendReport = {
 export type CoachProfileDetail = {
   profileId: string;
   member: CoachingMember;
-  fastGoal: string | null;
-  fastGoalStatus: FastGoalStatus;
+  goals: CoachingGoal[];
+  priorities: CoachingPriority[];
+  ocean: OceanProfile | null;
+  retentionRoot: RetentionRoot | null;
+  edges: EdgesOptions;
   okrsMarkdown: string | null;
   privateProfileMarkdown: string | null;
   cadenceDays: number;
@@ -357,7 +590,7 @@ export async function getCoachProfileDetail(
   const p = await assertCoachOwnsProfile(actor, profileId);
   if (!p) return null;
 
-  const [meetings, commitments, checkins, trends] = await Promise.all([
+  const [meetings, commitments, checkins, trends, goals, priorities, ocean, edges] = await Promise.all([
     companyOs
       .from("coaching_one_on_ones")
       .select(MEETING_SELECT)
@@ -379,13 +612,34 @@ export async function getCoachProfileDetail(
       .select("id, period, report_markdown, ai_error, created_at")
       .eq("coaching_profile_id", profileId)
       .order("period", { ascending: false }),
+    companyOs
+      .from("coaching_goals")
+      .select(GOAL_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .order("sort_order")
+      .order("created_at"),
+    companyOs
+      .from("coaching_priorities")
+      .select(PRIORITY_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .order("sort_order")
+      .order("created_at"),
+    companyOs
+      .from("coaching_ocean_profiles")
+      .select(OCEAN_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .maybeSingle(),
+    getEdgesLadderOptions(),
   ]);
 
   return {
     profileId,
     member: toMember(p),
-    fastGoal: (p.fast_goal as string | null) ?? null,
-    fastGoalStatus: (p.fast_goal_status as FastGoalStatus) ?? "not_set",
+    goals: ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges)),
+    priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
+    ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
+    retentionRoot: (p.retention_root as RetentionRoot | null) ?? null,
+    edges,
     okrsMarkdown: (p.okrs_markdown as string | null) ?? null,
     privateProfileMarkdown: (p.private_profile_markdown as string | null) ?? null,
     cadenceDays: (p.cadence_days as number) ?? 14,
@@ -429,19 +683,234 @@ async function patchMeeting(meetingId: string, patch: Record<string, unknown>): 
 // Every coach-side mutation below asserts ownership first (IDOR: never trust a
 // client-supplied id as the authorization subject).
 
-export async function coachSetFastGoal(
+// Ladder input from the picker: at most one Edges target.
+export type LadderInput =
+  | { kind: "none" }
+  | { kind: "objective" | "key_result" | "metric"; id: string };
+
+function ladderColumns(ladder: LadderInput): Record<string, string | null> {
+  return {
+    objective_id: ladder.kind === "objective" ? ladder.id : null,
+    key_result_id: ladder.kind === "key_result" ? ladder.id : null,
+    metric_id: ladder.kind === "metric" ? ladder.id : null,
+  };
+}
+
+export async function coachAddGoal(
   actor: TeamActor,
   profileId: string,
-  goal: string,
-  status: FastGoalStatus,
+  input: { title: string; status: GoalStatus; quarterLabel: string | null; ladder: LadderInput },
 ): Promise<Result> {
   if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
-  if (!["not_set", "draft", "set"].includes(status)) return { ok: false, error: "Bad status." };
-  const trimmed = goal.trim();
-  return patchProfile(profileId, {
-    fast_goal: trimmed || null,
-    fast_goal_status: trimmed ? status : "not_set",
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Write the goal first." };
+  if (!(input.status in GOAL_STATUS_LABELS)) return { ok: false, error: "Bad status." };
+  const { error } = await companyOs.from("coaching_goals").insert({
+    coaching_profile_id: profileId,
+    title,
+    status: input.status,
+    quarter_label: input.quarterLabel?.trim() || null,
+    ...ladderColumns(input.ladder),
   });
+  return error ? { ok: false, error: "Could not add the goal." } : { ok: true };
+}
+
+async function assertCoachOwnsRow(
+  actor: TeamActor,
+  table: "coaching_goals" | "coaching_priorities",
+  id: string,
+): Promise<boolean> {
+  if (!id) return false;
+  const { data } = await companyOs
+    .from(table)
+    .select("id, coaching_profiles:coaching_profiles!coaching_profile_id(coach_id)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return false;
+  const prof = one(
+    (data as unknown as Record<string, unknown>).coaching_profiles as
+      | { coach_id: string }
+      | { coach_id: string }[]
+      | null,
+  );
+  return prof?.coach_id === actor.teamMemberId;
+}
+
+export async function coachUpdateGoal(
+  actor: TeamActor,
+  goalId: string,
+  patch: { title?: string; status?: GoalStatus; quarterLabel?: string | null; ladder?: LadderInput },
+): Promise<Result> {
+  if (!(await assertCoachOwnsRow(actor, "coaching_goals", goalId)))
+    return { ok: false, error: "Not found." };
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.title !== undefined) {
+    const t = patch.title.trim();
+    if (!t) return { ok: false, error: "The goal needs a title." };
+    update.title = t;
+  }
+  if (patch.status !== undefined) {
+    if (!(patch.status in GOAL_STATUS_LABELS)) return { ok: false, error: "Bad status." };
+    update.status = patch.status;
+  }
+  if (patch.quarterLabel !== undefined) update.quarter_label = patch.quarterLabel?.trim() || null;
+  if (patch.ladder !== undefined) Object.assign(update, ladderColumns(patch.ladder));
+  const { error } = await companyOs.from("coaching_goals").update(update).eq("id", goalId);
+  return error ? { ok: false, error: "Could not update the goal." } : { ok: true };
+}
+
+export async function coachAddPriority(
+  actor: TeamActor,
+  profileId: string,
+  input: { title: string; detail: string; ladder: LadderInput },
+): Promise<Result> {
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Write the priority first." };
+  const { count } = await companyOs
+    .from("coaching_priorities")
+    .select("id", { count: "exact", head: true })
+    .eq("coaching_profile_id", profileId);
+  const { error } = await companyOs.from("coaching_priorities").insert({
+    coaching_profile_id: profileId,
+    title,
+    detail_markdown: input.detail.trim() || null,
+    sort_order: count ?? 0,
+    ...ladderColumns(input.ladder),
+  });
+  return error ? { ok: false, error: "Could not add the priority." } : { ok: true };
+}
+
+export async function coachUpdatePriority(
+  actor: TeamActor,
+  priorityId: string,
+  patch: { title?: string; detail?: string; status?: PriorityStatus; ladder?: LadderInput },
+): Promise<Result> {
+  if (!(await assertCoachOwnsRow(actor, "coaching_priorities", priorityId)))
+    return { ok: false, error: "Not found." };
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.title !== undefined) {
+    const t = patch.title.trim();
+    if (!t) return { ok: false, error: "The priority needs a title." };
+    update.title = t;
+  }
+  if (patch.detail !== undefined) update.detail_markdown = patch.detail.trim() || null;
+  if (patch.status !== undefined) {
+    if (patch.status !== "active" && patch.status !== "retired") return { ok: false, error: "Bad status." };
+    update.status = patch.status;
+  }
+  if (patch.ladder !== undefined) Object.assign(update, ladderColumns(patch.ladder));
+  const { error } = await companyOs.from("coaching_priorities").update(update).eq("id", priorityId);
+  return error ? { ok: false, error: "Could not update the priority." } : { ok: true };
+}
+
+// OCEAN: coach writes; publish is the member-visibility gate (mirrors the
+// shared-recap publish flow).
+export type OceanInput = {
+  dims: Record<OceanDimensionKey, { rating: string; evidence: string }>;
+  snapshot: string;
+  guidance: string;
+};
+
+export async function coachSaveOcean(
+  actor: TeamActor,
+  profileId: string,
+  input: OceanInput,
+): Promise<Result> {
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  const row: Record<string, unknown> = {
+    snapshot_markdown: input.snapshot.trim() || null,
+    guidance_markdown: input.guidance.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  for (const k of OCEAN_DIMENSIONS) {
+    row[`${k}_rating`] = input.dims[k]?.rating.trim() || null;
+    row[`${k}_evidence`] = input.dims[k]?.evidence.trim() || null;
+  }
+  const { data: existing } = await companyOs
+    .from("coaching_ocean_profiles")
+    .select("id")
+    .eq("coaching_profile_id", profileId)
+    .maybeSingle();
+  const { error } = existing
+    ? await companyOs
+        .from("coaching_ocean_profiles")
+        .update(row)
+        .eq("id", (existing as { id: string }).id)
+    : await companyOs
+        .from("coaching_ocean_profiles")
+        .insert({ ...row, coaching_profile_id: profileId, published: false });
+  return error ? { ok: false, error: "Could not save the OCEAN profile." } : { ok: true };
+}
+
+export async function coachPublishOcean(
+  actor: TeamActor,
+  profileId: string,
+  publish: boolean,
+): Promise<Result> {
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  const { data } = await companyOs
+    .from("coaching_ocean_profiles")
+    .select("id, snapshot_markdown, guidance_markdown")
+    .eq("coaching_profile_id", profileId)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "Write the OCEAN profile first." };
+  const r = data as { id: string; snapshot_markdown: string | null; guidance_markdown: string | null };
+  if (publish && !r.snapshot_markdown?.trim() && !r.guidance_markdown?.trim())
+    return { ok: false, error: "Write the snapshot or guidance before publishing." };
+  const { error } = await companyOs
+    .from("coaching_ocean_profiles")
+    .update({ published: publish, updated_at: new Date().toISOString() })
+    .eq("id", r.id);
+  return error ? { ok: false, error: "Could not update publishing." } : { ok: true };
+}
+
+export async function coachSetRetentionRoot(
+  actor: TeamActor,
+  profileId: string,
+  root: RetentionRoot | null,
+): Promise<Result> {
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  if (root !== null && !(root in RETENTION_ROOT_LABELS)) return { ok: false, error: "Bad root." };
+  return patchProfile(profileId, { retention_root: root });
+}
+
+// C/M/D mode split on a held 1-1 — all three or nothing, summing to 100
+// (the DB check enforces the same).
+export async function coachSetModeSplit(
+  actor: TeamActor,
+  meetingId: string,
+  split: ModeSplit | null,
+): Promise<Result> {
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  if (!owned) return { ok: false, error: "Not found." };
+  if (split) {
+    const vals = [split.coach, split.mentor, split.direct];
+    if (vals.some((v) => !Number.isInteger(v) || v < 0 || v > 100))
+      return { ok: false, error: "Percentages must be whole numbers 0-100." };
+    if (split.coach + split.mentor + split.direct !== 100)
+      return { ok: false, error: "The three percentages must sum to 100." };
+  }
+  return patchMeeting(meetingId, {
+    mode_coach_pct: split?.coach ?? null,
+    mode_mentor_pct: split?.mentor ?? null,
+    mode_direct_pct: split?.direct ?? null,
+  });
+}
+
+// Attach a Lark Minutes link to a 1-1. The transcript pull itself is the
+// cron's job (minutes_auto) or a later manual import; storing the token now
+// keeps the meeting joined to its recording.
+export async function coachSetMinutesLink(
+  actor: TeamActor,
+  meetingId: string,
+  url: string,
+): Promise<Result> {
+  const owned = await assertCoachOwnsMeeting(actor, meetingId);
+  if (!owned) return { ok: false, error: "Not found." };
+  const m = url.trim().match(/minutes\/([a-z0-9]+)/i);
+  if (!m) return { ok: false, error: "Paste a Lark Minutes link (…/minutes/…)." };
+  return patchMeeting(meetingId, { minutes_token: m[1], transcript_source: "minutes_link" });
 }
 
 export async function coachSetCadence(
