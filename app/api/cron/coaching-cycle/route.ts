@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// Vercel cron (see vercel.json): daily 07:45 UTC, right after onboarding-cycle.
+// Vercel cron (see vercel.json): daily 00:45 UTC = 07:45 Saigon, so preps and
+// nudges land before the workday starts (Dave reads his prep by 09:00 +07).
 // One pass over every active coaching profile: generate the prep for upcoming
 // 1-1s (and mail the coach), nudge on lapsed cadences (weekly), send the
 // mid-cycle check-in to the member (once per cycle), and run last month's

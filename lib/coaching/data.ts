@@ -1219,6 +1219,74 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
   };
 }
 
+// ---- roster management ------------------------------------------------------
+// Managers and existing coaches can add people to THEIR OWN roster (coach_id
+// is always the actor, never client input). Adding someone whose profile was
+// deactivated (contractor, alumni history) reactivates it under the new coach.
+
+export type RosterCandidate = { teamMemberId: string; name: string; positionTitle: string | null };
+
+export async function canManageRoster(actor: TeamActor): Promise<boolean> {
+  if (actor.role === "manager") return true;
+  return isCoach(actor);
+}
+
+export async function getRosterCandidates(actor: TeamActor): Promise<RosterCandidate[]> {
+  if (!(await canManageRoster(actor))) return [];
+  const [{ data: members }, { data: profiles }] = await Promise.all([
+    companyOs
+      .from("team_members")
+      .select("id, status, people:people!person_id(full_name, preferred_name, email), positions:positions!position_id(title)")
+      .in("status", ["active", "pre_start"]),
+    companyOs.from("coaching_profiles").select("team_member_id").eq("active", true),
+  ]);
+  const coached = new Set(
+    ((profiles ?? []) as { team_member_id: string }[]).map((p) => p.team_member_id),
+  );
+  return ((members ?? []) as unknown as Record<string, unknown>[])
+    .filter((m) => (m.id as string) !== actor.teamMemberId && !coached.has(m.id as string))
+    .map((m) => {
+      const person = one((m.people ?? null) as PersonEmbed | PersonEmbed[] | null);
+      const pos = one((m.positions ?? null) as { title: string | null } | { title: string | null }[] | null);
+      return { teamMemberId: m.id as string, name: displayName(person), positionTitle: pos?.title ?? null };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function coachAddToRoster(
+  actor: TeamActor,
+  teamMemberId: string,
+  firstOneOnOne: string | null,
+): Promise<Result> {
+  if (!(await canManageRoster(actor))) return { ok: false, error: "Not allowed." };
+  if (!teamMemberId) return { ok: false, error: "Pick a person first." };
+  if (teamMemberId === actor.teamMemberId) return { ok: false, error: "You cannot coach yourself." };
+  if (firstOneOnOne && !/^\d{4}-\d{2}-\d{2}$/.test(firstOneOnOne)) return { ok: false, error: "Bad date." };
+
+  const { data: existing } = await companyOs
+    .from("coaching_profiles")
+    .select("id, active")
+    .eq("team_member_id", teamMemberId)
+    .maybeSingle();
+  const row = existing as { id: string; active: boolean } | null;
+  if (row?.active) return { ok: false, error: "They are already in a coaching cycle." };
+  if (row) {
+    return patchProfile(row.id, {
+      active: true,
+      coach_id: actor.teamMemberId,
+      next_one_on_one_on: firstOneOnOne,
+    });
+  }
+  const { error } = await companyOs.from("coaching_profiles").insert({
+    team_member_id: teamMemberId,
+    coach_id: actor.teamMemberId,
+    cadence_days: 14,
+    next_one_on_one_on: firstOneOnOne,
+    retention_root: "watching",
+  });
+  return error ? { ok: false, error: "Could not add them to the roster." } : { ok: true };
+}
+
 // ---- team-wide tier ---------------------------------------------------------
 // FAST goals are Transparent (the T): any signed-in team member can read
 // anyone's ACTIVE goals — title, status, quarter, and ladder only. Nothing

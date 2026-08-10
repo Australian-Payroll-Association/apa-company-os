@@ -8,6 +8,7 @@ import {
   coachAddCommitment,
   coachAddGoal,
   coachAddPriority,
+  coachAddToRoster,
   coachArchiveMeeting,
   coachCreateOneOnOne,
   coachPublishOcean,
@@ -47,6 +48,13 @@ type Result = { ok: true } | { ok: false; error: string };
 function refresh(profileId?: string) {
   revalidatePath("/team/coaching");
   if (profileId) revalidatePath(`/team/coaching/${profileId}`);
+}
+
+export async function addToRoster(teamMemberId: string, firstOneOnOne: string | null): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachAddToRoster(actor, teamMemberId, firstOneOnOne);
+  if (res.ok) refresh();
+  return res;
 }
 
 export async function addGoal(
