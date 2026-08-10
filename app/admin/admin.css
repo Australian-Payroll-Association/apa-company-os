@@ -748,6 +748,17 @@ a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY
   grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
   gap: 16px;
 }
+/* One-row variant (home "Your workspace"): all cards on a single row on desktop,
+   smaller cards, wrapping to fewer columns on narrower screens. */
+.team-hub-grid--row {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.team-hub-grid--row .team-hub-card { padding: 13px 13px; gap: 6px; }
+.team-hub-grid--row .team-hub-title { font-size: 13.5px; }
+.team-hub-grid--row .team-hub-sub { font-size: 11.5px; }
+@media (max-width: 1100px) { .team-hub-grid--row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .team-hub-grid--row { grid-template-columns: repeat(2, 1fr); } }
 .team-hub-card {
   background: var(--admin-surface);
   border: 1px solid var(--admin-line);

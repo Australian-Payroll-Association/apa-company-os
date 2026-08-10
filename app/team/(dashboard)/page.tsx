@@ -238,11 +238,30 @@ export default async function TeamHome() {
       )}
 
       <h2 className="team-hub-heading">Your workspace</h2>
-      <div className="team-hub-grid">
+      <div className="team-hub-grid team-hub-grid--row">
         {HUB_LIVE.map((item) => (
           <HubCard key={item.title} item={item} />
         ))}
       </div>
+
+      <a
+        href="https://aiolabz.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="admin-card admin-section-card"
+        style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit", marginTop: 18 }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 4 }}>Get Certified</h2>
+          <p className="admin-page-sub" style={{ margin: 0 }}>
+            Become a certified AI Officer on AIOlabz. Sign up with your <b>@edge8.ai</b> email and
+            work through the challenge-based program.
+          </p>
+        </div>
+        <span className="admin-btn admin-btn--primary" style={{ flex: "none", pointerEvents: "none" }}>
+          Start on AIOlabz →
+        </span>
+      </a>
 
       {isFirstUse && coreTeaching && (
         <StartHerePanel
