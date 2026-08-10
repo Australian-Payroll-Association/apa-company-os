@@ -20,8 +20,32 @@ import { companyOs } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/email";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { addDays, diffDays } from "@/lib/coaching/data";
-import { generateCheckinMessage, generatePrep, generateTrendReport } from "@/lib/coaching/ai";
+import { generateCheckinMessage, generatePrep, generateTrendReport, summarizeMeeting } from "@/lib/coaching/ai";
 import { coachingMarkdownToHtml } from "@/lib/coaching/markdown";
+import { fetchMinutesTranscript, larkConfigured, listRecentMinutes, sendLarkDm } from "@/lib/lark-api";
+
+// Every nudge goes out on BOTH channels: a Lark DM (where the team lives)
+// and the transactional email (the delivery guarantee). Either failing never
+// blocks the other.
+async function notifyBoth(input: {
+  email: string | null;
+  subject: string;
+  html: string;
+  larkText: string;
+  logKind: string;
+}): Promise<boolean> {
+  const dm = sendLarkDm(input.email, input.larkText);
+  const mail = input.email
+    ? sendTransactionalEmail({
+        to: input.email,
+        subject: input.subject,
+        html: input.html,
+        logMeta: { source: "coaching-cycle", kind: input.logKind },
+      })
+    : Promise.resolve(false);
+  const [dmOk, mailOk] = await Promise.all([dm, mail]);
+  return dmOk || Boolean(mailOk);
+}
 
 type PersonEmbed = {
   full_name: string | null;
@@ -95,7 +119,102 @@ export type CoachingRunSummary = {
   overdueNudges: number;
   checkinsSent: number;
   trendsGenerated: number;
+  minutesMatched: number;
+  transcriptsPulled: number;
+  recapsDrafted: number;
 };
+
+// 0) Lark Minutes sync for one profile: pull transcripts for meetings that
+// carry a minutes_token but no transcript yet; for a recent meeting with no
+// summary, draft the two-tier recap and tell the coach to review. Historical
+// meetings (>14 days) get their transcript stored but are never auto-recapped.
+async function syncMinutesForProfile(
+  p: ProfileRow,
+  coach: { name: string; email: string | null } | undefined,
+  profileLink: string,
+  todayISO: string,
+  summary: CoachingRunSummary,
+): Promise<void> {
+  const { data } = await companyOs
+    .from("coaching_one_on_ones")
+    .select("id, held_on, minutes_token, transcript, summary_markdown")
+    .eq("coaching_profile_id", p.id)
+    .is("archived_at", null)
+    .not("minutes_token", "is", null)
+    .is("transcript", null);
+  for (const m of (data ?? []) as Array<{
+    id: string;
+    held_on: string;
+    minutes_token: string;
+    summary_markdown: string | null;
+  }>) {
+    const transcript = await fetchMinutesTranscript(m.minutes_token);
+    if (!transcript) continue;
+    const { error } = await companyOs
+      .from("coaching_one_on_ones")
+      .update({ transcript, updated_at: new Date().toISOString() })
+      .eq("id", m.id);
+    if (error) continue;
+    summary.transcriptsPulled += 1;
+    const recent = diffDays(m.held_on, todayISO) <= 14;
+    if (recent && !m.summary_markdown) {
+      const res = await summarizeMeeting(m.id);
+      if (res.ok) {
+        summary.recapsDrafted += 1;
+        await notifyBoth({
+          email: coach?.email ?? null,
+          subject: `1-1 recap drafted: ${p.memberName} (${m.held_on})`,
+          html:
+            `<p>The transcript of your 1-1 with <strong>${p.memberName}</strong> on <strong>${m.held_on}</strong> came in from Lark Minutes, and the recap is drafted — review both tiers and publish the shared one when it reads right.</p>` +
+            `<p><a href="${profileLink}">Review the recap</a></p>`,
+          larkText: `1-1 recap drafted for ${p.memberName} (${m.held_on}). Review and publish: ${profileLink}`,
+          logKind: "recap_drafted",
+        });
+      }
+    }
+  }
+}
+
+// Auto-detect: match recently recorded Minutes to 1-1 rows that have no token
+// yet, by member first name in the title + date within a day. Conservative on
+// purpose — no match, no write. Returns silently when the tenant app cannot
+// list Minutes (the link-paste flow stays the fallback).
+async function autoDetectMinutes(profiles: ProfileRow[], summary: CoachingRunSummary): Promise<void> {
+  if (!larkConfigured()) return;
+  const recent = await listRecentMinutes(4);
+  if (recent.length === 0) return;
+  for (const minute of recent) {
+    const title = (minute.title ?? "").toLowerCase();
+    const day = minute.startTime?.slice(0, 10);
+    if (!day || !title.includes("1-1")) continue;
+    const match = profiles.find((p) => {
+      const first = p.memberName.split(/\s+/)[0]?.toLowerCase();
+      return first && title.includes(first);
+    });
+    if (!match) continue;
+    const { data: meeting } = await companyOs
+      .from("coaching_one_on_ones")
+      .select("id, minutes_token")
+      .eq("coaching_profile_id", match.id)
+      .gte("held_on", addDays(day, -1))
+      .lte("held_on", addDays(day, 1))
+      .is("archived_at", null)
+      .is("minutes_token", null)
+      .limit(1)
+      .maybeSingle();
+    const row = meeting as { id: string } | null;
+    if (!row) continue;
+    const { error } = await companyOs
+      .from("coaching_one_on_ones")
+      .update({
+        minutes_token: minute.token,
+        transcript_source: "minutes_auto",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+    if (!error) summary.minutesMatched += 1;
+  }
+}
 
 export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSummary> {
   const profiles = await loadActiveProfiles();
@@ -109,11 +228,21 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
     overdueNudges: 0,
     checkinsSent: 0,
     trendsGenerated: 0,
+    minutesMatched: 0,
+    transcriptsPulled: 0,
+    recapsDrafted: 0,
   };
+
+  // Minutes first: a freshly matched token can yield a transcript and a
+  // drafted recap in the same daily pass.
+  await autoDetectMinutes(profiles, summary);
 
   for (const p of profiles) {
     const coach = coaches.get(p.coach_id);
     const profileLink = `${origin}/team/coaching/${p.id}`;
+
+    // 0) Pull any waiting Lark Minutes transcripts and draft recent recaps.
+    await syncMinutesForProfile(p, coach, profileLink, todayISO, summary);
 
     // Last held 1-1 (the cycle clock).
     const { data: lastData } = await companyOs
@@ -150,16 +279,15 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
         const res = await generatePrep(m.id);
         if (res.ok) {
           summary.prepsGenerated += 1;
-          if (coach?.email) {
-            await sendTransactionalEmail({
-              to: coach.email,
-              subject: `1-1 prep ready: ${p.memberName} on ${next}`,
-              html:
-                `<p>Your 1-1 with <strong>${p.memberName}</strong> is on <strong>${next}</strong>. The prep is ready — two minutes to skim it:</p>` +
-                `<p><a href="${profileLink}">Open ${p.memberName}'s coaching page</a></p>`,
-              logMeta: { source: "coaching-cycle", kind: "prep_ready" },
-            });
-          }
+          await notifyBoth({
+            email: coach?.email ?? null,
+            subject: `1-1 prep ready: ${p.memberName} on ${next}`,
+            html:
+              `<p>Your 1-1 with <strong>${p.memberName}</strong> is on <strong>${next}</strong>. The prep is ready — two minutes to skim it:</p>` +
+              `<p><a href="${profileLink}">Open ${p.memberName}'s coaching page</a></p>`,
+            larkText: `1-1 prep ready: ${p.memberName} on ${next}. Two minutes to skim: ${profileLink}`,
+            logKind: "prep_ready",
+          });
         }
       }
     }
@@ -169,13 +297,14 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
       const since = diffDays(lastHeld, todayISO);
       const lapse = since - p.cadence_days - 3;
       if (lapse >= 0 && lapse % 7 === 0 && coach?.email) {
-        const ok = await sendTransactionalEmail({
-          to: coach.email,
+        const ok = await notifyBoth({
+          email: coach.email,
           subject: `1-1 overdue: ${p.memberName} (${since} days since the last one)`,
           html:
             `<p>Your last 1-1 with <strong>${p.memberName}</strong> was <strong>${lastHeld}</strong> — ${since} days ago on a ${p.cadence_days}-day cadence, and nothing is scheduled.</p>` +
             `<p><a href="${profileLink}">Schedule the next one</a>. This reminder repeats weekly.</p>`,
-          logMeta: { source: "coaching-cycle", kind: "overdue_nudge" },
+          larkText: `1-1 overdue: ${p.memberName}, ${since} days since the last one. Schedule the next: ${profileLink}`,
+          logKind: "overdue_nudge",
         });
         if (ok) summary.overdueNudges += 1;
       }
@@ -205,13 +334,14 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
             .insert({ coaching_profile_id: p.id, message_markdown: markdown });
           if (!error) {
             const html = await coachingMarkdownToHtml(markdown);
-            const ok = await sendTransactionalEmail({
-              to: p.memberEmail,
+            const ok = await notifyBoth({
+              email: p.memberEmail,
               subject: `Mid-cycle check-in${coach ? ` from ${coach.name}` : ""}`,
               html:
                 html +
                 `<p><a href="${origin}/team/my-coaching">Update your commitments</a></p>`,
-              logMeta: { source: "coaching-cycle", kind: "checkin" },
+              larkText: `${markdown}\n\nUpdate your commitments: ${origin}/team/my-coaching`,
+              logKind: "checkin",
             });
             if (ok) summary.checkinsSent += 1;
           }
@@ -247,16 +377,15 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
           const res = await generateTrendReport(p.id, period);
           if (res.ok) {
             summary.trendsGenerated += 1;
-            if (coach?.email) {
-              await sendTransactionalEmail({
-                to: coach.email,
-                subject: `Monthly coaching trends: ${p.memberName} (${period})`,
-                html:
-                  `<p>The ${period} trend report for <strong>${p.memberName}</strong> is ready — growth trajectory, recurring themes, follow-through, and flags.</p>` +
-                  `<p><a href="${profileLink}">Read it on their coaching page</a></p>`,
-                logMeta: { source: "coaching-cycle", kind: "trend_ready" },
-              });
-            }
+            await notifyBoth({
+              email: coach?.email ?? null,
+              subject: `Monthly coaching trends: ${p.memberName} (${period})`,
+              html:
+                `<p>The ${period} trend report for <strong>${p.memberName}</strong> is ready — growth trajectory, recurring themes, follow-through, and flags.</p>` +
+                `<p><a href="${profileLink}">Read it on their coaching page</a></p>`,
+              larkText: `Monthly coaching trends ready: ${p.memberName} (${period}). Read: ${profileLink}`,
+              logKind: "trend_ready",
+            });
           }
         }
       }
