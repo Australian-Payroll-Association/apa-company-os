@@ -4,6 +4,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { getMyCoaching } from "@/lib/coaching/data";
 import { coachingMarkdownToHtml } from "@/lib/coaching/markdown";
 import { MyCommitments } from "@/components/coaching/MyCommitments";
+import { GoalComments } from "@/components/coaching/GoalComments";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,7 @@ export default async function MyCoachingPage() {
                     : ""}
                 </div>
               )}
+              <GoalComments goalId={g.id} comments={g.comments} />
             </div>
           ))}
 

@@ -2628,6 +2628,17 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .edges-fast-name { font-weight: 600; margin-bottom: 6px; }
 .edges-fast-goal { margin: 6px 0; font-size: 13px; }
 .edges-fast-goal .admin-cell-muted { font-size: 12px; }
+.coach-dash-hint { font-style: italic; margin-top: 2px; }
+.goal-comments { flex-basis: 100%; margin-top: 4px; }
+.goal-comments-toggle { background: none; border: 0; padding: 0; font-size: 12.5px; color: var(--admin-accent-strong); cursor: pointer; }
+.goal-comments-body { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--admin-line); }
+.goal-comment { margin: 6px 0; font-size: 13px; }
+.goal-comment-author { font-weight: 600; margin-right: 6px; }
+.goal-comment-date { font-size: 12px; }
+.goal-comment-text { white-space: pre-wrap; }
+.goal-manage-btns { margin-left: 8px; display: inline-flex; gap: 4px; }
+.coach-dash-table td { vertical-align: top; }
+.coach-dash-flag { display: inline-block; margin: 1px 4px 1px 0; }
 
 .mycoach-recap { border-top: 1px solid var(--admin-line); padding: 12px 0; }
 .mycoach-goal {

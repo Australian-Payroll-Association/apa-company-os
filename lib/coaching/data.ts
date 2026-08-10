@@ -169,6 +169,7 @@ export type CoachRosterRow = {
   profileId: string;
   member: CoachingMember;
   activeGoals: string[];
+  topPriority: string | null;
   retentionRoot: RetentionRoot | null;
   lastModeSplit: ModeSplit | null;
   cadenceDays: number;
@@ -193,6 +194,14 @@ export type EdgesLadder =
   | { kind: "key_result"; id: string; label: string }
   | { kind: "metric"; id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null };
 
+export type GoalComment = {
+  id: string;
+  goalId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+};
+
 export type CoachingGoal = {
   id: string;
   title: string;
@@ -201,6 +210,7 @@ export type CoachingGoal = {
   quarterLabel: string | null;
   ladder: EdgesLadder | null;
   sortOrder: number;
+  comments: GoalComment[];
 };
 
 export type CoachingPriority = {
@@ -316,7 +326,65 @@ function toGoal(r: Record<string, unknown>, edges: EdgesOptions): CoachingGoal {
     quarterLabel: (r.quarter_label as string | null) ?? null,
     ladder: resolveLadder(r as unknown as LadderRow, edges),
     sortOrder: (r.sort_order as number) ?? 0,
+    comments: [],
   };
+}
+
+// Comments on FAST goals: team-wide readable, any team member can write
+// (Frequent discussion is the F). Fetched per goal-id batch; the author name
+// resolves through the team_members -> people forward embed.
+export async function getGoalComments(goalIds: string[]): Promise<Map<string, GoalComment[]>> {
+  const map = new Map<string, GoalComment[]>();
+  if (goalIds.length === 0) return map;
+  const { data } = await companyOs
+    .from("coaching_goal_comments")
+    .select(
+      "id, goal_id, body, created_at, " +
+        "team_members:team_members!author_team_member_id(people:people!person_id(full_name, preferred_name, email, avatar_url))",
+    )
+    .in("goal_id", goalIds)
+    .order("created_at", { ascending: true });
+  for (const r of ((data ?? []) as unknown as Record<string, unknown>[])) {
+    const tm = one(r.team_members as Record<string, unknown> | Record<string, unknown>[] | null);
+    const person = one((tm?.people ?? null) as PersonEmbed | PersonEmbed[] | null);
+    const goalId = r.goal_id as string;
+    const list = map.get(goalId) ?? [];
+    list.push({
+      id: r.id as string,
+      goalId,
+      authorName: displayName(person),
+      body: r.body as string,
+      createdAt: r.created_at as string,
+    });
+    map.set(goalId, list);
+  }
+  return map;
+}
+
+function attachComments(goals: CoachingGoal[], comments: Map<string, GoalComment[]>): CoachingGoal[] {
+  return goals.map((g) => ({ ...g, comments: comments.get(g.id) ?? [] }));
+}
+
+export async function addGoalComment(
+  actor: TeamActor,
+  goalId: string,
+  body: string,
+): Promise<Result> {
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write the comment first." };
+  if (text.length > 2000) return { ok: false, error: "Keep it under 2,000 characters." };
+  const { data: goal } = await companyOs
+    .from("coaching_goals")
+    .select("id")
+    .eq("id", goalId)
+    .maybeSingle();
+  if (!goal) return { ok: false, error: "Goal not found." };
+  const { error } = await companyOs.from("coaching_goal_comments").insert({
+    goal_id: goalId,
+    author_team_member_id: actor.teamMemberId,
+    body: text,
+  });
+  return error ? { ok: false, error: "Could not add the comment." } : { ok: true };
 }
 
 function toPriority(r: Record<string, unknown>, edges: EdgesOptions): CoachingPriority {
@@ -413,6 +481,12 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
       .eq("status", "active")
       .order("sort_order"),
   ]);
+  const prioritiesRes = await companyOs
+    .from("coaching_priorities")
+    .select("coaching_profile_id, title, sort_order")
+    .in("coaching_profile_id", ids)
+    .eq("status", "active")
+    .order("sort_order");
 
   const lastHeld = new Map<string, string>();
   const heldCount = new Map<string, number>();
@@ -442,6 +516,11 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
     const list = activeGoals.get(g.coaching_profile_id) ?? [];
     list.push(g.title);
     activeGoals.set(g.coaching_profile_id, list);
+  }
+  // First active priority per profile (rows arrive sorted by sort_order).
+  const topPriority = new Map<string, string>();
+  for (const p of (prioritiesRes.data ?? []) as Array<{ coaching_profile_id: string; title: string }>) {
+    if (!topPriority.has(p.coaching_profile_id)) topPriority.set(p.coaching_profile_id, p.title);
   }
   const openCount = new Map<string, number>();
   for (const c of (commitmentsRes.data ?? []) as Array<{ coaching_profile_id: string }>) {
@@ -478,6 +557,7 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
       profileId: id,
       member: toMember(p),
       activeGoals: goals,
+      topPriority: topPriority.get(id) ?? null,
       retentionRoot: (p.retention_root as RetentionRoot | null) ?? null,
       lastModeSplit: lastMode.get(id)?.split ?? null,
       cadenceDays: cadence,
@@ -638,10 +718,13 @@ export async function getCoachProfileDetail(
     getEdgesLadderOptions(),
   ]);
 
+  const goalRows = ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
+  const goalComments = await getGoalComments(goalRows.map((g) => g.id));
+
   return {
     profileId,
     member: toMember(p),
-    goals: ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges)),
+    goals: attachComments(goalRows, goalComments),
     priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
     retentionRoot: (p.retention_root as RetentionRoot | null) ?? null,
@@ -701,12 +784,50 @@ function ladderColumns(ladder: LadderInput): Record<string, string | null> {
   };
 }
 
+// Goal mutations are open to the profile's coach AND to any manager: managers
+// can add, edit, or delete a FAST goal for any team member (Dave, 2026-08-11).
+async function canManageGoals(actor: TeamActor, profileId: string): Promise<boolean> {
+  if (!profileId) return false;
+  if (actor.role === "manager") {
+    const { data } = await companyOs
+      .from("coaching_profiles")
+      .select("id")
+      .eq("id", profileId)
+      .maybeSingle();
+    return Boolean(data);
+  }
+  return Boolean(await assertCoachOwnsProfile(actor, profileId));
+}
+
+async function goalProfileId(goalId: string): Promise<string | null> {
+  if (!goalId) return null;
+  const { data } = await companyOs
+    .from("coaching_goals")
+    .select("coaching_profile_id")
+    .eq("id", goalId)
+    .maybeSingle();
+  return (data as { coaching_profile_id: string } | null)?.coaching_profile_id ?? null;
+}
+
+// The active coaching profile behind a team member, for surfaces (directory)
+// that manage goals without being on the coach page.
+export async function getCoachingProfileIdForMember(teamMemberId: string): Promise<string | null> {
+  if (!teamMemberId) return null;
+  const { data } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("team_member_id", teamMemberId)
+    .eq("active", true)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
 export async function coachAddGoal(
   actor: TeamActor,
   profileId: string,
   input: { title: string; status: GoalStatus; quarterLabel: string | null; ladder: LadderInput },
 ): Promise<Result> {
-  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  if (!(await canManageGoals(actor, profileId))) return { ok: false, error: "Not found." };
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Write the goal first." };
   if (!(input.status in GOAL_STATUS_LABELS)) return { ok: false, error: "Bad status." };
@@ -746,7 +867,8 @@ export async function coachUpdateGoal(
   goalId: string,
   patch: { title?: string; status?: GoalStatus; quarterLabel?: string | null; ladder?: LadderInput },
 ): Promise<Result> {
-  if (!(await assertCoachOwnsRow(actor, "coaching_goals", goalId)))
+  const profileId = await goalProfileId(goalId);
+  if (!profileId || !(await canManageGoals(actor, profileId)))
     return { ok: false, error: "Not found." };
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.title !== undefined) {
@@ -762,6 +884,16 @@ export async function coachUpdateGoal(
   if (patch.ladder !== undefined) Object.assign(update, ladderColumns(patch.ladder));
   const { error } = await companyOs.from("coaching_goals").update(update).eq("id", goalId);
   return error ? { ok: false, error: "Could not update the goal." } : { ok: true };
+}
+
+// True delete (comments cascade): a mis-set goal should not leave a tombstone.
+// Coach of the profile or any manager.
+export async function coachDeleteGoal(actor: TeamActor, goalId: string): Promise<Result> {
+  const profileId = await goalProfileId(goalId);
+  if (!profileId || !(await canManageGoals(actor, profileId)))
+    return { ok: false, error: "Not found." };
+  const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
+  return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }
 
 export async function coachAddPriority(
@@ -1193,10 +1325,13 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
     getEdgesLadderOptions(),
   ]);
 
+  const myGoalRows = ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
+  const myGoalComments = await getGoalComments(myGoalRows.map((g) => g.id));
+
   return {
     profileId,
     coachName: displayName(coachPerson),
-    goals: ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges)),
+    goals: attachComments(myGoalRows, myGoalComments),
     priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
     cadenceDays: (p.cadence_days as number) ?? 14,
@@ -1293,10 +1428,12 @@ export async function coachAddToRoster(
 // else from the coaching tables crosses this boundary.
 
 export type TeamMemberGoal = {
+  goalId: string;
   title: string;
   status: GoalStatus;
   quarterLabel: string | null;
   ladderLabel: string | null;
+  comments: GoalComment[];
 };
 
 export async function getTeamMemberActiveGoals(teamMemberId: string): Promise<TeamMemberGoal[]> {
@@ -1318,15 +1455,16 @@ export async function getTeamMemberActiveGoals(teamMemberId: string): Promise<Te
       .order("created_at"),
     getEdgesLadderOptions(),
   ]);
-  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => {
-    const g = toGoal(r, edges);
-    return {
-      title: g.title,
-      status: g.status,
-      quarterLabel: g.quarterLabel,
-      ladderLabel: g.ladder?.label ?? null,
-    };
-  });
+  const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => toGoal(r, edges));
+  const comments = await getGoalComments(rows.map((g) => g.id));
+  return rows.map((g) => ({
+    goalId: g.id,
+    title: g.title,
+    status: g.status,
+    quarterLabel: g.quarterLabel,
+    ladderLabel: g.ladder?.label ?? null,
+    comments: comments.get(g.id) ?? [],
+  }));
 }
 
 // Member status update on a commitment on their OWN profile — status + note

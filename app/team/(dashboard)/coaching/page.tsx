@@ -31,10 +31,6 @@ export default async function CoachingDashboardPage() {
   if (roster.length === 0 && !manageable) redirect("/team");
   const candidates = manageable ? await getRosterCandidates(actor) : [];
 
-  const attention = roster.flatMap((r) =>
-    r.attention.map((a) => ({ name: r.member.name, profileId: r.profileId, a })),
-  );
-
   return (
     <>
       <PageHead
@@ -42,16 +38,63 @@ export default async function CoachingDashboardPage() {
         sub={`${roster.length} ${roster.length === 1 ? "person" : "people"} on your roster · biweekly 1-1s, commitments, and growth trends`}
       />
 
-      {attention.length > 0 && (
+      {roster.length > 0 && (
         <div className="admin-card coach-attention">
-          <div className="admin-card-title">What needs attention</div>
-          <ul className="coach-attention-list">
-            {attention.map(({ name, profileId, a }, i) => (
-              <li key={`${profileId}-${a.kind}-${i}`}>
-                <Link href={`/team/coaching/${profileId}`}>{name}</Link>: {attentionLabel(a)}
-              </li>
-            ))}
-          </ul>
+          <div className="admin-card-title">The roster at a glance</div>
+          <p className="admin-hint coach-dash-hint">
+            Private to you. Mode shows the last 1-1&apos;s Coach / Mentor / Direct split; the target
+            is 80 / 15 / 5.
+          </p>
+          <div className="admin-table-wrap">
+            <table className="admin-table coach-dash-table">
+              <thead>
+                <tr>
+                  <th>Person</th>
+                  <th>Last → Next 1-1</th>
+                  <th>Mode C/M/D</th>
+                  <th>Top Priority</th>
+                  <th>Loose Root</th>
+                  <th>Attention</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((r) => (
+                  <tr key={r.profileId}>
+                    <td>
+                      <Link href={`/team/coaching/${r.profileId}`} className="admin-cell-strong">
+                        {r.member.name}
+                      </Link>
+                    </td>
+                    <td>
+                      {fmtShort(r.lastHeldOn)} → {fmtShort(r.nextOneOnOneOn)}
+                    </td>
+                    <td>
+                      {r.lastModeSplit ? (
+                        <span className="admin-cell-mono">
+                          {r.lastModeSplit.coach} / {r.lastModeSplit.mentor} / {r.lastModeSplit.direct}
+                        </span>
+                      ) : (
+                        <span className="admin-cell-muted">—</span>
+                      )}
+                    </td>
+                    <td>{r.topPriority ?? <span className="admin-cell-muted">—</span>}</td>
+                    <td>{r.retentionRoot ? ROOT_LABELS[r.retentionRoot] : <span className="admin-cell-muted">—</span>}</td>
+                    <td>
+                      {r.attention.length === 0 ? (
+                        <span className="admin-badge admin-badge--ok">clear</span>
+                      ) : (
+                        r.attention.map((a, i) => (
+                          <span key={i} className="admin-badge admin-badge--warn coach-dash-flag">
+                            {attentionLabel(a)}
+                          </span>
+                        ))
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -69,13 +112,13 @@ export default async function CoachingDashboardPage() {
 function attentionLabel(a: RosterAttention): string {
   switch (a.kind) {
     case "overdue":
-      return `last 1-1 was ${a.daysSince} days ago, over the cadence`;
+      return `${a.daysSince}d since last 1-1`;
     case "never_met":
-      return "no 1-1 logged yet";
+      return "no 1-1 yet";
     case "goal_not_set":
-      return "FAST goal not set";
+      return "no FAST goal";
     case "checkin_unanswered":
-      return "mid-cycle check-in unanswered";
+      return "check-in unanswered";
   }
 }
 
@@ -86,6 +129,12 @@ function fmt(iso: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+// Compact date for the dashboard table (the Lark dashboard's MM-DD feel).
+function fmtShort(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 const ROOT_LABELS: Record<string, string> = {

@@ -26,6 +26,7 @@ import {
   addGoal,
   addPriority,
   archiveMeeting,
+  deleteGoal,
   generatePrepAction,
   logOneOnOne,
   publishOcean,
@@ -45,6 +46,7 @@ import {
   updateGoal,
   updatePriority,
 } from "@/app/team/(dashboard)/coaching/actions";
+import { GoalComments } from "@/components/coaching/GoalComments";
 
 // The coach's working surface for one person. Server pre-renders every
 // markdown field into `html`; edits round-trip raw markdown through the
@@ -307,7 +309,19 @@ function GoalRow({
             run("Goal ladder", () => updateGoal(detail.profileId, g.id, { ladder: parseLadder(v) }));
           }}
         />
+        <button
+          className="admin-btn admin-btn--sm admin-btn--danger"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm("Delete this FAST goal? Its comments go with it.")) {
+              run("Goal", () => deleteGoal(detail.profileId, g.id));
+            }
+          }}
+        >
+          Delete
+        </button>
       </div>
+      <GoalComments goalId={g.id} comments={g.comments} />
     </div>
   );
 }

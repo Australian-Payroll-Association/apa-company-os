@@ -101,16 +101,16 @@ async function loadGoalsBlock(profileId: string): Promise<string> {
       let ladder = "";
       if (g.key_result_id) {
         const k = edges.keyResults.find((x) => x.id === g.key_result_id);
-        if (k) ladder = ` — ladders to KR: ${k.label}`;
+        if (k) ladder = `, ladders to KR: ${k.label}`;
       } else if (g.metric_id) {
         const m = edges.metrics.find((x) => x.id === g.metric_id);
         if (m)
-          ladder = ` — ladders to KPI: ${m.label}${
+          ladder = `, ladders to KPI: ${m.label}${
             m.target != null ? ` (target ${m.target}, ${m.direction}${m.latestValue != null ? `, latest ${m.latestValue}` : ""})` : ""
           }`;
       } else if (g.objective_id) {
         const o = edges.objectives.find((x) => x.id === g.objective_id);
-        if (o) ladder = ` — ladders to objective: ${o.label}`;
+        if (o) ladder = `, ladders to objective: ${o.label}`;
       }
       return `- [${g.status}${g.quarter_label ? `, ${g.quarter_label}` : ""}] ${g.title}${ladder}`;
     })
@@ -126,7 +126,7 @@ async function loadPrioritiesBlock(profileId: string): Promise<string> {
     .order("sort_order");
   const rows = (data ?? []) as Array<{ title: string; detail_markdown: string | null }>;
   if (rows.length === 0) return "(no standing priorities)";
-  return rows.map((p) => `- ${p.title}${p.detail_markdown ? ` — ${p.detail_markdown}` : ""}`).join("\n");
+  return rows.map((p) => `- ${p.title}${p.detail_markdown ? `, ${p.detail_markdown}` : ""}`).join("\n");
 }
 
 // The structured OCEAN read — coach tier, so unpublished rows count too.
@@ -143,7 +143,7 @@ async function loadOceanBlock(profileId: string): Promise<string> {
   if (!data) return "(no OCEAN read on file)";
   const r = data as unknown as Record<string, string | null>;
   const dim = (label: string, key: string) =>
-    r[`${key}_rating`] ? `- ${label}: ${r[`${key}_rating`]}${r[`${key}_evidence`] ? ` — ${r[`${key}_evidence`]}` : ""}` : null;
+    r[`${key}_rating`] ? `- ${label}: ${r[`${key}_rating`]}${r[`${key}_evidence`] ? `, ${r[`${key}_evidence`]}` : ""}` : null;
   return [
     dim("Openness", "openness"),
     dim("Conscientiousness", "conscientiousness"),
@@ -230,8 +230,8 @@ async function loadOpenCommitments(profileId: string): Promise<string> {
   return rows
     .map(
       (c) =>
-        `- [${c.status}] (${c.owner}) ${c.title}${c.due_on ? ` — due ${c.due_on}` : ""}${
-          c.status_note ? ` — latest note: ${c.status_note}` : ""
+        `- [${c.status}] (${c.owner}) ${c.title}${c.due_on ? `, due ${c.due_on}` : ""}${
+          c.status_note ? `, latest note: ${c.status_note}` : ""
         }`,
     )
     .join("\n");
@@ -254,7 +254,7 @@ function personBlock(p: ProfileContext): string {
 
 const VOICE_RULES = `Ground rules:
 - Never use em dashes anywhere in your output. Use commas, colons, periods, or parentheses instead.
-- Write in the coach's voice, guided by the communication style and coaching profile in the context documents. Warm, direct, growth-oriented — never corporate, never clinical.
+- Write in the coach's voice, guided by the communication style and coaching profile in the context documents. Warm, direct, growth-oriented, never corporate, never clinical.
 - They are COMMITMENTS, never "tasks" or "action items".
 - Never invent information. If notes are missing, work with what exists and say so.
 - Handle personal or emotional context with care, per the emotional intelligence guide.`;
@@ -283,13 +283,13 @@ async function textCompletion(system: string, user: string, maxTokens: number): 
 const PREP_SYSTEM = `You prepare a leader for a biweekly 1-1 coaching conversation with one of their people. You write the prep the leader skims in two minutes before walking into the room.
 
 Produce Markdown with exactly these ## sections, in order:
-## Recommended mode — the coach/mentor/direct split to aim for in this meeting (target 80/15/5), one sentence on why, grounded in the coach's recent mode history and this person's OCEAN wiring.
-## Focus areas — 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked.
-## Coaching questions — 3-5 open-ended GROW questions tailored to this person right now, led by the goal question. They must reflect the coaching profile and the OCEAN read and sound like the coach, not a template.
-## Context reminders — bullets: status of previous commitments, standing priorities to touch, personal context to handle with care, upcoming milestones, relevant company context.
-## Retention check — one specific thing to listen for, tied to the person's current loose engagement root. If the root is "watching", the check is about forming a first confident read.
-## One question to avoid — the single question or move most likely to backfire with this person's wiring, and what to do instead.
-## Open commitments — carry forward each open commitment with whatever status is known.
+## Recommended mode: the coach/mentor/direct split to aim for in this meeting (target 80/15/5), one sentence on why, grounded in the coach's recent mode history and this person's OCEAN wiring.
+## Focus areas: 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked.
+## Coaching questions: 3-5 open-ended GROW questions tailored to this person right now, led by the goal question. They must reflect the coaching profile and the OCEAN read and sound like the coach, not a template.
+## Context reminders: bullets: status of previous commitments, standing priorities to touch, personal context to handle with care, upcoming milestones, relevant company context.
+## Retention check: one specific thing to listen for, tied to the person's current loose engagement root. If the root is "watching", the check is about forming a first confident read.
+## One question to avoid: the single question or move most likely to backfire with this person's wiring, and what to do instead.
+## Open commitments: carry forward each open commitment with whatever status is known.
 
 ${VOICE_RULES}`;
 
@@ -358,7 +358,7 @@ const SUMMARY_SCHEMA = {
     summary_markdown: {
       type: "string",
       description:
-        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance — decisions, concerns, energy and tone); 'Goal progress' (what the transcript shows about each FAST goal: moved, stalled, or blocked, with the evidence); 'Commitments' (each commitment, its owner, timeline, and any OKR connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care — this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, goals/OKRs, and company context).",
+        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance, decisions, concerns, energy and tone); 'Goal progress' (what the transcript shows about each FAST goal: moved, stalled, or blocked, with the evidence); 'Commitments' (each commitment, its owner, timeline, and any OKR connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care, this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, goals/OKRs, and company context).",
     },
     mode_split_estimate: {
       type: "object",
@@ -366,16 +366,18 @@ const SUMMARY_SCHEMA = {
       required: ["coach", "mentor", "direct"],
       description:
         "Estimate of how the leader's talk time split across the three modes, as integer percentages summing to 100. coach = asking questions and drawing the person out; mentor = teaching from experience; direct = giving instructions or answers. Judge from who talks, who proposes, and who decides in the transcript.",
+      // The structured-output API rejects minimum/maximum on integers, so
+      // range + sum are validated in code after parsing.
       properties: {
-        coach: { type: "integer", minimum: 0, maximum: 100 },
-        mentor: { type: "integer", minimum: 0, maximum: 100 },
-        direct: { type: "integer", minimum: 0, maximum: 100 },
+        coach: { type: "integer" },
+        mentor: { type: "integer" },
+        direct: { type: "integer" },
       },
     },
     shared_summary_markdown: {
       type: "string",
       description:
-        "The recap SHARED WITH THE TEAM MEMBER. Markdown with ## sections: 'What we covered' (the discussion, decisions, and wins — honest but constructive, written TO the team member in second person); 'Commitments' (the same commitments, phrased as what each side agreed to). NO private coaching observations, NO emotional read-outs, NO assessments of the person — only what both people in the room already know was said.",
+        "The recap SHARED WITH THE TEAM MEMBER. Markdown with ## sections: 'What we covered' (the discussion, decisions, and wins, honest but constructive, written TO the team member in second person); 'Commitments' (the same commitments, phrased as what each side agreed to). NO private coaching observations, NO emotional read-outs, NO assessments of the person, only what both people in the room already know was said.",
     },
     commitments: {
       type: "array",
@@ -404,7 +406,7 @@ const SUMMARY_SCHEMA = {
 
 const SUMMARY_SYSTEM = `You turn a 1-1 coaching meeting transcript into two summaries and a commitment log.
 
-The private summary is for the coach alone and captures everything, including emotional undercurrents. The shared summary goes to the team member — it must contain nothing the member would be surprised or hurt to read, only the substance both people already voiced in the room.
+The private summary is for the coach alone and captures everything, including emotional undercurrents. The shared summary goes to the team member, it must contain nothing the member would be surprised or hurt to read, only the substance both people already voiced in the room.
 
 ${VOICE_RULES}`;
 
@@ -471,7 +473,8 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
     // a coach-entered split is never overwritten.
     const est = parsed.mode_split_estimate;
     const modePatch: Record<string, number> = {};
-    if (est && est.coach + est.mentor + est.direct === 100) {
+    const inRange = (n: number) => Number.isInteger(n) && n >= 0 && n <= 100;
+    if (est && inRange(est.coach) && inRange(est.mentor) && inRange(est.direct) && est.coach + est.mentor + est.direct === 100) {
       const { data: current } = await companyOs
         .from("coaching_one_on_ones")
         .select("mode_coach_pct")
@@ -539,9 +542,9 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
 const CHECKIN_SYSTEM = `You write a short mid-cycle check-in message from a coach to their team member, halfway between biweekly 1-1s.
 
 The message must:
-- Open with one line connected to their FAST goal — FAST means Frequent, so the goal is touched every time.
+- Open with one line connected to their FAST goal, FAST means Frequent, so the goal is touched every time.
 - Reference each open commitment by name and ask for a brief status update on each.
-- Feel like a nudge from a coach who pays attention — not a project manager chasing tickets.
+- Feel like a nudge from a coach who pays attention, not a project manager chasing tickets.
 - Be brief: a few warm sentences plus the commitment list. Write in second person, to the member.
 - End by pointing them to their coaching page to update statuses.
 
@@ -557,7 +560,7 @@ export async function generateCheckinMessage(
     ``,
     commitments,
     ``,
-    `Update each one on your coaching page — even a one-line status helps our next 1-1.`,
+    `Update each one on your coaching page, even a one-line status helps our next 1-1.`,
   ].join("\n");
   if (!profile) return { markdown: fallback, ai: false };
   try {
@@ -582,14 +585,14 @@ export async function generateCheckinMessage(
 const TREND_SYSTEM = `You write a monthly coaching trend report about one team member, for their coach's eyes only. You look across the month's 1-1 summaries, the commitment ledger, and check-ins, and surface what meeting-to-meeting attention misses.
 
 Produce Markdown with exactly these ## sections, in order:
-## Growth trajectory — growing, plateauing, or struggling, with specific evidence.
-## Goal progress — each FAST goal against its ladder target: moving, stalled, or blocked, with the numbers where the goal is metric-linked.
-## Recurring themes — topics and patterns that keep coming up.
-## Commitment follow-through — completed vs in progress vs dropped, and the pattern in what gets done.
-## Mode trajectory — the coach's C/M/D splits this month vs the 80/15/5 target and vs prior months: moving the right way or not, and what to change.
-## Coaching opportunities — specific things to coach next cycle (never generic "develop leadership skills"; name the observed behavior and the move).
-## Flags — burnout signals, disengagement, recurring blockers, escalating personal situations, retention-root shifts. Omit the section if there are none.
-## Quarter comparison — better, worse, or flat vs the prior period, if prior data exists.
+## Growth trajectory: growing, plateauing, or struggling, with specific evidence.
+## Goal progress: each FAST goal against its ladder target: moving, stalled, or blocked, with the numbers where the goal is metric-linked.
+## Recurring themes: topics and patterns that keep coming up.
+## Commitment follow-through: completed vs in progress vs dropped, and the pattern in what gets done.
+## Mode trajectory: the coach's C/M/D splits this month vs the 80/15/5 target and vs prior months: moving the right way or not, and what to change.
+## Coaching opportunities: specific things to coach next cycle (never generic "develop leadership skills"; name the observed behavior and the move).
+## Flags: burnout signals, disengagement, recurring blockers, escalating personal situations, retention-root shifts. Omit the section if there are none.
+## Quarter comparison: better, worse, or flat vs the prior period, if prior data exists.
 
 ${VOICE_RULES}`;
 
@@ -673,7 +676,7 @@ async function loadAllCommitmentsBlock(profileId: string): Promise<string> {
       (c) =>
         `- [${c.status}] (${c.owner}, made ${c.created_at.slice(0, 10)}${
           c.closed_at ? `, closed ${c.closed_at.slice(0, 10)}` : ""
-        }) ${c.title}${c.status_note ? ` — note: ${c.status_note}` : ""}`,
+        }) ${c.title}${c.status_note ? `, note: ${c.status_note}` : ""}`,
     )
     .join("\n");
 }
@@ -702,6 +705,6 @@ async function loadCheckinsBlock(profileId: string, monthStart: string): Promise
   const rows = (data ?? []) as Array<{ sent_at: string; responded_at: string | null }>;
   if (rows.length === 0) return "(no check-ins this month)";
   return rows
-    .map((c) => `- sent ${c.sent_at.slice(0, 10)} — ${c.responded_at ? "responded" : "no response"}`)
+    .map((c) => `- sent ${c.sent_at.slice(0, 10)}, ${c.responded_at ? "responded" : "no response"}`)
     .join("\n");
 }
