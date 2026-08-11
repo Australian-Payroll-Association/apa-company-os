@@ -4,6 +4,7 @@ import { getCompany360, getCompanyReferredBy } from "@/lib/admin/companies";
 import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
 import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/staff-assignments";
 import { getInvoicesForCompany, getQboCustomerIds } from "@/lib/admin/invoices";
+import { getMeetingsForCompany } from "@/lib/admin/meetings";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -13,6 +14,8 @@ import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
+import { MeetingUploadForm } from "@/components/admin/MeetingUploadForm";
+import { MeetingsList } from "@/components/admin/MeetingsList";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -28,7 +31,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people, affiliate: companyAffiliate } = data;
   const name = company.name || "(no name)";
-  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy] =
+  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy, meetings] =
     await Promise.all([
       getPortalMembershipsForCompany(company.id),
       getAssignmentsForCompany(company.id),
@@ -36,10 +39,15 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       getInvoicesForCompany(company.id),
       getQboCustomerIds(company.id),
       getCompanyReferredBy(company.id),
+      getMeetingsForCompany(company.id),
     ]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
+  // MeetingsList is an async server component; await it into a node so it can be
+  // passed as tab content (a prop to the client Tabs component) without hitting
+  // the async-JSX typing limitation.
+  const meetingsListNode = await MeetingsList({ meetings });
 
   // At-a-glance figures for the summary strip.
   const OPEN = new Set(["open", "new_lead", "contacted", "discovery", "proposal"]);
@@ -143,6 +151,17 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       count: invoices.length,
       content: (
         <InvoicesTab companyId={company.id} invoices={invoices} qboCustomerIds={qboCustomerIds} />
+      ),
+    },
+    {
+      key: "meetings",
+      label: "Meeting Notes",
+      count: meetings.length,
+      content: (
+        <div>
+          <MeetingUploadForm companyId={company.id} />
+          {meetingsListNode}
+        </div>
       ),
     },
   ];

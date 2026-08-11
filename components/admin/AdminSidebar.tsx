@@ -59,6 +59,7 @@ const NAV: NavSection[] = [
           { label: "Companies", href: "/admin/revenue/companies", ico: "▣", enabled: true },
           { label: "Clients", href: "/admin/revenue/clients", ico: "★", enabled: true },
           { label: "Contacts", href: "/admin/contacts", ico: "⚇", enabled: true },
+          { label: "Meeting Notes", href: "/admin/revenue/meetings", ico: "☰", enabled: true },
         ],
       },
       {
