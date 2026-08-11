@@ -507,7 +507,7 @@ const STYLES = `
     --accent: #287BE8; --accent-bright: #3B8CF5; --mint: #6FF2C1;
     --accent-soft: rgba(40,123,232,0.08); --border: #E6E6E6; --line: #EAEEF2;
     background: var(--bg); color: var(--ink);
-    font: 16px/1.6 'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif;
+    font: 16px/1.6 'Manrope', 'Helvetica Neue', Arial, sans-serif;
     padding: 108px 16px 56px; min-height: 100vh; box-sizing: border-box;
   }
   .bstore-doc * { box-sizing: border-box; }
@@ -713,7 +713,7 @@ export default function BstoreBacklogPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "108px 24px 56px",
-          fontFamily: "'SVN-Gilroy', 'Helvetica Neue', Arial, sans-serif",
+          fontFamily: "'Manrope', 'Helvetica Neue', Arial, sans-serif",
           background: "#ffffff",
         }}
       >

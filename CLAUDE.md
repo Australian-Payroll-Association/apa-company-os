@@ -16,7 +16,7 @@ One system, two layers. Read the relevant layer before building any UI; do not i
 - Tokens live in `app/globals.css` `:root`. `app/admin/admin.css` re-roots onto them. The OS shell is shared: `/team` and `/portal` both import `admin.css` and render inside `.admin-shell`, so a change there hits all three views.
 - Living component reference: `/admin/patterns`. Copy from it rather than hand-rolling a new card, table, or chip.
 - Never introduce a raw hex, radius, shadow, or font family that isn't a token.
-- **The brand has no bold cut.** Only weights 400 and 500 exist. Anything heavier silently renders as Medium, so use size, color, and spacing for emphasis instead. See the Foundations doc for the full explanation.
+- **Typeface is Manrope**, open source (SIL OFL 1.1) and self-hosted from `public/fonts/`. Never load fonts from a third-party CDN, and never add a licensed font. Weights 200 to 800 are all real (variable font); nothing above 800.
 
 ### Guardrail
 

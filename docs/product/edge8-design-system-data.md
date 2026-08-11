@@ -25,7 +25,7 @@ Two rules govern everything below:
 
 | Axis | Decision | Consequence |
 |---|---|---|
-| Font | **SVN-Gilroy only**, brand-wide. No second UI font, no monospace. | Numeric alignment is handled with `tabular-nums`, not a mono typeface. Any existing JetBrains Mono / DM Sans usage is migrated out. |
+| Font | **Manrope only**, brand-wide. No second UI font, no monospace. | Numeric alignment is handled with `tabular-nums`, not a mono typeface. Any existing JetBrains Mono / DM Sans usage is migrated out. |
 | Dense buttons | **Compact rounded utility button** allowed as a documented exception. | The 40px pill stays mandatory for real CTAs. Toolbars/table actions may use an 8px rounded button. |
 | Elevation | **Shadows on overlays only.** | Resting cards and sections stay shadow-free per Foundations. Drawers, modals, popovers, and sticky headers may cast shadow. |
 
@@ -33,15 +33,15 @@ Two rules govern everything below:
 
 ## 2. Typography — compact scale
 
-SVN-Gilroy throughout. This layer only **adds smaller steps** on the same ramp and a numeric-alignment rule. It never introduces a new family.
+Manrope throughout. This layer only **adds smaller steps** on the same ramp and a numeric-alignment rule. It never introduces a new family.
 
 | Token | Value | Use | Reason to exist |
 |---|---|---|---|
 | `--data-text-base` | `13px / 1.5` | Default data-surface body, table cells | Foundations' 16px body is too loose for dense grids |
 | `--data-text-sm` | `12px / 1.4` | Secondary labels, meta, captions | Below Foundations' 14px floor |
 | `--data-text-lg` | `15px / 1.4` | Emphasis rows, drawer body | Step between base and Foundations H4 |
-| `--data-page-title` | `26px / 1.2`, SVN-Gilroy Medium | Admin page H1 | Foundations H1 (80px) is a marketing display size |
-| `--data-kpi` | `28px / 1.1`, SVN-Gilroy Medium | KPI tile numerals | Stat callout at data scale |
+| `--data-page-title` | `26px / 1.2`, Manrope Medium | Admin page H1 | Foundations H1 (80px) is a marketing display size |
+| `--data-kpi` | `28px / 1.1`, Manrope Medium | KPI tile numerals | Stat callout at data scale |
 
 **Numeric rule:** any cell, KPI, currency, or metric applies `font-variant-numeric: tabular-nums`. This replaces the need for a monospace font. Optional `letter-spacing: -0.01em` on long figures is permitted **only** on tabular numerics.
 
@@ -127,7 +127,7 @@ The 40px pill remains mandatory for CTAs. For dense toolbars and table-row actio
 
 ```css
 .data-btn {
-  font-family: var(--font-body);   /* SVN-Gilroy */
+  font-family: var(--font-body);   /* Manrope */
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
@@ -185,7 +185,7 @@ The admin already implements ~90% of this layer under `--admin-*` names. Adoptio
 
 1. Re-point admin tokens at Foundations: `--admin-accent: <Foundations blue>`, etc., so admin *consumes* the brand instead of hardcoding it.
 2. Rename/alias `--admin-*` to `--data-*` (or keep `--admin-*` as an alias that reads `--data-*`).
-3. **Font:** replace DM Sans and JetBrains Mono with SVN-Gilroy; apply `tabular-nums` on numeric cells/KPIs.
+3. **Font:** replace DM Sans and JetBrains Mono with Manrope; apply `tabular-nums` on numeric cells/KPIs.
 4. Collapse the duplicated per-page stage/status hex maps (deals, inquiries, revenue, jobs) into the §5.2 canonical tokens.
 5. Keep the compact button, 12px data radius, and overlay shadows, now blessed by §4/§6/§7 instead of being undocumented divergence.
 
@@ -196,7 +196,7 @@ This closes every Section-B defect from the 2026-07-18 admin audit as a side eff
 ## 10. What did NOT change
 
 Foundations rules that this layer explicitly preserves:
-- SVN-Gilroy is the only UI font.
+- Manrope is the only UI font.
 - 40px pill for all real CTAs.
 - Resting cards and sections are shadow-free.
 - No letter-spacing on prose or labels; no ALL-CAPS eyebrows.

@@ -41,6 +41,7 @@ function walk(dir, exts, out = []) {
 
 const cssFiles = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d), [".css"]));
 const jsxFiles = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d), [".tsx", ".jsx"]));
+const codeFiles = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d), [".ts", ".tsx", ".js", ".jsx", ".mjs"]));
 const errors = [];
 const warnings = [];
 
@@ -109,6 +110,28 @@ for (const file of jsxFiles) {
       // Route links (no file extension) are pages, not assets.
       if (!/\.[a-z0-9]{2,5}$/i.test(ref)) continue;
       recordAsset(ref, file, i + 1);
+    }
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Check 1b: server-side reads such as
+   readFileSync(join(root(), 'public/fonts/x.ttf')). These are invisible to the
+   CSS/JSX scans above but break the BUILD when the file is missing, which is
+   how removing a font silently broke every OpenGraph image route.
+   ───────────────────────────────────────────────────────────── */
+
+for (const file of codeFiles) {
+  readFileSync(file, "utf8").split("\n").forEach((text, i) => {
+    for (const m of text.matchAll(/['"`](public\/[^'"`${}]+\.[a-z0-9]{2,5})['"`]/gi)) {
+      const clean = decodeURIComponent(m[1]);
+      if (existsSync(join(ROOT, clean))) continue;
+      errors.push({
+        check: "missing-asset",
+        file: relative(ROOT, file),
+        line: i + 1,
+        msg: `reads "${clean}" from disk but that file does not exist`,
+      });
     }
   });
 }
