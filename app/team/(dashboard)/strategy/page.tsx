@@ -98,9 +98,13 @@ export default async function TeamStrategyPage() {
 
   const lines = byName.get("business lines") ? parseSubsections(byName.get("business lines")!.body) : [];
 
+  // The `## Overview` section is the hero message; the title stays the
+  // aspirational line on /admin/edges/goals.
+  const overview = byName.get("overview")?.body ?? null;
+
   // Anything beyond the sections this page knows how to design renders as
   // prose below, so a new `##` heading added in the admin still shows up.
-  const known = new Set(["ambition", "purpose", "value proposition", "themes", "business lines"]);
+  const known = new Set(["overview", "ambition", "purpose", "value proposition", "themes", "business lines"]);
   const extras = sections.filter((s) => !known.has(s.heading.toLowerCase()));
   const extraHtml = await Promise.all(
     extras.map(async (s) => ({
@@ -128,7 +132,9 @@ export default async function TeamStrategyPage() {
                   {currentTheme.year} · {currentTheme.title}
                 </span>
               )}
-              <p className="team-strat-north">{strategy.title}</p>
+              <p className={`team-strat-north${overview ? " team-strat-north--overview" : ""}`}>
+                {overview ?? strategy.title}
+              </p>
               {/* The current year's theme is the kicker above; older themes
                   trail behind it as a quiet timeline. */}
               {themes.filter((t) => t !== currentTheme).length > 0 && (
