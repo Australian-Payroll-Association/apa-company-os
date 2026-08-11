@@ -14,7 +14,7 @@ export const metadata = {
 };
 
 function fmt(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -22,7 +22,7 @@ function fmt(iso: string | null): string {
   });
 }
 
-// /team/my-coaching — the member tier. getMyCoaching selects ONLY
+// /team/my-coaching - the member tier. getMyCoaching selects ONLY
 // member-visible fields (goal, OKRs, commitments, PUBLISHED recaps,
 // check-ins); the private coaching tier never reaches this page's data.
 export default async function MyCoachingPage() {
