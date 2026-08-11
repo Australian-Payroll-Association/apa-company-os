@@ -61,7 +61,7 @@ export type RenderedHtml = {
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 function fmt(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -467,7 +467,7 @@ function CadenceCard({
               )
             }
           >
-            <option value="">—</option>
+            <option value="">-</option>
             {Object.entries(RETENTION_ROOT_LABELS).map(([k, label]) => (
               <option key={k} value={k}>
                 {label}

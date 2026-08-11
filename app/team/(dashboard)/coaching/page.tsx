@@ -18,7 +18,7 @@ export const metadata = {
   description: "Your 1-1 coaching roster: FAST goals, cadence, commitments.",
 };
 
-// /team/coaching — the coach's dashboard, the in-app rebuild of the Lark
+// /team/coaching - the coach's dashboard, the in-app rebuild of the Lark
 // "Team Coaching" wiki. Access is granted by coaching_profiles rows, not the
 // manager role: a dotted-line coach sees exactly the people whose profile
 // carries their coach_id, and nobody else (getCoachRoster injects the scope).
@@ -74,11 +74,11 @@ export default async function CoachingDashboardPage() {
                           {r.lastModeSplit.coach} / {r.lastModeSplit.mentor} / {r.lastModeSplit.direct}
                         </span>
                       ) : (
-                        <span className="admin-cell-muted">—</span>
+                        <span className="admin-cell-muted">-</span>
                       )}
                     </td>
-                    <td>{r.topPriority ?? <span className="admin-cell-muted">—</span>}</td>
-                    <td>{r.retentionRoot ? ROOT_LABELS[r.retentionRoot] : <span className="admin-cell-muted">—</span>}</td>
+                    <td>{r.topPriority ?? <span className="admin-cell-muted">-</span>}</td>
+                    <td>{r.retentionRoot ? ROOT_LABELS[r.retentionRoot] : <span className="admin-cell-muted">-</span>}</td>
                     <td>
                       {r.attention.length === 0 ? (
                         <span className="admin-badge admin-badge--ok">clear</span>
@@ -123,7 +123,7 @@ function attentionLabel(a: RosterAttention): string {
 }
 
 function fmt(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -133,7 +133,7 @@ function fmt(iso: string | null): string {
 
 // Compact date for the dashboard table (the Lark dashboard's MM-DD feel).
 function fmtShort(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
@@ -158,7 +158,7 @@ function RosterCard({ row }: { row: CoachRosterRow }) {
         )}
         <div>
           <div className="coach-card-name">{row.member.name}</div>
-          <div className="coach-card-role">{row.member.positionTitle ?? "—"}</div>
+          <div className="coach-card-role">{row.member.positionTitle ?? "-"}</div>
         </div>
         {row.attention.length > 0 && (
           <span className="admin-badge admin-badge--warn coach-card-flag">
@@ -194,11 +194,11 @@ function RosterCard({ row }: { row: CoachRosterRow }) {
           <strong>
             {row.lastModeSplit
               ? `${row.lastModeSplit.coach}/${row.lastModeSplit.mentor}/${row.lastModeSplit.direct}`
-              : "—"}
+              : "-"}
           </strong>
         </span>
         <span title="Loose engagement root (retention read)">
-          Root <strong>{row.retentionRoot ? ROOT_LABELS[row.retentionRoot] : "—"}</strong>
+          Root <strong>{row.retentionRoot ? ROOT_LABELS[row.retentionRoot] : "-"}</strong>
         </span>
       </div>
     </Link>

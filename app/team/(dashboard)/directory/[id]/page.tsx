@@ -25,7 +25,7 @@ function initials(name: string): string {
     .slice(0, 2);
 }
 
-// /team/directory/[id] — a colleague's public profile. Company-visible like the
+// /team/directory/[id] - a colleague's public profile. Company-visible like the
 // directory and org chart, and limited to the same safe fields plus the
 // get-to-know-you extras (hometown, education, hobbies). No contact details.
 export default async function MemberProfilePage({ params }: { params: { id: string } }) {
@@ -75,23 +75,23 @@ export default async function MemberProfilePage({ params }: { params: { id: stri
           <h2 className="admin-card-title">Role</h2>
           <dl className="admin-kv">
             <dt>Position</dt>
-            <dd>{profile.positionTitle || "—"}</dd>
+            <dd>{profile.positionTitle || "-"}</dd>
             <dt>Department</dt>
-            <dd>{profile.departmentName || "—"}</dd>
+            <dd>{profile.departmentName || "-"}</dd>
             <dt>Location</dt>
-            <dd>{profile.workLocation || "—"}</dd>
+            <dd>{profile.workLocation || "-"}</dd>
             <dt>Manager</dt>
             <dd>
               {profile.managerId && profile.managerName ? (
                 <Link href={`/team/directory/${profile.managerId}`}>{profile.managerName}</Link>
               ) : (
-                profile.managerName || "—"
+                profile.managerName || "-"
               )}
             </dd>
             <dt>Employment type</dt>
-            <dd>{profile.employmentType ? humanize(profile.employmentType) : "—"}</dd>
+            <dd>{profile.employmentType ? humanize(profile.employmentType) : "-"}</dd>
             <dt>Start date</dt>
-            <dd>{profile.startDate ? formatDate(profile.startDate) : "—"}</dd>
+            <dd>{profile.startDate ? formatDate(profile.startDate) : "-"}</dd>
           </dl>
         </section>
 

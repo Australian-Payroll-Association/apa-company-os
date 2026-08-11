@@ -98,7 +98,7 @@ const one = <T,>(e: T | T[] | null | undefined): T | null =>
   Array.isArray(e) ? e[0] ?? null : e ?? null;
 
 const displayName = (p: PersonEmbed | null): string =>
-  p?.preferred_name || p?.full_name || p?.email || "—";
+  p?.preferred_name || p?.full_name || p?.email || "-";
 
 export type CoachingMember = {
   teamMemberId: string;
