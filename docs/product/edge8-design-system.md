@@ -14,7 +14,7 @@ Edge8 is an AI leadership and global talent consultancy. The website is a clean,
 - Input / divider border: `#A8B2BD`
 - Buttons: fully pill-shaped, `border-radius: 40px`, padding `16px 24px`
 - Cards: `border-radius: 20px` — warm but precise
-- Typography: SVN-Gilroy Medium (headings) / SVN-Gilroy Regular (body) — no letter-spacing on any element
+- Typography: Manrope Medium (headings) / Manrope Regular (body) — no letter-spacing on any element
 - Section structure: Title Case eyebrow → Bold H2 → Sub-copy → Pill CTA
 - Numbered step framework (01–08) with clean divider rows
 - Testimonial cards in a horizontal scroll layout
@@ -129,10 +129,29 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 ## 4. Typography Rules
 
 ### Font Stack
-- **Headings**: `SVN-Gilroy Medium`, fallback: `Gilroy`, `sans-serif`
-- **Body**: `SVN-Gilroy Regular`, fallback: `Gilroy`, `sans-serif`
+- **Headings and body**: `Manrope`, fallback: `Helvetica Neue`, `Arial`, `sans-serif`
+- One family for everything. No second UI font, no monospace: numeric alignment
+  uses `tabular-nums`.
+
+> **Manrope is open source** (SIL Open Font License 1.1) and **self-hosted** from
+> `public/fonts/`. No Google Fonts request, no third-party dependency, no licence
+> to renew. The licence text ships alongside it as `MANROPE-OFL.txt`.
+>
+> **Weights 200 to 800 are all real.** Manrope is a variable font, so every step
+> in that range is genuine font data rather than a browser approximation,
+> including in-between values like 550 and 650. Do not use weights above 800:
+> `npm run check:design` fails on any weight with no face behind it.
+>
+> It replaced SVN-Gilroy, a licensed family whose bold cut was never licensed or
+> committed. The result was that every `font-weight` above 500 silently rendered
+> as Medium for months, because a missing face falls back to the nearest weight
+> in the same family instead of failing. Manrope was chosen partly on metrics:
+> average advance width is within 1.6% of SVN-Gilroy, so the swap reflows
+> existing layouts as little as possible.
+>
+> **Vietnamese is covered** by a dedicated subset. This is required for team and
+> client names rendered from the database in the OS, not only for static copy.
 - **Letter Spacing**: `none` (0) — never apply tracking to any text
-- **Style note**: SVN-Gilroy is a localized Vietnamese-licensed version of Gilroy. Always embed or self-host via `@font-face`.
 
 | Role | Tag | Size | Line Height | Weight | Letter Spacing | Notes |
 |------|-----|------|-------------|--------|----------------|-------|
@@ -167,7 +186,7 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 - Padding: `24px`
 - Stars: `#101014`
 - Quote text: 16px (Body), `#797c82`
-- Name: 24px (H4), SVN-Gilroy Regular, `#101014`
+- Name: 24px (H4), Manrope Regular, `#101014`
 - Role / Company: 14px (Body Small), `#797c82`
 - Avatar: circular, 40px–48px
 
@@ -185,7 +204,7 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 
 ### Badges / Eyebrow Labels
 - Background: `#EAEEF2` (solid light gray — always)
-- Text: `#797c82`, 14px (Body Small), SVN-Gilroy Regular, no letter-spacing
+- Text: `#797c82`, 14px (Body Small), Manrope Regular, no letter-spacing
 - Border: none
 - Border-radius: `40px` (pill — mirrors button language)
 - Padding: `4px 12px`
@@ -334,7 +353,7 @@ Tone patterns:
 - Use `#E6E6E6` for all card and component borders; `#A8B2BD` for input and divider borders
 - Use `#EAEEF2` fill with no border for all badges and eyebrow labels
 - Remove the bottom border from the navigation bar
-- Use SVN-Gilroy Medium for all headings (H1–H4), SVN-Gilroy Regular for body and testimonial names
+- Use Manrope Medium for all headings (H1–H4), Manrope Regular for body and testimonial names
 - Follow section structure exactly: Title Case eyebrow → Bold H2 → Sub-copy → Pill CTA
 - Set letter-spacing to `none` (0) on all elements — never apply tracking
 - Keep H1 at 80px/1.0, H2 at 48px/1.2, H3 at 32px/1.2, H4 at 24px/1.2
@@ -364,13 +383,13 @@ When generating UI, copy, or layouts for Edge8, apply these defaults:
 - **Secondary CTA Hover**: Background `#101014`, no shadow, crossfade `0.3s ease`
 - **Accent — Interactive**: Blue `#287BE8`
 - **Accent — Decorative**: Mint `#6FF2C1` (use sparingly, never for CTAs or badges)
-- **Badge / Eyebrow Label**: Background `#EAEEF2`, text `#797c82` (Body Small, 14px, SVN-Gilroy Regular), no border, radius `40px`
+- **Badge / Eyebrow Label**: Background `#EAEEF2`, text `#797c82` (Body Small, 14px, Manrope Regular), no border, radius `40px`
 - **Navigation**: No border-bottom. Nav links: 16px (Body), `#797c82`, hover `#287BE8`
-- **Testimonial Card**: Background `#EAEEF2`, no border, radius `20px`. Stars `#101014`. Quote 16px/`#797c82`. Name H4/SVN-Gilroy Regular/`#101014`. Role Body Small/`#797c82`
+- **Testimonial Card**: Background `#EAEEF2`, no border, radius `20px`. Stars `#101014`. Quote 16px/`#797c82`. Name H4/Manrope Regular/`#101014`. Role Body Small/`#797c82`
 - **Card Border**: `#E6E6E6`
 - **Input / Divider Border**: `#A8B2BD`
-- **Font Heading**: SVN-Gilroy Medium — H1: 80px/1.0 · H2: 48px/1.2 · H3: 32px/1.2 · H4: 24px/1.2
-- **Font Body**: SVN-Gilroy Regular — Large: 18px/1.4 · Body: 16px/1.5 · Small: 14px/1.5
+- **Font Heading**: Manrope Medium — H1: 80px/1.0 · H2: 48px/1.2 · H3: 32px/1.2 · H4: 24px/1.2
+- **Font Body**: Manrope Regular — Large: 18px/1.4 · Body: 16px/1.5 · Small: 14px/1.5
 - **Letter Spacing**: none (0) on all elements
 - **Button Radius**: `40px` (pill — always)
 - **Card Radius**: `20px`

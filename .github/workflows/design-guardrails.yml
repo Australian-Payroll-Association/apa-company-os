@@ -1,0 +1,27 @@
+name: Design guardrails
+
+# Fails a PR that references an asset which is not in the repo. This exists
+# because a missing font file shipped unnoticed for months: the CSS asked for a
+# weight, the file 404'd, and the browser silently substituted a lighter face
+# instead of erroring. Nothing in the build could see it.
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "public/**"
+      - "scripts/design/**"
+      - ".github/workflows/design-guardrails.yml"
+
+jobs:
+  check-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check referenced assets exist and font weights are backed by real faces
+        run: node scripts/design/check-assets.mjs

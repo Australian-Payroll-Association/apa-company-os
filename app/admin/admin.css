@@ -3,12 +3,12 @@
    globals.css by both admin route-group layouts.
 
    Design system: the Edge8 Data Layer, which extends the brand system for dense
-   surfaces (see docs/product/edge8-design-system-data.md). SVN-Gilroy brand-wide,
+   surfaces (see docs/product/edge8-design-system-data.md). Manrope brand-wide,
    a dense 13px scale, cool navy neutrals and overlay-only shadows, plus per-section
    accent theming. The tokens below re-root onto the canonical brand tokens in
    globals.css; the living reference renders at /admin/patterns. */
 
-/* Fonts: SVN-Gilroy brand-wide, loaded once in globals.css. The data layer uses
+/* Fonts: Manrope brand-wide, loaded once in globals.css. The data layer uses
    no admin-only webfonts; numeric alignment uses tabular-nums, not a monospace. */
 
 /* :root is included so the token set still resolves for content portalled
@@ -19,9 +19,9 @@
 .admin-shell,
 .admin-auth {
   /* Typography */
-  /* SVN-Gilroy brand-wide. --font-display / --font-body are NOT overridden here,
-     so they inherit globals.css (SVN-Gilroy) and every rule reading them follows.
-     The mono var now resolves to SVN-Gilroy too; tabular-nums (.admin-cell-mono)
+  /* Manrope brand-wide. --font-display / --font-body are NOT overridden here,
+     so they inherit globals.css (Manrope) and every rule reading them follows.
+     The mono var now resolves to Manrope too; tabular-nums (.admin-cell-mono)
      handles figure alignment. */
   --admin-font-sans: var(--font-body);
   --admin-font-mono: var(--font-body);
