@@ -909,6 +909,122 @@ a.ts-btn.ghost:hover { color: #cfe0fb; }
   .ts-btn { width: 100%; }
 }
 
+/* ─── /team/strategy + /team/values ───────────────────
+   Company strategy and core values. Content lives in company_os
+   (strategies.body_md, core_values); the pages parse it into an accent hero,
+   statement cards, business-line cards, and the six-value grid. Mirrors the
+   "Start here" panel's accent-soft hero and the home hub's icon-chip cards. */
+.team-strat-hero {
+  margin: 8px 0 20px;
+  padding: 26px 28px;
+  border: 1px solid #dfe8fb;
+  border-radius: 18px;
+  background: var(--admin-accent-soft);
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.team-strat-hero-main { flex: 1 1 420px; min-width: 260px; }
+.team-strat-north {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--admin-ink);
+  margin: 8px 0 0;
+  max-width: 700px;
+}
+.team-strat-hero-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.team-strat-themes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.team-strat-theme {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-surface);
+  border: 1px solid #dfe8fb;
+  color: var(--admin-muted);
+}
+.team-strat-theme.is-current {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+}
+.team-strat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.team-strat-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.team-strat-card .team-hub-ico { margin-bottom: 2px; }
+.team-strat-card-head { display: flex; align-items: center; justify-content: space-between; }
+.team-strat-card-label { font-weight: 600; font-size: 14px; color: var(--admin-ink); }
+.team-strat-card-body { font-size: 13px; color: var(--admin-ink-2); line-height: 1.6; }
+.team-strat-line-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--admin-faint);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 960px) { .team-strat-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .team-strat-hero { padding: 20px; }
+  .team-strat-hero-side { align-items: flex-start; }
+}
+
+.team-values-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.team-value-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.team-value-head { display: flex; align-items: center; gap: 10px; }
+.team-value-num {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.team-value-title { font-weight: 600; font-size: 14.5px; color: var(--admin-ink); }
+.team-value-body { font-size: 13px; color: var(--admin-ink-2); line-height: 1.6; }
+@media (max-width: 960px) { .team-values-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .team-values-grid { grid-template-columns: 1fr; } }
+
 /* ─── Avatar (upload widget + display) ────────────────── */
 .team-avatar-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
 .team-avatar {
