@@ -29,7 +29,9 @@ export type ManagerOption = { id: string; name: string };
 
 export function JobReqsTable({ rows, managers }: { rows: JobReqRow[]; managers: ManagerOption[] }) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  // Open reqs are what a recruiter comes here to work, so the list lands on
+  // them; "All statuses" is one click away for the history.
+  const [statusFilter, setStatusFilter] = useState("open");
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
