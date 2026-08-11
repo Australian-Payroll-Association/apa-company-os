@@ -17,6 +17,7 @@ export type PortalEntitlements = {
   invoices: boolean;
   events: boolean;
   referrals: boolean;
+  meetings: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   // Requests has no entitlement key on purpose: being a portal member IS the
   // entitlement to ask for work; all data inside is company-scoped anyway.
   { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
+  { label: "Meetings", href: "/portal/meetings", ico: "☰", built: true, entitlementKey: "meetings" },
   { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
   { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
   { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
