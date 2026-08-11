@@ -98,3 +98,35 @@ export async function revokePortalMember(personId: string, companyId: string): P
   revalidate(companyId, personId);
   return { ok: true, message };
 }
+
+// Set a member's portal role (PR 2: admin | contributor | viewer). Enforced in
+// lib/portal/roles.ts on every gated portal action.
+const ASSIGNABLE_ROLES = ["admin", "contributor", "viewer"] as const;
+
+export async function setPortalMemberRole(
+  personId: string,
+  companyId: string,
+  role: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!(ASSIGNABLE_ROLES as readonly string[]).includes(role)) {
+    return { ok: false, error: "Unknown role." };
+  }
+  const { data, error } = await companyOs
+    .from("portal_members")
+    .update({ role, updated_at: new Date().toISOString() })
+    .eq("person_id", personId)
+    .eq("company_id", companyId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: "Could not update the role." };
+  await recordAudit({
+    table: "portal_members",
+    recordId: data.id,
+    operation: "update",
+    actor: admin.email,
+    newData: { role },
+  });
+  revalidate(companyId, personId);
+  return { ok: true, message: `Role set to ${role}.` };
+}

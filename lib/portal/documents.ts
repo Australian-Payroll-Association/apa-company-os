@@ -6,6 +6,7 @@
 // (docs/plans/2026-08-11-client-portal-improvements.md, PR 1).
 
 import type { PortalActor } from "@/lib/portal-auth";
+import { canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 import {
   listDocumentsForCompanies,
   getDocumentRow,
@@ -37,6 +38,7 @@ export async function signedCompanyDocumentUpload(
 ): Promise<DocResult<{ signedUrl: string; path: string; companyId: string }>> {
   const companyId = resolveCompanyId(actor, input.companyId);
   if (!companyId) return { ok: false, error: "Pick which company this document is for." };
+  if (!canContribute(actor, companyId)) return { ok: false, error: ROLE_DENIED };
   const r = await createSignedDocumentUpload({ companyId, filename: input.filename });
   if (!r.ok) return r;
   return { ok: true, signedUrl: r.signedUrl, path: r.path, companyId };
@@ -49,6 +51,7 @@ export async function recordCompanyDocument(
   if (!actor.companyScope.includes(input.companyId)) {
     return { ok: false, error: "Not your company." };
   }
+  if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   return recordDocument({ ...input, uploadedBy: actor.email });
 }
 

@@ -142,6 +142,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                       personId={p.id}
                       companyId={company.id}
                       active={membership?.status === "active"}
+                      role={membership?.role}
                     />
                   </div>
                 </div>

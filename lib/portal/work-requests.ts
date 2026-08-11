@@ -11,6 +11,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { isPortalAdmin, canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 import {
   addWorkEvent,
   applyCancel,
@@ -34,6 +35,7 @@ export type PortalWorkRequest = {
   brief: string;
   status: string;
   contractorName: string | null;
+  clientCompanyId: string | null;
   estimatedHours: number | string | null;
   planText: string | null;
   estimateSubmittedAt: string | null;
@@ -86,6 +88,7 @@ function toPortalRequest(r: Row): PortalWorkRequest {
     brief: r.brief,
     status: r.status,
     contractorName: one(r.people)?.full_name ?? null,
+    clientCompanyId: r.client_company_id,
     estimatedHours: r.estimated_hours,
     planText: r.plan_text,
     estimateSubmittedAt: r.estimate_submitted_at,
@@ -161,6 +164,8 @@ function decider(actor: PortalActor): WorkDecider {
   };
 }
 
+// Role gates (lib/portal/roles.ts): creating requests needs contributor or
+// admin; deciding estimates/work is admin-only. Viewers are read-only.
 function auditActor(actor: PortalActor): string {
   return actor.impersonation ? `${actor.impersonation.adminEmail} (assume: ${actor.email})` : actor.email;
 }
@@ -172,6 +177,7 @@ export async function createWorkRequestForActor(
   const title = input.title?.trim();
   const brief = input.brief?.trim();
   if (!actor.companyScope.includes(input.companyId)) return { ok: false, error: "Not your company." };
+  if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   if (!input.contractorPersonId) return { ok: false, error: "Pick a contractor." };
   if (!title) return { ok: false, error: "Title is required." };
   if (!brief) return { ok: false, error: "Describe the project." };
@@ -256,6 +262,7 @@ export async function decideEstimateForActor(
 ): Promise<WorkRequestResult> {
   const req = await loadOwnedRequest(actor, id);
   if (!req) return { ok: false, error: "Request not found." };
+  if (!isPortalAdmin(actor, req.client_company_id!)) return { ok: false, error: ROLE_DENIED };
   const r = await applyEstimateDecision(req, decision, decider(actor), note);
   if (r.ok) {
     await recordAudit({
@@ -277,6 +284,7 @@ export async function decideWorkForActor(
 ): Promise<WorkRequestResult> {
   const req = await loadOwnedRequest(actor, id);
   if (!req) return { ok: false, error: "Request not found." };
+  if (!isPortalAdmin(actor, req.client_company_id!)) return { ok: false, error: ROLE_DENIED };
   const r = await applyWorkDecision(req, decision, decider(actor), note);
   if (r.ok) {
     await recordAudit({

@@ -6,6 +6,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 import { notifyOps } from "@/lib/lark";
 import {
   findBracket,
@@ -29,6 +30,7 @@ export async function createTeamRequestForActor(
   input: { companyId: string; candidates: TeamCandidateInput[] },
 ): Promise<Result> {
   if (!actor.companyScope.includes(input.companyId)) return { ok: false, error: "Not your company." };
+  if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   if (!input.candidates.length) return { ok: false, error: "Add at least one team member." };
 
   // Resolve every candidate to a real bracket and its cleaned tech stack.

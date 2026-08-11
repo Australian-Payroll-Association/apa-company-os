@@ -7,6 +7,7 @@ export type PortalMembershipRow = {
   id: string;
   person_id: string;
   company_id: string | null;
+  role: string;
   status: string;
   invited_at: string | null;
 };
@@ -16,7 +17,7 @@ export async function getPortalMembershipsForCompany(
 ): Promise<Map<string, PortalMembershipRow>> {
   const { data } = await companyOs
     .from("portal_members")
-    .select("id, person_id, company_id, status, invited_at")
+    .select("id, person_id, company_id, role, status, invited_at")
     .eq("company_id", companyId);
   const byPerson = new Map<string, PortalMembershipRow>();
   for (const row of (data ?? []) as PortalMembershipRow[]) byPerson.set(row.person_id, row);
@@ -28,7 +29,7 @@ export async function getPortalMembershipsForPerson(
 ): Promise<PortalMembershipRow[]> {
   const { data } = await companyOs
     .from("portal_members")
-    .select("id, person_id, company_id, status, invited_at")
+    .select("id, person_id, company_id, role, status, invited_at")
     .eq("person_id", personId);
   return (data ?? []) as PortalMembershipRow[];
 }
