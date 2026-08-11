@@ -5,6 +5,10 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { ApplicationsTable, type AppRow } from "./ApplicationsTable";
 
 export const dynamic = "force-dynamic";
+// Vercel's data cache can freeze Supabase reads despite force-dynamic (see the
+// time-off pages) — a stale list here hides freshly added candidates while the
+// duplicate guard still sees them, so pin the data cache off.
+export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Applications",

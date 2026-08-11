@@ -171,6 +171,7 @@ type Draft = {
   error: string | null; // upload/save errors (card is stuck until resolved)
   extractError: string | null; // extraction-only failure — fields stay editable
   applicationId: string | null;
+  existingApplicationId: string | null; // set when the save hit the duplicate guard
 };
 
 let draftSeq = 0;
@@ -197,6 +198,7 @@ function ResumeIntake({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; init
       error: null,
       extractError: null,
       applicationId: null,
+      existingApplicationId: null,
     }));
     setDrafts((cur) => [...cur, ...fresh]);
 
@@ -237,7 +239,7 @@ function ResumeIntake({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; init
   }
 
   async function saveDraft(d: Draft): Promise<CreateCandidateResult> {
-    patch(d.key, { state: "saving", error: null });
+    patch(d.key, { state: "saving", error: null, existingApplicationId: null });
     const r = await createCandidate({
       jobRequisitionId: reqId,
       fullName: d.fields.fullName,
@@ -250,7 +252,7 @@ function ResumeIntake({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; init
       resume: d.upload,
     });
     if (r.ok) patch(d.key, { state: "saved", applicationId: r.applicationId });
-    else patch(d.key, { state: "ready", error: r.error });
+    else patch(d.key, { state: "ready", error: r.error, existingApplicationId: r.existingApplicationId ?? null });
     return r;
   }
 
@@ -349,7 +351,19 @@ function ResumeIntake({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; init
                 onChange={(fields) => patch(d.key, { fields })}
                 disabled={d.state === "saving"}
               />
-              {d.error && <div className="admin-alert admin-alert--err">{d.error}</div>}
+              {d.error && (
+                <div className="admin-alert admin-alert--err">
+                  {d.error}
+                  {d.existingApplicationId && (
+                    <>
+                      {" "}
+                      <Link href="/admin/talent/applications" className="admin-cell-strong">
+                        Open applications
+                      </Link>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="admin-form-actions">
                 <button
                   type="button"
@@ -385,11 +399,13 @@ function ManualEntry({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; initi
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDuplicate, setIsDuplicate] = useState(false);
   const [savedName, setSavedName] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function submit() {
     setError(null);
+    setIsDuplicate(false);
     setSavedName(null);
     if (!file) return setError("Upload the candidate's resume.");
     setSaving(true);
@@ -409,7 +425,10 @@ function ManualEntry({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; initi
       fd,
     );
     setSaving(false);
-    if (!r.ok) return setError(r.error);
+    if (!r.ok) {
+      setIsDuplicate(Boolean(r.existingApplicationId));
+      return setError(r.error);
+    }
     setSavedName(fields.fullName || fields.email);
     setFields(EMPTY_FIELDS);
     setReqId("");
@@ -439,7 +458,19 @@ function ManualEntry({ jobReqs, initialReqId }: { jobReqs: JobReqOption[]; initi
           <div className="admin-hint">PDF or .docx, max 10 MB. The AI fit screen runs automatically after saving.</div>
         </div>
 
-        {error && <div className="admin-alert admin-alert--err">{error}</div>}
+        {error && (
+          <div className="admin-alert admin-alert--err">
+            {error}
+            {isDuplicate && (
+              <>
+                {" "}
+                <Link href="/admin/talent/applications" className="admin-cell-strong">
+                  Open applications
+                </Link>
+              </>
+            )}
+          </div>
+        )}
         {savedName && (
           <div className="admin-alert admin-alert--ok">
             {savedName} added to the pipeline.{" "}

@@ -4,6 +4,8 @@ import { ROLE_FAMILIES, type FamilyScreen } from "@/lib/role-families";
 import { RankTable, type RankRow } from "./RankTable";
 
 export const dynamic = "force-dynamic";
+// Data cache can freeze Supabase reads despite force-dynamic — see applications/page.tsx.
+export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Candidate Pool",

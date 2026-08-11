@@ -5,6 +5,8 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { JobReqsTable, type JobReqRow } from "./JobReqsTable";
 
 export const dynamic = "force-dynamic";
+// Data cache can freeze Supabase reads despite force-dynamic — see applications/page.tsx.
+export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Job requisitions",

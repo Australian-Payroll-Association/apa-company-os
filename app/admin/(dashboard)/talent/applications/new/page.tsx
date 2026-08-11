@@ -4,6 +4,8 @@ import { PageHead } from "@/components/admin/PageHead";
 import { AddCandidates } from "./AddCandidates";
 
 export const dynamic = "force-dynamic";
+// Data cache can freeze Supabase reads despite force-dynamic — see ../page.tsx.
+export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Add candidates",

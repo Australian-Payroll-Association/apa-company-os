@@ -12,6 +12,8 @@ import { AiRanking, type AiRankRow } from "./AiRanking";
 import type { AiScreenSummary } from "@/lib/resume-screen";
 
 export const dynamic = "force-dynamic";
+// Data cache can freeze Supabase reads despite force-dynamic — see applications/page.tsx.
+export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Job requisition",
