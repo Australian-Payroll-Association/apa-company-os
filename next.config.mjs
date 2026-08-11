@@ -21,6 +21,8 @@ const nextConfig = {
     return [
       // The talent Rank page was renamed to Candidate Pool.
       { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
+      // OKRs were renamed to Company Goals (FAST Goals stay the individual layer).
+      { source: '/team/okrs', destination: '/team/company-goals', permanent: true },
       // The AI Resume Screen workflow was folded into the end-to-end Recruitment workflow.
       { source: '/workflows/ai-resume-screen', destination: '/workflows/recruitment', permanent: true },
       // The onboarding deck moved into the private workflows library, now under the E8 brand.

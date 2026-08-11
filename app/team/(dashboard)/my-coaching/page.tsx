@@ -23,7 +23,7 @@ function fmt(iso: string | null): string {
 }
 
 // /team/my-coaching - the member tier. getMyCoaching selects ONLY
-// member-visible fields (goal, OKRs, commitments, PUBLISHED recaps,
+// member-visible fields (goal, company goals, commitments, PUBLISHED recaps,
 // check-ins); the private coaching tier never reaches this page's data.
 export default async function MyCoachingPage() {
   const actor = await requireTeamMember();

@@ -16,14 +16,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "OKRs",
+  title: "Company Goals",
   description: "Company objectives and key results for the current quarter.",
 };
 
-// /team/okrs — read-only, company-visible view of the quarter's company-level
-// OKRs. Same data as /admin/edges/goals but without the cascade, editing, or
-// check-ins: every team member sees where the company is aiming and how far
-// along each key result is.
+// /team/company-goals — read-only, company-visible view of the quarter's
+// company goals (objectives + key results). Same data as /admin/edges/goals
+// but without the cascade, editing, or check-ins: every team member sees where
+// the company is aiming and how far along each key result is.
 type ObjectiveWithKrs = ObjectiveRow & { krs: KrRow[] };
 
 function fmtValue(kr: KrRow): string {
@@ -44,7 +44,7 @@ function barClass(kr: KrRow): string {
   return "";
 }
 
-export default async function TeamOkrsPage() {
+export default async function TeamCompanyGoalsPage() {
   await requireTeamMember();
   const q = currentQuarter();
 
@@ -83,7 +83,7 @@ export default async function TeamOkrsPage() {
     <>
       <PageHead
         eyebrow="Company"
-        title="OKRs"
+        title="Company Goals"
         sub={`${q.label} · week ${q.week} of ${q.totalWeeks}`}
       />
 

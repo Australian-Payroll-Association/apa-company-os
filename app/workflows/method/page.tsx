@@ -37,7 +37,7 @@ const FRAMEWORKS = [
   { name: 'EQ + Communication Guides', use: 'Personal datasets that let AI coach and draft in your own voice.' },
   { name: 'Employee Lifecycle Map', use: 'The frame behind hiring, onboarding, and the resume screen workflow.' },
   { name: 'GROW Coaching Model', use: 'The structure inside every 1-1 conversation and coaching profile.' },
-  { name: 'OKR Cascade', use: 'Goals connected from company to team to individual, reviewed on a rhythm.' },
+  { name: 'Company Goals Cascade', use: 'Company goals connected to team and individual FAST goals, reviewed on a rhythm.' },
   { name: 'Retention Intelligence', use: 'Stay interviews and early-warning signals, run before notice is handed in.' },
   { name: 'Analytics Decision Brief', use: 'One real decision, framed properly, before any dashboard gets built.' },
   { name: 'Workflow Blueprint', use: 'The seven-element document behind every page in this section.' },

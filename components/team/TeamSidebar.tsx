@@ -20,7 +20,7 @@ function companyGroup(hasClients: boolean): NavGroup {
     items: [
       ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
       { label: "Strategy", href: "/team/strategy", ico: "◆", enabled: true },
-      { label: "OKRs", href: "/team/okrs", ico: "⊚", enabled: true },
+      { label: "Company Goals", href: "/team/company-goals", ico: "⊚", enabled: true },
       { label: "Core Values", href: "/team/values", ico: "♥", enabled: true },
       { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
       { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
