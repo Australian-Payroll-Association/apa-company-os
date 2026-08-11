@@ -5,6 +5,7 @@ import { hasAssignedStaff } from "@/lib/portal/team";
 import { hasInvoices } from "@/lib/portal/invoices";
 import { hasEventRegistrations } from "@/lib/portal/events";
 import { hasAffiliateCode } from "@/lib/portal/referrals";
+import { adminCompanyScope } from "@/lib/portal/roles";
 import { hasMeetings } from "@/lib/portal/meetings";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { AssumeBanner } from "@/components/portal/AssumeBanner";
@@ -44,6 +45,7 @@ export default async function PortalDashboardLayout({
     invoices: hasInvoicesResult,
     events: hasEventsResult,
     referrals: hasReferrals,
+    users: adminCompanyScope(actor).length > 0,
     meetings: hasMeetingsResult,
   };
 

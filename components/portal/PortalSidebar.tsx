@@ -18,6 +18,7 @@ export type PortalEntitlements = {
   events: boolean;
   referrals: boolean;
   meetings: boolean;
+  users: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -40,6 +41,8 @@ const NAV: NavItem[] = [
   { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
   { label: "My Events", href: "/portal/events", ico: "▦", built: true, entitlementKey: "events" },
   { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
+  // Users: portal admins manage their own company's users (PR 3).
+  { label: "Users", href: "/portal/users", ico: "♟", built: true, entitlementKey: "users" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
