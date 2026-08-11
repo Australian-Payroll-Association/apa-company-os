@@ -248,7 +248,7 @@ export function TeamChatWidget() {
           <aside className="admin-drawer chatw-panel" role="dialog" aria-label="Team assistant">
             <div className="admin-drawer-head">
               <div>
-                <div className="admin-drawer-eyebrow">Edge8 AI Workspace</div>
+                <div className="admin-drawer-eyebrow brand-label">Edge8 AI Workspace</div>
                 <h2 className="admin-drawer-title">Assistant</h2>
               </div>
               <div className="chatw-head-actions">

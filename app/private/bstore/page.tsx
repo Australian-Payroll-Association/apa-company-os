@@ -186,7 +186,8 @@ const CONTENT_HTML = `
   .bstore-doc .ck-group-title { font-weight: 700; font-size: 14px; }
   .bstore-doc .ck-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 99px; }
   .bstore-doc .ck-tag--client { background: var(--accent-soft); color: var(--accent); }
-  .bstore-doc .ck-tag--edge8 { background: rgba(111,242,193,0.18); color: #0b8f63; }
+  /* Always renders the brand name, so it never takes the uppercase above. */
+  .bstore-doc .ck-tag--edge8 { background: rgba(111,242,193,0.18); color: #0b8f63; text-transform: none; letter-spacing: normal; }
   .bstore-doc .ck-item { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
   .bstore-doc .ck-item:hover { border-color: var(--accent); background: var(--accent-soft); }
   .bstore-doc .ck { position: absolute; opacity: 0; width: 0; height: 0; }

@@ -324,7 +324,7 @@ export function SurveyRunner({
       <div className={styles.card}>
         {phase === "intro" && (
           <>
-            <div className={styles.eyebrow}>Edge8 survey</div>
+            <div className={`${styles.eyebrow} brand-label`}>Edge8 survey</div>
             <h1 className={styles.title}>{name}</h1>
             {introText && <p className={styles.sub}>{introText}</p>}
             {isAnonymous ? (

@@ -14,7 +14,7 @@ export default function VietnamAdventureInfoFormPage() {
     <main className="apply-page">
       <section className="apply-hero">
         <div className="container">
-          <p className="apply-eyebrow">Edge8 Vietnam Adventure</p>
+          <p className="apply-eyebrow brand-label">Edge8 Vietnam Adventure</p>
           <h1 className="apply-title">Travel info form</h1>
           <div className="apply-meta">
             <span>Tell us about your family, t-shirt sizes, and passports</span>

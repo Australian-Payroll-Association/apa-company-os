@@ -194,7 +194,7 @@ export default async function TeamHome() {
           <span className="team-glance-value">{profile?.managerName || "—"}</span>
         </div>
         <div className="team-glance-cell">
-          <span className="team-glance-label">With Edge8 since</span>
+          <span className="team-glance-label brand-label">With Edge8 since</span>
           <span className="team-glance-value">{profile?.start_date ? formatDate(profile.start_date) : "—"}</span>
         </div>
       </div>
