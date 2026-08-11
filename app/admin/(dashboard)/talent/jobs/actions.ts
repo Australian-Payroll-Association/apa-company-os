@@ -107,6 +107,7 @@ export type JobReqPatch = {
   salary_max?: number | null;
   currency?: string;
   description?: string | null;
+  hiring_manager_id?: string | null;
 };
 
 export async function updateJobReq(jobReqId: string, patch: JobReqPatch): Promise<Result> {
@@ -151,6 +152,9 @@ export async function updateJobReq(jobReqId: string, patch: JobReqPatch): Promis
     updates.currency = c;
   }
   if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
+  // hiring_manager_id points at people, not team_members — the person owns the
+  // req even if their seat or manager changes.
+  if (patch.hiring_manager_id !== undefined) updates.hiring_manager_id = patch.hiring_manager_id || null;
 
   if (Object.keys(updates).length === 0) return { ok: true };
 

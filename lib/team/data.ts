@@ -325,6 +325,7 @@ export async function getDirectory(): Promise<DirectoryEntry[]> {
 // so the page can assemble the reporting tree and label contractors.
 export type OrgEntry = {
   id: string;
+  personId: string;
   name: string;
   positionTitle: string | null;
   departmentName: string | null;
@@ -336,7 +337,7 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
   const { data } = await companyOs
     .from("team_members")
     .select(
-      "id, manager_id, employment_type, " +
+      "id, person_id, manager_id, employment_type, " +
         "people:people!person_id(full_name, preferred_name), " +
         "departments:departments!department_id(name), " +
         "positions:positions!position_id(title)",
@@ -349,6 +350,7 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
     const pos = one(r.positions as { title: string | null } | { title: string | null }[] | null);
     return {
       id: r.id as string,
+      personId: r.person_id as string,
       name: nameOf(person) ?? "—",
       positionTitle: pos?.title ?? null,
       departmentName: dept?.name ?? null,
@@ -357,6 +359,38 @@ export async function getOrgChart(): Promise<OrgEntry[]> {
     };
   });
   return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Open headcount, keyed by the hiring manager who owns it. job_requisitions
+// stores hiring_manager_id against people, not team_members, so callers that
+// work in team_member ids (the org chart) match on OrgEntry.personId. Company
+// visible like the rest of /team: title, location, and the public posting link
+// only — never salary bands or candidate data.
+export type OpenRole = {
+  id: string;
+  title: string;
+  slug: string | null;
+  location: string | null;
+  employmentType: string | null;
+  isPublic: boolean;
+  hiringManagerPersonId: string | null;
+};
+
+export async function getOpenRoles(): Promise<OpenRole[]> {
+  const { data } = await companyOs
+    .from("job_requisitions")
+    .select("id, title, slug, location, employment_type, is_public, hiring_manager_id")
+    .eq("status", "open");
+  const roles = ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    title: (r.title as string | null) ?? "Open role",
+    slug: (r.slug as string | null) ?? null,
+    location: (r.location as string | null) ?? null,
+    employmentType: (r.employment_type as string | null) ?? null,
+    isPublic: Boolean(r.is_public),
+    hiringManagerPersonId: (r.hiring_manager_id as string | null) ?? null,
+  }));
+  return roles.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 // Ideas that Spark Solutions: ideas and learnings are company-visible by

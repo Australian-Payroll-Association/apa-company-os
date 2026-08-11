@@ -27,6 +27,8 @@ export type JobReqManageData = {
   isPublic: boolean;
   slug: string | null;
   applicationCount: number;
+  hiringManagerId: string | null;
+  hiringManagerName: string | null;
 };
 
 const EMPLOYMENT_OPTIONS = [
@@ -62,13 +64,20 @@ type JobReqFieldForm = {
   salaryMax: string;
   currency: string;
   description: string;
+  hiringManager: string;
 };
 
 // Manage surface for one job req, rendered in the list row's side shelf:
 // every field visible, edit in place, close/reopen with an outcome, delete
 // when the req has no applications. The full page (hiring board + public
 // posting editor) stays a click away.
-export function JobReqManage({ req }: { req: JobReqManageData }) {
+export function JobReqManage({
+  req,
+  managers,
+}: {
+  req: JobReqManageData;
+  managers: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const isOpen = req.status === "open";
   const live = req.isPublic && isOpen;
@@ -89,10 +98,12 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
       salaryMax: req.salaryMaxCents != null ? String(req.salaryMaxCents / 100) : "",
       currency: req.currency.toLowerCase(),
       description: req.description ?? "",
+      hiringManager: req.hiringManagerId ?? "",
     },
     saveField,
   );
-  const { title, employmentType, location, remotePolicy, salaryMin, salaryMax, currency, description } = form;
+  const { title, employmentType, location, remotePolicy, salaryMin, salaryMax, currency, description, hiringManager } =
+    form;
   const currencyOptions = CURRENCIES.includes(currency) ? CURRENCIES : [currency, ...CURRENCIES];
 
   async function saveField(patch: Partial<JobReqFieldForm>) {
@@ -114,6 +125,8 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
         return updateJobReq(req.id, { currency: value });
       case "description":
         return updateJobReq(req.id, { description: value || null });
+      case "hiringManager":
+        return updateJobReq(req.id, { hiring_manager_id: value || null });
       default:
         return { ok: true as const };
     }
@@ -234,6 +247,22 @@ export function JobReqManage({ req }: { req: JobReqManageData }) {
               ))}
             </select>
           </div>
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">Hiring manager</label>
+          <select
+            className="admin-select"
+            value={hiringManager}
+            onChange={(e) => commit("hiringManager", e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <div className="admin-hint">Open reqs show under their hiring manager on the team org chart.</div>
         </div>
         <div className="admin-field">
           <label className="admin-label">Location</label>

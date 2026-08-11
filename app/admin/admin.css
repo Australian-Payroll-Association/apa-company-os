@@ -737,6 +737,15 @@ a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY
 }
 .team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
 .team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
+/* Open headcount: a dashed, unfilled seat under the hiring manager. */
+.team-org-badge.is-open { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.team-org-card.is-open-role {
+  border-style: dashed;
+  border-color: var(--admin-accent);
+  background: transparent;
+  box-shadow: none;
+}
+.team-org-unassigned { display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* ─── Team portal home hub ────────────────────────────
    Card grid on /team home: every employee touchpoint, shipped or not. Live

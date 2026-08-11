@@ -1,5 +1,5 @@
 import { requireTeamMember } from "@/lib/team-auth";
-import { getOwnProfile, teamRead } from "@/lib/team/data";
+import { getOwnProfile, getOpenRoles, teamRead } from "@/lib/team/data";
 import { getClientRoadmapSnippets } from "@/lib/team/clients";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
@@ -108,6 +108,9 @@ export default async function TeamHome() {
   const actor = await requireTeamMember();
   const profile = await getOwnProfile(actor);
   const clientSnippets = await getClientRoadmapSnippets(actor, 3);
+  // Reqs this person is the hiring manager for. Nothing renders unless they
+  // own one, so the section is invisible to everyone who is not hiring.
+  const myOpenRoles = (await getOpenRoles()).filter((r) => r.hiringManagerPersonId === actor.personId);
   // Exactly four photos and four faces, drawn fresh on every load — a fixed
   // composition with rotating content, not a wall of everything.
   const [collagePhotos, collagePeople] = await Promise.all([
@@ -234,6 +237,35 @@ export default async function TeamHome() {
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {myOpenRoles.length > 0 && (
+        <>
+          <h2 className="team-hub-heading">You&rsquo;re hiring</h2>
+          <div className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
+            <div className="admin-list">
+              {myOpenRoles.map((r) => (
+                <div key={r.id} className="admin-list-row">
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{r.title}</div>
+                    <div className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+                      {r.location || "Location not set"}
+                    </div>
+                  </div>
+                  <div className="admin-list-aside">
+                    {r.isPublic && r.slug ? (
+                      <a href={`/careers/${r.slug}`} target="_blank" rel="noreferrer">
+                        View posting →
+                      </a>
+                    ) : (
+                      <Badge tone="warn">Not published</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )}
 

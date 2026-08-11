@@ -25,7 +25,9 @@ function salaryBand(min: number | null, max: number | null, cur: string) {
 // server-rendered row preview never opens — same lesson as the applications
 // list, commit 0b32585). All reqs load once; search, status filter, and paging
 // happen client-side.
-export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
+export type ManagerOption = { id: string; name: string };
+
+export function JobReqsTable({ rows, managers }: { rows: JobReqRow[]; managers: ManagerOption[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [pageSize, setPageSize] = useState(25);
@@ -44,7 +46,9 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
     return rows.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
       if (!query) return true;
-      return [r.title, r.companyName, r.location].some((v) => (v ? v.toLowerCase().includes(query) : false));
+      return [r.title, r.companyName, r.location, r.hiringManagerName].some((v) =>
+        v ? v.toLowerCase().includes(query) : false,
+      );
     });
   }, [rows, statusFilter, query]);
 
@@ -64,7 +68,7 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
         <input
           className="admin-input"
           style={{ maxWidth: 280 }}
-          placeholder="Search title, company, or location…"
+          placeholder="Search title, company, location, or hiring manager…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -117,6 +121,7 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
               <tr>
                 <th>Title</th>
                 <th>Company</th>
+                <th>Hiring manager</th>
                 <th>Type</th>
                 <th>Location</th>
                 <th style={{ textAlign: "right" }}>Salary</th>
@@ -128,7 +133,7 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="admin-empty">No job reqs match.</div>
                   </td>
                 </tr>
@@ -158,6 +163,11 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
                       )}
                     </td>
                     <td>{r.companyName || <span className="admin-cell-muted">—</span>}</td>
+                    <td>
+                      {r.hiringManagerName || (
+                        <span className="admin-cell-muted">{r.status === "open" ? "Unassigned" : "—"}</span>
+                      )}
+                    </td>
                     <td>
                       <Badge>{humanize(r.employmentType)}</Badge>
                     </td>
@@ -225,7 +235,7 @@ export function JobReqsTable({ rows }: { rows: JobReqRow[] }) {
         eyebrow="Job req"
         title={selected?.title || "(untitled req)"}
       >
-        {selected && <JobReqManage req={selected} />}
+        {selected && <JobReqManage req={selected} managers={managers} />}
       </DetailDrawer>
     </>
   );
