@@ -163,18 +163,28 @@ export async function setMeetingPublished(id: string, published: boolean): Promi
   return { ok: true };
 }
 
-export async function archiveMeeting(id: string): Promise<ActionResult> {
+// Hard delete: remove the row and its uploaded source file. Meeting notes are
+// often created by mistake (wrong transcript), and there is nothing worth
+// keeping, so this is a real delete rather than a soft archive. The audit_log
+// row records that the deletion happened + who, not the content.
+export async function deleteMeeting(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const meeting = await loadMeeting(id);
+
+  const { data } = await companyOs
+    .from("meeting_notes")
+    .select("id, company_id, source_file_path")
+    .eq("id", id)
+    .maybeSingle();
+  const meeting = data as { id: string; company_id: string; source_file_path: string | null } | null;
   if (!meeting) return { ok: false, error: "Meeting not found." };
 
-  const { error } = await companyOs
-    .from("meeting_notes")
-    .update({ archived_at: new Date().toISOString(), published_at: null, updated_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error } = await companyOs.from("meeting_notes").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  await recordAudit({ table: "meeting_notes", recordId: id, operation: "archive", actor: admin.email });
+  if (meeting.source_file_path) {
+    await supabase.storage.from(BUCKET).remove([meeting.source_file_path]);
+  }
+  await recordAudit({ table: "meeting_notes", recordId: id, operation: "delete", actor: admin.email });
   refresh(meeting.company_id);
   return { ok: true };
 }

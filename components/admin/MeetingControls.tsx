@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   setMeetingPublished,
-  archiveMeeting,
+  deleteMeeting,
   retryMeetingSummary,
   updateMeeting,
 } from "@/app/admin/(dashboard)/revenue/meetings/actions";
@@ -65,12 +65,12 @@ export function MeetingControls({
           className="admin-btn admin-btn--danger"
           disabled={pending}
           onClick={() => {
-            if (confirm("Archive this meeting? It will be removed from the portal.")) {
-              run(() => archiveMeeting(id));
+            if (confirm("Delete this meeting permanently? This removes the transcript and cannot be undone.")) {
+              run(() => deleteMeeting(id));
             }
           }}
         >
-          Archive
+          Delete
         </button>
       </div>
 
