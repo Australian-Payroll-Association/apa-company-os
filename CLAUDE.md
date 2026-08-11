@@ -7,6 +7,23 @@ Exception: operational runbooks in `.claude/skills/` (e.g. `crm-call-to-proposal
 - "Edge8" is always written exactly like that. Never all caps. Watch for CSS `text-transform: uppercase` on eyebrows and labels; keep the brand name out of it.
 - Never use em dashes anywhere. Use commas, colons, periods, or parentheses.
 
+## Design system
+
+One system, two layers. Read the relevant layer before building any UI; do not invent values.
+
+- **Foundations** (marketing site): `docs/product/edge8-design-system.md`
+- **Data layer** (Edge8 OS: admin, team, client portal): `docs/product/edge8-design-system-data.md`
+- Tokens live in `app/globals.css` `:root`. `app/admin/admin.css` re-roots onto them. The OS shell is shared: `/team` and `/portal` both import `admin.css` and render inside `.admin-shell`, so a change there hits all three views.
+- Living component reference: `/admin/patterns`. Copy from it rather than hand-rolling a new card, table, or chip.
+- Never introduce a raw hex, radius, shadow, or font family that isn't a token.
+- **The brand has no bold cut.** Only weights 400 and 500 exist. Anything heavier silently renders as Medium, so use size, color, and spacing for emphasis instead. See the Foundations doc for the full explanation.
+
+### Guardrail
+
+`npm run check:design` verifies that every asset referenced in CSS/JSX exists in `public/`, and that every `font-weight` used is backed by a real `@font-face`. It runs in CI on every PR. Run it before opening one.
+
+Any new asset (font, image, icon) referenced in code must be committed in the same PR. A missing file does not fail the build: fonts silently substitute and images silently 404, which is exactly how the missing SemiBold shipped unnoticed for months.
+
 ## Sales ops (CRM + proposals)
 
 - Call transcript in, then: CRM updated, proposal live, /proposals views correct. Runbook: `.claude/skills/crm-call-to-proposal/SKILL.md`. It carries verified Company OS IDs, table conventions, and the DB helper `scripts/crm/db.mjs`. Do not re-explore the schema.
@@ -17,3 +34,4 @@ Exception: operational runbooks in `.claude/skills/` (e.g. `crm-call-to-proposal
 
 - The checkout is usually on a WIP branch with uncommitted changes. Never build on it: `git worktree add` a branch from `origin/main`, stage only your files by name, open a PR, merge when CI is green.
 - After merging, verify with `curl` against `https://www.edge8.ai/...` (the in-app browser blocks edge8.ai by policy) and reply with the live URL.
+- The local checkout is often many commits behind. Always diagnose against `origin/main` (fetch first), never the stale working copy.

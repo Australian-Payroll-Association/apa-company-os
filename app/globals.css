@@ -1,3 +1,16 @@
+/* ⚠ The brand has NO bold cut installed.
+   Only Regular (400) and Medium (500) are licensed and committed. A rule here
+   pointed at 'SVN-Gilroy SemiBold.otf', a file that was never in the repo, so it
+   404'd on every page load. That does not fall back to another family: the
+   browser silently substitutes the nearest weight in the SAME family, so all
+   ~360 uses of font-weight 600-900 across the site render as Medium. Verified in
+   Chrome, synthetic bold does not kick in either.
+
+   The rule is removed rather than left broken so the CSS states the truth and
+   scripts/design/check-assets.mjs can hold the line. To restore real bold: drop
+   the licensed file into public/fonts/ and re-add the block below. The guardrail
+   will verify it from then on.
+
 @font-face {
   font-family: 'SVN-Gilroy';
   src: url('/fonts/SVN-Gilroy SemiBold.otf') format('opentype');
@@ -5,6 +18,7 @@
   font-style: normal;
   font-display: swap;
 }
+*/
 @font-face {
   font-family: 'SVN-Gilroy';
   src: url('/fonts/SVN-Gilroy Medium.otf') format('opentype');

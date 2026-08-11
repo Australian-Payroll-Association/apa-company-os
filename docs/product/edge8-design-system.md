@@ -131,6 +131,20 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 ### Font Stack
 - **Headings**: `SVN-Gilroy Medium`, fallback: `Gilroy`, `sans-serif`
 - **Body**: `SVN-Gilroy Regular`, fallback: `Gilroy`, `sans-serif`
+
+> **Available weights: 400 and 500 only.** Those are the two cuts licensed and
+> committed to `public/fonts/`. There is no SemiBold or Bold. Any `font-weight`
+> above 500 does **not** fail loudly and does **not** fall back to another family:
+> the browser silently renders the nearest weight in the same family, so text
+> meant to be bold simply comes out Medium. Synthetic bold does not apply either
+> (verified in Chrome).
+>
+> Until a heavier cut is licensed, express emphasis with **size, color, and
+> spacing**, not weight. Do not add new `font-weight: 600+` rules expecting a
+> visible change; `npm run check:design` will warn about them.
+> When a licensed SemiBold arrives: add the file to `public/fonts/`, restore the
+> commented `@font-face` block at the top of `app/globals.css`, and the guardrail
+> validates it from then on.
 - **Letter Spacing**: `none` (0) — never apply tracking to any text
 - **Style note**: SVN-Gilroy is a localized Vietnamese-licensed version of Gilroy. Always embed or self-host via `@font-face`.
 
