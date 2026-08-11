@@ -170,7 +170,7 @@ export default async function TeamOrgPage() {
 
       {unassigned.length > 0 && (
         <>
-          <h2 className="team-hub-heading">Open roles without a hiring manager</h2>
+          <h2 className="admin-section-label">Open roles without a hiring manager</h2>
           <div className="team-org-unassigned">
             {unassigned.map((r) => (
               <OpenRoleCard key={r.id} role={r} />

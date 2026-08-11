@@ -174,7 +174,7 @@ export default async function TeamStrategyPage() {
 
           {lines.length > 0 && (
             <>
-              <h2 className="team-hub-heading">How we win: three business lines</h2>
+              <h2 className="admin-section-label">How we win: three business lines</h2>
               <div className="team-strat-grid">
                 {lines.map((line, i) => (
                   <div key={line.heading} className="team-strat-card">
@@ -194,7 +194,7 @@ export default async function TeamStrategyPage() {
 
           {extraHtml.map((s) => (
             <div key={s.heading}>
-              <h2 className="team-hub-heading">{s.heading}</h2>
+              <h2 className="admin-section-label">{s.heading}</h2>
               <div className="admin-card admin-section-card">
                 <div className="idea-plan" dangerouslySetInnerHTML={{ __html: s.html }} />
               </div>

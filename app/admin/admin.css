@@ -803,11 +803,20 @@ a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY
   padding: 4px 12px; border-radius: var(--admin-radius-pill);
   white-space: nowrap;
 }
+/* Section micro-label. Groups a run of cards under a small uppercase heading.
+   Used across all three OS surfaces: admin, the employee portal (/team) and the
+   client portal (/portal). It is the sanctioned exception to the no-uppercase
+   and no-tracking rules; see the Labels section of the Foundations doc.
+
+   Distinct from .admin-card-title, which titles a single card. If a card already
+   carries a title, it does not also need one of these directly above it. */
+.admin-section-label,
 .team-hub-heading {
   font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--admin-muted);
   margin: 26px 0 12px;
 }
+
 
 /* ─── "Start here" first-use panel ────────────────────
    Shown on /team home only while employment_stage is 'pre_boarding' or

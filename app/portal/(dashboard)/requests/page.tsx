@@ -42,6 +42,7 @@ export default async function PortalRequestsPage() {
         sub="Five ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, top up human tokens, or plan an AI program."
       />
 
+      <h2 className="admin-section-label" style={{ marginTop: 0 }}>Start a request</h2>
       <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20, gridAutoRows: "1fr" }}>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>General request</h2>
@@ -100,6 +101,7 @@ export default async function PortalRequestsPage() {
         </div>
       </div>
 
+      <h2 className="admin-section-label">Your requests</h2>
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Project requests</h2>
         {requests.length === 0 ? (

@@ -201,7 +201,7 @@ export default async function TeamHome() {
 
       {clientSnippets.length > 0 && (
         <>
-          <h2 className="team-hub-heading">Your clients</h2>
+          <h2 className="admin-section-label">Your clients</h2>
           {clientSnippets.map((s) => (
             <div key={s.company.id} className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
@@ -242,7 +242,7 @@ export default async function TeamHome() {
 
       {myOpenRoles.length > 0 && (
         <>
-          <h2 className="team-hub-heading">You&rsquo;re hiring</h2>
+          <h2 className="admin-section-label">You&rsquo;re hiring</h2>
           <div className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
             <div className="admin-list">
               {myOpenRoles.map((r) => (
@@ -269,7 +269,7 @@ export default async function TeamHome() {
         </>
       )}
 
-      <h2 className="team-hub-heading">Your workspace</h2>
+      <h2 className="admin-section-label">Your workspace</h2>
       <div className="team-hub-grid team-hub-grid--row">
         {HUB_LIVE.map((item) => (
           <HubCard key={item.title} item={item} />
@@ -305,7 +305,7 @@ export default async function TeamHome() {
 
       {/* Coming features state the ambition without competing with the live
           tools: one quiet row of pills instead of a second card grid. */}
-      <h2 className="team-hub-heading">On the way</h2>
+      <h2 className="admin-section-label">On the way</h2>
       <div className="team-soon-row">
         {HUB_SOON.map((item) => (
           <span key={item.title} className="team-soon-pill" title={item.sub}>
