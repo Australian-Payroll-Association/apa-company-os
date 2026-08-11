@@ -150,6 +150,7 @@ export type IssueRow = {
   diagnosis: "goal" | "system" | "execution";
   key_result_id: string | null;
   filed_by: string;
+  assignee_person_id: string | null;
   status: "open" | "solving" | "solved" | "dropped";
   notes_md: string | null;
   created_at: string;
@@ -158,7 +159,7 @@ export type IssueRow = {
 
 export const METRIC_SELECT =
   "id, name, office, formula, target, direction, source, source_detail, owner_person_id, owner_agent, key_result_id";
-export const ISSUE_SELECT = "id, title, diagnosis, key_result_id, filed_by, status, notes_md, created_at, resolved_at";
+export const ISSUE_SELECT = "id, title, diagnosis, key_result_id, filed_by, assignee_person_id, status, notes_md, created_at, resolved_at";
 
 export const ISSUE_DIAGNOSES = ["goal", "system", "execution"] as const;
 export const ISSUE_STATUSES = ["open", "solving", "solved", "dropped"] as const;
