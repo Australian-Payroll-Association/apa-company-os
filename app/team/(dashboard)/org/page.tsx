@@ -12,8 +12,8 @@ export const metadata = {
 
 // /team/org — the reporting tree, read-only and company-visible like the
 // directory. Built entirely from team_members.manager_id: roots are people
-// with no manager; roots without reports render separately as independent
-// contractors rather than as one-person trees.
+// with no manager. Everyone is expected to have a manager, so a person with
+// none surfaces as a root rather than being dropped.
 function childrenOf(entries: OrgEntry[]): Map<string | null, OrgEntry[]> {
   const ids = new Set(entries.map((e) => e.id));
   const map = new Map<string | null, OrgEntry[]>();
@@ -82,9 +82,7 @@ export default async function TeamOrgPage() {
   const entries = await getOrgChart();
   const map = childrenOf(entries);
 
-  const top = map.get(null) ?? [];
-  const roots = top.filter((e) => (map.get(e.id) ?? []).length > 0);
-  const independents = top.filter((e) => (map.get(e.id) ?? []).length === 0);
+  const roots = map.get(null) ?? [];
 
   return (
     <>
@@ -101,17 +99,6 @@ export default async function TeamOrgPage() {
           ))}
         </ul>
       </div>
-
-      {independents.length > 0 && (
-        <>
-          <h2 className="team-hub-heading">Independent contractors</h2>
-          <div className="team-org-independents">
-            {independents.map((e) => (
-              <OrgCard key={e.id} entry={e} />
-            ))}
-          </div>
-        </>
-      )}
     </>
   );
 }
