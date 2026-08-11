@@ -23,8 +23,17 @@ function childrenOf(entries: OrgEntry[]): Map<string | null, OrgEntry[]> {
     const key = e.managerId && ids.has(e.managerId) ? e.managerId : null;
     map.set(key, [...(map.get(key) ?? []), e]);
   }
+  // Contractors sit at the bottom of each manager's list: they are not part of
+  // the regular 1-1 cadence, so the people a manager runs come first. Entries
+  // arrive name-sorted, so a stable sort keeps alphabetical order within each
+  // group.
+  for (const [key, kids] of map) {
+    map.set(key, [...kids].sort((a, b) => rank(a) - rank(b)));
+  }
   return map;
 }
+
+const rank = (e: OrgEntry) => (e.employmentType === "contract" ? 1 : 0);
 
 function countReports(id: string, map: Map<string | null, OrgEntry[]>): number {
   const kids = map.get(id) ?? [];
