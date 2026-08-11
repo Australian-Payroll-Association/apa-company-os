@@ -139,8 +139,11 @@ export function DocumentsView({
     router.refresh();
   }
 
+  const canUpload = companies.length > 0;
+
   return (
     <div>
+      {canUpload && (
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Upload documents</h2>
         {companies.length > 1 && (
@@ -202,11 +205,12 @@ export function DocumentsView({
           </div>
         )}
       </div>
+      )}
 
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>All documents</h2>
         {documents.length === 0 ? (
-          <div className="admin-empty">No documents yet. Upload the first one above.</div>
+          <div className="admin-empty">{canUpload ? "No documents yet. Upload the first one above." : "No documents yet."}</div>
         ) : (
           <div className="admin-list">
             {documents.map((d) => (

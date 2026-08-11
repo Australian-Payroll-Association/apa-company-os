@@ -7,6 +7,7 @@
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
 import { portalRead, assertInScope } from "@/lib/portal/data";
+import { isPortalAdmin, canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 import {
   BACKLOG_GROUPS,
   BACKLOG_SELECT,
@@ -117,12 +118,17 @@ export async function reorderGroupForActor(
   if (orderedIds.length === 0) return { ok: true };
 
   // Load the group's items in scope; the set must match the ids we were given.
-  const { data } = await portalRead(actor, "client_backlog_items", "id, group_key")
+  const { data } = await portalRead(actor, "client_backlog_items", "id, group_key, company_id")
     .eq("group_key", groupKey)
     .is("archived_at", null);
-  const scoped = new Set(((data ?? []) as unknown as Array<{ id: string }>).map((r) => r.id));
+  const rows = (data ?? []) as unknown as Array<{ id: string; company_id: string }>;
+  const scoped = new Set(rows.map((r) => r.id));
   if (orderedIds.length !== scoped.size || !orderedIds.every((id) => scoped.has(id))) {
     return { ok: false, error: "Item set does not match this group." };
+  }
+  // Reordering is an admin power, checked per owning company.
+  for (const companyId of new Set(rows.map((r) => r.company_id))) {
+    if (!isPortalAdmin(actor, companyId)) return { ok: false, error: ROLE_DENIED };
   }
 
   const now = new Date().toISOString();
@@ -151,6 +157,7 @@ export async function setClientPriorityForActor(
   }
   const owner = await assertInScope(actor, "client_backlog_items", itemId);
   if (!owner) return { ok: false, error: "Item not found." };
+  if (!isPortalAdmin(actor, owner)) return { ok: false, error: ROLE_DENIED };
 
   const { error } = await companyOs
     .from("client_backlog_items")
@@ -167,6 +174,7 @@ export async function setClientNoteForActor(
 ): Promise<Result> {
   const owner = await assertInScope(actor, "client_backlog_items", itemId);
   if (!owner) return { ok: false, error: "Item not found." };
+  if (!isPortalAdmin(actor, owner)) return { ok: false, error: ROLE_DENIED };
   const clean = note.trim();
   const { error } = await companyOs
     .from("client_backlog_items")
@@ -186,6 +194,7 @@ export async function proposeItemForActor(
   if (!actor.companyScope.includes(input.companyId)) {
     return { ok: false, error: "Not your company." };
   }
+  if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "A short title is required." };
   const priority = isBacklogPriority(input.priority) ? input.priority : "next";

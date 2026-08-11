@@ -6,6 +6,7 @@
 
 import { supabase, companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 
 const BUCKET = "program-documents";
 const DOWNLOAD_TTL_SECONDS = 60 * 5;
@@ -156,6 +157,7 @@ async function createProgramWithPlan(
   if (!name) return { ok: false, error: "Name your AI program." };
   const companyId = resolveCompanyId(actor, input.companyId);
   if (!companyId) return { ok: false, error: "Pick which company this program is for." };
+  if (!canContribute(actor, companyId)) return { ok: false, error: ROLE_DENIED };
 
   const { data: prog, error: progErr } = await companyOs
     .from("ai_programs")
@@ -207,6 +209,7 @@ export async function signedProgramUpload(
 ): Promise<Result<{ signedUrl: string; path: string }>> {
   const owned = await ownedProgram(actor, input.programId);
   if (!owned) return { ok: false, error: "Program not found." };
+  if (!canContribute(actor, owned.companyId)) return { ok: false, error: ROLE_DENIED };
   const path = `company/${owned.companyId}/program/${input.programId}/${crypto.randomUUID()}-${safeName(input.filename)}`;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data) return { ok: false, error: "Could not start the upload." };
@@ -223,6 +226,7 @@ export async function recordProgramDocument(
     await supabase.storage.from(BUCKET).remove([input.path]); // don't orphan
     return { ok: false, error: "Program not found." };
   }
+  if (!canContribute(actor, owned.companyId)) return { ok: false, error: ROLE_DENIED };
   // Path guard: the object must sit under this program's prefix.
   if (!input.path.startsWith(`company/${owned.companyId}/program/${input.programId}/`)) {
     return { ok: false, error: "Invalid upload path." };

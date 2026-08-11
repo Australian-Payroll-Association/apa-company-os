@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
+import { contributorCompanyScope } from "@/lib/portal/roles";
 import {
   listPortalInquiriesForActor,
   listWorkRequestsForActor,
@@ -28,6 +29,9 @@ const NEEDS_CLIENT = ["estimate_submitted", "work_submitted"];
 
 export default async function PortalRequestsPage() {
   const actor = await requirePortalMember();
+  // Viewers are read-only (PR 2 roles): they see their company's requests but
+  // get no "start a request" actions. The server actions re-check anyway.
+  const canCreate = contributorCompanyScope(actor).length > 0;
   const [requests, inquiries, tokens] = await Promise.all([
     listWorkRequestsForActor(actor),
     listPortalInquiriesForActor(actor),
@@ -42,6 +46,7 @@ export default async function PortalRequestsPage() {
         sub="Five ways to get work moving: ask us anything, brief a contractor directly, hire a full-time team member in Vietnam, top up human tokens, or plan an AI program."
       />
 
+      {canCreate && (<>
       <h2 className="admin-section-label" style={{ marginTop: 0 }}>Start a request</h2>
       <div className="mp-kpi-grid mp-kpi-grid--2up" style={{ marginBottom: 20, gridAutoRows: "1fr" }}>
         <div className="admin-card admin-section-card" style={{ display: "flex", flexDirection: "column" }}>
@@ -100,6 +105,7 @@ export default async function PortalRequestsPage() {
           </div>
         </div>
       </div>
+      </>)}
 
       <h2 className="admin-section-label">Your requests</h2>
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>

@@ -6,6 +6,7 @@ import {
   invitePortalMember,
   resendPortalMemberInvite,
   revokePortalMember,
+  setPortalMemberRole,
 } from "@/app/admin/(dashboard)/revenue/companies/portal-actions";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
@@ -17,10 +18,13 @@ export function PortalMemberControls({
   personId,
   companyId,
   active,
+  role,
 }: {
   personId: string;
   companyId: string;
   active: boolean;
+  // Current portal role; picker shown for active members (PR 2 roles).
+  role?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -40,6 +44,26 @@ export function PortalMemberControls({
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span className="admin-badge admin-badge--ok">Portal ✓</span>
+        <select
+          className="admin-select"
+          style={{ padding: "4px 8px", fontSize: 12.5 }}
+          value={role ?? "admin"}
+          disabled={pending}
+          aria-label="Portal role"
+          onChange={(e) => {
+            const next = e.target.value;
+            setMsg(null);
+            start(async () => {
+              const res = await setPortalMemberRole(personId, companyId, next);
+              setMsg(res.ok ? res.message : res.error);
+              if (res.ok) router.refresh();
+            });
+          }}
+        >
+          <option value="admin">Admin</option>
+          <option value="contributor">Contributor</option>
+          <option value="viewer">Viewer</option>
+        </select>
         <button
           className="admin-btn admin-btn--sm"
           disabled={pending}
