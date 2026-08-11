@@ -62,12 +62,14 @@ export default async function TeamCompanyGoalsPage() {
       .neq("status", "dropped")
       .order("sort_order"),
     companyOs.from("key_results").select(KR_SELECT).order("sort_order"),
+    // Employees only: contractors don't carry FAST goals.
     companyOs
       .from("team_members")
       .select(
         "id, people:people!person_id(full_name, preferred_name), coaching_profiles:coaching_profiles!team_member_id(id)",
       )
-      .eq("status", "active"),
+      .eq("status", "active")
+      .neq("employment_type", "contract"),
     companyOs
       .from("coaching_goals")
       .select("coaching_profile_id, title, objective_id, key_result_id, metric_id")
