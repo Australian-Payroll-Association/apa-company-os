@@ -209,7 +209,7 @@ export default async function TeamCompanyGoalsPage() {
   );
 
   const teamPanel = (
-    <section className="admin-card" style={{ marginBottom: 14 }}>
+    <section className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
       <div className="admin-card-title">
         Team member FAST goals{" "}
         <span className="admin-cell-muted">

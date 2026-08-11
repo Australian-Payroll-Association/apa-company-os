@@ -107,7 +107,7 @@ look like the documented eyebrow while breaking both bans: `.hero-featured-cat:1
 `.team-org-badge` `admin.css:729`, `.ts-yours:872`, and five copy-pasted inline `-step` chips.
 
 **Decision needed:** bless the micro-label and specify it (size, tracking, casing, when to use
-it versus the pill), or remove it. It cannot stay undocumented at 119 uses.
+it versus the pill), or remove it. It cannot stay undocumented at roughly 106 uses.
 
 ### 2.2 The documented `.data-btn` class does not exist
 
@@ -195,19 +195,41 @@ byte-identical inline duplicates hard-coding `#287BE8`.
 `event.module.css:174` (14px 32px), `:230` (12px 26px), `survey.module.css:196` (14px 32px),
 two bstore buttons (11px 12px), plus six padding overrides on `.btn` in globals.
 
-### 3.3 Cards: 105 class families, and the shared one has no padding
+### 3.3 Cards: 105 class families, and an opt-in padding convention
 
-**`.admin-card` (`app/admin/admin.css:490`) sets background, border, radius, and shadow, but no
-padding.** Every consumer supplies its own, inline, in at least nine different values:
-`22px 24px`, `16px 18px`, `28px 24px`, `24px 28px`, `20px 24px`, `18px 20px`, `16px 20px`,
-`14px 16px`, plus one scoped rule `.admin-timeoff .admin-card { padding: 18px 20px }` (`:2050`).
+> **Corrected 2026-08-11.** The first version of this section claimed `.admin-card` was simply
+> missing its padding and that every caller re-invented it. That was wrong, and the correction
+> matters because it changes the fix from "restyle 151 cards" to "fix five". The audit trail is
+> kept here deliberately: the original reading came from grepping the base class in isolation
+> without following its companion classes.
 
-When a consumer forgets, the text sits flush against the border. That is exactly the Overview
-box on the team Strategy page (`app/team/(dashboard)/strategy/page.tsx:192`), which wraps
-`.idea-plan` in a bare `.admin-card`.
+`.admin-card` (`app/admin/admin.css:490`) is a deliberate **shell**: background, border, radius,
+shadow, and no padding. Padding comes from a companion class added alongside it:
 
-This is the single clearest structural cause of "the spacing looks bad": the shared card
-primitive does not own its own padding, so correctness depends on every caller remembering.
+| Companion | Padding | Source |
+|---|---|---|
+| `.admin-section-card` | `18px 20px` | `app/admin/admin.css:1719` |
+| `.admin-chart-card` | `16px 18px` | `:452` |
+| `.coach-section` | `18px 20px` | `:2645` |
+| `.coach-card` | `16px 18px` | `:2588` |
+
+Of 178 `.admin-card` call sites: **110** pair it with `.admin-section-card`, a further group
+uses one of the other companions, **25** set padding inline instead, and some are legitimately
+flush because the child pads itself (`.admin-empty` at `:1468`, `.admin-table`,
+`.admin-drawer-head` at `:1524`).
+
+**The real defect is smaller and sharper: five cards use the bare shell with a child that does
+not pad itself, so their content sits flush against the border.**
+
+- `app/admin/(dashboard)/edges/goals/GoalsBoard.tsx:287` (the Team FAST goals card)
+- `app/team/(dashboard)/strategy/page.tsx:198` (the Overview box)
+- `app/admin/(dashboard)/operations/time-off/requests/TimeOffBoard.tsx:220`
+- `app/team/(dashboard)/company-goals/page.tsx:212`
+- `app/team/(dashboard)/time-off/TimeOffPanel.tsx:84`
+
+So the structural weakness is real but different from first stated: padding is **opt-in on a
+shell**, and nothing catches a caller who forgets to opt in. The 25 inline paddings are the
+secondary problem, since they diverge from the two sanctioned companion values.
 
 Across the app there are **105 distinct card-like class families** and **36 distinct
 `box-shadow` values**, against a documented shadow system of two (none at rest, one on hover)
@@ -246,7 +268,8 @@ inline component styles.
 
 The individual items above are symptoms. Three underlying causes generate them:
 
-1. **Shared primitives do not own their styling.** `.admin-card` has no padding,
+1. **Shared primitives make correctness opt-in.** `.admin-card` is a shell whose padding
+   arrives only if a caller remembers a companion class,
    `.admin-eyebrow` has no link colour, `.wf-back` only works under one parent. Each caller
    completes the component differently, so drift is the default outcome rather than a mistake.
 
@@ -269,7 +292,7 @@ yet cover any of the rules in this document.
 Not a commitment, just the order that gets the most visible improvement for the least risk.
 
 **Group A: small, visible, low risk**
-- `.admin-card` gets its own padding; remove the nine inline overrides (§3.3)
+- The five bare `.admin-card` uses that render flush get `.admin-section-card` (§3.3)
 - The ten "EDGE8" cases (§1.1)
 - `--radius-sm` corrected, or renamed to what it actually is (§2.4)
 - `.btn` namespace collision in bstore (§3.2)

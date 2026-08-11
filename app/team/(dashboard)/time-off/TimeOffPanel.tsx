@@ -81,7 +81,7 @@ export function TimeOffPanel({ rows, autoApprove }: { rows: OwnRequestRow[]; aut
         </div>
       )}
 
-      <div className="admin-card" style={{ marginBottom: 20 }}>
+      <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
         <h2 className="admin-card-title">Request time off</h2>
         <p className="admin-cell-muted" style={{ marginBottom: 12 }}>
           {autoApprove

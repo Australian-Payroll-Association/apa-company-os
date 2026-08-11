@@ -284,7 +284,7 @@ export function GoalsBoard({
         </span>
       </div>
 
-      <section className="admin-card" style={{ marginBottom: 14 }}>
+      <section className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
         <div className="edges-fast-grid">
           {fast.map((p) => (
             <div key={p.name} className="edges-fast-person">

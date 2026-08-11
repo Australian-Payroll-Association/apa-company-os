@@ -217,7 +217,7 @@ export function TimeOffBoard({
       </div>
 
       {showForm && (
-        <div className="admin-card" style={{ marginBottom: 20 }}>
+        <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
           <h2 className="admin-card-title">Log time off for someone</h2>
           <p className="admin-cell-muted" style={{ marginBottom: 12 }}>
             Logged entries are approved immediately — you are the approver.
