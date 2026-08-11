@@ -28,6 +28,9 @@ const NAV: NavItem[] = [
   // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
   // token/staff-based gating is refined later with the Human Token Tracker.
   { label: "AI Programs", href: "/portal/programs", ico: "⇉", built: true },
+  // Documents: company-level files shared with Edge8; membership is the
+  // entitlement, same as Requests and AI Programs.
+  { label: "Documents", href: "/portal/documents", ico: "▣", built: true },
   // Requests has no entitlement key on purpose: being a portal member IS the
   // entitlement to ask for work; all data inside is company-scoped anyway.
   { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
