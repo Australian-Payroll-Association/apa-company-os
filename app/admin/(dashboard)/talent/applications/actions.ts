@@ -140,6 +140,47 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   return { ok: true };
 }
 
+// Soft-archive: a recruiter "deletes" a duplicate or wrong-person application by
+// archiving it (reversible) rather than a hard delete, so nothing is lost. The
+// list hides archived rows by default and the full-page profile offers Restore.
+export async function archiveApplication(applicationId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs
+    .from("applications")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", applicationId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "applications",
+    recordId: applicationId,
+    operation: "update",
+    actor: admin.email,
+    newData: { archived_at: "now" },
+  });
+  revalidatePath("/admin/talent/applications");
+  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  return { ok: true };
+}
+
+export async function unarchiveApplication(applicationId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs
+    .from("applications")
+    .update({ archived_at: null })
+    .eq("id", applicationId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "applications",
+    recordId: applicationId,
+    operation: "update",
+    actor: admin.email,
+    newData: { archived_at: null },
+  });
+  revalidatePath("/admin/talent/applications");
+  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  return { ok: true };
+}
+
 // Profile edits from the application shelf. Identity fields (phone, LinkedIn)
 // are person attributes and write to people; recruiting-profile fields
 // (headline, title, portfolio, do_not_hire) live on the candidate_profile
