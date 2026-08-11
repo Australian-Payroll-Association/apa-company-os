@@ -16,6 +16,9 @@ import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
 import { MeetingUploadForm } from "@/components/admin/MeetingUploadForm";
 import { MeetingsList } from "@/components/admin/MeetingsList";
+import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
+import { listDocumentsForCompanies } from "@/lib/client-documents";
+import { companyOs } from "@/lib/supabase";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -31,7 +34,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people, affiliate: companyAffiliate } = data;
   const name = company.name || "(no name)";
-  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy, meetings] =
+  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy, meetings, documents, programRows] =
     await Promise.all([
       getPortalMembershipsForCompany(company.id),
       getAssignmentsForCompany(company.id),
@@ -40,7 +43,10 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       getQboCustomerIds(company.id),
       getCompanyReferredBy(company.id),
       getMeetingsForCompany(company.id),
+      listDocumentsForCompanies([company.id]),
+      companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
     ]);
+  const programOptions = ((programRows.data ?? []) as ProgramOption[]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
@@ -151,6 +157,14 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       count: invoices.length,
       content: (
         <InvoicesTab companyId={company.id} invoices={invoices} qboCustomerIds={qboCustomerIds} />
+      ),
+    },
+    {
+      key: "documents",
+      label: "Documents",
+      count: documents.length,
+      content: (
+        <CompanyDocuments companyId={company.id} documents={documents} programs={programOptions} />
       ),
     },
     {

@@ -71,7 +71,7 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
         {program.documents.length === 0 ? (
           <div className="admin-empty">No documents uploaded.</div>
         ) : (
-          <ProgramDocuments documents={program.documents} />
+          <ProgramDocuments documents={program.documents} actorEmail={actor.email} />
         )}
       </div>
 

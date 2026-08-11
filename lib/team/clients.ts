@@ -7,6 +7,12 @@
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
 import {
+  listDocumentsForCompanies,
+  getDocumentRow,
+  signedDownloadForPath,
+  type ClientDocument,
+} from "@/lib/client-documents";
+import {
   BACKLOG_GROUPS,
   BACKLOG_SELECT,
   effectivePriority,
@@ -143,4 +149,31 @@ export async function getClientRoadmapSnippets(
     });
   }
   return snippets;
+}
+
+// Read-only client documents for an assigned company (title, date, uploader,
+// download; no writes on /team). Same authorization rule as the roadmap above:
+// the company must be in the actor's active assignment set.
+export async function getClientDocumentsForActor(
+  actor: TeamActor,
+  companyId: string,
+): Promise<ClientDocument[] | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+  return listDocumentsForCompanies([companyId]);
+}
+
+// Signed download for a document of an assigned company, IDOR-guarded on the
+// assignment scope.
+export async function signedClientDocumentDownloadForActor(
+  actor: TeamActor,
+  documentId: string,
+): Promise<{ ok: true; url: string; filename: string } | { ok: false; error: string }> {
+  const row = await getDocumentRow(documentId);
+  if (!row) return { ok: false, error: "Not found." };
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(row.companyId)) return { ok: false, error: "Not found." };
+  const r = await signedDownloadForPath(row.storagePath, row.filename);
+  if (!r.ok) return r;
+  return { ok: true, url: r.url, filename: row.filename };
 }
