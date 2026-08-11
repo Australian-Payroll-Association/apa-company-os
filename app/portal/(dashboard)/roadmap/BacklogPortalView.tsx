@@ -20,6 +20,7 @@ import {
   type BacklogPriority,
 } from "@/lib/client-backlog";
 import { setMyPriority, proposeMyItem, reorderMyGroup } from "./actions";
+import { ProposeAssist } from "./ProposeAssist";
 
 const STYLES = `
 .cbp { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 940px; }
@@ -90,6 +91,7 @@ export function BacklogPortalView({
   const [pTitle, setPTitle] = useState("");
   const [pNote, setPNote] = useState("");
   const [pPriority, setPPriority] = useState<BacklogPriority>("next");
+  const [pHint, setPHint] = useState<string | null>(null);
 
   // Local copy so drag + priority edits feel instant; re-sync after a refresh.
   const [ordered, setOrdered] = useState<BacklogItem[]>(items);
@@ -256,11 +258,24 @@ export function BacklogPortalView({
 
               {companyId && canPropose && (proposeGroup === g ? (
                 <div className="cbp-propose">
+                  <ProposeAssist
+                    onDraft={(d) => {
+                      setPTitle(d.title);
+                      setPNote(d.note);
+                      setPPriority((BACKLOG_PRIORITIES as readonly string[]).includes(d.priority) ? (d.priority as BacklogPriority) : "next");
+                      setPHint(
+                        d.groupKey !== g
+                          ? `Tip: this might fit better under ${GROUP_META[d.groupKey as BacklogGroupKey]?.title ?? d.groupKey}. You can propose it there instead, or send it here and Edge8 will place it.`
+                          : null,
+                      );
+                    }}
+                  />
                   <input placeholder="Short title for your idea" value={pTitle} onChange={(e) => setPTitle(e.target.value)} autoFocus />
                   <textarea placeholder="Optional: a sentence on what you're after" value={pNote} onChange={(e) => setPNote(e.target.value)} />
                   <select value={pPriority} onChange={(e) => setPPriority(e.target.value as BacklogPriority)}>
                     {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
                   </select>
+                  {pHint && <div className="cbp-hint" style={{ marginBottom: 8 }}>{pHint}</div>}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
                       type="button"
@@ -268,12 +283,12 @@ export function BacklogPortalView({
                       disabled={pending || !pTitle.trim()}
                       onClick={() => run(
                         () => proposeMyItem({ companyId, groupKey: g, title: pTitle, note: pNote, priority: pPriority }),
-                        () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); },
+                        () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); setPHint(null); },
                       )}
                     >
                       Send to Edge8
                     </button>
-                    <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); }}>Cancel</button>
+                    <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); setPHint(null); }}>Cancel</button>
                   </div>
                 </div>
               ) : (
