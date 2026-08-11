@@ -11,7 +11,7 @@
 //
 // The coach's voice comes from coaching_context: the foundation documents
 // (leadership brand, coaching profile, EQ guide, communication style),
-// company context, and company OKRs, loaded per coach (coach_id = the
+// company context, and company goals, loaded per coach (coach_id = the
 // profile's coach, plus company-wide rows where coach_id is null).
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -358,7 +358,7 @@ const SUMMARY_SCHEMA = {
     summary_markdown: {
       type: "string",
       description:
-        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance, decisions, concerns, energy and tone); 'Goal progress' (what the transcript shows about each FAST goal: moved, stalled, or blocked, with the evidence); 'Commitments' (each commitment, its owner, timeline, and any OKR connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care, this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, goals/OKRs, and company context).",
+        "The PRIVATE summary for the coach's eyes only. Markdown with ## sections in order: 'Meeting summary' (3-5 paragraphs of substance, decisions, concerns, energy and tone); 'Goal progress' (what the transcript shows about each FAST goal: moved, stalled, or blocked, with the evidence); 'Commitments' (each commitment, its owner, timeline, and any company-goal connection); 'Emotional and personal notes' (anything personal or emotionally significant, handled with care, this informs future prep, it is not a report; omit the section if nothing came up); 'Connections' (links to previous meetings, FAST goals, company goals, and company context).",
     },
     mode_split_estimate: {
       type: "object",

@@ -11,7 +11,7 @@ export const metadata = { title: "Coaching" };
 
 // /team/coaching/[profileId] — one person's coaching page: goal, cadence,
 // commitments, every 1-1 (prep -> transcript -> two-tier summaries), private
-// coaching reads, OKRs, and monthly trends. getCoachProfileDetail returns null
+// coaching reads, company goals, and monthly trends. getCoachProfileDetail returns null
 // unless the actor is this profile's coach — that IS the authorization.
 export default async function CoachProfilePage({ params }: { params: { profileId: string } }) {
   const actor = await requireTeamMember();

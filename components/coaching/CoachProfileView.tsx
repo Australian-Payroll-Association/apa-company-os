@@ -110,7 +110,7 @@ export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail;
         onSave={(md) => run("Private notes", () => savePrivateProfile(detail.profileId, md))}
         busy={busy}
       />
-      <CompanyOkrsCard detail={detail} />
+      <CompanyGoalsCard detail={detail} />
     </div>
   );
 }
@@ -1170,12 +1170,12 @@ function TrendsCard({
   );
 }
 
-// ---- company OKRs -----------------------------------------------------------
+// ---- company goals ----------------------------------------------------------
 // The company tree comes straight from Eight Edges (objectives and their KRs),
-// so this card always matches /admin/edges/goals. There is no personal OKR
-// layer: the person-level system is FAST goals, full stop.
+// so this card always matches /admin/edges/goals. There is no personal
+// company-goal layer: the person-level system is FAST goals, full stop.
 
-function CompanyOkrsCard({ detail }: { detail: CoachProfileDetail }) {
+function CompanyGoalsCard({ detail }: { detail: CoachProfileDetail }) {
   const ladderedIds = new Set(
     [...detail.goals, ...detail.priorities]
       .map((g) => (g.ladder?.kind === "key_result" || g.ladder?.kind === "objective" ? g.ladder.id : null))
@@ -1184,7 +1184,7 @@ function CompanyOkrsCard({ detail }: { detail: CoachProfileDetail }) {
 
   return (
     <section className="admin-card coach-section">
-      <div className="admin-card-title">Company OKRs</div>
+      <div className="admin-card-title">Company goals</div>
       <div className="admin-hint">
         The Eight Edges tree their goals ladder into. Highlighted rows are where {detail.member.name} plugs in.
       </div>
@@ -1211,7 +1211,7 @@ function CompanyOkrsCard({ detail }: { detail: CoachProfileDetail }) {
   );
 }
 
-// ---- markdown notes (private profile / OKRs) --------------------------------
+// ---- markdown notes (private profile / company goals) -----------------------
 
 function NotesCard({
   title,
