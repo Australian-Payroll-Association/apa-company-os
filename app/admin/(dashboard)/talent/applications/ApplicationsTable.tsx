@@ -44,7 +44,7 @@ const STATUS_ORDER = [
   "rejected",
 ];
 
-function toManageData(r: AppRow): AppManageData {
+export function toManageData(r: AppRow): AppManageData {
   return {
     id: r.id,
     jobReqId: r.jobReqId,

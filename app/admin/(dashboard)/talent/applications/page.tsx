@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
+import {
+  STAGE_LEAD,
+  STAGE_DISCOVERY,
+  STAGE_PROPOSAL,
+  STAGE_WON,
+  STAGE_LOST,
+  STAGE_NEUTRAL,
+} from "@/lib/admin/stageColors";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { ApplicationsTable, type AppRow } from "./ApplicationsTable";
+import type { KanbanColumn } from "@/components/admin/KanbanBoard";
+import { type AppRow } from "./ApplicationsTable";
+import { ApplicationsView } from "./ApplicationsView";
+import type { StageMap } from "./ApplicationsBoard";
 
 export const dynamic = "force-dynamic";
 // Vercel's data cache can freeze Supabase reads despite force-dynamic (see the
@@ -55,6 +66,24 @@ type RawApp = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
+// Column accents keyed by stage_kind so terminal columns always read as
+// won/lost regardless of how many stages a req defines.
+const KIND_ACCENT: Record<string, string> = {
+  screen: STAGE_LEAD,
+  interview: STAGE_DISCOVERY,
+  offer: STAGE_PROPOSAL,
+  hired: STAGE_WON,
+  rejected: STAGE_LOST,
+};
+
+type StageRow = {
+  id: string;
+  name: string | null;
+  position: number | null;
+  stage_kind: string | null;
+  job_requisition_id: string | null;
+};
+
 export default async function ApplicationsPage() {
   // Only applications whose req is still open — the inner join makes the
   // status filter on the embedded req drop non-matching rows.
@@ -67,7 +96,35 @@ export default async function ApplicationsPage() {
     .order("created_at", { ascending: false })
     .limit(2000);
 
-  const error = appsRes.error?.message ?? null;
+  // Stages of open reqs, for the board: columns merge by stage name (all reqs
+  // share the same template today) and stageMap lets a drag resolve the name
+  // back to the stage id on the card's own req.
+  const stagesRes = await companyOs
+    .from("application_stages")
+    .select("id, name, position, stage_kind, job_requisition_id, job_requisitions!inner(status)")
+    .eq("job_requisitions.status", "open")
+    .order("position");
+
+  const stages = (stagesRes.data ?? []) as unknown as StageRow[];
+  const columnOrder = new Map<string, { position: number; kind: string | null }>();
+  const stageMap: StageMap = {};
+  for (const s of stages) {
+    if (!s.name || !s.job_requisition_id) continue;
+    const seen = columnOrder.get(s.name);
+    if (!seen || (s.position ?? 99) < seen.position) {
+      columnOrder.set(s.name, { position: s.position ?? 99, kind: s.stage_kind });
+    }
+    (stageMap[s.job_requisition_id] ??= {})[s.name] = s.id;
+  }
+  const stageColumns: KanbanColumn[] = [...columnOrder.entries()]
+    .sort((a, b) => a[1].position - b[1].position)
+    .map(([name, meta]) => ({
+      id: name,
+      label: name,
+      accent: (meta.kind && KIND_ACCENT[meta.kind]) || STAGE_NEUTRAL,
+    }));
+
+  const error = appsRes.error?.message ?? stagesRes.error?.message ?? null;
   const raw = (appsRes.data ?? []) as unknown as RawApp[];
   const rows: AppRow[] = raw.map((r) => {
     const p = one(r.people);
@@ -123,7 +180,7 @@ export default async function ApplicationsPage() {
         <MetricCard label="Hired" value={rows.filter((r) => r.status === "hired").length} sub="closed won" />
       </div>
 
-      <ApplicationsTable rows={rows} />
+      <ApplicationsView rows={rows} stageColumns={stageColumns} stageMap={stageMap} />
     </>
   );
 }
