@@ -7,33 +7,26 @@ import { signOut } from "@/app/team/(dashboard)/actions";
 import type { TeamRole } from "@/lib/team-auth";
 
 // Lighter sibling of AdminSidebar: reuses the admin shell CSS but drops the brand
-// switcher and collapsible offices. Flat nav grouped Me / My Team. Items without
-// `enabled` render as muted "soon" placeholders (their slice has not shipped yet),
-// mirroring the admin nav so the shell always looks complete without dead links.
+// switcher and collapsible offices. Flat nav grouped Company / My Team / Me. Items
+// without `enabled` render as muted "soon" placeholders (their slice has not shipped
+// yet), mirroring the admin nav so the shell always looks complete without dead links.
 type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
-// "My coaching" appears only for members who are in a coaching cycle
-// (an active coaching_profiles row of their own).
-function meGroups(isCoached: boolean): NavGroup[] {
-  return [
-    { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
-    {
-      label: "Me",
-      items: [
-        { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
-        { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
-        { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
-        ...(isCoached
-          ? [{ label: "My coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
-          : []),
-        { label: "My Profile", href: "/team/profile", ico: "☺", enabled: true },
-        { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
-        { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
-        { label: "Gallery", href: "/team/gallery", ico: "▦", enabled: true },
-      ],
-    },
-  ];
+// "Clients" appears only for members assigned to a client company.
+function companyGroup(hasClients: boolean): NavGroup {
+  return {
+    label: "Company",
+    items: [
+      ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
+      { label: "Strategy", href: "/team/strategy", ico: "◆", enabled: true },
+      { label: "OKRs", href: "/team/okrs", ico: "⊚", enabled: true },
+      { label: "Core Values", href: "/team/values", ico: "♥" },
+      { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
+      { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
+      { label: "Gallery", href: "/team/gallery", ico: "▦", enabled: true },
+    ],
+  };
 }
 
 // Coaching appears only for actors who coach ≥1 person (coaching_profiles
@@ -42,11 +35,26 @@ function myTeamGroup(isCoach: boolean): NavGroup {
   return {
     label: "My Team",
     items: [
-      { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
       ...(isCoach ? [{ label: "Coaching", href: "/team/coaching", ico: "◎", enabled: true }] : []),
+      { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
       { label: "Approvals", href: "/team/approvals", ico: "✓" },
-      { label: "Team calendar", href: "/team/calendar", ico: "▦" },
-      { label: "My reports", href: "/team/reports", ico: "⇉" },
+    ],
+  };
+}
+
+// "My coaching" appears only for members who are in a coaching cycle
+// (an active coaching_profiles row of their own).
+function meGroup(isCoached: boolean): NavGroup {
+  return {
+    label: "Me",
+    items: [
+      { label: "Profile", href: "/team/profile", ico: "☺", enabled: true },
+      { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
+      { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
+      { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
+      ...(isCoached
+        ? [{ label: "My coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
+        : []),
     ],
   };
 }
@@ -85,24 +93,19 @@ export function TeamSidebar({
   isAdmin: boolean;
   isCoach?: boolean;
   isCoached?: boolean;
-  // Team members assigned to a client see a "Clients" link right below Home.
+  // Team members assigned to a client see a "Clients" link under Company.
   hasClients?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  const base = meGroups(isCoached);
-  const me: NavGroup[] = hasClients
-    ? [
-        {
-          label: null,
-          items: [base[0].items[0], { label: "Clients", href: "/team/clients", ico: "◔", enabled: true }],
-        },
-        base[1],
-      ]
-    : base;
-  const groups = role === "manager" || isCoach ? [...me, myTeamGroup(isCoach)] : me;
+  const groups: NavGroup[] = [
+    { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
+    companyGroup(hasClients),
+    ...(role === "manager" || isCoach ? [myTeamGroup(isCoach)] : []),
+    meGroup(isCoached),
+  ];
   const userInitials = initials(name);
 
   useEffect(() => {
