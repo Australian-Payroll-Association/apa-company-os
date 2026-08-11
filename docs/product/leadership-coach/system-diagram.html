@@ -116,14 +116,14 @@
   <text x="300" y="255" font-size="10.5" fill="#5b6b7d" transform="rotate(0)">every agent reads both kinds</text>
 
   <!-- ================= HUMANS + SURFACES ================= -->
-  <!-- Dave review gate -->
+  <!-- manager review gate -->
   <rect x="790" y="40" width="260" height="120" rx="10" fill="#f3e8ff" stroke="#6d28d9"/>
-  <text x="920" y="62" font-size="12.5" font-weight="700" fill="#6d28d9" text-anchor="middle">DAVE · THE ONLY DECIDER</text>
+  <text x="920" y="62" font-size="12.5" font-weight="700" fill="#6d28d9" text-anchor="middle">THE MANAGER · THE ONLY DECIDER</text>
   <text x="920" y="82" font-size="11" fill="#1c2b3a" text-anchor="middle">Holds the 1-1 (the only human step)</text>
   <text x="920" y="99" font-size="11" fill="#1c2b3a" text-anchor="middle">Reviews + publishes shared recaps</text>
   <text x="920" y="116" font-size="11" fill="#1c2b3a" text-anchor="middle">Reviews + publishes OCEAN profiles</text>
   <text x="920" y="133" font-size="11" fill="#1c2b3a" text-anchor="middle">Sets goals, priorities, mode, roots</text>
-  <text x="920" y="150" font-size="10.5" fill="#6d28d9" text-anchor="middle" font-style="italic">AI preps and drafts. Dave decides.</text>
+  <text x="920" y="150" font-size="10.5" fill="#6d28d9" text-anchor="middle" font-style="italic">AI preps and drafts. The manager decides.</text>
 
   <!-- surfaces -->
   <rect x="790" y="185" width="260" height="128" rx="10" fill="#eef4fb" stroke="#10243e"/>
@@ -173,8 +173,8 @@
   <rect x="243" y="560" width="185" height="100" rx="8" fill="#1d3557" stroke="#4a6a92"/>
   <text x="335" y="582" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">1 · PREP</text>
   <text x="335" y="600" font-size="10.5" fill="#cfe0f0" text-anchor="middle">1-1 within 4 days → generate</text>
-  <text x="335" y="615" font-size="10.5" fill="#cfe0f0" text-anchor="middle">the prep once, notify Dave</text>
-  <text x="335" y="630" font-size="10.5" fill="#cfe0f0" text-anchor="middle">by 9am his time</text>
+  <text x="335" y="615" font-size="10.5" fill="#cfe0f0" text-anchor="middle">the prep once, notify the manager</text>
+  <text x="335" y="630" font-size="10.5" fill="#cfe0f0" text-anchor="middle">by 9am</text>
 
   <rect x="446" y="560" width="185" height="100" rx="8" fill="#1d3557" stroke="#4a6a92"/>
   <text x="538" y="582" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">2 · OVERDUE WATCH</text>
@@ -203,7 +203,7 @@
 </div>
 
 <div class="note">
-<strong>The rule above the whole system:</strong> the agents prep and draft, Dave decides. Nothing an
+<strong>The rule above the whole system:</strong> the agents prep and draft, the manager decides. Nothing an
 agent writes reaches a team member without passing a publish gate (shared recaps, OCEAN profiles),
 and no agent ever recommends promoting, managing out, ranking, or labeling a person.
 </div>
@@ -229,13 +229,13 @@ and no agent ever recommends promoting, managing out, ranking, or labeling a per
 <tr><td><strong>Check-in Agent</strong> (<code>generateCheckinMessage</code>)</td><td>Cron, halfway through each cycle</td><td>Goals, open commitments, foundation docs</td><td>Warm nudge to the member, opens on their goal</td><td>Sent automatically; falls back to a plain template if the model is down</td></tr>
 <tr><td><strong>Trend Agent</strong> (<code>generateTrendReport</code>)</td><td>Cron on the 1st-3rd, or on-demand</td><td>The month's summaries, full commitment ledger, mode history, goals, prior report</td><td>Growth trajectory, goal + mode trajectories, coaching opportunities, flags</td><td>None needed: coach-only reading</td></tr>
 </table></div>
-<p class="meta">All four run on Claude Opus (<code>COACHING_CLAUDE_MODEL</code> override available), write in Dave's voice from the foundation docs, never use em dashes, and fail soft: an error lands on the row, never blocks the cycle.</p>
+<p class="meta">All four run on Claude Opus (<code>COACHING_CLAUDE_MODEL</code> override available), write in the coach's voice from the foundation docs, never use em dashes, and fail soft: an error lands on the row, never blocks the cycle.</p>
 
 <h2>3 · Routines</h2>
 <div class="tablewrap"><table>
 <tr><th>Routine</th><th>Schedule</th><th>What it does</th></tr>
-<tr><td><code>/api/cron/coaching-cycle</code> step 0: Minutes sync</td><td>Daily 07:45 Saigon</td><td>Auto-matches new Lark Minutes to 1-1s (name + date), pulls transcripts for any token'd meeting, auto-drafts recaps for meetings under 14 days old, tells Dave to review</td></tr>
-<tr><td>Step 1: Prep</td><td>Daily 07:45</td><td>Any 1-1 within 4 days gets its prep generated once and Dave notified, before his 9am</td></tr>
+<tr><td><code>/api/cron/coaching-cycle</code> step 0: Minutes sync</td><td>Daily 07:45 Saigon</td><td>Auto-matches new Lark Minutes to 1-1s (name + date), pulls transcripts for any token'd meeting, auto-drafts recaps for meetings under 14 days old, tells the manager to review</td></tr>
+<tr><td>Step 1: Prep</td><td>Daily 07:45</td><td>Any 1-1 within 4 days gets its prep generated once and the manager notified, before 9am</td></tr>
 <tr><td>Step 2: Overdue watch</td><td>Daily 07:45, fires weekly</td><td>Cadence lapsed with nothing scheduled: nudges the coach</td></tr>
 <tr><td>Step 3: Mid-cycle check-in</td><td>Daily 07:45, fires once per cycle</td><td>Halfway between 1-1s with open commitments: AI check-in to the member</td></tr>
 <tr><td>Step 4: Monthly trends</td><td>1st-3rd of each month</td><td>Prior month's trend report per person with summarized 1-1s</td></tr>
@@ -244,7 +244,7 @@ and no agent ever recommends promoting, managing out, ranking, or labeling a per
 
 <h2>The loop, in one sentence</h2>
 <p>Routines wake the agents, the agents turn structured + unstructured data into preps, recaps,
-nudges, and trends, Dave holds the conversation and publishes what the team sees, and everything
+nudges, and trends, The manager holds the conversation and publishes what the team sees, and everything
 the conversation produces (transcript, commitments, mode split, new reads) flows back into the data
 that preps the next cycle.</p>
 
