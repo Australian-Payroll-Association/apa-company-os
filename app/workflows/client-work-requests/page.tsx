@@ -42,7 +42,7 @@ export default function ClientWorkRequestsWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The flow</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             One loop, two client decisions
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -68,7 +68,7 @@ export default function ClientWorkRequestsWorkflowPage() {
       <section className="section" style={{ paddingTop: 0, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">A branch</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Adding scope, mid-flight
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -93,7 +93,7 @@ export default function ClientWorkRequestsWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step by step
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             How each step works
           </h2>
           <StepCards

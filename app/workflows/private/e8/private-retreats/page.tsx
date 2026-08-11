@@ -26,7 +26,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Never bend these</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The seven ground rules
           </h2>
           <div className="wf-problems wf-problems-4">
@@ -97,7 +97,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The mental model</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Three clocks: paperwork, arrival day, the daily rhythm
           </h2>
           <div className="wf-problems">
@@ -154,7 +154,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Workflow 1</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Pre-arrival
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -201,7 +201,7 @@ export default function PrivateRetreatsTrainingPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Workflow 2
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Airport arrival
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -279,7 +279,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Workflow 3</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Lumiere check-in
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -382,7 +382,7 @@ export default function PrivateRetreatsTrainingPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Workflow 4
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Agenda and room booking
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -489,7 +489,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Workflow 5</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Staff scheduling
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -570,7 +570,7 @@ export default function PrivateRetreatsTrainingPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The hospitality calls
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Meals and free time
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -607,7 +607,7 @@ export default function PrivateRetreatsTrainingPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Getting started</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Before each retreat, and when to escalate
           </h2>
           <div className="wf-info-grid">

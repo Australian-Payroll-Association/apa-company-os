@@ -287,7 +287,7 @@ function VendorAutosaveForm({
 
   return (
     <div className="admin-form">
-      <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12 }}>
         <AutosaveIndicator status={status} />
       </div>
       <VendorFields form={form} onChange={field} onBlur={commit} />

@@ -30,7 +30,7 @@ export function AssumeBanner({
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: 8,
-        fontSize: 12.5,
+        fontSize: 12,
         lineHeight: 1.4,
       }}
     >

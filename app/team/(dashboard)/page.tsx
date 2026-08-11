@@ -207,11 +207,11 @@ export default async function TeamHome() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
                 <h3 className="admin-card-title" style={{ margin: 0 }}>
                   {s.company.name}
-                  <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12.5, marginLeft: 8 }}>
+                  <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
                     roadmap · next up
                   </span>
                 </h3>
-                <Link href={`/team/clients/${s.company.id}`} className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+                <Link href={`/team/clients/${s.company.id}`} className="admin-cell-muted" style={{ fontSize: 12 }}>
                   View all {s.total} →
                 </Link>
               </div>
@@ -249,7 +249,7 @@ export default async function TeamHome() {
                 <div key={r.id} className="admin-list-row">
                   <div className="admin-list-main">
                     <div className="admin-list-title">{r.title}</div>
-                    <div className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+                    <div className="admin-cell-muted" style={{ fontSize: 12 }}>
                       {r.location || "Location not set"}
                     </div>
                   </div>

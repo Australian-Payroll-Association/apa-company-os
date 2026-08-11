@@ -106,7 +106,7 @@ const DONE = [
 ]
 
 const statCard: React.CSSProperties = { textAlign: 'left' }
-const statValue: React.CSSProperties = { fontSize: 34, fontWeight: 600, color: 'var(--dark)', lineHeight: 1.1 }
+const statValue: React.CSSProperties = { fontSize: 32, fontWeight: 600, color: 'var(--dark)', lineHeight: 1.1 }
 const statLabel: React.CSSProperties = { fontSize: 14, color: 'var(--body-text)', marginTop: 8 }
 const chipWrap: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }
 
@@ -130,7 +130,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section" style={{ paddingBottom: 48 }}>
           <div className="container">
             <span className="section-label">01 · Define the problem</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               Custody is overwritten, not recorded
             </h2>
 
@@ -207,7 +207,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section" style={{ paddingBottom: 48 }}>
           <div className="container">
             <span className="section-label">02 · Data</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               What the register is built from
             </h2>
 
@@ -256,7 +256,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section" style={{ paddingBottom: 48 }}>
           <div className="container">
             <span className="section-label">03 · Design the workflow</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               One open assignment per item
             </h2>
 
@@ -400,7 +400,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section" style={{ paddingBottom: 48 }}>
           <div className="container">
             <span className="section-label">04 · Determine the ROI</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               The return is hardware, not hours
             </h2>
             <p className="section-sub" style={{ marginTop: 12 }}>
@@ -453,7 +453,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section" style={{ paddingBottom: 48 }}>
           <div className="container">
             <span className="section-label">05 · Deploy and train</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               Six phases, then the spreadsheet closes
             </h2>
             <p className="section-sub" style={{ marginTop: 12 }}>
@@ -599,7 +599,7 @@ export default function EquipmentRegisterPlanPage() {
         <section className="section">
           <div className="container">
             <span className="section-label">Verification, scope and open items</span>
-            <h2 className="section-title" style={{ fontSize: 34 }}>
+            <h2 className="section-title section-title--sm">
               What is not in this build
             </h2>
 

@@ -17,7 +17,7 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ fontSize: 12, color: "var(--admin-muted)" }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: "var(--admin-ink)", overflowWrap: "anywhere" }}>
+      <div style={{ fontSize: 13, color: "var(--admin-ink)", overflowWrap: "anywhere" }}>
         {value}
       </div>
     </div>

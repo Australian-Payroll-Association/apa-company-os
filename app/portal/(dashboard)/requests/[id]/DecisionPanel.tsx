@@ -159,19 +159,19 @@ export function DecisionPanel({ id, status }: { id: string; status: WorkRequestS
         )}
       </div>
       {addable && (
-        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12.5 }}>
+        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
           Adding scope sends the request back to the contractor for an updated estimate. Nothing extra is billed until
           you accept the finished work.
         </p>
       )}
       {status === "estimate_submitted" && (
-        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12.5 }}>
+        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
           Approving means the contractor starts the work; you&apos;ll review and accept the result before
           anything is invoiced.
         </p>
       )}
       {status === "work_submitted" && (
-        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12.5 }}>
+        <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
           Accepting closes the project and triggers your invoice at the agreed hourly rate.
         </p>
       )}

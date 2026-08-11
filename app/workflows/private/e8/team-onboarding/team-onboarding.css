@@ -389,7 +389,7 @@
   list-style: none;
 }
 .deckRoot .team-block li {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--white-75);
   padding: 3px 0;
   line-height: 1.45;
@@ -418,7 +418,7 @@
   line-height: 1;
 }
 .deckRoot .team-stat .ts-lbl {
-  font-size: 10.5px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--white-60);

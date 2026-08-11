@@ -49,7 +49,7 @@ export default function LeadershipCoachProgramPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">1D · Define</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Define the problem
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -93,7 +93,7 @@ export default function LeadershipCoachProgramPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             2D · Discover
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Discover the data
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -160,7 +160,7 @@ export default function LeadershipCoachProgramPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">3D · Design</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Design the workflow
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -263,7 +263,7 @@ export default function LeadershipCoachProgramPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             4D · Determine
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Determine the ROI
           </h2>
           <div className="wf-info-grid" style={{ marginTop: 32 }}>
@@ -296,7 +296,7 @@ export default function LeadershipCoachProgramPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">5D · Deploy</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Deploy to production
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>

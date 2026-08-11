@@ -56,7 +56,7 @@ export default function StaffingContractRenewalPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Who this applies to</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The staffing clients
           </h2>
           <p style={{ maxWidth: 720, marginBottom: 24 }}>
@@ -78,7 +78,7 @@ export default function StaffingContractRenewalPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Ground rules</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             How renewals live in the CRM
           </h2>
           <div className="wf-problems">
@@ -110,7 +110,7 @@ export default function StaffingContractRenewalPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The flow</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             One decision point, three paths
           </h2>
           <style dangerouslySetInnerHTML={{ __html: `
@@ -253,7 +253,7 @@ export default function StaffingContractRenewalPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Step by step</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The workflow in detail
           </h2>
           <StepCards

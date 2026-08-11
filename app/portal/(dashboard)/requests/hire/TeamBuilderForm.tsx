@@ -209,7 +209,7 @@ export function TeamBuilderForm({ companies }: { companies: { id: string; name: 
                       {g.label}
                     </div>
                     {g.options.map((t) => (
-                      <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+                      <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
                         <input type="checkbox" checked={c.techStack.includes(t)} onChange={() => toggleTech(c.key, t)} />
                         {t}
                       </label>
@@ -251,7 +251,7 @@ export function TeamBuilderForm({ companies }: { companies: { id: string; name: 
         <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Terms</h2>
         <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
           {HIRE_TERMS.map((t) => (
-            <li key={t} style={{ fontSize: 13.5, color: "var(--admin-muted)" }}>
+            <li key={t} style={{ fontSize: 13, color: "var(--admin-muted)" }}>
               {t}
             </li>
           ))}

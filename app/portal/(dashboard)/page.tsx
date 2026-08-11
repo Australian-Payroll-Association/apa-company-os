@@ -248,11 +248,11 @@ export default async function PortalHome() {
           >
             <h2 className="admin-card-title" style={{ margin: 0 }}>
               Roadmap
-              <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12.5, marginLeft: 8 }}>
+              <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
                 next up
               </span>
             </h2>
-            <Link href="/portal/roadmap" className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+            <Link href="/portal/roadmap" className="admin-cell-muted" style={{ fontSize: 12 }}>
               View all {roadmap.total} →
             </Link>
           </div>
@@ -293,7 +293,7 @@ export default async function PortalHome() {
             <h2 className="admin-card-title" style={{ margin: 0 }}>
               This week
             </h2>
-            <Link href="/portal/time-off" className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+            <Link href="/portal/time-off" className="admin-cell-muted" style={{ fontSize: 12 }}>
               Time off →
             </Link>
           </div>
@@ -310,7 +310,7 @@ export default async function PortalHome() {
                     <div className="admin-list-sub">{humanize(e.leaveType)}</div>
                   </div>
                   <div className="admin-list-aside">
-                    <span className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+                    <span className="admin-cell-muted" style={{ fontSize: 12 }}>
                       {timeOffRange(e.startDate, e.endDate, e.isHalfDay)}
                     </span>
                   </div>

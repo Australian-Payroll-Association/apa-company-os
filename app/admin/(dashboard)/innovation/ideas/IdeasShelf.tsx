@@ -190,7 +190,7 @@ function IdeaShelfBody({ row }: { row: IdeaRow }) {
         {(isLearning ? LEARNING_SECTIONS : D_SECTIONS).map((s) => (
           <div key={s.key} style={{ marginBottom: 12 }}>
             <div className="admin-label" style={{ marginBottom: 2 }}>{s.label}</div>
-            <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{row[s.key]}</div>
+            <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{row[s.key]}</div>
           </div>
         ))}
       </section>
@@ -205,7 +205,7 @@ function IdeaShelfBody({ row }: { row: IdeaRow }) {
         {row.planHtml ? (
           <div className="idea-plan" dangerouslySetInnerHTML={{ __html: row.planHtml }} />
         ) : (
-          <div className="admin-cell-muted" style={{ fontSize: 13.5 }}>
+          <div className="admin-cell-muted" style={{ fontSize: 13 }}>
             {row.ai_error ? `Generation failed: ${row.ai_error}` : "No plan generated yet."}
           </div>
         )}

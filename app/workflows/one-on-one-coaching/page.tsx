@@ -170,7 +170,7 @@ export default function OneOnOneCoachingWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The problem</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             1-1s fail quietly, in five ways
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -197,7 +197,7 @@ export default function OneOnOneCoachingWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The shape
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             A loop with a gate, not a line
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -213,7 +213,7 @@ export default function OneOnOneCoachingWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Step by step</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             How each step works
           </h2>
           <StepCards
@@ -320,7 +320,7 @@ export default function OneOnOneCoachingWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The scoreboard
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Goals, priorities, KPIs, commitments
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -405,7 +405,7 @@ export default function OneOnOneCoachingWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">The person model</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             What the coach knows, and who gets to see it
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -443,7 +443,7 @@ export default function OneOnOneCoachingWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Two tiers, never mixed
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Privacy by access control, not discipline
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -525,7 +525,7 @@ export default function OneOnOneCoachingWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">The tooling</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             What runs it
           </h2>
           <div className="wf-table-wrap">

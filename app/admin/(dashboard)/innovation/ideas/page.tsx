@@ -95,7 +95,7 @@ function IdeaColumn({
                     <td>
                       <span className="admin-cell-strong">{r.title}</span>
                       {variant === "learning" && r.takeaway && (
-                        <div className="admin-cell-muted" style={{ marginTop: 2, fontSize: 12.5 }}>
+                        <div className="admin-cell-muted" style={{ marginTop: 2, fontSize: 12 }}>
                           {truncate(r.takeaway)}
                         </div>
                       )}

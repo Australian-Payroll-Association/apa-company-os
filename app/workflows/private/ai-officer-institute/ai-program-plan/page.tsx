@@ -45,7 +45,7 @@ export default function AiProgramPlanPage() {
             padding: 24px;
           }
           .app-card h3 { font-size: 17px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
-          .app-card p { font-size: 14.5px; line-height: 1.6; color: var(--body-text); }
+          .app-card p { font-size: 14px; line-height: 1.6; color: var(--body-text); }
           .app-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
           .app-list li { position: relative; padding-left: 22px; font-size: 15px; line-height: 1.6; color: var(--body-text); }
           .app-list li::before {

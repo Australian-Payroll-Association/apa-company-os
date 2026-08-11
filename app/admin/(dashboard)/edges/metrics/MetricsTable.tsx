@@ -117,7 +117,7 @@ export function MetricsTable({
         </div>
       )}
       <div className="admin-toolbar" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 12.5, fontWeight: 650 }}>
+        <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 12, fontWeight: 650 }}>
           Owner
           <select
             className="admin-select"
