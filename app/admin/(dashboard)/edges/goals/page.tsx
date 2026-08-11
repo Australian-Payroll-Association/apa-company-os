@@ -50,6 +50,12 @@ function buildTree(objectives: ObjectiveRow[], krs: KrRow[]): ObjectiveNode[] {
     .map(toNode);
 }
 
+// The `## Overview` section of the strategy one-pager, shown on the banner.
+function overviewFromBody(body: string | null): string | null {
+  const m = body?.match(/^##\s+Overview\s*\n+([\s\S]*?)(?=\n##\s|$)/m);
+  return m ? m[1].trim() : null;
+}
+
 export default async function GoalsPage() {
   const q = currentQuarter();
 
@@ -58,11 +64,13 @@ export default async function GoalsPage() {
     companyOs.from("objectives").select(OBJECTIVE_SELECT).eq("quarter", q.label).neq("status", "dropped"),
     companyOs.from("key_results").select(KR_SELECT),
     companyOs.from("sync_packets").select("id").gte("week_start", q.start.toISOString().slice(0, 10)),
-    // O2-KR1 measured live: active coaching roster vs who has an active FAST goal.
+    // Every active team member, with their coaching profile (if any) so goals attach.
     companyOs
-      .from("coaching_profiles")
-      .select("id, team_members:team_members!team_member_id(people:people!person_id(full_name, preferred_name))")
-      .eq("active", true),
+      .from("team_members")
+      .select(
+        "id, people:people!person_id(full_name, preferred_name), coaching_profiles:coaching_profiles!team_member_id(id)",
+      )
+      .eq("status", "active"),
     companyOs
       .from("coaching_goals")
       .select("coaching_profile_id, title, objective_id, key_result_id, metric_id")
@@ -74,6 +82,7 @@ export default async function GoalsPage() {
     stratRes.error?.message ?? objRes.error?.message ?? krRes.error?.message ?? packetRes.error?.message ?? null;
 
   const strategy = (stratRes.data?.[0] as StrategyRow | undefined) ?? null;
+  const overview = overviewFromBody(strategy?.body_md ?? null);
   const objectives = (objRes.data ?? []) as ObjectiveRow[];
   const objectiveIds = new Set(objectives.map((o) => o.id));
   const krs = ((krRes.data ?? []) as KrRow[]).filter((kr) => objectiveIds.has(kr.objective_id));
@@ -94,13 +103,13 @@ export default async function GoalsPage() {
   const packetsThisQuarter = packetRes.data?.length ?? 0;
   const weeksElapsed = q.week;
   const alreadyMet = krs.filter((kr) => progressPct(kr) >= 100 && kr.status !== "done").length;
-  // Transparent = the coached team's FAST goals are set and team-visible.
+  // Transparent = the whole active team, with FAST goals set and team-visible.
+  type PersonEmbed = { full_name: string | null; preferred_name: string | null };
+  type ProfileEmbed = { id: string };
   type RosterRow = {
     id: string;
-    team_members:
-      | { people: { full_name: string | null; preferred_name: string | null } | { full_name: string | null; preferred_name: string | null }[] | null }
-      | { people: { full_name: string | null; preferred_name: string | null } | { full_name: string | null; preferred_name: string | null }[] | null }[]
-      | null;
+    people: PersonEmbed | PersonEmbed[] | null;
+    coaching_profiles: ProfileEmbed | ProfileEmbed[] | null;
   };
   type TeamGoalRow = {
     coaching_profile_id: string;
@@ -109,12 +118,10 @@ export default async function GoalsPage() {
     key_result_id: string | null;
     metric_id: string | null;
   };
+  const many = <T,>(e: T | T[] | null): T[] => (Array.isArray(e) ? e : e ? [e] : []);
   const first = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
   const roster = (rosterRes.data ?? []) as unknown as RosterRow[];
   const teamGoals = (teamGoalsRes.data ?? []) as TeamGoalRow[];
-  const rosterCount = roster.length;
-  const withGoal = new Set(teamGoals.map((g) => g.coaching_profile_id));
-  const rosterWithGoal = roster.filter((p) => withGoal.has(p.id)).length;
 
   // The person-level view of the T in FAST: everyone's goals and where each
   // ladders into this tree. KR labels come from the tree itself.
@@ -130,12 +137,13 @@ export default async function GoalsPage() {
     metricRows.map((m) => [m.id, `${m.name}${m.target != null ? ` (target ${m.target}${m.direction === "down" ? " ↓" : " ↑"})` : ""}`] as const),
   );
   const fastByPerson = roster
-    .map((p) => {
-      const person = first(first(p.team_members)?.people ?? null);
+    .map((tm) => {
+      const person = first(tm.people);
+      const profileIds = new Set(many(tm.coaching_profiles).map((p) => p.id));
       return {
         name: person?.preferred_name || person?.full_name || "Unknown",
         goals: teamGoals
-          .filter((g) => g.coaching_profile_id === p.id)
+          .filter((g) => profileIds.has(g.coaching_profile_id))
           .map((g) => ({
             title: g.title,
             ladder: g.key_result_id
@@ -149,6 +157,8 @@ export default async function GoalsPage() {
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+  const rosterCount = fastByPerson.length;
+  const rosterWithGoal = fastByPerson.filter((p) => p.goals.length > 0).length;
   const casting = {
     human: krs.filter((kr) => kr.delivery_mix === "human").length,
     blended: krs.filter((kr) => kr.delivery_mix === "blended").length,
@@ -160,42 +170,21 @@ export default async function GoalsPage() {
       <PageHead
         eyebrow="Eight Edges"
         title="Goals"
-        sub={`${q.label.slice(0, 4)} Q${q.label.slice(5)} · Week ${q.week} of ${q.totalWeeks} · the cascade from company goals to every executor, human or agent.`}
+        sub={`${q.label.slice(0, 4)} Q${q.label.slice(5)} · Week ${q.week} of ${q.totalWeeks} · the cascade from company strategy to every executor, human or agent.`}
       />
       {error && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
           {error}
         </div>
       )}
-      <section className="admin-card" style={{ marginBottom: 14 }}>
-        <div className="admin-card-title">
-          Team FAST goals{" "}
-          <span className="admin-cell-muted">({rosterWithGoal}/{rosterCount} set · transparent to the whole team)</span>
-        </div>
-        <div className="edges-fast-grid">
-          {fastByPerson.map((p) => (
-            <div key={p.name} className="edges-fast-person">
-              <div className="edges-fast-name">{p.name}</div>
-              {p.goals.length === 0 && <div className="admin-cell-muted">No active goal</div>}
-              {p.goals.map((g, i) => (
-                <div key={i} className="edges-fast-goal">
-                  <div>{g.title}</div>
-                  <div className="admin-cell-muted">
-                    {g.ladder ? `⇗ ${g.ladder}` : "No ladder yet"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
       <GoalsBoard
         strategy={strategy}
+        overview={overview}
         tree={tree}
         quarter={q.label}
         initialsById={initialsById}
         casting={casting}
+        fast={fastByPerson}
         chips={{
           frequent: { value: `${packetsThisQuarter}/${weeksElapsed} syncs`, tone: packetsThisQuarter >= weeksElapsed - 1 ? "ok" : "warn" },
           specific: { value: `${measurable}/${krs.length} measurable`, tone: measurable === krs.length ? "ok" : "warn" },
