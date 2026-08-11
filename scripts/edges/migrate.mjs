@@ -97,6 +97,12 @@ const statements = [
     resolved_at timestamptz
   )`,
 
+  // Every issue is assigned to a person who owns solving it. Nullable at the
+  // DB level (pre-existing rows, auto-filed issues with no metric owner); the
+  // UI requires it when filing.
+  `alter table company_os.issues add column if not exists
+    assignee_person_id uuid references company_os.people(id) on delete set null`,
+
   `create table if not exists company_os.sync_packets (
     id uuid primary key default gen_random_uuid(),
     week_start date not null unique,

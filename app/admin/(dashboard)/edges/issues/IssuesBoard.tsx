@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
-import { ISSUE_DIAGNOSES, type IssueRow } from "../edges-shared";
-import { createIssue, setIssueStatus } from "./actions";
+import { DAVE_PERSON_ID, ISSUE_DIAGNOSES, type IssueRow } from "../edges-shared";
+import { createIssue, setIssueAssignee, setIssueStatus } from "./actions";
+
+type PersonOption = { id: string; full_name: string };
 
 const DIAG_BADGE: Record<string, string> = {
   goal: "admin-badge--info",
@@ -18,13 +20,24 @@ function age(created: string): string {
   return `${days}d`;
 }
 
-export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: string; title: string }[] }) {
+export function IssuesBoard({
+  issues,
+  krs,
+  people,
+  teamOptions,
+}: {
+  issues: IssueRow[];
+  krs: { id: string; title: string }[];
+  people: PersonOption[];
+  teamOptions: PersonOption[];
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const krTitle = new Map(krs.map((k) => [k.id, k.title]));
+  const personName = new Map(people.map((p) => [p.id, p.full_name]));
 
   const open = issues.filter((i) => i.status === "open" || i.status === "solving");
   const closed = issues.filter((i) => i.status === "solved" || i.status === "dropped");
@@ -32,6 +45,18 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
   async function move(id: string, status: string) {
     setBusyId(id);
     const res = await setIssueStatus(id, status);
+    setBusyId(null);
+    if (!res.ok) setErr(res.error);
+    else {
+      setErr(null);
+      startTransition(() => router.refresh());
+    }
+  }
+
+  async function assign(id: string, personId: string) {
+    if (!personId) return;
+    setBusyId(id);
+    const res = await setIssueAssignee(id, personId);
     setBusyId(null);
     if (!res.ok) setErr(res.error);
     else {
@@ -50,6 +75,7 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
                 <th>{label}</th>
                 <th>Diagnosis</th>
                 <th>Blocks</th>
+                <th>Assigned to</th>
                 <th>Filed by</th>
                 <th>Age</th>
                 <th></th>
@@ -58,7 +84,7 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <div className="admin-empty">Nothing here.</div>
                   </td>
                 </tr>
@@ -74,6 +100,31 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
                   </td>
                   <td className="admin-cell-muted" title={i.key_result_id ? krTitle.get(i.key_result_id) : undefined}>
                     {i.key_result_id ? `${(krTitle.get(i.key_result_id) ?? "").slice(0, 30)}…` : "—"}
+                  </td>
+                  <td>
+                    {i.status === "open" || i.status === "solving" ? (
+                      <select
+                        className="admin-select"
+                        style={{ width: "auto", minWidth: 130 }}
+                        value={i.assignee_person_id ?? ""}
+                        disabled={busyId === i.id}
+                        onChange={(e) => assign(i.id, e.target.value)}
+                      >
+                        {!i.assignee_person_id && <option value="">Unassigned</option>}
+                        {teamOptions.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.full_name}
+                          </option>
+                        ))}
+                        {i.assignee_person_id && !teamOptions.some((p) => p.id === i.assignee_person_id) && (
+                          <option value={i.assignee_person_id}>{personName.get(i.assignee_person_id) ?? "Former team member"}</option>
+                        )}
+                      </select>
+                    ) : (
+                      <span className="admin-cell-muted">
+                        {i.assignee_person_id ? (personName.get(i.assignee_person_id) ?? "—") : "—"}
+                      </span>
+                    )}
                   </td>
                   <td className="admin-cell-muted">
                     {i.filed_by}
@@ -130,6 +181,7 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
       <DetailDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} eyebrow="Eight Edges" title="File an issue">
         <IssueForm
           krs={krs}
+          teamOptions={teamOptions}
           onDone={(res) => {
             if (res.ok) {
               setDrawerOpen(false);
@@ -144,13 +196,18 @@ export function IssuesBoard({ issues, krs }: { issues: IssueRow[]; krs: { id: st
 
 function IssueForm({
   krs,
+  teamOptions,
   onDone,
 }: {
   krs: { id: string; title: string }[];
+  teamOptions: PersonOption[];
   onDone: (res: { ok: boolean; error?: string }) => void;
 }) {
   const [title, setTitle] = useState("");
   const [diagnosis, setDiagnosis] = useState<string>("system");
+  const [assignee, setAssignee] = useState<string>(
+    teamOptions.some((p) => p.id === DAVE_PERSON_ID) ? DAVE_PERSON_ID : (teamOptions[0]?.id ?? ""),
+  );
   const [krId, setKrId] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -186,6 +243,16 @@ function IssueForm({
         </div>
       </div>
       <div className="admin-field">
+        <label className="admin-label">Assigned to</label>
+        <select className="admin-select" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+          {teamOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.full_name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="admin-field">
         <label className="admin-label">Notes (context, proposed fix)</label>
         <textarea className="admin-textarea" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
@@ -195,7 +262,13 @@ function IssueForm({
           disabled={busy}
           onClick={async () => {
             setBusy(true);
-            const res = await createIssue({ title, diagnosis, key_result_id: krId || undefined, notes_md: notes });
+            const res = await createIssue({
+              title,
+              diagnosis,
+              assignee_person_id: assignee,
+              key_result_id: krId || undefined,
+              notes_md: notes,
+            });
             setBusy(false);
             if (!res.ok) setErr(res.error ?? "Something went wrong.");
             else onDone(res);

@@ -32,7 +32,7 @@ const collectors = {
   // year-only strings. It stays manual until the site exposes real dates.
 };
 
-const metrics = await sql`select id, name, office, target, direction, source, key_result_id from company_os.metrics`;
+const metrics = await sql`select id, name, office, target, direction, source, key_result_id, owner_person_id from company_os.metrics`;
 
 const collected = [];
 const skipped = [];
@@ -69,11 +69,14 @@ for (const m of metrics) {
     limit 1`;
   if (existing) continue;
 
-  await sql`insert into company_os.issues (title, diagnosis, key_result_id, filed_by, notes_md) values (
+  // Assigned to the metric's owning person; agent-owned metrics fall to Dave.
+  const DAVE = 'a8bf026f-8c20-49c5-8a55-6fc5c580af64';
+  await sql`insert into company_os.issues (title, diagnosis, key_result_id, filed_by, assignee_person_id, notes_md) values (
     ${`${m.name} missed target two weeks running (${readings[1].value} then ${readings[0].value} vs ${m.target})`},
     'system',
     ${m.key_result_id},
     'devops-agent:auto',
+    ${m.owner_person_id ?? DAVE},
     ${'Auto-filed by the Monday collector. First-pass diagnosis: system. Reclassify to goal (target wrong) or execution (work slipped) at the sync if the evidence says so.'}
   )`;
   filed.push(m.name);

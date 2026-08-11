@@ -15,6 +15,7 @@ function refresh() {
 export async function createIssue(input: {
   title: string;
   diagnosis: string;
+  assignee_person_id: string;
   key_result_id?: string;
   notes_md?: string;
 }): Promise<Result & { id?: string }> {
@@ -24,10 +25,12 @@ export async function createIssue(input: {
   if (!ISSUE_DIAGNOSES.includes(input.diagnosis as (typeof ISSUE_DIAGNOSES)[number])) {
     return { ok: false, error: "Diagnose it first: goal problem, system problem, or execution problem." };
   }
+  if (!input.assignee_person_id) return { ok: false, error: "Assign it to a person." };
 
   const row = {
     title,
     diagnosis: input.diagnosis,
+    assignee_person_id: input.assignee_person_id,
     key_result_id: input.key_result_id || null,
     notes_md: input.notes_md?.trim() || null,
     filed_by: admin.email,
@@ -47,6 +50,17 @@ export async function setIssueStatus(id: string, status: string): Promise<Result
   const updates: Record<string, unknown> = { status };
   updates.resolved_at = status === "solved" || status === "dropped" ? new Date().toISOString() : null;
 
+  const { error } = await companyOs.from("issues").update(updates).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "issues", recordId: id, operation: "update", actor: admin.email, newData: updates });
+  refresh();
+  return { ok: true };
+}
+
+export async function setIssueAssignee(id: string, personId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!personId) return { ok: false, error: "Assign it to a person." };
+  const updates = { assignee_person_id: personId };
   const { error } = await companyOs.from("issues").update(updates).eq("id", id);
   if (error) return { ok: false, error: error.message };
   await recordAudit({ table: "issues", recordId: id, operation: "update", actor: admin.email, newData: updates });
