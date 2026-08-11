@@ -13,6 +13,7 @@ One system, two layers. Read the relevant layer before building any UI; do not i
 
 - **Foundations** (marketing site): `docs/product/edge8-design-system.md`
 - **Data layer** (Edge8 OS: admin, team, client portal): `docs/product/edge8-design-system-data.md`
+- **Known drift** between the docs above and the code: `docs/product/edge8-design-system-inventory.md`. Check it before "fixing" an inconsistency, it may already be catalogued, and before adding a variant of something it lists.
 - Tokens live in `app/globals.css` `:root`. `app/admin/admin.css` re-roots onto them. The OS shell is shared: `/team` and `/portal` both import `admin.css` and render inside `.admin-shell`, so a change there hits all three views.
 - Living component reference: `/admin/patterns`. Copy from it rather than hand-rolling a new card, table, or chip.
 - Never introduce a raw hex, radius, shadow, or font family that isn't a token.
