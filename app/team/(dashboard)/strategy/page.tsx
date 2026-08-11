@@ -195,7 +195,7 @@ export default async function TeamStrategyPage() {
           {extraHtml.map((s) => (
             <div key={s.heading}>
               <h2 className="team-hub-heading">{s.heading}</h2>
-              <div className="admin-card">
+              <div className="admin-card admin-section-card">
                 <div className="idea-plan" dangerouslySetInnerHTML={{ __html: s.html }} />
               </div>
             </div>
