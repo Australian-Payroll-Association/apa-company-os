@@ -67,19 +67,25 @@ function Owners({ kr, initialsById }: { kr: KrNode; initialsById: Record<string,
   );
 }
 
+type FastPerson = { name: string; goals: { title: string; ladder: string | null }[] };
+
 export function GoalsBoard({
   strategy,
+  overview,
   tree,
   quarter,
   initialsById,
   casting,
+  fast,
   chips,
 }: {
   strategy: StrategyRow | null;
+  overview: string | null;
   tree: ObjectiveNode[];
   quarter: string;
   initialsById: Record<string, string>;
   casting: { human: number; blended: number; ai: number };
+  fast: FastPerson[];
   chips: { frequent: Chip; specific: Chip; ambitious: Chip; transparent: Chip };
 }) {
   const router = useRouter();
@@ -159,22 +165,43 @@ export function GoalsBoard({
 
       {strategy && (
         <div className="edges-strategy">
-          <span className="edges-strategy-label">STRATEGY · {strategy.year}</span>
-          <p>{strategy.title}</p>
+          <div className="edges-strategy-head">
+            <span className="edges-strategy-label">STRATEGY · {strategy.year}</span>
+            <span style={{ flex: 1 }} />
+            <a className="edges-strategy-link" href="/team/strategy">
+              Full strategy →
+            </a>
+            <button className="edges-minibtn" onClick={() => setDrawer({ kind: "strategy" })}>
+              Edit
+            </button>
+          </div>
+          <p className="edges-strategy-title">{strategy.title}</p>
+          {overview && <p className="edges-strategy-body">{overview}</p>}
           <span className="edges-strategy-mini">
-            Casting
-            <span className="edges-mixbar" title={`Human ${casting.human} · Blended ${casting.blended} · AI ${casting.ai}`}>
+            Delivery mix
+            <span
+              className="edges-mixbar"
+              title="Who delivers each key result: a human, a human + agent blend, or an AI agent"
+            >
               <i style={{ width: `${(casting.human / totalCast) * 100}%`, background: "#8a8f98" }} />
               <i style={{ width: `${(casting.blended / totalCast) * 100}%`, background: "var(--admin-accent)" }} />
               <i style={{ width: `${(casting.ai / totalCast) * 100}%`, background: "var(--admin-accent-on-dark-strong)" }} />
             </span>
-            {casting.human}H · {casting.blended}B · {casting.ai}A
-            <button className="edges-minibtn" onClick={() => setDrawer({ kind: "strategy" })}>
-              Edit
-            </button>
+            {casting.human} human-led · {casting.blended} blended · {casting.ai} AI-led
           </span>
         </div>
       )}
+
+      <div className="edges-sect">
+        <h2>Company goals</h2>
+        <span className="edges-sect-note">
+          {quarter.slice(0, 4)} Q{quarter.slice(5)} objectives and key results
+        </span>
+        <span style={{ flex: 1 }} />
+        <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setDrawer({ kind: "new-objective" })}>
+          + New objective
+        </button>
+      </div>
 
       <div className="edges-chips">
         {(
@@ -190,10 +217,6 @@ export function GoalsBoard({
             {label} <b>{chip.value}</b>
           </span>
         ))}
-        <span style={{ flex: 1 }} />
-        <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setDrawer({ kind: "new-objective" })}>
-          + New objective
-        </button>
       </div>
 
       {tree.length === 0 && <div className="admin-empty">No objectives for {quarter} yet. Add the first one.</div>}
@@ -253,6 +276,30 @@ export function GoalsBoard({
           ))}
         </div>
       ))}
+
+      <div className="edges-sect">
+        <h2>Team goals</h2>
+        <span className="edges-sect-note">
+          {fast.filter((p) => p.goals.length > 0).length}/{fast.length} set · transparent to the whole team
+        </span>
+      </div>
+
+      <section className="admin-card" style={{ marginBottom: 14 }}>
+        <div className="edges-fast-grid">
+          {fast.map((p) => (
+            <div key={p.name} className="edges-fast-person">
+              <div className="edges-fast-name">{p.name}</div>
+              {p.goals.length === 0 && <div className="admin-cell-muted">No active goal</div>}
+              {p.goals.map((g, i) => (
+                <div key={i} className="edges-fast-goal">
+                  <div>{g.title}</div>
+                  <div className="admin-cell-muted">{g.ladder ? `⇗ ${g.ladder}` : "No ladder yet"}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <DetailDrawer
         open={drawer !== null}
@@ -560,7 +607,7 @@ function KrForm({
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div className="admin-field">
-          <label className="admin-label">Casting (who delivers this?)</label>
+          <label className="admin-label">Delivery mix (who delivers this?)</label>
           <select className="admin-select" value={mix} onChange={(e) => setMix(e.target.value as (typeof DELIVERY_MIXES)[number])}>
             <option value="human">human-led</option>
             <option value="ai">AI-led</option>

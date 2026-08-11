@@ -2739,7 +2739,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .coach-okr-line { padding: 2px 0; }
 .coach-okr-line.is-laddered { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); border-radius: 4px; padding-left: 4px; }
 .coach-okr-line .admin-badge { margin-left: 8px; }
-.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .edges-fast-person { border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
 .edges-fast-name { font-weight: 600; margin-bottom: 6px; }
 .edges-fast-goal { margin: 6px 0; font-size: 13px; }
@@ -2964,13 +2964,10 @@ a.ideas-share-card:hover {
   background: var(--admin-sidebar-bg);
   color: #fff;
   border-radius: 12px;
-  padding: 14px 18px;
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
 }
+.edges-strategy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .edges-strategy-label {
   font-size: 9.5px;
   letter-spacing: 0.15em;
@@ -2978,10 +2975,22 @@ a.ideas-share-card:hover {
   font-weight: 800;
   flex-shrink: 0;
 }
-.edges-strategy p { flex: 1; min-width: 240px; font-size: 12.5px; color: #d6d9de; margin: 0; }
-.edges-strategy-mini { font-size: 10.5px; color: #9aa0aa; display: flex; align-items: center; gap: 8px; }
+.edges-strategy-link {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--admin-accent-on-dark-strong);
+  text-decoration: none;
+}
+.edges-strategy-link:hover { text-decoration: underline; }
+.edges-strategy-title { font-size: 14px; font-weight: 650; line-height: 1.5; color: #fff; margin: 0 0 8px; max-width: 880px; }
+.edges-strategy-body { font-size: 12.5px; line-height: 1.6; color: #d6d9de; margin: 0; max-width: 880px; }
+.edges-strategy-mini { font-size: 10.5px; color: #9aa0aa; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .edges-mixbar { width: 120px; height: 8px; border-radius: 999px; overflow: hidden; display: flex; }
 .edges-mixbar i { display: block; height: 100%; }
+
+.edges-sect { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 22px 0 10px; }
+.edges-sect h2 { font-size: 15px; font-weight: 700; margin: 0; color: var(--admin-ink); }
+.edges-sect-note { font-size: 11.5px; color: var(--admin-muted); }
 
 .edges-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
 .edges-chip {
