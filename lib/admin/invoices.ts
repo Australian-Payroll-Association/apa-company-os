@@ -23,6 +23,7 @@ export async function getInvoicesForCompany(companyId: string): Promise<AdminInv
     .from("invoices")
     .select("id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, memo, customer_name")
     .eq("company_id", companyId)
+    .neq("status", "voided")
     .order("txn_date", { ascending: false });
   return (data ?? []) as AdminInvoice[];
 }
