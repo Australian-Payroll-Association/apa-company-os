@@ -737,7 +737,6 @@ a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY
 }
 .team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
 .team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
-.team-org-independents { display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* ─── Team portal home hub ────────────────────────────
    Card grid on /team home: every employee touchpoint, shipped or not. Live
