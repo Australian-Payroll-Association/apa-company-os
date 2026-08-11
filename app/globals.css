@@ -3515,3 +3515,25 @@ footer {
   .rt-xp-teaser { grid-template-columns: 1fr; gap: 28px; }
   .rt-xp-teaser-media { order: -1; }
 }
+
+/* ─── BRAND NAME ──────────────────────────────────── */
+/* "Edge8" is never written in all caps (see CLAUDE.md). Many label styles on
+   both the site and the OS apply text-transform: uppercase, which silently
+   renders the brand as "EDGE8". Those label classes are shared with non-brand
+   labels, so they cannot simply drop the transform.
+
+   Add .brand-label to any label whose text contains the brand name. It opts
+   that one label out of the uppercase transform, and out of the tracking that
+   accompanies it, without touching its siblings.
+
+   The selector is doubled so it wins over any single-class label rule
+   regardless of stylesheet order: globals.css, admin.css, CSS modules and
+   styled-jsx all declare these labels at single-class specificity.
+
+   Limit: a label rule written with two or more classes (for example
+   `.bstore-doc .ck-tag`) ties or beats this, so it needs a local fix instead.
+   See app/private/bstore/page.tsx for the one case in the codebase. */
+.brand-label.brand-label {
+  text-transform: none;
+  letter-spacing: normal;
+}

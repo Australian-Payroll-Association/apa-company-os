@@ -166,7 +166,7 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
             <h2 className="heading">Two outcomes, one mission</h2>
             <div className="mission-rows">
               <div className="mission-row">
-                <span className="mission-tag">Edge8</span>
+                <span className="mission-tag brand-label">Edge8</span>
                 <p className="mission-text">
                   Help 100 organizations implement <strong>AI Programs</strong>.
                 </p>
@@ -678,7 +678,7 @@ export default function TeamOnboardingDeck({ fontClassName = '' }: { fontClassNa
         {/* 16. Edge8 Company Tools */}
         <section className={slideClass(15)}>
           <div className="slide-inner">
-            <div className="label">Edge8 Company Tools</div>
+            <div className="label brand-label">Edge8 Company Tools</div>
             <h2 className="heading">The stack you&apos;ll use</h2>
             <div className="stack-layout">
               <div className="tools-grid">
