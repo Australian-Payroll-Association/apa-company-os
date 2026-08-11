@@ -14,7 +14,7 @@ Edge8 is an AI leadership and global talent consultancy. The website is a clean,
 - Input / divider border: `#A8B2BD`
 - Buttons: fully pill-shaped, `border-radius: 40px`, padding `16px 24px`
 - Cards: `border-radius: 20px` — warm but precise
-- Typography: Manrope Medium (headings) / Manrope Regular (body) — no letter-spacing on any element
+- Typography: Manrope Medium (headings) / Manrope Regular (body), no letter-spacing on prose (the section micro-label is the one exception)
 - Section structure: Title Case eyebrow → Bold H2 → Sub-copy → Pill CTA
 - Numbered step framework (01–08) with clean divider rows
 - Testimonial cards in a horizontal scroll layout
@@ -151,7 +151,7 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 >
 > **Vietnamese is covered** by a dedicated subset. This is required for team and
 > client names rendered from the database in the OS, not only for static copy.
-- **Letter Spacing**: `none` (0) — never apply tracking to any text
+- **Letter Spacing**: `none` (0) on all prose. The section micro-label is the one exception (see Labels).
 
 | Role | Tag | Size | Line Height | Weight | Letter Spacing | Notes |
 |------|-----|------|-------------|--------|----------------|-------|
@@ -165,7 +165,9 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 | Button | — | 15px–16px | 1.0 | Medium | none | Pill CTAs |
 | Nav Link | — | 15px | 1.0 | Regular | none | |
 
-> **Important:** Do not apply `letter-spacing` to any text element — not headings, labels, buttons, or body copy. This is a firm rule for Edge8's typographic system.
+> **Important:** Do not apply `letter-spacing` to prose: not headings, body copy, buttons, or the pill eyebrow. This remains a firm rule.
+>
+> **The one exception is the section micro-label** (see Labels below), which is uppercase with light tracking by design. Tracking is what makes uppercase legible at 12px, so the two travel together and only there. A second, narrower exception is `-0.01em` on long tabular numerics in the data layer.
 
 ---
 
@@ -202,12 +204,42 @@ Buttons are a defining trait of Edge8's UI — fully pill-shaped with carefully 
 - Category label: 11px–12px, weight 600, uppercase, `#287BE8`, letter-spacing 2px
 - Description: 14px (Body Small), `#797c82`
 
-### Badges / Eyebrow Labels
+### Labels
+
+There are **two** label styles. They are not interchangeable.
+
+**1. Pill eyebrow**: frames a marketing section, sits directly above a heading.
 - Background: `#EAEEF2` (solid light gray — always)
-- Text: `#797c82`, 14px (Body Small), Manrope Regular, no letter-spacing
+- Text: `#797c82`, 14px (Body Small), Manrope Regular, **no letter-spacing**
 - Border: none
 - Border-radius: `40px` (pill — mirrors button language)
 - Padding: `4px 12px`
+- Casing: **Title Case**, never uppercase
+- Classes: `.section-label`, `.hero-eyebrow`
+
+**2. Section micro-label**: groups a run of cards or rows under a small heading. This is the
+dense-surface counterpart to the pill, and the **only** sanctioned uppercase text in the system.
+- Text: 12.5px, weight 600, uppercase, `letter-spacing: 0.5px`, color `--admin-muted`
+- No background, no border
+- Margin: `26px 0 12px`
+- Class: `.admin-section-label` (`app/admin/admin.css`). `.team-hub-heading` is kept as an alias
+  for older markup; do not use it in new code.
+- Surfaces: use it on **all three** OS surfaces (admin, `/team`, `/portal`), not just one, so the
+  OS reads as one product.
+- Variant: `.admin-shelf-heading` is the same label with a flex row for a trailing action (a
+  "View all" link, a count). It is used in ~44 admin places and differs only by 0.5px of size and
+  0.1px of tracking. Treat it as the same component; converging the two values is pending cleanup,
+  not a second style to choose from.
+- Uppercase and tracking travel together here: the tracking is what keeps caps legible at 12.5px.
+  Do not use uppercase without it, or apply either to any other element.
+
+**When to use which.** Marketing section, above a big heading → pill. Grouping cards or rows in
+the OS → micro-label. **Never put a micro-label directly above a single card that already carries
+its own `.admin-card-title`**; that titles the same thing twice. Group two or more cards, or omit
+it.
+
+> The brand name is the hard exception to all of this: "Edge8" is never rendered in caps. A label
+> containing it takes the `.brand-label` utility, which opts that one label out of the transform.
 
 ### "Tech-Forward" Definition Block
 - Eyebrow: Body Small, `#797c82`
@@ -390,7 +422,7 @@ When generating UI, copy, or layouts for Edge8, apply these defaults:
 - **Input / Divider Border**: `#A8B2BD`
 - **Font Heading**: Manrope Medium — H1: 80px/1.0 · H2: 48px/1.2 · H3: 32px/1.2 · H4: 24px/1.2
 - **Font Body**: Manrope Regular — Large: 18px/1.4 · Body: 16px/1.5 · Small: 14px/1.5
-- **Letter Spacing**: none (0) on all elements
+- **Letter Spacing**: none (0) on all prose; the section micro-label is the one exception
 - **Button Radius**: `40px` (pill — always)
 - **Card Radius**: `20px`
 - **Tone**: Clean, authoritative, metric-driven, professional

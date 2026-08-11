@@ -71,9 +71,11 @@ Data Layer §2 keeps the ban, allowing exactly one exception (`-0.01em` on tabul
 plus 20 as JS `letterSpacing` in inline style objects. None is the sanctioned tabular-numeric
 exception. Values range from `0.01em` to `0.22em`.
 
-Either the ban is real and roughly 177 rules are wrong, or the ban is fiction and the doc is
-wrong. Right now the doc states a rule that the codebase almost universally ignores, which is
-worse than either answer, because it means the doc cannot be trusted as a reference.
+**RESOLVED 2026-08-11.** The ban stands for prose, and the section micro-label is now a
+documented exception that carries tracking by design. That legitimises the tracking on
+micro-labels specifically; it does not legitimise the other values in the range above.
+The remaining work is to migrate ad-hoc rules onto the canonical class rather than to
+strip tracking wholesale.
 
 ---
 
@@ -106,8 +108,14 @@ look like the documented eyebrow while breaking both bans: `.hero-featured-cat:1
 `.job-badge-featured:2721`, `.job-dept:2706`, `.wf-cat` `workflows.css:67`,
 `.team-org-badge` `admin.css:729`, `.ts-yours:872`, and five copy-pasted inline `-step` chips.
 
-**Decision needed:** bless the micro-label and specify it (size, tracking, casing, when to use
-it versus the pill), or remove it. It cannot stay undocumented at roughly 106 uses.
+**DECIDED 2026-08-11: the micro-label is blessed.** It is now specified in the Foundations
+doc (Labels), and is the single sanctioned exception to the no-uppercase and no-tracking
+rules. The canonical class is `.admin-section-label`, and it must be used on **all three**
+OS surfaces, not just the employee portal.
+
+Remaining work is conformance, not decision: the ~106 ad-hoc uppercase rules should be
+migrated onto the canonical class or its documented values, rather than each redeclaring
+its own size and tracking (values currently range from 0.01em to 0.22em).
 
 ### 2.2 The documented `.data-btn` class does not exist
 
@@ -304,7 +312,7 @@ Not a commitment, just the order that gets the most visible improvement for the 
 - Hard-coded hex to tokens, off-palette statuses to the `--data-*` pairs (§3.5)
 
 **Group C: decisions first, then code**
-- Bless or kill the uppercase micro-label, and resolve the letter-spacing ban (§1.2, §2.1)
+- ~~Bless or kill the uppercase micro-label, and resolve the letter-spacing ban~~ **decided: blessed** (§1.2, §2.1). What remains is migrating ad-hoc rules onto `.admin-section-label`, which is Group B work.
 - Pick the real type and spacing scales, then snap to them (§3.4)
 - Reconcile nav, and document `.admin-btn` as the real compact button (§2.2, §2.3)
 

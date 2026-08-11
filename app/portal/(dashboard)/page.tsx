@@ -231,6 +231,10 @@ export default async function PortalHome() {
         )}
       </div>
 
+      {(roadmap.total > 0 || hasStaff || nextEvent) && (
+        <h2 className="admin-section-label">Your engagement</h2>
+      )}
+
       {roadmap.total > 0 && (
         <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
           <div

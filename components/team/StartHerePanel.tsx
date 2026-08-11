@@ -100,7 +100,7 @@ export function StartHerePanel({ coreTeaching, recentPosts, roleBucket }: Props)
       </Link>
 
       {/* Recent posts */}
-      <div className="team-hub-heading">Fresh from the blog</div>
+      <div className="admin-section-label">Fresh from the blog</div>
       <div className="ts-posts">
         {recentPosts.map((p) => (
           <Link
@@ -122,7 +122,7 @@ export function StartHerePanel({ coreTeaching, recentPosts, roleBucket }: Props)
       </div>
 
       {/* Role-based tool kit */}
-      <div className="team-hub-heading">Your tool kit</div>
+      <div className="admin-section-label">Your tool kit</div>
       <div className="ts-tools">
         <div className="ts-tools-baseline">
           <span className="ts-cap">Everyone, from day one</span>
