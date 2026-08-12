@@ -10,6 +10,7 @@ import { sendTransactionalEmail } from "@/lib/email";
 import { setPersonAvatar, type AvatarResult } from "@/lib/avatars";
 import { upsertPeopleSensitive, type SensitiveInput } from "@/lib/admin/people-sensitive";
 import { saveSalaryChange as recordSalaryChange } from "@/lib/admin/compensation";
+import { openReviewCycle } from "@/lib/reviews";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
 
@@ -127,6 +128,123 @@ export async function saveSalaryChange(
   });
   revalidatePath(`/admin/talent/team/${teamMemberId}`);
   return { ok: true, message: "Salary change saved." };
+}
+
+// Open a review cycle now (the "Send Review Now" button on the profile). Any
+// admin may trigger it — it carries no salary/PII. Creates the self + manager
+// rows via openReviewCycle, then emails the employee and their manager a link
+// to their side. Idempotent per cycle label, so a double click is harmless.
+const SITE_ORIGIN = "https://www.edge8.ai";
+const REVIEW_TYPE_NAMES: Record<string, string> = {
+  probation: "Probation review",
+  midyear: "Mid-year check-in",
+  renewal: "Renewal review",
+  adhoc: "Performance review",
+};
+
+export async function sendReviewNow(
+  teamMemberId: string,
+  reviewType: "probation" | "midyear" | "renewal" | "adhoc",
+): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!["probation", "midyear", "renewal", "adhoc"].includes(reviewType))
+    return { ok: false, error: "Unknown review type." };
+
+  // Subject + manager-of-record, with the emails to notify.
+  const { data: subject } = await companyOs
+    .from("team_members")
+    .select("id, manager_id, people!person_id(full_name, first_name, preferred_name, email)")
+    .eq("id", teamMemberId)
+    .maybeSingle();
+  if (!subject) return { ok: false, error: "Team member not found." };
+  const subjectPerson = (Array.isArray(subject.people) ? subject.people[0] : subject.people) as {
+    full_name: string | null;
+    first_name: string | null;
+    preferred_name: string | null;
+    email: string | null;
+  } | null;
+  const subjectName =
+    subjectPerson?.preferred_name || subjectPerson?.first_name || subjectPerson?.full_name || "your report";
+  if (!subject.manager_id)
+    return { ok: false, error: "Set a manager for this person before starting a review." };
+
+  const { data: manager } = await companyOs
+    .from("team_members")
+    .select("people!person_id(email)")
+    .eq("id", subject.manager_id)
+    .maybeSingle();
+  const managerPerson = (Array.isArray(manager?.people) ? manager?.people[0] : manager?.people) as {
+    email: string | null;
+  } | null;
+
+  // One cycle per member per month per type: a stable, human-readable label.
+  const monthTag = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+  })
+    .format(new Date())
+    .replace("-", "");
+  const cycleLabel = `${reviewType}-${monthTag}`;
+
+  const cycle = await openReviewCycle({
+    teamMemberId,
+    managerId: subject.manager_id,
+    reviewType,
+    cycleLabel,
+  });
+  if (!cycle.selfId || !cycle.managerId)
+    return { ok: false, error: "Could not open the review cycle." };
+
+  await recordAudit({
+    table: "performance_reviews",
+    recordId: cycle.managerId,
+    operation: "insert",
+    actor: admin.email,
+    context: { via: "send_review_now", review_type: reviewType, cycle_label: cycleLabel },
+  });
+
+  const typeName = REVIEW_TYPE_NAMES[reviewType] ?? "Performance review";
+  const selfLink = `${SITE_ORIGIN}/surveys/perf-review-self?review=${cycle.selfId}`;
+  const managerSlug =
+    reviewType === "probation"
+      ? "perf-review-manager-probation"
+      : reviewType === "midyear"
+        ? "perf-review-manager-midyear"
+        : reviewType === "renewal"
+          ? "perf-review-manager-renewal"
+          : "perf-review-self";
+  const managerLink = `${SITE_ORIGIN}/surveys/${managerSlug}?review=${cycle.managerId}`;
+
+  if (subjectPerson?.email) {
+    await sendTransactionalEmail({
+      to: [subjectPerson.email],
+      subject: `${typeName}: your self-assessment`,
+      html:
+        `<p>It is time for your ${typeName.toLowerCase()}.</p>` +
+        `<p>Please complete your self-assessment. Your manager sees it only after they finish their own review.</p>` +
+        `<p><a href="${selfLink}">Start your self-assessment</a></p>` +
+        `<p>You can also find it under Reviews in the team portal.</p>`,
+    });
+  }
+  if (managerPerson?.email) {
+    await sendTransactionalEmail({
+      to: [managerPerson.email],
+      subject: `${typeName} to complete: ${subjectName}`,
+      html:
+        `<p>A ${typeName.toLowerCase()} for <strong>${subjectName}</strong> is ready.</p>` +
+        `<p>Draft your review, then finalize it. ${subjectName} sees it only once finalized.</p>` +
+        `<p><a href="${managerLink}">Start the review</a></p>`,
+    });
+  }
+
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+  return {
+    ok: true,
+    message: managerPerson?.email
+      ? `${typeName} sent to ${subjectName} and their manager.`
+      : `${typeName} opened. No manager email on file, so no manager notification was sent.`,
+  };
 }
 
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the

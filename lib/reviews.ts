@@ -440,13 +440,15 @@ export async function finalizeReview(
 // ---- cycle creation (used by the scheduler in PR 3 and by admin tooling) ----
 
 // Opens a review cycle: a self row for the subject and a manager row for their
-// manager-of-record. Skips rows that already exist for the cycle label.
+// manager-of-record. Skips rows that already exist for the cycle label, so it
+// is safe to call twice. Returns the two row ids (existing or created) so the
+// caller can link straight to each side's form.
 export async function openReviewCycle(input: {
   teamMemberId: string;
   managerId: string;
   reviewType: Exclude<ReviewType, "annual">;
   cycleLabel: string;
-}): Promise<{ created: number }> {
+}): Promise<{ created: number; selfId: string | null; managerId: string | null }> {
   const base = {
     team_member_id: input.teamMemberId,
     cycle_label: input.cycleLabel,
@@ -455,22 +457,203 @@ export async function openReviewCycle(input: {
     status: "open",
     source: "portal",
   };
-  const rows = [
-    { ...base, rater_kind: "self", reviewer_id: input.teamMemberId },
-    { ...base, rater_kind: "manager", reviewer_id: input.managerId },
+  const specs = [
+    { rater_kind: "self" as const, reviewer_id: input.teamMemberId },
+    { rater_kind: "manager" as const, reviewer_id: input.managerId },
   ];
   let created = 0;
-  for (const row of rows) {
+  const ids: Record<"self" | "manager", string | null> = { self: null, manager: null };
+  for (const spec of specs) {
     const { data: existing } = await companyOs
       .from("performance_reviews")
       .select("id")
       .eq("team_member_id", input.teamMemberId)
       .eq("cycle_label", input.cycleLabel)
-      .eq("rater_kind", row.rater_kind)
+      .eq("rater_kind", spec.rater_kind)
       .maybeSingle();
-    if (existing) continue;
-    const { error } = await companyOs.from("performance_reviews").insert(row);
-    if (!error) created++;
+    if (existing) {
+      ids[spec.rater_kind] = (existing as { id: string }).id;
+      continue;
+    }
+    const { data, error } = await companyOs
+      .from("performance_reviews")
+      .insert({ ...base, ...spec })
+      .select("id")
+      .single();
+    if (!error && data) {
+      ids[spec.rater_kind] = (data as { id: string }).id;
+      created++;
+    }
   }
-  return { created };
+  return { created, selfId: ids.self, managerId: ids.manager };
+}
+
+// ---- schedule: when is a member's next review due? --------------------------
+
+// The three scheduled moments (docs/plans/2026-08-12-performance-reviews.md):
+//   probation  start_date + 6 weeks   (one-time, year one)
+//   midyear    contract anchor + 5 months   (annual)
+//   renewal    contract anchor + 11 months  (annual, i.e. 1 month before the
+//              12-month contract anniversary)
+// The anchor is contract_start_date when set, else start_date. This is an
+// informational estimate for the admin profile; the rigorous scheduler that
+// fires cycles is PR 3.
+const PROBATION_LEAD_DAYS = 42;
+const MIDYEAR_OFFSET_MONTHS = 5;
+const RENEWAL_OFFSET_MONTHS = 11;
+// Probation only stays relevant near the start; past this it is moot.
+const PROBATION_RELEVANT_DAYS = 90;
+
+function toUTCDate(iso: string): Date {
+  return new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+}
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+function addDays(iso: string, days: number): string {
+  const d = toUTCDate(iso);
+  d.setUTCDate(d.getUTCDate() + days);
+  return toISODate(d);
+}
+// Month arithmetic that clamps to the month end (e.g. Jan 31 + 1mo = Feb 28/29).
+function addMonths(iso: string, months: number): string {
+  const d = toUTCDate(iso);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, lastDay));
+  return toISODate(d);
+}
+// Roll an annual moment forward whole years until it is today or later.
+function rollToFuture(iso: string, todayISO: string): string {
+  let cur = iso;
+  let guard = 0;
+  while (cur < todayISO && guard < 20) {
+    cur = addMonths(cur, 12);
+    guard++;
+  }
+  return cur;
+}
+
+export type NextReview = {
+  type: Exclude<ReviewType, "annual" | "adhoc">;
+  date: string;
+} | null;
+
+export function computeNextReview(input: {
+  startDate: string | null;
+  contractStartDate: string | null;
+  hasProbationReview: boolean;
+  todayISO: string;
+}): NextReview {
+  const anchor = input.contractStartDate ?? input.startDate;
+  const candidates: { type: Exclude<ReviewType, "annual" | "adhoc">; date: string }[] = [];
+
+  if (
+    input.startDate &&
+    !input.hasProbationReview &&
+    input.todayISO <= addDays(input.startDate, PROBATION_RELEVANT_DAYS)
+  ) {
+    candidates.push({ type: "probation", date: addDays(input.startDate, PROBATION_LEAD_DAYS) });
+  }
+  if (anchor) {
+    candidates.push({
+      type: "midyear",
+      date: rollToFuture(addMonths(anchor, MIDYEAR_OFFSET_MONTHS), input.todayISO),
+    });
+    candidates.push({
+      type: "renewal",
+      date: rollToFuture(addMonths(anchor, RENEWAL_OFFSET_MONTHS), input.todayISO),
+    });
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.date.localeCompare(b.date));
+  return candidates[0];
+}
+
+// ---- admin: one member's full review history (no visibility scoping) --------
+
+// Admin/talent view of a member's reviews, grouped by cycle. Both sides of a
+// cycle collapse into one row (self ✓ / manager ✓). Unlike the team-portal
+// lists, this is unscoped: the caller (requireAdmin) is the boundary.
+export type MemberReviewCycle = {
+  cycleLabel: string | null;
+  reviewType: ReviewType;
+  date: string | null; // latest submitted_at across the cycle's rows
+  hasSelf: boolean;
+  hasManager: boolean;
+  status: string; // most-advanced status across the cycle
+  decision: string | null;
+  keeper: boolean | null;
+  // A row id to link the detail page at (prefer the manager row).
+  linkId: string;
+};
+
+const STATUS_RANK: Record<string, number> = {
+  open: 0,
+  draft: 1,
+  submitted: 2,
+  finalized: 3,
+  acknowledged: 4,
+};
+
+export async function getMemberReviewHistory(teamMemberId: string): Promise<MemberReviewCycle[]> {
+  if (!UUID_RE.test(teamMemberId)) return [];
+  const { data } = await companyOs
+    .from("performance_reviews")
+    .select(REVIEW_COLUMNS)
+    .eq("team_member_id", teamMemberId)
+    .order("submitted_at", { ascending: false, nullsFirst: true });
+  const rows = (data ?? []) as ReviewRow[];
+
+  // Group by cycle. Legacy imports may share no cycle_label shape with portal
+  // rows, and each legacy row is its own cycle, so fall back to the row id.
+  const byCycle = new Map<string, ReviewRow[]>();
+  for (const r of rows) {
+    const key = r.cycle_label ?? `row:${r.id}`;
+    const arr = byCycle.get(key) ?? [];
+    arr.push(r);
+    byCycle.set(key, arr);
+  }
+
+  const cycles: MemberReviewCycle[] = [];
+  for (const [, group] of byCycle) {
+    const self = group.find((r) => r.rater_kind === "self") ?? null;
+    const manager = group.find((r) => r.rater_kind === "manager") ?? null;
+    const anchor = manager ?? self ?? group[0];
+    const status = group.reduce(
+      (best, r) => ((STATUS_RANK[r.status] ?? 0) > (STATUS_RANK[best] ?? 0) ? r.status : best),
+      group[0].status,
+    );
+    const date = group
+      .map((r) => r.submitted_at)
+      .filter((d): d is string => !!d)
+      .sort()
+      .at(-1) ?? null;
+    cycles.push({
+      cycleLabel: anchor.cycle_label,
+      reviewType: anchor.review_type,
+      date,
+      hasSelf: !!self,
+      hasManager: !!manager,
+      status,
+      decision: manager?.decision ?? null,
+      keeper: manager?.keeper ?? null,
+      linkId: anchor.id,
+    });
+  }
+  // Newest first; undated (open) cycles sink to the bottom.
+  cycles.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  return cycles;
+}
+
+export async function hasProbationReview(teamMemberId: string): Promise<boolean> {
+  const { data } = await companyOs
+    .from("performance_reviews")
+    .select("id")
+    .eq("team_member_id", teamMemberId)
+    .eq("review_type", "probation")
+    .limit(1);
+  return (data ?? []).length > 0;
 }

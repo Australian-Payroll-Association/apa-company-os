@@ -16,6 +16,14 @@ import { getSensitiveViewer } from "@/lib/admin-auth";
 import { getSalaryHistory } from "@/lib/admin/compensation";
 import { CompensationSection } from "./CompensationSection";
 import { adminSetPersonAvatar, saveSensitiveDetails, saveContractStartDate, saveSalaryChange } from "../actions";
+import { SendReviewButton } from "./SendReviewButton";
+import {
+  getMemberReviewHistory,
+  computeNextReview,
+  hasProbationReview,
+  REVIEW_TYPE_LABEL,
+  DECISION_LABEL,
+} from "@/lib/reviews";
 import { PreviewRow } from "@/components/admin/PreviewRow";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
@@ -101,7 +109,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   // fire it all in one parallel wave instead of four serial ones. Survey
   // responses, avatar, and PII are person-keyed — skipped when there's no linked
   // person (nothing could be attributed to the row).
-  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes, salaryHistory, custody] =
+  const [surveyResponses, assignments, assignableCompanies, avatarRes, sensitive, signedInIds, cycleRes, salaryHistory, custody, reviewHistory, probationDone] =
     await Promise.all([
       m.person_id ? getPersonSurveyResponses(m.person_id) : Promise.resolve([]),
       getAssignmentsForTeamMember(m.id),
@@ -126,6 +134,8 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         .maybeSingle(),
       canSeePII ? getSalaryHistory(m.id) : Promise.resolve([]),
       m.person_id ? listCustodyForPerson(m.person_id) : Promise.resolve([]),
+      getMemberReviewHistory(m.id),
+      hasProbationReview(m.id),
     ]);
   const cycle = cycleRes.data as {
     employment_stage: string | null;
@@ -163,6 +173,19 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
   const heldNow = custody.filter((c) => !c.returned_at);
   const isLeaving = m.status === "notice" || m.status === "terminated" || m.status === "alumni";
   const name = m.full_name || m.email;
+
+  // Next scheduled review (informational estimate; the scheduler that actually
+  // fires cycles is a later slice). Saigon "today" matches the probation cron.
+  const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+  const nextReview = computeNextReview({
+    startDate: m.start_date ? m.start_date.slice(0, 10) : null,
+    contractStartDate: cycle?.contract_start_date ? cycle.contract_start_date.slice(0, 10) : null,
+    hasProbationReview: probationDone,
+    todayISO,
+  });
+  const nextReviewOverdue = nextReview ? nextReview.date < todayISO : false;
+  // Pre-select the send button on the soonest scheduled type, ad-hoc otherwise.
+  const defaultReviewType = nextReview?.type ?? "adhoc";
   const total = num(m.total_days);
   const used = num(m.used_days);
   const remaining = total !== null && used !== null ? Math.round((total - used) * 10) / 10 : null;
@@ -319,6 +342,77 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
         </div>
 
         <div>
+          <div className="admin-card admin-section-card">
+            <h2 className="admin-card-title">Reviews ({reviewHistory.length})</h2>
+            <dl className="admin-kv" style={{ marginBottom: 14 }}>
+              <dt>Next review</dt>
+              <dd>
+                {nextReview ? (
+                  <>
+                    {REVIEW_TYPE_LABEL[nextReview.type]} · {formatDate(nextReview.date)}
+                    {nextReviewOverdue && (
+                      <>
+                        {" "}
+                        <Badge tone="warn">Overdue</Badge>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <span className="admin-cell-muted">Set a start or contract date to schedule.</span>
+                )}
+              </dd>
+            </dl>
+
+            <div style={{ marginBottom: reviewHistory.length ? 16 : 0 }}>
+              <SendReviewButton teamMemberId={m.id} defaultType={defaultReviewType} />
+            </div>
+
+            {reviewHistory.length > 0 && (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Sides</th>
+                      <th>Status</th>
+                      <th>Decision</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reviewHistory.map((c) => (
+                      <tr key={c.linkId}>
+                        <td>{REVIEW_TYPE_LABEL[c.reviewType] ?? "Review"}</td>
+                        <td>{c.date ? formatDate(c.date) : <span className="admin-cell-muted">—</span>}</td>
+                        <td className="admin-cell-muted">
+                          {[c.hasSelf ? "Self" : null, c.hasManager ? "Manager" : null]
+                            .filter(Boolean)
+                            .join(" + ") || "—"}
+                        </td>
+                        <td>
+                          <Badge tone={statusTone(c.status)}>{humanize(c.status)}</Badge>
+                        </td>
+                        <td>
+                          {c.decision ? (
+                            DECISION_LABEL[c.decision] ?? c.decision
+                          ) : c.keeper !== null ? (
+                            c.keeper ? (
+                              <Badge tone="ok">Keeper</Badge>
+                            ) : (
+                              "—"
+                            )
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="admin-card admin-section-card">
             <h2 className="admin-card-title">Time off ({requests.length})</h2>
             {requests.length === 0 ? (
