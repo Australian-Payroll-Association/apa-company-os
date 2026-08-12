@@ -3159,3 +3159,33 @@ a.ideas-share-card:hover {
   border-radius: 8px;
 }
 .edges-checkin .admin-input, .edges-checkin .admin-select { width: auto; }
+
+/* ─── My FAST Goals (/team/goals) ───────────────────── */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.goals-card { margin-bottom: 14px; }
+.goals-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.goals-card-head strong { font-size: 15px; }
+/* Progress from start to target. Only rendered when both numbers exist. */
+.goals-bar {
+  height: 6px;
+  margin: 10px 0;
+  border-radius: 999px;
+  background: var(--admin-surface-2);
+  overflow: hidden;
+}
+.goals-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--admin-accent);
+}
