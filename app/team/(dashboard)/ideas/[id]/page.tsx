@@ -66,7 +66,7 @@ export default async function IdeaDetailPage({ params }: { params: { id: string 
         )}
       </div>
 
-      <div style={{ maxWidth: 760 }}>
+      <div className="admin-content">
         {isLearning ? (
           <>
             {aiHtml ? (

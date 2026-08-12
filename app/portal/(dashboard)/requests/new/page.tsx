@@ -24,7 +24,7 @@ export default async function NewPortalRequestPage() {
         title="New project request"
         sub="The contractor reviews your brief and sends back an estimate for your approval before any work starts."
       />
-      <div style={{ maxWidth: 640 }}>
+      <div className="admin-content--form">
         {contractors.length === 0 ? (
           <div className="admin-empty">
             No contractors are available right now — send a general request instead and the Edge8 team

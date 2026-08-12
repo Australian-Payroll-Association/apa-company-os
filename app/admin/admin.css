@@ -388,11 +388,15 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
   max-width: calc(var(--os-content-max) + 64px);
   margin-inline: auto;
 }
-.admin-main--narrow { max-width: calc(880px + 64px); }
-.admin-main--form { max-width: calc(640px + 64px); }
 /* Escape hatch for a genuinely edge-to-edge surface (a wide board or canvas).
    Use it deliberately; it is not the default. */
 .admin-main--full { max-width: none; }
+
+/* Pages cannot style .admin-main, which the layout owns, so the two narrower
+   widths are classes a page puts on its own content wrapper. They replace the
+   inline maxWidth values that produced 19 different page widths. */
+.admin-content { max-width: 880px; }
+.admin-content--form { max-width: 640px; }
 .admin-mobilebar { display: none; }
 
 /* ─── Page header ─────────────────────────────────── */

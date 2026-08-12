@@ -25,7 +25,7 @@ export default async function NewWorkRequestPage({ searchParams }: { searchParam
         sub="The contractor gets an email with a private link to estimate the work."
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <div style={{ maxWidth: 640 }}>
+      <div className="admin-content--form">
         <NewRequestForm
           contractors={contractors}
           defaultPersonId={contractors.some((c) => c.personId === preselect) ? preselect : undefined}

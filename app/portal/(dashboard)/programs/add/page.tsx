@@ -12,7 +12,7 @@ export const metadata = {
 export default async function AddAiProgramPage() {
   await requirePortalMember();
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
         title="Add AI Program Plan"

@@ -25,7 +25,7 @@ export default async function NewEquipmentPage() {
           </Link>
         }
       />
-      <div className="admin-card admin-section-card" style={{ maxWidth: 820 }}>
+      <div className="admin-card admin-section-card admin-content">
         <NewEquipmentForm vendors={vendors} />
       </div>
     </>

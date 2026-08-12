@@ -23,7 +23,7 @@ import { setMyPriority, proposeMyItem, reorderMyGroup } from "./actions";
 import { ProposeAssist } from "./ProposeAssist";
 
 const STYLES = `
-.cbp { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 940px; }
+.cbp { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 880px; }
 .cbp .cbp-intro { background:rgba(40,123,232,.08); border-radius:10px; padding:14px 16px; font-size:14px; margin:0 0 16px; }
 .cbp .cbp-counts { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 18px; }
 .cbp .cbp-count { font-size:12px; font-weight:600; color:#797c82; padding:4px 11px; border-radius:99px; background:#f2f4f7; }

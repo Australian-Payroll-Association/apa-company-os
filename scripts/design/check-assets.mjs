@@ -354,6 +354,7 @@ for (const [kind, label, scale] of [
 
 const OS_PAGE_DIRS = ["app/admin", "app/team", "app/portal"];
 const PAGE_WIDTH_FLOOR = 400;
+const SANCTIONED_WIDTHS = [640, 880, 1440];
 const adHocWidths = new Map();
 
 for (const file of jsxFiles) {
@@ -361,9 +362,18 @@ for (const file of jsxFiles) {
   if (!OS_PAGE_DIRS.some((d) => rel.startsWith(d))) continue;
   const src = readFileSync(file, "utf8");
   src.split("\n").forEach((text, i) => {
-    for (const m of text.matchAll(/maxWidth:\s*["']?(\d{3,4})(?:px)?["']?/g)) {
-      const w = Number(m[1]);
+    // A breakpoint is not a container width.
+    if (/@media/.test(text)) return;
+    const widths = [
+      ...[...text.matchAll(/maxWidth:\s*["']?(\d{3,4})(?:px)?["']?/g)].map((m) => m[1]),
+      // styled-jsx blocks declare CSS, which the JS-prop scan alone would miss.
+      ...[...text.matchAll(/max-width:\s*(\d{3,4})px/g)].map((m) => m[1]),
+    ];
+    for (const raw of widths) {
+      const w = Number(raw);
       if (w < PAGE_WIDTH_FLOOR) continue;
+      // A literal already sitting on a sanctioned width is not drift.
+      if (SANCTIONED_WIDTHS.includes(w)) continue;
       if (!adHocWidths.has(w)) adHocWidths.set(w, { count: 0, first: `${rel}:${i + 1}` });
       adHocWidths.get(w).count++;
     }
@@ -380,8 +390,8 @@ if (adHocWidths.size) {
     msg:
       `${total} page-level maxWidth value(s) across ${entries.size ?? entries.length} distinct widths ` +
       `(${entries.slice(0, 6).map(([w, d]) => `${w}px x${d.count}`).join(", ")}` +
-      `${entries.length > 6 ? ", ..." : ""}). Use .admin-main--narrow (880) or ` +
-      `.admin-main--form (640) instead, or leave the page at the default cap.`,
+      `${entries.length > 6 ? ", ..." : ""}). Use .admin-content (880) or ` +
+      `.admin-content--form (640), or leave the page at the default cap.`,
   });
 }
 

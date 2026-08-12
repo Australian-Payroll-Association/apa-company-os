@@ -183,7 +183,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
   ];
 
   return (
-    <div style={{ maxWidth: 1200 }}>
+    <div>
       <PageHead
         eyebrow={<Link href="/admin/revenue/companies">← Companies</Link>}
         title={name}

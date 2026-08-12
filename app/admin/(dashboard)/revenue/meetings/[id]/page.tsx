@@ -24,7 +24,7 @@ export default async function MeetingDetailPage({ params }: { params: { id: stri
   const summaryHtml = meeting.aiSummary ? await renderPlanMarkdown(meeting.aiSummary) : null;
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div className="admin-content">
       <div style={{ marginBottom: 10 }}>
         <Link className="admin-cell-muted" href="/admin/revenue/meetings">
           ← All meeting notes

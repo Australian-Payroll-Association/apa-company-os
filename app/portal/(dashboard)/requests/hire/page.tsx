@@ -16,7 +16,7 @@ export default async function HireRequestPage() {
     .map((m) => ({ id: m.companyId as string, name: m.companyName ?? "Your company" }));
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div className="admin-content--form">
       <PageHead
         eyebrow="Client Portal · Requests"
         title="Build Your Team"
