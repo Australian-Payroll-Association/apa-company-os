@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Officer Institute — Design System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--navy:#04102d;--navy-800:#0a1a3d;--cta-deep:#092244;
+--blue:#287be8;--blue-600:#236bc9;--blue-700:#1c58a8;--blue-100:#cbe1ff;--blue-50:#e7f1ff;
+--magenta:#d1458b;--magenta-700:#a03168;--magenta-50:#ffeff7;
+--mint:#6ff2c1;--mint-600:#64d7ac;--mint-900:#377b61;--mint-100:#e3fff4;
+--dnavy:#1258ff;--dnavy-800:#0e348f;--dnavy-50:#edf2ff;
+--green-600:#16a34a;--agentic:#1a9e74;--gold:#b8943f;--gold-50:#faf4e4;--destructive:#dc2626;
+--paper:#f7f8fa;--surface:#fafafa;--border:#e2e8f0;--border-hover:#b0b6cc;
+--text:#04102d;--text-2:#475569;--text-3:#64748b;--text-4:#94a3b8;
+--sh-sm:0 1px 3px rgba(4,16,45,.07);--sh-hover:0 6px 24px rgba(4,16,45,.10);--sh-lg:0 12px 34px rgba(4,16,45,.16);
+--ease:cubic-bezier(0.4,0,0.2,1);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',ui-sans-serif,system-ui,sans-serif;color:var(--text);background:var(--paper);-webkit-font-smoothing:antialiased;font-size:15.5px;line-height:1.7}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1060px;margin:0 auto;padding:0 40px 80px}
+@media(max-width:700px){.wrap{padding:0 24px 60px}}
+.hero{background:var(--navy);color:#fff;position:relative;overflow:hidden}
+.hero .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(72% 62% at 84% 8%,rgba(40,123,232,.45),transparent),radial-gradient(64% 56% at 10% 92%,rgba(209,69,139,.40),transparent),radial-gradient(50% 40% at 50% 0%,rgba(111,242,193,.10),transparent)}
+.hero .in{position:relative;max-width:1060px;margin:0 auto;padding:72px 40px}
+.kick{display:flex;align-items:center;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
+.kick::before{content:"";width:32px;height:2px;border-radius:9999px;background:var(--mint);margin-right:10px}
+h1{font-size:clamp(34px,4.5vw,50px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:14px 0 12px}
+.hero p{color:rgba(255,255,255,.65);max-width:60ch;margin:0;font-size:17px}
+h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:64px 0 6px;padding-top:24px;border-top:1px solid rgba(0,0,0,.06)}
+h3{font-size:15px;font-weight:700;margin:28px 0 10px}
+.sub{color:var(--text-3);font-size:14px;margin:0 0 20px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-4)}
+.grid{display:grid;gap:12px}
+.swgrid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+.sw{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--sh-sm)}
+.sw .c{height:56px}.sw .m{padding:8px 10px;font-size:10.5px;line-height:1.5}
+.sw .m b{display:block;font-weight:600;font-size:11px}
+.sw .m span{color:var(--text-3)}
+.card{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:16px;padding:24px;box-shadow:var(--sh-sm)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{border-radius:9999px;padding:10px 20px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;border:none;font-family:inherit;transition:all .15s var(--ease)}
+.btn.pri{background:var(--blue);color:#fff}.btn.pri:hover{background:var(--blue-600)}
+.btn.out{background:#fff;color:var(--text);border:1px solid rgba(0,0,0,.15)}.btn.out:hover{border-color:rgba(0,0,0,.3)}
+.btn.dark{background:var(--navy);color:#fff}
+.btn.inv{background:#fff;color:var(--navy)}
+.btn.sm{padding:6px 16px;font-size:12px}
+.pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:9999px;white-space:nowrap;display:inline-flex;align-items:center}
+.tag{font-size:11px;font-weight:600;padding:2px 9px;border-radius:9999px;color:var(--text-2);background:#fff;border:1px solid var(--border)}
+.bar{height:6px;border-radius:9999px;background:rgba(0,0,0,.05);overflow:hidden;flex:1}
+.bar i{display:block;height:100%;border-radius:9999px;background:var(--blue);transition:width .4s var(--ease)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);font-weight:600;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
+td{padding:9px 14px;border-bottom:1px solid rgba(0,0,0,.04);vertical-align:top}
+tr:last-child td{border-bottom:none}
+code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--blue-50);color:var(--blue-700);padding:1px 6px;border-radius:6px}
+.do{color:var(--green-600);font-weight:700}.dont{color:var(--destructive);font-weight:700}
+.spec{background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px 24px;box-shadow:var(--sh-sm)}
+.two{display:grid;gap:16px;grid-template-columns:1fr 1fr}@media(max-width:760px){.two{grid-template-columns:1fr}}
+.hoverdemo{transition:all .2s var(--ease);cursor:pointer}
+.hoverdemo:hover{box-shadow:var(--sh-hover);transform:translateY(-1px)}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+.toc a{color:#fff;white-space:nowrap;text-decoration:none;font-size:12.5px;font-weight:600;border:1px solid rgba(255,255,255,.22);border-radius:9999px;padding:7px 14px;transition:background .15s var(--ease)}
+.toc a:hover{background:rgba(255,255,255,.08)}
+a{color:var(--blue-700)}a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="glow"></div><div class="in">
+  <p class="kick">AIOlabz · Edge8</p>
+  <h1>AI Officer Institute<br>Design System</h1>
+  <p>The single source of truth for building AI Officer Institute product and brand surfaces. Tokens from <span class="mono" style="font-size:14px">aiolabz-fe/src/app/globals.css</span>; rules from the AI Officer designer guide; patterns anchored on the Learning Hub's Coaching &amp; Micro Sessions modules.</p>
+  <nav class="toc">
+    <a href="#voice">Voice</a><a href="#color">Color</a><a href="#type">Typography</a><a href="#space">Spacing &amp; radii</a><a href="#effects">Shadows &amp; motion</a><a href="#icons">Iconography</a><a href="#components">Components</a><a href="#patterns">Patterns</a><a href="#imagery">Imagery</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+<h2 id="voice">Voice &amp; content</h2>
+<p class="sub">Direct, confident, lightly provocative. Motivational, never corny.</p>
+<div class="two">
+  <div class="spec">
+    <p class="eyebrow">Vocabulary</p>
+    <p style="margin:8px 0 0"><b>Missions</b> not lessons · <b>tracks</b> not courses · <b>cohort</b> not class · <b>challenges</b> · <b>AI Buddy</b> (never “chatbot”) · <b>“the 50/50 era”</b></p>
+    <p style="margin:12px 0 0;color:var(--text-2)">“You” not “we”. Short sentences. Punchy fragments. Concrete numbers: <span class="mono">“95% of companies see no ROI from AI.”</span></p>
+  </div>
+  <div class="spec">
+    <p class="eyebrow">Casing &amp; numerics</p>
+    <p style="margin:8px 0 0"><span class="do">✓</span> Sentence case everywhere: “Sign up for Thursday”, “Go to Challenge →”</p>
+    <p style="margin:6px 0 0"><span class="do">✓</span> UPPERCASE wide-tracked eyebrows: <span class="eyebrow">Your programs</span></p>
+    <p style="margin:6px 0 0"><span class="do">✓</span> All numerics in mono: <span class="mono">44% · 8/10 · 0 day streak · 1,240 xp</span></p>
+    <p style="margin:6px 0 0"><span class="dont">✗</span> Emoji in prose or headlines — accents only (🔥 ⚡ 🤖 in chips/buttons)</p>
+  </div>
+</div>
+
+<h2 id="color">Color</h2>
+<p class="sub">Deep navy backbone. Royal blue is <b>the single CTA color</b>. Magenta rarest. Mint is the signal. <b>No purple, no pastel gradients.</b> Big numbers navy, labels gray — color only where it carries meaning.</p>
+<h3>Navy backbone &amp; text</h3>
+<div class="grid swgrid">
+  <div class="sw"><div class="c" style="background:#04102d"></div><div class="m mono"><b>--navy</b><span>#04102D</span></div></div>
+  <div class="sw"><div class="c" style="background:#0a1a3d"></div><div class="m mono"><b>--navy-800</b><span>#0A1A3D</span></div></div>
+  <div class="sw"><div class="c" style="background:#092244"></div><div class="m mono"><b>--cta-deep</b><span>#092244</span></div></div>
+  <div class="sw"><div class="c" style="background:#475569"></div><div class="m mono"><b>--text-2</b><span>#475569</span></div></div>
+  <div class="sw"><div class="c" style="background:#64748b"></div><div class="m mono"><b>--text-3</b><span>#64748B</span></div></div>
+  <div class="sw"><div class="c" style="background:#94a3b8"></div><div class="m mono"><b>--text-4</b><span>#94A3B8</span></div></div>
+</div>
+<h3>Brand blue — the one accent</h3>
+<div class="grid swgrid">
+  <div class="sw"><div class="c" style="background:#287be8"></div><div class="m mono"><b>--blue</b><span>#287BE8</span></div></div>
+  <div class="sw"><div class="c" style="background:#236bc9"></div><div class="m mono"><b>--blue-600</b><span>#236BC9 hover</span></div></div>
+  <div class="sw"><div class="c" style="background:#1c58a8"></div><div class="m mono"><b>--blue-700</b><span>#1C58A8 pill text</span></div></div>
+  <div class="sw"><div class="c" style="background:#cbe1ff"></div><div class="m mono"><b>--blue-100</b><span>#CBE1FF</span></div></div>
+  <div class="sw"><div class="c" style="background:#e7f1ff"></div><div class="m mono"><b>--blue-50</b><span>#E7F1FF tint</span></div></div>
+</div>
+<h3>Accents — magenta (rarest) · mint (signal) · deep navy · green · gold</h3>
+<div class="grid swgrid">
+  <div class="sw"><div class="c" style="background:#d1458b"></div><div class="m mono"><b>--magenta</b><span>#D1458B</span></div></div>
+  <div class="sw"><div class="c" style="background:#a03168"></div><div class="m mono"><b>--magenta-700</b><span>#A03168</span></div></div>
+  <div class="sw"><div class="c" style="background:#ffeff7"></div><div class="m mono"><b>--magenta-50</b><span>#FFEFF7</span></div></div>
+  <div class="sw"><div class="c" style="background:#6ff2c1"></div><div class="m mono"><b>--mint</b><span>#6FF2C1</span></div></div>
+  <div class="sw"><div class="c" style="background:#64d7ac"></div><div class="m mono"><b>--mint-600</b><span>#64D7AC</span></div></div>
+  <div class="sw"><div class="c" style="background:#377b61"></div><div class="m mono"><b>--mint-900</b><span>#377B61</span></div></div>
+  <div class="sw"><div class="c" style="background:#1258ff"></div><div class="m mono"><b>--dnavy-500</b><span>#1258FF micro</span></div></div>
+  <div class="sw"><div class="c" style="background:#0e348f"></div><div class="m mono"><b>--dnavy-800</b><span>#0E348F</span></div></div>
+  <div class="sw"><div class="c" style="background:#16a34a"></div><div class="m mono"><b>--green-600</b><span>#16A34A success</span></div></div>
+  <div class="sw"><div class="c" style="background:#1a9e74"></div><div class="m mono"><b>--agentic</b><span>#1A9E74 track</span></div></div>
+  <div class="sw"><div class="c" style="background:#b8943f"></div><div class="m mono"><b>--gold</b><span>#B8943F feedback</span></div></div>
+  <div class="sw"><div class="c" style="background:#dc2626"></div><div class="m mono"><b>--destructive</b><span>#DC2626</span></div></div>
+</div>
+<h3>Neutrals</h3>
+<div class="grid swgrid">
+  <div class="sw"><div class="c" style="background:#f7f8fa"></div><div class="m mono"><b>--paper</b><span>#F7F8FA app bg</span></div></div>
+  <div class="sw"><div class="c" style="background:#fafafa"></div><div class="m mono"><b>--surface</b><span>#FAFAFA wells</span></div></div>
+  <div class="sw"><div class="c" style="background:#ffffff;border-bottom:1px solid var(--border)"></div><div class="m mono"><b>--card-bg</b><span>#FFFFFF</span></div></div>
+  <div class="sw"><div class="c" style="background:#e2e8f0"></div><div class="m mono"><b>--border</b><span>#E2E8F0</span></div></div>
+  <div class="sw"><div class="c" style="background:#b0b6cc"></div><div class="m mono"><b>--border-hover</b><span>#B0B6CC</span></div></div>
+  <div class="sw"><div class="c" style="background:#eaeef2"></div><div class="m mono"><b>--gray-100</b><span>#EAEEF2</span></div></div>
+</div>
+<h3>Track color assignments</h3>
+<table><tr><th>Track / concept</th><th>Color</th><th>Pill (tint bg + full text)</th></tr>
+<tr><td>Generative AI / CTA / links</td><td class="mono">#287BE8</td><td><span class="pill" style="background:var(--blue-50);color:var(--blue-700)">Generative AI</span></td></tr>
+<tr><td>Agentic AI / success</td><td class="mono">#1A9E74 / #16A34A</td><td><span class="pill" style="background:rgba(26,158,116,.1);color:var(--agentic)">Complete</span></td></tr>
+<tr><td>AI Officer / next action</td><td class="mono">#D1458B</td><td><span class="pill" style="background:var(--magenta-50);color:var(--magenta-700)">AI Officer</span></td></tr>
+<tr><td>Leadership</td><td class="mono">#64D7AC</td><td><span class="pill" style="background:var(--mint-100);color:var(--mint-900)">Leadership</span></td></tr>
+<tr><td>Micro sessions</td><td class="mono">#1258FF</td><td><span class="pill" style="background:var(--dnavy-50);color:var(--dnavy-800)">Micro</span></td></tr>
+<tr><td>Feedback / redo / celebration</td><td class="mono">#B8943F</td><td><span class="pill" style="background:var(--gold-50);color:#8a6c22">Redo</span></td></tr>
+</table>
+
+<h2 id="type">Typography</h2>
+<p class="sub"><b>Inter</b> for everything · <b>JetBrains Mono</b> for all numeric display, codes and data chips.</p>
+<div class="spec">
+  <p class="eyebrow" style="margin:0 0 14px">Scale</p>
+  <p style="font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:0">Bring a challenge, get coached.</p>
+  <p class="mono" style="color:var(--text-3);font-size:11px;margin:4px 0 18px">Hero · clamp(28–50px) · 700 · tracking −0.03em · leading 1.1</p>
+  <p style="font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0">Your certification journey</p>
+  <p class="mono" style="color:var(--text-3);font-size:11px;margin:4px 0 18px">Section h2 · 24px · 700</p>
+  <p style="font-size:18px;font-weight:700;margin:0">Card title</p>
+  <p class="mono" style="color:var(--text-3);font-size:11px;margin:4px 0 18px">h3 · 18px · 700</p>
+  <p style="max-width:56ch;margin:0;color:var(--text-2)">Open Coaching is a live weekly session. Sign up, and optionally submit a coaching topic you're wrestling with. The top topics get coached that day, in front of the whole group.</p>
+  <p class="mono" style="color:var(--text-3);font-size:11px;margin:4px 0 18px">Body · 15.5px / 1.7 — unusually tall, breathable</p>
+  <p class="mono" style="margin:0;font-weight:600">44% · 8/10 missions · G03 · 1,240 xp · ✓ 6/6 activities</p>
+  <p class="mono" style="color:var(--text-3);font-size:11px;margin:4px 0 0">Numerics · JetBrains Mono + tabular-nums, always</p>
+</div>
+
+<h2 id="space">Spacing &amp; radii</h2>
+<p class="sub">4px base grid. Cards pad 24px (16px compact rows). Grid gaps 16–20px. Section gaps 32–48px. Sidebar column 340px.</p>
+<div class="two">
+  <div class="spec">
+    <p class="eyebrow" style="margin:0 0 12px">Corner radii</p>
+    <div class="row">
+      <div><div style="width:52px;height:40px;border:1.5px solid var(--blue);border-radius:8px"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:4px 0 0">8 chips</p></div>
+      <div><div style="width:52px;height:40px;border:1.5px solid var(--blue);border-radius:14px"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:4px 0 0">14 inner</p></div>
+      <div><div style="width:52px;height:40px;border:1.5px solid var(--blue);border-radius:16px"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:4px 0 0">16 cards</p></div>
+      <div><div style="width:52px;height:40px;border:1.5px solid var(--blue);border-radius:20px"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:4px 0 0">20 heros</p></div>
+      <div><div style="width:76px;height:34px;border:1.5px solid var(--blue);border-radius:9999px"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:4px 0 0">full buttons/pills</p></div>
+    </div>
+  </div>
+  <div class="spec">
+    <p class="eyebrow" style="margin:0 0 12px">4px grid</p>
+    <div class="row" style="align-items:flex-end">
+      <div style="width:4px;height:4px;background:var(--blue-100)"></div><div style="width:8px;height:8px;background:var(--blue-100)"></div><div style="width:12px;height:12px;background:var(--blue-100)"></div><div style="width:16px;height:16px;background:var(--blue-100)"></div><div style="width:20px;height:20px;background:var(--blue-100)"></div><div style="width:24px;height:24px;background:var(--blue-100)"></div><div style="width:32px;height:32px;background:var(--blue-100)"></div><div style="width:48px;height:48px;background:var(--blue-100)"></div>
+      <span class="mono" style="font-size:10px;color:var(--text-3)">4·8·12·16·20·24·32·48</span>
+    </div>
+  </div>
+</div>
+
+<h2 id="effects">Shadows &amp; motion</h2>
+<p class="sub">Two shadow levels, always navy-tinted — never pure black. Motion is subtle and functional: no bounces, no scale-ups, no rotations.</p>
+<div class="two">
+  <div class="spec">
+    <p class="eyebrow" style="margin:0 0 14px">Shadows</p>
+    <div class="row" style="gap:20px">
+      <div><div style="width:110px;height:60px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-sm)"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:6px 0 0">--sh-sm resting</p></div>
+      <div><div style="width:110px;height:60px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-hover)"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:6px 0 0">--sh-hover lifted</p></div>
+      <div><div style="width:110px;height:60px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-lg)"></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:6px 0 0">--sh-lg featured</p></div>
+    </div>
+  </div>
+  <div class="spec">
+    <p class="eyebrow" style="margin:0 0 14px">Motion — try the card</p>
+    <div class="row">
+      <div class="card hoverdemo" style="padding:16px;width:170px;font-size:13px;color:var(--text-2)">hover: shadow swap + 1px lift, 0.2s</div>
+      <div style="flex:1;min-width:130px"><div class="bar"><i style="width:44%"></i></div><p class="mono" style="font-size:10px;color:var(--text-3);margin:6px 0 0">fills 0.4s</p></div>
+    </div>
+    <p class="mono" style="font-size:11px;color:var(--text-3);margin:12px 0 0">ease: cubic-bezier(0.4, 0, 0.2, 1) · hovers 0.15s · lifts 0.2s · fills 0.4s · view fade-in 0.35s (6px rise)</p>
+  </div>
+</div>
+
+<h2 id="icons">Iconography</h2>
+<p class="sub">Lucide-style inline SVG strokes — stroke 2 small/functional, 1.8 body-size, round caps &amp; joins. No icon font.</p>
+<div class="spec"><div class="row" style="gap:22px">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5M21 12a8 8 0 01-11.2 7.3L3 21l1.7-6A8 8 0 1121 12z"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="1.8"><rect x="2" y="5" width="15" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M17 9l5-3v12l-5-3"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04102d" stroke-width="2"><path d="M7 11V7a5 5 0 0110 0v4"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+  <span style="width:1px;height:24px;background:var(--border)"></span>
+  <span class="row" style="gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--agentic)"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--magenta)"></span><span class="mono" style="font-size:11px;color:var(--text-3)">track dots</span></span>
+  <span style="display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700">DH</span>
+  <span class="mono" style="font-size:13px">→ ← ↗ unicode arrows in copy</span>
+</div></div>
+
+<h2 id="components">Components</h2>
+<h3>Buttons — rounded-full pair, sentence case, never wraps</h3>
+<div class="spec"><div class="row">
+  <button class="btn pri">Sign up for Thursday</button>
+  <button class="btn out">Submit a coaching topic</button>
+  <button class="btn dark">View session →</button>
+  <button class="btn pri sm">▸ Resume mission</button>
+  <button class="btn out sm">Ask anything</button>
+  <span style="background:var(--navy);border-radius:14px;padding:10px 14px"><button class="btn inv">Go to Challenge →</button></span>
+</div></div>
+<h3>Pills &amp; tags — tinted capsule (10% bg + full-color text) vs neutral bordered</h3>
+<div class="spec"><div class="row">
+  <span class="pill" style="background:var(--magenta-50);color:var(--magenta-700)">AI Officer</span>
+  <span class="pill" style="background:var(--blue-50);color:var(--blue-700)">Generative AI</span>
+  <span class="pill" style="background:var(--mint-100);color:var(--mint-900)">Leadership</span>
+  <span class="pill" style="background:var(--dnavy-50);color:var(--dnavy-800)">Elective</span>
+  <span class="pill" style="background:rgba(26,158,116,.1);color:var(--agentic)">Complete</span>
+  <span class="pill" style="background:var(--blue-50);color:var(--blue-700)">Active</span>
+  <span class="tag">Locked</span><span class="tag">Preview</span><span class="tag">Vector DB</span>
+</div></div>
+<h3>Cards</h3>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));align-items:start">
+  <div class="card hoverdemo">
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b style="white-space:nowrap">AI Officer</b><span class="pill" style="background:var(--blue-50);color:var(--blue-700)">Enrolled</span></div>
+    <p class="mono" style="font-size:24px;font-weight:700;margin:14px 0 0">80%</p>
+    <p style="font-size:12px;color:var(--text-3);margin:0 0 8px">Complete</p>
+    <div class="bar"><i style="width:80%"></i></div>
+    <p style="display:flex;justify-content:space-between;font-size:14px;margin:14px 0 0"><span style="color:var(--text-2)">Missions</span><b class="mono">8 / 10</b></p>
+  </div>
+  <div style="background:var(--navy);color:#fff;border-radius:16px;padding:24px">
+    <p class="eyebrow" style="color:rgba(255,255,255,.5);margin:0">Next live session</p>
+    <p style="font-size:18px;font-weight:700;margin:4px 0 0">Thursday, Aug 13 · 11:00 AM</p>
+    <p style="font-size:14px;color:rgba(255,255,255,.7);margin:4px 0 0">Open Coaching — bring a challenge, get coached live.</p>
+    <button class="btn inv" style="margin-top:14px">Sign up</button>
+  </div>
+  <div style="border:1px solid var(--blue-100);background:rgba(231,241,255,.6);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px">
+    <div class="row" style="justify-content:space-between"><span class="mono" style="font-size:10px;font-weight:600;color:var(--text-3);border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:9999px;padding:3px 8px">G01</span></div>
+    <b style="font-size:14px;line-height:1.35">Enter the AI Officer</b>
+    <span class="mono" style="font-size:10.5px;color:var(--blue-700);margin-top:auto">✓ 4/4 activities</span>
+  </div>
+  <div style="border:1px dashed rgba(0,0,0,.15);background:rgba(255,255,255,.6);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px">
+    <div class="row" style="justify-content:space-between"><span class="mono" style="font-size:10px;font-weight:600;color:var(--text-3);border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:9999px;padding:3px 8px">L1</span><span class="tag">Locked</span></div>
+    <b style="font-size:14px;line-height:1.35;color:rgba(4,16,45,.6)">Your AI operating rhythm</b>
+    <span class="mono" style="font-size:10.5px;color:var(--text-3);margin-top:auto">0/2 challenges</span>
+  </div>
+</div>
+<h3>Inputs &amp; tabs</h3>
+<div class="spec"><div class="row">
+  <label style="display:flex;align-items:center;gap:8px;border-radius:9999px;padding:9px 16px;background:#fff;border:1px solid rgba(0,0,0,.1);width:260px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg>
+    <input placeholder="Search topic, tag, or coach…" style="background:none;border:none;outline:none;flex:1;font-size:14px;font-family:inherit">
+  </label>
+  <div style="display:inline-flex;border-radius:9999px;border:1px solid rgba(0,0,0,.1);background:#fff;padding:4px">
+    <button class="btn" style="background:var(--navy);color:#fff;padding:6px 16px;font-weight:500">Upcoming</button>
+    <button class="btn" style="background:none;color:rgba(4,16,45,.55);padding:6px 16px;font-weight:500">Archive</button>
+  </div>
+  <label style="display:block;flex:1;min-width:200px"><span style="font-size:12px;font-weight:500;color:var(--text-3)">Which session?</span>
+    <select style="margin-top:4px;width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.1);background:#fff;padding:8px 12px;font-size:14px;font-family:inherit;outline:none"><option>Thursday, Aug 13 · 11:00 AM GMT+7</option></select>
+  </label>
+</div>
+<p style="font-size:12.5px;color:var(--text-3);margin:12px 0 0">Focus state: border → <code>--blue</code>, optional 4px <code>--blue-50</code> ring. Modal fields: radius 10px, same border.</p></div>
+
+<h2 id="patterns">Patterns</h2>
+<h3>Page header — pill badge → headline → subcopy</h3>
+<div class="spec">
+  <span style="display:inline-flex;align-items:center;gap:8px;border-radius:9999px;border:1px solid rgba(0,0,0,.1);background:#fff;padding:4px 12px;font-size:12px;font-weight:500;color:var(--text-2);white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:var(--mint-600)"></span>Live weekly · Open to all members</span>
+  <p style="font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.1;margin:16px 0 0">Bring a challenge,<br>get coached.</p>
+  <p style="font-size:17px;color:var(--text-2);margin:12px 0 0;max-width:52ch">Open Coaching is a live weekly session. Sign up, and optionally submit a coaching topic you're wrestling with.</p>
+</div>
+<h3>Rules that make screens read as one product</h3>
+<table>
+<tr><th>Pattern</th><th>Rule</th></tr>
+<tr><td>Layout</td><td>Asymmetric grid: main column + <code>340px</code> sidebar. One <b>dark navy card</b> per screen for the key CTA.</td></tr>
+<tr><td>Numbers</td><td>Navy mono numbers, gray labels. Color appears only in track bars, pills and the one CTA.</td></tr>
+<tr><td>Progress</td><td>6px full-radius bar, black/5 track, mono value label beside it.</td></tr>
+<tr><td>Sticky toolbars</td><td>Pill tab switcher / filter chips on blurred paper (<code>bg paper/90 + backdrop-blur</code>), bordered top+bottom.</td></tr>
+<tr><td>Accordions</td><td>Card shell + summary row (name, stats, bar, chevron rotate 180°); groups inside as light bordered boxes.</td></tr>
+<tr><td>Navy hero</td><td>Flat navy + subtle radial glows only (blue top-right 45%, magenta bottom-left 40%, mint top-center 10%). The ONLY place gradients appear.</td></tr>
+<tr><td>Empty / locked</td><td>Dashed borders, muted text, a Locked tag — explain the path forward, never dead-end.</td></tr>
+</table>
+
+<h2 id="imagery">Imagery</h2>
+<p class="sub">Warm, documentary, real people — community sessions, coaching rooms, conferences. Never studio stock.</p>
+<div class="two">
+  <div style="border-radius:16px;overflow:hidden;position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1c58a8,#287be8)">
+    <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(4,16,45,.35),rgba(40,123,232,.15))"></div>
+    <p style="position:absolute;bottom:12px;left:16px;color:#fff;font-size:12.5px;font-weight:600;margin:0">Protection overlay: ALWAYS cool navy → blue — never black, never warm</p>
+  </div>
+  <div class="spec">
+    <p class="eyebrow" style="margin:0 0 10px">Rules</p>
+    <p style="margin:0;font-size:14px;color:var(--text-2)"><span class="do">✓</span> <code>object-fit: cover</code>; featured cards may zoom <code>scale(1.04)</code> on hover (0.5s) — the one sanctioned scale<br>
+    <span class="do">✓</span> Where no photo exists: track-color gradient mock covers with mono lesson labels (<span class="mono">SESSION 01</span>)<br>
+    <span class="dont">✗</span> No SVG illustrations, repeating patterns, or full-bleed textures</p>
+  </div>
+</div>
+
+<footer style="margin-top:72px;padding-top:24px;border-top:1px solid rgba(0,0,0,.06);font-size:12.5px;color:var(--text-3)">
+  AI Officer Institute Design System · tokens: <span class="mono">aiolabz-fe/src/app/globals.css</span> · guide: <span class="mono">.ai-context/DESIGNER_GUIDE.md</span> · UI anchor: Learning Hub — Coaching &amp; Micro Sessions
+</footer>
+</main>
+</body>
+</html>
