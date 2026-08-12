@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DetailDrawer } from "@/components/admin/DetailDrawer";
+import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
-import { ApplicationManage, type AppManageData } from "./ApplicationManage";
 
 export type AppRow = {
   id: string;
@@ -29,6 +28,7 @@ export type AppRow = {
   appliedAt: string | null;
   decidedAt: string | null;
   resumeDocumentId: string | null;
+  archivedAt: string | null;
 };
 
 const PAGE_SIZES = [25, 50, 100];
@@ -44,42 +44,18 @@ const STATUS_ORDER = [
   "rejected",
 ];
 
-export function toManageData(r: AppRow): AppManageData {
-  return {
-    id: r.id,
-    jobReqId: r.jobReqId,
-    personId: r.personId,
-    jobReqTitle: r.jobReqTitle,
-    candidateName: r.candidateName,
-    status: r.status,
-    rating: r.rating,
-    rejectionReason: r.rejectionReason,
-    currentStageId: r.currentStageId,
-    currentStageName: r.stageName,
-    appliedAt: r.appliedAt,
-    decidedAt: r.decidedAt,
-    resumeDocumentId: r.resumeDocumentId,
-    email: r.email,
-    phone: r.phone,
-    headline: r.headline,
-    currentTitle: r.currentTitle,
-    linkedinUrl: r.linkedinUrl,
-    portfolioUrl: r.portfolioUrl,
-    doNotHire: r.doNotHire,
-  };
-}
-
-// Client-owned applications table: the whole thing (rows + shelf) is one client
-// tree, so a row click reliably opens the DetailDrawer (mirrors the Deals board).
-// All rows load once; search, job-req filter, and paging happen client-side.
+// Client-owned applications table. All rows load once; search, filters, paging,
+// and sort happen client-side. A row click navigates to the full-page applicant
+// profile (/admin/talent/applications/<id>) — the shareable canonical view.
 export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [reqFilter, setReqFilter] = useState(""); // "" = all reqs
   const [statusFilter, setStatusFilter] = useState(""); // "" = all statuses
   const [stageFilter, setStageFilter] = useState(""); // "" = all stages
+  const [showArchived, setShowArchived] = useState(false); // hide archived by default
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   // Mirrors the Candidate Pool table: rows rank by AI fit, toggling to recruiter rating.
   const [sort, setSort] = useState<{ key: "ai" | "recruiter"; dir: "asc" | "desc" }>({ key: "ai", dir: "desc" });
 
@@ -114,6 +90,7 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const query = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     const matched = rows.filter((r) => {
+      if (r.archivedAt && !showArchived) return false;
       if (reqFilter && r.jobReqId !== reqFilter) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (stageFilter && r.stageName !== stageFilter) return false;
@@ -132,7 +109,7 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
       if (bv == null) return -1;
       return sort.dir === "desc" ? bv - av : av - bv;
     });
-  }, [rows, reqFilter, statusFilter, stageFilter, query, sort]);
+  }, [rows, reqFilter, statusFilter, stageFilter, showArchived, query, sort]);
 
   function onSort(key: "ai" | "recruiter") {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
@@ -148,7 +125,9 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const start = total === 0 ? 0 : startIdx + 1;
   const end = Math.min(startIdx + pageSize, total);
 
-  const selected = selectedId ? rows.find((r) => r.id === selectedId) ?? null : null;
+  function open(id: string) {
+    router.push(`/admin/talent/applications/${id}`);
+  }
 
   return (
     <>
@@ -231,6 +210,18 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className={`admin-btn admin-btn--sm${showArchived ? " admin-btn--primary" : ""}`}
+          onClick={() => {
+            setShowArchived((v) => !v);
+            setPage(1);
+          }}
+          aria-pressed={showArchived}
+          title="Include archived (deleted) applications"
+        >
+          {showArchived ? "Showing archived" : "Show archived"}
+        </button>
       </div>
 
       <div className="admin-table-wrap">
@@ -268,22 +259,27 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
                   <tr
                     key={r.id}
                     className="is-clickable"
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => open(r.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setSelectedId(r.id);
+                        open(r.id);
                       }
                     }}
                     tabIndex={0}
                     role="button"
-                    aria-haspopup="dialog"
+                    style={r.archivedAt ? { opacity: 0.6 } : undefined}
                   >
                     <td className="admin-cell-mono">{startIdx + i + 1}</td>
                     <td>
                       <span className={r.candidateName ? "admin-cell-strong" : "admin-cell-muted"}>
                         {r.candidateName || "—"}
                       </span>
+                      {r.archivedAt && (
+                        <span style={{ marginLeft: 8 }}>
+                          <Badge tone="neutral">Archived</Badge>
+                        </span>
+                      )}
                     </td>
                     <td>{r.jobReqTitle || <span className="admin-cell-muted">—</span>}</td>
                     <td>{r.stageName || <span className="admin-cell-muted">—</span>}</td>
@@ -337,15 +333,6 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
           </div>
         )}
       </div>
-
-      <DetailDrawer
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        eyebrow="Application"
-        title={selected?.candidateName || "Candidate"}
-      >
-        {selected && <ApplicationManage app={toManageData(selected)} />}
-      </DetailDrawer>
     </>
   );
 }

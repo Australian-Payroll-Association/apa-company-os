@@ -59,6 +59,7 @@ type RawApp = {
   job_requisition_id: string | null;
   person_id: string | null;
   metadata: { family_screen?: { rating?: number } } | null;
+  archived_at: string | null;
   people: P | P[] | null;
   job_requisitions: Jr | Jr[] | null;
   application_stages: St | St[] | null;
@@ -90,7 +91,7 @@ export default async function ApplicationsPage() {
   const appsRes = await companyOs
     .from("applications")
     .select(
-      "id, status, rating, ai_rating, applied_at, decided_at, rejection_reason, current_stage_id, resume_document_id, job_requisition_id, person_id, metadata, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions!inner(title, status), application_stages(name)",
+      "id, status, rating, ai_rating, applied_at, decided_at, rejection_reason, current_stage_id, resume_document_id, job_requisition_id, person_id, metadata, archived_at, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions!inner(title, status), application_stages(name)",
     )
     .eq("job_requisitions.status", "open")
     .order("created_at", { ascending: false })
@@ -153,15 +154,21 @@ export default async function ApplicationsPage() {
       appliedAt: r.applied_at,
       decidedAt: r.decided_at,
       resumeDocumentId: r.resume_document_id,
+      archivedAt: r.archived_at,
     };
   });
+
+  // Archived applications stay in the payload (so the client "Show archived"
+  // toggle can surface them) but are excluded from the header count and KPIs,
+  // which describe the live pipeline.
+  const activeRows = rows.filter((r) => !r.archivedAt);
 
   return (
     <>
       <PageHead
         eyebrow="Talent"
         title="Applications"
-        sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "application" : "applications"} to open job reqs`}
+        sub={`${activeRows.length.toLocaleString()} ${activeRows.length === 1 ? "application" : "applications"} to open job reqs`}
         action={
           <Link href="/admin/talent/applications/new" className="admin-btn admin-btn--primary admin-btn--sm">
             Add candidates
@@ -175,9 +182,9 @@ export default async function ApplicationsPage() {
       )}
 
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Active" value={rows.filter((r) => r.status === "active").length} sub="in pipeline" />
-        <MetricCard label="On hold" value={rows.filter((r) => r.status === "on_hold").length} sub="parked" />
-        <MetricCard label="Hired" value={rows.filter((r) => r.status === "hired").length} sub="closed won" />
+        <MetricCard label="Active" value={activeRows.filter((r) => r.status === "active").length} sub="in pipeline" />
+        <MetricCard label="On hold" value={activeRows.filter((r) => r.status === "on_hold").length} sub="parked" />
+        <MetricCard label="Hired" value={activeRows.filter((r) => r.status === "hired").length} sub="closed won" />
       </div>
 
       <ApplicationsView rows={rows} stageColumns={stageColumns} stageMap={stageMap} />

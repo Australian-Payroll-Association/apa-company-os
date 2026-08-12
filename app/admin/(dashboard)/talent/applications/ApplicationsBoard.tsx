@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
-import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { humanize } from "@/lib/admin/format";
 import { moveApplicationStage } from "../jobs/[id]/actions";
-import { type AppRow, toManageData } from "./ApplicationsTable";
-import { ApplicationManage } from "./ApplicationManage";
+import { type AppRow } from "./ApplicationsTable";
 
 // Columns are stage NAMES merged across open reqs (every req currently shares
 // the Screen→…→Rejected template). stageMap resolves a name back to the stage
@@ -30,12 +29,12 @@ export function ApplicationsBoard({
   columns: KanbanColumn[];
   stageMap: StageMap;
 }) {
+  const router = useRouter();
   const firstColumn = columns[0]?.id ?? "";
   // Board owns stage placement so drags are optimistic; everything else on the
   // card still reads from the untouched row.
   const [placement, setPlacement] = useState<Record<string, string>>({});
   const [reqFilter, setReqFilter] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
   const reqOptions = useMemo(() => {
@@ -55,7 +54,7 @@ export function ApplicationsBoard({
 
   const cards: BoardCard[] = useMemo(() => {
     return rows
-      .filter((r) => !reqFilter || r.jobReqId === reqFilter)
+      .filter((r) => !r.archivedAt && (!reqFilter || r.jobReqId === reqFilter))
       .map((r) => ({
         id: r.id,
         columnId: placement[r.id] ?? r.stageName ?? firstColumn,
@@ -82,8 +81,6 @@ export function ApplicationsBoard({
       }
     });
   }
-
-  const selected = selectedId ? rows.find((r) => r.id === selectedId) ?? null : null;
 
   return (
     <>
@@ -119,7 +116,7 @@ export function ApplicationsBoard({
           columns={columns}
           cards={cards}
           onMove={move}
-          onCardClick={(c) => setSelectedId(c.id)}
+          onCardClick={(c) => router.push(`/admin/talent/applications/${c.id}`)}
           renderCard={(c) => {
             const color = (c.row.jobReqId && roleColor.get(c.row.jobReqId)) || ROLE_COLORS[0];
             return (
@@ -144,15 +141,6 @@ export function ApplicationsBoard({
           }}
         />
       )}
-
-      <DetailDrawer
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        eyebrow="Application"
-        title={selected?.candidateName || "Candidate"}
-      >
-        {selected && <ApplicationManage app={toManageData(selected)} />}
-      </DetailDrawer>
     </>
   );
 }
