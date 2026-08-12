@@ -1,5 +1,6 @@
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
+import { listAssignablePeople, listPeopleNames } from "@/lib/admin/people-options";
 import { ISSUE_SELECT, type IssueRow } from "../edges-shared";
 import { IssuesBoard } from "./IssuesBoard";
 
@@ -11,33 +12,23 @@ export const metadata = {
 };
 
 export default async function IssuesPage() {
-  const [issuesRes, krRes, teamRes] = await Promise.all([
+  const [issuesRes, krRes, teamOptions] = await Promise.all([
     companyOs.from("issues").select(ISSUE_SELECT).order("created_at", { ascending: false }),
     companyOs.from("key_results").select("id, title"),
-    companyOs.from("team_members").select("person_id, status"),
+    listAssignablePeople(),
   ]);
 
   const issues = (issuesRes.data ?? []) as IssueRow[];
   const krs = ((krRes.data ?? []) as { id: string; title: string }[]).sort((a, b) => a.title.localeCompare(b.title));
 
-  // People needed for display (current assignees) plus the active team for the picker.
-  const teamRows = (teamRes.data ?? []) as { person_id: string; status: string | null }[];
-  const activeTeamIds = teamRows
-    .filter((t) => !["inactive", "offboarded"].includes(t.status ?? "active"))
-    .map((t) => t.person_id);
-  const personIds = Array.from(
-    new Set([...activeTeamIds, ...issues.map((i) => i.assignee_person_id).filter(Boolean)]),
-  ) as string[];
-  const peopleRes = personIds.length
-    ? await companyOs.from("people").select("id, full_name").in("id", personIds)
-    : { data: [], error: null };
-  const people = ((peopleRes.data ?? []) as { id: string; full_name: string }[]).sort((a, b) =>
-    a.full_name.localeCompare(b.full_name),
-  );
-  const teamOptions = people.filter((p) => activeTeamIds.includes(p.id));
+  // The picker offers the current roster. Names are also needed for assignees
+  // who have since left, so their closed issues still read as theirs.
+  const personName = await listPeopleNames([
+    ...teamOptions.map((p) => p.id),
+    ...(issues.map((i) => i.assignee_person_id).filter(Boolean) as string[]),
+  ]);
 
-  const error =
-    issuesRes.error?.message ?? krRes.error?.message ?? teamRes.error?.message ?? peopleRes.error?.message ?? null;
+  const error = issuesRes.error?.message ?? krRes.error?.message ?? null;
 
   return (
     <>
@@ -51,7 +42,12 @@ export default async function IssuesPage() {
           {error}
         </div>
       )}
-      <IssuesBoard issues={issues} krs={krs} people={people} teamOptions={teamOptions} />
+      <IssuesBoard
+        issues={issues}
+        krs={krs}
+        personNames={Object.fromEntries(personName)}
+        teamOptions={teamOptions}
+      />
     </>
   );
 }

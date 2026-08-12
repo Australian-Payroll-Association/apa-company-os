@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
+import { listAssignablePeople, listPeopleNames } from "@/lib/admin/people-options";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Tabs } from "@/components/admin/Tabs";
@@ -86,7 +87,7 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? nul
 const COUNTED_STATUSES = new Set(["registered", "attended", "confirmed"]);
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, peopleRes, agendaBlocks, cloneSourcesRes] = await Promise.all([
+  const [eventRes, tiersRes, regsRes, surveysRes, talksRes, eventTalksRes, pnlLines, roster, agendaBlocks, cloneSourcesRes] = await Promise.all([
     companyOs
       .from("events")
       .select(
@@ -115,11 +116,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     companyOs.from("talks").select("id, title").eq("active", true).order("sort_order", { ascending: true }),
     companyOs.from("event_talks").select("talk_id").eq("event_id", params.id),
     getEventPnlLines(params.id),
-    companyOs
-      .from("team_directory")
-      .select("person_id, full_name")
-      .not("person_id", "is", null)
-      .order("full_name", { ascending: true }),
+    listAssignablePeople(),
     getEventAgenda(params.id),
     companyOs
       .from("events")
@@ -135,9 +132,16 @@ export default async function EventDetailPage({ params }: { params: { id: string
     title: e.title,
   }));
 
-  const pnlPeople = ((peopleRes.data ?? []) as { person_id: string; full_name: string | null }[])
-    .filter((p) => p.person_id)
-    .map((p) => ({ id: p.person_id, name: p.full_name ?? "Unknown" }));
+  const rosterIds = new Set(roster.map((p) => p.id));
+  const alreadyOnEvent = [
+    ...pnlLines.map((l) => l.personId),
+    ...agendaBlocks.flatMap((b) => b.staff.map((s) => s.personId)),
+  ].filter((id): id is string => Boolean(id) && !rosterIds.has(id as string));
+  const departedNames = await listPeopleNames(alreadyOnEvent);
+  const pnlPeople = [
+    ...roster,
+    ...Array.from(departedNames, ([id, name]) => ({ id, name })),
+  ];
 
   const event = eventRes.data as EventDbRow | null;
   if (!event) notFound();

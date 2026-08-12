@@ -8,7 +8,7 @@ import {
 // actions in the module (and, for custody changes, the assign_equipment /
 // return_equipment RPCs, which are atomic).
 
-export type PersonOption = { id: string; full_name: string };
+export type { PersonOption } from "@/lib/admin/people-options";
 export type VendorOption = { id: string; name: string };
 
 // Custody history for one item, newest period first. The row with
@@ -35,34 +35,12 @@ export async function listOpenAssignmentsForPerson(personId: string) {
   return data ?? [];
 }
 
-// Assignable people: currently active staff, driven by team_members.status
-// rather than people.persona.
+// Assignable people now live in lib/admin/people-options, shared with every
+// other person picker. Re-exported so the equipment module keeps one import.
 //
-// persona is the CRM lifecycle tag and drifts from employment reality in both
-// directions: four active staff still carry job_seeker or null from before they
-// were hired, and twenty-two leavers keep persona='employee' forever. Filtering
-// on it both hid people who work here and offered up people who don't.
-//
-// Anyone who currently holds an item is merged in by the caller, so a leaver on
-// notice can still be handed back from even though they are not assignable.
-export async function listAssignablePeople(): Promise<PersonOption[]> {
-  const { data } = await companyOs
-    .from("team_members")
-    .select("person:people!team_members_person_id_fkey(id, full_name, archived_at)")
-    .eq("status", "active");
-
-  const rows = (data ?? []) as unknown as {
-    person: { id: string; full_name: string | null; archived_at: string | null } | null;
-  }[];
-
-  return rows
-    .map((r) => r.person)
-    .filter((p): p is { id: string; full_name: string; archived_at: string | null } =>
-      Boolean(p?.full_name && !p.archived_at),
-    )
-    .map((p) => ({ id: p.id, full_name: p.full_name }))
-    .sort((a, b) => a.full_name.localeCompare(b.full_name));
-}
+// Anyone who currently holds an item is merged in by the caller, so a leaver
+// can still be handed back from even though they are not assignable.
+export { listAssignablePeople } from "@/lib/admin/people-options";
 
 export async function listVendorOptions(): Promise<VendorOption[]> {
   const { data } = await companyOs

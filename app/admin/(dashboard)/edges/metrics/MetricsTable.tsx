@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { AGENTS, OFFICES, agentInitials, personInitials, type MetricRow } from "../edges-shared";
 import { createMetric, saveManualReading, updateMetric } from "./actions";
 
@@ -15,7 +16,7 @@ export type MetricView = MetricRow & {
   has_this_week: boolean;
 };
 
-export type TeamOption = { id: string; full_name: string };
+export type TeamOption = { id: string; name: string };
 
 function fmt(m: MetricView, v: number | null): string {
   if (v == null) return "—";
@@ -279,23 +280,15 @@ function MetricForm({
       </div>
       <div className="admin-field">
         <label className="admin-label">Owner (required: who answers for this number)</label>
-        <select className="admin-select" value={owner} onChange={(e) => setOwner(e.target.value)}>
-          <option value="">Pick an owner…</option>
-          <optgroup label="Team">
-            {teamOptions.map((p) => (
-              <option key={p.id} value={`p:${p.id}`}>
-                {p.full_name}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Agents">
-            {AGENTS.map((a) => (
-              <option key={a} value={`a:${a}`}>
-                {a} agent
-              </option>
-            ))}
-          </optgroup>
-        </select>
+        <PersonSelect
+          value={owner}
+          onChange={setOwner}
+          emptyLabel="Pick an owner…"
+          options={[
+            ...teamOptions.map((p) => ({ value: `p:${p.id}`, label: p.name, group: "Team" })),
+            ...AGENTS.map((a) => ({ value: `a:${a}`, label: `${a} agent`, group: "Agents" })),
+          ]}
+        />
       </div>
       <div className="admin-field">
         <label className="admin-label">Formula (how it's calculated, in words)</label>

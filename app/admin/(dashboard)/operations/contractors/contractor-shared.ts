@@ -7,6 +7,8 @@ export type ContractorRow = {
   team_member_id: string;
   person_id: string;
   full_name: string | null;
+  // How the person is written in pickers and headings: Given + Family.
+  display_name: string;
   email: string;
   status: string;
   start_date: string | null;

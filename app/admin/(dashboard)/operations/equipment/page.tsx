@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listEntity } from "@/lib/admin/query";
+import { byFirstName } from "@/lib/people-name";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
@@ -81,10 +82,10 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
   const holders = new Map(people.map((p) => [p.id, p]));
   for (const r of rows) {
     if (r.holder?.id && r.holder.full_name && !holders.has(r.holder.id)) {
-      holders.set(r.holder.id, { id: r.holder.id, full_name: r.holder.full_name });
+      holders.set(r.holder.id, { id: r.holder.id, name: r.holder.full_name });
     }
   }
-  const peopleOptions = [...holders.values()].sort((a, b) => a.full_name.localeCompare(b.full_name));
+  const peopleOptions = [...holders.values()].sort((a, b) => byFirstName(a.name, b.name));
 
   const columns: Column<EquipmentRow>[] = [
     {

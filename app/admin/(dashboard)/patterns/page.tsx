@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { PersonSelectDemo } from "./PersonSelectDemo";
 
 export const metadata: Metadata = {
   title: "Pattern library",
@@ -219,6 +220,20 @@ export default function PatternsPage() {
               <input type="checkbox" defaultChecked /> Do not contact
             </label>
           </div>
+        </Section>
+
+        {/* ─── Person picker ──────────────────────────── */}
+        <Section
+          title="Person picker"
+          sub="Every place a person is chosen. Never hand-roll a <select> of names: the roster is around fifty rows and a plain select has no way to find anyone."
+        >
+          <PersonSelectDemo />
+          <p className="pat-caption" style={{ marginTop: 14, marginBottom: 0 }}>
+            Feed it from <code>listAssignablePeople()</code> in <code>lib/admin/people-options</code>, which returns
+            only people currently on the roster (employees and contractors alike) with names taken from
+            <code> people.display_name</code> and ordered by first name. Labels come from
+            <code> personName()</code> in <code>lib/people-name</code>, never from <code>full_name</code> directly.
+          </p>
         </Section>
 
         {/* ─── Table ──────────────────────────────────── */}

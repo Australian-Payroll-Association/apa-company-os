@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import {
@@ -78,6 +79,7 @@ export function TimeOffBoard({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!memberId) return;
     run(
       () => createTimeOff({ teamMemberId: memberId, leaveType, startDate, endDate, isHalfDay, reason }),
       "Time off logged and approved.",
@@ -226,18 +228,13 @@ export function TimeOffBoard({
             <div className="admin-timeoff-grid">
               <div className="admin-field">
                 <label className="admin-label" htmlFor="to-member">Team member</label>
-                <select
+                <PersonSelect
                   id="to-member"
-                  className="admin-select"
                   value={memberId}
-                  onChange={(e) => setMemberId(e.target.value)}
-                  required
-                >
-                  <option value="">Select…</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                  onChange={setMemberId}
+                  emptyLabel="Select…"
+                  options={members.map((m) => ({ value: m.id, label: m.name }))}
+                />
               </div>
 
               <div className="admin-field">

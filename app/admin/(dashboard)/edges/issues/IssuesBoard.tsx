@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
+import { PersonSelect } from "@/components/admin/PersonSelect";
+import type { PersonOption } from "@/lib/admin/people-options";
 import { DAVE_PERSON_ID, ISSUE_DIAGNOSES, type IssueRow } from "../edges-shared";
 import { createIssue, setIssueAssignee, setIssueStatus } from "./actions";
-
-type PersonOption = { id: string; full_name: string };
 
 const DIAG_BADGE: Record<string, string> = {
   goal: "admin-badge--info",
@@ -23,12 +23,12 @@ function age(created: string): string {
 export function IssuesBoard({
   issues,
   krs,
-  people,
+  personNames,
   teamOptions,
 }: {
   issues: IssueRow[];
   krs: { id: string; title: string }[];
-  people: PersonOption[];
+  personNames: Record<string, string>;
   teamOptions: PersonOption[];
 }) {
   const router = useRouter();
@@ -37,7 +37,7 @@ export function IssuesBoard({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const krTitle = new Map(krs.map((k) => [k.id, k.title]));
-  const personName = new Map(people.map((p) => [p.id, p.full_name]));
+  const personOptions = teamOptions.map((p) => ({ value: p.id, label: p.name }));
 
   const open = issues.filter((i) => i.status === "open" || i.status === "solving");
   const closed = issues.filter((i) => i.status === "solved" || i.status === "dropped");
@@ -103,26 +103,31 @@ export function IssuesBoard({
                   </td>
                   <td>
                     {i.status === "open" || i.status === "solving" ? (
-                      <select
-                        className="admin-select"
-                        style={{ width: "auto", minWidth: 130 }}
+                      <PersonSelect
+                        compact
+                        ariaLabel={`Assignee for ${i.title}`}
+                        style={{ minWidth: 150 }}
                         value={i.assignee_person_id ?? ""}
                         disabled={busyId === i.id}
-                        onChange={(e) => assign(i.id, e.target.value)}
-                      >
-                        {!i.assignee_person_id && <option value="">Unassigned</option>}
-                        {teamOptions.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.full_name}
-                          </option>
-                        ))}
-                        {i.assignee_person_id && !teamOptions.some((p) => p.id === i.assignee_person_id) && (
-                          <option value={i.assignee_person_id}>{personName.get(i.assignee_person_id) ?? "Former team member"}</option>
-                        )}
-                      </select>
+                        onChange={(personId) => assign(i.id, personId)}
+                        emptyLabel="Unassigned"
+                        options={
+                          // Someone assigned before they left is off the roster
+                          // but still has to show as the current holder.
+                          i.assignee_person_id && !teamOptions.some((p) => p.id === i.assignee_person_id)
+                            ? [
+                                ...personOptions,
+                                {
+                                  value: i.assignee_person_id,
+                                  label: personNames[i.assignee_person_id] ?? "Former team member",
+                                },
+                              ]
+                            : personOptions
+                        }
+                      />
                     ) : (
                       <span className="admin-cell-muted">
-                        {i.assignee_person_id ? (personName.get(i.assignee_person_id) ?? "—") : "—"}
+                        {i.assignee_person_id ? (personNames[i.assignee_person_id] ?? "—") : "—"}
                       </span>
                     )}
                   </td>
@@ -244,13 +249,11 @@ function IssueForm({
       </div>
       <div className="admin-field">
         <label className="admin-label">Assigned to</label>
-        <select className="admin-select" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-          {teamOptions.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.full_name}
-            </option>
-          ))}
-        </select>
+        <PersonSelect
+          value={assignee}
+          onChange={setAssignee}
+          options={teamOptions.map((p) => ({ value: p.id, label: p.name }))}
+        />
       </div>
       <div className="admin-field">
         <label className="admin-label">Notes (context, proposed fix)</label>
