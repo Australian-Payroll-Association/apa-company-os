@@ -3,8 +3,9 @@
 // coaching profile and runs four steps, each idempotent so a missed day
 // self-heals:
 //   1) Prep: a 1-1 is coming up (<= 4 days) -> make sure the scheduled row
-//      exists, generate the AI prep once (stamped via prep_generated_at), and
-//      email the coach.
+//      exists and generate the AI prep once (stamped via prep_generated_at).
+//      Every prep made in the pass goes to its coach as a single digest at the
+//      end of the run, one email listing all of them, not one per person.
 //   2) Overdue: the cadence has lapsed with nothing scheduled -> nudge the
 //      coach (repeats weekly, deterministically, not daily).
 //   3) Mid-cycle check-in: halfway through the cycle with open commitments and
@@ -237,6 +238,12 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
     recapsDrafted: 0,
   };
 
+  // Preps generated in this pass, gathered per coach. They go out as one
+  // digest at the end of the run rather than an email per person: a coach with
+  // four 1-1s on the same day wants one "your prep is ready" note listing all
+  // four, not four notes.
+  const prepDigest = new Map<string, { date: string; member: string; link: string }[]>();
+
   // Minutes first: a freshly matched token can yield a transcript and a
   // drafted recap in the same daily pass.
   await autoDetectMinutes(profiles, summary);
@@ -283,15 +290,9 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
         const res = await generatePrep(m.id);
         if (res.ok) {
           summary.prepsGenerated += 1;
-          await notifyBoth({
-            email: coach?.email ?? null,
-            subject: `1-1 prep ready: ${p.memberName} on ${next}`,
-            html:
-              `<p>Your 1-1 with <strong>${p.memberName}</strong> is on <strong>${next}</strong>. The prep is ready, two minutes to skim it:</p>` +
-              `<p><a href="${profileLink}">Open ${p.memberName}'s coaching page</a></p>`,
-            larkText: `1-1 prep ready: ${p.memberName} on ${next}. Two minutes to skim: ${profileLink}`,
-            logKind: "prep_ready",
-          });
+          const list = prepDigest.get(p.coach_id) ?? [];
+          list.push({ date: next, member: p.memberName, link: profileLink });
+          prepDigest.set(p.coach_id, list);
         }
       }
     }
@@ -394,6 +395,28 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
         }
       }
     }
+  }
+
+  // One prep digest per coach, after every profile has been walked.
+  for (const [coachId, items] of prepDigest) {
+    const coach = coaches.get(coachId);
+    items.sort((a, b) => a.date.localeCompare(b.date) || a.member.localeCompare(b.member));
+    const count = items.length;
+    const dates = [...new Set(items.map((i) => i.date))];
+    const when = dates.length === 1 ? ` for ${dates[0]}` : "";
+    await notifyBoth({
+      email: coach?.email ?? null,
+      subject: `${count} 1-1 prep${count === 1 ? "" : "s"} ready${when}`,
+      html:
+        `<p>The prep is ready for ${count === 1 ? "your next 1-1" : `your next ${count} 1-1s`}${when}. Two minutes each to skim:</p>` +
+        `<ul>${items
+          .map((i) => `<li><a href="${i.link}">${i.member}</a> on <strong>${i.date}</strong></li>`)
+          .join("")}</ul>`,
+      larkText:
+        `${count} 1-1 prep${count === 1 ? "" : "s"} ready${when}:\n` +
+        items.map((i) => `- ${i.member} (${i.date}): ${i.link}`).join("\n"),
+      logKind: "prep_ready",
+    });
   }
 
   return summary;

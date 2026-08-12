@@ -765,6 +765,16 @@ function MeetingsCard({
   const [logTranscript, setLogTranscript] = useState("");
   const [showLog, setShowLog] = useState(false);
 
+  // The next 1-1 = the earliest still-scheduled row. It renders highlighted and
+  // already open on its prep, so walking into the room is one glance, not a
+  // hunt behind the caret. Picked by status and date order alone (no clock), so
+  // the server and client agree on which row that is.
+  const nextMeetingId =
+    detail.meetings
+      .filter((m) => m.status === "scheduled")
+      .reduce<OneOnOne | null>((earliest, m) => (!earliest || m.heldOn < earliest.heldOn ? m : earliest), null)
+      ?.id ?? null;
+
   return (
     <section className="admin-card coach-section">
       <div className="admin-card-title">1-1s</div>
@@ -837,7 +847,14 @@ function MeetingsCard({
 
       {detail.meetings.length === 0 && <div className="admin-empty">No 1-1s yet.</div>}
       {detail.meetings.map((m) => (
-        <MeetingRow key={m.id} m={m} html={html.meetings[m.id]} run={run} busy={busy} />
+        <MeetingRow
+          key={m.id}
+          m={m}
+          html={html.meetings[m.id]}
+          run={run}
+          busy={busy}
+          isNext={m.id === nextMeetingId}
+        />
       ))}
     </section>
   );
@@ -848,13 +865,15 @@ function MeetingRow({
   html,
   run,
   busy,
+  isNext = false,
 }: {
   m: OneOnOne;
   html: { prep: string | null; summary: string | null; shared: string | null } | undefined;
   run: (label: string, fn: () => Promise<ActionResult>) => void;
   busy: boolean;
+  isNext?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isNext);
   const [editing, setEditing] = useState(false);
   const [privateMd, setPrivateMd] = useState(m.summaryMarkdown ?? "");
   const [sharedMd, setSharedMd] = useState(m.sharedSummaryMarkdown ?? "");
@@ -868,13 +887,31 @@ function MeetingRow({
 
   const published = Boolean(m.sharedPublishedAt);
 
+  const prepBlock = (
+    <div className={`coach-block${isNext ? " coach-block--prep" : ""}`}>
+      <div className="coach-block-head">
+        <span className="admin-eyebrow">Prep</span>
+        <button className="admin-btn admin-btn--sm" disabled={busy} onClick={() => run("Prep", () => generatePrepAction(m.id))}>
+          {m.prepMarkdown ? "Regenerate" : "Generate prep"}
+        </button>
+      </div>
+      {html?.prep ? (
+        <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.prep }} />
+      ) : (
+        <div className="admin-cell-muted">No prep yet.</div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="coach-meeting">
+    <div className={`coach-meeting${isNext ? " coach-meeting--next" : ""}`}>
       <button className="coach-meeting-head" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <strong>{fmt(m.heldOn)}</strong>
+        {isNext && <span className="admin-badge admin-badge--info coach-meeting-next-tag">Next 1-1</span>}
         <span className={`admin-badge ${m.status === "held" ? "admin-badge--ok" : "admin-badge--info"}`}>
           {m.status}
         </span>
+        {m.prepMarkdown && <span className="admin-badge admin-badge--ok">Prep ready</span>}
         {m.modeSplit && (
           <span className="admin-badge admin-badge--info" title="Coach / Mentor / Direct, target 80/15/5">
             {m.modeSplit.coach}/{m.modeSplit.mentor}/{m.modeSplit.direct}
@@ -886,14 +923,16 @@ function MeetingRow({
           </span>
         )}
         {m.aiError && <span className="admin-badge admin-badge--err">AI error</span>}
-        <span className="coach-meeting-caret" aria-hidden>
-          {open ? "▾" : "▸"}
+        <span className="coach-meeting-caret">
+          {m.prepMarkdown ? (open ? "Hide prep ▾" : "View prep ▸") : open ? "Close ▾" : "Open ▸"}
         </span>
       </button>
 
       {open && (
         <div className="coach-meeting-body">
           {m.aiError && <div className="admin-alert admin-alert--err">AI: {m.aiError}</div>}
+
+          {isNext && prepBlock}
 
           {/* Mode split (coach-only) */}
           <div className="coach-block">
@@ -968,20 +1007,9 @@ function MeetingRow({
             )}
           </div>
 
-          {/* Prep */}
-          <div className="coach-block">
-            <div className="coach-block-head">
-              <span className="admin-eyebrow">Prep</span>
-              <button className="admin-btn admin-btn--sm" disabled={busy} onClick={() => run("Prep", () => generatePrepAction(m.id))}>
-                {m.prepMarkdown ? "Regenerate" : "Generate prep"}
-              </button>
-            </div>
-            {html?.prep ? (
-              <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.prep }} />
-            ) : (
-              <div className="admin-cell-muted">No prep yet.</div>
-            )}
-          </div>
+          {/* Prep — first in the body on the next 1-1, where it is the thing
+              you came for; below the logging blocks on past ones. */}
+          {!isNext && prepBlock}
 
           {/* Transcript */}
           <div className="coach-block">
