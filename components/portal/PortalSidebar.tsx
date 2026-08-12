@@ -27,16 +27,17 @@ type NavItem = { label: string; href: string; ico: string; built?: boolean; enti
 
 type NavGroup = { label: string | null; items: NavItem[] };
 
-// Two sections: the work Edge8 is doing (AI Programs) and the client's own
-// account (Account). Groups collapse, matching AdminSidebar. Home stays
-// ungrouped, like the admin company dashboard link.
+// Three sections: the work (Delivery), the people on it (People), and the
+// client's own record (Account). Groups collapse, matching AdminSidebar. Home
+// stays ungrouped and renders as a top-level landmark: same accent bar and
+// type as a section header, since it outranks the items inside the sections.
 const NAV: NavGroup[] = [
   {
     label: null,
     items: [{ label: "Home", href: "/portal", ico: "\u25c8", built: true }],
   },
   {
-    label: "AI Programs",
+    label: "Delivery",
     items: [
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
@@ -48,9 +49,13 @@ const NAV: NavGroup[] = [
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
       { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
       { label: "Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
       { label: "Time Off", href: "/portal/time-off", ico: "\u263c", built: true, entitlementKey: "timeOff" },
-      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
     ],
   },
   {
@@ -64,6 +69,7 @@ const NAV: NavGroup[] = [
       { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
       // Users: portal admins manage their own company's users (PR 3).
       { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
+      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
       { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
     ],
   },
@@ -115,7 +121,7 @@ export function PortalSidebar({
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
 
-      <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
+      <nav className={`admin-sidebar portal-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
         <div className="admin-brand">
           Edge8 Client Portal
         </div>
@@ -143,7 +149,18 @@ export function PortalSidebar({
                 )}
                 {!isCollapsed &&
                   group.items.map((item) =>
-                    isEnabled(item) ? (
+                    // The ungrouped items (Home) sit at section-header rank, so
+                    // they take the header's accent bar and type rather than an
+                    // item's icon-and-label row.
+                    group.label === null ? (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`admin-nav-toplink${isActive(pathname, item.href) ? " is-active" : ""}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ) : isEnabled(item) ? (
                       <Link
                         key={item.href}
                         href={item.href}
