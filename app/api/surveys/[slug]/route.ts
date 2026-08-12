@@ -7,6 +7,7 @@ import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
 import { processProbationReview, recordDay8Response } from "@/lib/onboarding-cycle";
 import { backfillCompanyIndustry, isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
+import { applyReviewSubmission, getReviewRunContext } from "@/lib/reviews";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,33 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     const fields = (fieldsData ?? []) as SurveyFieldRow[];
     if (fields.length === 0)
       return NextResponse.json({ error: "This survey has no questions." }, { status: 410 });
+
+    // Performance reviews: authorized rater only, answers land on the review
+    // row (never in survey_responses, so review content stays out of every
+    // survey surface), and no ops notification (HR content is private).
+    if (surveyData.purpose === "performance_review") {
+      const reviewId = typeof body.review === "string" ? body.review.trim() : "";
+      const ctx = await getReviewRunContext(reviewId, params.slug);
+      if (ctx === null)
+        return NextResponse.json({ error: "Sign in to the team portal to submit this review." }, { status: 401 });
+      if (ctx === "closed")
+        return NextResponse.json({ error: "This review was already submitted." }, { status: 409 });
+
+      const rawReviewAnswers = (body.answers ?? {}) as Record<string, unknown>;
+      const validated = new Map<string, { value: string; value_json: unknown }>();
+      for (const field of fields) {
+        const v = validateAnswer(field, rawReviewAnswers[field.id]);
+        if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
+        if (v.skip) continue;
+        validated.set(field.id, { value: v.text, value_json: v.json });
+      }
+      if (validated.size === 0)
+        return NextResponse.json({ error: "The response is empty." }, { status: 400 });
+
+      const applied = await applyReviewSubmission(ctx.review, fields, validated);
+      if (!applied.ok) return NextResponse.json({ error: applied.error }, { status: 409 });
+      return NextResponse.json({ ok: true });
+    }
 
     // Identity. Onboarding is for a new hire not in the system, so we must
     // resolve them by the email they TYPE, never by a logged-in session (a

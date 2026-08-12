@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ratingBounds,
   type FieldType,
@@ -26,6 +26,9 @@ export function SurveyRunner({
   needIdentity,
   cohort,
   subject,
+  reviewId = null,
+  subjectName = null,
+  expectedLevel = null,
 }: {
   slug: string;
   name: string;
@@ -43,6 +46,16 @@ export function SurveyRunner({
   // review links (/surveys/x?subject=<id>) so the probation-review processor
   // knows which report the manager is reviewing.
   subject?: string | null;
+  // Performance reviews (purpose 'performance_review'): the review row this
+  // submission fills. Enables the localStorage draft and is sent to the API,
+  // which re-authorizes the rater server-side.
+  reviewId?: string | null;
+  // The report's name when a manager reviews someone else (a "Reviewing X"
+  // chip on the intro), null on self-assessments.
+  subjectName?: string | null;
+  // Where the "expected" marker sits on AI-craft rating scales (fields with
+  // config.expected_marker), from the subject's career level. Null = no marker.
+  expectedLevel?: number | null;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [qIndex, setQIndex] = useState(0);
@@ -56,6 +69,31 @@ export function SurveyRunner({
   >({});
 
   const field = fields[qIndex];
+
+  // Reviews are long-form; losing a closed tab's answers is expensive. Draft
+  // answers persist per review row in localStorage (review links are
+  // auth-gated, and the draft is cleared on submit). Public surveys keep the
+  // old behavior: nothing is stored.
+  const draftKey = reviewId ? `e8-review-draft:${reviewId}` : null;
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const stored = window.localStorage.getItem(draftKey);
+      if (stored) setAnswers(JSON.parse(stored));
+    } catch {
+      // Unreadable draft: start clean.
+    }
+    // Restore once per review row.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+  useEffect(() => {
+    if (!draftKey || Object.keys(answers).length === 0) return;
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify(answers));
+    } catch {
+      // Storage full/blocked: the draft is a best-effort courtesy.
+    }
+  }, [draftKey, answers]);
 
   const progress = useMemo(() => {
     if (phase === "intro") return 0;
@@ -122,12 +160,20 @@ export function SurveyRunner({
           answers,
           cohort: cohort ?? undefined,
           subject: subject ?? undefined,
+          review: reviewId ?? undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.error ?? "Something went wrong. Please try again.");
         return;
+      }
+      if (draftKey) {
+        try {
+          window.localStorage.removeItem(draftKey);
+        } catch {
+          // Leaving a stale draft behind is harmless; submission wins.
+        }
       }
       setPhase("done");
     } catch {
@@ -243,6 +289,8 @@ export function SurveyRunner({
     if (type === "rating") {
       const { min, max } = ratingBounds(field.config);
       const nums = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+      const levels = field.config?.levels;
+      const marker = field.config?.expected_marker && expectedLevel ? expectedLevel : null;
       return (
         <div>
           <div className={styles.scale}>
@@ -252,16 +300,40 @@ export function SurveyRunner({
                 type="button"
                 className={`${styles.scaleBtn}${raw === n ? ` ${styles.scaleActive}` : ""}`}
                 onClick={() => setAnswer(n)}
+                aria-label={levels?.[String(n)] ? `${n}: ${levels[String(n)]}` : String(n)}
               >
                 {n}
               </button>
             ))}
           </div>
-          {(field.config?.min_label || field.config?.max_label) && (
-            <div className={styles.scaleLabels}>
-              <span>{field.config?.min_label ?? ""}</span>
-              <span>{field.config?.max_label ?? ""}</span>
+          {marker !== null && (
+            <div className={styles.scaleTicks} aria-hidden>
+              {nums.map((n) => (
+                <span key={n} className={styles.scaleTick}>
+                  {n === marker ? <b>expected</b> : " "}
+                </span>
+              ))}
             </div>
+          )}
+          {levels ? (
+            // Anchored scale: show the selected value's anchor so the number
+            // means the same thing to every rater.
+            <div className={styles.hint}>
+              {typeof raw === "number" && levels[String(raw)] ? (
+                <>
+                  <strong>{raw}</strong> · {levels[String(raw)]}
+                </>
+              ) : (
+                "Select a level to see what it means"
+              )}
+            </div>
+          ) : (
+            (field.config?.min_label || field.config?.max_label) && (
+              <div className={styles.scaleLabels}>
+                <span>{field.config?.min_label ?? ""}</span>
+                <span>{field.config?.max_label ?? ""}</span>
+              </div>
+            )
           )}
         </div>
       );
@@ -329,6 +401,8 @@ export function SurveyRunner({
             {introText && <p className={styles.sub}>{introText}</p>}
             {isAnonymous ? (
               <div className={styles.chip}>Anonymous — your answers are not linked to you</div>
+            ) : subjectName ? (
+              <div className={styles.chip}>Reviewing {subjectName}</div>
             ) : actorName ? (
               <div className={styles.chip}>Responding as {actorName}</div>
             ) : null}

@@ -60,6 +60,12 @@ export type FieldConfig = {
   accept?: string[];
   max_bytes?: number;
   maps_to?: string;
+  // Per-value anchor text for rating scales ({"1": "...", ..., "5": "..."}).
+  // The runner shows the selected value's anchor under the scale.
+  levels?: Record<string, string>;
+  // Performance reviews: draw the "expected for level" marker on this scale
+  // (the level itself comes from the subject's team_members.career_level).
+  expected_marker?: boolean;
 };
 
 export type SurveyRow = {

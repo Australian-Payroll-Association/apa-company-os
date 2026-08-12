@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { resolveSurveyActor } from "@/lib/survey-identity";
 import { isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
+import { getReviewRunContext } from "@/lib/reviews";
 import type { SurveyFieldRow, SurveyRow } from "@/lib/admin/surveys";
 import { SurveyRunner } from "./SurveyRunner";
 import styles from "./survey.module.css";
@@ -28,7 +29,7 @@ export default async function PublicSurveyPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams?: { cohort?: string; subject?: string };
+  searchParams?: { cohort?: string; subject?: string; review?: string };
 }) {
   const { data } = await companyOs
     .from("surveys")
@@ -48,6 +49,57 @@ export default async function PublicSurveyPage({
           <h1 className={styles.title}>{survey.name}</h1>
           <p className={styles.sub}>This survey is closed. Thanks for your interest.</p>
         </div>
+      </main>
+    );
+  }
+
+  // Performance reviews ride the survey runner but are not public surveys:
+  // the visitor must be signed in and be the review row's rater. The review
+  // row (not the survey) is the record; see lib/reviews.ts.
+  if (survey.purpose === "performance_review") {
+    const reviewId = searchParams?.review?.trim() ?? "";
+    if (!reviewId) notFound();
+    const ctx = await getReviewRunContext(reviewId, survey.slug);
+    if (ctx === null) {
+      // Signed out (or not the rater — indistinguishable on purpose). Send
+      // through the portal login; it returns to /team, where Reviews lists
+      // the pending link again.
+      const actor = await resolveSurveyActor();
+      if (!actor) redirect("/team/login");
+      notFound();
+    }
+    if (ctx === "closed") {
+      return (
+        <main className={styles.page}>
+          <div className={styles.card}>
+            <h1 className={styles.title}>{survey.name}</h1>
+            <p className={styles.sub}>
+              This review is already submitted. Find it under Reviews in the team portal.
+            </p>
+          </div>
+        </main>
+      );
+    }
+    const { data: reviewFieldsData } = await companyOs
+      .from("survey_fields")
+      .select("id, survey_id, position, type, label, help_text, required, config")
+      .eq("survey_id", survey.id)
+      .order("position", { ascending: true });
+    return (
+      <main className={styles.page}>
+        <SurveyRunner
+          slug={survey.slug}
+          name={survey.name}
+          introText={survey.intro_text ?? survey.description}
+          thankYouText={survey.thank_you_text}
+          isAnonymous={false}
+          fields={(reviewFieldsData ?? []) as SurveyFieldRow[]}
+          actorName={null}
+          needIdentity={false}
+          reviewId={ctx.review.id}
+          subjectName={ctx.subjectName}
+          expectedLevel={ctx.expectedLevel}
+        />
       </main>
     );
   }

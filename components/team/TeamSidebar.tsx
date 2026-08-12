@@ -52,6 +52,7 @@ function meGroup(isCoached: boolean, hasClients: boolean): NavGroup {
         : []),
       ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
       { label: "My FAST Goals", href: "/team/goals", ico: "◉", enabled: true },
+      { label: "Reviews", href: "/team/reviews", ico: "★", enabled: true },
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
       { label: "Profile", href: "/team/profile", ico: "☺", enabled: true },
