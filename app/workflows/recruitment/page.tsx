@@ -461,10 +461,11 @@ export default function RecruitmentWorkflowPage() {
             <div className="wf-info-card">
               <h3>AI on the interview panel</h3>
               <ul>
-                <li>The AI sits on every panel, from the recruiter screen to the founder chat</li>
-                <li>It reads the transcript and scores the candidate, quoting the exact lines it used</li>
-                <li>Its scorecard stays hidden until the people hand in theirs, so it can’t sway them</li>
-                <li>It remembers the earlier rounds, so anything left unproven becomes the next round’s question</li>
+                <li>The AI holds a seat on every round, from the recruiter screen to the founder chat, and a round with three people hands in four scorecards</li>
+                <li>It scores against that round’s rubric with an advance, hold, or reject call, citing the exact lines and timestamps it used</li>
+                <li>Its scorecard stays sealed until every person on the round has submitted, so it can never anchor the room</li>
+                <li>It carries memory forward: anything a transcript left unproven becomes a question for the next round</li>
+                <li>Rough transcription is handled, not trusted: it flags low-confidence quotes and never holds a garbled transcript against the candidate</li>
               </ul>
             </div>
             <div className="wf-info-card wf-info-card-mint">
@@ -548,11 +549,14 @@ export default function RecruitmentWorkflowPage() {
                       any other. No off-the-record “can you talk to them once more” that the system never sees.
                     </p>
                     <p>
-                      The AI sits on every interview panel too. It reads the transcript and fills in a scorecard: a
-                      recommendation, a score for each thing the role is judged on, and the exact quotes it based them
-                      on. Its scorecard stays hidden until the human interviewers hand in theirs, so it can’t sway the
-                      room. It also remembers the earlier rounds, so anything left unproven in one round becomes a
-                      question for the next. The AI is one voice on the panel. It never makes the final call.
+                      The AI sits on every interview panel too. It reads that transcript against the job description, the
+                      resume, the earlier AI screen, the company’s core values, and every prior round, then fills in a
+                      scorecard: an advance, hold, or reject call, a score for each thing the round is judged on, and the
+                      exact quotes and timestamps it based them on. Where the transcription is rough, it flags the
+                      low-confidence lines and never holds a garbled transcript against the candidate. Its scorecard
+                      stays hidden until the human interviewers hand in theirs, so it can’t sway the room. It also
+                      remembers the earlier rounds, so anything left unproven in one round becomes a question for the
+                      next. The AI is one voice on the panel. It never makes the final call.
                     </p>
                     <p>
                       Everything about the candidate lives on the application: the notes, the resume (replaceable when a
