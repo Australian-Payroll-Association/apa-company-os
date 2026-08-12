@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 import { WorkflowHero, FlowRail, StepCards, SevenElements, DetailFooter, type WorkflowElement } from '../ui'
 
 const ELEMENTS: WorkflowElement[] = [
-  { name: 'Trigger', assignment: 'both', desc: 'No single trigger. A role opening, a strong inbound resume, a referral, or a pool resurfacing can each start motion, and usually several are running at once.' },
-  { name: 'Inputs', assignment: 'both', desc: 'The JD and screening questions, resumes from every channel (careers page, LinkedIn, referrals, agencies, batch drops), and the full history of everyone the company has already met.' },
+  { name: 'Trigger', assignment: 'both', desc: 'No single trigger. A role opening, a strong inbound resume, a referral, or someone resurfacing from the pool can each start things off, and usually several are running at once.' },
+  { name: 'Inputs', assignment: 'both', desc: 'The job description and screening questions, resumes from every channel (careers page, LinkedIn, referrals, agencies, batch drops), and the full history of everyone the company has already met.' },
   { name: 'Decision', assignment: 'both', desc: 'Every candidate gets two reads at the resume: the AI screen and the recruiter’s rating. The AI then joins every interview too, scoring on its own before it sees what the people said. People make every call to advance, reject, or send someone back.' },
-  { name: 'Routing', assignment: 'both', desc: 'Not forward-only. Candidates move back a stage for another round, return to the shortlist after a declined offer, or exit to the pool and re-enter months later on a different req.' },
-  { name: 'Output', assignment: 'machine', desc: 'A living record per candidate: every application, every screen, both ratings, the notes thread, and every status change with its reason.' },
-  { name: 'Delivery', assignment: 'machine', desc: 'Ranked, sortable views wherever the work happens: per req, per role family, and across the whole pool.' },
-  { name: 'Measurement', assignment: 'machine', desc: 'Conversion inside each loop, AI-vs-recruiter disagreement, time from open req to hire, and how often the pool, not a job board, fills the role.' },
+  { name: 'Routing', assignment: 'both', desc: 'Not forward-only. Candidates move back a stage for another round, return to the shortlist after a declined offer, or leave to the pool and come back months later on a different role.' },
+  { name: 'Output', assignment: 'machine', desc: 'A living record for each candidate: every application, every screen, both ratings, the notes, every interview scorecard, and every status change with its reason.' },
+  { name: 'Delivery', assignment: 'machine', desc: 'Ranked, sortable views wherever the work happens: by role, by role family, and across the whole pool.' },
+  { name: 'Measurement', assignment: 'machine', desc: 'How many make it through each loop, how often the AI and the recruiter disagree, the time from opening a role to hiring, and how often the pool, not a job board, fills the role.' },
 ]
 
 const title = 'Recruitment: Three Loops, One Pool | Edge8 Workflows'
@@ -24,10 +24,10 @@ export const metadata: Metadata = {
 }
 
 const PROBLEMS = [
-  'Hiring gets documented as a straight line: post, screen, interview, offer. It never runs as one, so the diagram and the reality drift apart until the diagram is fiction.',
-  'Resumes arrive by email, LinkedIn, referral, and agency, and half never get a reply. Nobody can say where a candidate stands without asking whoever owns the folder.',
-  'Screening quality depends on who reads the pile and when. The 200th resume never gets the read the 5th did.',
-  'A declined offer, a paused req, or a near-miss candidate has no path in a linear process, so the work that went into them is simply lost.',
+  'Hiring is written up as a straight line: post, screen, interview, offer. It never runs that way, so the diagram and real life drift apart until the diagram is fiction.',
+  'Resumes come in by email, LinkedIn, referral, and agency, and half never get a reply. No one can say where a candidate stands without asking whoever holds the folder.',
+  'How well a resume gets read depends on who reads the pile, and when. The 200th resume never gets the read the 5th did.',
+  'A declined offer, a paused role, or a near-miss candidate has nowhere to go in a straight-line process, so all the work that went into them is just lost.',
 ]
 
 const loopCard: React.CSSProperties = {
@@ -71,18 +71,18 @@ function SelectionFlowchart() {
         <text x="710" y="402" fontSize="12.5" fill={sub}>· rejected, with reason</text>
         <text x="710" y="422" fontSize="12.5" fill={sub}>· withdrew</text>
         <text x="710" y="442" fontSize="12.5" fill={sub}>· future consideration</text>
-        <text x="710" y="462" fontSize="12.5" fill={sub}>· on hold: req paused</text>
-        <text x="710" y="482" fontSize="12.5" fill={sub}>· req closed: everyone in flight</text>
+        <text x="710" y="462" fontSize="12.5" fill={sub}>· on hold: role paused</text>
+        <text x="710" y="482" fontSize="12.5" fill={sub}>· role closed: everyone in flight</text>
         <text x="710" y="502" fontSize="12.5" fill={sub}>· hired: still on the record</text>
         <line x1="710" y1="528" x2="886" y2="528" stroke={nodeStroke} />
         <text x="710" y="556" fontSize="12.5" fontWeight="700" fill={ink}>Way out:</text>
-        <text x="710" y="578" fontSize="12.5" fill={sub}>resurfaced for the next req.</text>
+        <text x="710" y="578" fontSize="12.5" fill={sub}>brought back for the next role.</text>
         <text x="710" y="596" fontSize="12.5" fill={sub}>The pool is the first sourcing</text>
-        <text x="710" y="614" fontSize="12.5" fill={sub}>channel every time a req opens.</text>
+        <text x="710" y="614" fontSize="12.5" fill={sub}>channel every time a role opens.</text>
 
         {/* Pool resurfaces into the top of the funnel */}
         <path d="M 910 736 L 934 736 L 934 56 L 466 56" fill="none" stroke={line} strokeWidth="1.6" strokeDasharray="5 5" markerEnd="url(#arr)" />
-        <text x="700" y="44" fontSize="12.5" fill={sub} style={halo}>resurfaced for the next req</text>
+        <text x="700" y="44" fontSize="12.5" fill={sub} style={halo}>brought back for the next role</text>
 
         {/* ── Spine ─────────────────────────────────────────────────────── */}
         {/* Entry */}
@@ -178,7 +178,7 @@ export default function RecruitmentWorkflowPage() {
       <WorkflowHero
         category="Talent"
         title="Recruitment: Three Loops, One Pool"
-        tldr="Our recruitment process is not a pipeline, because almost no real process is. Three loops run continuously: demand (roles open, pause, reopen, close), sourcing (always on, across every channel), and selection (screen, interview as many rounds as it takes, offer). All of them orbit one candidate pool that never forgets. Candidates move backward as often as forward, and every exit from any loop is an entry into the pool."
+        tldr="Hiring is not a straight pipeline, because real hiring never is. Three loops run all the time: demand (roles open, pause, reopen, and close), sourcing (always on, across every channel), and selection (screen, interview as many rounds as it takes, then offer). All three feed one candidate pool that never forgets anyone. People move backward as often as forward, and every way out of a loop is a way into the pool."
         meta={[
           { label: 'Shape', value: '3 loops, 1 pool' },
           { label: 'Sourcing', value: 'Always on' },
@@ -231,7 +231,7 @@ export default function RecruitmentWorkflowPage() {
               <div style={loopCard}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>⟳ Demand loop</div>
                 <div style={{ fontSize: 14, opacity: 0.85 }}>
-                  Roles open, pause, reopen, change shape mid-search, and close. Closing a req never discards its
+                  Roles open, pause, reopen, change shape mid-search, and close. Closing a role never throws away its
                   candidates.
                 </div>
               </div>
@@ -245,8 +245,8 @@ export default function RecruitmentWorkflowPage() {
               <div style={loopCard}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>⟳ Selection loop</div>
                 <div style={{ fontSize: 14, opacity: 0.85 }}>
-                  AI screen, screening call, as many interview rounds as the role needs, offer. Backward moves are
-                  normal.
+                  AI screen, screening call, as many interview rounds as the role needs, then offer. Moving backward
+                  is normal.
                 </div>
               </div>
             </div>
@@ -267,31 +267,31 @@ export default function RecruitmentWorkflowPage() {
         <div className="container">
           <span className="section-label">Loop 1 · Demand</span>
           <h2 className="section-title section-title--sm">
-            Roles churn, the system keeps up
+            Roles keep changing, the system keeps up
           </h2>
           <FlowRail
             steps={[
-              { num: 'D1', title: 'Open the Req', cadence: 'One click', actor: 'human', actorLabel: 'Recruiter' },
+              { num: 'D1', title: 'Open the Role', cadence: 'One click', actor: 'human', actorLabel: 'Recruiter' },
               { num: 'D2', title: 'Publish the Posting', cadence: 'When ready', actor: 'human', actorLabel: 'Recruiter' },
               { num: 'D3', title: 'Pause / Reshape', cadence: 'As business shifts', actor: 'human', actorLabel: 'Recruiter' },
               { num: 'D4', title: 'Close or Reopen', cadence: 'Filled · closed · cancelled', actor: 'human', actorLabel: 'Recruiter' },
             ]}
-            repeatNote="Reqs reopen when demand returns, with their full applicant history intact."
+            repeatNote="Roles reopen when demand returns, with their full applicant history intact."
           />
           <StepCards
             steps={[
               {
                 num: 'D1',
-                title: 'Open the req: the pipeline builds itself',
+                title: 'Open the role: the pipeline builds itself',
                 cadence: 'One click',
                 actor: 'human',
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    A recruiter creates the requisition from the Job Reqs list: title, employment type, location, remote
-                    policy, salary band. The system seeds the same five-stage board every role uses (Screen, Interview,
-                    Offer, Hired, Rejected), so no two roles ever run subtly different processes. The req opens for
-                    hiring immediately but stays off the public site until the posting is ready.
+                    A recruiter opens the role from the Job Reqs list: title, employment type, location, remote
+                    policy, salary band. The system sets up the same five-stage board every role uses (Screen, Interview,
+                    Offer, Hired, Rejected), so no two roles run slightly different processes. The role is open for
+                    hiring right away but stays off the public site until the posting is ready.
                   </p>
                 ),
               },
@@ -303,40 +303,40 @@ export default function RecruitmentWorkflowPage() {
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    The public posting is written in markdown on the req itself: the JD, a clean URL, and up to three
-                    screening questions. Flipping it public puts it on the careers page. Some roles never publish at all
-                    and are filled entirely from sourcing and the pool. The posting is one door among several, not the
+                    The public posting is written on the role itself: the job description, a clean URL, and up to three
+                    screening questions. Making it public puts it on the careers page. Some roles are never posted at
+                    all and get filled from sourcing and the pool. The posting is one door among several, not the whole
                     process.
                   </p>
                 ),
               },
               {
                 num: 'D3',
-                title: 'Reqs pause, reshape, and change mid-search',
+                title: 'Roles pause, change shape, and reopen mid-search',
                 cadence: 'Reality',
                 actor: 'human',
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    Budgets move, priorities shift, and the role you started hiring for is not always the role you
-                    finish hiring for. A req can go on hold and come back; its JD, salary band, and screening questions
-                    can be edited mid-search. Candidates in flight keep their history through every change. Nothing
-                    resets because the role evolved.
+                    Budgets move and priorities shift, and the role you start hiring for is not always the role you
+                    finish hiring for. A role can go on hold and come back, and its description, salary band, and
+                    screening questions can be edited mid-search. Candidates already in it keep their full history
+                    through every change. Nothing resets just because the role changed.
                   </p>
                 ),
               },
               {
                 num: 'D4',
-                title: 'Closing a req is not the end of its candidates',
+                title: 'Closing a role is not the end of its candidates',
                 cadence: 'Filled, closed, or cancelled',
                 actor: 'human',
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    Every close records an outcome (filled, closed without hire, or cancelled) and takes the role off
-                    the careers page automatically. The candidates in flight do not vanish: they exit into the pool with
-                    their screens, ratings, and notes attached, and the strong ones surface first when a similar req
-                    opens. Reopening a req picks up exactly where it left off.
+                    Closing a role records an outcome (filled, closed without a hire, or cancelled) and takes it off
+                    the careers page automatically. The candidates in it do not disappear: they move into the pool with
+                    their screens, ratings, and notes attached, and the strong ones show up first when a similar role
+                    opens. Reopening a role picks up right where it left off.
                   </p>
                 ),
               },
@@ -360,7 +360,7 @@ export default function RecruitmentWorkflowPage() {
               { num: 'S2', title: 'Outbound + Referrals', cadence: 'Continuous', actor: 'human', actorLabel: 'Recruiter' },
               { num: 'S3', title: 'Agencies', cadence: 'Per engagement', actor: 'contractor', actorLabel: 'Agency' },
               { num: 'S4', title: 'Batch Drop', cadence: 'Up to 25 resumes', actor: 'ai', actorLabel: 'Claude' },
-              { num: 'S5', title: 'Pool Resurfacing', cadence: 'Every new req', actor: 'system' },
+              { num: 'S5', title: 'Pool Resurfacing', cadence: 'Every new role', actor: 'system' },
             ]}
             repeatNote="Sourcing never stops when a role is filled. The loop keeps feeding the pool for the next one."
           />
@@ -375,8 +375,8 @@ export default function RecruitmentWorkflowPage() {
                 body: (
                   <p>
                     A candidate applies with a resume, cover letter, and answers to the role’s screening questions. The
-                    application lands in the talent system attached to the req. No inbox, no forwarding, no resume that
-                    only exists in one person’s email.
+                    application lands in the talent system attached to the role. No inbox, no forwarding, no resume that
+                    lives only in one person’s email.
                   </p>
                 ),
               },
@@ -388,10 +388,10 @@ export default function RecruitmentWorkflowPage() {
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    LinkedIn sourcing, team referrals, event contacts, and agency submissions all run in parallel with
-                    inbound. Sourcing is a standing activity, not a burst that starts when a req opens. Every channel is
-                    tagged at intake (sourced, referral, agency, LinkedIn, job board, event), so the system can later
-                    answer which channels actually produce hires.
+                    LinkedIn sourcing, team referrals, event contacts, and agency submissions all run alongside inbound
+                    applications. Sourcing is always on, not a burst that starts when a role opens. Every channel is
+                    tagged when the candidate comes in (sourced, referral, agency, LinkedIn, job board, event), so the
+                    system can later tell which channels actually produce hires.
                   </p>
                 ),
               },
@@ -403,9 +403,9 @@ export default function RecruitmentWorkflowPage() {
                 actorLabel: 'Agency',
                 body: (
                   <p>
-                    Agency candidates enter through the same doors and get the same treatment as everyone else: the same
-                    AI screen, the same two gates, the same record. No parallel spreadsheet process for agency
-                    submissions. One system of record regardless of who found the person.
+                    Agency candidates come in through the same doors and get the same treatment as everyone else: the
+                    same AI screen, the same two gates, the same record. No separate spreadsheet for agency
+                    submissions. One record no matter who found the person.
                   </p>
                 ),
               },
@@ -417,24 +417,24 @@ export default function RecruitmentWorkflowPage() {
                 actorLabel: 'Claude',
                 body: (
                   <p>
-                    Sourced resumes arrive in bulk: a recruiter drops up to 25 files at once and AI reads each one,
-                    prefilling a draft with name, email, phone, LinkedIn, headline, and current title. The recruiter
-                    reviews and saves each draft. Ten minutes of drag-and-drop replaces an afternoon of data entry, and
-                    duplicates are impossible by construction: candidates are keyed by email, one application per person
-                    per role, and re-adding someone surfaces their existing record instead of creating a second.
+                    Sourced resumes come in batches: a recruiter drops up to 25 files at once and the AI reads each one,
+                    filling in a draft with name, email, phone, LinkedIn, headline, and current title. The recruiter
+                    checks and saves each one. Ten minutes of drag-and-drop replaces an afternoon of typing, and
+                    duplicates can’t happen: people are matched by email, one application per person per role, so
+                    re-adding someone opens their existing record instead of making a second.
                   </p>
                 ),
               },
               {
                 num: 'S5',
                 title: 'The pool is a sourcing channel',
-                cadence: 'First stop for every new req',
+                cadence: 'First stop for every new role',
                 actor: 'system',
                 body: (
                   <p>
-                    When a req opens, sourcing starts from everyone the company has already met. The pool is ranked by
-                    best AI screen and grouped by role family, so last quarter’s strong runner-up surfaces at the top of
-                    this quarter’s search with full history attached. The cheapest candidate to find is the one you
+                    When a role opens, sourcing starts from everyone the company has already met. The pool is ranked by
+                    best AI screen and grouped by role family, so last quarter’s strong runner-up shows up at the top of
+                    this quarter’s search with full history attached. The easiest candidate to find is the one you
                     already found.
                   </p>
                 ),
@@ -453,7 +453,7 @@ export default function RecruitmentWorkflowPage() {
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
             One candidate’s path through selection. Solid lines are the working process; dashed lines are the pool’s
-            memory. Every “no” has a destination, and none of them is a shredder.
+            memory. Every “no” leads somewhere, and none of them is a shredder.
           </p>
           <SelectionFlowchart />
 
@@ -489,15 +489,15 @@ export default function RecruitmentWorkflowPage() {
                 body: (
                   <>
                     <p>
-                      The moment an application lands, from any door, Claude reads the full resume against the JD and
-                      writes a structured screen: a 0–5 fit rating, an overview, concrete strengths and gaps, an
-                      English-proficiency read, and the salary expectation and notice period exactly as stated, never
-                      guessed. Every application gets the same depth of read whether it arrived first or five
+                      The moment an application lands, from any door, Claude reads the whole resume against the job
+                      description and writes a structured screen: a 0 to 5 fit rating, a short overview, clear strengths
+                      and gaps, a read on English, and the salary expectation and notice period exactly as stated, never
+                      guessed. Every application gets the same careful read, whether it came in first or five
                       hundredth.
                     </p>
                     <p>
-                      Scored candidates also stack-rank within their role family, not just the single job they applied
-                      to. A strong engineer who applied to the wrong opening still surfaces near the top of the
+                      Scored candidates are also ranked within their role family, not just the one job they applied
+                      to. A strong engineer who applied to the wrong opening still shows up near the top of the
                       engineering family.
                     </p>
                   </>
@@ -511,10 +511,10 @@ export default function RecruitmentWorkflowPage() {
                 actorLabel: 'Recruiter',
                 body: (
                   <p>
-                    Every application carries the AI’s score with its written reasoning and the recruiter’s own star
-                    rating, side by side. Weak on both gates: rejected, with the reason recorded, into the pool. Strong
-                    on both: on to the screening call. Gates disagree: a second human look decides, because
-                    disagreement is signal, not noise. Nobody is rejected by AI alone.
+                    Every application shows the AI’s score with its written reasoning next to the recruiter’s own star
+                    rating. Weak on both: rejected, with the reason recorded, into the pool. Strong on both: on to the
+                    screening call. The two disagree: a second person takes a look and decides, because disagreement is
+                    a signal, not noise. No one is rejected by the AI alone.
                   </p>
                 ),
               },
@@ -527,8 +527,8 @@ export default function RecruitmentWorkflowPage() {
                 body: (
                   <p>
                     Before any formal interview, a recruiter talks to the candidate: motivation, expectations, notice
-                    period, the things a resume can’t say. Right role at the right time: on to interviews. Wrong role
-                    or wrong timing: parked as future consideration, or recorded as withdrew if the candidate steps
+                    period, the things a resume can’t show. Right role at the right time: on to interviews. Wrong role
+                    or wrong time: parked as future consideration, or marked as withdrew if the candidate steps
                     back. Either way the call notes go on the record, and the pool keeps them.
                   </p>
                 ),
@@ -542,10 +542,10 @@ export default function RecruitmentWorkflowPage() {
                 body: (
                   <>
                     <p>
-                      Interviews are not a fixed count. A senior role may take three rounds and a follow-up with a
+                      The number of interviews is not fixed. A senior role may take three rounds plus a follow-up with a
                       different interviewer; a junior role may take one. Panel says yes: offer. Panel says no: rejected,
-                      with the reason recorded. Panel is split: another round, and that backward move is recorded like
-                      any other. No side-channel “can you talk to her once more” that the system never sees.
+                      with the reason recorded. Panel is split: another round, and that step back is recorded like
+                      any other. No off-the-record “can you talk to them once more” that the system never sees.
                     </p>
                     <p>
                       The AI sits on every interview panel too. It reads the transcript and fills in a scorecard: a
@@ -555,8 +555,8 @@ export default function RecruitmentWorkflowPage() {
                       question for the next. The AI is one voice on the panel. It never makes the final call.
                     </p>
                     <p>
-                      All working context lives on the application: the notes thread, the resume (replaceable when a
-                      better version arrives), the cover letter and answers, every scorecard human and AI, and the
+                      Everything about the candidate lives on the application: the notes, the resume (replaceable when a
+                      better version arrives), the cover letter and answers, every scorecard from people and AI, and the
                       stage history. Anyone on the team can open it and know exactly where things stand.
                     </p>
                   </>
@@ -574,12 +574,12 @@ export default function RecruitmentWorkflowPage() {
                       Offers get negotiated, and terms move both ways before they settle. Accepted: the application
                       flips to hired and hands off to the{' '}
                       <a href="/workflows/new-member-onboarding/">New Member Onboarding workflow</a>, which turns the
-                      applicant record into an employee record without re-typing anything. Declined: the search goes
-                      back to the warm shortlist, which is still ranked and still in the system, not back to square
+                      applicant record into an employee record without retyping anything. Declined: the search goes
+                      back to the warm shortlist, still ranked and still in the system, not back to square
                       one.
                     </p>
                     <p>
-                      Either way, the loop closes with an explicit status and a recorded reason. Nobody is left in
+                      Either way, the loop closes with a clear status and a recorded reason. No one is left in
                       limbo, and no outcome is silent.
                     </p>
                   </>
@@ -600,7 +600,7 @@ export default function RecruitmentWorkflowPage() {
             Every exit is a pool entry
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
-            “Rejected” is a status, not a deletion. Every way out of the three loops lands in the pool with full
+            “Rejected” is a status, not a delete. Every way out of the three loops lands in the pool with full
             history:
           </p>
           <div className="wf-info-grid" style={{ marginTop: 32 }}>
@@ -610,7 +610,7 @@ export default function RecruitmentWorkflowPage() {
                 <li>Rejected, always with a recorded reason</li>
                 <li>Withdrew: candidates change their minds; the door stays open</li>
                 <li>Future consideration: right person, wrong timing, parked deliberately</li>
-                <li>On hold / passive: in flight but paused, usually with the req</li>
+                <li>On hold / passive: still going but paused, usually with the role</li>
                 <li>Hired: off to onboarding, still on the record</li>
               </ul>
             </div>
@@ -636,25 +636,25 @@ export default function RecruitmentWorkflowPage() {
             <div className="wf-info-card">
               <h3>The standing rules</h3>
               <ul>
-                <li>Every role runs the identical five-stage board. The loops vary; the record doesn’t</li>
+                <li>Every role runs the same five-stage board. The loops vary; the record doesn’t</li>
                 <li>Every door produces the same structured record, agency or inbound alike</li>
-                <li>Every resume is read in full by AI on arrival</li>
+                <li>The AI reads every resume in full as it arrives</li>
                 <li>Backward is a normal direction, and every move is on the record</li>
                 <li>The AI is on every interview panel and scores before it sees the people’s scores; it advises, it never decides</li>
-                <li>No candidate is rejected by AI alone, and every exit has a recorded reason</li>
-                <li>Closing a req never discards its candidates; nothing is ever deleted</li>
+                <li>No candidate is rejected by the AI alone, and every exit has a recorded reason</li>
+                <li>Closing a role never throws away its candidates; nothing is ever deleted</li>
               </ul>
             </div>
             <div className="wf-info-card wf-info-card-mint">
               <h3>Why it works</h3>
               <ul>
-                <li>The documented process matches the lived one, so people actually keep the system true</li>
-                <li>One system of record ends the where-does-this-candidate-stand question</li>
-                <li>Always-on sourcing means a new req starts warm, not cold</li>
-                <li>Two independent gates catch what either one alone would miss</li>
+                <li>The written process matches the real one, so people actually keep the system up to date</li>
+                <li>One record ends the “where does this candidate stand” question</li>
+                <li>Always-on sourcing means a new role starts warm, not cold</li>
+                <li>Two separate gates catch what either one alone would miss</li>
                 <li>Every interview is written down with its evidence and carried forward, so three rounds add up to one story instead of three separate opinions</li>
-                <li>The pool compounds: every search makes the next one faster</li>
-                <li>Declined offers and paused reqs cost days, not restarts</li>
+                <li>The pool builds up: every search makes the next one faster</li>
+                <li>Declined offers and paused roles cost days, not restarts</li>
               </ul>
             </div>
           </div>

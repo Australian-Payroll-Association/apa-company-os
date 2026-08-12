@@ -82,7 +82,7 @@
 <header>
   <div class="eyebrow">Edge8 AI &middot; Product Doc &middot; Internal</div>
   <h1>AI Interview Panelist</h1>
-  <p class="sub">Every interview transcript flows into the applicant tracking system, and AI takes a permanent seat on every interview panel: scoring with evidence, remembering across rounds, and never casting the deciding vote.</p>
+  <p class="sub">Every interview transcript goes into the applicant tracking system, and AI takes a seat on every interview panel: it scores with evidence, remembers earlier rounds, and never makes the final call.</p>
   <div class="meta">
     <div><span>Status</span>Plan v1 for review</div>
     <div><span>Owner</span>Dave Hajdu</div>
@@ -93,12 +93,12 @@
 
 <section>
   <h2>Why</h2>
-  <h3>The highest-signal stage leaves no record</h3>
-  <p>Hiring already runs through the Company OS ATS. The resume stage has an AI pass: every application gets an AI summary and rating before a human looks at it. But the interviews, where the real signal lives, leave nothing behind. The database tables built for them (interviews, panel seats, scorecards, per-criterion scores) exist and sit empty. Transcripts from Lark Minutes end up in a Downloads folder and die there.</p>
+  <h3>The stage with the most signal leaves no record</h3>
+  <p>Hiring already runs through the Company OS ATS. The resume stage has an AI step: every application gets an AI summary and rating before a person looks at it. But the interviews, where the real signal is, leave nothing behind. The database tables built for them (interviews, panel seats, scorecards, per-criterion scores) exist and sit empty. Transcripts from Lark Minutes end up in a Downloads folder and are never seen again.</p>
   <div class="callout pink">
-    <p><strong>Live example.</strong> Dang Nguyen, AI Engineer candidate, went through three rounds: Mai (recruiter screen), Khoa (engineering), Dave (founder). None of the three exists anywhere in the system. The only artifacts are a rating column from the resume screen and a transcript file on a laptop.</p>
+    <p><strong>Live example.</strong> Dang Nguyen, AI Engineer candidate, went through three rounds: Mai (recruiter screen), Khoa (engineering), Dave (founder). None of the three exists anywhere in the system. All that is left is a rating from the resume screen and a transcript file on a laptop.</p>
   </div>
-  <p>The fix extends a pattern that already works. The AI resume screen becomes an AI presence one stage deeper: a panelist in every interview round.</p>
+  <p>The fix extends something that already works. The AI resume screen becomes an AI seat one stage deeper: a panelist in every interview round.</p>
 </section>
 
 <section>
@@ -123,7 +123,7 @@
   </div>
   <div class="aiBand">
     <span class="bTitle">The AI panelist</span>
-    Sits in every round, scores every round, and carries memory forward: what round 1 left unverified becomes round 2's question plan.
+    Sits in every round and scores every round, and it remembers: what round 1 left unproven becomes round 2's questions.
   </div>
   <table>
     <tr><th>Rule</th><th>Detail</th></tr>
@@ -131,8 +131,8 @@
     <tr><td><strong>A round has 1 or more humans</strong></td><td>Solo interviewer or a full panel. No upper limit.</td></tr>
     <tr><td><strong>AI always holds one seat</strong></td><td>Added automatically when the round is created. A round with 3 humans produces 4 scorecards.</td></tr>
     <tr><td><strong>One scorecard per seat</strong></td><td>Recommendation, overall score, per-criterion scores with comments, summary. Same shape for humans and AI.</td></tr>
-    <tr><td><strong>Blind-first</strong></td><td>The AI scorecard stays hidden until every human on that round has submitted. No anchoring.</td></tr>
-    <tr><td><strong>AI advises, never decides</strong></td><td>The AI verdict is one voice on the panel. Humans move the candidate forward or out.</td></tr>
+    <tr><td><strong>Blind-first</strong></td><td>The AI scorecard stays hidden until every person on that round has handed theirs in, so it can't sway them.</td></tr>
+    <tr><td><strong>AI advises, never decides</strong></td><td>The AI is one voice on the panel. People move the candidate forward or out.</td></tr>
   </table>
 </section>
 
@@ -141,16 +141,16 @@
   <h3>Transcript in, scorecards out</h3>
   <ol>
     <li><strong>Transcript arrives.</strong> Paste or upload on the application page. Lark Minutes exports work as-is. Auto-pull from Lark comes later.</li>
-    <li><strong>Parse and match.</strong> Date, duration, and speakers are read from the file; the round record links it to the candidate's application.</li>
-    <li><strong>AI panelist reviews.</strong> Claude reads the transcript plus the job description, the resume, the earlier AI screen, the company core values, and every prior round's transcript and scorecards.</li>
-    <li><strong>Scorecard written.</strong> Recommendation, overall score, per-criterion scores. Every score cites verbatim quotes with timestamps. Unverified claims are flagged, and suggested questions for the next round are attached.</li>
-    <li><strong>Panel compares.</strong> Once the humans have submitted, all scorecards render side by side. Gaps of a full point on any criterion are highlighted for discussion.</li>
+    <li><strong>Read and match.</strong> Date, duration, and speakers are read from the file; the round record links it to the candidate's application.</li>
+    <li><strong>AI panelist reviews.</strong> Claude reads the transcript plus the job description, the resume, the earlier AI screen, the company core values, and every earlier round's transcript and scorecards.</li>
+    <li><strong>Scorecard written.</strong> Recommendation, overall score, a score for each thing the role is judged on. Every score quotes the exact lines, with timestamps. Claims it couldn't confirm are flagged, and questions for the next round are attached.</li>
+    <li><strong>Panel compares.</strong> Once the people have handed theirs in, all scorecards show side by side. Any gap of a full point on a criterion is flagged for discussion.</li>
   </ol>
   <div class="callout mint">
-    <p><strong>Transcript quality is handled, not trusted.</strong> Speech recognition on these calls is rough (today's transcript renders "Claude Code" as "clock code"). The panelist flags low-confidence quotes and is instructed never to hold garbled transcription against the candidate.</p>
+    <p><strong>Rough transcripts are handled, not trusted.</strong> The speech-to-text on these calls is rough (today's transcript turns "Claude Code" into "clock code"). The panelist flags shaky quotes and is told never to hold a garbled transcript against the candidate.</p>
   </div>
   <div class="callout">
-    <p><strong>Carry-forward is the compounding part.</strong> After each round the AI writes what was verified, what is still open, and what the next interviewer should probe. Three rounds stop being three disconnected opinions and become one thread of evidence.</p>
+    <p><strong>Carrying notes forward is what compounds.</strong> After each round the AI writes down what it confirmed, what is still open, and what the next interviewer should ask. Three rounds stop being three separate opinions and become one line of evidence.</p>
   </div>
 </section>
 
@@ -187,12 +187,12 @@
 </section>
 
 <section>
-  <h2>Open questions</h2>
-  <h3>Three things to confirm</h3>
+  <h2>Decisions</h2>
+  <h3>Three things, now settled</h3>
   <ol>
-    <li>Which Khoa ran the engineering round: Khoa Doan or Khoa Le?</li>
-    <li>Recommendation scale: advance / hold / reject acceptable?</li>
-    <li>Do recruiter screens get recorded, or is round 1 usually form-only with the AI panelist joining from round 2?</li>
+    <li>Khoa Doan ran the engineering round.</li>
+    <li>The recommendation choices are advance, hold, and reject.</li>
+    <li>Recruiter screens are recorded, so round 1 is a full round and the AI panelist joins from round 1.</li>
   </ol>
   <h4>Out of scope for now</h4>
   <ul>
