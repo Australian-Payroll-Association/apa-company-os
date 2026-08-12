@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, endAssumeSession } from "@/app/portal/(dashboard)/actions";
@@ -75,6 +75,12 @@ const NAV: NavGroup[] = [
   },
 ];
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+  return raw.toUpperCase();
+}
+
 function isActive(pathname: string, href: string): boolean {
   if (href === "/portal") return pathname === "/portal" || pathname === "/portal/";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -89,7 +95,7 @@ export function PortalSidebar({
   name: string;
   companyName: string | null;
   entitlements: PortalEntitlements;
-  // While an admin is viewing via Assume, the footer control ends the Assume
+  // While an admin is viewing via Assume, the account menu ends the Assume
   // session instead of signing out — this is the admin's REAL session
   // underneath, not the client's, so a plain "Sign out" here would be wrong
   // (and confusing) rather than just ending the view-as.
@@ -98,10 +104,18 @@ export function PortalSidebar({
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   function toggleGroup(key: string) {
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
   }
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setProfileMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileMenuOpen]);
 
   const isEnabled = (item: NavItem) =>
     !!item.built && (!item.entitlementKey || entitlements[item.entitlementKey]);
@@ -123,8 +137,45 @@ export function PortalSidebar({
 
       <nav className={`admin-sidebar portal-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
         <div className="admin-brand">
-          Edge8 Client Portal
+          <span className="admin-brand-lead">Edge8 Client Portal</span>
+          <span className="admin-brand-actions">
+            <button
+              type="button"
+              className="admin-avatarbtn"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              aria-label="Your account"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+            >
+              {initials(name)}
+            </button>
+          </span>
         </div>
+
+        {profileMenuOpen && (
+          <div className="admin-profilemenu-backdrop" onClick={() => setProfileMenuOpen(false)} />
+        )}
+        {profileMenuOpen && (
+          <div className="admin-profilemenu" role="menu" aria-label="Your account">
+            <div className="admin-profilemenu-head">
+              <span className="admin-avatarbtn admin-avatarbtn--lg" aria-hidden>
+                {initials(name)}
+              </span>
+              {/* Name only: the company already sits under the brand as the
+                  section label, and this slot's break-all (built for emails)
+                  hyphenates a company name mid-word. */}
+              <span className="admin-profilemenu-email">{name}</span>
+            </div>
+
+            <div className="admin-profilemenu-sep" />
+
+            <form action={impersonating ? endAssumeSession : signOut}>
+              <button type="submit" className="admin-signout admin-profilemenu-signout">
+                {impersonating ? "Exit assume mode" : "Sign out"}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
           {companyName && <div className="admin-nav-sectlabel">{companyName}</div>}
@@ -192,14 +243,6 @@ export function PortalSidebar({
           })}
         </div>
 
-        <div className="admin-foot">
-          <span className="admin-foot-email">{name}</span>
-          <form action={impersonating ? endAssumeSession : signOut}>
-            <button type="submit" className="admin-signout">
-              {impersonating ? "Exit assume mode" : "Sign out"}
-            </button>
-          </form>
-        </div>
       </nav>
     </>
   );

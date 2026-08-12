@@ -160,6 +160,13 @@ export function TeamSidebar({
         )}
         {profileMenuOpen && (
           <div className="admin-profilemenu" role="menu" aria-label="Switch view">
+            <div className="admin-profilemenu-head">
+              <span className="admin-avatarbtn admin-avatarbtn--lg" aria-hidden>
+                {userInitials}
+              </span>
+              <span className="admin-profilemenu-email">{name}</span>
+            </div>
+
             <div className="admin-profilemenu-label">Switch view</div>
             {VIEWS.map((v) => {
               if (v.current) {
@@ -206,6 +213,14 @@ export function TeamSidebar({
                 </span>
               );
             })}
+
+            <div className="admin-profilemenu-sep" />
+
+            <form action={signOut}>
+              <button type="submit" className="admin-signout admin-profilemenu-signout">
+                Sign out
+              </button>
+            </form>
           </div>
         )}
 
@@ -263,14 +278,6 @@ export function TeamSidebar({
           })}
         </div>
 
-        <div className="admin-foot">
-          <span className="admin-foot-email">{name}</span>
-          <form action={signOut}>
-            <button type="submit" className="admin-signout">
-              Sign out
-            </button>
-          </form>
-        </div>
       </nav>
     </>
   );

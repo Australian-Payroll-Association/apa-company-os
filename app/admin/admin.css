@@ -3038,35 +3038,6 @@ a.ideas-share-card:hover {
 /* On the accent pill a blue bar would vanish, so it flips to white. */
 .portal-sidebar .admin-nav-toplink.is-active::before { background: #fff; }
 
-/* The footer carried no styling at all: the name sat flush against the window
-   edge and Sign out rendered as a raw browser button. Same rail, same muted
-   label type as the rest of the chrome. */
-.portal-sidebar .admin-foot {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 12px 16px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-.portal-sidebar .admin-foot-email {
-  font-size: 12px;
-  color: var(--admin-sidebar-muted);
-  word-break: break-all;
-}
-.portal-sidebar .admin-signout {
-  background: rgba(255, 255, 255, 0.06);
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--admin-sidebar-ink);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-}
-.portal-sidebar .admin-signout:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-
 .edges-strategy {
   background: var(--admin-sidebar-bg);
   color: #fff;
