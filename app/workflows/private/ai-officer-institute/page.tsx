@@ -97,6 +97,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'workflow',
+    href: '/workflows/private/ai-officer-institute/design-system.html',
+    title: 'Design System',
+    description:
+      'The single source of truth for building AI Officer Institute product and brand surfaces: voice and content rules, the full color system (navy backbone, royal-blue CTA, track color assignments), typography, spacing and radii, shadows and motion, iconography, components (buttons, pills, cards, inputs), layout patterns, and imagery rules. Tokens are pulled from aiolabz-fe globals.css and anchored on the Learning Hub Coaching & Micro Sessions modules.',
+  },
+  {
+    category: 'workflow',
     href: '/workflows/private/ai-officer-institute/agentic-ai-workflows.html',
     title: 'Agentic AI — Mission & Certification Workflows',
     description:
