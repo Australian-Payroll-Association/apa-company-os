@@ -6,7 +6,6 @@ import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
-import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
 import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 import { personName } from "@/lib/people-name";
 
@@ -37,6 +36,7 @@ type TeamMember = {
   employment_type: string | null;
   employment_stage: string | null;
   work_location: string | null;
+  career_level: string | null;
   status: string | null;
   start_date: string | null;
   contract_start_date: string | null;
@@ -59,19 +59,18 @@ const SORTABLE = new Set([
   "title",
   "employment_type",
   "work_location",
+  "career_level",
   "status",
   "start_date",
-  "portal",
   "created_at",
 ]);
 
-// Some columns aren't direct team_members columns: Name and Portal live on the
-// joined `people` row, Title on the joined `positions` row. Map their sort key
-// to the embedded-column ordering expression PostgREST understands
+// Some columns aren't direct team_members columns: Name lives on the joined
+// `people` row, Title on the joined `positions` row. Map their sort key to the
+// embedded-column ordering expression PostgREST understands
 // (order=<embed>(<col>)). Everything else sorts by its own key.
 const ORDER_COLUMN: Record<string, string> = {
   name: "people(display_name)",
-  portal: "people(auth_user_id)",
   title: "positions(title)",
 };
 
@@ -110,7 +109,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   const [list, counts] = await Promise.all([
     listEntity<TeamMember>(
       "team_members",
-      "id, employee_number, employment_type, employment_stage, work_location, status, start_date, contract_start_date, probation_ends_on, end_date, termination_reason, created_at, person_id, manager_id, " +
+      "id, employee_number, employment_type, employment_stage, work_location, career_level, status, start_date, contract_start_date, probation_ends_on, end_date, termination_reason, created_at, person_id, manager_id, " +
         `${peopleEmbed}, positions!position_id(title, level, is_people_manager), departments!department_id(name)`,
       {
         page,
@@ -194,8 +193,22 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     },
     { key: "employee_number", header: "Employee #", sortable: true, cell: (r) => (r.employee_number ? <span className="admin-cell-mono">{r.employee_number}</span> : dash) },
     { key: "title", header: "Title", sortable: true, cell: (r) => one(r.positions)?.title || dash },
-    { key: "employment_type", header: "Type", sortable: true, cell: (r) => (r.employment_type ? <Badge>{humanize(r.employment_type)}</Badge> : dash) },
+    {
+      key: "employment_type",
+      header: "Type",
+      sortable: true,
+      // Contractors get a distinct (pink) badge so they stand out from staff.
+      cell: (r) =>
+        r.employment_type ? (
+          <Badge tone={r.employment_type === "contract" ? "pink" : "neutral"}>
+            {humanize(r.employment_type)}
+          </Badge>
+        ) : (
+          dash
+        ),
+    },
     { key: "work_location", header: "Location", sortable: true, cell: (r) => r.work_location || dash },
+    { key: "career_level", header: "Level", sortable: true, cell: (r) => (r.career_level ? humanize(r.career_level) : dash) },
     { key: "status", header: "Status", sortable: true, cell: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : dash) },
     { key: "start_date", header: "Started", sortable: true, cell: (r) => (r.start_date ? formatDate(r.start_date) : dash) },
     {
@@ -204,25 +217,6 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       cell: (r) => {
         const held = lastOneOnOne.get(r.id);
         return held ? formatDate(held) : dash;
-      },
-    },
-    {
-      key: "portal",
-      header: "Portal",
-      sortable: true,
-      cell: (r) => {
-        if (!r.person_id) return dash;
-        const status = portalStatusOf(one(r.people)?.auth_user_id, signedIn);
-        // Past employees are never (re-)invited to the portal: show their
-        // standing status as plain text, with no Invite/Resend action.
-        if (r.status === "terminated" || r.status === "alumni") {
-          return (
-            <span className="admin-cell-muted">
-              {status === "active" ? "Signed in" : status === "invited" ? "Invited" : dash}
-            </span>
-          );
-        }
-        return <InvitePortalButton teamMemberId={r.id} status={status} />;
       },
     },
   ];
