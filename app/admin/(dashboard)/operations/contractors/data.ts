@@ -1,4 +1,5 @@
 import { companyOs } from "@/lib/supabase";
+import { personName, type NamedPerson } from "@/lib/people-name";
 import { num } from "@/lib/admin/contractors";
 import type { ContractorRow } from "./contractor-shared";
 
@@ -11,10 +12,12 @@ type TmRow = {
   person_id: string;
   status: string;
   start_date: string | null;
-  people: { full_name: string | null; email: string } | { full_name: string | null; email: string }[] | null;
+  people: PersonNameRow | PersonNameRow[] | null;
   departments: { name: string } | { name: string }[] | null;
   positions: { title: string } | { title: string }[] | null;
 };
+
+type PersonNameRow = NamedPerson & { email: string };
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
@@ -22,7 +25,7 @@ export async function listContractors(): Promise<{ rows: ContractorRow[]; error:
   const { data: tms, error } = await companyOs
     .from("team_members")
     .select(
-      "id, person_id, status, start_date, people!person_id(full_name, email), departments!department_id(name), positions!position_id(title)",
+      "id, person_id, status, start_date, people!person_id(display_name, preferred_name, full_name, email), departments!department_id(name), positions!position_id(title)",
     )
     .eq("employment_type", "contract")
     .order("start_date", { ascending: true });
@@ -62,6 +65,7 @@ export async function listContractors(): Promise<{ rows: ContractorRow[]; error:
       team_member_id: tm.id,
       person_id: tm.person_id,
       full_name: person?.full_name ?? null,
+      display_name: personName(person),
       email: person?.email ?? "",
       status: tm.status,
       start_date: tm.start_date,

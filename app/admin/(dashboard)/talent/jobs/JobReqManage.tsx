@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { useAutosave } from "@/components/admin/useAutosave";
@@ -250,18 +251,12 @@ export function JobReqManage({
         </div>
         <div className="admin-field">
           <label className="admin-label">Hiring manager</label>
-          <select
-            className="admin-select"
+          <PersonSelect
             value={hiringManager}
-            onChange={(e) => commit("hiringManager", e.target.value)}
-          >
-            <option value="">Unassigned</option>
-            {managers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+            onChange={(id) => commit("hiringManager", id)}
+            emptyLabel="Unassigned"
+            options={managers.map((m) => ({ value: m.id, label: m.name }))}
+          />
           <div className="admin-hint">Open reqs show under their hiring manager on the team org chart.</div>
         </div>
         <div className="admin-field">

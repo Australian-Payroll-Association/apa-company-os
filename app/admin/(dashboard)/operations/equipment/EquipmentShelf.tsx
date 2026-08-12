@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import {
   createContext,
   useContext,
@@ -200,7 +201,7 @@ function EquipmentShelfBody({
       ...v,
       current_holder_id: personId,
       status: "in_use",
-      holder: holder ? { id: holder.id, full_name: holder.full_name } : v.holder,
+      holder: holder ? { id: holder.id, full_name: holder.name } : v.holder,
     }));
     setPersonId("");
     setNote("");
@@ -313,14 +314,12 @@ function EquipmentShelfBody({
           {!out && (
             <div className="admin-field">
               <label className="admin-label">Who is taking it</label>
-              <select className="admin-select" value={personId} onChange={(e) => setPersonId(e.target.value)}>
-                <option value="">Pick a person…</option>
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name}
-                  </option>
-                ))}
-              </select>
+              <PersonSelect
+                value={personId}
+                onChange={setPersonId}
+                emptyLabel="Pick a person…"
+                options={people.map((p) => ({ value: p.id, label: p.name }))}
+              />
             </div>
           )}
 

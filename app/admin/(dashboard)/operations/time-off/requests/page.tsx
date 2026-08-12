@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
+import { byFirstName, personName } from "@/lib/people-name";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { countWorkingDays, formatLeaveBalance } from "@/lib/admin/time-off";
@@ -41,10 +42,6 @@ type TimeOffRow = {
   team_members: Embedded<MemberEmbed>;
 };
 
-function personName(p: Person | null): string {
-  return p?.full_name || p?.email || "Unknown";
-}
-
 // Prefer the imported Day Off day count (it excluded holidays); fall back to
 // the weekend-only computation for rows created in-app.
 function daysOf(r: TimeOffRow): number {
@@ -58,12 +55,12 @@ export default async function TimeOffPage() {
   const [teamRes, offRes] = await Promise.all([
     companyOs
       .from("team_members")
-      .select("id, people!person_id(full_name, email)")
+      .select("id, people!person_id(display_name, preferred_name, full_name, email)")
       .eq("status", "active"),
     companyOs
       .from("time_off")
       .select(
-        "id, leave_type, status, start_date, end_date, is_half_day, reason, days, created_at, approved_at, approved_by, external_source, team_members!team_member_id(id, people!person_id(full_name, email))",
+        "id, leave_type, status, start_date, end_date, is_half_day, reason, days, created_at, approved_at, approved_by, external_source, team_members!team_member_id(id, people!person_id(display_name, preferred_name, full_name, email))",
       )
       .order("created_at", { ascending: false })
       .limit(1000),
@@ -71,7 +68,7 @@ export default async function TimeOffPage() {
 
   const members: MemberOption[] = ((teamRes.data ?? []) as TeamRow[])
     .map((t) => ({ id: t.id, name: personName(one(t.people)) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => byFirstName(a.name, b.name));
 
   const raw = (offRes.data ?? []) as TimeOffRow[];
   const rows: RequestRow[] = raw.map((r) => ({

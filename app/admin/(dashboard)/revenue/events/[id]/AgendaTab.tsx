@@ -12,6 +12,7 @@ import {
   type AgendaPeriod,
   type AgendaStaffRole,
 } from "@/lib/admin/event-agenda-shared";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import {
   createAgendaBlock,
   editAgendaBlock,
@@ -382,14 +383,15 @@ function StaffAdder({
   const [role, setRole] = useState<AgendaStaffRole>("engineer");
   return (
     <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-      <select className="admin-select" value={personId} onChange={(e) => setPersonId(e.target.value)} disabled={disabled} style={{ fontSize: 12 }}>
-        <option value="">+ staff…</option>
-        {people.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+      <PersonSelect
+        compact
+        value={personId}
+        onChange={setPersonId}
+        disabled={disabled}
+        emptyLabel="+ staff…"
+        options={people.map((p) => ({ value: p.id, label: p.name }))}
+        style={{ minWidth: 120 }}
+      />
       <select className="admin-select" value={role} onChange={(e) => setRole(e.target.value as AgendaStaffRole)} disabled={disabled} style={{ fontSize: 12 }}>
         {AGENDA_STAFF_ROLES.map((r) => (
           <option key={r} value={r}>

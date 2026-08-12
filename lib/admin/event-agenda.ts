@@ -7,6 +7,7 @@
 // Design: docs/plans/2026-07-31-my-retreat-design.md
 
 import { companyOs } from "@/lib/supabase";
+import { personName } from "@/lib/people-name";
 import {
   type AgendaBlock,
   type AgendaBlockInput,
@@ -27,7 +28,7 @@ type StaffRow = {
   person_id: string;
   role: string;
   note: string | null;
-  people: { full_name: string | null } | { full_name: string | null }[] | null;
+  people: { display_name: string | null; full_name: string | null } | { display_name: string | null; full_name: string | null }[] | null;
 };
 
 type BlockRow = {
@@ -56,7 +57,7 @@ function mapStaff(r: StaffRow): AgendaStaff {
   return {
     id: r.id,
     personId: r.person_id,
-    personName: one(r.people)?.full_name ?? null,
+    personName: r.people ? personName(one(r.people)) : null,
     role: asRole(r.role),
     note: r.note,
   };
@@ -81,7 +82,7 @@ function mapBlock(r: BlockRow): AgendaBlock {
 }
 
 const SELECT =
-  "id, event_id, day_index, day_label, day_date, period, time_label, title, body, room, guest_visible, sort_order, event_agenda_staff(id, person_id, role, note, people(full_name))";
+  "id, event_id, day_index, day_label, day_date, period, time_label, title, body, room, guest_visible, sort_order, event_agenda_staff(id, person_id, role, note, people(display_name, full_name))";
 
 export async function getEventAgenda(eventId: string): Promise<AgendaBlock[]> {
   const { data, error } = await companyOs

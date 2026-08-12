@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { useState } from "react";
 import { createWorkRequest } from "../actions";
 
@@ -22,6 +23,10 @@ export function NewRequestForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!personId) {
+      setError("Pick a contractor.");
+      return;
+    }
     setSaving(true);
     setError(null);
     const r = await createWorkRequest({ personId, title, brief, send: true });
@@ -38,13 +43,11 @@ export function NewRequestForm({
     <form className="admin-form" onSubmit={submit}>
       <label className="admin-field">
         <span>Contractor</span>
-        <select value={personId} onChange={(e) => setPersonId(e.target.value)} required>
-          {contractors.map((c) => (
-            <option key={c.personId} value={c.personId}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <PersonSelect
+          value={personId}
+          onChange={setPersonId}
+          options={contractors.map((c) => ({ value: c.personId, label: c.label }))}
+        />
       </label>
       {selected && !selected.hasRate && (
         <div className="admin-alert admin-alert--err">

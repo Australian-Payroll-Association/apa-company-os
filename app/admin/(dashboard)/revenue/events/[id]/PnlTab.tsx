@@ -16,6 +16,7 @@ import {
   summarizePnl,
 } from "@/lib/admin/event-pnl-shared";
 import { addPnlLine, editPnlLine, removePnlLine } from "./pnl-actions";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 
 const CURRENCIES = ["usd", "vnd", "aud"] as const;
 
@@ -376,18 +377,12 @@ export function PnlTab({
               <>
                 <div className="admin-field">
                   <label className="admin-label">Staff member</label>
-                  <select
-                    className="admin-select"
+                  <PersonSelect
                     value={form.personId}
-                    onChange={(e) => setForm({ ...form, personId: e.target.value })}
-                  >
-                    <option value="">— none —</option>
-                    {people.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(id) => setForm({ ...form, personId: id })}
+                    emptyLabel="— none —"
+                    options={people.map((p) => ({ value: p.id, label: p.name }))}
+                  />
                 </div>
                 <div className="admin-field">
                   <label className="admin-label">Days (× $150/day)</label>

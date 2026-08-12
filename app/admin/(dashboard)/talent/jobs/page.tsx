@@ -1,5 +1,6 @@
 import { countEntity } from "@/lib/admin/query";
 import { companyOs } from "@/lib/supabase";
+import { byFirstName, personName } from "@/lib/people-name";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { JobReqsTable, type JobReqRow } from "./JobReqsTable";
@@ -17,7 +18,7 @@ export const metadata = {
 // search, status filter, paging, and the manage shelf (edit, close, delete) —
 // rows + shelf must be one client tree for the row click to work.
 type Co = { name: string | null };
-type Person = { full_name: string | null; preferred_name: string | null };
+type Person = { display_name: string | null; full_name: string | null; preferred_name: string | null };
 type RawReq = {
   id: string;
   title: string | null;
@@ -47,7 +48,7 @@ export default async function JobsPage() {
     companyOs
       .from("job_requisitions")
       .select(
-        "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, closed_at, description, slug, is_public, created_at, hiring_manager_id, companies!client_company_id(name), people!hiring_manager_id(full_name, preferred_name), applications(count)",
+        "id, title, employment_type, location, remote_policy, salary_min_cents, salary_max_cents, currency, status, opened_at, closed_at, description, slug, is_public, created_at, hiring_manager_id, companies!client_company_id(name), people!hiring_manager_id(display_name, full_name, preferred_name), applications(count)",
       )
       .order("created_at", { ascending: false })
       .limit(1000),
@@ -55,7 +56,7 @@ export default async function JobsPage() {
     // team, not a hand-kept list of managers.
     companyOs
       .from("team_members")
-      .select("person_id, people:people!person_id(full_name, preferred_name)")
+      .select("person_id, people:people!person_id(display_name, full_name, preferred_name)")
       .in("status", ["active", "on_leave", "notice"]),
     countEntity("job_requisitions", { status: "open" }),
     countEntity("job_requisitions", { status: "filled" }),
@@ -64,9 +65,9 @@ export default async function JobsPage() {
   const managers = ((managersRes.data ?? []) as unknown as { person_id: string; people: Person | Person[] | null }[])
     .map((m) => {
       const p = one(m.people);
-      return { id: m.person_id, name: p?.full_name || p?.preferred_name || "—" };
+      return { id: m.person_id, name: personName(p) };
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => byFirstName(a.name, b.name));
 
   const error = reqsRes.error?.message ?? null;
   const rows: JobReqRow[] = ((reqsRes.data ?? []) as unknown as RawReq[]).map((r) => ({
@@ -74,10 +75,7 @@ export default async function JobsPage() {
     title: r.title ?? "",
     companyName: one(r.companies)?.name ?? null,
     hiringManagerId: r.hiring_manager_id,
-    hiringManagerName: (() => {
-      const p = one(r.people);
-      return p ? p.full_name || p.preferred_name : null;
-    })(),
+    hiringManagerName: r.people ? personName(one(r.people)) : null,
     status: r.status,
     employmentType: r.employment_type ?? "full_time",
     location: r.location,

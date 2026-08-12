@@ -15,7 +15,7 @@ export default async function NewWorkRequestPage({ searchParams }: { searchParam
   const preselect = firstParam(searchParams.person);
   const contractors = rows
     .filter((r) => r.status === "active")
-    .map((r) => ({ personId: r.person_id, label: r.full_name || r.email, hasRate: r.hourly_rate_cents !== null }));
+    .map((r) => ({ personId: r.person_id, label: r.display_name, hasRate: r.hourly_rate_cents !== null }));
 
   return (
     <>
