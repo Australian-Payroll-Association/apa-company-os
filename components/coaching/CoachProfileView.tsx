@@ -29,7 +29,6 @@ import {
   archiveMeeting,
   deleteGoal,
   generatePrepAction,
-  logOneOnOne,
   publishOcean,
   publishRecap,
   reorderCommitments,
@@ -38,7 +37,6 @@ import {
   savePrivateProfile,
   saveSummaries,
   saveTranscript,
-  scheduleOneOnOne,
   setCadence,
   setMinutesLink,
   setModeSplit,
@@ -58,8 +56,23 @@ import { CommitmentStack } from "@/components/coaching/CommitmentStack";
 export type RenderedHtml = {
   meetings: Record<string, { prep: string | null; summary: string | null; shared: string | null }>;
   trends: Record<string, string | null>;
+  checkins: Record<string, string | null>;
   privateProfile: string | null;
 };
+
+const COACH_TABS = [
+  { id: "next", label: "Next 1-1" },
+  { id: "log", label: "1-1 Log" },
+  { id: "goals", label: "Goals" },
+  { id: "person", label: "Person" },
+  { id: "insights", label: "Insights" },
+] as const;
+
+type CoachTab = (typeof COACH_TABS)[number]["id"];
+
+function validTab(raw: string | undefined): CoachTab {
+  return COACH_TABS.some((t) => t.id === raw) ? (raw as CoachTab) : "next";
+}
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -72,9 +85,18 @@ function fmt(iso: string | null): string {
   });
 }
 
-export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail; html: RenderedHtml }) {
+export function CoachProfileView({
+  detail,
+  html,
+  initialTab,
+}: {
+  detail: CoachProfileDetail;
+  html: RenderedHtml;
+  initialTab?: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+  const [tab, setTab] = useState<CoachTab>(validTab(initialTab));
 
   const run = (label: string, fn: () => Promise<ActionResult>) => {
     setError(null);
@@ -84,27 +106,89 @@ export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail;
     });
   };
 
+  // Tab lives in the URL (?tab=…) so links are shareable and refresh keeps the
+  // place, without a server round-trip: the server reads the initial tab, and
+  // switching only rewrites the query.
+  const selectTab = (id: CoachTab) => {
+    setTab(id);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (id === "next") url.searchParams.delete("tab");
+      else url.searchParams.set("tab", id);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const counts: Partial<Record<CoachTab, number>> = {
+    log: detail.meetings.length,
+    goals: detail.goals.filter((g) => g.status === "active").length,
+  };
+
   return (
-    <div className="coach-profile">
+    <div>
       {error && <div className="admin-alert admin-alert--err">{error}</div>}
       {busy && <div className="admin-hint">Working… AI steps can take a minute.</div>}
 
-      <GoalsCard detail={detail} run={run} busy={busy} />
-      <PrioritiesCard detail={detail} run={run} busy={busy} />
-      <CadenceCard detail={detail} run={run} busy={busy} />
-      <CommitmentsCard detail={detail} run={run} busy={busy} />
-      <MeetingsCard detail={detail} html={html} run={run} busy={busy} />
-      <OceanCard detail={detail} run={run} busy={busy} />
-      <TrendsCard detail={detail} html={html} run={run} busy={busy} />
-      <NotesCard
-        title="Private coaching notes"
-        hint="How they're wired plus the retention read. Only you see this. It feeds the AI prep."
-        initial={detail.privateProfileMarkdown ?? ""}
-        rendered={html.privateProfile}
-        onSave={(md) => run("Private notes", () => savePrivateProfile(detail.profileId, md))}
-        busy={busy}
-      />
-      <CompanyGoalsCard detail={detail} />
+      <nav className="admin-tabs coach-tabs" role="tablist" aria-label="Coaching sections">
+        {COACH_TABS.map((t) => {
+          const active = tab === t.id;
+          const count = counts[t.id];
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`admin-tab${active ? " is-active" : ""}`}
+              onClick={() => selectTab(t.id)}
+            >
+              {t.label}
+              {typeof count === "number" && count > 0 && <span className="coach-tab-count">{count}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="coach-profile">
+        {tab === "next" && (
+          <>
+            <MeetingsCard detail={detail} html={html} run={run} busy={busy} view="next" />
+            <CommitmentsCard detail={detail} run={run} busy={busy} />
+            <PrioritiesCard detail={detail} run={run} busy={busy} />
+          </>
+        )}
+
+        {tab === "log" && <MeetingsCard detail={detail} html={html} run={run} busy={busy} view="log" />}
+
+        {tab === "goals" && (
+          <>
+            <GoalsCard detail={detail} run={run} busy={busy} />
+            <CompanyGoalsCard detail={detail} />
+          </>
+        )}
+
+        {tab === "person" && (
+          <>
+            <OceanCard detail={detail} run={run} busy={busy} />
+            <NotesCard
+              title="Private coaching notes"
+              hint="How they're wired plus the retention read. Only you see this. It feeds the AI prep."
+              initial={detail.privateProfileMarkdown ?? ""}
+              rendered={html.privateProfile}
+              onSave={(md) => run("Private notes", () => savePrivateProfile(detail.profileId, md))}
+              busy={busy}
+            />
+            <CadenceCard detail={detail} run={run} busy={busy} />
+          </>
+        )}
+
+        {tab === "insights" && (
+          <>
+            <TrendsCard detail={detail} html={html} run={run} busy={busy} />
+            <CheckinsCard detail={detail} html={html} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -149,7 +233,10 @@ function GoalsCard({
   return (
     <section className="admin-card coach-section">
       <div className="admin-card-title">
-        FAST goals <span className="admin-cell-muted">(Frequent · Ambitious · Specific · Transparent, visible to the whole team)</span>
+        FAST goals{" "}
+        <span className="admin-cell-muted">
+          (Frequent · Ambitious · Specific · Transparent: how they&apos;re measured and get promoted, team-visible)
+        </span>
       </div>
 
       {current.length === 0 && <div className="admin-empty">No goals yet. FAST starts with one.</div>}
@@ -274,7 +361,8 @@ function PrioritiesCard({
   return (
     <section className="admin-card coach-section">
       <div className="admin-card-title">
-        Priorities <span className="admin-cell-muted">(the standing focus items you review every 1-1)</span>
+        Priorities{" "}
+        <span className="admin-cell-muted">(personal growth: what matters most from your view, reviewed every 1-1)</span>
       </div>
 
       {active.length === 0 && <div className="admin-empty">No standing priorities.</div>}
@@ -577,7 +665,9 @@ function CommitmentsCard({
       <div className="admin-card-title">
         Commitments <span className="admin-cell-muted">({openCount} open)</span>
       </div>
-      <div className="admin-hint">Drag to reorder. They see the same stack.</div>
+      <div className="admin-hint">
+        What you both said you&apos;d get done before the next 1-1. Drag to reorder; they see the same stack.
+      </div>
 
       <CommitmentStack
         commitments={detail.commitments}
@@ -624,99 +714,37 @@ function MeetingsCard({
   html,
   run,
   busy,
+  view,
 }: {
   detail: CoachProfileDetail;
   html: RenderedHtml;
   run: (label: string, fn: () => Promise<ActionResult>) => void;
   busy: boolean;
+  view: "next" | "log";
 }) {
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [logDate, setLogDate] = useState("");
-  const [logTranscript, setLogTranscript] = useState("");
-  const [showLog, setShowLog] = useState(false);
-
-  // The next 1-1 = the earliest still-scheduled row. It renders highlighted and
-  // already open on its prep, so walking into the room is one glance, not a
-  // hunt behind the caret. Picked by status and date order alone (no clock), so
-  // the server and client agree on which row that is.
+  // The next 1-1 = the earliest still-scheduled row. Picked by status and date
+  // order alone (no clock), so the server and client agree on which row that is.
   const nextMeetingId =
     detail.meetings
       .filter((m) => m.status === "scheduled")
       .reduce<OneOnOne | null>((earliest, m) => (!earliest || m.heldOn < earliest.heldOn ? m : earliest), null)
       ?.id ?? null;
 
+  // "next" shows only the upcoming 1-1, already open on its prep, the
+  // walk-into-the-room view; "log" is the full history. Scheduling and logging
+  // live in the header, so this card no longer carries those forms.
+  const rows = view === "next" ? detail.meetings.filter((m) => m.id === nextMeetingId) : detail.meetings;
+
   return (
     <section className="admin-card coach-section">
-      <div className="admin-card-title">1-1s</div>
+      <div className="admin-card-title">{view === "next" ? "Next 1-1" : "1-1 log"}</div>
 
-      <div className="coach-add-row">
-        <input
-          className="admin-input"
-          type="date"
-          value={scheduleDate}
-          onChange={(e) => setScheduleDate(e.target.value)}
-        />
-        <button
-          className="admin-btn"
-          disabled={busy || !scheduleDate}
-          onClick={() => {
-            run("Schedule", () => scheduleOneOnOne(detail.profileId, scheduleDate));
-            setScheduleDate("");
-          }}
-        >
-          Schedule next 1-1
-        </button>
-        <button className="admin-btn" onClick={() => setShowLog((v) => !v)}>
-          {showLog ? "Cancel" : "Log a past 1-1"}
-        </button>
-      </div>
-
-      {showLog && (
-        <div className="admin-form coach-log-form">
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="log-date">
-              Meeting date
-            </label>
-            <input
-              id="log-date"
-              className="admin-input"
-              type="date"
-              value={logDate}
-              onChange={(e) => setLogDate(e.target.value)}
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="log-transcript">
-              Transcript (paste it and the AI drafts both summaries + extracts commitments)
-            </label>
-            <textarea
-              id="log-transcript"
-              className="admin-input"
-              rows={6}
-              value={logTranscript}
-              onChange={(e) => setLogTranscript(e.target.value)}
-              placeholder="Paste the meeting transcript or your raw notes…"
-            />
-          </div>
-          <div className="admin-form-actions">
-            <button
-              className="admin-btn admin-btn--primary"
-              disabled={busy || !logDate}
-              onClick={() => {
-                run("Log 1-1", () => logOneOnOne(detail.profileId, logDate, logTranscript));
-                setShowLog(false);
-                setLogDate("");
-                setLogTranscript("");
-              }}
-            >
-              Log it
-            </button>
-          </div>
-        </div>
+      {view === "next" && !nextMeetingId && (
+        <div className="admin-empty">No upcoming 1-1. Schedule one from the top of the page.</div>
       )}
+      {view === "log" && detail.meetings.length === 0 && <div className="admin-empty">No 1-1s yet.</div>}
 
-      {detail.meetings.length === 0 && <div className="admin-empty">No 1-1s yet.</div>}
-      {detail.meetings.map((m) => (
+      {rows.map((m) => (
         <MeetingRow
           key={m.id}
           m={m}
@@ -1061,6 +1089,34 @@ function TrendsCard({
             <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.trends[t.id]! }} />
           ) : (
             <div className="admin-cell-muted">{t.aiError ?? "Empty."}</div>
+          )}
+        </details>
+      ))}
+    </section>
+  );
+}
+
+// ---- check-ins --------------------------------------------------------------
+// Async mid-cycle pulses (the member answers them between 1-1s). They were
+// fetched but never shown on the coach side; here they read alongside trends.
+
+function CheckinsCard({ detail, html }: { detail: CoachProfileDetail; html: RenderedHtml }) {
+  return (
+    <section className="admin-card coach-section">
+      <div className="admin-card-title">Check-ins</div>
+      {detail.checkins.length === 0 && (
+        <div className="admin-empty">No check-ins yet. Mid-cycle pulses between 1-1s appear here.</div>
+      )}
+      {detail.checkins.map((c) => (
+        <details key={c.id} className="coach-trend">
+          <summary>
+            <strong>{fmt(c.sentAt)}</strong>
+            {!c.respondedAt && <span className="admin-badge admin-badge--warn">awaiting their update</span>}
+          </summary>
+          {html.checkins[c.id] ? (
+            <div className="idea-plan" dangerouslySetInnerHTML={{ __html: html.checkins[c.id]! }} />
+          ) : (
+            <div className="admin-cell-muted">Empty.</div>
           )}
         </details>
       ))}
