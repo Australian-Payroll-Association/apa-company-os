@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Team Tasks Kanban: build plan and workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:light;
+    --navy:#0f1e3d; --navy-2:#1b2f57; --ink:#12203c; --muted:#5a6b8c;
+    --line:#e2e7f0; --line-2:#eef1f7; --bg:#f6f8fc; --card:#ffffff;
+    --blue:#2563eb; --blue-soft:#e8f0fe;
+    --teal:#0d9488; --teal-soft:#e2f5f2;
+    --amber:#b45309; --amber-soft:#fef3e2;
+    --purple:#7c3aed; --purple-soft:#f1eafe;
+    --good:#0d9488; --warn:#b45309;
+    --radius:14px; --shadow:0 1px 2px rgba(15,30,61,.05),0 8px 24px rgba(15,30,61,.06);
+  }
+  /* Pinned to the light theme for consistent, high-contrast reading (planning document). */
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:32px 20px 80px}
+  .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
+  header.top{margin-bottom:20px}
+  .eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  h1{font-size:26px; line-height:1.15; margin:6px 0 6px; letter-spacing:-.01em; color:var(--navy)}
+  .sub{color:var(--muted); max-width:78ch}
+  .basis{display:flex; flex-wrap:wrap; gap:8px 10px; margin:16px 0 4px}
+  .chip{
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:6px 12px; font-size:12px; color:var(--muted); box-shadow:var(--shadow);
+  }
+  .chip b{color:var(--ink); font-weight:600}
+  .callout{
+    margin-top:14px; background:var(--card); border:1px solid var(--line);
+    border-left:3px solid var(--warn); border-radius:10px; padding:12px 14px;
+    font-size:12.5px; color:var(--muted);
+  }
+  .callout b{color:var(--ink)}
+  .callout.good{border-left-color:var(--good)}
+  .panel{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:18px 18px 20px;
+  }
+  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:0 0 14px; font-weight:600}
+  .panel h3{font-size:14px; color:var(--navy); margin:18px 0 8px}
+  .section-gap{margin-top:22px}
+  p{margin:8px 0}
+  ul{margin:8px 0; padding-left:20px}
+  li{margin:4px 0}
+  code, pre{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  code{background:var(--line-2); border-radius:5px; padding:1px 5px; font-size:12px; color:var(--navy-2)}
+  pre{
+    background:#0f1e3d; color:#dbe4f5; border-radius:10px; padding:14px 16px;
+    font-size:12px; line-height:1.6; overflow-x:auto; margin:10px 0;
+  }
+  pre .c{color:#7b8db3}
+  pre .k{color:#8ab4ff}
+  pre .s{color:#9ce3c8}
+
+  /* decision list */
+  .decisions{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .decision{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--bg)}
+  .decision .q{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .decision .a{font-weight:600; color:var(--navy); margin-top:4px; font-size:13px}
+  .decision .why{font-size:12px; color:var(--muted); margin-top:4px}
+
+  /* permission matrix */
+  table{border-collapse:collapse; width:100%; font-size:12.5px}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top}
+  th{background:var(--bg); font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted)}
+  td.y{color:var(--good); font-weight:600}
+  td.n{color:var(--muted)}
+  td.p{color:var(--amber); font-weight:600}
+  .table-scroll{overflow-x:auto}
+
+  /* workflow diagrams */
+  .wf{border:1px solid var(--line); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); padding:18px; margin-top:16px}
+  .wf .wf-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .wf .wf-id{font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; padding:3px 8px; border-radius:6px}
+  .wf.blue .wf-id{background:var(--blue-soft); color:var(--blue)}
+  .wf.teal .wf-id{background:var(--teal-soft); color:var(--teal)}
+  .wf.amber .wf-id{background:var(--amber-soft); color:var(--amber)}
+  .wf.purple .wf-id{background:var(--purple-soft); color:var(--purple)}
+  .wf h3{margin:0; font-size:15px; color:var(--navy)}
+  .wf .wf-sub{font-size:12.5px; color:var(--muted); margin:6px 0 12px; max-width:80ch}
+  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:10px 0}
+  .node{
+    border:1px solid var(--line); background:var(--bg); border-radius:10px;
+    padding:8px 12px; font-size:12.5px; min-width:110px; text-align:center;
+  }
+  .node b{display:block; font-size:12.5px; color:var(--navy)}
+  .node small{color:var(--muted); font-size:11px; line-height:1.35; display:block; margin-top:2px}
+  .node.terminal{background:var(--teal-soft); border-color:#bfe6dd}
+  .node.entry{background:var(--blue-soft); border-color:#c9dbfc}
+  .arrow{align-self:center; padding:0 8px; color:var(--muted); font-size:15px}
+  .edges{margin-top:12px}
+  .edges h4{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:12px 0 6px}
+  .edge{
+    display:flex; gap:10px; align-items:baseline; font-size:12.5px; padding:5px 0;
+    border-top:1px dashed var(--line-2);
+  }
+  .edge:first-of-type{border-top:none}
+  .edge .path{font-family:'JetBrains Mono',monospace; font-size:11.5px; white-space:nowrap; color:var(--navy-2); font-weight:600}
+  .edge .path.back{color:var(--amber)}
+  .edge .path.loop{color:var(--purple)}
+  .edge .desc{color:var(--muted)}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:11.5px; color:var(--muted)}
+  .legend .swatch{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+  /* phases */
+  .phase{display:flex; gap:14px; border-top:1px solid var(--line-2); padding:14px 0}
+  .phase:first-of-type{border-top:none}
+  .phase .num{
+    flex:0 0 34px; height:34px; border-radius:50%; background:var(--navy); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  .phase .body{flex:1}
+  .phase .body b{color:var(--navy)}
+  .phase .verify{font-size:12px; color:var(--muted); margin-top:6px; background:var(--bg); border:1px solid var(--line-2); border-radius:8px; padding:8px 10px}
+  .phase .verify b{color:var(--good)}
+  @media (max-width:700px){ .flow{flex-direction:column} .arrow{transform:rotate(90deg); padding:4px 0; align-self:flex-start; margin-left:40px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Edge8 OS, build plan</div>
+  <h1>Team Tasks Kanban</h1>
+  <p class="sub">
+    A team-level task board on Edge8 OS. One table, one board component, three scoped views:
+    admin sees and manages everything, managers work their reports' lanes, team members work their own.
+    Client roadmap items and work requests feed the board instead of living beside it.
+  </p>
+  <div class="basis">
+    <span class="chip"><b>Date</b> 2026-08-12</span>
+    <span class="chip"><b>Status</b> Plan, awaiting build</span>
+    <span class="chip"><b>Table</b> <span class="mono">company_os.team_tasks</span></span>
+    <span class="chip"><b>Surfaces</b> /admin/operations/tasks + /team/tasks</span>
+    <span class="chip"><b>First team</b> Operations</span>
+  </div>
+  <div class="callout">
+    <b>Interpretation of "roadmap items need to be moved":</b> a roadmap item is <b>promoted onto the board</b> as a linked task.
+    The <span class="mono">client_backlog_items</span> row stays where it is (it is the client-facing record in the portal roadmap);
+    the task carries a foreign key back to it. Nothing is duplicated and nothing disappears from the client's view.
+    If you meant physically migrating roadmap rows into the tasks table instead, flag it before Phase 3.
+  </div>
+</header>
+
+<!-- ============================ DECISIONS ============================ -->
+<section class="panel section-gap">
+  <h2>Locked decisions</h2>
+  <div class="decisions">
+    <div class="decision">
+      <div class="q">Visibility</div>
+      <div class="a">Open-book</div>
+      <div class="why">Everyone sees the whole board, matching goals and ideas. Editing is scoped by role.</div>
+    </div>
+    <div class="decision">
+      <div class="q">Who creates tasks</div>
+      <div class="a">Everyone</div>
+      <div class="why">Admin and managers assign anyone in scope; team members default to self-assignment.</div>
+    </div>
+    <div class="decision">
+      <div class="q">Board grouping</div>
+      <div class="a">Per team, starting with Operations</div>
+      <div class="why"><span class="mono">team</span> column with a CHECK constraint. New teams are a one-line migration.</div>
+    </div>
+    <div class="decision">
+      <div class="q">Integrations</div>
+      <div class="a">Roadmap items + work requests</div>
+      <div class="why">Both spawn linked tasks on the board. Coaching commitments stay out of v1.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DATA MODEL ============================ -->
+<section class="panel section-gap">
+  <h2>Data model</h2>
+  <p>One new table following house conventions: <span class="mono">company_os</span> schema, RLS on with no policies,
+  explicit <span class="mono">service_role</span> grant (without it the app cannot see the table), text statuses with CHECK,
+  <span class="mono">sort_order</span> within a column, soft archive.</p>
+<pre><span class="k">create table</span> company_os.team_tasks (
+  id               uuid <span class="k">primary key default</span> gen_random_uuid(),
+  team             text <span class="k">not null default</span> <span class="s">'operations'</span>
+                     <span class="k">check</span> (team <span class="k">in</span> (<span class="s">'operations'</span>)),
+  title            text <span class="k">not null</span>,
+  description      text,
+  status           text <span class="k">not null default</span> <span class="s">'todo'</span>
+                     <span class="k">check</span> (status <span class="k">in</span> (<span class="s">'backlog'</span>,<span class="s">'todo'</span>,<span class="s">'in_progress'</span>,<span class="s">'review'</span>,<span class="s">'done'</span>)),
+  priority         text <span class="k">check</span> (priority <span class="k">in</span> (<span class="s">'low'</span>,<span class="s">'normal'</span>,<span class="s">'high'</span>,<span class="s">'urgent'</span>)),
+  assignee_id      uuid <span class="k">references</span> company_os.people(id),
+  created_by       uuid <span class="k">not null references</span> company_os.people(id),
+  due_date         date,
+  sort_order       int <span class="k">not null default</span> 0,
+
+  <span class="c">-- integration links: exactly one may be set, per source</span>
+  source           text <span class="k">not null default</span> <span class="s">'manual'</span>
+                     <span class="k">check</span> (source <span class="k">in</span> (<span class="s">'manual'</span>,<span class="s">'roadmap'</span>,<span class="s">'work_request'</span>)),
+  backlog_item_id  uuid <span class="k">references</span> company_os.client_backlog_items(id) <span class="k">on delete set null</span>,
+  work_request_id  uuid <span class="k">references</span> company_os.work_requests(id) <span class="k">on delete set null</span>,
+
+  archived_at      timestamptz,
+  archived_by      text,
+  created_at       timestamptz <span class="k">not null default</span> now(),
+  updated_at       timestamptz <span class="k">not null default</span> now()
+);
+
+<span class="k">create index on</span> company_os.team_tasks (team, status, sort_order) <span class="k">where</span> archived_at <span class="k">is null</span>;
+<span class="k">create index on</span> company_os.team_tasks (assignee_id) <span class="k">where</span> archived_at <span class="k">is null</span>;
+<span class="k">create index on</span> company_os.team_tasks (backlog_item_id) <span class="k">where</span> backlog_item_id <span class="k">is not null</span>;
+
+<span class="k">alter table</span> company_os.team_tasks <span class="k">enable row level security</span>;
+<span class="k">grant select, insert, update, delete on</span> company_os.team_tasks <span class="k">to</span> service_role;</pre>
+
+  <h3>Conventions that apply</h3>
+  <ul>
+    <li><b>CHECK drift rule:</b> any new <span class="mono">team</span>, <span class="mono">status</span>, or <span class="mono">source</span> value written by app code ships its constraint migration in the same PR, verified with a rolled-back probe insert.</li>
+    <li><b>Done is a column, deleted is an archive.</b> <span class="mono">done</span> keeps the win visible on the board; <span class="mono">archived_at</span> clears it. No hard deletes.</li>
+    <li><b>Manager scope is derived, not stored.</b> Manager relationships come from <span class="mono">people.manager_id</span>, resolved with an explicit query (never a PostgREST self-FK embed, which resolves reversed).</li>
+    <li><b>Identity:</b> the team portal resolves the caller through the existing <span class="mono">auth_user_id → people</span> linkage. All access rules are enforced server-side in actions; the client only ever talks to the service-role server.</li>
+    <li><b>Caching:</b> both pages set <span class="mono">fetchCache = 'force-no-store'</span> (the Next 14 data-cache freeze that bit the ATS pages).</li>
+  </ul>
+</section>
+
+<!-- ============================ VIEWS + PERMISSIONS ============================ -->
+<section class="panel section-gap">
+  <h2>Views and permission matrix</h2>
+  <p>There is no separate manager app. Admin lives at <span class="mono">/admin/operations/tasks</span>; managers and team
+  members share <span class="mono">/team/tasks</span>, and the server decides their edit scope. One board component, rendered three ways.</p>
+  <div class="table-scroll">
+  <table>
+    <tr>
+      <th>Capability</th>
+      <th>Admin (/admin)</th>
+      <th>Manager (/team)</th>
+      <th>Team member (/team)</th>
+    </tr>
+    <tr><td>See the full board (all teams, all tasks)</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes, read-only beyond own tasks</td></tr>
+    <tr><td>Create a task</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes, defaults to self-assign</td></tr>
+    <tr><td>Assign / reassign</td><td class="y">Anyone</td><td class="p">Self + direct reports</td><td class="p">Self only</td></tr>
+    <tr><td>Move / edit a task</td><td class="y">Any task</td><td class="p">Own + direct reports' tasks</td><td class="p">Own tasks only</td></tr>
+    <tr><td>Archive</td><td class="y">Any task</td><td class="p">Own + direct reports' tasks</td><td class="p">Own tasks only</td></tr>
+    <tr><td>Promote a roadmap item to a task</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+    <tr><td>Spawn a task from a work request</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+    <tr><td>Add a team (new board lane group)</td><td class="p">Via migration</td><td class="n">No</td><td class="n">No</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ============================ WORKFLOWS ============================ -->
+<section class="panel section-gap">
+  <h2>Workflows</h2>
+  <p class="sub">Four workflows, none of them linear. Forward paths are the happy path; the dashed edges below each
+  diagram are the backward moves and loops that real work takes.</p>
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--blue-soft); border:1px solid #c9dbfc"></span>Entry point</span>
+    <span><span class="swatch" style="background:var(--bg); border:1px solid var(--line)"></span>State / step</span>
+    <span><span class="swatch" style="background:var(--teal-soft); border:1px solid #bfe6dd"></span>Resting state</span>
+    <span style="color:var(--amber); font-weight:600">← backward move</span>
+    <span style="color:var(--purple); font-weight:600">↻ loop</span>
+  </div>
+
+  <!-- W1 -->
+  <div class="wf blue">
+    <div class="wf-head"><span class="wf-id">W1</span><h3>Task lifecycle</h3></div>
+    <p class="wf-sub">The five status columns of every board. A task can move backward at any point; done is the only state that normally leads off the board.</p>
+    <div class="flow">
+      <div class="node"><b>Backlog</b><small>captured, not committed</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Todo</b><small>committed, not started</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>In progress</b><small>being worked</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Review</b><small>awaiting check</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Done</b><small>stays visible</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Archived</b><small>off the board</small></div>
+    </div>
+    <div class="edges">
+      <h4>Backward moves and loops</h4>
+      <div class="edge"><span class="path loop">review ↻ in_progress</span><span class="desc">Changes requested. This loop can repeat any number of times; each pass stays in the same task, no new card.</span></div>
+      <div class="edge"><span class="path back">in_progress ← todo</span><span class="desc">Deprioritised or blocked before real progress. Priority and due date survive the move.</span></div>
+      <div class="edge"><span class="path back">any ← backlog</span><span class="desc">Parked. Any active task can drop back to backlog without losing its history or links.</span></div>
+      <div class="edge"><span class="path back">any → archived</span><span class="desc">Abandoned tasks archive from any column, not just done. <span class="mono">archived_by</span> records who pulled it.</span></div>
+    </div>
+  </div>
+
+  <!-- W2 -->
+  <div class="wf teal">
+    <div class="wf-head"><span class="wf-id">W2</span><h3>Task creation</h3></div>
+    <p class="wf-sub">Four ways onto the board, converging on the same table. What differs is who may assign whom.</p>
+    <div class="flow">
+      <div class="node entry"><b>Entry</b><small>admin board · team board · roadmap promote (W3) · work request (W4)</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Role branch</b><small>admin: assign anyone<br/>manager: self or report<br/>member: self (default)</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Card created</b><small>team = operations, status per branch below</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>On the board</b><small>enters W1</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches</h4>
+      <div class="edge"><span class="path">manual → todo</span><span class="desc">Tasks created by hand land in Todo (or Backlog if flagged "not yet committed" at creation).</span></div>
+      <div class="edge"><span class="path">roadmap → backlog</span><span class="desc">Promoted roadmap items land in Backlog: they represent scoped-but-unscheduled work by definition.</span></div>
+      <div class="edge"><span class="path">work_request → todo</span><span class="desc">Accepted work requests are already a commitment, so they land in Todo assigned to the request's assignee.</span></div>
+      <div class="edge"><span class="path back">assign fails</span><span class="desc">A manager attempting to assign outside their reports gets a server-side rejection, not a silent save.</span></div>
+    </div>
+  </div>
+
+  <!-- W3 -->
+  <div class="wf amber">
+    <div class="wf-head"><span class="wf-id">W3</span><h3>Roadmap item → team board</h3></div>
+    <p class="wf-sub">Admin promotes a client roadmap item (<span class="mono">client_backlog_items</span>) onto the team board. The roadmap row stays put as the client-facing record; the task links back via <span class="mono">backlog_item_id</span>. One item can spawn several tasks over its life.</p>
+    <div class="flow">
+      <div class="node entry"><b>Roadmap item</b><small>admin Client Roadmaps, status accepted / active</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>"Send to team board"</b><small>title + client prefilled, team = operations</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Linked task(s)</b><small>source = roadmap, works through W1</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>All linked tasks done</b><small>admin prompted, not auto-shipped</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Item marked shipped</b><small>or kept active for more tasks</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches, loops, and backward moves</h4>
+      <div class="edge"><span class="path loop">item ↻ more tasks</span><span class="desc">A big roadmap item is promoted in chunks: promote again at any time, each task carries the same <span class="mono">backlog_item_id</span>.</span></div>
+      <div class="edge"><span class="path">ship prompt → keep active</span><span class="desc">When the last open linked task hits done, admin chooses: mark the roadmap item shipped, or keep it active because more chunks are coming. Never automatic, because the roadmap status is client-visible.</span></div>
+      <div class="edge"><span class="path back">task blocked ← roadmap</span><span class="desc">A blocked task surfaces on the roadmap item's admin view (linked-tasks shelf), so client conversations start from the real state.</span></div>
+      <div class="edge"><span class="path loop">client reprioritises ↻ board</span><span class="desc">When the client changes <span class="mono">client_priority</span> in the portal, linked open tasks are flagged on the board for admin to re-order. The loop runs as many times as the client changes their mind.</span></div>
+      <div class="edge"><span class="path back">item parked → tasks archived</span><span class="desc">If the roadmap item is parked or archived, its open linked tasks are prompted for archive (admin confirms, no cascade delete).</span></div>
+    </div>
+  </div>
+
+  <!-- W4 -->
+  <div class="wf purple">
+    <div class="wf-head"><span class="wf-id">W4</span><h3>Work request → team board</h3></div>
+    <p class="wf-sub">Contractor and client work requests keep their own approval and billing flow. The board integration starts at acceptance and hands back at completion; billing never moves into the tasks table.</p>
+    <div class="flow">
+      <div class="node entry"><b>Work request accepted</b><small>existing flow, unchanged</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Task spawned</b><small>source = work_request, assignee = request assignee</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Worked through W1</b><small>visible next to all other team work</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Task done</b><small>prompt: complete the request?</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Request completed</b><small>existing billing flow continues</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches and backward moves</h4>
+      <div class="edge"><span class="path">done → complete request</span><span class="desc">Completing the task prompts completion of the linked request; billing (including auto QBO invoicing for client requests) proceeds exactly as it does today.</span></div>
+      <div class="edge"><span class="path back">request cancelled → task archived</span><span class="desc">If the request is cancelled mid-flight, the linked open task is archived with a note pointing at the cancellation.</span></div>
+      <div class="edge"><span class="path loop">rework ↻</span><span class="desc">If completion is rejected on the request side, the linked task reopens (done back to in_progress), the same loop as W1 review.</span></div>
+      <div class="edge"><span class="path">no task (opt-out)</span><span class="desc">Small requests can be accepted without spawning a board task; the checkbox defaults on. Not every request needs a card.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ BUILD PHASES ============================ -->
+<section class="panel section-gap">
+  <h2>Build phases</h2>
+  <p>Four PRs, each independently shippable and verified before the next starts. Board mechanics are copied from the
+  existing <span class="mono">DealsBoard</span> / <span class="mono">ApplicationsBoard</span> components, not hand-rolled;
+  UI comes from <span class="mono">/admin/patterns</span>.</p>
+
+  <div class="phase">
+    <div class="num">1</div>
+    <div class="body">
+      <b>Schema + admin board.</b> Migration for <span class="mono">team_tasks</span> (table, indexes, RLS, service_role grant)
+      and <span class="mono">/admin/operations/tasks</span>: full board with drag between columns, create/edit modal,
+      assignee picker from <span class="mono">people</span>, team filter (one team for now), soft archive, archived toggle.
+      <div class="verify"><b>Verify:</b> migration applied and probe insert rolled back; <span class="mono">tsc</span> + <span class="mono">next build</span> + <span class="mono">npm run check:design</span> green; card created, dragged across all five columns, archived, restored via curl-level checks against prod after merge.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num">2</div>
+    <div class="body">
+      <b>Team portal board.</b> <span class="mono">/team/tasks</span> sharing the board component: open-book read for everyone,
+      edit scope resolved server-side (self, or self + direct reports for managers via <span class="mono">people.manager_id</span>),
+      create with self-assign default, "My tasks" filter, nav card on the /team hub.
+      <div class="verify"><b>Verify:</b> as a manager account, a report's task moves; as a non-manager, the same action is rejected server-side; own task moves for both. Confirmed on prod with two real accounts.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num">3</div>
+    <div class="body">
+      <b>Roadmap integration (W3).</b> "Send to team board" on the admin Client Roadmaps item view, linked-tasks shelf on the
+      roadmap item, roadmap chip on the task card linking back, ship prompt when the last linked task completes,
+      reprioritisation flag when <span class="mono">client_priority</span> changes.
+      <div class="verify"><b>Verify:</b> promote a real accepted item twice (two chunks), complete both, confirm the ship prompt fires once and the portal roadmap view is unchanged until admin confirms.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num">4</div>
+    <div class="body">
+      <b>Work request integration (W4).</b> Spawn-task checkbox on request acceptance, request chip on the task card,
+      completion handshake (task done prompts request completion; request cancellation archives the task).
+      <div class="verify"><b>Verify:</b> full round trip on a test contractor request: accept → task → done → request completed, and the cancel path archives the task. Billing figures untouched.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ OUT OF SCOPE ============================ -->
+<section class="panel section-gap">
+  <h2>Deliberately out of v1</h2>
+  <ul>
+    <li><b>Comments on tasks.</b> If needed, a <span class="mono">task_comments</span> table follows the coaching-goal-comments pattern later.</li>
+    <li><b>Subtasks, labels, estimates.</b> Chunking happens by promoting a roadmap item more than once, not by nesting cards.</li>
+    <li><b>Configurable columns.</b> Statuses are fixed by CHECK, matching every other board in the app. A new column is a migration, not a settings screen.</li>
+    <li><b>Coaching commitments on the board.</b> They stay in the coaching module; revisit only if the team asks.</li>
+    <li><b>Additional teams.</b> The schema is ready (<span class="mono">team</span> CHECK), Operations proves the flow first.</li>
+    <li><b>Notifications.</b> No Lark pings on assignment in v1; the open-book board is the notification.</li>
+  </ul>
+  <div class="callout good">
+    <b>Definition of done for the feature:</b> Operations runs a real week on the board; at least one client roadmap item
+    and one work request travel their full loop (including a backward move) without leaving the app.
+  </div>
+</section>
+
+</div>
+</body>
+</html>
