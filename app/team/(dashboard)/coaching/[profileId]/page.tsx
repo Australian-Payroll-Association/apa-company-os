@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
-import { PageHead } from "@/components/admin/PageHead";
 import { getCoachProfileDetail } from "@/lib/coaching/data";
 import { coachingMarkdownToHtml } from "@/lib/coaching/markdown";
+import { CoachProfileHeader } from "@/components/coaching/CoachProfileHeader";
 import { CoachProfileView, type RenderedHtml } from "@/components/coaching/CoachProfileView";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +41,7 @@ export default async function CoachProfilePage({ params }: { params: { profileId
 
   return (
     <>
-      <PageHead
-        eyebrow="Coaching"
-        title={detail.member.name}
-        sub={`${detail.member.positionTitle ?? "—"} · 1-1 every ${detail.cadenceDays} days`}
-      />
+      <CoachProfileHeader detail={detail} />
       <CoachProfileView detail={detail} html={html} />
     </>
   );
