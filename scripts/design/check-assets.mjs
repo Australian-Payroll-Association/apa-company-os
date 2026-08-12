@@ -339,6 +339,52 @@ for (const [kind, label, scale] of [
   });
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Check 5: OS pages use the shared content widths, not ad-hoc ones.
+
+   .admin-main now caps and centres content, with --narrow and --form for the
+   two narrower cases. Before that it had no max-width at all, so pages either
+   stretched to the viewport or invented their own cap: 17 different page
+   widths across the OS, which is what "the width is inconsistent throughout"
+   looks like in code.
+
+   Only page-level widths are flagged. Small inline maxWidth values are column
+   and control sizing, which is a different thing and left alone.
+   ───────────────────────────────────────────────────────────── */
+
+const OS_PAGE_DIRS = ["app/admin", "app/team", "app/portal"];
+const PAGE_WIDTH_FLOOR = 400;
+const adHocWidths = new Map();
+
+for (const file of jsxFiles) {
+  const rel = relative(ROOT, file);
+  if (!OS_PAGE_DIRS.some((d) => rel.startsWith(d))) continue;
+  const src = readFileSync(file, "utf8");
+  src.split("\n").forEach((text, i) => {
+    for (const m of text.matchAll(/maxWidth:\s*["']?(\d{3,4})(?:px)?["']?/g)) {
+      const w = Number(m[1]);
+      if (w < PAGE_WIDTH_FLOOR) continue;
+      if (!adHocWidths.has(w)) adHocWidths.set(w, { count: 0, first: `${rel}:${i + 1}` });
+      adHocWidths.get(w).count++;
+    }
+  });
+}
+
+if (adHocWidths.size) {
+  const entries = [...adHocWidths.entries()].sort((a, b) => b[1].count - a[1].count);
+  const total = entries.reduce((n, [, v]) => n + v.count, 0);
+  warnings.push({
+    check: "ad-hoc-content-width",
+    file: entries[0][1].first.split(":")[0],
+    line: Number(entries[0][1].first.split(":")[1]),
+    msg:
+      `${total} page-level maxWidth value(s) across ${entries.size ?? entries.length} distinct widths ` +
+      `(${entries.slice(0, 6).map(([w, d]) => `${w}px x${d.count}`).join(", ")}` +
+      `${entries.length > 6 ? ", ..." : ""}). Use .admin-main--narrow (880) or ` +
+      `.admin-main--form (640) instead, or leave the page at the default cap.`,
+  });
+}
+
 /* ───────────────────────────── report ───────────────────────────── */
 
 const label = (e) => `  ${e.file}:${e.line}\n    [${e.check}] ${e.msg}`;
