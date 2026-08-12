@@ -4,7 +4,7 @@ import { WorkflowHero, FlowRail, StepCards, SevenElements, DetailFooter, type Wo
 const ELEMENTS: WorkflowElement[] = [
   { name: 'Trigger', assignment: 'both', desc: 'No single trigger. A role opening, a strong inbound resume, a referral, or a pool resurfacing can each start motion, and usually several are running at once.' },
   { name: 'Inputs', assignment: 'both', desc: 'The JD and screening questions, resumes from every channel (careers page, LinkedIn, referrals, agencies, batch drops), and the full history of everyone the company has already met.' },
-  { name: 'Decision', assignment: 'both', desc: 'Two independent reads at the resume (the AI screen and the recruiter’s rating), and again at every interview, where the AI sits as a panelist and scores blind until the humans submit. Every exit and backward move is an explicit human decision.' },
+  { name: 'Decision', assignment: 'both', desc: 'Every candidate gets two reads at the resume: the AI screen and the recruiter’s rating. The AI then joins every interview too, scoring on its own before it sees what the people said. People make every call to advance, reject, or send someone back.' },
   { name: 'Routing', assignment: 'both', desc: 'Not forward-only. Candidates move back a stage for another round, return to the shortlist after a declined offer, or exit to the pool and re-enter months later on a different req.' },
   { name: 'Output', assignment: 'machine', desc: 'A living record per candidate: every application, every screen, both ratings, the notes thread, and every status change with its reason.' },
   { name: 'Delivery', assignment: 'machine', desc: 'Ranked, sortable views wherever the work happens: per req, per role family, and across the whole pool.' },
@@ -461,19 +461,19 @@ export default function RecruitmentWorkflowPage() {
             <div className="wf-info-card">
               <h3>AI on the interview panel</h3>
               <ul>
-                <li>Every round seats the AI as a panelist beside the humans, from the recruiter screen to the founder round</li>
-                <li>It reads the transcript and scores against the role’s criteria, citing the exact quotes behind each score</li>
-                <li>Blind-first: its scorecard stays hidden until the human panelists submit theirs, so it never anchors the room</li>
-                <li>It carries memory across rounds, turning what one round left unverified into the next round’s questions</li>
+                <li>The AI sits on every panel, from the recruiter screen to the founder chat</li>
+                <li>It reads the transcript and scores the candidate, quoting the exact lines it used</li>
+                <li>Its scorecard stays hidden until the people hand in theirs, so it can’t sway them</li>
+                <li>It remembers the earlier rounds, so anything left unproven becomes the next round’s question</li>
               </ul>
             </div>
             <div className="wf-info-card wf-info-card-mint">
               <h3>Human and AI, side by side</h3>
               <ul>
-                <li>Two independent reads at the resume, then again at every interview, catch what either one alone would miss</li>
-                <li>The AI advises with evidence; the humans decide and move the candidate</li>
-                <li>A disagreement of a full point is surfaced for the debrief, not averaged away</li>
-                <li>No candidate advances or exits on an AI score alone</li>
+                <li>Two separate reads at the resume, and again at every interview, catch what one reader alone would miss</li>
+                <li>The AI gives its read with evidence; the people make the decision</li>
+                <li>When two scores are a full point apart, that gap is raised in the debrief, not averaged away</li>
+                <li>No one moves forward, or gets cut, on an AI score alone</li>
               </ul>
             </div>
           </div>
@@ -548,12 +548,11 @@ export default function RecruitmentWorkflowPage() {
                       any other. No side-channel “can you talk to her once more” that the system never sees.
                     </p>
                     <p>
-                      Every round seats the AI as a panelist beside the humans. The transcript is ingested, and the AI
-                      writes a scorecard against the role’s criteria: a recommendation, per-criterion scores, and the
-                      verbatim quotes behind each one. It stays blind until the human panelists submit theirs, so it
-                      informs the debrief without anchoring it, and it carries memory across rounds, turning what one
-                      round left unverified into the next round’s questions. The AI is one voice on the panel and never
-                      casts the deciding vote.
+                      The AI sits on every interview panel too. It reads the transcript and fills in a scorecard: a
+                      recommendation, a score for each thing the role is judged on, and the exact quotes it based them
+                      on. Its scorecard stays hidden until the human interviewers hand in theirs, so it can’t sway the
+                      room. It also remembers the earlier rounds, so anything left unproven in one round becomes a
+                      question for the next. The AI is one voice on the panel. It never makes the final call.
                     </p>
                     <p>
                       All working context lives on the application: the notes thread, the resume (replaceable when a
@@ -641,7 +640,7 @@ export default function RecruitmentWorkflowPage() {
                 <li>Every door produces the same structured record, agency or inbound alike</li>
                 <li>Every resume is read in full by AI on arrival</li>
                 <li>Backward is a normal direction, and every move is on the record</li>
-                <li>The AI is a panelist in every interview round, scoring blind until the humans do; it advises, it never decides</li>
+                <li>The AI is on every interview panel and scores before it sees the people’s scores; it advises, it never decides</li>
                 <li>No candidate is rejected by AI alone, and every exit has a recorded reason</li>
                 <li>Closing a req never discards its candidates; nothing is ever deleted</li>
               </ul>
@@ -653,7 +652,7 @@ export default function RecruitmentWorkflowPage() {
                 <li>One system of record ends the where-does-this-candidate-stand question</li>
                 <li>Always-on sourcing means a new req starts warm, not cold</li>
                 <li>Two independent gates catch what either one alone would miss</li>
-                <li>Interview judgment is captured with evidence and memory, so three rounds compound into one thread instead of three separate opinions</li>
+                <li>Every interview is written down with its evidence and carried forward, so three rounds add up to one story instead of three separate opinions</li>
                 <li>The pool compounds: every search makes the next one faster</li>
                 <li>Declined offers and paused reqs cost days, not restarts</li>
               </ul>
