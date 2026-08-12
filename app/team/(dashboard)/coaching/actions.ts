@@ -27,6 +27,7 @@ import {
   coachUpdateCommitment,
   coachUpdateGoal,
   coachUpdatePriority,
+  setTalkingPointAddressed,
   type CommitmentOwner,
   type CommitmentStatus,
   type GoalStatus,
@@ -53,6 +54,14 @@ function refresh(profileId?: string) {
   if (profileId) revalidatePath(`/team/coaching/${profileId}`);
   // Goals also render on directory profiles (team-wide transparency).
   revalidatePath("/team/directory");
+}
+
+// Mark a talking point the member raised as addressed (it drops off both pages).
+export async function resolveTalkingPoint(id: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await setTalkingPointAddressed(actor, id, true);
+  if (res.ok) refresh(res.profileId);
+  return res.ok ? { ok: true } : res;
 }
 
 // Comments on FAST goals: open to every team member (goals are transparent,
