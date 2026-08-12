@@ -40,6 +40,9 @@ export default async function MyGoalsPage() {
       currentValue: g.currentValue,
       dueDate: g.dueDate,
       ladderLabel: g.ladder?.label ?? null,
+      // Delete is the author's alone. A goal set for you by a coach or
+      // manager is theirs to remove; you can still edit it or drop it.
+      canDelete: g.createdBy === actor.teamMemberId,
     }),
   );
 

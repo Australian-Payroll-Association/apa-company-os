@@ -19,6 +19,8 @@ export type MyGoalRow = {
   currentValue: number | null;
   dueDate: string | null;
   ladderLabel: string | null;
+  // False for goals someone else set for you: editable, but not yours to delete.
+  canDelete: boolean;
 };
 
 type FormState = {
@@ -356,9 +358,13 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
                   <button className="admin-btn admin-btn--sm" onClick={() => openEdit(g)} disabled={pending}>
                     Edit
                   </button>
-                  <button className="admin-btn admin-btn--sm" onClick={() => remove(g)} disabled={pending}>
-                    Delete
-                  </button>
+                  {g.canDelete ? (
+                    <button className="admin-btn admin-btn--sm" onClick={() => remove(g)} disabled={pending}>
+                      Delete
+                    </button>
+                  ) : (
+                    <span className="admin-cell-muted">Set for you, so only they can delete it</span>
+                  )}
                 </div>
               </>
             )}

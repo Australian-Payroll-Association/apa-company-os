@@ -75,7 +75,11 @@ async function loadActiveProfiles(): Promise<ProfileRow[]> {
       "id, coach_id, cadence_days, next_one_on_one_on, " +
         "team_members:team_members!team_member_id(status, people:people!person_id(full_name, preferred_name, email))",
     )
-    .eq("active", true);
+    .eq("active", true)
+    // coach_id is nullable: a profile can exist for its owner's FAST goals
+    // alone (/team/goals) before anyone coaches them. No coach, no 1-1 rhythm
+    // to run, so the daily cycle skips it.
+    .not("coach_id", "is", null);
   const LIVE = ["active", "pre_start", "on_leave", "notice"];
   return ((data ?? []) as unknown as Record<string, unknown>[])
     .filter((r) => {

@@ -219,6 +219,9 @@ export type CoachingGoal = {
   targetValue: number | null;
   currentValue: number | null;
   dueDate: string | null;
+  // The team member who wrote the goal, null on goals set by a coach or
+  // predating authorship. Only the author may delete it.
+  createdBy: string | null;
 };
 
 export type CoachingPriority = {
@@ -320,7 +323,7 @@ function resolveLadder(
 
 const GOAL_SELECT =
   "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, metric_id, sort_order, " +
-  "metric_unit, start_value, target_value, current_value, due_date";
+  "metric_unit, start_value, target_value, current_value, due_date, created_by";
 const PRIORITY_SELECT =
   "id, coaching_profile_id, title, detail_markdown, status, objective_id, key_result_id, metric_id, sort_order";
 
@@ -345,6 +348,7 @@ function toGoal(r: Record<string, unknown>, edges: EdgesOptions): CoachingGoal {
     targetValue: num(r.target_value),
     currentValue: num(r.current_value),
     dueDate: (r.due_date as string | null) ?? null,
+    createdBy: (r.created_by as string | null) ?? null,
   };
 }
 
@@ -851,6 +855,7 @@ export async function coachAddGoal(
   if (!(input.status in GOAL_STATUS_LABELS)) return { ok: false, error: "Bad status." };
   const { error } = await companyOs.from("coaching_goals").insert({
     coaching_profile_id: profileId,
+    created_by: actor.teamMemberId,
     title,
     status: input.status,
     quarter_label: input.quarterLabel?.trim() || null,
@@ -1266,7 +1271,9 @@ export type MemberRecap = {
 
 export type MyCoaching = {
   profileId: string;
-  coachName: string;
+  // Null when nobody coaches this profile yet (a profile can exist for its
+  // owner's FAST goals alone).
+  coachName: string | null;
   goals: CoachingGoal[];
   priorities: CoachingPriority[];
   // The member's own OCEAN profile — present ONLY when the coach published it.
@@ -1290,11 +1297,16 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
   const profileId = p.id as string;
 
   // Coach display name via forward lookup (never the self-FK reverse embed).
-  const { data: coachRow } = await companyOs
-    .from("team_members")
-    .select("people:people!person_id(full_name, preferred_name, email)")
-    .eq("id", p.coach_id as string)
-    .maybeSingle();
+  // coach_id is nullable: a profile can exist for its FAST goals alone, before
+  // anyone coaches it. No coach means no name to resolve, not a failed query.
+  const coachId = (p.coach_id as string | null) ?? null;
+  const { data: coachRow } = coachId
+    ? await companyOs
+        .from("team_members")
+        .select("people:people!person_id(full_name, preferred_name, email)")
+        .eq("id", coachId)
+        .maybeSingle()
+    : { data: null };
   const coachPerson = one(
     ((coachRow as unknown as Record<string, unknown> | null)?.people ?? null) as
       | PersonEmbed
@@ -1348,7 +1360,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
 
   return {
     profileId,
-    coachName: displayName(coachPerson),
+    coachName: coachPerson ? displayName(coachPerson) : null,
     goals: attachComments(myGoalRows, myGoalComments),
     priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
@@ -1558,9 +1570,10 @@ export type MyGoalInput = {
 };
 
 // The actor's own active coaching profile, created on first save if they have
-// none. coach_id is NOT NULL, so a member with no manager on file cannot be
-// given a profile here — they get told to ask ops rather than silently landing
-// in someone else's coaching list.
+// none. Your goals are yours: a member with no manager on file still gets a
+// profile, with coach_id left null (it is nullable for exactly this reason —
+// scripts/coaching/coach-optional.mjs). The daily coaching cycle skips
+// coachless profiles; the goals themselves work regardless.
 export async function getOrCreateMyCoachingProfileId(
   actor: TeamActor,
 ): Promise<{ ok: true; profileId: string } | { ok: false; error: string }> {
@@ -1578,12 +1591,6 @@ export async function getOrCreateMyCoachingProfileId(
     .eq("id", actor.teamMemberId)
     .maybeSingle();
   const managerId = (me as { manager_id: string | null } | null)?.manager_id ?? null;
-  if (!managerId) {
-    return {
-      ok: false,
-      error: "You have no manager on file yet, so your goals have nowhere to go. Ask ops to set one.",
-    };
-  }
 
   const { data: created, error } = await companyOs
     .from("coaching_profiles")
@@ -1617,23 +1624,29 @@ export async function getMyGoals(actor: TeamActor): Promise<CoachingGoal[]> {
   return ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
 }
 
-// True when the goal hangs off the actor's own profile. The IDOR gate for
-// every my* goal mutation: a client-supplied goal id is never the authority.
-async function goalIsMine(actor: TeamActor, goalId: string): Promise<boolean> {
-  if (!goalId) return false;
+// The goal as the authorization gate needs it: whose profile it hangs off, and
+// who wrote it. The IDOR gate for every my* goal mutation — a client-supplied
+// goal id is never the authority.
+async function goalOwnership(
+  actor: TeamActor,
+  goalId: string,
+): Promise<{ mine: boolean; authored: boolean }> {
+  const no = { mine: false, authored: false };
+  if (!goalId) return no;
   const { data } = await companyOs
     .from("coaching_goals")
-    .select("id, coaching_profiles:coaching_profiles!coaching_profile_id(team_member_id)")
+    .select("id, created_by, coaching_profiles:coaching_profiles!coaching_profile_id(team_member_id)")
     .eq("id", goalId)
     .maybeSingle();
-  if (!data) return false;
+  if (!data) return no;
+  const r = data as unknown as Record<string, unknown>;
   const prof = one(
-    (data as unknown as Record<string, unknown>).coaching_profiles as
-      | { team_member_id: string }
-      | { team_member_id: string }[]
-      | null,
+    r.coaching_profiles as { team_member_id: string } | { team_member_id: string }[] | null,
   );
-  return prof?.team_member_id === actor.teamMemberId;
+  return {
+    mine: prof?.team_member_id === actor.teamMemberId,
+    authored: (r.created_by as string | null) === actor.teamMemberId,
+  };
 }
 
 function goalColumns(input: MyGoalInput): Record<string, unknown> {
@@ -1670,16 +1683,23 @@ export async function myAddGoal(actor: TeamActor, input: MyGoalInput): Promise<R
 
   const { error } = await companyOs
     .from("coaching_goals")
-    .insert({ coaching_profile_id: profile.profileId, ...goalColumns(input) });
+    .insert({
+      coaching_profile_id: profile.profileId,
+      created_by: actor.teamMemberId,
+      ...goalColumns(input),
+    });
   return error ? { ok: false, error: "Could not add the goal." } : { ok: true };
 }
 
+// Editing stays open across the member's own profile: updating progress on a
+// goal your coach set for you is the point of the F in FAST. Deleting is not
+// (see myDeleteGoal).
 export async function myUpdateGoal(
   actor: TeamActor,
   goalId: string,
   input: MyGoalInput,
 ): Promise<Result> {
-  if (!(await goalIsMine(actor, goalId))) return { ok: false, error: "Not found." };
+  if (!(await goalOwnership(actor, goalId)).mine) return { ok: false, error: "Not found." };
   const invalid = validateGoal(input);
   if (invalid) return { ok: false, error: invalid };
 
@@ -1691,8 +1711,17 @@ export async function myUpdateGoal(
 }
 
 // True delete, matching coachDeleteGoal: comments cascade, no tombstone.
+// Only the author may delete: a goal your coach or manager set for you is
+// theirs to remove, and you can still edit it or mark it dropped.
 export async function myDeleteGoal(actor: TeamActor, goalId: string): Promise<Result> {
-  if (!(await goalIsMine(actor, goalId))) return { ok: false, error: "Not found." };
+  const own = await goalOwnership(actor, goalId);
+  if (!own.mine) return { ok: false, error: "Not found." };
+  if (!own.authored) {
+    return {
+      ok: false,
+      error: "This goal was set for you, so only whoever set it can delete it. You can edit it or mark it dropped.",
+    };
+  }
   const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
   return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }
