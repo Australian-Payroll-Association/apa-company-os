@@ -255,7 +255,7 @@ export default async function TeamHome() {
                   </div>
                   <div className="admin-list-aside">
                     {r.isPublic && r.slug ? (
-                      <a href={`/careers/${r.slug}`} target="_blank" rel="noreferrer">
+                      <a href={`/careers/${r.slug}/apply`} target="_blank" rel="noreferrer">
                         View posting →
                       </a>
                     ) : (
