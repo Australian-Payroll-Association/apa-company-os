@@ -16,7 +16,7 @@ const ITEMS: LibraryItem[] = [
     href: '/workflows/private/ai-officer-institute/hub.html',
     title: 'Learning Hub (unified prototype)',
     description:
-      'One prototype with a left-hand nav pulling Coaching, Micro Sessions, and Videos into a single shell, plus a light Home and Certification. Every section shares one taxonomy: a certification category (AI Officer, AI Engineer, Leadership) and free-flowing topic tags. Coaching submits a coaching topic; Micro Sessions log the five data points and earn a credit on challenge submit (Tuesdays 4pm GMT+7); Videos is a YouTube-light library with a featured video, recently watched, 30-day watch stats, and a Micro-Sessions category.',
+      'The unified learning hub, rebuilt so every screen shares one design system: a left-hand nav across Home, Certification, Coaching, Micro Sessions, Videos, Blog, and a locked Leadership track. Home shows progress metrics, the AI Buddy, and certification track cards; Certification has the mission journey with summary cards and accordions; Coaching submits a topic behind a live photo hero; Micro Sessions log the five data points and earn a credit on challenge submit (Tuesdays 4pm GMT+7); Videos is a YouTube-light library with 30-day watch stats; Blog carries a navy hero with functional search, tag filters, sort, and grid/list layouts.',
   },
   {
     category: 'prototype',
