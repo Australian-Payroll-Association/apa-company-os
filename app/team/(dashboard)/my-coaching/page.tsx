@@ -40,7 +40,11 @@ export default async function MyCoachingPage() {
     <>
       <PageHead
         title="My coaching"
-        sub={`Biweekly 1-1s with ${my.coachName} · next one ${fmt(my.nextOneOnOneOn)}`}
+        sub={
+          my.coachName
+            ? `Biweekly 1-1s with ${my.coachName} · next one ${fmt(my.nextOneOnOneOn)}`
+            : "No coach assigned yet. Your goals and commitments are still yours to run."
+        }
       />
 
       <div className="coach-profile">
@@ -54,7 +58,10 @@ export default async function MyCoachingPage() {
           </div>
           {my.goals.length === 0 && (
             <div className="admin-empty">
-              No FAST goal set yet. That&apos;s the first thing to shape with {my.coachName} in your next 1-1.
+              No FAST goal set yet.{" "}
+              {my.coachName
+                ? `That's the first thing to shape with ${my.coachName} in your next 1-1.`
+                : "Add one and it's yours to run."}
             </div>
           )}
           {my.goals.map((g) => (
@@ -102,7 +109,7 @@ export default async function MyCoachingPage() {
           <section className="admin-card coach-section">
             <div className="admin-card-title">Your OCEAN profile</div>
             <div className="admin-hint">
-              How {my.coachName} reads your working style, with the behavior behind each read. It&apos;s a
+              How {my.coachName ?? "your coach"} reads your working style, with the behavior behind each read. It&apos;s a
               conversation starter for your 1-1s, not a verdict, so bring anything you see differently.
             </div>
             <div className="coach-ocean-list">
