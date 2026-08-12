@@ -2824,8 +2824,27 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   cursor: pointer;
   text-align: left;
 }
-.coach-meeting-caret { margin-left: auto; color: var(--admin-ink-2); }
+.coach-meeting-caret { margin-left: auto; color: var(--admin-accent); font-weight: 600; }
 .coach-meeting-body { display: grid; gap: 16px; padding: 0 0 16px; }
+
+/* The next 1-1: lifted off the plain list so the prep you are about to walk
+   into the room with is the first thing the eye lands on. */
+.coach-meeting--next {
+  border-top: none;
+  border-left: 3px solid var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-radius: var(--admin-radius-sm);
+  padding: 0 14px;
+  margin-top: 16px;
+}
+.coach-meeting--next .coach-meeting-body { padding-bottom: 14px; }
+.coach-meeting-next-tag { text-transform: uppercase; letter-spacing: 0.04em; }
+.coach-block--prep {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 14px;
+}
 .coach-block-head {
   display: flex;
   align-items: center;
