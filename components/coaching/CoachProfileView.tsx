@@ -32,6 +32,7 @@ import {
   publishOcean,
   publishRecap,
   reorderCommitments,
+  resolveTalkingPoint,
   runTrendReport,
   saveOcean,
   savePrivateProfile,
@@ -155,6 +156,7 @@ export function CoachProfileView({
         {tab === "next" && (
           <>
             <CarriedOverCard detail={detail} todayIso={todayIso} />
+            <TalkingPointsCard detail={detail} run={run} busy={busy} />
             <MeetingsCard detail={detail} html={html} run={run} busy={busy} view="next" />
             <CommitmentsCard detail={detail} run={run} busy={busy} />
             <PrioritiesCard detail={detail} run={run} busy={busy} />
@@ -641,6 +643,43 @@ function OceanCard({
       ) : (
         <div className="admin-empty">No OCEAN profile yet.</div>
       )}
+    </section>
+  );
+}
+
+// ---- talking points (the member's agenda) -----------------------------------
+// What the coachee raised for this 1-1. The member owns the input on their page;
+// the coach reads it here and marks each addressed once covered. Hidden when the
+// member has raised nothing.
+
+function TalkingPointsCard({
+  detail,
+  run,
+  busy,
+}: {
+  detail: CoachProfileDetail;
+  run: (label: string, fn: () => Promise<ActionResult>) => void;
+  busy: boolean;
+}) {
+  if (detail.talkingPoints.length === 0) return null;
+  return (
+    <section className="admin-card coach-section coach-carried">
+      <div className="admin-card-title">
+        Their talking points <span className="admin-cell-muted">what {detail.member.name} wants to cover</span>
+      </div>
+      <div className="admin-hint">Raised for this 1-1, and folded into the prep. Mark addressed once you have covered it.</div>
+      {detail.talkingPoints.map((t) => (
+        <div key={t.id} className="coach-carried-row">
+          <span className="coach-carried-title">{t.body}</span>
+          <button
+            className="admin-btn admin-btn--sm"
+            disabled={busy}
+            onClick={() => run("Talking point", () => resolveTalkingPoint(t.id))}
+          >
+            Mark addressed
+          </button>
+        </div>
+      ))}
     </section>
   );
 }

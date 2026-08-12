@@ -257,6 +257,19 @@ async function loadOpenCommitments(profileId: string): Promise<string> {
     .join("\n");
 }
 
+// The member's half of the agenda: what they asked to cover next time.
+async function loadTalkingPoints(profileId: string): Promise<string> {
+  const { data } = await companyOs
+    .from("coaching_talking_points")
+    .select("body")
+    .eq("coaching_profile_id", profileId)
+    .is("addressed_at", null)
+    .order("created_at", { ascending: true });
+  const rows = (data ?? []) as Array<{ body: string }>;
+  if (rows.length === 0) return "(none raised)";
+  return rows.map((t) => `- ${t.body}`).join("\n");
+}
+
 function personBlock(p: ProfileContext): string {
   return [
     `Name: ${p.memberName}`,
@@ -304,7 +317,7 @@ const PREP_SYSTEM = `You prepare a leader for a biweekly 1-1 coaching conversati
 
 Produce Markdown with exactly these ## sections, in order:
 ## Recommended mode: the coach/mentor/direct split to aim for in this meeting (target 80/15/5), one sentence on why, grounded in the coach's recent mode history and this person's OCEAN wiring.
-## Focus areas: 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked.
+## Focus areas: 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked. If the person raised talking points for this 1-1, treat them as their agenda: work them into the focus areas and name them explicitly.
 ## Coaching questions: 3-5 open-ended GROW questions tailored to this person right now, led by the goal question. They must reflect the coaching profile and the OCEAN read and sound like the coach, not a template.
 ## Context reminders: bullets: status of previous commitments, standing priorities to touch, personal context to handle with care, upcoming milestones, relevant company context.
 ## Retention check: one specific thing to listen for, tied to the person's current loose engagement root. If the root is "watching", the check is about forming a first confident read.
@@ -333,19 +346,21 @@ export async function generatePrep(meetingId: string): Promise<Ok | Err> {
 
     const profile = await loadProfileContext(m.coaching_profile_id);
     if (!profile) return { ok: false, error: "Profile not found." };
-    const [docs, summaries, commitments, goals, priorities, oceanBlock, modeHistory] = await Promise.all([
-      loadCoachDocs(profile.coachId),
-      loadRecentSummaries(m.coaching_profile_id, 2),
-      loadOpenCommitments(m.coaching_profile_id),
-      loadGoalsBlock(m.coaching_profile_id),
-      loadPrioritiesBlock(m.coaching_profile_id),
-      loadOceanBlock(m.coaching_profile_id),
-      loadModeHistoryBlock(m.coaching_profile_id),
-    ]);
+    const [docs, summaries, commitments, talkingPoints, goals, priorities, oceanBlock, modeHistory] =
+      await Promise.all([
+        loadCoachDocs(profile.coachId),
+        loadRecentSummaries(m.coaching_profile_id, 2),
+        loadOpenCommitments(m.coaching_profile_id),
+        loadTalkingPoints(m.coaching_profile_id),
+        loadGoalsBlock(m.coaching_profile_id),
+        loadPrioritiesBlock(m.coaching_profile_id),
+        loadOceanBlock(m.coaching_profile_id),
+        loadModeHistoryBlock(m.coaching_profile_id),
+      ]);
 
     const prep = await textCompletion(
       PREP_SYSTEM,
-      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# OCEAN read\n${oceanBlock}\n\n# FAST goals\n${goals}\n\n# Standing priorities\n${priorities}\n\n# The coach's recent mode splits\n${modeHistory}\n\n# Last meetings\n${summaries}\n\n# Open commitments\n${commitments}\n\n# The upcoming 1-1\nScheduled for ${m.held_on} (today is ${saigonToday()}). Write the prep.`,
+      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# OCEAN read\n${oceanBlock}\n\n# FAST goals\n${goals}\n\n# Standing priorities\n${priorities}\n\n# The coach's recent mode splits\n${modeHistory}\n\n# Last meetings\n${summaries}\n\n# Open commitments\n${commitments}\n\n# Talking points the person raised for this 1-1\n${talkingPoints}\n\n# The upcoming 1-1\nScheduled for ${m.held_on} (today is ${saigonToday()}). Write the prep.`,
       4000,
     );
 
