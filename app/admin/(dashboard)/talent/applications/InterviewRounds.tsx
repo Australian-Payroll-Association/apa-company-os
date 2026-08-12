@@ -16,6 +16,7 @@ import {
   getTranscript,
   listTeamMembers,
   removePanelist,
+  runAiPanelist,
   saveTranscriptText,
   submitScorecard,
   uploadInterviewTranscript,
@@ -118,6 +119,10 @@ function RoundCard({
   const [busy, setBusy] = useState(false);
   const humans = round.seats.filter((s) => !s.isAi);
   const submitted = humans.filter((s) => s.scorecard?.submittedAt).length;
+  // Blind-first: the AI seat is revealed only once every human on this round has
+  // submitted. A round with no humans never reveals (there is nobody to anchor).
+  const humansAllIn = humans.length > 0 && humans.every((s) => s.scorecard?.submittedAt);
+  const humanScorecards = humans.map((s) => s.scorecard).filter((s): s is NonNullable<typeof s> => Boolean(s));
 
   async function del() {
     if (!confirm("Delete this interview round and its scorecards?")) return;
@@ -159,7 +164,15 @@ function RoundCard({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
         {round.seats.map((seat) => (
-          <PanelSeatRow key={seat.interviewerId} round={round} seat={seat} onChange={onChange} />
+          <PanelSeatRow
+            key={seat.interviewerId}
+            round={round}
+            seat={seat}
+            humansAllIn={humansAllIn}
+            humanScorecards={humanScorecards}
+            hasTranscript={Boolean(round.transcriptDocId)}
+            onChange={onChange}
+          />
         ))}
       </div>
 
@@ -314,16 +327,28 @@ function TranscriptPanel({ round, onChange }: { round: InterviewRound; onChange:
 function PanelSeatRow({
   round,
   seat,
+  humansAllIn,
+  humanScorecards,
+  hasTranscript,
   onChange,
 }: {
   round: InterviewRound;
   seat: PanelSeat;
+  humansAllIn: boolean;
+  humanScorecards: NonNullable<PanelSeat["scorecard"]>[];
+  hasTranscript: boolean;
   onChange: () => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
   const sc = seat.scorecard;
   const rec = sc?.recommendation ? RECOMMENDATIONS.find((r) => r.key === sc.recommendation) : null;
+
+  // Blind-first: an AI scorecard is hidden until every human on the round is in.
+  const aiBlind = seat.isAi && Boolean(sc) && !humansAllIn;
+  const showScorecard = Boolean(sc) && !editing && !aiBlind;
 
   async function removeSeat() {
     if (!confirm(`Remove ${seat.name} from this panel?`)) return;
@@ -331,6 +356,15 @@ function PanelSeatRow({
     const r = await removePanelist(round.id, seat.interviewerId);
     setBusy(false);
     if (!r.ok) return alert(r.error);
+    await onChange();
+  }
+
+  async function runAi() {
+    setAiBusy(true);
+    setAiErr(null);
+    const r = await runAiPanelist(round.id);
+    setAiBusy(false);
+    if (!r.ok) return setAiErr(r.error);
     await onChange();
   }
 
@@ -352,20 +386,29 @@ function PanelSeatRow({
           {seat.isAi ? "AI" : seat.role === "lead" ? "LEAD" : seat.role.toUpperCase()}
         </span>
         <span className="admin-cell-strong">{seat.name}</span>
-        {rec && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: recTone(rec.tone),
-            }}
-          >
+        {rec && !aiBlind && (
+          <span style={{ fontSize: 12, fontWeight: 600, color: recTone(rec.tone) }}>
             {rec.label}
             {sc?.overallScore != null ? ` · ${sc.overallScore}/5` : ""}
           </span>
         )}
+        {aiBlind && (
+          <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+            scored · hidden
+          </span>
+        )}
         <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
-          {seat.isAi ? null : (
+          {seat.isAi ? (
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm"
+              disabled={aiBusy || !hasTranscript}
+              title={hasTranscript ? undefined : "Add a transcript first"}
+              onClick={runAi}
+            >
+              {aiBusy ? "Scoring…" : sc ? "Re-run" : "Run AI panelist"}
+            </button>
+          ) : (
             <button type="button" className="admin-btn admin-btn--sm" onClick={() => setEditing((v) => !v)}>
               {editing ? "Close" : sc ? "Edit scorecard" : "Submit scorecard"}
             </button>
@@ -378,29 +421,56 @@ function PanelSeatRow({
         </span>
       </div>
 
-      {seat.isAi && !sc && (
-        <div className="admin-hint" style={{ marginTop: 4 }}>
-          The AI panelist scores automatically once transcript scoring is enabled.
+      {aiErr && (
+        <div className="admin-alert admin-alert--err" style={{ marginTop: 6 }}>
+          {aiErr}
         </div>
       )}
 
-      {sc && !editing && (
+      {seat.isAi && !sc && !aiErr && (
+        <div className="admin-hint" style={{ marginTop: 4 }}>
+          {hasTranscript
+            ? "The AI panelist scores automatically when a transcript is added. Run it now if needed."
+            : "Add a transcript for this round and the AI panelist scores it automatically."}
+        </div>
+      )}
+
+      {aiBlind && (
+        <div className="admin-hint" style={{ marginTop: 4 }}>
+          The AI has scored this round. It stays hidden until every interviewer submits, so it can’t sway the panel.
+        </div>
+      )}
+
+      {showScorecard && sc && (
         <div style={{ marginTop: 6, fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
           {sc.scores.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              {sc.scores.map((s) => (
-                <div key={s.criterion} style={{ display: "flex", gap: 8 }}>
-                  <span className="admin-cell-muted" style={{ minWidth: 130 }}>
-                    {s.criterion}
-                  </span>
-                  <span className="admin-cell-strong">{s.score != null ? `${s.score}/5` : "—"}</span>
-                  {s.comment && <span className="admin-cell-muted">{s.comment}</span>}
-                </div>
-              ))}
+              {sc.scores.map((s) => {
+                const flag = seat.isAi && humansAllIn && disagrees(s.score, humanScores(humanScorecards, s.criterion));
+                return (
+                  <div key={s.criterion} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span className="admin-cell-muted" style={{ minWidth: 130 }}>
+                      {s.criterion}
+                    </span>
+                    <span className="admin-cell-strong">{s.score != null ? `${s.score}/5` : "—"}</span>
+                    {flag && <DisagreeTag />}
+                    {s.comment && <span className="admin-cell-muted">{s.comment}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {seat.isAi && humansAllIn && disagrees(sc.overallScore, humanScorecards.map((h) => h.overallScore)) && (
+            <div style={{ fontSize: 12 }}>
+              <DisagreeTag /> <span className="admin-cell-muted">overall differs from a human panelist by a full point</span>
             </div>
           )}
           {sc.summary && <div style={{ whiteSpace: "pre-wrap" }}>{sc.summary}</div>}
-          {sc.submittedAt && <div className="admin-cell-muted">Submitted {formatDate(sc.submittedAt)}</div>}
+          {sc.submittedAt && (
+            <div className="admin-cell-muted">
+              {seat.isAi ? "Scored" : "Submitted"} {formatDate(sc.submittedAt)}
+            </div>
+          )}
         </div>
       )}
 
@@ -416,6 +486,34 @@ function PanelSeatRow({
       )}
     </div>
   );
+}
+
+function DisagreeTag() {
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: ".04em",
+        padding: "1px 6px",
+        borderRadius: 999,
+        background: "var(--admin-warn-bg)",
+        color: "var(--admin-warn-ink)",
+      }}
+    >
+      GAP
+    </span>
+  );
+}
+
+function humanScores(cards: NonNullable<PanelSeat["scorecard"]>[], criterion: string): (number | null)[] {
+  return cards.flatMap((c) => c.scores.filter((s) => s.criterion === criterion).map((s) => s.score));
+}
+
+// True if any human score sits a full point or more from the AI score.
+function disagrees(aiScore: number | null, others: (number | null)[]): boolean {
+  if (aiScore == null) return false;
+  return others.some((o) => o != null && Math.abs(o - aiScore) >= 1);
 }
 
 type ScoreRow = { criterion: string; score: number | null; comment: string };
