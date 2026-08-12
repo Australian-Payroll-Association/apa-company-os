@@ -14,6 +14,7 @@ import {
   coachCreateOneOnOne,
   coachPublishOcean,
   coachPublishSharedRecap,
+  coachReorderCommitments,
   coachSaveOcean,
   coachSaveSummaries,
   coachSaveTranscript,
@@ -295,6 +296,18 @@ export async function updateCommitmentStatus(
   const actor = await requireTeamMember();
   const res = await coachUpdateCommitment(actor, commitmentId, { status, statusNote: note });
   if (res.ok) refresh();
+  return res;
+}
+
+// One shared priority stack: the member drags the same list from
+// /team/my-coaching, so both pages agree on what matters most.
+export async function reorderCommitments(
+  profileId: string,
+  orderedIds: string[],
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachReorderCommitments(actor, profileId, orderedIds);
+  if (res.ok) refresh(profileId);
   return res;
 }
 

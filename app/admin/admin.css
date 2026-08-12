@@ -2809,6 +2809,43 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .coach-closed { margin-top: 10px; font-size: 13px; }
 .coach-closed summary { cursor: pointer; color: var(--admin-ink-2); }
 
+/* Commitment stack: one draggable card per commitment, top = most important.
+   Shared by the coach page and /team/my-coaching (CommitmentStack.tsx). The
+   card rests flat per Foundations; only the lifted card carries elevation. */
+.coach-commit-stack { display: grid; gap: 10px; margin-top: 12px; }
+.coach-commit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+.coach-commit-card.is-dragging {
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-shadow);
+}
+.coach-commit-handle {
+  cursor: grab;
+  color: var(--admin-muted);
+  line-height: 1.4;
+  user-select: none;
+  flex: none;
+}
+.coach-commit-handle:active { cursor: grabbing; }
+.coach-commit-body { display: grid; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.coach-commit-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.coach-commit-edit { display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-commit-edit .admin-input { width: auto; flex: 1 1 220px; min-width: 150px; }
+.coach-commit-edit input[type="date"].admin-input { flex: 0 1 auto; }
+
 .coach-meeting { border-top: 1px solid var(--admin-line); margin-top: 12px; }
 .coach-meeting-head {
   display: flex;

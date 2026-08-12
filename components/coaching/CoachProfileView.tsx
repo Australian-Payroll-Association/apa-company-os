@@ -15,7 +15,6 @@ import type {
   RetentionRoot,
 } from "@/lib/coaching/data";
 import {
-  COMMITMENT_STATUS_LABELS,
   GOAL_STATUS_LABELS,
   OCEAN_DIMENSIONS,
   OPEN_COMMITMENT_STATUSES,
@@ -33,6 +32,7 @@ import {
   logOneOnOne,
   publishOcean,
   publishRecap,
+  reorderCommitments,
   runTrendReport,
   saveOcean,
   savePrivateProfile,
@@ -49,6 +49,7 @@ import {
   updatePriority,
 } from "@/app/team/(dashboard)/coaching/actions";
 import { GoalComments } from "@/components/coaching/GoalComments";
+import { CommitmentStack } from "@/components/coaching/CommitmentStack";
 
 // The coach's working surface for one person. Server pre-renders every
 // markdown field into `html`; edits round-trip raw markdown through the
@@ -70,15 +71,6 @@ function fmt(iso: string | null): string {
     year: "numeric",
   });
 }
-
-const STATUS_BADGE: Record<CommitmentStatus, string> = {
-  open: "admin-badge--info",
-  on_track: "admin-badge--ok",
-  needs_attention: "admin-badge--warn",
-  completed: "admin-badge--ok",
-  dropped: "admin-badge--err",
-  blocked: "admin-badge--err",
-};
 
 export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail; html: RenderedHtml }) {
   const [error, setError] = useState<string | null>(null);
@@ -576,23 +568,26 @@ function CommitmentsCard({
   const [title, setTitle] = useState("");
   const [owner, setOwner] = useState<"member" | "coach">("member");
   const [dueOn, setDueOn] = useState("");
-  const open = detail.commitments.filter((c) =>
+  const openCount = detail.commitments.filter((c) =>
     (OPEN_COMMITMENT_STATUSES as CommitmentStatus[]).includes(c.status),
-  );
-  const closed = detail.commitments.filter(
-    (c) => !(OPEN_COMMITMENT_STATUSES as CommitmentStatus[]).includes(c.status),
-  );
+  ).length;
 
   return (
     <section className="admin-card coach-section">
       <div className="admin-card-title">
-        Commitments <span className="admin-cell-muted">({open.length} open)</span>
+        Commitments <span className="admin-cell-muted">({openCount} open)</span>
       </div>
+      <div className="admin-hint">Drag to reorder. They see the same stack.</div>
 
-      {open.length === 0 && <div className="admin-empty">No open commitments.</div>}
-      {open.map((c) => (
-        <CommitmentRow key={c.id} c={c} run={run} busy={busy} />
-      ))}
+      <CommitmentStack
+        commitments={detail.commitments}
+        busy={busy}
+        ownerLabel={(c) => (c.owner === "coach" ? "me" : "them")}
+        onStatus={(id, status, note) =>
+          run("Commitment", () => updateCommitmentStatus(id, status, note))
+        }
+        onReorder={(ids) => run("Order", () => reorderCommitments(detail.profileId, ids))}
+      />
 
       <div className="coach-add-row">
         <input
@@ -618,69 +613,7 @@ function CommitmentsCard({
           Add
         </button>
       </div>
-
-      {closed.length > 0 && (
-        <details className="coach-closed">
-          <summary>{closed.length} closed</summary>
-          {closed.map((c) => (
-            <div key={c.id} className="coach-commitment is-closed">
-              <span className={`admin-badge ${STATUS_BADGE[c.status]}`}>{COMMITMENT_STATUS_LABELS[c.status]}</span>
-              <span>{c.title}</span>
-            </div>
-          ))}
-        </details>
-      )}
     </section>
-  );
-}
-
-function CommitmentRow({
-  c,
-  run,
-  busy,
-}: {
-  c: CoachProfileDetail["commitments"][number];
-  run: (label: string, fn: () => Promise<ActionResult>) => void;
-  busy: boolean;
-}) {
-  const [note, setNote] = useState(c.statusNote ?? "");
-  return (
-    <div className="coach-commitment">
-      <div className="coach-commitment-main">
-        <span className={`admin-badge ${STATUS_BADGE[c.status]}`}>{COMMITMENT_STATUS_LABELS[c.status]}</span>
-        <span className="coach-commitment-title">{c.title}</span>
-        <span className="admin-cell-muted">
-          {c.owner === "coach" ? "me" : "them"}
-          {c.dueOn ? ` · due ${fmt(c.dueOn)}` : ""}
-        </span>
-      </div>
-      <div className="coach-commitment-controls">
-        <select
-          className="admin-input"
-          value={c.status}
-          disabled={busy}
-          onChange={(e) =>
-            run("Commitment", () => updateCommitmentStatus(c.id, e.target.value as CommitmentStatus, note))
-          }
-        >
-          {Object.entries(COMMITMENT_STATUS_LABELS).map(([k, label]) => (
-            <option key={k} value={k}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <input
-          className="admin-input"
-          placeholder="Status note…"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if ((c.statusNote ?? "") !== note)
-              run("Note", () => updateCommitmentStatus(c.id, c.status, note));
-          }}
-        />
-      </div>
-    </div>
   );
 }
 

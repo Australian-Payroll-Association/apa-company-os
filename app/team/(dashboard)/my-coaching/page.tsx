@@ -149,9 +149,10 @@ export default async function MyCoachingPage() {
         <section className="admin-card coach-section">
           <div className="admin-card-title">Your commitments</div>
           <div className="admin-hint">
-            Update the status any time. It feeds your next 1-1 and answers the mid-cycle check-in.
+            Add your own, and drag the stack so the most important sits on top. Your coach sees the
+            same order. Updating a status feeds your next 1-1 and answers the mid-cycle check-in.
           </div>
-          <MyCommitments commitments={my.commitments} />
+          <MyCommitments commitments={my.commitments} teamMemberId={actor.teamMemberId} />
         </section>
 
         <section className="admin-card coach-section">
