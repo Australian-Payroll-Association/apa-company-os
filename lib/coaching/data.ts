@@ -211,6 +211,14 @@ export type CoachingGoal = {
   ladder: EdgesLadder | null;
   sortOrder: number;
   comments: GoalComment[];
+  // The member-authored measure (/team/goals). Null on goals that carry no
+  // number of their own — a goal laddered to a metric gets its target from
+  // the ladder instead.
+  metricUnit: string | null;
+  startValue: number | null;
+  targetValue: number | null;
+  currentValue: number | null;
+  dueDate: string | null;
 };
 
 export type CoachingPriority = {
@@ -311,11 +319,16 @@ function resolveLadder(
 }
 
 const GOAL_SELECT =
-  "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, metric_id, sort_order";
+  "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, metric_id, sort_order, " +
+  "metric_unit, start_value, target_value, current_value, due_date";
 const PRIORITY_SELECT =
   "id, coaching_profile_id, title, detail_markdown, status, objective_id, key_result_id, metric_id, sort_order";
 
 type LadderRow = { objective_id: string | null; key_result_id: string | null; metric_id: string | null };
+
+// PostgREST can hand numeric back as a string; keep the type honest.
+const num = (v: unknown): number | null =>
+  v === null || v === undefined || v === "" ? null : Number(v);
 
 function toGoal(r: Record<string, unknown>, edges: EdgesOptions): CoachingGoal {
   return {
@@ -327,6 +340,11 @@ function toGoal(r: Record<string, unknown>, edges: EdgesOptions): CoachingGoal {
     ladder: resolveLadder(r as unknown as LadderRow, edges),
     sortOrder: (r.sort_order as number) ?? 0,
     comments: [],
+    metricUnit: (r.metric_unit as string | null) ?? null,
+    startValue: num(r.start_value),
+    targetValue: num(r.target_value),
+    currentValue: num(r.current_value),
+    dueDate: (r.due_date as string | null) ?? null,
   };
 }
 
@@ -1519,4 +1537,162 @@ export async function myUpdateCommitmentStatus(
       .eq("id", (checkin as { id: string }).id);
   }
   return { ok: true };
+}
+
+// ---- member tier: my FAST goals (/team/goals) ------------------------------
+// The member writes the same coaching_goals rows the coach page reads, so a
+// goal set here shows up in the next 1-1 rather than in a parallel list. Scope
+// is the actor's OWN profile (team_member_id = actor.teamMemberId, from the
+// JWT-derived actor) — never coach_id, and never a client-supplied profile id.
+
+export type MyGoalInput = {
+  title: string;
+  descriptionMarkdown: string | null;
+  status: GoalStatus;
+  quarterLabel: string | null;
+  metricUnit: string | null;
+  startValue: number | null;
+  targetValue: number | null;
+  currentValue: number | null;
+  dueDate: string | null;
+};
+
+// The actor's own active coaching profile, created on first save if they have
+// none. coach_id is NOT NULL, so a member with no manager on file cannot be
+// given a profile here — they get told to ask ops rather than silently landing
+// in someone else's coaching list.
+export async function getOrCreateMyCoachingProfileId(
+  actor: TeamActor,
+): Promise<{ ok: true; profileId: string } | { ok: false; error: string }> {
+  const { data: existing } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("team_member_id", actor.teamMemberId)
+    .eq("active", true)
+    .maybeSingle();
+  if (existing) return { ok: true, profileId: (existing as { id: string }).id };
+
+  const { data: me } = await companyOs
+    .from("team_members")
+    .select("manager_id")
+    .eq("id", actor.teamMemberId)
+    .maybeSingle();
+  const managerId = (me as { manager_id: string | null } | null)?.manager_id ?? null;
+  if (!managerId) {
+    return {
+      ok: false,
+      error: "You have no manager on file yet, so your goals have nowhere to go. Ask ops to set one.",
+    };
+  }
+
+  const { data: created, error } = await companyOs
+    .from("coaching_profiles")
+    .insert({ team_member_id: actor.teamMemberId, coach_id: managerId })
+    .select("id")
+    .maybeSingle();
+  if (error || !created) return { ok: false, error: "Could not start your goals. Try again." };
+  return { ok: true, profileId: (created as { id: string }).id };
+}
+
+// Every goal on the actor's own profile, including ones their coach set for
+// them: a FAST goal is jointly owned, and each change notifies the manager.
+export async function getMyGoals(actor: TeamActor): Promise<CoachingGoal[]> {
+  const { data: profile } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("team_member_id", actor.teamMemberId)
+    .eq("active", true)
+    .maybeSingle();
+  if (!profile) return [];
+
+  const [goals, edges] = await Promise.all([
+    companyOs
+      .from("coaching_goals")
+      .select(GOAL_SELECT)
+      .eq("coaching_profile_id", (profile as { id: string }).id)
+      .order("sort_order")
+      .order("created_at"),
+    getEdgesLadderOptions(),
+  ]);
+  return ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
+}
+
+// True when the goal hangs off the actor's own profile. The IDOR gate for
+// every my* goal mutation: a client-supplied goal id is never the authority.
+async function goalIsMine(actor: TeamActor, goalId: string): Promise<boolean> {
+  if (!goalId) return false;
+  const { data } = await companyOs
+    .from("coaching_goals")
+    .select("id, coaching_profiles:coaching_profiles!coaching_profile_id(team_member_id)")
+    .eq("id", goalId)
+    .maybeSingle();
+  if (!data) return false;
+  const prof = one(
+    (data as unknown as Record<string, unknown>).coaching_profiles as
+      | { team_member_id: string }
+      | { team_member_id: string }[]
+      | null,
+  );
+  return prof?.team_member_id === actor.teamMemberId;
+}
+
+function goalColumns(input: MyGoalInput): Record<string, unknown> {
+  return {
+    title: input.title.trim(),
+    description_markdown: input.descriptionMarkdown?.trim() || null,
+    status: input.status,
+    quarter_label: input.quarterLabel?.trim() || null,
+    metric_unit: input.metricUnit?.trim() || null,
+    start_value: input.startValue,
+    target_value: input.targetValue,
+    current_value: input.currentValue,
+    due_date: input.dueDate || null,
+  };
+}
+
+function validateGoal(input: MyGoalInput): string | null {
+  if (!input.title.trim()) return "Write the goal first.";
+  if (input.title.trim().length > 200) return "Keep the goal title under 200 characters.";
+  if (!(input.status in GOAL_STATUS_LABELS)) return "Bad status.";
+  for (const v of [input.startValue, input.targetValue, input.currentValue]) {
+    if (v !== null && !Number.isFinite(v)) return "The measure values need to be numbers.";
+  }
+  if (input.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) return "Pick a valid due date.";
+  return null;
+}
+
+export async function myAddGoal(actor: TeamActor, input: MyGoalInput): Promise<Result> {
+  const invalid = validateGoal(input);
+  if (invalid) return { ok: false, error: invalid };
+
+  const profile = await getOrCreateMyCoachingProfileId(actor);
+  if (!profile.ok) return { ok: false, error: profile.error };
+
+  const { error } = await companyOs
+    .from("coaching_goals")
+    .insert({ coaching_profile_id: profile.profileId, ...goalColumns(input) });
+  return error ? { ok: false, error: "Could not add the goal." } : { ok: true };
+}
+
+export async function myUpdateGoal(
+  actor: TeamActor,
+  goalId: string,
+  input: MyGoalInput,
+): Promise<Result> {
+  if (!(await goalIsMine(actor, goalId))) return { ok: false, error: "Not found." };
+  const invalid = validateGoal(input);
+  if (invalid) return { ok: false, error: invalid };
+
+  const { error } = await companyOs
+    .from("coaching_goals")
+    .update({ ...goalColumns(input), updated_at: new Date().toISOString() })
+    .eq("id", goalId);
+  return error ? { ok: false, error: "Could not save the goal." } : { ok: true };
+}
+
+// True delete, matching coachDeleteGoal: comments cascade, no tombstone.
+export async function myDeleteGoal(actor: TeamActor, goalId: string): Promise<Result> {
+  if (!(await goalIsMine(actor, goalId))) return { ok: false, error: "Not found." };
+  const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
+  return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }

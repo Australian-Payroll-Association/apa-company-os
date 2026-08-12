@@ -89,11 +89,16 @@ export function bannedUntil(user: unknown): string | null {
 // the ban. Also completes the half-provisioned state (active membership row
 // but no auth account, e.g. from a backfill that held invites): the row is
 // left alone and the auth user is minted + emailed.
+export type PortalProvisionVia = "admin_ui" | "admin_chatbot" | "portal_ui";
+
 export async function invitePortalMemberCore(
   personId: string,
   companyId: string,
   actor: string,
-  via: "admin_ui" | "admin_chatbot",
+  via: PortalProvisionVia,
+  // Portal role for the (re)created membership (PR 3): admin | contributor |
+  // viewer. Omitted → the column default (admin), matching pre-roles behavior.
+  role?: string,
 ): Promise<PortalResult> {
   if (!companyId) return { ok: false, error: "Missing company." };
   const loaded = await loadPortalTarget(personId);
@@ -120,13 +125,19 @@ export async function invitePortalMemberCore(
   if (existingRow && existingRow.status !== "active") {
     const { error } = await companyOs
       .from("portal_members")
-      .update({ status: "active", revoked_at: null, invited_by: actor, updated_at: new Date().toISOString() })
+      .update({
+        status: "active",
+        revoked_at: null,
+        invited_by: actor,
+        updated_at: new Date().toISOString(),
+        ...(role ? { role } : {}),
+      })
       .eq("id", existingRow.id);
     if (error) return { ok: false, error: `Could not reactivate membership: ${error.message}` };
   } else if (!existingRow) {
     const { error } = await companyOs
       .from("portal_members")
-      .insert({ person_id: personId, company_id: companyId, invited_by: actor });
+      .insert({ person_id: personId, company_id: companyId, invited_by: actor, ...(role ? { role } : {}) });
     if (error) return { ok: false, error: `Could not create membership: ${error.message}` };
   }
 
@@ -208,7 +219,7 @@ export async function resendPortalLinkCore(
   personId: string,
   companyId: string,
   actor: string,
-  via: "admin_ui" | "admin_chatbot",
+  via: PortalProvisionVia,
 ): Promise<PortalResult> {
   const loaded = await loadPortalTarget(personId);
   if ("error" in loaded) return { ok: false, error: loaded.error };
@@ -251,4 +262,61 @@ export async function resendPortalLinkCore(
   });
 
   return { ok: true, message: "Sign-in link sent." };
+}
+
+// Ban horizon for revoked portal access. Banning (not deleting) keeps the
+// people.auth_user_id link intact so access can be restored by re-inviting.
+const REVOKE_BAN = "87600h"; // ~10 years
+
+// Revoke one (person, company) membership; when it was the person's LAST
+// active membership, ban the auth user too. Shared by the admin UI action and
+// the portal Users page (portal-admin callers gate + scope before calling).
+export async function revokePortalMemberCore(
+  personId: string,
+  companyId: string,
+  actor: string,
+  via: PortalProvisionVia,
+): Promise<PortalResult> {
+  const loaded = await loadPortalTarget(personId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+  const t = loaded.target;
+
+  const { data: row } = await companyOs
+    .from("portal_members")
+    .select("id, status")
+    .eq("person_id", personId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (!row || row.status !== "active") return { ok: false, error: "No active membership to revoke." };
+
+  const { error: revErr } = await companyOs
+    .from("portal_members")
+    .update({ status: "revoked", revoked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", row.id);
+  if (revErr) return { ok: false, error: `Revoke failed: ${revErr.message}` };
+
+  const { data: remaining } = await companyOs
+    .from("portal_members")
+    .select("id")
+    .eq("person_id", personId)
+    .eq("status", "active")
+    .limit(1);
+  let message = "Membership revoked.";
+  if ((remaining ?? []).length === 0 && t.authUserId) {
+    const { error } = await supabase.auth.admin.updateUserById(t.authUserId, {
+      ban_duration: REVOKE_BAN,
+    });
+    if (error) return { ok: false, error: `Membership revoked but sign-in ban failed: ${error.message}` };
+    message = "Portal access revoked and sign-in disabled.";
+  }
+
+  await recordAudit({
+    table: "portal_members",
+    recordId: row.id as string,
+    operation: "update",
+    actor,
+    context: { action: "portal_revoke", person_id: t.personId, company_id: companyId, via },
+  });
+
+  return { ok: true, message };
 }

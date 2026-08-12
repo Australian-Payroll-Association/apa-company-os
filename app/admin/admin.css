@@ -1724,7 +1724,14 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-viewtoggle button.is-active { background: var(--admin-accent); color: #fff; }
 
 /* ─── 360 detail layout + record lists ────────────── */
-.admin-360 { display: grid; grid-template-columns: 308px 1fr; gap: 20px; align-items: start; }
+/* Columns stretch to equal height rather than each stopping at its own
+   content. The left rail (edit form ending in a tall notes field) is usually
+   the taller column; with align-items:start the shorter right column left a
+   large slab of page background exposed below it. Stretching lets a
+   card-backed main column (e.g. the companies tabs card) fill that height as
+   one panel. Every left grid child and all but one right child are transparent
+   wrapper divs, so stretch is a no-op for them. */
+.admin-360 { display: grid; grid-template-columns: 308px 1fr; gap: 20px; align-items: stretch; }
 .admin-section-card { padding: 18px 20px; }
 .admin-section-card + .admin-section-card { margin-top: 16px; }
 /* The stack-spacing rule above targets vertically stacked section cards. As
@@ -3152,3 +3159,33 @@ a.ideas-share-card:hover {
   border-radius: 8px;
 }
 .edges-checkin .admin-input, .edges-checkin .admin-select { width: auto; }
+
+/* ─── My FAST Goals (/team/goals) ───────────────────── */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.goals-card { margin-bottom: 14px; }
+.goals-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.goals-card-head strong { font-size: 15px; }
+/* Progress from start to target. Only rendered when both numbers exist. */
+.goals-bar {
+  height: 6px;
+  margin: 10px 0;
+  border-radius: 999px;
+  background: var(--admin-surface-2);
+  overflow: hidden;
+}
+.goals-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--admin-accent);
+}

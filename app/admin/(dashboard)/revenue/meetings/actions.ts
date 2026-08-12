@@ -18,9 +18,11 @@ const BUCKET = "meeting-transcripts";
 
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 
-function refresh(companyId: string) {
+function refresh(companyId: string, meetingId?: string) {
   revalidatePath("/admin/revenue/meetings");
+  if (meetingId) revalidatePath(`/admin/revenue/meetings/${meetingId}`);
   revalidatePath(`/admin/revenue/companies/${companyId}`);
+  revalidatePath("/portal/meetings");
 }
 
 // Store the original uploaded file so the source is retained; the transcript
@@ -93,7 +95,7 @@ export async function createMeeting(formData: FormData): Promise<CreateResult> {
 
   await recordAudit({ table: "meeting_notes", recordId: data.id, operation: "insert", actor: admin.email });
   waitUntil(summarizeMeeting(data.id));
-  refresh(companyId);
+  refresh(companyId, data.id);
   return { ok: true, id: data.id };
 }
 
@@ -137,7 +139,7 @@ export async function updateMeeting(
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({ table: "meeting_notes", recordId: id, operation: "update", actor: admin.email });
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
@@ -159,23 +161,33 @@ export async function setMeetingPublished(id: string, published: boolean): Promi
     actor: admin.email,
     context: { published },
   });
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
-export async function archiveMeeting(id: string): Promise<ActionResult> {
+// Hard delete: remove the row and its uploaded source file. Meeting notes are
+// often created by mistake (wrong transcript), and there is nothing worth
+// keeping, so this is a real delete rather than a soft archive. The audit_log
+// row records that the deletion happened + who, not the content.
+export async function deleteMeeting(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const meeting = await loadMeeting(id);
+
+  const { data } = await companyOs
+    .from("meeting_notes")
+    .select("id, company_id, source_file_path")
+    .eq("id", id)
+    .maybeSingle();
+  const meeting = data as { id: string; company_id: string; source_file_path: string | null } | null;
   if (!meeting) return { ok: false, error: "Meeting not found." };
 
-  const { error } = await companyOs
-    .from("meeting_notes")
-    .update({ archived_at: new Date().toISOString(), published_at: null, updated_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error } = await companyOs.from("meeting_notes").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  await recordAudit({ table: "meeting_notes", recordId: id, operation: "archive", actor: admin.email });
-  refresh(meeting.company_id);
+  if (meeting.source_file_path) {
+    await supabase.storage.from(BUCKET).remove([meeting.source_file_path]);
+  }
+  await recordAudit({ table: "meeting_notes", recordId: id, operation: "delete", actor: admin.email });
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
@@ -189,6 +201,6 @@ export async function retryMeetingSummary(id: string): Promise<ActionResult> {
     .update({ ai_status: "pending", ai_error: null, updated_at: new Date().toISOString() })
     .eq("id", id);
   waitUntil(summarizeMeeting(id));
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }

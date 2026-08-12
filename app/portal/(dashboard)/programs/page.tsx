@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
+import { contributorCompanyScope } from "@/lib/portal/roles";
 import { listProgramsForActor } from "@/lib/portal/ai-programs";
 import { hasBacklog } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
@@ -43,6 +44,8 @@ export default async function AiProgramsPage() {
     listProgramsForActor(actor),
     hasBacklog(actor),
   ]);
+  // Creating programs is contributor+ (PR 2 roles); viewers browse only.
+  const canCreate = contributorCompanyScope(actor).length > 0;
 
   if (programs.length === 0) {
     return (
@@ -88,9 +91,11 @@ export default async function AiProgramsPage() {
         title="Programs"
         sub={`${programs.length} ${programs.length === 1 ? "program" : "programs"}.`}
         action={
-          <Link href="/portal/programs/add" className="admin-btn admin-btn--primary">
-            Add AI Program Plan
-          </Link>
+          canCreate ? (
+            <Link href="/portal/programs/add" className="admin-btn admin-btn--primary">
+              Add AI Program Plan
+            </Link>
+          ) : undefined
         }
       />
 

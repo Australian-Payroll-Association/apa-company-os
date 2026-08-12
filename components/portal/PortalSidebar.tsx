@@ -18,25 +18,53 @@ export type PortalEntitlements = {
   events: boolean;
   referrals: boolean;
   meetings: boolean;
+  users: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
 type NavItem = { label: string; href: string; ico: string; built?: boolean; entitlementKey?: EntitlementKey };
 
-const NAV: NavItem[] = [
-  { label: "Home", href: "/portal", ico: "◈", built: true },
-  // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
-  // token/staff-based gating is refined later with the Human Token Tracker.
-  { label: "AI Programs", href: "/portal/programs", ico: "⇉", built: true },
-  // Requests has no entitlement key on purpose: being a portal member IS the
-  // entitlement to ask for work; all data inside is company-scoped anyway.
-  { label: "Requests", href: "/portal/requests", ico: "✎", built: true },
-  { label: "Meetings", href: "/portal/meetings", ico: "☰", built: true, entitlementKey: "meetings" },
-  { label: "Team", href: "/portal/team", ico: "☷", built: true, entitlementKey: "team" },
-  { label: "Time Off", href: "/portal/time-off", ico: "☼", built: true, entitlementKey: "timeOff" },
-  { label: "Invoices", href: "/portal/invoices", ico: "▤", built: true, entitlementKey: "invoices" },
-  { label: "My Events", href: "/portal/events", ico: "▦", built: true, entitlementKey: "events" },
-  { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
+type NavGroup = { label: string | null; items: NavItem[] };
+
+// Grouped so the groups can collapse, matching AdminSidebar. Home stays
+// ungrouped, like the admin company dashboard link.
+const NAV: NavGroup[] = [
+  {
+    label: null,
+    items: [{ label: "Home", href: "/portal", ico: "\u25c8", built: true }],
+  },
+  {
+    label: "Delivery",
+    items: [
+      // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
+      // token/staff-based gating is refined later with the Human Token Tracker.
+      { label: "AI Programs", href: "/portal/programs", ico: "\u21c9", built: true },
+      // Documents: company-level files shared with Edge8; membership is the
+      // entitlement, same as Requests and AI Programs.
+      { label: "Documents", href: "/portal/documents", ico: "\u25a3", built: true },
+      // Requests has no entitlement key on purpose: being a portal member IS the
+      // entitlement to ask for work; all data inside is company-scoped anyway.
+      { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
+      { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { label: "Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
+      { label: "Time Off", href: "/portal/time-off", ico: "\u263c", built: true, entitlementKey: "timeOff" },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
+      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
+      { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
+      // Users: portal admins manage their own company's users (PR 3).
+      { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
+    ],
+  },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -61,6 +89,11 @@ export function PortalSidebar({
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(key: string) {
+    setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+  }
 
   const isEnabled = (item: NavItem) =>
     !!item.built && (!item.entitlementKey || entitlements[item.entitlementKey]);
@@ -86,37 +119,58 @@ export function PortalSidebar({
         </div>
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
-          <div className="admin-nav-group">
-            {companyName && <div className="admin-nav-grouplabel">{companyName}</div>}
-            {NAV.map((item) =>
-              isEnabled(item) ? (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`admin-nav-link${isActive(pathname, item.href) ? " is-active" : ""}`}
-                >
-                  <span className="admin-nav-ico" aria-hidden>
-                    {item.ico}
-                  </span>
-                  {item.label}
-                </Link>
-              ) : (
-                <span
-                  key={item.href}
-                  className="admin-nav-link"
-                  aria-disabled
-                  style={{ opacity: 0.4, cursor: "not-allowed" }}
-                  title="Coming soon"
-                >
-                  <span className="admin-nav-ico" aria-hidden>
-                    {item.ico}
-                  </span>
-                  {item.label}
-                  <span className="admin-nav-badge">soon</span>
-                </span>
-              ),
-            )}
-          </div>
+          {companyName && <div className="admin-nav-sectlabel">{companyName}</div>}
+          {NAV.map((group, gi) => {
+            const isCollapsed = Boolean(group.label && collapsed[group.label]);
+            return (
+              <div className="admin-nav-group" key={group.label ?? `g${gi}`}>
+                {group.label && (
+                  <button
+                    className="admin-nav-grouplabel admin-nav-grouptoggle"
+                    aria-expanded={!isCollapsed}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGroup(group.label as string);
+                    }}
+                  >
+                    {group.label}
+                    <span className={`admin-nav-caret${isCollapsed ? " is-collapsed" : ""}`} aria-hidden>
+                      ▾
+                    </span>
+                  </button>
+                )}
+                {!isCollapsed &&
+                  group.items.map((item) =>
+                    isEnabled(item) ? (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`admin-nav-link${isActive(pathname, item.href) ? " is-active" : ""}`}
+                      >
+                        <span className="admin-nav-ico" aria-hidden>
+                          {item.ico}
+                        </span>
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span
+                        key={item.href}
+                        className="admin-nav-link"
+                        aria-disabled
+                        style={{ opacity: 0.4, cursor: "not-allowed" }}
+                        title="Coming soon"
+                      >
+                        <span className="admin-nav-ico" aria-hidden>
+                          {item.ico}
+                        </span>
+                        {item.label}
+                        <span className="admin-nav-badge">soon</span>
+                      </span>
+                    ),
+                  )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="admin-foot">

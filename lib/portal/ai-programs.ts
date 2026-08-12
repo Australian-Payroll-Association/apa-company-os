@@ -6,6 +6,7 @@
 
 import { supabase, companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 
 const BUCKET = "program-documents";
 const DOWNLOAD_TTL_SECONDS = 60 * 5;
@@ -17,6 +18,7 @@ export type PortalProgramDocument = {
   id: string;
   filename: string;
   sizeBytes: number | null;
+  uploadedBy: string | null;
   createdAt: string;
 };
 
@@ -95,7 +97,7 @@ export async function listProgramsForActor(actor: PortalActor): Promise<PortalAi
       .order("created_at", { ascending: true }),
     companyOs
       .from("program_documents")
-      .select("id, ai_program_id, filename, size_bytes, created_at")
+      .select("id, ai_program_id, filename, size_bytes, uploaded_by, created_at")
       .in("ai_program_id", ids)
       .order("created_at", { ascending: true }),
   ]);
@@ -113,6 +115,7 @@ export async function listProgramsForActor(actor: PortalActor): Promise<PortalAi
     ai_program_id: string;
     filename: string;
     size_bytes: number | null;
+    uploaded_by: string | null;
     created_at: string;
   }>;
 
@@ -133,7 +136,7 @@ export async function listProgramsForActor(actor: PortalActor): Promise<PortalAi
       })),
     documents: docRows
       .filter((d) => d.ai_program_id === r.id)
-      .map((d) => ({ id: d.id, filename: d.filename, sizeBytes: d.size_bytes, createdAt: d.created_at })),
+      .map((d) => ({ id: d.id, filename: d.filename, sizeBytes: d.size_bytes, uploadedBy: d.uploaded_by, createdAt: d.created_at })),
   }));
 }
 
@@ -154,6 +157,7 @@ async function createProgramWithPlan(
   if (!name) return { ok: false, error: "Name your AI program." };
   const companyId = resolveCompanyId(actor, input.companyId);
   if (!companyId) return { ok: false, error: "Pick which company this program is for." };
+  if (!canContribute(actor, companyId)) return { ok: false, error: ROLE_DENIED };
 
   const { data: prog, error: progErr } = await companyOs
     .from("ai_programs")
@@ -205,6 +209,7 @@ export async function signedProgramUpload(
 ): Promise<Result<{ signedUrl: string; path: string }>> {
   const owned = await ownedProgram(actor, input.programId);
   if (!owned) return { ok: false, error: "Program not found." };
+  if (!canContribute(actor, owned.companyId)) return { ok: false, error: ROLE_DENIED };
   const path = `company/${owned.companyId}/program/${input.programId}/${crypto.randomUUID()}-${safeName(input.filename)}`;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data) return { ok: false, error: "Could not start the upload." };
@@ -221,11 +226,13 @@ export async function recordProgramDocument(
     await supabase.storage.from(BUCKET).remove([input.path]); // don't orphan
     return { ok: false, error: "Program not found." };
   }
+  if (!canContribute(actor, owned.companyId)) return { ok: false, error: ROLE_DENIED };
   // Path guard: the object must sit under this program's prefix.
   if (!input.path.startsWith(`company/${owned.companyId}/program/${input.programId}/`)) {
     return { ok: false, error: "Invalid upload path." };
   }
   const { error } = await companyOs.from("program_documents").insert({
+    company_id: owned.companyId, // documents are company-owned; the program is a tag
     ai_program_id: input.programId,
     storage_path: input.path,
     filename: safeName(input.filename),
@@ -251,16 +258,17 @@ export async function getPlanBriefForActor(actor: PortalActor, planId: string): 
   return row.brief_html;
 }
 
-// A short-lived signed download URL for a private program document, IDOR-guarded.
+// A short-lived signed download URL for a private document, IDOR-guarded on the
+// owning company (documents are company-owned; the program tag is optional).
 export async function signedDocumentDownload(actor: PortalActor, documentId: string): Promise<Result<{ url: string; filename: string }>> {
   if (actor.companyScope.length === 0) return { ok: false, error: "Not found." };
   const { data } = await companyOs
     .from("program_documents")
-    .select("storage_path, filename, ai_program_id")
+    .select("storage_path, filename, company_id")
     .eq("id", documentId)
     .maybeSingle();
-  const row = data as { storage_path: string; filename: string; ai_program_id: string } | null;
-  if (!row || !(await ownedProgram(actor, row.ai_program_id))) return { ok: false, error: "Not found." };
+  const row = data as { storage_path: string; filename: string; company_id: string } | null;
+  if (!row || !actor.companyScope.includes(row.company_id)) return { ok: false, error: "Not found." };
 
   const { data: signed, error } = await supabase.storage
     .from(BUCKET)

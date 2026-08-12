@@ -14,8 +14,10 @@ import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
-import { MeetingUploadForm } from "@/components/admin/MeetingUploadForm";
-import { MeetingsList } from "@/components/admin/MeetingsList";
+import { MeetingsTable } from "@/components/admin/MeetingsTable";
+import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
+import { listDocumentsForCompanies } from "@/lib/client-documents";
+import { companyOs } from "@/lib/supabase";
 import { CompanyEditForm } from "../CompanyEditForm";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
@@ -31,7 +33,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
 
   const { company, deals, people, affiliate: companyAffiliate } = data;
   const name = company.name || "(no name)";
-  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy, meetings] =
+  const [portalMemberships, assignments, assignableTeamMembers, invoices, qboCustomerIds, referredBy, meetings, documents, programRows] =
     await Promise.all([
       getPortalMembershipsForCompany(company.id),
       getAssignmentsForCompany(company.id),
@@ -40,15 +42,13 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       getQboCustomerIds(company.id),
       getCompanyReferredBy(company.id),
       getMeetingsForCompany(company.id),
+      listDocumentsForCompanies([company.id]),
+      companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
     ]);
+  const programOptions = ((programRows.data ?? []) as ProgramOption[]);
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
-  // MeetingsList is an async server component; await it into a node so it can be
-  // passed as tab content (a prop to the client Tabs component) without hitting
-  // the async-JSX typing limitation.
-  const meetingsListNode = await MeetingsList({ meetings });
-
   // At-a-glance figures for the summary strip.
   const OPEN = new Set(["open", "new_lead", "contacted", "discovery", "proposal"]);
   const dealValueCents = deals.reduce((s, d) => s + (d.amount_usd_cents ?? d.amount_cents ?? 0), 0);
@@ -136,6 +136,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
                       personId={p.id}
                       companyId={company.id}
                       active={membership?.status === "active"}
+                      role={membership?.role}
                     />
                   </div>
                 </div>
@@ -154,13 +155,28 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       ),
     },
     {
+      key: "documents",
+      label: "Documents",
+      count: documents.length,
+      content: (
+        <CompanyDocuments companyId={company.id} documents={documents} programs={programOptions} />
+      ),
+    },
+    {
       key: "meetings",
       label: "Meeting Notes",
       count: meetings.length,
       content: (
         <div>
-          <MeetingUploadForm companyId={company.id} />
-          {meetingsListNode}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <Link
+              className="admin-btn admin-btn--primary"
+              href={`/admin/revenue/meetings/new?company=${company.id}`}
+            >
+              Add meeting
+            </Link>
+          </div>
+          <MeetingsTable meetings={meetings} />
         </div>
       ),
     },

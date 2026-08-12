@@ -4,25 +4,28 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   setMeetingPublished,
-  archiveMeeting,
+  deleteMeeting,
   retryMeetingSummary,
   updateMeeting,
 } from "@/app/admin/(dashboard)/revenue/meetings/actions";
 
 // Per-meeting admin controls: publish toggle (the portal gate), AI retry,
-// archive, and an inline edit form for title / date / attendees / summary. The
-// summary/transcript display is server-rendered by MeetingsList; this only owns
-// the mutations, then router.refresh() re-renders the card.
+// delete, and an inline edit form for title / date / attendees / summary. The
+// summary/transcript display is server-rendered by the Details page; this only
+// owns the mutations, then router.refresh() re-renders. Deleting leaves nothing
+// to render, so it navigates to `redirectAfterDelete` instead.
 export function MeetingControls({
   id,
   published,
   aiStatus,
   initial,
+  redirectAfterDelete,
 }: {
   id: string;
   published: boolean;
   aiStatus: "pending" | "ready" | "failed";
   initial: { title: string; meetingDate: string; attendees: string; summary: string };
+  redirectAfterDelete: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -65,12 +68,17 @@ export function MeetingControls({
           className="admin-btn admin-btn--danger"
           disabled={pending}
           onClick={() => {
-            if (confirm("Archive this meeting? It will be removed from the portal.")) {
-              run(() => archiveMeeting(id));
+            if (confirm("Delete this meeting permanently? This removes the transcript and cannot be undone.")) {
+              setErr(null);
+              start(async () => {
+                const res = await deleteMeeting(id);
+                if (res.ok) router.push(redirectAfterDelete);
+                else setErr(res.error ?? "Something went wrong.");
+              });
             }
           }}
         >
-          Archive
+          Delete
         </button>
       </div>
 

@@ -209,7 +209,75 @@ if (faces.length) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Check 3: type and spacing values sit on the documented scales.
+   Check 3: .admin-card must get padding from somewhere.
+
+   .admin-card is a shell: background, border, radius, shadow, and no padding.
+   Padding arrives from a companion class (.admin-section-card and friends) or
+   from a child that pads itself (.admin-empty, .admin-table, .admin-drawer-head).
+   Nothing forced a caller to opt in, so a card whose author forgot renders with
+   its text hard against the border.
+
+   That was fixed by hand once and reappeared in a new page the next day, which
+   is the whole reason this check exists: the rule was documented but not
+   enforced, so it only held until the next person wrote a card.
+
+   The companion list is derived from admin.css rather than hardcoded, so a new
+   padded wrapper starts counting the moment it is written.
+   ───────────────────────────────────────────────────────────── */
+
+const ADMIN_CSS = join(ROOT, "app/admin/admin.css");
+if (existsSync(ADMIN_CSS)) {
+  const css = stripCssComments(readFileSync(ADMIN_CSS, "utf8"));
+
+  // A class "pads" if any rule whose SUBJECT is that class declares padding.
+  // Checking the subject matters: `.x .admin-section-card + .admin-section-card`
+  // sets margin, not padding, and must not be mistaken for the real rule.
+  const padsFor = (cls) => {
+    for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      for (const sel of m[1].split(",")) {
+        const last = sel.trim().split(/[\s>+~]+/).pop() ?? "";
+        if (last.startsWith(`.${cls}`) && /:(hover|focus|active)/.test(last)) continue;
+        if (last.startsWith(`.${cls}`) && /\bpadding\b/.test(m[2])) return true;
+      }
+    }
+    return false;
+  };
+
+  // Ask the question per element rather than from a guessed candidate list: does
+  // ANY other class on this element declare padding? A companion named
+  // .coach-section pads just as well as one with "card" in its name.
+  const padsCache = new Map();
+  const pads = (cls) => {
+    if (!padsCache.has(cls)) padsCache.set(cls, padsFor(cls));
+    return padsCache.get(cls);
+  };
+
+  const SELF_PADDING_CHILD = /admin-empty|admin-table|<table|admin-drawer-head/;
+
+  for (const file of jsxFiles) {
+    const src = readFileSync(file, "utf8");
+    for (const m of src.matchAll(/className=\{?["'`]([^"'`]*)["'`]\}?([^>]{0,300})>/g)) {
+      // Whole-token match: "gallery-admin-card" is a different class entirely.
+      if (!m[1].split(/\s+/).includes("admin-card")) continue;
+      const classes = m[1].split(/\s+/).filter(Boolean);
+      if (classes.some((c) => c !== "admin-card" && pads(c))) continue;
+      if (/padding:/.test(m[2])) continue;
+      if (SELF_PADDING_CHILD.test(src.slice(m.index + m[0].length, m.index + m[0].length + 420))) continue;
+      errors.push({
+        check: "card-without-padding",
+        file: relative(ROOT, file),
+        line: src.slice(0, m.index).split("\n").length,
+        msg:
+          `.admin-card here gets no padding from anywhere, so its content renders flush ` +
+          `against the border. Add a padded companion (for example .admin-section-card), ` +
+          `or if the card is deliberately flush, let its child supply the padding.`,
+      });
+    }
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Check 4: type and spacing values sit on the documented scales.
 
    Both scales were derived from what the codebase already uses rather than
    imposed, so most values already conform. See the Scales section of
