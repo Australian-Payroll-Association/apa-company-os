@@ -99,6 +99,11 @@ export function TeamSidebar({
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(key: string) {
+    setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+  }
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const groups: NavGroup[] = [
@@ -205,10 +210,27 @@ export function TeamSidebar({
         )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
-          {groups.map((group, gi) => (
+          {groups.map((group, gi) => {
+            const isCollapsed = Boolean(group.label && collapsed[group.label]);
+            return (
             <div className="admin-nav-group" key={group.label ?? `g${gi}`}>
-              {group.label && <div className="admin-nav-grouplabel">{group.label}</div>}
-              {group.items.map((item) =>
+              {group.label && (
+                <button
+                  className="admin-nav-grouplabel admin-nav-grouptoggle"
+                  aria-expanded={!isCollapsed}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleGroup(group.label as string);
+                  }}
+                >
+                  {group.label}
+                  <span className={`admin-nav-caret${isCollapsed ? " is-collapsed" : ""}`} aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              )}
+              {!isCollapsed &&
+              group.items.map((item) =>
                 item.enabled ? (
                   <Link
                     key={item.href}
@@ -237,7 +259,8 @@ export function TeamSidebar({
                 ),
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="admin-foot">
