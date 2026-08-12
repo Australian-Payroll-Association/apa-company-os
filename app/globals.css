@@ -2940,6 +2940,42 @@ footer {
   .apply-title { font-size: 36px; }
 }
 
+/* ─────────────── Job posting page ─────────────── */
+/* Shares the apply page's dark hero, then drops to a light body so the
+   .job-body markdown styles (written for a light card) apply unchanged. */
+.jd-hero-actions { margin-top: 28px; }
+.jd-body-section { background: var(--white); padding: 56px 0 96px; }
+.jd-body-wrap { max-width: 760px; }
+.jd-lede {
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--body-text);
+  margin: 0 0 28px;
+}
+.jd-body-wrap .job-body { border-top: none; padding-top: 0; margin-bottom: 40px; }
+.jd-footer-cta {
+  border-top: 1px solid var(--card-border);
+  padding-top: 32px;
+}
+.jd-footer-cta h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--dark);
+  margin: 0 0 8px;
+}
+.jd-footer-cta p {
+  font-size: 15px;
+  color: var(--body-text);
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+.job-title a { color: inherit; text-decoration: none; }
+.job-title a:hover { color: var(--blue); }
+@media (max-width: 640px) {
+  .jd-body-section { padding: 40px 0 72px; }
+}
+
 /* Vietnam Adventure info form — member cards + privacy box (light card context) */
 .trip-member {
   border: 1px solid var(--card-border);

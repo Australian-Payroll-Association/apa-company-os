@@ -76,7 +76,7 @@ function OpenRoleCard({ role }: { role: OpenRole }) {
   );
   return role.isPublic && role.slug ? (
     <a
-      href={`/careers/${role.slug}/apply`}
+      href={`/careers/${role.slug}/`}
       className="team-org-card is-open-role"
       target="_blank"
       rel="noreferrer"

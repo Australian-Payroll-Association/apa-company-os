@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from 'react'
+import Link from 'next/link'
 
 type Job = {
   slug: string
@@ -16,15 +14,13 @@ type Job = {
 }
 
 export default function JobCard({ job }: { job: Job }) {
-  const [expanded, setExpanded] = useState(false)
-
   const deptSlug = job.department
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
 
   const applyHref = job.supabaseJobId
-    ? `/careers/${job.slug}/apply`
+    ? `/careers/${job.slug}/apply/`
     : `mailto:${job.applyEmail}?subject=${encodeURIComponent(`Application: ${job.title}`)}`
 
   return (
@@ -34,7 +30,9 @@ export default function JobCard({ job }: { job: Job }) {
         {job.featured && <span className="job-badge-featured">Featured</span>}
       </div>
 
-      <h3 className="job-title">{job.title}</h3>
+      <h3 className="job-title">
+        <Link href={`/careers/${job.slug}/`}>{job.title}</Link>
+      </h3>
 
       <div className="job-meta">
         <span className="job-meta-item">{job.location}</span>
@@ -44,20 +42,10 @@ export default function JobCard({ job }: { job: Job }) {
 
       <p className="job-excerpt">{job.excerpt}</p>
 
-      {expanded && (
-        <div
-          className="job-body"
-          dangerouslySetInnerHTML={{ __html: job.contentHtml }}
-        />
-      )}
-
       <div className="job-card-actions">
-        <button
-          className="btn btn-outline job-toggle-btn"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? 'Hide Details' : 'View Role Details'}
-        </button>
+        <Link href={`/careers/${job.slug}/`} className="btn btn-outline job-toggle-btn">
+          View Role Details
+        </Link>
         <a href={applyHref} className="btn btn-primary job-apply-btn">
           Apply Now →
         </a>
