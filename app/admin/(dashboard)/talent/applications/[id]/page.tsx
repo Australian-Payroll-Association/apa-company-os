@@ -19,6 +19,10 @@ type Cp = {
   current_title: string | null;
   portfolio_url: string | null;
   do_not_hire: boolean;
+  english_proficiency: string | null;
+  salary_expectation_cents: number | null;
+  salary_expectation_currency: string | null;
+  notice_period: string | null;
 };
 type P = {
   full_name: string | null;
@@ -41,6 +45,7 @@ type RawApp = {
   job_requisition_id: string | null;
   person_id: string | null;
   archived_at: string | null;
+  hr_assessment: string | null;
   people: P | P[] | null;
   job_requisitions: Jr | Jr[] | null;
   application_stages: St | St[] | null;
@@ -52,7 +57,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const { data, error } = await companyOs
     .from("applications")
     .select(
-      "id, status, rating, rejection_reason, applied_at, decided_at, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire)), job_requisitions(title), application_stages(name)",
+      "id, status, rating, rejection_reason, applied_at, decided_at, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -93,6 +98,11 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
     linkedinUrl: p?.linkedin_url ?? null,
     portfolioUrl: cp?.portfolio_url ?? null,
     doNotHire: Boolean(cp?.do_not_hire),
+    hrAssessment: r.hr_assessment,
+    englishProficiency: cp?.english_proficiency ?? null,
+    salaryExpectationCents: cp?.salary_expectation_cents ?? null,
+    salaryExpectationCurrency: cp?.salary_expectation_currency ?? null,
+    noticePeriod: cp?.notice_period ?? null,
   };
 
   return (

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatDate, humanize } from "@/lib/admin/format";
+import { formatDate } from "@/lib/admin/format";
 import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { APPLICATION_STATUS_OPTIONS } from "@/lib/admin/application-status";
@@ -42,6 +42,13 @@ export type AppManageData = {
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   doNotHire: boolean;
+  // recruiter's own assessment for this application (writes applications)
+  hrAssessment: string | null;
+  // recruiter overrides for the AI-extracted fields (write candidate_profile)
+  englishProficiency: string | null;
+  salaryExpectationCents: number | null;
+  salaryExpectationCurrency: string | null;
+  noticePeriod: string | null;
 };
 
 // Editable "manage" surface for one application, rendered inside the row's side
@@ -52,6 +59,7 @@ type AppFieldForm = {
   status: string;
   rating: number | null;
   rejectionReason: string;
+  hrAssessment: string;
 };
 
 export function ApplicationManage({ app }: { app: AppManageData }) {
@@ -67,10 +75,11 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
       status: app.status ?? "active",
       rating: app.rating ?? null,
       rejectionReason: app.rejectionReason ?? "",
+      hrAssessment: app.hrAssessment ?? "",
     },
     saveAppField,
   );
-  const { stageId, status, rating, rejectionReason } = form;
+  const { stageId, status, rating, rejectionReason, hrAssessment } = form;
 
   // Load this req's hiring stages when the shelf opens.
   useEffect(() => {
@@ -121,6 +130,9 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
         break;
       case "rejectionReason":
         r = await updateApplication(app.id, { rejection_reason: (value as string).trim() || null });
+        break;
+      case "hrAssessment":
+        r = await updateApplication(app.id, { hr_assessment: (value as string).trim() || null });
         break;
       default:
         return { ok: true as const };
@@ -229,6 +241,24 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
       {extras && <AiScreenSection extras={extras} />}
 
+      <section style={{ marginTop: 18 }}>
+        <div className="admin-label" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+          <span>HR assessment</span>
+          <AutosaveIndicator status={saveStatus} />
+        </div>
+        <div className="admin-hint" style={{ marginBottom: 6 }}>
+          Your own read on this candidate, editable anytime. Separate from the AI screen and from interview results.
+        </div>
+        <textarea
+          className="admin-input"
+          rows={4}
+          placeholder="Strengths, concerns, anything the interview surfaced that the resume missed…"
+          value={hrAssessment}
+          onChange={(e) => field("hrAssessment", e.target.value)}
+          onBlur={(e) => commit("hrAssessment", e.target.value)}
+        />
+      </section>
+
       {extras && (extras.coverLetter || extras.answers.length > 0) && (
         <div style={{ marginTop: 18 }}>
           {extras.coverLetter && (
@@ -265,6 +295,13 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
           linkedinUrl={app.linkedinUrl}
           portfolioUrl={app.portfolioUrl}
           doNotHire={app.doNotHire}
+          englishProficiency={app.englishProficiency}
+          salaryExpectationCents={app.salaryExpectationCents}
+          salaryExpectationCurrency={app.salaryExpectationCurrency}
+          noticePeriod={app.noticePeriod}
+          aiEnglish={extras?.aiSummary?.english ?? null}
+          aiSalary={extras?.aiSummary?.salary_expectation ?? null}
+          aiNotice={extras?.aiSummary?.notice_period ?? null}
         />
       )}
 
@@ -286,9 +323,10 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
   );
 }
 
-// The AI screen result, same template the req page's ranking table expands to:
-// overview, skills/gaps, and the English/salary/notice line. Rendered only
-// once a screen has run — an application with no resume has nothing to show.
+// The AI screen result: overview and skills/gaps, read-only. English, salary,
+// and notice used to render here too, but they are now editable recruiter fields
+// in the applicant profile (which fall back to the AI value). Rendered only once
+// a screen has run — an application with no resume has nothing to show.
 function AiScreenSection({ extras }: { extras: ApplicationExtras }) {
   if (!extras.aiStatus && !extras.aiSummary) return null;
   const s = extras.aiSummary;
@@ -312,17 +350,6 @@ function AiScreenSection({ extras }: { extras: ApplicationExtras }) {
               <li key={j}>{sk}</li>
             ))}
           </ul>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <span>
-              <span className="admin-label">English</span> {s.english}
-            </span>
-            <span>
-              <span className="admin-label">Salary expectation</span> {s.salary_expectation}
-            </span>
-            <span>
-              <span className="admin-label">Notice period</span> {s.notice_period}
-            </span>
-          </div>
         </div>
       ) : (
         extras.aiStatus !== "failed" &&
@@ -402,7 +429,19 @@ type ApplicantFieldForm = {
   linkedinUrl: string;
   portfolioUrl: string;
   doNotHire: boolean;
+  englishProficiency: string;
+  noticePeriod: string;
 };
+
+// A "from AI screen" fallback is only worth showing when the AI actually
+// extracted something — its schema writes "Not stated"/"Unknown" when it didn't.
+function aiHint(v: string | null): string | null {
+  const t = (v ?? "").trim();
+  if (!t) return null;
+  const low = t.toLowerCase();
+  if (["not stated", "unknown", "n/a", "na", "none", "—", "-"].includes(low)) return null;
+  return t;
+}
 
 function ApplicantProfile(props: {
   personId: string;
@@ -414,6 +453,13 @@ function ApplicantProfile(props: {
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   doNotHire: boolean;
+  englishProficiency: string | null;
+  salaryExpectationCents: number | null;
+  salaryExpectationCurrency: string | null;
+  noticePeriod: string | null;
+  aiEnglish: string | null;
+  aiSalary: string | null;
+  aiNotice: string | null;
 }) {
   const { form, field, commit, status } = useAutosave<ApplicantFieldForm>(
     {
@@ -423,10 +469,13 @@ function ApplicantProfile(props: {
       linkedinUrl: props.linkedinUrl ?? "",
       portfolioUrl: props.portfolioUrl ?? "",
       doNotHire: props.doNotHire,
+      englishProficiency: props.englishProficiency ?? "",
+      noticePeriod: props.noticePeriod ?? "",
     },
     saveProfileField,
   );
-  const { phone, headline, currentTitle, linkedinUrl, portfolioUrl, doNotHire } = form;
+  const { phone, headline, currentTitle, linkedinUrl, portfolioUrl, doNotHire, englishProficiency, noticePeriod } =
+    form;
 
   async function saveProfileField(patch: Partial<ApplicantFieldForm>) {
     const [key, value] = Object.entries(patch)[0] as [keyof ApplicantFieldForm, string | boolean];
@@ -443,6 +492,10 @@ function ApplicantProfile(props: {
         return updateApplicantProfile(props.personId, { portfolio_url: (value as string).trim() || null });
       case "doNotHire":
         return updateApplicantProfile(props.personId, { do_not_hire: value as boolean });
+      case "englishProficiency":
+        return updateApplicantProfile(props.personId, { english_proficiency: (value as string).trim() || null });
+      case "noticePeriod":
+        return updateApplicantProfile(props.personId, { notice_period: (value as string).trim() || null });
       default:
         return { ok: true as const };
     }
@@ -509,6 +562,58 @@ function ApplicantProfile(props: {
             onBlur={(e) => commit("portfolioUrl", e.target.value)}
           />
         </div>
+
+        <div
+          style={{
+            marginTop: 4,
+            paddingTop: 12,
+            borderTop: "1px solid var(--admin-line)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div className="admin-hint">
+            Recruiter-verified details. Overrides the AI screen; leave blank to keep showing the AI value.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="admin-field">
+              <label className="admin-label">English proficiency</label>
+              <input
+                className="admin-input"
+                value={englishProficiency}
+                onChange={(e) => field("englishProficiency", e.target.value)}
+                onBlur={(e) => commit("englishProficiency", e.target.value)}
+              />
+              {!englishProficiency.trim() && aiHint(props.aiEnglish) && (
+                <div className="admin-hint" style={{ marginTop: 4 }}>
+                  From AI screen: {aiHint(props.aiEnglish)}
+                </div>
+              )}
+            </div>
+            <div className="admin-field">
+              <label className="admin-label">Notice period</label>
+              <input
+                className="admin-input"
+                value={noticePeriod}
+                onChange={(e) => field("noticePeriod", e.target.value)}
+                onBlur={(e) => commit("noticePeriod", e.target.value)}
+              />
+              {!noticePeriod.trim() && aiHint(props.aiNotice) && (
+                <div className="admin-hint" style={{ marginTop: 4 }}>
+                  From AI screen: {aiHint(props.aiNotice)}
+                </div>
+              )}
+            </div>
+          </div>
+          <SalaryField
+            personId={props.personId}
+            cents={props.salaryExpectationCents}
+            currency={props.salaryExpectationCurrency}
+            aiFallback={aiHint(props.aiSalary)}
+          />
+        </div>
+
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <input
             type="checkbox"
@@ -525,6 +630,89 @@ function ApplicantProfile(props: {
 
         {status.state === "error" && <div className="admin-alert admin-alert--err">{status.error}</div>}
       </div>
+    </div>
+  );
+}
+
+// Structured salary expectation: amount (major units) + currency, stored as
+// minor units (cents) on candidate_profile. Saves on blur / currency change.
+// Empty amount clears both back to null and the AI value shows through again.
+const SALARY_CURRENCIES = ["VND", "USD", "EUR", "GBP", "AUD", "SGD"];
+
+function SalaryField({
+  personId,
+  cents,
+  currency,
+  aiFallback,
+}: {
+  personId: string;
+  cents: number | null;
+  currency: string | null;
+  aiFallback: string | null;
+}) {
+  const [amount, setAmount] = useState(cents != null ? String(Math.round(cents / 100)) : "");
+  const [cur, setCur] = useState(currency || "VND");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save(nextAmount: string, nextCur: string) {
+    const cleaned = nextAmount.replace(/[,\s]/g, "").trim();
+    const parsed = cleaned === "" ? null : Number(cleaned);
+    if (parsed != null && (Number.isNaN(parsed) || parsed < 0)) {
+      setErr("Enter a number.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    const r = await updateApplicantProfile(personId, {
+      salary_expectation_cents: parsed == null ? null : Math.round(parsed * 100),
+      salary_expectation_currency: parsed == null ? null : nextCur,
+    });
+    setSaving(false);
+    if (!r.ok) setErr(r.error);
+  }
+
+  return (
+    <div className="admin-field">
+      <label className="admin-label">Salary expectation</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          className="admin-input"
+          inputMode="numeric"
+          placeholder="Amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onBlur={(e) => save(e.target.value, cur)}
+          style={{ flex: 1 }}
+        />
+        <select
+          className="admin-select"
+          aria-label="Currency"
+          value={cur}
+          style={{ maxWidth: 96 }}
+          onChange={(e) => {
+            setCur(e.target.value);
+            if (amount.trim()) save(amount, e.target.value);
+          }}
+        >
+          {SALARY_CURRENCIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+      {saving && <div className="admin-hint" style={{ marginTop: 4 }}>Saving…</div>}
+      {err && (
+        <div className="admin-alert admin-alert--err" style={{ marginTop: 4 }}>
+          {err}
+        </div>
+      )}
+      {!amount.trim() && aiFallback && (
+        <div className="admin-hint" style={{ marginTop: 4 }}>
+          From AI screen: {aiFallback}
+        </div>
+      )}
     </div>
   );
 }
@@ -567,8 +755,9 @@ function StarRating({ value, onChange }: { value: number | null; onChange: (v: n
   );
 }
 
-// The application's note thread. Free-text entries append to the shared activity
-// log (interactions), newest first. Mirrors the deal communications component.
+// Interview Results: an append-only feedback thread for this application. Each
+// entry is attributed (author + date) and immutable, so several interviewers
+// build a history no one overwrites. Stored in the shared interactions log.
 function ApplicationNotes({ applicationId }: { applicationId: string }) {
   const [items, setItems] = useState<AppNote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -607,14 +796,14 @@ function ApplicationNotes({ applicationId }: { applicationId: string }) {
   return (
     <div style={{ marginTop: 18 }}>
       <div className="admin-label" style={{ marginBottom: 6 }}>
-        Notes
+        Interview results
       </div>
 
       <div className="admin-field">
         <textarea
           className="admin-input"
           rows={3}
-          placeholder="Add a note about this application…"
+          placeholder="Add interview feedback for this candidate…"
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
@@ -626,7 +815,7 @@ function ApplicationNotes({ applicationId }: { applicationId: string }) {
           onClick={add}
           disabled={saving || !body.trim()}
         >
-          {saving ? "Adding…" : "Add note"}
+          {saving ? "Adding…" : "Add feedback"}
         </button>
       </div>
       {saveErr && (
@@ -640,13 +829,14 @@ function ApplicationNotes({ applicationId }: { applicationId: string }) {
       ) : loadErr ? (
         <div className="admin-alert admin-alert--err">{loadErr}</div>
       ) : items.length === 0 ? (
-        <div className="admin-empty">No notes yet.</div>
+        <div className="admin-empty">No interview results yet.</div>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
           {items.map((n) => (
             <li key={n.id} style={{ borderLeft: "2px solid var(--admin-line-strong)", paddingLeft: 10 }}>
               <div className="admin-cell-muted" style={{ marginBottom: 2 }}>
-                {humanize(n.kind)} · {formatDate(n.occurredAt)}
+                {n.author ? `${n.author} · ` : ""}
+                {formatDate(n.occurredAt)}
               </div>
               <div style={{ whiteSpace: "pre-wrap" }}>{n.body || "—"}</div>
             </li>
