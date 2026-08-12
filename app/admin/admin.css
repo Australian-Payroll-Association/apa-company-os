@@ -2768,6 +2768,60 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   gap: 4px;
 }
 
+/* ─── Coach profile header (identity + vitals + quick actions) ─────────
+   Replaces the plain PageHead on /team/coaching/[profileId]. The vitals reuse
+   the .team-glance strip (a glance, not a KPI board); the action cluster is the
+   one client island. */
+.coach-hero { display: grid; gap: 14px; margin-bottom: 24px; }
+.coach-hero__id {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.coach-hero__id-text { min-width: 0; flex: 1 1 auto; }
+.coach-hero__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--admin-ink);
+  overflow-wrap: anywhere;
+}
+.coach-hero__role { font-size: 13px; color: var(--admin-muted); margin-top: 4px; }
+.coach-hero__stats { margin-bottom: 0; }
+/* Six vitals, so the cells run a touch denser than the default glance strip —
+   all six sit on one row on desktop and wrap evenly (not 5 + 1 orphan) below. */
+.coach-hero__stats .team-glance-cell { flex-basis: 150px; padding: 14px 16px; }
+/* The next-1-1 vital carries a hairline accent rail so the eye lands there first. */
+.coach-hero__cell--attn { box-shadow: inset 3px 0 0 var(--admin-accent); }
+.coach-hero__note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* Action cluster: buttons top-right, reveal panel beneath them. */
+.coach-hero__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.coach-hero__actionbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.coach-hero__msg { width: clamp(240px, 100%, 380px); text-align: left; }
+.coach-hero__panel {
+  width: clamp(240px, 100%, 380px);
+  padding: 14px 16px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+@media (max-width: 720px) {
+  .coach-hero__actions { align-items: stretch; }
+  .coach-hero__actionbtns { justify-content: flex-start; }
+  .coach-hero__msg,
+  .coach-hero__panel { width: 100%; }
+}
+
 .coach-profile { display: grid; gap: 16px; margin-top: 16px; }
 .coach-section { padding: 18px 20px; }
 .coach-field-row {
