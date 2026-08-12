@@ -287,6 +287,7 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
       {app.personId && (
         <ApplicantProfile
           personId={app.personId}
+          applicationId={app.id}
           name={app.candidateName}
           email={app.email}
           phone={app.phone}
@@ -445,6 +446,7 @@ function aiHint(v: string | null): string | null {
 
 function ApplicantProfile(props: {
   personId: string;
+  applicationId: string;
   name: string | null;
   email: string | null;
   phone: string | null;
@@ -479,23 +481,28 @@ function ApplicantProfile(props: {
 
   async function saveProfileField(patch: Partial<ApplicantFieldForm>) {
     const [key, value] = Object.entries(patch)[0] as [keyof ApplicantFieldForm, string | boolean];
+    const { personId, applicationId } = props;
     switch (key) {
       case "phone":
-        return updateApplicantProfile(props.personId, { phone: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { phone: (value as string).trim() || null }, applicationId);
       case "headline":
-        return updateApplicantProfile(props.personId, { headline: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { headline: (value as string).trim() || null }, applicationId);
       case "currentTitle":
-        return updateApplicantProfile(props.personId, { current_title: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { current_title: (value as string).trim() || null }, applicationId);
       case "linkedinUrl":
-        return updateApplicantProfile(props.personId, { linkedin_url: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { linkedin_url: (value as string).trim() || null }, applicationId);
       case "portfolioUrl":
-        return updateApplicantProfile(props.personId, { portfolio_url: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { portfolio_url: (value as string).trim() || null }, applicationId);
       case "doNotHire":
-        return updateApplicantProfile(props.personId, { do_not_hire: value as boolean });
+        return updateApplicantProfile(personId, { do_not_hire: value as boolean }, applicationId);
       case "englishProficiency":
-        return updateApplicantProfile(props.personId, { english_proficiency: (value as string).trim() || null });
+        return updateApplicantProfile(
+          personId,
+          { english_proficiency: (value as string).trim() || null },
+          applicationId,
+        );
       case "noticePeriod":
-        return updateApplicantProfile(props.personId, { notice_period: (value as string).trim() || null });
+        return updateApplicantProfile(personId, { notice_period: (value as string).trim() || null }, applicationId);
       default:
         return { ok: true as const };
     }
@@ -608,6 +615,7 @@ function ApplicantProfile(props: {
           </div>
           <SalaryField
             personId={props.personId}
+            applicationId={props.applicationId}
             cents={props.salaryExpectationCents}
             currency={props.salaryExpectationCurrency}
             aiFallback={aiHint(props.aiSalary)}
@@ -641,11 +649,13 @@ const SALARY_CURRENCIES = ["VND", "USD", "EUR", "GBP", "AUD", "SGD"];
 
 function SalaryField({
   personId,
+  applicationId,
   cents,
   currency,
   aiFallback,
 }: {
   personId: string;
+  applicationId: string;
   cents: number | null;
   currency: string | null;
   aiFallback: string | null;
@@ -664,10 +674,14 @@ function SalaryField({
     }
     setSaving(true);
     setErr(null);
-    const r = await updateApplicantProfile(personId, {
-      salary_expectation_cents: parsed == null ? null : Math.round(parsed * 100),
-      salary_expectation_currency: parsed == null ? null : nextCur,
-    });
+    const r = await updateApplicantProfile(
+      personId,
+      {
+        salary_expectation_cents: parsed == null ? null : Math.round(parsed * 100),
+        salary_expectation_currency: parsed == null ? null : nextCur,
+      },
+      applicationId,
+    );
     setSaving(false);
     if (!r.ok) setErr(r.error);
   }
