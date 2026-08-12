@@ -14,6 +14,15 @@ export const metadata: Metadata = {
 // status drives the Open / Won / Lost views on the page.
 const PROPOSALS: Proposal[] = [
   {
+    client: "Arca Wellness",
+    kind: "1-Day Private Retreat",
+    summary:
+      "A confirmed 1-day Infinite Leverage Private Retreat for up to 8 people: install the developer stack, ship a live Shopify change through Claude, and stand up Arca's own company database with a playground to build on.",
+    date: "August 2026",
+    href: "/proposals/arca-wellness-retreat-proposal.html",
+    status: "won",
+  },
+  {
     client: "Home Integrity",
     kind: "Scheduling Platform & Company OS",
     summary:
