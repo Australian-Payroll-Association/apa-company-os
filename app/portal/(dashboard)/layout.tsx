@@ -46,6 +46,9 @@ export default async function PortalDashboardLayout({
     events: hasEventsResult,
     referrals: hasReferrals,
     users: adminCompanyScope(actor).length > 0,
+    // Company Profile edits the shared company record, so it follows the same
+    // admin-only rule as Users.
+    companyProfile: adminCompanyScope(actor).length > 0,
     meetings: hasMeetingsResult,
   };
 
