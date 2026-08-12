@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
@@ -47,6 +48,9 @@ export default async function MyCoachingPage() {
           <div className="admin-card-title">
             Your FAST goals{" "}
             <span className="admin-cell-muted">(Frequent · Ambitious · Specific · Transparent)</span>
+          </div>
+          <div className="admin-hint">
+            Add, edit, or retire a goal on <Link href="/team/goals">My FAST Goals</Link>.
           </div>
           {my.goals.length === 0 && (
             <div className="admin-empty">
