@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GOAL_STATUS_LABELS, type EdgesOptions, type GoalStatus } from "@/lib/coaching/data";
-import { LadderSelect, parseLadder } from "@/components/coaching/LadderSelect";
+import { LadderSelect } from "@/components/coaching/LadderSelect";
+import { parseLadder } from "@/lib/coaching/ladder";
 import { addMyGoal, deleteMyGoal, updateMyGoal } from "./actions";
 
 // One goal as the panel needs it. Mirrors CoachingGoal minus the coach-tier

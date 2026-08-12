@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import { getEdgesLadderOptions, getMyGoals, isCoached, saigonToday } from "@/lib/coaching/data";
-import { ladderValue } from "@/components/coaching/LadderSelect";
+import { ladderValue } from "@/lib/coaching/ladder";
 import { MyGoalsPanel, type MyGoalRow } from "./MyGoalsPanel";
 
 export const dynamic = "force-dynamic";
