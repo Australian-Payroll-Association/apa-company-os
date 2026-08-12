@@ -295,7 +295,7 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
       )}
 
       {adding ? (
-        <div className="admin-card" style={{ marginBottom: 20 }}>
+        <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
           <h2 className="admin-card-title">Add a FAST goal</h2>
           {goalForm}
         </div>
@@ -317,7 +317,7 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
         const pct = progressPct(g);
         const measure = measureText(g);
         return (
-          <div key={g.id} className="admin-card goals-card">
+          <div key={g.id} className="admin-card admin-section-card goals-card">
             {editingId === g.id ? (
               <>
                 <h2 className="admin-card-title">Edit goal</h2>
