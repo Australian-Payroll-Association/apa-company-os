@@ -2822,6 +2822,32 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   .coach-hero__panel { width: 100%; }
 }
 
+/* Coach profile sub-nav: reuses .admin-tabs; the count pill flags how many
+   items sit behind a tab (open 1-1s, active goals). */
+.coach-tab-count {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--admin-muted-bg);
+  color: var(--admin-muted-ink);
+  border-radius: var(--admin-radius-pill);
+  padding: 0 6px;
+}
+.admin-tab.is-active .coach-tab-count { background: var(--admin-accent-soft); color: var(--admin-accent); }
+
+/* Carried-over callout: commitments still open from before the last 1-1. An
+   accent rail marks it as the thing to clear first on the next-1-1 tab. */
+.coach-carried { box-shadow: inset 3px 0 0 var(--admin-accent); }
+.coach-carried-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid var(--admin-line-soft);
+}
+.coach-carried-title { flex: 1 1 auto; min-width: 140px; }
+
 .coach-profile { display: grid; gap: 16px; margin-top: 16px; }
 .coach-section { padding: 18px 20px; }
 .coach-field-row {

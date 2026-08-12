@@ -665,6 +665,27 @@ export type TrendReport = {
   createdAt: string;
 };
 
+// A talking point the member raises before a 1-1 (their half of the agenda).
+export type TalkingPoint = {
+  id: string;
+  body: string;
+  authorTeamMemberId: string | null;
+  addressedAt: string | null;
+  createdAt: string;
+};
+
+const TALKING_POINT_SELECT = "id, body, author_team_member_id, addressed_at, created_at";
+
+function toTalkingPoint(r: Record<string, unknown>): TalkingPoint {
+  return {
+    id: r.id as string,
+    body: r.body as string,
+    authorTeamMemberId: (r.author_team_member_id as string | null) ?? null,
+    addressedAt: (r.addressed_at as string | null) ?? null,
+    createdAt: r.created_at as string,
+  };
+}
+
 export type CoachProfileDetail = {
   profileId: string;
   member: CoachingMember;
@@ -678,6 +699,7 @@ export type CoachProfileDetail = {
   nextOneOnOneOn: string | null;
   meetings: OneOnOne[];
   commitments: Commitment[];
+  talkingPoints: TalkingPoint[];
   checkins: Checkin[];
   trends: TrendReport[];
 };
@@ -705,7 +727,8 @@ export async function getCoachProfileDetail(
   const p = await assertCoachOwnsProfile(actor, profileId);
   if (!p) return null;
 
-  const [meetings, commitments, checkins, trends, goals, priorities, ocean, edges] = await Promise.all([
+  const [meetings, commitments, talkingPoints, checkins, trends, goals, priorities, ocean, edges] =
+    await Promise.all([
     companyOs
       .from("coaching_one_on_ones")
       .select(MEETING_SELECT)
@@ -718,6 +741,12 @@ export async function getCoachProfileDetail(
       .eq("coaching_profile_id", profileId)
       .order("sort_order")
       .order("created_at", { ascending: false }),
+    companyOs
+      .from("coaching_talking_points")
+      .select(TALKING_POINT_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .is("addressed_at", null)
+      .order("created_at", { ascending: true }),
     companyOs
       .from("coaching_checkins")
       .select("id, sent_at, message_markdown, responded_at")
@@ -764,6 +793,7 @@ export async function getCoachProfileDetail(
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
     meetings: ((meetings.data ?? []) as unknown as Record<string, unknown>[]).map(toOneOnOne),
     commitments: ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment),
+    talkingPoints: ((talkingPoints.data ?? []) as unknown as Record<string, unknown>[]).map(toTalkingPoint),
     checkins: ((checkins.data ?? []) as unknown as Array<Record<string, unknown>>).map((c) => ({
       id: c.id as string,
       sentAt: c.sent_at as string,
@@ -1343,6 +1373,7 @@ export type MyCoaching = {
   cadenceDays: number;
   nextOneOnOneOn: string | null;
   commitments: Commitment[];
+  talkingPoints: TalkingPoint[];
   recaps: MemberRecap[];
   checkins: Checkin[];
 };
@@ -1376,7 +1407,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       | null,
   );
 
-  const [recaps, commitments, checkins, goals, priorities, ocean, edges] = await Promise.all([
+  const [recaps, commitments, talkingPoints, checkins, goals, priorities, ocean, edges] = await Promise.all([
     companyOs
       .from("coaching_one_on_ones")
       .select("id, held_on, shared_summary_markdown, shared_published_at")
@@ -1390,6 +1421,12 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       .eq("coaching_profile_id", profileId)
       .order("sort_order")
       .order("created_at", { ascending: false }),
+    companyOs
+      .from("coaching_talking_points")
+      .select(TALKING_POINT_SELECT)
+      .eq("coaching_profile_id", profileId)
+      .is("addressed_at", null)
+      .order("created_at", { ascending: true }),
     companyOs
       .from("coaching_checkins")
       .select("id, sent_at, message_markdown, responded_at")
@@ -1430,6 +1467,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
     commitments: ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment),
+    talkingPoints: ((talkingPoints.data ?? []) as unknown as Record<string, unknown>[]).map(toTalkingPoint),
     recaps: ((recaps.data ?? []) as unknown as Record<string, unknown>[])
       .filter((r) => (r.shared_summary_markdown as string | null)?.trim())
       .map((r) => ({
@@ -1713,6 +1751,77 @@ export async function myReorderCommitments(
   const profileId = await myProfileId(actor);
   if (!profileId) return { ok: false, error: "You are not in a coaching cycle." };
   return applyCommitmentOrder(profileId, orderedIds);
+}
+
+// ---- talking points (the member's half of the 1-1 agenda) -------------------
+// The member raises what they want to cover next time; the coach sees it before
+// the meeting and it feeds the AI prep. Scope is the actor's OWN profile; a
+// member deletes only what they wrote; either side may mark one addressed.
+
+function validTalkingPoint(body: string): Result {
+  const b = body.trim();
+  if (!b) return { ok: false, error: "Write the talking point first." };
+  if (b.length > 500) return { ok: false, error: "Keep it under 500 characters." };
+  return { ok: true };
+}
+
+export async function myAddTalkingPoint(actor: TeamActor, body: string): Promise<Result> {
+  const profileId = await myProfileId(actor);
+  if (!profileId) return { ok: false, error: "You are not in a coaching cycle." };
+  const valid = validTalkingPoint(body);
+  if (!valid.ok) return valid;
+  const { error } = await companyOs.from("coaching_talking_points").insert({
+    coaching_profile_id: profileId,
+    author_team_member_id: actor.teamMemberId,
+    body: body.trim(),
+  });
+  return error ? { ok: false, error: "Could not add the talking point." } : { ok: true };
+}
+
+export async function myDeleteTalkingPoint(actor: TeamActor, id: string): Promise<Result> {
+  const profileId = await myProfileId(actor);
+  if (!profileId || !id) return { ok: false, error: "Not found." };
+  const { data } = await companyOs
+    .from("coaching_talking_points")
+    .select("id, author_team_member_id")
+    .eq("id", id)
+    .eq("coaching_profile_id", profileId)
+    .maybeSingle();
+  const row = data as { id: string; author_team_member_id: string | null } | null;
+  if (!row || row.author_team_member_id !== actor.teamMemberId)
+    return { ok: false, error: "You can only delete talking points you wrote." };
+  const { error } = await companyOs.from("coaching_talking_points").delete().eq("id", id);
+  return error ? { ok: false, error: "Could not delete." } : { ok: true };
+}
+
+// Mark a talking point addressed (or reopen it): allowed for the profile's coach
+// or the member who wrote it. Returns the profile id so the caller can revalidate
+// the right page.
+export async function setTalkingPointAddressed(
+  actor: TeamActor,
+  id: string,
+  addressed: boolean,
+): Promise<{ ok: true; profileId: string } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Not found." };
+  const { data } = await companyOs
+    .from("coaching_talking_points")
+    .select("id, coaching_profile_id, author_team_member_id")
+    .eq("id", id)
+    .maybeSingle();
+  const row = data as
+    | { id: string; coaching_profile_id: string; author_team_member_id: string | null }
+    | null;
+  if (!row) return { ok: false, error: "Not found." };
+  const isAuthor = row.author_team_member_id === actor.teamMemberId;
+  const isCoach = Boolean(await assertCoachOwnsProfile(actor, row.coaching_profile_id));
+  if (!isAuthor && !isCoach) return { ok: false, error: "Not allowed." };
+  const { error } = await companyOs
+    .from("coaching_talking_points")
+    .update({ addressed_at: addressed ? new Date().toISOString() : null })
+    .eq("id", id);
+  return error
+    ? { ok: false, error: "Could not update." }
+    : { ok: true, profileId: row.coaching_profile_id };
 }
 
 // ---- member tier: my FAST goals (/team/goals) ------------------------------
