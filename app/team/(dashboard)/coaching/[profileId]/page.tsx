@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
-import { getCoachProfileDetail } from "@/lib/coaching/data";
+import { getCoachProfileDetail, saigonToday } from "@/lib/coaching/data";
 import { coachingMarkdownToHtml } from "@/lib/coaching/markdown";
 import { CoachProfileHeader } from "@/components/coaching/CoachProfileHeader";
 import { CoachProfileView, type RenderedHtml } from "@/components/coaching/CoachProfileView";
@@ -51,7 +51,7 @@ export default async function CoachProfilePage({
   return (
     <>
       <CoachProfileHeader detail={detail} />
-      <CoachProfileView detail={detail} html={html} initialTab={searchParams?.tab} />
+      <CoachProfileView detail={detail} html={html} initialTab={searchParams?.tab} todayIso={saigonToday()} />
     </>
   );
 }
