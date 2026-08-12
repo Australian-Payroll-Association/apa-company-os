@@ -4,7 +4,7 @@ import { WorkflowHero, FlowRail, StepCards, SevenElements, DetailFooter, type Wo
 const ELEMENTS: WorkflowElement[] = [
   { name: 'Trigger', assignment: 'both', desc: 'No single trigger. A role opening, a strong inbound resume, a referral, or a pool resurfacing can each start motion, and usually several are running at once.' },
   { name: 'Inputs', assignment: 'both', desc: 'The JD and screening questions, resumes from every channel (careers page, LinkedIn, referrals, agencies, batch drops), and the full history of everyone the company has already met.' },
-  { name: 'Decision', assignment: 'both', desc: 'Two independent gates per candidate: the AI screen with written reasoning and the recruiter’s rating. Plus explicit human decisions at every exit and every backward move.' },
+  { name: 'Decision', assignment: 'both', desc: 'Two independent reads at the resume (the AI screen and the recruiter’s rating), and again at every interview, where the AI sits as a panelist and scores blind until the humans submit. Every exit and backward move is an explicit human decision.' },
   { name: 'Routing', assignment: 'both', desc: 'Not forward-only. Candidates move back a stage for another round, return to the shortlist after a declined offer, or exit to the pool and re-enter months later on a different req.' },
   { name: 'Output', assignment: 'machine', desc: 'A living record per candidate: every application, every screen, both ratings, the notes thread, and every status change with its reason.' },
   { name: 'Delivery', assignment: 'machine', desc: 'Ranked, sortable views wherever the work happens: per req, per role family, and across the whole pool.' },
@@ -132,7 +132,7 @@ function SelectionFlowchart() {
         {/* Interview rounds */}
         <rect x="200" y="724" width="260" height="64" rx="12" fill="#ffffff" stroke={nodeStroke} />
         <text x="330" y="752" textAnchor="middle" fontSize="15" fontWeight="700" fill={ink}>Interview rounds</text>
-        <text x="330" y="772" textAnchor="middle" fontSize="12" fill={sub}>hiring team · as many as it takes</text>
+        <text x="330" y="772" textAnchor="middle" fontSize="12" fill={sub}>hiring team + AI panelist · as many as it takes</text>
         <path d="M 330 788 L 330 824" fill="none" stroke={line} strokeWidth="1.6" markerEnd="url(#arr)" />
 
         {/* D3: panel decision */}
@@ -183,6 +183,7 @@ export default function RecruitmentWorkflowPage() {
           { label: 'Shape', value: '3 loops, 1 pool' },
           { label: 'Sourcing', value: 'Always on' },
           { label: 'AI reads', value: '100% of resumes' },
+          { label: 'AI panelist', value: 'Every round' },
         ]}
       />
 
@@ -455,6 +456,28 @@ export default function RecruitmentWorkflowPage() {
             memory. Every “no” has a destination, and none of them is a shredder.
           </p>
           <SelectionFlowchart />
+
+          <div className="wf-info-grid" style={{ marginTop: 40 }}>
+            <div className="wf-info-card">
+              <h3>AI on the interview panel</h3>
+              <ul>
+                <li>Every round seats the AI as a panelist beside the humans, from the recruiter screen to the founder round</li>
+                <li>It reads the transcript and scores against the role’s criteria, citing the exact quotes behind each score</li>
+                <li>Blind-first: its scorecard stays hidden until the human panelists submit theirs, so it never anchors the room</li>
+                <li>It carries memory across rounds, turning what one round left unverified into the next round’s questions</li>
+              </ul>
+            </div>
+            <div className="wf-info-card wf-info-card-mint">
+              <h3>Human and AI, side by side</h3>
+              <ul>
+                <li>Two independent reads at the resume, then again at every interview, catch what either one alone would miss</li>
+                <li>The AI advises with evidence; the humans decide and move the candidate</li>
+                <li>A disagreement of a full point is surfaced for the debrief, not averaged away</li>
+                <li>No candidate advances or exits on an AI score alone</li>
+              </ul>
+            </div>
+          </div>
+
           <StepCards
             steps={[
               {
@@ -512,7 +535,7 @@ export default function RecruitmentWorkflowPage() {
               },
               {
                 num: 'C4',
-                title: 'Interview rounds, three ways out',
+                title: 'Interview rounds, with AI on the panel',
                 cadence: 'One to several, sometimes repeated',
                 actor: 'human',
                 actorLabel: 'Hiring team',
@@ -525,9 +548,17 @@ export default function RecruitmentWorkflowPage() {
                       any other. No side-channel “can you talk to her once more” that the system never sees.
                     </p>
                     <p>
+                      Every round seats the AI as a panelist beside the humans. The transcript is ingested, and the AI
+                      writes a scorecard against the role’s criteria: a recommendation, per-criterion scores, and the
+                      verbatim quotes behind each one. It stays blind until the human panelists submit theirs, so it
+                      informs the debrief without anchoring it, and it carries memory across rounds, turning what one
+                      round left unverified into the next round’s questions. The AI is one voice on the panel and never
+                      casts the deciding vote.
+                    </p>
+                    <p>
                       All working context lives on the application: the notes thread, the resume (replaceable when a
-                      better version arrives), the cover letter and answers, both ratings, and the stage history.
-                      Anyone on the team can open it and know exactly where things stand.
+                      better version arrives), the cover letter and answers, every scorecard human and AI, and the
+                      stage history. Anyone on the team can open it and know exactly where things stand.
                     </p>
                   </>
                 ),
@@ -610,6 +641,7 @@ export default function RecruitmentWorkflowPage() {
                 <li>Every door produces the same structured record, agency or inbound alike</li>
                 <li>Every resume is read in full by AI on arrival</li>
                 <li>Backward is a normal direction, and every move is on the record</li>
+                <li>The AI is a panelist in every interview round, scoring blind until the humans do; it advises, it never decides</li>
                 <li>No candidate is rejected by AI alone, and every exit has a recorded reason</li>
                 <li>Closing a req never discards its candidates; nothing is ever deleted</li>
               </ul>
@@ -621,6 +653,7 @@ export default function RecruitmentWorkflowPage() {
                 <li>One system of record ends the where-does-this-candidate-stand question</li>
                 <li>Always-on sourcing means a new req starts warm, not cold</li>
                 <li>Two independent gates catch what either one alone would miss</li>
+                <li>Interview judgment is captured with evidence and memory, so three rounds compound into one thread instead of three separate opinions</li>
                 <li>The pool compounds: every search makes the next one faster</li>
                 <li>Declined offers and paused reqs cost days, not restarts</li>
               </ul>
