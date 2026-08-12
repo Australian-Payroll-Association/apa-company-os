@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, endAssumeSession } from "@/app/portal/(dashboard)/actions";
@@ -27,16 +27,17 @@ type NavItem = { label: string; href: string; ico: string; built?: boolean; enti
 
 type NavGroup = { label: string | null; items: NavItem[] };
 
-// Two sections: the work Edge8 is doing (AI Programs) and the client's own
-// account (Account). Groups collapse, matching AdminSidebar. Home stays
-// ungrouped, like the admin company dashboard link.
+// Three sections: the work (Delivery), the people on it (People), and the
+// client's own record (Account). Groups collapse, matching AdminSidebar. Home
+// stays ungrouped and renders as a top-level landmark: same accent bar and
+// type as a section header, since it outranks the items inside the sections.
 const NAV: NavGroup[] = [
   {
     label: null,
     items: [{ label: "Home", href: "/portal", ico: "\u25c8", built: true }],
   },
   {
-    label: "AI Programs",
+    label: "Delivery",
     items: [
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
@@ -48,9 +49,13 @@ const NAV: NavGroup[] = [
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
       { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
       { label: "Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
       { label: "Time Off", href: "/portal/time-off", ico: "\u263c", built: true, entitlementKey: "timeOff" },
-      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
     ],
   },
   {
@@ -64,10 +69,17 @@ const NAV: NavGroup[] = [
       { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
       // Users: portal admins manage their own company's users (PR 3).
       { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
+      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
       { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
     ],
   },
 ];
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+  return raw.toUpperCase();
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/portal") return pathname === "/portal" || pathname === "/portal/";
@@ -83,7 +95,7 @@ export function PortalSidebar({
   name: string;
   companyName: string | null;
   entitlements: PortalEntitlements;
-  // While an admin is viewing via Assume, the footer control ends the Assume
+  // While an admin is viewing via Assume, the account menu ends the Assume
   // session instead of signing out — this is the admin's REAL session
   // underneath, not the client's, so a plain "Sign out" here would be wrong
   // (and confusing) rather than just ending the view-as.
@@ -92,10 +104,18 @@ export function PortalSidebar({
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   function toggleGroup(key: string) {
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
   }
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setProfileMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileMenuOpen]);
 
   const isEnabled = (item: NavItem) =>
     !!item.built && (!item.entitlementKey || entitlements[item.entitlementKey]);
@@ -115,10 +135,47 @@ export function PortalSidebar({
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
 
-      <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
+      <nav className={`admin-sidebar portal-sidebar${navOpen ? " is-open" : ""}`} aria-label="Portal">
         <div className="admin-brand">
-          Edge8 Client Portal
+          <span className="admin-brand-lead">Edge8 Client Portal</span>
+          <span className="admin-brand-actions">
+            <button
+              type="button"
+              className="admin-avatarbtn"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              aria-label="Your account"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+            >
+              {initials(name)}
+            </button>
+          </span>
         </div>
+
+        {profileMenuOpen && (
+          <div className="admin-profilemenu-backdrop" onClick={() => setProfileMenuOpen(false)} />
+        )}
+        {profileMenuOpen && (
+          <div className="admin-profilemenu" role="menu" aria-label="Your account">
+            <div className="admin-profilemenu-head">
+              <span className="admin-avatarbtn admin-avatarbtn--lg" aria-hidden>
+                {initials(name)}
+              </span>
+              {/* Name only: the company already sits under the brand as the
+                  section label, and this slot's break-all (built for emails)
+                  hyphenates a company name mid-word. */}
+              <span className="admin-profilemenu-email">{name}</span>
+            </div>
+
+            <div className="admin-profilemenu-sep" />
+
+            <form action={impersonating ? endAssumeSession : signOut}>
+              <button type="submit" className="admin-signout admin-profilemenu-signout">
+                {impersonating ? "Exit assume mode" : "Sign out"}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="admin-nav" onClick={() => setNavOpen(false)}>
           {companyName && <div className="admin-nav-sectlabel">{companyName}</div>}
@@ -143,7 +200,18 @@ export function PortalSidebar({
                 )}
                 {!isCollapsed &&
                   group.items.map((item) =>
-                    isEnabled(item) ? (
+                    // The ungrouped items (Home) sit at section-header rank, so
+                    // they take the header's accent bar and type rather than an
+                    // item's icon-and-label row.
+                    group.label === null ? (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`admin-nav-toplink${isActive(pathname, item.href) ? " is-active" : ""}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ) : isEnabled(item) ? (
                       <Link
                         key={item.href}
                         href={item.href}
@@ -175,14 +243,6 @@ export function PortalSidebar({
           })}
         </div>
 
-        <div className="admin-foot">
-          <span className="admin-foot-email">{name}</span>
-          <form action={impersonating ? endAssumeSession : signOut}>
-            <button type="submit" className="admin-signout">
-              {impersonating ? "Exit assume mode" : "Sign out"}
-            </button>
-          </form>
-        </div>
       </nav>
     </>
   );

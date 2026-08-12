@@ -3020,6 +3020,47 @@ a.ideas-share-card:hover {
 }
 .admin-nav > div:first-child .admin-nav-sectlabel { padding-top: 6px; }
 
+/* --- Client portal sidebar -------------------------------------------------
+   One left rail at 18px: the brand, the company label, every section header's
+   accent bar, and every item icon start on the same x. Scoped to
+   .portal-sidebar so the admin and team sidebars keep their own spacing.
+   The 12px group inset stays, so hover and active pills still sit inboard of
+   the rail; only the content inside them moves. */
+.portal-sidebar .admin-brand { padding-left: 18px; }
+.portal-sidebar .admin-nav-sectlabel { padding-left: 18px; }
+.portal-sidebar .admin-nav-grouptoggle { padding-left: 6px; }
+.portal-sidebar .admin-nav-link { padding-left: 6px; }
+
+/* Home outranks the items inside the sections, so it reads as a section
+   header: same accent bar, same type, no icon. It stays a link, so it also
+   carries the active pill the section headers never need. */
+.portal-sidebar .admin-nav-toplink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 5px 6px;
+  margin: 1px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--admin-sidebar-strong);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.portal-sidebar .admin-nav-toplink::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  height: 13px;
+  background: var(--admin-accent);
+  border-radius: 2px;
+}
+.portal-sidebar .admin-nav-toplink:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.portal-sidebar .admin-nav-toplink.is-active { background: var(--admin-accent); color: #fff; }
+/* On the accent pill a blue bar would vanish, so it flips to white. */
+.portal-sidebar .admin-nav-toplink.is-active::before { background: #fff; }
+
 .edges-strategy {
   background: var(--admin-sidebar-bg);
   color: #fff;
