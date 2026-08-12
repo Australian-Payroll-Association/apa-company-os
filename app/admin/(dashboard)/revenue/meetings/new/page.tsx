@@ -21,7 +21,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: S
   const defaultCompanyId = companies.some((c) => c.id === preselect) ? preselect : undefined;
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div className="admin-content--form">
       <div style={{ marginBottom: 10 }}>
         <Link className="admin-cell-muted" href="/admin/revenue/meetings">
           ← All meeting notes

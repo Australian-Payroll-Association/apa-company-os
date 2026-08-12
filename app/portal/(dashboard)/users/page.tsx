@@ -34,7 +34,7 @@ export default async function UsersPage() {
   }
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow="Client Portal"
         title="Users"

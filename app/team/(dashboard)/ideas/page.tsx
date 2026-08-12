@@ -73,7 +73,7 @@ export default async function IdeasPage({ searchParams }: { searchParams: Search
           </Link>
         </div>
 
-        <div style={{ maxWidth: 720 }}>{compose === "build" ? <IdeaForm /> : <LearningForm />}</div>
+        <div className="admin-content--form">{compose === "build" ? <IdeaForm /> : <LearningForm />}</div>
       </div>
     );
   }
@@ -167,7 +167,7 @@ function LearningsFeed({
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 780 }}>
+    <div className="admin-content" style={{ display: "grid", gap: 14 }}>
       {learnings.map((l) => {
         const html = summaryHtml.get(l.id);
         return (
