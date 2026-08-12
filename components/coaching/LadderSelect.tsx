@@ -4,21 +4,12 @@
 // metric a goal hangs off. Shared by the coach page (CoachProfileView) and the
 // member's own page (/team/goals) so both offer the same company goals, in the
 // same shape, and write the same three columns.
+//
+// The value encoding (ladderValue / parseLadder) lives in lib/coaching/ladder
+// so server components can use it: importing it from this client module hands
+// back a client reference, not a function.
 
-import type { EdgesLadder, EdgesOptions, LadderInput } from "@/lib/coaching/data";
-
-// The select's value encoding: "<kind>:<id>", or "" for no ladder.
-export function ladderValue(ladder: EdgesLadder | null): string {
-  if (!ladder) return "";
-  return `${ladder.kind}:${ladder.id}`;
-}
-
-export function parseLadder(value: string): LadderInput {
-  if (!value) return { kind: "none" };
-  const [kind, id] = value.split(":");
-  if ((kind === "objective" || kind === "key_result" || kind === "metric") && id) return { kind, id };
-  return { kind: "none" };
-}
+import type { EdgesOptions } from "@/lib/coaching/data";
 
 export function LadderSelect({
   edges,

@@ -21,7 +21,8 @@ import {
   OPEN_COMMITMENT_STATUSES,
   RETENTION_ROOT_LABELS,
 } from "@/lib/coaching/data";
-import { LadderSelect, ladderValue, parseLadder } from "./LadderSelect";
+import { LadderSelect } from "./LadderSelect";
+import { ladderValue, parseLadder } from "@/lib/coaching/ladder";
 import {
   addCommitment,
   addGoal,
