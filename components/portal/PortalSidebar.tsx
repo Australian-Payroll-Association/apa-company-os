@@ -19,6 +19,7 @@ export type PortalEntitlements = {
   referrals: boolean;
   meetings: boolean;
   users: boolean;
+  companyProfile: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -26,7 +27,8 @@ type NavItem = { label: string; href: string; ico: string; built?: boolean; enti
 
 type NavGroup = { label: string | null; items: NavItem[] };
 
-// Grouped so the groups can collapse, matching AdminSidebar. Home stays
+// Two sections: the work Edge8 is doing (AI Programs) and the client's own
+// account (Account). Groups collapse, matching AdminSidebar. Home stays
 // ungrouped, like the admin company dashboard link.
 const NAV: NavGroup[] = [
   {
@@ -34,7 +36,7 @@ const NAV: NavGroup[] = [
     items: [{ label: "Home", href: "/portal", ico: "\u25c8", built: true }],
   },
   {
-    label: "Delivery",
+    label: "AI Programs",
     items: [
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
@@ -46,23 +48,23 @@ const NAV: NavGroup[] = [
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
       { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
-    ],
-  },
-  {
-    label: "People",
-    items: [
       { label: "Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
       { label: "Time Off", href: "/portal/time-off", ico: "\u263c", built: true, entitlementKey: "timeOff" },
+      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
     ],
   },
   {
     label: "Account",
     items: [
+      // Personal Profile is self-scoped, so every role gets it, always.
+      { label: "Personal Profile", href: "/portal/profile", ico: "\u25c9", built: true },
+      // Company Profile edits the shared company record: admins only, same gate
+      // as Users.
+      { label: "Company Profile", href: "/portal/company", ico: "\u2302", built: true, entitlementKey: "companyProfile" },
       { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
-      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
-      { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
       // Users: portal admins manage their own company's users (PR 3).
       { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
+      { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
     ],
   },
 ];
