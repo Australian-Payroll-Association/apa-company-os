@@ -1,115 +1,96 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Commitment, CommitmentStatus } from "@/lib/coaching/data";
-import { COMMITMENT_STATUS_LABELS, OPEN_COMMITMENT_STATUSES } from "@/lib/coaching/data";
-import { updateMyCommitment } from "@/app/team/(dashboard)/my-coaching/actions";
+import type { Commitment } from "@/lib/coaching/data";
+import { CommitmentStack } from "@/components/coaching/CommitmentStack";
+import {
+  addMyCommitment,
+  deleteMyCommitment,
+  editMyCommitment,
+  reorderMyCommitments,
+  updateMyCommitment,
+} from "@/app/team/(dashboard)/my-coaching/actions";
 
-// The member's interactive commitment list on /team/my-coaching: status +
-// one-line note per commitment. Updating any of them also answers the latest
-// mid-cycle check-in (handled server-side).
+// The member's commitment stack on /team/my-coaching. They can commit to their
+// own work, retitle or drop what they wrote, and drag the whole stack (theirs
+// and their coach's) into the order they actually intend to work it. Updating a
+// status also answers the latest mid-cycle check-in (handled server-side).
+//
+// teamMemberId is the viewer's own id, used only to decide which cards show
+// Edit and Delete. The server re-derives authorship on every write, so a forged
+// id here buys nothing.
 
-const STATUS_BADGE: Record<CommitmentStatus, string> = {
-  open: "admin-badge--info",
-  on_track: "admin-badge--ok",
-  needs_attention: "admin-badge--warn",
-  completed: "admin-badge--ok",
-  dropped: "admin-badge--err",
-  blocked: "admin-badge--err",
-};
-
-function fmt(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
-export function MyCommitments({ commitments }: { commitments: Commitment[] }) {
+export function MyCommitments({
+  commitments,
+  teamMemberId,
+}: {
+  commitments: Commitment[];
+  teamMemberId: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+  const [title, setTitle] = useState("");
+  const [dueOn, setDueOn] = useState("");
 
-  const open = commitments.filter((c) => (OPEN_COMMITMENT_STATUSES as CommitmentStatus[]).includes(c.status));
-  const closed = commitments.filter(
-    (c) => !(OPEN_COMMITMENT_STATUSES as CommitmentStatus[]).includes(c.status),
-  );
-
-  const update = (id: string, status: CommitmentStatus, note: string) => {
+  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
     setError(null);
     startTransition(async () => {
-      const res = await updateMyCommitment(id, status, note);
-      if (!res.ok) setError(res.error);
+      const res = await fn();
+      if (!res.ok) setError(res.error ?? "Something went wrong.");
+      else after?.();
     });
   };
 
   return (
     <>
       {error && <div className="admin-alert admin-alert--err">{error}</div>}
-      {open.length === 0 && <div className="admin-empty">No open commitments right now.</div>}
-      {open.map((c) => (
-        <Row key={c.id} c={c} busy={busy} update={update} />
-      ))}
-      {closed.length > 0 && (
-        <details className="coach-closed">
-          <summary>{closed.length} closed</summary>
-          {closed.map((c) => (
-            <div key={c.id} className="coach-commitment is-closed">
-              <span className={`admin-badge ${STATUS_BADGE[c.status]}`}>
-                {COMMITMENT_STATUS_LABELS[c.status]}
-              </span>
-              <span>{c.title}</span>
-            </div>
-          ))}
-        </details>
-      )}
-    </>
-  );
-}
 
-function Row({
-  c,
-  busy,
-  update,
-}: {
-  c: Commitment;
-  busy: boolean;
-  update: (id: string, status: CommitmentStatus, note: string) => void;
-}) {
-  const [note, setNote] = useState(c.statusNote ?? "");
-  return (
-    <div className="coach-commitment">
-      <div className="coach-commitment-main">
-        <span className={`admin-badge ${STATUS_BADGE[c.status]}`}>{COMMITMENT_STATUS_LABELS[c.status]}</span>
-        <span className="coach-commitment-title">{c.title}</span>
-        <span className="admin-cell-muted">
-          {c.owner === "coach" ? "your coach owns this" : "yours"}
-          {c.dueOn ? ` · due ${fmt(c.dueOn)}` : ""}
-        </span>
-      </div>
-      <div className="coach-commitment-controls">
-        <select
-          className="admin-input"
-          value={c.status}
-          disabled={busy}
-          onChange={(e) => update(c.id, e.target.value as CommitmentStatus, note)}
-        >
-          {Object.entries(COMMITMENT_STATUS_LABELS).map(([k, label]) => (
-            <option key={k} value={k}>
-              {label}
-            </option>
-          ))}
-        </select>
+      <CommitmentStack
+        commitments={commitments}
+        busy={busy}
+        ownerLabel={(c) => (c.owner === "coach" ? "your coach owns this" : "yours")}
+        onStatus={(id, status, note) => run(() => updateMyCommitment(id, status, note))}
+        onReorder={(ids) => run(() => reorderMyCommitments(ids))}
+        emptyText="No open commitments right now."
+        authoring={{
+          canEdit: (c) => c.createdBy === teamMemberId,
+          onEdit: (id, t, d) => run(() => editMyCommitment(id, t, d)),
+          onDelete: (id) => run(() => deleteMyCommitment(id)),
+        }}
+      />
+
+      <div className="coach-add-row">
         <input
           className="admin-input"
-          placeholder="One-line status update…"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if ((c.statusNote ?? "") !== note) update(c.id, c.status, note);
-          }}
+          placeholder="Commit to something…"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          aria-label="New commitment"
         />
+        <input
+          className="admin-input"
+          type="date"
+          value={dueOn}
+          onChange={(e) => setDueOn(e.target.value)}
+          aria-label="Due date"
+        />
+        <button
+          type="button"
+          className="admin-btn"
+          disabled={busy || !title.trim()}
+          onClick={() =>
+            run(
+              () => addMyCommitment(title, dueOn || null),
+              () => {
+                setTitle("");
+                setDueOn("");
+              },
+            )
+          }
+        >
+          Add
+        </button>
       </div>
-    </div>
+    </>
   );
 }

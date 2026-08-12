@@ -137,6 +137,11 @@ export type Commitment = {
   statusNote: string | null;
   statusUpdatedAt: string | null;
   createdAt: string;
+  // Position in the one shared priority stack; lower sorts first.
+  sortOrder: number;
+  // The team member who wrote it. Null on rows predating authorship, which
+  // reads as coach-authored — only the author may retitle or delete.
+  createdBy: string | null;
 };
 
 function toCommitment(r: Record<string, unknown>): Commitment {
@@ -151,11 +156,13 @@ function toCommitment(r: Record<string, unknown>): Commitment {
     statusNote: (r.status_note as string | null) ?? null,
     statusUpdatedAt: (r.status_updated_at as string | null) ?? null,
     createdAt: r.created_at as string,
+    sortOrder: (r.sort_order as number) ?? 0,
+    createdBy: (r.created_by as string | null) ?? null,
   };
 }
 
 const COMMITMENT_SELECT =
-  "id, coaching_profile_id, one_on_one_id, title, owner, due_on, status, status_note, status_updated_at, created_at";
+  "id, coaching_profile_id, one_on_one_id, title, owner, due_on, status, status_note, status_updated_at, created_at, sort_order, created_by";
 
 // ---- coach tier -------------------------------------------------------------
 
@@ -709,6 +716,7 @@ export async function getCoachProfileDetail(
       .from("coaching_commitments")
       .select(COMMITMENT_SELECT)
       .eq("coaching_profile_id", profileId)
+      .order("sort_order")
       .order("created_at", { ascending: false }),
     companyOs
       .from("coaching_checkins")
@@ -1208,8 +1216,62 @@ export async function coachAddCommitment(
     title,
     owner,
     due_on: input.dueOn,
+    created_by: actor.teamMemberId,
+    sort_order: await nextCommitmentSort(profileId),
   });
   return error ? { ok: false, error: "Could not add the commitment." } : { ok: true };
+}
+
+// ---- commitment priority stack ----------------------------------------------
+// One order per profile, written from either tier. The two entry points differ
+// only in how they prove the actor may touch this profile.
+
+// New commitments land at the bottom of the stack.
+async function nextCommitmentSort(profileId: string): Promise<number> {
+  const { data } = await companyOs
+    .from("coaching_commitments")
+    .select("sort_order")
+    .eq("coaching_profile_id", profileId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const top = (data as { sort_order: number | null } | null)?.sort_order;
+  return typeof top === "number" ? top + 1 : 0;
+}
+
+// Rewrite the stack from a client-supplied id list. The ids are the ONLY thing
+// taken from the client, and every one of them must already belong to this
+// profile — an id from another profile fails the whole call rather than
+// silently reordering someone else's commitments.
+async function applyCommitmentOrder(profileId: string, orderedIds: string[]): Promise<Result> {
+  if (orderedIds.length === 0) return { ok: true };
+  if (new Set(orderedIds).size !== orderedIds.length) return { ok: false, error: "Bad order." };
+  const { data } = await companyOs
+    .from("coaching_commitments")
+    .select("id")
+    .eq("coaching_profile_id", profileId)
+    .in("id", orderedIds);
+  const mine = new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
+  if (mine.size !== orderedIds.length) return { ok: false, error: "Not found." };
+  const stamp = new Date().toISOString();
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      companyOs
+        .from("coaching_commitments")
+        .update({ sort_order: i, updated_at: stamp })
+        .eq("id", id),
+    ),
+  );
+  return results.some((r) => r.error) ? { ok: false, error: "Could not save the new order." } : { ok: true };
+}
+
+export async function coachReorderCommitments(
+  actor: TeamActor,
+  profileId: string,
+  orderedIds: string[],
+): Promise<Result> {
+  if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
+  return applyCommitmentOrder(profileId, orderedIds);
 }
 
 async function assertCoachOwnsCommitment(
@@ -1326,6 +1388,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       .from("coaching_commitments")
       .select(COMMITMENT_SELECT)
       .eq("coaching_profile_id", profileId)
+      .order("sort_order")
       .order("created_at", { ascending: false }),
     companyOs
       .from("coaching_checkins")
@@ -1549,6 +1612,107 @@ export async function myUpdateCommitmentStatus(
       .eq("id", (checkin as { id: string }).id);
   }
   return { ok: true };
+}
+
+// The actor's own ACTIVE profile id, or null. The member tier's authorization
+// subject: never a client-supplied profile id.
+async function myProfileId(actor: TeamActor): Promise<string | null> {
+  const { data } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("team_member_id", actor.teamMemberId)
+    .eq("active", true)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+// A commitment the actor WROTE on their own profile. Both halves matter: being
+// the profile's owner grants status and order, but only authorship grants
+// retitling and deletion, so a member can never edit what their coach set.
+async function myAuthoredCommitment(
+  actor: TeamActor,
+  commitmentId: string,
+): Promise<{ id: string; profileId: string } | null> {
+  if (!commitmentId) return null;
+  const profileId = await myProfileId(actor);
+  if (!profileId) return null;
+  const { data } = await companyOs
+    .from("coaching_commitments")
+    .select("id, created_by")
+    .eq("id", commitmentId)
+    .eq("coaching_profile_id", profileId)
+    .maybeSingle();
+  const row = data as { id: string; created_by: string | null } | null;
+  if (!row || row.created_by !== actor.teamMemberId) return null;
+  return { id: row.id, profileId };
+}
+
+function validCommitmentInput(title: string, dueOn: string | null): Result {
+  const t = title.trim();
+  if (!t) return { ok: false, error: "Write the commitment first." };
+  if (t.length > 500) return { ok: false, error: "Keep the commitment under 500 characters." };
+  if (dueOn && !/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) return { ok: false, error: "Bad date." };
+  return { ok: true };
+}
+
+// A member commits to their own work. owner is always "member" — a member
+// cannot assign work to their coach from here.
+export async function myAddCommitment(
+  actor: TeamActor,
+  input: { title: string; dueOn: string | null },
+): Promise<Result> {
+  const profileId = await myProfileId(actor);
+  if (!profileId) return { ok: false, error: "You are not in a coaching cycle." };
+  const valid = validCommitmentInput(input.title, input.dueOn);
+  if (!valid.ok) return valid;
+  const { error } = await companyOs.from("coaching_commitments").insert({
+    coaching_profile_id: profileId,
+    title: input.title.trim(),
+    owner: "member",
+    due_on: input.dueOn,
+    created_by: actor.teamMemberId,
+    sort_order: await nextCommitmentSort(profileId),
+  });
+  return error ? { ok: false, error: "Could not add the commitment." } : { ok: true };
+}
+
+export async function myUpdateCommitmentDetails(
+  actor: TeamActor,
+  commitmentId: string,
+  input: { title: string; dueOn: string | null },
+): Promise<Result> {
+  if (!(await myAuthoredCommitment(actor, commitmentId)))
+    return { ok: false, error: "You can only edit commitments you wrote." };
+  const valid = validCommitmentInput(input.title, input.dueOn);
+  if (!valid.ok) return valid;
+  const { error } = await companyOs
+    .from("coaching_commitments")
+    .update({
+      title: input.title.trim(),
+      due_on: input.dueOn,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", commitmentId);
+  return error ? { ok: false, error: "Could not update the commitment." } : { ok: true };
+}
+
+export async function myDeleteCommitment(actor: TeamActor, commitmentId: string): Promise<Result> {
+  if (!(await myAuthoredCommitment(actor, commitmentId)))
+    return { ok: false, error: "You can only delete commitments you wrote." };
+  const { error } = await companyOs.from("coaching_commitments").delete().eq("id", commitmentId);
+  return error ? { ok: false, error: "Could not delete the commitment." } : { ok: true };
+}
+
+// The member reorders the whole stack, including what their coach set: the
+// order is the member's read on what matters most right now, and the coach
+// sees the same list.
+export async function myReorderCommitments(
+  actor: TeamActor,
+  orderedIds: string[],
+): Promise<Result> {
+  const profileId = await myProfileId(actor);
+  if (!profileId) return { ok: false, error: "You are not in a coaching cycle." };
+  return applyCommitmentOrder(profileId, orderedIds);
 }
 
 // ---- member tier: my FAST goals (/team/goals) ------------------------------
