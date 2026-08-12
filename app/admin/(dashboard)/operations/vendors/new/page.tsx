@@ -20,7 +20,7 @@ export default function NewVendorPage() {
           </Link>
         }
       />
-      <div className="admin-card admin-section-card" style={{ maxWidth: 720 }}>
+      <div className="admin-card admin-section-card admin-content--form">
         <NewVendorForm />
       </div>
     </>

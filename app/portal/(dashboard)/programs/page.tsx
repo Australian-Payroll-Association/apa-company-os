@@ -49,7 +49,7 @@ export default async function AiProgramsPage() {
 
   if (programs.length === 0) {
     return (
-      <div style={{ maxWidth: 880 }}>
+      <div className="admin-content">
         <PageHead
           eyebrow="Client Portal"
           title="Programs"
@@ -85,7 +85,7 @@ export default async function AiProgramsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow="Client Portal"
         title="Programs"

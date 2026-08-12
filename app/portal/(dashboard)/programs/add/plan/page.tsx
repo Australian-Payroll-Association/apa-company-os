@@ -17,7 +17,7 @@ export default async function PlanBuilderPage() {
     .map((m) => ({ companyId: m.companyId, companyName: m.companyName ?? "Your company" }));
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow={<Link href="/portal/programs/add">← Add a program</Link>}
         title="Build a plan"

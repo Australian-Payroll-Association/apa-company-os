@@ -17,7 +17,7 @@ export default async function UploadProgramPage() {
     .map((m) => ({ companyId: m.companyId, companyName: m.companyName ?? "Your company" }));
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow={<Link href="/portal/programs/add">← Add a program</Link>}
         title="Upload documents"

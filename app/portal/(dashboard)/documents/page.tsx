@@ -22,7 +22,7 @@ export default async function DocumentsPage() {
     .map((m) => ({ companyId: m.companyId as string, companyName: m.companyName ?? "Your company" }));
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow="Client Portal"
         title="Documents"

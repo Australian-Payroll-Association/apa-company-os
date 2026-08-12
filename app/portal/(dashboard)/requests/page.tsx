@@ -39,7 +39,7 @@ export default async function PortalRequestsPage() {
   ]);
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow="Client Portal"
         title="Requests"

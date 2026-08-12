@@ -42,7 +42,7 @@ export default async function PortalBacklogPage() {
         }
       />
       {overview && (
-        <section className="admin-card admin-section-card" style={{ marginBottom: 18, maxWidth: 940 }}>
+        <section className="admin-card admin-section-card admin-content" style={{ marginBottom: 18 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Overview</h2>
           <div className="portal-roadmap-overview" style={{ fontSize: 14, lineHeight: 1.65 }}>
             <BotText text={overview} />

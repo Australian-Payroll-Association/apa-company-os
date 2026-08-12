@@ -32,7 +32,7 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
   );
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div className="admin-content">
       <PageHead
         eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
         title={program.name}
