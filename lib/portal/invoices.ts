@@ -13,6 +13,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { adminCompanyScope } from "@/lib/portal/roles";
 
 export type PortalInvoice = {
   id: string;
@@ -40,23 +41,27 @@ type Row = {
   lines: unknown;
 };
 
+// Billing is admin-only: both the entitlement and the read scope come from the
+// companies where the actor holds the admin role, not the full companyScope.
 export async function hasInvoices(actor: PortalActor): Promise<boolean> {
-  if (actor.companyScope.length === 0) return false;
+  const scope = adminCompanyScope(actor);
+  if (scope.length === 0) return false;
   const { data } = await companyOs
     .from("invoices")
     .select("id")
-    .in("company_id", actor.companyScope)
+    .in("company_id", scope)
     .limit(1);
   return (data ?? []).length > 0;
 }
 
 export async function getInvoicesForActor(actor: PortalActor): Promise<PortalInvoice[]> {
-  if (actor.companyScope.length === 0) return [];
+  const scope = adminCompanyScope(actor);
+  if (scope.length === 0) return [];
 
   const { data } = await companyOs
     .from("invoices")
     .select("id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, payment_link, lines")
-    .in("company_id", actor.companyScope)
+    .in("company_id", scope)
     .neq("status", "voided")
     .order("txn_date", { ascending: false });
 

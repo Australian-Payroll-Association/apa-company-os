@@ -49,6 +49,7 @@ function meGroup(isCoached: boolean): NavGroup {
     label: "Me",
     items: [
       { label: "Profile", href: "/team/profile", ico: "☺", enabled: true },
+      { label: "My FAST Goals", href: "/team/goals", ico: "◉", enabled: true },
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
       { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },

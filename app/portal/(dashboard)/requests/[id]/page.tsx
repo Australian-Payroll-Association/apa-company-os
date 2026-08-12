@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
+import { isPortalAdmin } from "@/lib/portal/roles";
 import { getWorkRequestForActor } from "@/lib/portal/work-requests";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
@@ -40,6 +41,8 @@ export default async function PortalRequestDetailPage({ params }: { params: { id
   if (!data) notFound();
   const { request: r, events } = data;
   const status = r.status as WorkRequestStatus;
+  // Estimate/work decisions are admin-only (PR 2 roles); the server re-checks.
+  const canDecide = r.clientCompanyId ? isPortalAdmin(actor, r.clientCompanyId) : false;
 
   return (
     <>
@@ -89,7 +92,7 @@ export default async function PortalRequestDetailPage({ params }: { params: { id
         </div>
       )}
 
-      <DecisionPanel id={r.id} status={status} />
+      {canDecide && <DecisionPanel id={r.id} status={status} />}
 
       <div className="admin-card admin-section-card" style={{ marginTop: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Timeline</h2>

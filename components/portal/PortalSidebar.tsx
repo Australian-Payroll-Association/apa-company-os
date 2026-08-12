@@ -18,6 +18,7 @@ export type PortalEntitlements = {
   events: boolean;
   referrals: boolean;
   meetings: boolean;
+  users: boolean;
 };
 
 type EntitlementKey = keyof PortalEntitlements;
@@ -38,6 +39,9 @@ const NAV: NavGroup[] = [
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
       { label: "AI Programs", href: "/portal/programs", ico: "\u21c9", built: true },
+      // Documents: company-level files shared with Edge8; membership is the
+      // entitlement, same as Requests and AI Programs.
+      { label: "Documents", href: "/portal/documents", ico: "\u25a3", built: true },
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
@@ -57,6 +61,8 @@ const NAV: NavGroup[] = [
       { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
       { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
       { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
+      // Users: portal admins manage their own company's users (PR 3).
+      { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
     ],
   },
 ];

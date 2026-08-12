@@ -20,6 +20,7 @@ import {
   type BacklogPriority,
 } from "@/lib/client-backlog";
 import { setMyPriority, proposeMyItem, reorderMyGroup } from "./actions";
+import { ProposeAssist } from "./ProposeAssist";
 
 const STYLES = `
 .cbp { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 940px; }
@@ -70,7 +71,19 @@ function rebuild(all: BacklogItem[], group: BacklogGroupKey, reordered: BacklogI
   );
 }
 
-export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; companyId: string }) {
+export function BacklogPortalView({
+  items,
+  companyId,
+  canPrioritize,
+  canPropose,
+}: {
+  items: BacklogItem[];
+  companyId: string;
+  // Role gates (PR 2): admins reorder + set priorities; contributors propose;
+  // viewers read. The server actions re-check, this only shapes the UI.
+  canPrioritize: boolean;
+  canPropose: boolean;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -78,6 +91,7 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
   const [pTitle, setPTitle] = useState("");
   const [pNote, setPNote] = useState("");
   const [pPriority, setPPriority] = useState<BacklogPriority>("next");
+  const [pHint, setPHint] = useState<string | null>(null);
 
   // Local copy so drag + priority edits feel instant; re-sync after a refresh.
   const [ordered, setOrdered] = useState<BacklogItem[]>(items);
@@ -102,6 +116,7 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
   }
 
   function onDragEnd(result: DropResult) {
+    if (!canPrioritize) return;
     const { source, destination } = result;
     if (!destination || destination.droppableId !== source.droppableId) return;
     if (destination.index === source.index) return;
@@ -128,14 +143,20 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
     const eff = effectivePriority(it);
     const tok = tokenLabel(it.token_low, it.token_high);
     return (
-      <Draggable draggableId={it.id} index={index} key={it.id}>
+      <Draggable draggableId={it.id} index={index} key={it.id} isDragDisabled={!canPrioritize}>
         {(provided, snapshot) => (
           <div
             className={`cbp-item${snapshot.isDragging ? " dragging" : ""}`}
             ref={provided.innerRef}
             {...provided.draggableProps}
           >
-            <span className="cbp-handle" {...provided.dragHandleProps} title="Drag to reorder" aria-label="Drag to reorder">
+            <span
+              className="cbp-handle"
+              {...provided.dragHandleProps}
+              title={canPrioritize ? "Drag to reorder" : undefined}
+              aria-label={canPrioritize ? "Drag to reorder" : undefined}
+              style={canPrioritize ? undefined : { visibility: "hidden" }}
+            >
               ⠿
             </span>
             <div className="cbp-main">
@@ -143,18 +164,22 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
                 {it.ref && <span className="cbp-ref">{it.ref}</span>}
                 <span className="cbp-title">{it.title}</span>
                 <span className="cbp-pills">
-                  {BACKLOG_PRIORITIES.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      className={`cbp-pill${eff === p ? ` on-${p}` : ""}`}
-                      disabled={pending}
-                      onClick={() => run(() => setMyPriority(it.id, it.client_priority === p ? null : p))}
-                      title={it.client_priority ? "Your priority" : "Edge8 proposed — click to set yours"}
-                    >
-                      {PRIORITY_LABEL[p]}
-                    </button>
-                  ))}
+                  {canPrioritize ? (
+                    BACKLOG_PRIORITIES.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        className={`cbp-pill${eff === p ? ` on-${p}` : ""}`}
+                        disabled={pending}
+                        onClick={() => run(() => setMyPriority(it.id, it.client_priority === p ? null : p))}
+                        title={it.client_priority ? "Your priority" : "Edge8 proposed — click to set yours"}
+                      >
+                        {PRIORITY_LABEL[p]}
+                      </button>
+                    ))
+                  ) : (
+                    <span className={`cbp-pill on-${eff}`} style={{ cursor: "default" }}>{PRIORITY_LABEL[eff]}</span>
+                  )}
                 </span>
               </div>
               <div className="cbp-body">
@@ -171,7 +196,7 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
                     <span className="cbp-chip mine">you changed from Edge8&apos;s {PRIORITY_LABEL[it.edge8_priority]}</span>
                   )}
                 </div>
-                {it.client_priority && (
+                {canPrioritize && it.client_priority && (
                   <div className="cbp-hint">
                     You set this. Click the highlighted pill again to revert to Edge8&apos;s suggestion ({PRIORITY_LABEL[it.edge8_priority]}).
                   </div>
@@ -190,10 +215,16 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
       <p className="cbp-intro">
         <strong>Step 1</strong> gets your data into one central database (read-only, masked). That
         unlocks every report here. <strong>Step 2</strong> picks a short list of workflows to
-        automate, which we choose together. Set your priority on any item, drag the handle to
-        reorder within a section, and use <em>Propose an item</em> to add your own — it comes to us
-        to review. Human Token estimates are pre-research ranges (1 Human Token = 1 hour of Edge8
-        expert time).
+        automate, which we choose together.{" "}
+        {canPrioritize && (
+          <>Set your priority on any item, drag the handle to reorder within a section, and use{" "}
+          <em>Propose an item</em> to add your own — it comes to us to review.{" "}</>
+        )}
+        {!canPrioritize && canPropose && (
+          <>Use <em>Propose an item</em> to add your own (it comes to us to review); your account
+          admin controls priorities.{" "}</>
+        )}
+        Human Token estimates are pre-research ranges (1 Human Token = 1 hour of Edge8 expert time).
       </p>
 
       <div className="cbp-counts">
@@ -225,13 +256,26 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
                 )}
               </Droppable>
 
-              {companyId && (proposeGroup === g ? (
+              {companyId && canPropose && (proposeGroup === g ? (
                 <div className="cbp-propose">
+                  <ProposeAssist
+                    onDraft={(d) => {
+                      setPTitle(d.title);
+                      setPNote(d.note);
+                      setPPriority((BACKLOG_PRIORITIES as readonly string[]).includes(d.priority) ? (d.priority as BacklogPriority) : "next");
+                      setPHint(
+                        d.groupKey !== g
+                          ? `Tip: this might fit better under ${GROUP_META[d.groupKey as BacklogGroupKey]?.title ?? d.groupKey}. You can propose it there instead, or send it here and Edge8 will place it.`
+                          : null,
+                      );
+                    }}
+                  />
                   <input placeholder="Short title for your idea" value={pTitle} onChange={(e) => setPTitle(e.target.value)} autoFocus />
                   <textarea placeholder="Optional: a sentence on what you're after" value={pNote} onChange={(e) => setPNote(e.target.value)} />
                   <select value={pPriority} onChange={(e) => setPPriority(e.target.value as BacklogPriority)}>
                     {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
                   </select>
+                  {pHint && <div className="cbp-hint" style={{ marginBottom: 8 }}>{pHint}</div>}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
                       type="button"
@@ -239,12 +283,12 @@ export function BacklogPortalView({ items, companyId }: { items: BacklogItem[]; 
                       disabled={pending || !pTitle.trim()}
                       onClick={() => run(
                         () => proposeMyItem({ companyId, groupKey: g, title: pTitle, note: pNote, priority: pPriority }),
-                        () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); },
+                        () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); setPHint(null); },
                       )}
                     >
                       Send to Edge8
                     </button>
-                    <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); }}>Cancel</button>
+                    <button type="button" className="cbp-btn ghost" onClick={() => { setProposeGroup(null); setPTitle(""); setPNote(""); setPHint(null); }}>Cancel</button>
                   </div>
                 </div>
               ) : (

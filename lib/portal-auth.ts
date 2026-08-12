@@ -126,7 +126,7 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
     displayName: person.full_name || person.email,
     email: person.email,
     companyScope: [company.id],
-    memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: "member" }],
+    memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: "admin" }],
     impersonation: { adminEmail, sessionId: session.id, expiresAt: session.expires_at },
     mustChangePassword: false,
   };

@@ -6,17 +6,17 @@ import { createMeeting } from "@/app/admin/(dashboard)/revenue/meetings/actions"
 import { MEETING_ACCEPT } from "@/lib/meeting-extract";
 import type { CompanyOption } from "@/lib/admin/meetings";
 
-// Upload a meeting transcript by pasting text OR choosing a file. Used two ways:
-// with a preset `companyId` on the company 360 tab, or with a `companies` list
-// (client picker) on the global Meetings page. On submit it creates the row and
-// AI summarization runs server-side; router.refresh() then shows the new row
-// (status "Summarizing…") which fills in once the summary lands.
+// Upload a meeting transcript by pasting text OR choosing a file. Lives on the
+// Add New page; `defaultCompanyId` preselects the client when arriving from a
+// company 360 tab. On submit it creates the row, AI summarization runs
+// server-side, and we go straight to the new meeting's Details page, which shows
+// "Summarizing…" until the summary lands.
 export function MeetingUploadForm({
-  companyId,
   companies,
+  defaultCompanyId,
 }: {
-  companyId?: string;
-  companies?: CompanyOption[];
+  companies: CompanyOption[];
+  defaultCompanyId?: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -30,7 +30,6 @@ export function MeetingUploadForm({
     const form = formRef.current;
     if (!form) return;
     const fd = new FormData(form);
-    if (companyId) fd.set("companyId", companyId);
     // Only send the input for the active mode so a stale value can't win.
     if (mode === "paste") fd.delete("file");
     else fd.delete("transcript");
@@ -39,9 +38,7 @@ export function MeetingUploadForm({
       const res = await createMeeting(fd);
       if (res.ok) {
         setMsg({ tone: "ok", text: "Uploaded. Summarizing…" });
-        form.reset();
-        setMode("paste");
-        router.refresh();
+        router.push(`/admin/revenue/meetings/${res.id}`);
       } else {
         setMsg({ tone: "err", text: res.error });
       }
@@ -56,17 +53,21 @@ export function MeetingUploadForm({
         </div>
       )}
 
-      {companies && (
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="mn-company">Client</label>
-          <select id="mn-company" name="companyId" className="admin-input" required defaultValue="">
-            <option value="" disabled>Choose a client…</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div className="admin-field">
+        <label className="admin-label" htmlFor="mn-company">Client</label>
+        <select
+          id="mn-company"
+          name="companyId"
+          className="admin-input"
+          required
+          defaultValue={defaultCompanyId ?? ""}
+        >
+          <option value="" disabled>Choose a client…</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div className="admin-field" style={{ flex: "1 1 160px" }}>
