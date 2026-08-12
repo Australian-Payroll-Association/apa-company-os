@@ -22,7 +22,13 @@ const APP_STATUSES = new Set([
 const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 export type StageOption = { id: string; name: string; isTerminal: boolean };
-export type AppNote = { id: string; kind: string; body: string | null; occurredAt: string | null };
+export type AppNote = {
+  id: string;
+  kind: string;
+  body: string | null;
+  occurredAt: string | null;
+  author: string | null;
+};
 
 // The hiring stages belong to the application's job req, so the drawer loads
 // them lazily when it opens (the flat list spans many reqs).
@@ -89,6 +95,7 @@ export type ApplicationPatch = {
   rating?: number | null;
   rejection_reason?: string | null;
   current_stage_id?: string | null;
+  hr_assessment?: string | null;
 };
 
 export async function updateApplication(applicationId: string, patch: ApplicationPatch): Promise<Result> {
@@ -109,6 +116,9 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   }
   if (patch.rejection_reason !== undefined) {
     updates.rejection_reason = patch.rejection_reason?.trim() || null;
+  }
+  if (patch.hr_assessment !== undefined) {
+    updates.hr_assessment = patch.hr_assessment?.trim() || null;
   }
   if (patch.current_stage_id !== undefined) {
     if (patch.current_stage_id === null) {
@@ -137,6 +147,7 @@ export async function updateApplication(applicationId: string, patch: Applicatio
     newData: updates,
   });
   revalidatePath("/admin/talent/applications");
+  revalidatePath(`/admin/talent/applications/${applicationId}`);
   return { ok: true };
 }
 
@@ -194,6 +205,12 @@ export type ApplicantProfilePatch = {
   portfolio_url?: string | null;
   phone?: string | null;
   do_not_hire?: boolean;
+  // Recruiter overrides for the fields the AI extracts from the resume. Shown in
+  // place of the AI value once set; persist across the person's applications.
+  english_proficiency?: string | null;
+  salary_expectation_cents?: number | null;
+  salary_expectation_currency?: string | null;
+  notice_period?: string | null;
 };
 
 export async function updateApplicantProfile(personId: string, patch: ApplicantProfilePatch): Promise<Result> {
@@ -207,6 +224,16 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
   if (patch.current_title !== undefined) profileUpdates.current_title = patch.current_title?.trim() || null;
   if (patch.portfolio_url !== undefined) profileUpdates.portfolio_url = patch.portfolio_url?.trim() || null;
   if (patch.do_not_hire !== undefined) profileUpdates.do_not_hire = patch.do_not_hire;
+  if (patch.english_proficiency !== undefined)
+    profileUpdates.english_proficiency = patch.english_proficiency?.trim() || null;
+  if (patch.notice_period !== undefined) profileUpdates.notice_period = patch.notice_period?.trim() || null;
+  if (patch.salary_expectation_cents !== undefined)
+    profileUpdates.salary_expectation_cents =
+      patch.salary_expectation_cents == null || Number.isNaN(patch.salary_expectation_cents)
+        ? null
+        : Math.max(0, Math.round(patch.salary_expectation_cents));
+  if (patch.salary_expectation_currency !== undefined)
+    profileUpdates.salary_expectation_currency = patch.salary_expectation_currency?.trim() || null;
 
   if (Object.keys(personUpdates).length === 0 && Object.keys(profileUpdates).length === 0) {
     return { ok: true };
@@ -318,7 +345,7 @@ export async function getApplicationNotes(
   await requireAdmin();
   const { data, error } = await companyOs
     .from("interactions")
-    .select("id, kind, body, occurred_at")
+    .select("id, kind, body, occurred_at, metadata")
     .eq("subject_type", "application")
     .eq("subject_id", applicationId)
     .not("kind", "in", `(${AUTO_INTERACTION_KINDS.join(",")})`)
@@ -330,15 +357,27 @@ export async function getApplicationNotes(
     kind: (r.kind as string) ?? "note",
     body: (r.body as string | null) ?? null,
     occurredAt: (r.occurred_at as string | null) ?? null,
+    author: noteAuthor(r.metadata),
   }));
   return { ok: true, items };
+}
+
+// Author display for an interview-results entry. New entries stamp the acting
+// admin's name/email into metadata (see addApplicationNote); older entries have
+// no author and render without one.
+function noteAuthor(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const m = metadata as Record<string, unknown>;
+  const name = typeof m.author_name === "string" ? m.author_name.trim() : "";
+  const email = typeof m.author_email === "string" ? m.author_email.trim() : "";
+  return name || email || null;
 }
 
 export async function addApplicationNote(
   applicationId: string,
   body: string,
 ): Promise<{ ok: true; item: AppNote } | { ok: false; error: string }> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const text = body.trim();
   if (!text) return { ok: false, error: "Write something before saving." };
@@ -352,6 +391,17 @@ export async function addApplicationNote(
     .maybeSingle();
   if (aErr || !app) return { ok: false, error: aErr?.message ?? "Application not found." };
 
+  // Interview Results are multi-author: stamp who wrote each entry so the thread
+  // reads as attributed feedback. Admins may not have a people row, so the email
+  // is the reliable identity; use their display name when one exists.
+  const { data: person } = await companyOs
+    .from("people")
+    .select("display_name, full_name")
+    .eq("email", admin.email)
+    .maybeSingle();
+  const authorName =
+    (person?.display_name as string | null) || (person?.full_name as string | null) || null;
+
   const occurredAt = new Date().toISOString();
   const { data, error } = await companyOs
     .from("interactions")
@@ -362,13 +412,14 @@ export async function addApplicationNote(
       subject_type: "application",
       subject_id: applicationId,
       occurred_at: occurredAt,
-      metadata: { source: "application_drawer" },
+      metadata: { source: "application_profile", author_email: admin.email, author_name: authorName },
     })
     .select("id, kind, body, occurred_at")
     .single();
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/talent/applications");
+  revalidatePath(`/admin/talent/applications/${applicationId}`);
   return {
     ok: true,
     item: {
@@ -376,6 +427,7 @@ export async function addApplicationNote(
       kind: (data.kind as string) ?? "note",
       body: (data.body as string | null) ?? null,
       occurredAt: (data.occurred_at as string | null) ?? occurredAt,
+      author: authorName || admin.email,
     },
   };
 }
