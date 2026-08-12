@@ -5,9 +5,10 @@ import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { waitUntil } from "@vercel/functions";
+import { ensureAiPanelist, scoreInterview } from "@/lib/interview-panelist";
 import {
   AI_PANELIST_EMAIL,
-  AI_PANELIST_NAME,
   RECOMMENDATIONS,
   ROUND_MODES,
   recommendationToDb,
@@ -51,33 +52,6 @@ export type InterviewRound = {
 };
 
 export type TeamOption = { id: string; name: string };
-
-// The AI panelist is a real people row (so it can hold interviewer + scorecard
-// rows like any human), identified by a sentinel email. Created on first use so
-// this works in every environment without a seed step.
-async function ensureAiPanelist(): Promise<string> {
-  const { data } = await companyOs
-    .from("people")
-    .select("id")
-    .eq("email", AI_PANELIST_EMAIL)
-    .maybeSingle();
-  if (data?.id) return data.id as string;
-
-  const { data: created, error } = await companyOs
-    .from("people")
-    .insert({
-      full_name: AI_PANELIST_NAME,
-      email: AI_PANELIST_EMAIL,
-      is_team_member: false,
-      do_not_contact: true,
-      source: "system",
-      metadata: { is_ai: true },
-    })
-    .select("id")
-    .single();
-  if (error || !created) throw new Error(error?.message ?? "Could not create the AI panelist.");
-  return created.id as string;
-}
 
 function isAiPerson(p: { email?: string | null; metadata?: unknown } | null): boolean {
   if (!p) return false;
@@ -371,6 +345,10 @@ async function fileTranscript(
     actor: actorEmail,
     newData: { entity_type: "interview", entity_id: roundId, byte_size: buffer.byteLength },
   });
+  // The AI panelist scores as soon as a transcript lands. Runs after the response
+  // (a model call takes seconds); the scorecard stays blind in the UI until the
+  // human panelists submit theirs.
+  waitUntil(scoreInterview(roundId));
   revalidatePath("/admin/talent/applications");
   return { ok: true, documentId: doc.id as string };
 }
@@ -488,6 +466,17 @@ export async function submitScorecard(
     actor: admin.email,
     newData: { interview_id: roundId, interviewer_id: interviewerId, recommendation: input.recommendation },
   });
+  revalidatePath("/admin/talent/applications");
+  return { ok: true };
+}
+
+// Run (or re-run) the AI panelist for one round on demand. The scorecard write
+// is blind-first: it lands immediately but the UI withholds it until every human
+// on the round has submitted. Returns the model error verbatim so the UI can show it.
+export async function runAiPanelist(roundId: string): Promise<Result> {
+  await requireAdmin();
+  const r = await scoreInterview(roundId);
+  if (!r.ok) return r;
   revalidatePath("/admin/talent/applications");
   return { ok: true };
 }
