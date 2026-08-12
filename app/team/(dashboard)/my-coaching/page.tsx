@@ -42,6 +42,7 @@ export default async function MyCoachingPage({ searchParams }: { searchParams?: 
         priorities={my.priorities}
         ocean={my.ocean}
         commitments={my.commitments}
+        talkingPoints={my.talkingPoints}
         teamMemberId={actor.teamMemberId}
         recaps={recaps}
         checkins={checkins}

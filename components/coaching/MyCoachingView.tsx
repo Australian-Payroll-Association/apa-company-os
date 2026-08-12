@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { CoachingGoal, CoachingPriority, Commitment, OceanProfile } from "@/lib/coaching/data";
+import type { CoachingGoal, CoachingPriority, Commitment, OceanProfile, TalkingPoint } from "@/lib/coaching/data";
 import { MyCommitments } from "./MyCommitments";
+import { MyTalkingPoints } from "./MyTalkingPoints";
 import { GoalComments } from "./GoalComments";
 
 // The coachee's tabbed view. The server pre-renders recap/check-in markdown and
@@ -42,6 +43,7 @@ export function MyCoachingView({
   priorities,
   ocean,
   commitments,
+  talkingPoints,
   teamMemberId,
   recaps,
   checkins,
@@ -52,6 +54,7 @@ export function MyCoachingView({
   priorities: CoachingPriority[];
   ocean: OceanProfile | null;
   commitments: Commitment[];
+  talkingPoints: TalkingPoint[];
   teamMemberId: string;
   recaps: RecapView[];
   checkins: CheckinView[];
@@ -98,6 +101,8 @@ export function MyCoachingView({
       <div className="coach-profile">
         {tab === "my" && (
           <>
+            <MyTalkingPoints talkingPoints={talkingPoints} teamMemberId={teamMemberId} />
+
             <section className="admin-card coach-section">
               <div className="admin-card-title">Your commitments</div>
               <div className="admin-hint">

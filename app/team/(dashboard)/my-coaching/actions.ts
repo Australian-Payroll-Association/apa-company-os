@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
 import {
   myAddCommitment,
+  myAddTalkingPoint,
   myDeleteCommitment,
+  myDeleteTalkingPoint,
   myReorderCommitments,
   myUpdateCommitmentDetails,
   myUpdateCommitmentStatus,
+  setTalkingPointAddressed,
   type CommitmentStatus,
 } from "@/lib/coaching/data";
 
@@ -57,4 +60,21 @@ export async function deleteMyCommitment(commitmentId: string): Promise<Result> 
 export async function reorderMyCommitments(orderedIds: string[]): Promise<Result> {
   const actor = await requireTeamMember();
   return done(await myReorderCommitments(actor, orderedIds));
+}
+
+// Talking points: the member's half of the 1-1 agenda.
+export async function addMyTalkingPoint(body: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  return done(await myAddTalkingPoint(actor, body));
+}
+
+export async function deleteMyTalkingPoint(id: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  return done(await myDeleteTalkingPoint(actor, id));
+}
+
+export async function resolveMyTalkingPoint(id: string): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await setTalkingPointAddressed(actor, id, true);
+  return done(res.ok ? { ok: true } : res);
 }
