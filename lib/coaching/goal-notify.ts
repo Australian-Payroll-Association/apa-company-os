@@ -7,7 +7,7 @@ import type { TeamActor } from "@/lib/team-auth";
 import { getManagerContact } from "@/lib/team/data";
 import { sendTransactionalEmail } from "@/lib/email";
 import { notifyOps } from "@/lib/lark";
-import type { CoachingGoal, MyGoalInput } from "./data";
+import type { CoachingGoal } from "./data";
 
 // Where the notice goes when the member has no manager on file (or the manager
 // has no email). Never drop the notice: an unmanaged member's goals are exactly
@@ -56,11 +56,21 @@ function measureLine(g: {
 type GoalSummary = Pick<
   CoachingGoal,
   "title" | "status" | "quarterLabel" | "metricUnit" | "targetValue" | "currentValue" | "dueDate"
->;
+> & {
+  // The company goal it aligns to, already resolved to a label. The caller
+  // resolves it server-side (ladderLabelFor) — a client-supplied label would
+  // let anyone claim alignment to anything in a manager's inbox.
+  ladderLabel: string | null;
+};
 
-// Both a saved goal and the input that produced one satisfy this shape, so the
-// delete path can report the row it just removed.
-export function summarize(g: GoalSummary | MyGoalInput): GoalSummary {
+// Both a saved goal (CoachingGoal) and the input that produced one
+// (MyGoalInput) carry these fields, so the delete path can report the row it
+// just removed. The ladder label comes in separately: a saved goal has it
+// resolved, an input has only the id.
+export function summarize(
+  g: Omit<GoalSummary, "ladderLabel">,
+  ladderLabel: string | null,
+): GoalSummary {
   return {
     title: g.title,
     status: g.status,
@@ -69,6 +79,7 @@ export function summarize(g: GoalSummary | MyGoalInput): GoalSummary {
     targetValue: g.targetValue,
     currentValue: g.currentValue,
     dueDate: g.dueDate,
+    ladderLabel,
   };
 }
 
@@ -82,7 +93,8 @@ export function notifyGoalChange(
 
   notifyOps(
     `FAST goal ${action}: ${actor.displayName} — "${goal.title}"${cycle}` +
-      `${measure ? ` · ${measure}` : ""} · status ${goal.status}.`,
+      `${measure ? ` · ${measure}` : ""} · status ${goal.status}` +
+      `${goal.ladderLabel ? ` · aligns to ${goal.ladderLabel}` : ""}.`,
   ).catch(() => {});
 
   getManagerContact(actor)
@@ -94,6 +106,7 @@ export function notifyGoalChange(
           <p>${escapeHtml(actor.displayName)} ${VERB[action]}${escapeHtml(cycle)}.</p>
           <p><strong>${escapeHtml(goal.title)}</strong></p>
           ${measure ? `<p>${escapeHtml(measure)}</p>` : ""}
+          ${goal.ladderLabel ? `<p>Aligns to: ${escapeHtml(goal.ladderLabel)}</p>` : ""}
           <p>Status: ${escapeHtml(goal.status)}</p>
           ${
             action === "deleted"

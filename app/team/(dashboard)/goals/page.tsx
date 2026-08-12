@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { getMyGoals, isCoached, saigonToday } from "@/lib/coaching/data";
+import { getEdgesLadderOptions, getMyGoals, isCoached, saigonToday } from "@/lib/coaching/data";
+import { ladderValue } from "@/components/coaching/LadderSelect";
 import { MyGoalsPanel, type MyGoalRow } from "./MyGoalsPanel";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,13 @@ function currentQuarter(): string {
 // coach sees on /team/coaching, so a goal added here shows up in the 1-1.
 export default async function MyGoalsPage() {
   const actor = await requireTeamMember();
-  const [goals, coached] = await Promise.all([getMyGoals(actor), isCoached(actor)]);
+  const [goals, coached, edges] = await Promise.all([
+    getMyGoals(actor),
+    isCoached(actor),
+    // The company goals the member can align to: the same objectives, key
+    // results and metrics the coach page offers.
+    getEdgesLadderOptions(),
+  ]);
 
   const rows = goals.map(
     (g): MyGoalRow => ({
@@ -40,6 +47,7 @@ export default async function MyGoalsPage() {
       currentValue: g.currentValue,
       dueDate: g.dueDate,
       ladderLabel: g.ladder?.label ?? null,
+      ladderValue: ladderValue(g.ladder),
       // Delete is the author's alone. A goal set for you by a coach or
       // manager is theirs to remove; you can still edit it or drop it.
       canDelete: g.createdBy === actor.teamMemberId,
@@ -54,7 +62,7 @@ export default async function MyGoalsPage() {
         sub="Frequent · Ambitious · Specific · Transparent. Every change emails your manager."
       />
 
-      <MyGoalsPanel rows={rows} quarter={currentQuarter()} />
+      <MyGoalsPanel rows={rows} quarter={currentQuarter()} edges={edges} />
 
       {coached && (
         <p className="admin-cell-muted" style={{ marginTop: 20 }}>

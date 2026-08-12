@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
 import {
   getMyGoals,
+  ladderLabelFor,
   myAddGoal,
   myDeleteGoal,
   myUpdateGoal,
@@ -28,7 +29,7 @@ export async function addMyGoal(input: MyGoalInput): Promise<Result> {
   const res = await myAddGoal(actor, input);
   if (!res.ok) return res;
 
-  notifyGoalChange(actor, "added", summarize(input));
+  notifyGoalChange(actor, "added", summarize(input, await ladderLabelFor(input.ladder)));
   refresh();
   return { ok: true };
 }
@@ -38,7 +39,7 @@ export async function updateMyGoal(goalId: string, input: MyGoalInput): Promise<
   const res = await myUpdateGoal(actor, goalId, input);
   if (!res.ok) return res;
 
-  notifyGoalChange(actor, "updated", summarize(input));
+  notifyGoalChange(actor, "updated", summarize(input, await ladderLabelFor(input.ladder)));
   refresh();
   return { ok: true };
 }
@@ -54,7 +55,7 @@ export async function deleteMyGoal(goalId: string): Promise<Result> {
   const res = await myDeleteGoal(actor, goalId);
   if (!res.ok) return res;
 
-  if (goal) notifyGoalChange(actor, "deleted", summarize(goal));
+  if (goal) notifyGoalChange(actor, "deleted", summarize(goal, goal.ladder?.label ?? null));
   refresh();
   return { ok: true };
 }

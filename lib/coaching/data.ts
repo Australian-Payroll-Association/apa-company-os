@@ -1559,6 +1559,9 @@ export async function myUpdateCommitmentStatus(
 
 export type MyGoalInput = {
   title: string;
+  // Which company objective, key result, or metric this goal ladders to.
+  // { kind: "none" } is a deliberate "stands on its own", not a missing value.
+  ladder: LadderInput;
   descriptionMarkdown: string | null;
   status: GoalStatus;
   quarterLabel: string | null;
@@ -1660,6 +1663,7 @@ function goalColumns(input: MyGoalInput): Record<string, unknown> {
     target_value: input.targetValue,
     current_value: input.currentValue,
     due_date: input.dueDate || null,
+    ...ladderColumns(input.ladder),
   };
 }
 
@@ -1672,6 +1676,21 @@ function validateGoal(input: MyGoalInput): string | null {
   }
   if (input.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) return "Pick a valid due date.";
   return null;
+}
+
+// The human label behind a LadderInput, for the notices that name what a goal
+// ladders to. Resolved server-side from the live Edges options, never trusted
+// from the client.
+export async function ladderLabelFor(ladder: LadderInput): Promise<string | null> {
+  if (ladder.kind === "none") return null;
+  const edges = await getEdgesLadderOptions();
+  const pool =
+    ladder.kind === "objective"
+      ? edges.objectives
+      : ladder.kind === "key_result"
+        ? edges.keyResults
+        : edges.metrics;
+  return (pool as { id: string; label: string }[]).find((x) => x.id === ladder.id)?.label ?? null;
 }
 
 export async function myAddGoal(actor: TeamActor, input: MyGoalInput): Promise<Result> {
