@@ -3,6 +3,7 @@
     { "path": "/api/trip-passport-cleanup", "schedule": "0 3 * * *" },
     { "path": "/api/cron/contractor-payments", "schedule": "0 6 1 * *" },
     { "path": "/api/cron/probation-reviews", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/performance-reviews", "schedule": "0 8 * * *" },
     { "path": "/api/cron/onboarding-cycle", "schedule": "30 7 * * *" },
     { "path": "/api/cron/coaching-cycle", "schedule": "45 0 * * *" },
     { "path": "/api/cron/coaching-recaps", "schedule": "25 * * * *" },

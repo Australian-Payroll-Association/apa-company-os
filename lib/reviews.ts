@@ -572,6 +572,56 @@ export function computeNextReview(input: {
   return candidates[0];
 }
 
+// ---- scheduler: which cycles are due to open right now ----------------------
+
+export type ScheduledMoment = {
+  type: "probation" | "midyear" | "renewal";
+  date: string;
+  cycleLabel: string;
+};
+
+// The moments whose date falls in the open window [today - graceDays, today].
+// Deterministic cycle labels (`<type>-auto-<year>`) make opening idempotent:
+// once a cycle exists for a label the scheduler skips it. The grace window
+// stops the scheduler retro-opening ancient moments when a member's dates are
+// filled in late (an overdue review is a manual "Send review now", not an
+// automatic surprise months later).
+export function reviewMomentsInWindow(input: {
+  startDate: string | null;
+  contractStartDate: string | null;
+  hasProbationReview: boolean;
+  todayISO: string;
+  graceDays: number;
+}): ScheduledMoment[] {
+  const anchor = input.contractStartDate ?? input.startDate;
+  const windowStart = addDays(input.todayISO, -input.graceDays);
+  const out: ScheduledMoment[] = [];
+
+  if (input.startDate && !input.hasProbationReview) {
+    const date = addDays(input.startDate, PROBATION_LEAD_DAYS);
+    if (date >= windowStart && date <= input.todayISO)
+      out.push({ type: "probation", date, cycleLabel: `probation-auto-${input.startDate.slice(0, 4)}` });
+  }
+  if (anchor) {
+    for (const [type, offset] of [
+      ["midyear", MIDYEAR_OFFSET_MONTHS],
+      ["renewal", RENEWAL_OFFSET_MONTHS],
+    ] as const) {
+      // The occurrence for this contract year: roll the base forward until it
+      // reaches the window, then accept it only if it is today or earlier.
+      let date = addMonths(anchor, offset);
+      let guard = 0;
+      while (date < windowStart && guard < 40) {
+        date = addMonths(date, 12);
+        guard++;
+      }
+      if (date >= windowStart && date <= input.todayISO)
+        out.push({ type, date, cycleLabel: `${type}-auto-${date.slice(0, 4)}` });
+    }
+  }
+  return out;
+}
+
 // ---- admin: one member's full review history (no visibility scoping) --------
 
 // Admin/talent view of a member's reviews, grouped by cycle. Both sides of a
