@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/admin/format";
 import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { APPLICATION_STATUS_OPTIONS } from "@/lib/admin/application-status";
+import { InterviewRounds } from "./InterviewRounds";
 import {
   addApplicationNote,
   getApplicationExtras,
@@ -283,6 +284,8 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
           ))}
         </div>
       )}
+
+      <InterviewRounds applicationId={app.id} />
 
       {app.personId && (
         <ApplicantProfile

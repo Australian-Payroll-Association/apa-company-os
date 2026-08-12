@@ -1,0 +1,759 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { formatDate } from "@/lib/admin/format";
+import {
+  RECOMMENDATIONS,
+  ROUND_MODES,
+  DEFAULT_CRITERIA,
+  type RecommendationKey,
+} from "@/lib/admin/interview-panel";
+import {
+  addPanelist,
+  createInterviewRound,
+  deleteInterviewRound,
+  getInterviewRounds,
+  getTranscript,
+  listTeamMembers,
+  removePanelist,
+  saveTranscriptText,
+  submitScorecard,
+  uploadInterviewTranscript,
+  type InterviewRound,
+  type PanelSeat,
+  type TeamOption,
+} from "./interview-actions";
+
+const MODE_LABEL = new Map<string, string>(ROUND_MODES.map((m) => [m.value, m.label]));
+
+// Interview journey for one application: rounds (each with its panel, transcript,
+// and scorecards) plus an add-round form. Loads its own data on open, mirroring
+// the lazy loads elsewhere in the manage drawer.
+export function InterviewRounds({ applicationId }: { applicationId: string }) {
+  const [rounds, setRounds] = useState<InterviewRound[] | null>(null);
+  const [team, setTeam] = useState<TeamOption[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  async function reload() {
+    const r = await getInterviewRounds(applicationId);
+    if (r.ok) setRounds(r.rounds);
+    else setErr(r.error);
+  }
+
+  useEffect(() => {
+    let live = true;
+    setRounds(null);
+    setErr(null);
+    getInterviewRounds(applicationId).then((r) => {
+      if (!live) return;
+      if (r.ok) setRounds(r.rounds);
+      else setErr(r.error);
+    });
+    listTeamMembers().then((r) => {
+      if (live && r.ok) setTeam(r.members);
+    });
+    return () => {
+      live = false;
+    };
+  }, [applicationId]);
+
+  const teamById = new Map(team.map((t) => [t.id, t.name]));
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div className="admin-label" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+        <span>Interview journey</span>
+        {rounds && rounds.length > 0 && (
+          <span className="admin-cell-muted">
+            {rounds.length} round{rounds.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </div>
+
+      {err && <div className="admin-alert admin-alert--err">{err}</div>}
+      {rounds === null && !err && <div className="admin-hint">Loading…</div>}
+      {rounds && rounds.length === 0 && <div className="admin-empty">No interview rounds yet.</div>}
+
+      {rounds && rounds.length > 0 && (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+          {rounds.map((round, i) => (
+            <RoundCard key={round.id} index={i} round={round} teamById={teamById} onChange={reload} />
+          ))}
+        </ol>
+      )}
+
+      {adding ? (
+        <AddRoundForm
+          applicationId={applicationId}
+          team={team}
+          onDone={async () => {
+            setAdding(false);
+            await reload();
+          }}
+          onCancel={() => setAdding(false)}
+        />
+      ) : (
+        <div style={{ marginTop: 12 }}>
+          <button type="button" className="admin-btn admin-btn--sm" onClick={() => setAdding(true)}>
+            + Add round
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RoundCard({
+  index,
+  round,
+  teamById,
+  onChange,
+}: {
+  index: number;
+  round: InterviewRound;
+  teamById: Map<string, string>;
+  onChange: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const humans = round.seats.filter((s) => !s.isAi);
+  const submitted = humans.filter((s) => s.scorecard?.submittedAt).length;
+
+  async function del() {
+    if (!confirm("Delete this interview round and its scorecards?")) return;
+    setBusy(true);
+    await deleteInterviewRound(round.id);
+    setBusy(false);
+    await onChange();
+  }
+
+  return (
+    <li style={{ border: "1px solid var(--admin-line)", borderRadius: 10, padding: "14px 16px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--admin-bg)",
+            background: "var(--admin-ink)",
+            borderRadius: 6,
+            padding: "1px 7px",
+          }}
+        >
+          {index + 1}
+        </span>
+        <span className="admin-cell-strong">{round.title || "Interview"}</span>
+        <span className="admin-cell-muted">
+          {MODE_LABEL.get(round.mode) || round.mode}
+          {round.scheduledAt ? ` · ${formatDate(round.scheduledAt)}` : ""}
+        </span>
+        <span style={{ marginLeft: "auto", fontSize: 12 }} className="admin-cell-muted">
+          {submitted}/{humans.length} scorecard{humans.length === 1 ? "" : "s"} in
+        </span>
+        <button type="button" className="admin-btn admin-btn--sm" disabled={busy} onClick={del}>
+          Delete
+        </button>
+      </div>
+
+      <TranscriptPanel round={round} onChange={onChange} />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+        {round.seats.map((seat) => (
+          <PanelSeatRow key={seat.interviewerId} round={round} seat={seat} onChange={onChange} />
+        ))}
+      </div>
+
+      <AddSeatControl round={round} teamById={teamById} onChange={onChange} />
+    </li>
+  );
+}
+
+function TranscriptPanel({ round, onChange }: { round: InterviewRound; onChange: () => Promise<void> }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [paste, setPaste] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function view() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    if (text === null) {
+      const r = await getTranscript(round.id);
+      if (r.ok) setText(r.text);
+      else setErr(r.error);
+    }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    const fd = new FormData();
+    fd.append("transcript", file);
+    const r = await uploadInterviewTranscript(round.id, fd);
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = "";
+    if (!r.ok) return setErr(r.error);
+    setText(null);
+    await onChange();
+  }
+
+  async function savePaste() {
+    setBusy(true);
+    setErr(null);
+    const r = await saveTranscriptText(round.id, paste);
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    setPaste("");
+    setShowPaste(false);
+    setText(null);
+    await onChange();
+  }
+
+  return (
+    <div style={{ background: "var(--admin-muted-bg)", borderRadius: 8, padding: "8px 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 13 }}>
+        <span className="admin-label" style={{ margin: 0 }}>
+          Transcript
+        </span>
+        {round.transcriptDocId ? (
+          <>
+            <span className="admin-cell-muted">on file</span>
+            <button type="button" className="admin-btn admin-btn--sm" onClick={view}>
+              {open ? "Hide" : "View"}
+            </button>
+          </>
+        ) : (
+          <span className="admin-cell-muted">none yet</span>
+        )}
+        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+          <button
+            type="button"
+            className="admin-btn admin-btn--sm"
+            disabled={busy}
+            onClick={() => setShowPaste((v) => !v)}
+          >
+            {round.transcriptDocId ? "Replace by paste" : "Paste"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn--sm"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? "Saving…" : "Upload"}
+          </button>
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".txt,.md,.vtt,.srt,text/plain"
+          style={{ display: "none" }}
+          onChange={onFile}
+        />
+      </div>
+
+      {showPaste && (
+        <div style={{ marginTop: 8 }}>
+          <textarea
+            className="admin-input"
+            rows={5}
+            placeholder="Paste the interview transcript…"
+            value={paste}
+            onChange={(e) => setPaste(e.target.value)}
+          />
+          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary admin-btn--sm"
+              disabled={busy || !paste.trim()}
+              onClick={savePaste}
+            >
+              {busy ? "Saving…" : "Save transcript"}
+            </button>
+            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setShowPaste(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {err && (
+        <div className="admin-alert admin-alert--err" style={{ marginTop: 8 }}>
+          {err}
+        </div>
+      )}
+
+      {open && (
+        <div
+          style={{
+            marginTop: 8,
+            maxHeight: 260,
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+            fontSize: 13,
+            lineHeight: 1.5,
+            borderLeft: "2px solid var(--admin-line-strong)",
+            paddingLeft: 10,
+          }}
+        >
+          {text === null ? <span className="admin-hint">Loading transcript…</span> : text || "—"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PanelSeatRow({
+  round,
+  seat,
+  onChange,
+}: {
+  round: InterviewRound;
+  seat: PanelSeat;
+  onChange: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const sc = seat.scorecard;
+  const rec = sc?.recommendation ? RECOMMENDATIONS.find((r) => r.key === sc.recommendation) : null;
+
+  async function removeSeat() {
+    if (!confirm(`Remove ${seat.name} from this panel?`)) return;
+    setBusy(true);
+    const r = await removePanelist(round.id, seat.interviewerId);
+    setBusy(false);
+    if (!r.ok) return alert(r.error);
+    await onChange();
+  }
+
+  return (
+    <div style={{ border: "1px solid var(--admin-line)", borderRadius: 8, padding: "8px 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span
+          aria-hidden
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: ".04em",
+            padding: "2px 7px",
+            borderRadius: 999,
+            background: seat.isAi ? "var(--admin-accent-soft)" : "var(--admin-muted-bg)",
+            color: seat.isAi ? "var(--admin-accent)" : "var(--admin-muted-ink)",
+          }}
+        >
+          {seat.isAi ? "AI" : seat.role === "lead" ? "LEAD" : seat.role.toUpperCase()}
+        </span>
+        <span className="admin-cell-strong">{seat.name}</span>
+        {rec && (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: recTone(rec.tone),
+            }}
+          >
+            {rec.label}
+            {sc?.overallScore != null ? ` · ${sc.overallScore}/5` : ""}
+          </span>
+        )}
+        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+          {seat.isAi ? null : (
+            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setEditing((v) => !v)}>
+              {editing ? "Close" : sc ? "Edit scorecard" : "Submit scorecard"}
+            </button>
+          )}
+          {!seat.isAi && !sc && seat.role !== "lead" && (
+            <button type="button" className="admin-btn admin-btn--sm" disabled={busy} onClick={removeSeat}>
+              Remove
+            </button>
+          )}
+        </span>
+      </div>
+
+      {seat.isAi && !sc && (
+        <div className="admin-hint" style={{ marginTop: 4 }}>
+          The AI panelist scores automatically once transcript scoring is enabled.
+        </div>
+      )}
+
+      {sc && !editing && (
+        <div style={{ marginTop: 6, fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
+          {sc.scores.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {sc.scores.map((s) => (
+                <div key={s.criterion} style={{ display: "flex", gap: 8 }}>
+                  <span className="admin-cell-muted" style={{ minWidth: 130 }}>
+                    {s.criterion}
+                  </span>
+                  <span className="admin-cell-strong">{s.score != null ? `${s.score}/5` : "—"}</span>
+                  {s.comment && <span className="admin-cell-muted">{s.comment}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {sc.summary && <div style={{ whiteSpace: "pre-wrap" }}>{sc.summary}</div>}
+          {sc.submittedAt && <div className="admin-cell-muted">Submitted {formatDate(sc.submittedAt)}</div>}
+        </div>
+      )}
+
+      {editing && !seat.isAi && (
+        <ScorecardForm
+          round={round}
+          seat={seat}
+          onDone={async () => {
+            setEditing(false);
+            await onChange();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type ScoreRow = { criterion: string; score: number | null; comment: string };
+
+function ScorecardForm({
+  round,
+  seat,
+  onDone,
+}: {
+  round: InterviewRound;
+  seat: PanelSeat;
+  onDone: () => Promise<void>;
+}) {
+  const existing = seat.scorecard;
+  const [recommendation, setRecommendation] = useState<RecommendationKey | null>(existing?.recommendation ?? null);
+  const [overall, setOverall] = useState<number | null>(existing?.overallScore ?? null);
+  const [summary, setSummary] = useState(existing?.summary ?? "");
+  const [rows, setRows] = useState<ScoreRow[]>(
+    existing && existing.scores.length > 0
+      ? existing.scores.map((s) => ({ criterion: s.criterion, score: s.score, comment: s.comment ?? "" }))
+      : DEFAULT_CRITERIA.map((c) => ({ criterion: c, score: null, comment: "" })),
+  );
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  function setRow(i: number, patch: Partial<ScoreRow>) {
+    setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  }
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    const r = await submitScorecard(round.id, seat.interviewerId, {
+      recommendation,
+      overallScore: overall,
+      summary,
+      scores: rows,
+    });
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    await onDone();
+  }
+
+  return (
+    <div className="admin-form" style={{ marginTop: 10 }}>
+      <div className="admin-field">
+        <label className="admin-label">Recommendation</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          {RECOMMENDATIONS.map((r) => {
+            const on = recommendation === r.key;
+            return (
+              <button
+                key={r.key}
+                type="button"
+                className="admin-btn admin-btn--sm"
+                aria-pressed={on}
+                onClick={() => setRecommendation(on ? null : r.key)}
+                style={
+                  on
+                    ? { borderColor: recTone(r.tone), color: recTone(r.tone), fontWeight: 600 }
+                    : undefined
+                }
+              >
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label">Overall score</label>
+        <ScoreButtons value={overall} onChange={setOverall} />
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label">Criteria</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {rows.map((row, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  className="admin-input"
+                  style={{ flex: "1 1 130px", maxWidth: 180 }}
+                  value={row.criterion}
+                  placeholder="Criterion"
+                  onChange={(e) => setRow(i, { criterion: e.target.value })}
+                />
+                <ScoreButtons value={row.score} onChange={(v) => setRow(i, { score: v })} />
+              </div>
+              <input
+                className="admin-input"
+                value={row.comment}
+                placeholder="Evidence / comment (optional)"
+                onChange={(e) => setRow(i, { comment: e.target.value })}
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className="admin-btn admin-btn--sm"
+            style={{ alignSelf: "flex-start" }}
+            onClick={() => setRows((cur) => [...cur, { criterion: "", score: null, comment: "" }])}
+          >
+            + Add criterion
+          </button>
+        </div>
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label">Summary</label>
+        <textarea
+          className="admin-input"
+          rows={3}
+          placeholder="Overall read on the candidate from this round…"
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
+        />
+      </div>
+
+      {err && <div className="admin-alert admin-alert--err">{err}</div>}
+
+      <div className="admin-form-actions">
+        <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" disabled={busy} onClick={save}>
+          {busy ? "Saving…" : "Submit scorecard"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreButtons({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
+  return (
+    <div style={{ display: "inline-flex", gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((n) => {
+        const on = value === n;
+        return (
+          <button
+            key={n}
+            type="button"
+            aria-label={`Score ${n}`}
+            aria-pressed={on}
+            onClick={() => onChange(on ? null : n)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: "1px solid var(--admin-line-strong)",
+              background: on ? "var(--admin-accent)" : "transparent",
+              color: on ? "#fff" : "var(--admin-ink)",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {n}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AddSeatControl({
+  round,
+  teamById,
+  onChange,
+}: {
+  round: InterviewRound;
+  teamById: Map<string, string>;
+  onChange: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [personId, setPersonId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const seated = new Set(round.seats.map((s) => s.interviewerId));
+  const options = [...teamById.entries()].filter(([id]) => !seated.has(id));
+
+  async function add() {
+    if (!personId) return;
+    setBusy(true);
+    setErr(null);
+    const r = await addPanelist(round.id, personId, "interviewer");
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    setPersonId("");
+    setOpen(false);
+    await onChange();
+  }
+
+  if (!open) {
+    return (
+      <div style={{ marginTop: 8 }}>
+        <button type="button" className="admin-btn admin-btn--sm" onClick={() => setOpen(true)}>
+          + Add panelist
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      <select
+        className="admin-select"
+        style={{ maxWidth: 220 }}
+        value={personId}
+        onChange={(e) => setPersonId(e.target.value)}
+      >
+        <option value="">Choose a team member…</option>
+        {options.map(([id, name]) => (
+          <option key={id} value={id}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" disabled={busy || !personId} onClick={add}>
+        {busy ? "Adding…" : "Add"}
+      </button>
+      <button type="button" className="admin-btn admin-btn--sm" onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+      {err && <span style={{ color: "var(--admin-err-ink)", fontSize: 12 }}>{err}</span>}
+    </div>
+  );
+}
+
+function AddRoundForm({
+  applicationId,
+  team,
+  onDone,
+  onCancel,
+}: {
+  applicationId: string;
+  team: TeamOption[];
+  onDone: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [mode, setMode] = useState<string>("video");
+  const [when, setWhen] = useState("");
+  const [panelists, setPanelists] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  function togglePanelist(id: string) {
+    setPanelists((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  }
+
+  async function create() {
+    setBusy(true);
+    setErr(null);
+    const scheduledAt = when ? new Date(when).toISOString() : null;
+    const r = await createInterviewRound(applicationId, { title, mode, scheduledAt, panelistIds: panelists });
+    setBusy(false);
+    if (!r.ok) return setErr(r.error);
+    await onDone();
+  }
+
+  return (
+    <div className="admin-form" style={{ marginTop: 12, border: "1px solid var(--admin-line)", borderRadius: 10, padding: "14px 16px" }}>
+      <div className="admin-field">
+        <label className="admin-label">Round title</label>
+        <input
+          className="admin-input"
+          placeholder="Recruiter screen, Engineering interview, Founder interview…"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="admin-field">
+          <label className="admin-label">Mode</label>
+          <select className="admin-select" value={mode} onChange={(e) => setMode(e.target.value)}>
+            {ROUND_MODES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field">
+          <label className="admin-label">When (optional)</label>
+          <input className="admin-input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label">Human panelists</label>
+        {team.length === 0 ? (
+          <div className="admin-hint">Loading team…</div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflow: "auto" }}>
+            {team.map((t) => {
+              const on = panelists.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  className="admin-btn admin-btn--sm"
+                  aria-pressed={on}
+                  onClick={() => togglePanelist(t.id)}
+                  style={on ? { borderColor: "var(--admin-accent)", color: "var(--admin-accent)", fontWeight: 600 } : undefined}
+                >
+                  {on ? "✓ " : ""}
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div className="admin-hint" style={{ marginTop: 4 }}>
+          The AI panelist is seated automatically.
+        </div>
+      </div>
+
+      {err && <div className="admin-alert admin-alert--err">{err}</div>}
+
+      <div className="admin-form-actions">
+        <button
+          type="button"
+          className="admin-btn admin-btn--primary admin-btn--sm"
+          disabled={busy || !title.trim() || panelists.length === 0}
+          onClick={create}
+        >
+          {busy ? "Creating…" : "Create round"}
+        </button>
+        <button type="button" className="admin-btn admin-btn--sm" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function recTone(tone: string): string {
+  if (tone === "ok") return "var(--admin-ok-ink)";
+  if (tone === "warn") return "var(--admin-warn-ink)";
+  return "var(--admin-err-ink)";
+}
