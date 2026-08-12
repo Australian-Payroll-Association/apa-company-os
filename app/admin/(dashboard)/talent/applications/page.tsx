@@ -170,9 +170,18 @@ export default async function ApplicationsPage() {
         title="Applications"
         sub={`${activeRows.length.toLocaleString()} ${activeRows.length === 1 ? "application" : "applications"} to open job reqs`}
         action={
-          <Link href="/admin/talent/applications/new" className="admin-btn admin-btn--primary admin-btn--sm">
-            Add candidates
-          </Link>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <a
+              href="/admin/talent/applications/training-export"
+              className="admin-btn admin-btn--sm"
+              title="Download AI screen corrections + outcomes (JSONL) to tune the screening agent"
+            >
+              Export training data
+            </a>
+            <Link href="/admin/talent/applications/new" className="admin-btn admin-btn--primary admin-btn--sm">
+              Add candidates
+            </Link>
+          </div>
         }
       />
       {error && (

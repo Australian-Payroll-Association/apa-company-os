@@ -213,7 +213,14 @@ export type ApplicantProfilePatch = {
   notice_period?: string | null;
 };
 
-export async function updateApplicantProfile(personId: string, patch: ApplicantProfilePatch): Promise<Result> {
+// applicationId, when passed, lets an edit to an AI-extracted field (english /
+// salary / notice) log a training correction against that application's screen
+// (see logScreenCorrections). Other fields ignore it.
+export async function updateApplicantProfile(
+  personId: string,
+  patch: ApplicantProfilePatch,
+  applicationId?: string,
+): Promise<Result> {
   const admin = await requireAdmin();
   const personUpdates: Record<string, unknown> = {};
   const profileUpdates: Record<string, unknown> = {};
@@ -252,6 +259,20 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
   }
 
   if (Object.keys(profileUpdates).length > 0) {
+    // Snapshot the prior AI-field values before the upsert overwrites them, so a
+    // training correction only logs on a real change (not on an unchanged blur).
+    const touchesAiField =
+      Boolean(applicationId) && AI_PROFILE_FIELDS.some((f) => f in profileUpdates);
+    let priorProfile: Record<string, unknown> | null = null;
+    if (touchesAiField) {
+      const { data } = await companyOs
+        .from("candidate_profile")
+        .select("english_proficiency, notice_period, salary_expectation_cents, salary_expectation_currency")
+        .eq("person_id", personId)
+        .maybeSingle();
+      priorProfile = data ?? null;
+    }
+
     const { error } = await companyOs.from("candidate_profile").upsert(
       { person_id: personId, ...profileUpdates, updated_at: new Date().toISOString() },
       { onConflict: "person_id" },
@@ -264,11 +285,75 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
       actor: admin.email,
       newData: profileUpdates,
     });
+
+    // Training log is best-effort: a failure here must never break the edit.
+    if (touchesAiField && applicationId) {
+      try {
+        await logScreenCorrections({ applicationId, personId, actor: admin.email, profileUpdates, priorProfile });
+      } catch (e) {
+        console.error("screen correction log failed:", e);
+      }
+    }
   }
 
   revalidatePath("/admin/talent/applications");
   revalidatePath(`/admin/contacts/${personId}`);
   return { ok: true };
+}
+
+// The AI-extracted fields a recruiter can override. An edit to one of these logs
+// a correction (see logScreenCorrections); the others are pure profile edits.
+const AI_PROFILE_FIELDS = ["english_proficiency", "salary_expectation_cents", "notice_period"] as const;
+
+// Log a training correction for each AI-extracted field the recruiter changed,
+// snapshotting the AI's value NOW so the (ai, human) pair survives a later
+// re-scan. Only real changes vs the prior stored value are logged. Best-effort:
+// the caller swallows errors so a logging failure never blocks the profile save.
+async function logScreenCorrections(args: {
+  applicationId: string;
+  personId: string;
+  actor: string;
+  profileUpdates: Record<string, unknown>;
+  priorProfile: Record<string, unknown> | null;
+}): Promise<void> {
+  const { applicationId, personId, actor, profileUpdates, priorProfile } = args;
+  const { data: app } = await companyOs
+    .from("applications")
+    .select("ai_model, ai_summary")
+    .eq("id", applicationId)
+    .maybeSingle();
+  const ai = (app?.ai_summary ?? null) as AiScreenSummary | null;
+  const aiModel = (app?.ai_model as string | null) ?? null;
+  const prior = priorProfile ?? {};
+  const base = { application_id: applicationId, person_id: personId, ai_model: aiModel, corrected_by: actor };
+  const rows: Record<string, unknown>[] = [];
+
+  const eng = profileUpdates.english_proficiency as string | null | undefined;
+  if (eng && eng !== (prior.english_proficiency ?? null)) {
+    rows.push({ ...base, field: "english", ai_value: ai?.english ?? null, human_value: eng });
+  }
+  const notice = profileUpdates.notice_period as string | null | undefined;
+  if (notice && notice !== (prior.notice_period ?? null)) {
+    rows.push({ ...base, field: "notice", ai_value: ai?.notice_period ?? null, human_value: notice });
+  }
+  const cents = profileUpdates.salary_expectation_cents as number | null | undefined;
+  if (cents != null && cents !== (prior.salary_expectation_cents ?? null)) {
+    const cur =
+      (profileUpdates.salary_expectation_currency as string | null | undefined) ??
+      (prior.salary_expectation_currency as string | null) ??
+      "VND";
+    rows.push({
+      ...base,
+      field: "salary",
+      ai_value: ai?.salary_expectation ?? null,
+      human_value: `${Math.round(cents / 100)} ${cur}`,
+    });
+  }
+
+  if (rows.length) {
+    const { error } = await companyOs.from("ai_screen_corrections").insert(rows);
+    if (error) throw new Error(error.message);
+  }
 }
 
 // Upload (or replace) the resume on an application. The file goes to the same
