@@ -85,7 +85,7 @@ export default async function SyncPage() {
           <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap", marginBottom: 6 }}>
             <h2 style={{ fontSize: 15, fontWeight: 750, margin: 0 }}>Sync of {latest.week_start}</h2>
             <span className="admin-badge admin-badge--ok">AGENT</span>
-            <span className="admin-cell-muted" style={{ fontSize: 11.5 }}>
+            <span className="admin-cell-muted" style={{ fontSize: 11 }}>
               prepared by {latest.created_by} · {new Date(latest.created_at).toLocaleString()}
             </span>
           </div>

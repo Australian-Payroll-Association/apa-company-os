@@ -276,6 +276,69 @@ if (existsSync(ADMIN_CSS)) {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Check 4: type and spacing values sit on the documented scales.
+
+   Both scales were derived from what the codebase already uses rather than
+   imposed, so most values already conform. See the Scales section of
+   docs/product/edge8-design-system.md for the reasoning and the numbers.
+
+   Reported as warnings, not errors: an off-scale value is a design smell, not
+   a broken build, and the remaining offenders are tracked in the inventory.
+   ───────────────────────────────────────────────────────────── */
+
+const TYPE_SCALE = [11, 12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 40, 48, 64, 80];
+const SPACE_SCALE = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 120];
+
+const offScale = { type: new Map(), space: new Map() };
+const noteOff = (kind, value, file, line) => {
+  const key = String(value);
+  if (!offScale[kind].has(key)) offScale[kind].set(key, { count: 0, first: `${file}:${line}` });
+  offScale[kind].get(key).count++;
+};
+
+for (const file of cssFiles) {
+  stripCssComments(readFileSync(file, "utf8")).split("\n").forEach((text, i) => {
+    // px only. em/rem/% are relative and intentionally exempt.
+    for (const m of text.matchAll(/font-size:\s*([0-9]+(?:\.[0-9]+)?)px/g)) {
+      const v = Number(m[1]);
+      if (!TYPE_SCALE.includes(v)) noteOff("type", v, relative(ROOT, file), i + 1);
+    }
+    for (const m of text.matchAll(/\b(?:gap|padding|margin):\s*([^;]+);/g)) {
+      for (const p of m[1].matchAll(/([0-9]+)px/g)) {
+        const v = Number(p[1]);
+        if (!SPACE_SCALE.includes(v)) noteOff("space", v, relative(ROOT, file), i + 1);
+      }
+    }
+  });
+}
+for (const file of jsxFiles) {
+  readFileSync(file, "utf8").split("\n").forEach((text, i) => {
+    for (const m of text.matchAll(/fontSize:\s*["']?([0-9]+(?:\.[0-9]+)?)(?:px)?["']?(?![0-9a-zA-Z.%])/g)) {
+      const v = Number(m[1]);
+      if (!TYPE_SCALE.includes(v)) noteOff("type", v, relative(ROOT, file), i + 1);
+    }
+  });
+}
+
+for (const [kind, label, scale] of [
+  ["type", "type scale", TYPE_SCALE],
+  ["space", "spacing scale", SPACE_SCALE],
+]) {
+  const entries = [...offScale[kind].entries()].sort((a, b) => b[1].count - a[1].count);
+  if (!entries.length) continue;
+  const total = entries.reduce((n, [, v]) => n + v.count, 0);
+  const worst = entries.slice(0, 6).map(([v, d]) => `${v}px x${d.count}`).join(", ");
+  warnings.push({
+    check: `off-${kind}-scale`,
+    file: entries[0][1].first.split(":")[0],
+    line: Number(entries[0][1].first.split(":")[1]),
+    msg:
+      `${total} declaration(s) sit off the ${label} across ${entries.length} value(s): ${worst}` +
+      `${entries.length > 6 ? ", ..." : ""}. Scale: ${scale.join(", ")}.`,
+  });
+}
+
 /* ───────────────────────────── report ───────────────────────────── */
 
 const label = (e) => `  ${e.file}:${e.line}\n    [${e.check}] ${e.msg}`;

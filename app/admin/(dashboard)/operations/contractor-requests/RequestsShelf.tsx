@@ -245,7 +245,7 @@ function RequestShelfBody({ row, onClose }: { row: RequestRow; onClose: () => vo
 
       <section>
         <div className="admin-shelf-heading">Brief</div>
-        <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{row.brief}</div>
+        <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{row.brief}</div>
       </section>
 
       {row.estimated_hours !== null && (
@@ -255,7 +255,7 @@ function RequestShelfBody({ row, onClose }: { row: RequestRow; onClose: () => vo
             {kv("Estimated hours", formatHours(row.estimated_hours))}
             {kv("Submitted", timeAgo(row.estimate_submitted_at))}
           </dl>
-          {row.plan_text && <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5, marginTop: 8 }}>{row.plan_text}</div>}
+          {row.plan_text && <div style={{ whiteSpace: "pre-wrap", fontSize: 13, marginTop: 8 }}>{row.plan_text}</div>}
         </section>
       )}
 
@@ -276,7 +276,7 @@ function RequestShelfBody({ row, onClose }: { row: RequestRow; onClose: () => vo
             {kv("Submitted", timeAgo(row.work_submitted_at))}
           </dl>
           {row.work_summary && (
-            <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5, marginTop: 8 }}>{row.work_summary}</div>
+            <div style={{ whiteSpace: "pre-wrap", fontSize: 13, marginTop: 8 }}>{row.work_summary}</div>
           )}
         </section>
       )}

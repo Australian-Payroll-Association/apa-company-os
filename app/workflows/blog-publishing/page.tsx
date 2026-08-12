@@ -41,7 +41,7 @@ export default function BlogPublishingWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The pipeline</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Human in front, AI behind
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -65,7 +65,7 @@ export default function BlogPublishingWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step by step
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The four stages
           </h2>
           <StepCards

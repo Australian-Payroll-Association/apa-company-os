@@ -249,7 +249,7 @@ export function AdminsManager({
                   value={editing.email}
                   onChange={(e) => setEditing({ ...editing, email: e.target.value })}
                 />
-                <p className="admin-cell-muted" style={{ margin: "6px 0 0", fontSize: 12.5 }}>
+                <p className="admin-cell-muted" style={{ margin: "6px 0 0", fontSize: 12 }}>
                   Changing the email also updates their login — they sign in with the new
                   address afterwards.
                 </p>

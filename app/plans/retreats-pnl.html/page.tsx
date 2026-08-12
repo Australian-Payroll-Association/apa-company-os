@@ -52,7 +52,7 @@ export default function RetreatsPnlBrief() {
           <span className="section-label brief-d">
             <strong>D1</strong> · Definition of the Problem
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             A fast-growing program run by hand
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -101,7 +101,7 @@ export default function RetreatsPnlBrief() {
           <span className="section-label brief-d" style={{ background: 'var(--white)' }}>
             <strong>D2</strong> · Datasources Needed
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Everything already exists
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -156,7 +156,7 @@ export default function RetreatsPnlBrief() {
           <span className="section-label brief-d">
             <strong>D3</strong> · Diagram &amp; Documented Workflow
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Two workstreams, one system
           </h2>
 
@@ -240,7 +240,7 @@ export default function RetreatsPnlBrief() {
           <span className="section-label brief-d" style={{ background: 'var(--white)' }}>
             <strong>D4</strong> · ROI Determined
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The whole return is time saved
           </h2>
           <div className="brief-fast" style={{ marginTop: 24 }}>
@@ -281,7 +281,7 @@ export default function RetreatsPnlBrief() {
           <span className="section-label brief-d">
             <strong>D5</strong> · Deployment Plan
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Six phases, first action in 7 days
           </h2>
           <div className="wf-steps">

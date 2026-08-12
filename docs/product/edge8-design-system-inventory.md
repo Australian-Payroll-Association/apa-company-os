@@ -313,7 +313,7 @@ Not a commitment, just the order that gets the most visible improvement for the 
 
 **Group C: decisions first, then code**
 - ~~Bless or kill the uppercase micro-label, and resolve the letter-spacing ban~~ **decided: blessed** (§1.2, §2.1). What remains is migrating ad-hoc rules onto `.admin-section-label`, which is Group B work.
-- Pick the real type and spacing scales, then snap to them (§3.4)
+- ~~Pick the real type and spacing scales, then snap to them~~ **decided: defined and adopted** (§3.4). Remaining off-scale values are reported by the guardrail as warnings.
 - Reconcile nav, and document `.admin-btn` as the real compact button (§2.2, §2.3)
 
 **Group D: hold the line**

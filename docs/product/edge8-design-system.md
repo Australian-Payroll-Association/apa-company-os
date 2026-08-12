@@ -219,7 +219,7 @@ There are **two** label styles. They are not interchangeable.
 
 **2. Section micro-label**: groups a run of cards or rows under a small heading. This is the
 dense-surface counterpart to the pill, and the **only** sanctioned uppercase text in the system.
-- Text: 12.5px, weight 600, uppercase, `letter-spacing: 0.5px`, color `--admin-muted`
+- Text: 12px, weight 600, uppercase, `letter-spacing: 0.5px`, color `--admin-muted`
 - No background, no border
 - Margin: `26px 0 12px`
 - Class: `.admin-section-label` (`app/admin/admin.css`). `.team-hub-heading` is kept as an alias
@@ -227,10 +227,9 @@ dense-surface counterpart to the pill, and the **only** sanctioned uppercase tex
 - Surfaces: use it on **all three** OS surfaces (admin, `/team`, `/portal`), not just one, so the
   OS reads as one product.
 - Variant: `.admin-shelf-heading` is the same label with a flex row for a trailing action (a
-  "View all" link, a count). It is used in ~44 admin places and differs only by 0.5px of size and
-  0.1px of tracking. Treat it as the same component; converging the two values is pending cleanup,
-  not a second style to choose from.
-- Uppercase and tracking travel together here: the tracking is what keeps caps legible at 12.5px.
+  "View all" link, a count). It is used in ~44 admin places and now matches on size, differing only
+  by 0.1px of tracking. Treat it as the same component.
+- Uppercase and tracking travel together here: the tracking is what keeps caps legible at 12px.
   Do not use uppercase without it, or apply either to any other element.
 
 **When to use which.** Marketing section, above a big heading → pill. Grouping cards or rows in
@@ -276,8 +275,35 @@ it.
 
 ### Spacing Scale
 ```
-4px, 8px, 12px, 16px, 24px, 32px, 40px, 48px, 64px, 80px, 96px, 120px
+2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 120   (px)
 ```
+Fine steps (2 to 18) are for dense OS chrome: icon gaps, chip padding, table cells.
+Medium (20 to 40) for card and panel padding. Coarse (48 to 120) for page sections.
+
+**Why 2px steps and not a 4px grid.** The 4px grid this doc used to specify was never
+followed: 37% of spacing declarations sat off it, and the heaviest offenders were 10px
+(143 uses), 6px (95) and 14px (43), all deliberate dense-UI values. Snapping them to a 4px
+grid would have moved roughly 650 declarations for no visible gain, and would have broken the
+two canonical card paddings (`18px 20px` and `16px 18px`). The scale above was derived from
+what the product actually uses: **90% of existing declarations already sit on it.**
+
+### Type Scale
+```
+11, 12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 40, 48, 64, 80   (px)
+```
+11 to 16 for OS and dense UI, 18 to 24 for body and card titles, 28 and up for display.
+
+**11px is the floor.** Nothing smaller ships; below that is a legibility problem, not a design
+choice.
+
+**No half-steps.** 12.5 and 13.5 are not perceivable as deliberate steps, they are the residue
+of nudging components one at a time. 177 such declarations across 8 values were snapped to the
+nearest step (ties resolved downward, which also reconciled `.admin-btn` with its documented
+13px). Distinct type sizes went from 38 to 30, and on-scale conformance from 65% to 88%.
+
+**Enforcement.** `npm run check:design` reports every off-scale value with a count. It warns
+rather than fails, because an off-scale value is a design smell rather than a broken build.
+Remaining offenders are listed in the drift inventory.
 
 ### Grid
 - Max-width: `1200px`

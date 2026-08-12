@@ -223,7 +223,7 @@ export function EventSettings({
   return (
     <div style={{ maxWidth: 640 }}>
       <div className="admin-form">
-        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12 }}>
           <AutosaveIndicator status={saveStatus} />
         </div>
 

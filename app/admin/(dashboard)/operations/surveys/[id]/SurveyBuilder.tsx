@@ -355,7 +355,7 @@ export function SurveyBuilder({
                 <div className="admin-hint" style={{ marginBottom: 6 }}>Public link</div>
                 <code
                   className="admin-cell-mono"
-                  style={{ display: "block", wordBreak: "break-all", fontSize: 12.5, marginBottom: 8 }}
+                  style={{ display: "block", wordBreak: "break-all", fontSize: 12, marginBottom: 8 }}
                 >
                   /surveys/{survey.slug}
                 </code>

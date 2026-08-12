@@ -301,7 +301,7 @@ function EquipmentShelfBody({
       {item.notes && (
         <section>
           <div className="admin-shelf-heading">Notes</div>
-          <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{item.notes}</div>
+          <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{item.notes}</div>
         </section>
       )}
 
@@ -383,7 +383,7 @@ function EquipmentShelfBody({
                 style={{
                   borderLeft: "2px solid var(--admin-border)",
                   paddingLeft: 12,
-                  fontSize: 13.5,
+                  fontSize: 13,
                   lineHeight: 1.5,
                 }}
               >

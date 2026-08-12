@@ -190,7 +190,7 @@ export default function RecruitmentWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The problem</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Hiring is drawn as a line and lived as a loop
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -217,7 +217,7 @@ export default function RecruitmentWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The shape
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Three loops orbiting one pool
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -265,7 +265,7 @@ export default function RecruitmentWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Loop 1 · Demand</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Roles churn, the system keeps up
           </h2>
           <FlowRail
@@ -350,7 +350,7 @@ export default function RecruitmentWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Loop 2 · Sourcing
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Always on, across every channel
           </h2>
           <FlowRail
@@ -447,7 +447,7 @@ export default function RecruitmentWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Loop 3 · Selection</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The real flowchart, every branch included
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -566,7 +566,7 @@ export default function RecruitmentWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The hub
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Every exit is a pool entry
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>

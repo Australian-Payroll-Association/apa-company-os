@@ -79,7 +79,7 @@ export default function MethodPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Why document at all</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The invisibility problem
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -97,7 +97,7 @@ export default function MethodPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step 1: Plan
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The 5D Program Brief
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -112,7 +112,7 @@ export default function MethodPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Step 2: Document</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Seven elements, every time
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -129,7 +129,7 @@ export default function MethodPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step 3: Assign and test
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The Centaur Map and the New Hire Test
           </h2>
           <div className="wf-info-grid">
@@ -159,7 +159,7 @@ export default function MethodPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Step 4: Ship</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Three stage gates
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -190,7 +190,7 @@ export default function MethodPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The library
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The frameworks behind the workflows
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>

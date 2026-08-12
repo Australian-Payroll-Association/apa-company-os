@@ -76,7 +76,7 @@ export default async function QuickBooksSettingsPage({ searchParams }: { searchP
 
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Setup notes</h2>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, display: "grid", gap: 6 }}>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, display: "grid", gap: 6 }}>
           <li>
             Create an app at developer.intuit.com (Accounting scope) for Talent Edge LLC and set
             <span className="admin-cell-mono"> QBO_CLIENT_ID</span>,

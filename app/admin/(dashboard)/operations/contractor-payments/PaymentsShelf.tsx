@@ -204,9 +204,9 @@ function PaymentShelfBody({ row, onClose }: { row: PaymentRow; onClose: () => vo
           )}
           {kv("Decided", row.decided_at ? `${humanize(row.status)} by ${row.decided_by} · ${formatDate(row.decided_at)}` : null)}
         </dl>
-        {row.summary && <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12.5 }}>{row.summary}</div>}
+        {row.summary && <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12 }}>{row.summary}</div>}
         {row.note && (
-          <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5, marginTop: 8 }}>
+          <div style={{ whiteSpace: "pre-wrap", fontSize: 13, marginTop: 8 }}>
             <strong>Note:</strong> {row.note}
           </div>
         )}

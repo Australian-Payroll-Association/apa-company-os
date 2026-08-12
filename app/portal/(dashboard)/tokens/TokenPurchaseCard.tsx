@@ -42,7 +42,7 @@ export function TokenPurchaseCard() {
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 13.5 }}>
+      <div style={{ fontSize: 13 }}>
         {packs * PACK_TOKENS} tokens · <strong>{formatCents(packs * PACK_PRICE_CENTS, "usd")}</strong>
       </div>
       {err && <div className="admin-alert admin-alert--err">{err}</div>}

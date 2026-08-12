@@ -185,7 +185,7 @@ export function RankTable({
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search candidates"
         />
-        <span className="admin-cell-muted" style={{ fontSize: 12.5, marginLeft: "auto" }}>
+        <span className="admin-cell-muted" style={{ fontSize: 12, marginLeft: "auto" }}>
           Sorted by {SORT_LABEL[sort.key]} ({sort.dir === "desc" ? "high→low" : "low→high"})
         </span>
       </div>
@@ -358,7 +358,7 @@ export function RankTable({
                 onPick={(n) => setRecruiter(selected, n)}
               />
               {selected.recruiterRating && (
-                <div className="admin-cell-muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                <div className="admin-cell-muted" style={{ fontSize: 12, marginTop: 4 }}>
                   Imported score: {selected.recruiterRating}
                 </div>
               )}

@@ -26,7 +26,7 @@ export default function AccountingTrainingPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Never bend these</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The five ground rules
           </h2>
           <div className="wf-problems">
@@ -78,7 +78,7 @@ export default function AccountingTrainingPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The mental model</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Three things make this easy. One makes it hard.
           </h2>
           <div className="wf-problems">
@@ -135,7 +135,7 @@ export default function AccountingTrainingPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The trap, in detail
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Pass-throughs: one rule, three failure modes
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -211,7 +211,7 @@ export default function AccountingTrainingPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Where judgment lives</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             AIO is a conversation, not a formula
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -264,7 +264,7 @@ export default function AccountingTrainingPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Quick reference
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Vendor treatments
           </h2>
           <div className="wf-table-wrap">
@@ -350,7 +350,7 @@ export default function AccountingTrainingPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Getting started</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             First month, and when to escalate
           </h2>
           <div className="wf-info-grid">

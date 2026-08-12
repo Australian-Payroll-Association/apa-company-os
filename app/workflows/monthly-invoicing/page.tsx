@@ -42,7 +42,7 @@ export default function MonthlyInvoicingWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The cycle</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             One month, four dates
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -101,7 +101,7 @@ export default function MonthlyInvoicingWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step by step
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             The five steps
           </h2>
           <StepCards

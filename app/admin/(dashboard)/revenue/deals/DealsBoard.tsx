@@ -1082,7 +1082,7 @@ export function DealDetail({
       />
 
       <div className="admin-form">
-        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12.5 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 12 }}>
           <AutosaveIndicator status={dealStatus} />
         </div>
         <div className="admin-field">

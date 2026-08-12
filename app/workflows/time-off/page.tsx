@@ -98,7 +98,7 @@ export default function TimeOffWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The flow</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Request to decision in five steps
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -141,7 +141,7 @@ export default function TimeOffWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             Step by step
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             How each step works
           </h2>
           <StepCards

@@ -149,7 +149,7 @@ export function SevenElements({ elements }: { elements: WorkflowElement[] }) {
   return (
     <>
       <span className="section-label">Workflow anatomy</span>
-      <h2 className="section-title" style={{ fontSize: 34 }}>
+      <h2 className="section-title section-title--sm">
         The seven elements
       </h2>
       <p className="section-sub" style={{ marginTop: 12 }}>

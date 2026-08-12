@@ -48,7 +48,7 @@ export default function PerformanceWorkflowPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The problem</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Speed work goes wrong before it starts
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -75,7 +75,7 @@ export default function PerformanceWorkflowPage() {
           <span className="section-label" style={{ background: 'var(--white)' }}>
             The flow
           </span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             From a hunch to a proven win
           </h2>
           <FlowRail
@@ -97,7 +97,7 @@ export default function PerformanceWorkflowPage() {
       <section className="section">
         <div className="container">
           <span className="section-label">Step by step</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             How each step works
           </h2>
           <StepCards

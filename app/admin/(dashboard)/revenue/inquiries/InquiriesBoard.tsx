@@ -175,7 +175,7 @@ function InquiryDetail({
           <div className="admin-label" style={{ marginBottom: 4 }}>
             Message
           </div>
-          <div className="admin-card" style={{ padding: "12px 14px", whiteSpace: "pre-wrap", fontSize: 13.5 }}>
+          <div className="admin-card" style={{ padding: "12px 14px", whiteSpace: "pre-wrap", fontSize: 13 }}>
             {card.message}
           </div>
         </div>

@@ -48,7 +48,7 @@ export function FilterBar({
         </select>
       ))}
       {active && (
-        <Link href={basePath + mergeQuery(searchParams, clearOverrides)} className="admin-cell-muted" style={{ fontSize: 12.5 }}>
+        <Link href={basePath + mergeQuery(searchParams, clearOverrides)} className="admin-cell-muted" style={{ fontSize: 12 }}>
           Clear all
         </Link>
       )}

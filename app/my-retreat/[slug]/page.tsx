@@ -67,7 +67,7 @@ export default async function MyRetreatHub({ params }: { params: { slug: string 
         <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.55 }}>
           {firstName ? `Welcome, ${firstName}` : "My Retreat"}
         </div>
-        <h1 style={{ fontSize: 34, margin: "8px 0 10px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>{event.title}</h1>
+        <h1 style={{ fontSize: 32, margin: "8px 0 10px", lineHeight: 1.1, letterSpacing: "-0.01em" }}>{event.title}</h1>
         <div style={{ opacity: 0.75, fontSize: 16 }}>
           {formatEventDates(event.starts_at, event.ends_at, event.timezone)}
           {event.location ? ` · ${event.location}` : ""}

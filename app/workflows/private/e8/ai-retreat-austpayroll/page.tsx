@@ -62,7 +62,7 @@ export default function AiRetreatAustPayrollPage() {
       <section className="section" style={{ paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">The goal</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Build product to sell, not slides to show
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -149,7 +149,7 @@ export default function AiRetreatAustPayrollPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Survey results</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             AI Journey pre-retreat survey
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -220,7 +220,7 @@ export default function AiRetreatAustPayrollPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <div className="container">
           <span className="section-label">Workflow A</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Content production pipeline
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>
@@ -271,7 +271,7 @@ export default function AiRetreatAustPayrollPage() {
       <section className="section" style={{ paddingTop: 24, paddingBottom: 72 }}>
         <div className="container">
           <span className="section-label">Workflow B</span>
-          <h2 className="section-title" style={{ fontSize: 34 }}>
+          <h2 className="section-title section-title--sm">
             Adaptive learner journey
           </h2>
           <p className="section-sub" style={{ marginTop: 12 }}>

@@ -99,14 +99,14 @@ export default function CoachingModulePlanPage() {
             color: var(--dark); margin-bottom: 14px; line-height: 1.25;
           }
           .app-lead { font-size: 16px; line-height: 1.7; color: var(--body-text); max-width: 780px; }
-          .app-p { font-size: 15.5px; line-height: 1.7; color: var(--body-text); max-width: 780px; margin-top: 22px; }
+          .app-p { font-size: 15px; line-height: 1.7; color: var(--body-text); max-width: 780px; margin-top: 22px; }
           .app-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 24px; }
           .app-card {
             background: var(--white); border: 1px solid var(--card-border); border-radius: 14px; padding: 22px;
           }
           .app-card h3 { font-size: 17px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
           .app-card p { font-size: 14px; line-height: 1.6; color: var(--body-text); }
-          .app-card .tag { display: inline-block; margin-top: 12px; font-size: 11.5px; font-weight: 600; color: var(--blue); background: var(--tint); border-radius: 6px; padding: 3px 8px; }
+          .app-card .tag { display: inline-block; margin-top: 12px; font-size: 11px; font-weight: 600; color: var(--blue); background: var(--tint); border-radius: 6px; padding: 3px 8px; }
           .app-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
           .app-list li { position: relative; padding-left: 22px; font-size: 15px; line-height: 1.6; color: var(--body-text); }
           .app-list li::before {

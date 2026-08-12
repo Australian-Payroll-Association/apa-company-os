@@ -55,7 +55,7 @@ export default async function PortalRequestDetailPage({ params }: { params: { id
 
       <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Brief</h2>
-        <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{r.brief}</div>
+        <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{r.brief}</div>
       </div>
 
       {r.estimatedHours !== null && (
@@ -63,9 +63,9 @@ export default async function PortalRequestDetailPage({ params }: { params: { id
           <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
             Estimate — {formatHours(r.estimatedHours)}
           </h2>
-          {r.planText && <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{r.planText}</div>}
+          {r.planText && <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{r.planText}</div>}
           {r.estimateSubmittedAt && (
-            <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12.5 }}>
+            <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12 }}>
               Submitted {timeAgo(r.estimateSubmittedAt)}
             </div>
           )}
@@ -78,15 +78,15 @@ export default async function PortalRequestDetailPage({ params }: { params: { id
             Delivered work — {formatHours(r.actualHours)}
             {Number(r.actualOvertimeHours) > 0 && ` (+ ${formatHours(r.actualOvertimeHours)} overtime)`}
           </h2>
-          {r.workSummary && <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5 }}>{r.workSummary}</div>}
+          {r.workSummary && <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{r.workSummary}</div>}
           {r.workLink && (
-            <p style={{ marginTop: 8, marginBottom: 0, fontSize: 13.5 }}>
+            <p style={{ marginTop: 8, marginBottom: 0, fontSize: 13 }}>
               <a href={r.workLink} target="_blank" rel="noreferrer">
                 View the result
               </a>
             </p>
           )}
-          <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12.5 }}>
+          <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 12 }}>
             Delivered {timeAgo(r.workSubmittedAt)}
           </div>
         </div>
