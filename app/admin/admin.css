@@ -365,11 +365,34 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
 .admin-signout:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 
 /* ─── Main column ─────────────────────────────────── */
+/* Content width.
+
+   .admin-main used to have no max-width, so every page stretched to whatever
+   the viewport allowed and tables spread their columns thin on wide monitors.
+   Pages that cared compensated with their own inline maxWidth, which is how the
+   OS ended up with 17 different page widths and no default.
+
+   There are now three, and only three:
+     default          up to --os-content-max, for tables and dashboards
+     --narrow (880)   detail and reading pages; already the most-used value
+     --form   (640)   single-column forms
+
+   Content is centred, so capping does not leave the page hugging one edge. */
+:root { --os-content-max: 1440px; }
+
 .admin-main {
   flex: 1;
   min-width: 0;
   padding: 28px 32px 64px;
+  width: 100%;
+  max-width: calc(var(--os-content-max) + 64px);
+  margin-inline: auto;
 }
+.admin-main--narrow { max-width: calc(880px + 64px); }
+.admin-main--form { max-width: calc(640px + 64px); }
+/* Escape hatch for a genuinely edge-to-edge surface (a wide board or canvas).
+   Use it deliberately; it is not the default. */
+.admin-main--full { max-width: none; }
 .admin-mobilebar { display: none; }
 
 /* ─── Page header ─────────────────────────────────── */
