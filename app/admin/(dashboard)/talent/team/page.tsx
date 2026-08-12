@@ -8,6 +8,7 @@ import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { InvitePortalButton } from "@/components/admin/InvitePortalButton";
 import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
+import { personName } from "@/lib/people-name";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export const metadata = {
 
 // Talent office: internal team (persona=employee). Name opens the Team Member profile.
 type P = {
+  display_name: string | null;
   full_name: string | null;
   preferred_name: string | null;
   email: string;
@@ -68,7 +70,7 @@ const SORTABLE = new Set([
 // to the embedded-column ordering expression PostgREST understands
 // (order=<embed>(<col>)). Everything else sorts by its own key.
 const ORDER_COLUMN: Record<string, string> = {
-  name: "people(full_name)",
+  name: "people(display_name)",
   portal: "people(auth_user_id)",
   title: "positions(title)",
 };
@@ -90,8 +92,8 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
   const sortParam = firstParam(searchParams.sort);
-  const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
-  const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
+  const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "name";
+  const dir = firstParam(searchParams.dir) === "desc" ? "desc" : "asc";
 
   const segParam = firstParam(searchParams.seg);
   const seg = SEGMENTS.find((s) => s.key === segParam) ?? SEGMENTS[0];
@@ -101,7 +103,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   // an inner join, so ask for `!inner` while searching. Without a query the
   // embed stays a left join, so a team member with no linked person still
   // appears in the list.
-  const peopleEmbed = `people!person_id${q ? "!inner" : ""}(full_name, preferred_name, email, phone, auth_user_id, city, country, linkedin_url)`;
+  const peopleEmbed = `people!person_id${q ? "!inner" : ""}(display_name, full_name, preferred_name, email, phone, auth_user_id, city, country, linkedin_url)`;
 
   // List the active segment's rows, and (in parallel) count every segment for
   // its tab badge. Counts reflect the whole segment, independent of the search.
@@ -114,7 +116,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
         page,
         pageSize: PAGE_SIZE,
         search: q,
-        searchEmbed: { table: "people", columns: ["full_name", "preferred_name"] },
+        searchEmbed: { table: "people", columns: ["display_name", "full_name", "preferred_name"] },
         sort: ORDER_COLUMN[sort] ?? sort,
         dir,
         filters: seg.filter,
@@ -142,7 +144,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   const [signedIn, managerRes, coachingRes] = await Promise.all([
     getSignedInAuthUserIds(authIds),
     managerIds.length
-      ? companyOs.from("team_members").select("id, people!person_id(full_name)").in("id", managerIds)
+      ? companyOs.from("team_members").select("id, people!person_id(display_name, full_name, preferred_name, email)").in("id", managerIds)
       : Promise.resolve({ data: null }),
     rowIds.length
       ? companyOs.from("coaching_profiles").select("id, team_member_id").in("team_member_id", rowIds)
@@ -173,11 +175,11 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     }
   }
 
-  type ManagerRow = { id: string; people: { full_name: string | null } | { full_name: string | null }[] | null };
+  type ManagerRow = { id: string; people: P | P[] | null };
   const managerName = new Map<string, string>();
   for (const m of ((managerRes.data as ManagerRow[] | null) ?? [])) {
-    const name = one(m.people)?.full_name;
-    if (name) managerName.set(m.id, name);
+    const p = one(m.people);
+    if (p) managerName.set(m.id, personName(p));
   }
 
   const columns: Column<TeamMember>[] = [
@@ -187,7 +189,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       sortable: true,
       cell: (r) => {
         const p = one(r.people);
-        return <span className="admin-cell-strong">{p?.full_name || p?.email || "View"}</span>;
+        return <span className="admin-cell-strong">{p ? personName(p) : "View"}</span>;
       },
     },
     { key: "employee_number", header: "Employee #", sortable: true, cell: (r) => (r.employee_number ? <span className="admin-cell-mono">{r.employee_number}</span> : dash) },
@@ -262,7 +264,7 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
           const isPast = r.status === "terminated" || r.status === "alumni";
           return {
             eyebrow: pos?.title || "Team member",
-            title: p?.full_name || p?.email || "Team member",
+            title: p ? personName(p) : "Team member",
             body: (
               <>
                 <dl className="admin-kv">
