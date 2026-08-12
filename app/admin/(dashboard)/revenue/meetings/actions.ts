@@ -18,9 +18,11 @@ const BUCKET = "meeting-transcripts";
 
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 
-function refresh(companyId: string) {
+function refresh(companyId: string, meetingId?: string) {
   revalidatePath("/admin/revenue/meetings");
+  if (meetingId) revalidatePath(`/admin/revenue/meetings/${meetingId}`);
   revalidatePath(`/admin/revenue/companies/${companyId}`);
+  revalidatePath("/portal/meetings");
 }
 
 // Store the original uploaded file so the source is retained; the transcript
@@ -93,7 +95,7 @@ export async function createMeeting(formData: FormData): Promise<CreateResult> {
 
   await recordAudit({ table: "meeting_notes", recordId: data.id, operation: "insert", actor: admin.email });
   waitUntil(summarizeMeeting(data.id));
-  refresh(companyId);
+  refresh(companyId, data.id);
   return { ok: true, id: data.id };
 }
 
@@ -137,7 +139,7 @@ export async function updateMeeting(
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({ table: "meeting_notes", recordId: id, operation: "update", actor: admin.email });
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
@@ -159,7 +161,7 @@ export async function setMeetingPublished(id: string, published: boolean): Promi
     actor: admin.email,
     context: { published },
   });
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
@@ -185,7 +187,7 @@ export async function deleteMeeting(id: string): Promise<ActionResult> {
     await supabase.storage.from(BUCKET).remove([meeting.source_file_path]);
   }
   await recordAudit({ table: "meeting_notes", recordId: id, operation: "delete", actor: admin.email });
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }
 
@@ -199,6 +201,6 @@ export async function retryMeetingSummary(id: string): Promise<ActionResult> {
     .update({ ai_status: "pending", ai_error: null, updated_at: new Date().toISOString() })
     .eq("id", id);
   waitUntil(summarizeMeeting(id));
-  refresh(meeting.company_id);
+  refresh(meeting.company_id, id);
   return { ok: true };
 }

@@ -1,34 +1,115 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getAllMeetings, listCompanyOptions } from "@/lib/admin/meetings";
+import { listMeetings, type AdminMeetingRow } from "@/lib/admin/meetings";
 import { PageHead } from "@/components/admin/PageHead";
-import { MeetingUploadForm } from "@/components/admin/MeetingUploadForm";
-import { MeetingsList } from "@/components/admin/MeetingsList";
+import { DataTable, type Column } from "@/components/admin/DataTable";
+import { FilterBar } from "@/components/admin/FilterBar";
+import { MeetingStatusBadges } from "@/components/admin/MeetingsTable";
+import { formatDate } from "@/lib/admin/format";
+import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 
 export const dynamic = "force-dynamic";
 
-// Global, cross-client meeting notes: upload for any client (picker) plus every
-// meeting on record. Per-company uploads live on the company 360 Meeting Notes
-// tab; this is the same data without the company filter.
-export default async function MeetingsPage() {
+export const metadata = {
+  title: "Meeting Notes",
+  description: "Every client meeting on record, across all clients.",
+};
+
+const PAGE_SIZES = [25, 50, 100];
+
+// List page. One row per meeting across every client; the summary and the raw
+// transcript live on the Details page, uploading lives on the Add New page.
+export default async function MeetingsPage({ searchParams }: { searchParams: SearchParamsObj }) {
   await requireAdmin();
-  const [meetings, companies] = await Promise.all([getAllMeetings(), listCompanyOptions()]);
-  const published = meetings.filter((m) => m.publishedAt).length;
-  const meetingsListNode = await MeetingsList({ meetings, showCompany: true });
+
+  const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
+  const sizeParam = Number(firstParam(searchParams.size));
+  const pageSize = PAGE_SIZES.includes(sizeParam) ? sizeParam : 25;
+  const q = firstParam(searchParams.q) ?? "";
+  const statusParam = firstParam(searchParams.status);
+  const status = statusParam === "published" || statusParam === "draft" ? statusParam : undefined;
+
+  const { rows, total, error } = await listMeetings({ page, pageSize, search: q, status });
+
+  const columns: Column<AdminMeetingRow>[] = [
+    {
+      key: "meeting_date",
+      header: "Date",
+      cell: (m) => (m.meetingDate ? formatDate(m.meetingDate) : <span className="admin-cell-muted">—</span>),
+    },
+    {
+      key: "title",
+      header: "Meeting",
+      cell: (m) => (
+        <Link className="admin-cell-strong" href={`/admin/revenue/meetings/${m.id}`}>
+          {m.title || "Untitled meeting"}
+        </Link>
+      ),
+    },
+    {
+      key: "company",
+      header: "Client",
+      cell: (m) =>
+        m.companyName ? (
+          <Link href={`/admin/revenue/companies/${m.companyId}`}>{m.companyName}</Link>
+        ) : (
+          <span className="admin-cell-muted">—</span>
+        ),
+    },
+    {
+      key: "attendees",
+      header: "Attendees",
+      cell: (m) =>
+        m.attendees.length > 0 ? (
+          <span className="admin-cell-muted">{m.attendees.join(", ")}</span>
+        ) : (
+          <span className="admin-cell-muted">—</span>
+        ),
+    },
+    { key: "status", header: "Status", cell: (m) => <MeetingStatusBadges meeting={m} /> },
+  ];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <>
       <PageHead
         eyebrow="Revenue"
         title="Meeting Notes"
-        sub={`${meetings.length} meeting${meetings.length === 1 ? "" : "s"} · ${published} published to clients`}
+        sub={`${total.toLocaleString()} meeting${total === 1 ? "" : "s"} on record`}
+        action={
+          <Link className="admin-btn admin-btn--primary" href="/admin/revenue/meetings/new">
+            Add meeting
+          </Link>
+        }
       />
-
-      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-        <div className="admin-shelf-heading" style={{ marginBottom: 8 }}>Upload a transcript</div>
-        <MeetingUploadForm companies={companies} />
-      </div>
-
-      {meetingsListNode}
-    </div>
+      {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        pageSizeOptions={PAGE_SIZES}
+        basePath="/admin/revenue/meetings"
+        searchParams={searchParams}
+        searchPlaceholder="Search by meeting title or client…"
+        emptyText="No meetings match."
+        filterBar={
+          <FilterBar
+            basePath="/admin/revenue/meetings"
+            searchParams={searchParams}
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                options: [
+                  { value: "published", label: "Published" },
+                  { value: "draft", label: "Draft" },
+                ],
+              },
+            ]}
+          />
+        }
+      />
+    </>
   );
 }

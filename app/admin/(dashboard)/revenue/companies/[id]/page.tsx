@@ -14,8 +14,7 @@ import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
 import { AssignedStaffCard } from "@/components/admin/AssignedStaffCard";
 import { InvoicesTab } from "@/components/admin/InvoicesTab";
-import { MeetingUploadForm } from "@/components/admin/MeetingUploadForm";
-import { MeetingsList } from "@/components/admin/MeetingsList";
+import { MeetingsTable } from "@/components/admin/MeetingsTable";
 import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { companyOs } from "@/lib/supabase";
@@ -50,11 +49,6 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
   const activeMemberCount = [...portalMemberships.values()].filter(
     (m) => m.status === "active",
   ).length;
-  // MeetingsList is an async server component; await it into a node so it can be
-  // passed as tab content (a prop to the client Tabs component) without hitting
-  // the async-JSX typing limitation.
-  const meetingsListNode = await MeetingsList({ meetings });
-
   // At-a-glance figures for the summary strip.
   const OPEN = new Set(["open", "new_lead", "contacted", "discovery", "proposal"]);
   const dealValueCents = deals.reduce((s, d) => s + (d.amount_usd_cents ?? d.amount_cents ?? 0), 0);
@@ -174,8 +168,15 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
       count: meetings.length,
       content: (
         <div>
-          <MeetingUploadForm companyId={company.id} />
-          {meetingsListNode}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <Link
+              className="admin-btn admin-btn--primary"
+              href={`/admin/revenue/meetings/new?company=${company.id}`}
+            >
+              Add meeting
+            </Link>
+          </div>
+          <MeetingsTable meetings={meetings} />
         </div>
       ),
     },
