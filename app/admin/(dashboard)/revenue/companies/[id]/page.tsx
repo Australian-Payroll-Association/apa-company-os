@@ -18,7 +18,7 @@ import { MeetingsTable } from "@/components/admin/MeetingsTable";
 import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { companyOs } from "@/lib/supabase";
-import { CompanyEditForm } from "../CompanyEditForm";
+import { CompanyDetailsCard } from "../CompanyDetailsCard";
 import { CompanyDangerZone } from "../CompanyDangerZone";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +61,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
     null,
   );
   const affiliateContacts = people.filter((p) => p.affiliateActive);
-  const hasReferralContext = referredBy.length > 0 || affiliateContacts.length > 0 || !!companyAffiliate;
+  const showAffiliateCard = !!companyAffiliate?.active || affiliateContacts.length > 0;
 
   const tabs: TabDef[] = [
     {
@@ -221,68 +221,57 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-        <div className="admin-shelf-heading" style={{ marginBottom: 8 }}>Referral &amp; affiliates</div>
-        {hasReferralContext ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
-            {companyAffiliate?.active && (
-              <div>
-                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>This company is an affiliate</div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  {companyAffiliate.code && <Badge tone="ok">{companyAffiliate.code}</Badge>}
-                  <span className="admin-cell-strong">{formatCents(companyAffiliate.realizedCents, "usd")} earned</span>
-                  {companyAffiliate.unpaidCents > 0 && (
-                    <span className="admin-cell-muted">· {formatCents(companyAffiliate.unpaidCents, "usd")} unpaid</span>
-                  )}
-                  {companyAffiliate.pendingCount > 0 && <Badge tone="warn">{companyAffiliate.pendingCount} pending choice</Badge>}
-                </div>
-              </div>
-            )}
-            {referredBy.length > 0 && (
-              <div>
-                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 2 }}>Referred by</div>
-                <div className="admin-cell-strong">{referredBy.join(", ")}</div>
-              </div>
-            )}
-            {affiliateContacts.length > 0 && (
-              <div>
-                <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>Affiliate contacts</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {affiliateContacts.map((p) => (
-                    <Link key={p.id} href={`/admin/contacts/${p.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {p.full_name || p.email}
-                      {p.affiliateCode && <Badge tone="ok">{p.affiliateCode}</Badge>}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="admin-cell-muted">
-            No referral link. Make this company an affiliate from the actions above, or link a referring
-            contact or company on its deals.
-          </div>
-        )}
-      </div>
-
       <div className="admin-360" style={{ gridTemplateColumns: "340px minmax(0, 1fr)" }}>
         <div>
-          <div className="admin-card admin-section-card">
-            <CompanyEditForm
-              company={{
-                id: company.id,
-                name: company.name,
-                website_url: company.website_url,
-                industry_normalized: company.industry_normalized,
-                size_band: company.size_band,
-                country: company.country,
-                priority: company.priority,
-                notes: company.notes,
-              }}
-              showNotes
-            />
-          </div>
+          <CompanyDetailsCard
+            company={{
+              id: company.id,
+              name: company.name,
+              website_url: company.website_url,
+              industry_normalized: company.industry_normalized,
+              size_band: company.size_band,
+              country: company.country,
+              priority: company.priority,
+              notes: company.notes,
+              created_at: company.created_at,
+            }}
+            referredBy={referredBy}
+          />
+
+          {showAffiliateCard && (
+            <div className="admin-card admin-section-card">
+              <h2 className="admin-card-title">Referral &amp; affiliates</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {companyAffiliate?.active && (
+                  <div>
+                    <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>This company is an affiliate</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {companyAffiliate.code && <Badge tone="ok">{companyAffiliate.code}</Badge>}
+                      <span className="admin-cell-strong">{formatCents(companyAffiliate.realizedCents, "usd")} earned</span>
+                      {companyAffiliate.unpaidCents > 0 && (
+                        <span className="admin-cell-muted">· {formatCents(companyAffiliate.unpaidCents, "usd")} unpaid</span>
+                      )}
+                      {companyAffiliate.pendingCount > 0 && <Badge tone="warn">{companyAffiliate.pendingCount} pending choice</Badge>}
+                    </div>
+                  </div>
+                )}
+                {affiliateContacts.length > 0 && (
+                  <div>
+                    <div className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 4 }}>Affiliate contacts</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {affiliateContacts.map((p) => (
+                        <Link key={p.id} href={`/admin/contacts/${p.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          {p.full_name || p.email}
+                          {p.affiliateCode && <Badge tone="ok">{p.affiliateCode}</Badge>}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <AssignedStaffCard
             companyId={company.id}
             assignments={assignments}
