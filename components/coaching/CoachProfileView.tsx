@@ -21,6 +21,7 @@ import {
   OPEN_COMMITMENT_STATUSES,
   RETENTION_ROOT_LABELS,
 } from "@/lib/coaching/data";
+import { LadderSelect, ladderValue, parseLadder } from "./LadderSelect";
 import {
   addCommitment,
   addGoal,
@@ -116,73 +117,8 @@ export function CoachProfileView({ detail, html }: { detail: CoachProfileDetail;
 }
 
 // ---- Edges ladder picker ----------------------------------------------------
-
-function ladderValue(ladder: EdgesLadder | null): string {
-  if (!ladder) return "";
-  return `${ladder.kind}:${ladder.id}`;
-}
-
-function parseLadder(value: string): LadderInput {
-  if (!value) return { kind: "none" };
-  const [kind, id] = value.split(":");
-  if ((kind === "objective" || kind === "key_result" || kind === "metric") && id) return { kind, id };
-  return { kind: "none" };
-}
-
-function LadderSelect({
-  edges,
-  value,
-  onChange,
-  disabled,
-}: {
-  edges: EdgesOptions;
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <select
-      className="admin-input"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label="Ladders to (Eight Edges)"
-    >
-      <option value="">No ladder</option>
-      {edges.objectives.map((o, i) => (
-        <optgroup key={o.id} label={`O${i + 1}: ${o.label}`}>
-          <option value={`objective:${o.id}`}>The objective itself</option>
-          {edges.keyResults
-            .filter((k) => k.objectiveId === o.id)
-            .map((k, j) => (
-              <option key={k.id} value={`key_result:${k.id}`}>
-                {`KR${j + 1}: ${k.label}`}
-              </option>
-            ))}
-        </optgroup>
-      ))}
-      {edges.keyResults.some((k) => !k.objectiveId) && (
-        <optgroup label="Other key results">
-          {edges.keyResults
-            .filter((k) => !k.objectiveId)
-            .map((k) => (
-              <option key={k.id} value={`key_result:${k.id}`}>
-                {k.label}
-              </option>
-            ))}
-        </optgroup>
-      )}
-      <optgroup label="Metrics (KPIs)">
-        {edges.metrics.map((m) => (
-          <option key={m.id} value={`metric:${m.id}`}>
-            {m.label}
-            {m.target != null ? ` (target ${m.target}${m.direction === "down" ? " ↓" : " ↑"})` : ""}
-          </option>
-        ))}
-      </optgroup>
-    </select>
-  );
-}
+// LadderSelect/ladderValue/parseLadder live in ./LadderSelect, shared with the
+// member's own goals page (/team/goals).
 
 function LadderBadge({ ladder }: { ladder: EdgesLadder | null }) {
   if (!ladder) return <span className="admin-cell-muted">no ladder</span>;

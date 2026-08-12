@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GOAL_STATUS_LABELS, type GoalStatus } from "@/lib/coaching/data";
+import { GOAL_STATUS_LABELS, type EdgesOptions, type GoalStatus } from "@/lib/coaching/data";
+import { LadderSelect, parseLadder } from "@/components/coaching/LadderSelect";
 import { addMyGoal, deleteMyGoal, updateMyGoal } from "./actions";
 
 // One goal as the panel needs it. Mirrors CoachingGoal minus the coach-tier
@@ -19,6 +20,9 @@ export type MyGoalRow = {
   currentValue: number | null;
   dueDate: string | null;
   ladderLabel: string | null;
+  // The company goal this ladders to, as the picker encodes it ("kind:id"),
+  // or "" for a goal that stands on its own.
+  ladderValue: string;
   // False for goals someone else set for you: editable, but not yours to delete.
   canDelete: boolean;
 };
@@ -33,6 +37,7 @@ type FormState = {
   targetValue: string;
   currentValue: string;
   dueDate: string;
+  ladder: string;
 };
 
 const STATUSES: GoalStatus[] = ["draft", "active", "achieved", "dropped"];
@@ -48,6 +53,7 @@ function emptyForm(quarter: string): FormState {
     targetValue: "",
     currentValue: "",
     dueDate: "",
+    ladder: "",
   };
 }
 
@@ -63,6 +69,7 @@ function formOf(g: MyGoalRow): FormState {
     targetValue: str(g.targetValue),
     currentValue: str(g.currentValue),
     dueDate: g.dueDate ?? "",
+    ladder: g.ladderValue,
   };
 }
 
@@ -99,7 +106,15 @@ function measureText(g: MyGoalRow): string | null {
   return parts.length ? parts.join(" · ") : null;
 }
 
-export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: string }) {
+export function MyGoalsPanel({
+  rows,
+  quarter,
+  edges,
+}: {
+  rows: MyGoalRow[];
+  quarter: string;
+  edges: EdgesOptions;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
@@ -158,6 +173,7 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
       targetValue: numOrNull(form.targetValue),
       currentValue: numOrNull(form.currentValue),
       dueDate: form.dueDate,
+      ladder: parseLadder(form.ladder),
     };
     if (editingId) {
       run(() => updateMyGoal(editingId, input), "Goal updated. Your manager has been notified.");
@@ -195,6 +211,18 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
           value={form.description}
           onChange={(e) => set("description", e.target.value)}
           placeholder="Ambitious enough to stretch, specific enough that we both know when it's hit."
+        />
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label" htmlFor="goal-ladder">Aligns to a company goal (optional)</label>
+        <LadderSelect
+          id="goal-ladder"
+          edges={edges}
+          value={form.ladder}
+          onChange={(v) => set("ladder", v)}
+          disabled={pending}
+          emptyLabel="Stands on its own"
         />
       </div>
 
@@ -351,7 +379,7 @@ export function MyGoalsPanel({ rows, quarter }: { rows: MyGoalRow[]; quarter: st
                   </div>
                 )}
                 {g.ladderLabel && (
-                  <div className="admin-cell-muted">Ladders to: {g.ladderLabel}</div>
+                  <div className="admin-cell-muted">Aligns to: {g.ladderLabel}</div>
                 )}
 
                 <div className="admin-form-actions">
