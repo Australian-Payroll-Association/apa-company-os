@@ -200,15 +200,16 @@
 
 <section>
   <h2>Phase 2</h2>
-  <h3>The human signal, asked not taken <span class="phaseTag later">To build</span></h3>
-  <p>The spec grade says what a machine is on paper. It does not say whether the person on it is struggling. On-device telemetry was considered and ruled out: we do not access anyone's computer. Instead, twice a year, we ask every equipment holder how their kit is doing.</p>
+  <h3>The human signal, folded into a Team Pulse <span class="phaseTag">Built</span></h3>
+  <p>The spec grade says what a machine is on paper. It does not say whether the person on it is struggling. On-device telemetry was considered and ruled out: we do not access anyone's computer. Equipment is not its own survey either, it is one question in a short, person-linked Team Pulse that also reads work, manager, and team, so over a year we learn the trend on all four.</p>
   <ul>
-    <li><strong>One question, plus a note.</strong> "How is it doing?", answered awesome / ok, may need upgrading soon / not so good, it slows me down, with an optional comment.</li>
-    <li><strong>Twice a year</strong>, sent with a link over Lark.</li>
-    <li><strong>Everyone with a machine</strong> is asked, not just engineers.</li>
+    <li><strong>Six questions.</strong> Three agree/disagree ratings (work, manager, team), one on the machine (awesome / ok, may need upgrading / not so good, it slows me down), and two optional notes.</li>
+    <li><strong>Person-linked by default.</strong> It rides the existing survey system, so a logged-in team member's answers attach to them with no extra plumbing.</li>
+    <li><strong>Sent twice a year</strong> with a link over Lark; everyone on the team, not just engineers.</li>
+    <li><strong>Lives at</strong> /surveys/team-pulse; results in admin under Operations, Surveys.</li>
   </ul>
   <div class="callout mint">
-    <p><strong>Reuse, don't build.</strong> This is a survey, so it runs on the survey system we already have, no new tables, no new form. The point is the one signal telemetry cannot give: does this machine actually slow you down, which a person answers best.</p>
+    <p><strong>Reuse, not build.</strong> No new tables, no new form. One migration seeds the survey into the tables we already have; the public runner, person attribution, and results view all existed. An earlier bespoke build (a dedicated table and /team form) was reverted for bloat.</p>
   </div>
 </section>
 
