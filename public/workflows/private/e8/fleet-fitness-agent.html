@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fleet Fitness Agent: Plan</title>
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+    --amber:#E9A23B;
+    --ink:#1a2340;
+    --muted:#5a6480;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--mist);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px;margin:0 auto;background:var(--white);}
+  header{background:var(--navy);color:var(--white);padding:60px 60px 52px;}
+  .eyebrow{font-size:13px;letter-spacing:.18em;color:var(--mint);font-weight:600;margin-bottom:18px;}
+  header h1{font-size:38px;line-height:1.15;font-weight:700;margin-bottom:14px;}
+  header p.sub{font-size:18px;color:var(--mist);max-width:680px;}
+  .meta{margin-top:32px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;color:var(--mist);}
+  .meta div span{display:block;color:var(--mint);font-size:11px;letter-spacing:.12em;margin-bottom:3px;}
+  section{padding:46px 60px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px;}
+  h3{font-size:25px;font-weight:700;margin-bottom:18px;color:var(--navy);}
+  h4{font-size:17px;font-weight:700;margin:26px 0 8px;color:var(--navy);}
+  p{margin-bottom:15px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul,ol{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li,ol li{position:relative;padding-left:24px;margin-bottom:10px;font-size:16px;}
+  ul li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;background:var(--mint);border-radius:50%;}
+  ol{counter-reset:num;}
+  ol li{counter-increment:num;padding-left:32px;}
+  ol li::before{content:counter(num);position:absolute;left:0;top:1px;width:22px;height:22px;background:var(--navy);color:var(--mint);border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;}
+  th{background:var(--navy);color:var(--white);text-align:left;padding:10px 12px;font-weight:650;font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid var(--mist);vertical-align:top;}
+  tr:nth-child(even) td{background:#F7F9FC;}
+  .callout{background:#F0F7FF;border-left:4px solid var(--blue);padding:18px 22px;border-radius:0 8px 8px 0;margin:20px 0;}
+  .callout.mint{background:#EFFCF7;border-left-color:var(--mint);}
+  .callout.pink{background:#FDF2F8;border-left-color:var(--pink);}
+  .callout.amber{background:#FDF6EC;border-left-color:var(--amber);}
+  .callout p{font-size:15px;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:999px;vertical-align:middle;}
+  .tag.pass{background:#E3FBF1;color:#0B7A55;}
+  .tag.watch{background:#FBEFD8;color:#9A6A16;}
+  .tag.fail{background:#FDE7F2;color:var(--pink);}
+  .prCard{border:1px solid var(--mist);border-radius:12px;padding:22px 24px;margin-bottom:16px;}
+  .prCard .prHead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .prCard .num{font-size:13px;font-weight:800;color:var(--white);background:var(--navy);border-radius:8px;padding:2px 9px;}
+  .prCard h4{margin:0;font-size:19px;}
+  .prCard .lbl{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--blue);display:block;margin:14px 0 4px;}
+  .prCard p{font-size:15px;}
+  .flowRow{display:flex;gap:12px;margin:20px 0;flex-wrap:wrap;}
+  .flowBox{flex:1;min-width:150px;border:1px solid var(--mist);border-radius:12px;padding:16px 18px;}
+  .flowBox .fTitle{font-weight:700;font-size:15px;color:var(--navy);margin-bottom:4px;}
+  .flowBox .fSub{font-size:13px;color:var(--muted);}
+  .aiBand{background:var(--navy);border-radius:12px;padding:18px 22px;color:var(--mist);font-size:14.5px;margin:0 0 20px;}
+  .aiBand .bTitle{color:var(--mint);font-weight:800;font-size:12px;letter-spacing:.12em;display:block;margin-bottom:4px;}
+  .phaseTag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;padding:2px 9px;border-radius:6px;background:#E7F1FE;color:var(--blue);margin-left:6px;vertical-align:middle;}
+  .phaseTag.later{background:#EFEFF4;color:var(--muted);}
+  footer{background:var(--navy);color:var(--mist);padding:34px 60px;font-size:13px;}
+  footer .b{color:var(--mint);font-weight:700;}
+  @media (max-width:720px){
+    header,section,footer{padding-left:24px;padding-right:24px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Edge8 AI &middot; Plan &middot; Internal</div>
+  <h1>Fleet Fitness Agent</h1>
+  <p class="sub">The equipment register already knows every machine we own, and who holds it. It just cannot tell us which ones can still do the work. This agent reads the register on a schedule, cross-references each laptop against its holder's role, grades the engineer machines against a hardware policy, and flags what to upgrade, redistribute, or stop buying, before a starved machine slows an engineer down.</p>
+  <div class="meta">
+    <div><span>Status</span>Plan v1 for review</div>
+    <div><span>Owner</span>Dave Hajdu</div>
+    <div><span>Date</span>13 August 2026</div>
+    <div><span>Cadence</span>Quarterly routine</div>
+    <div><span>Home</span>Edge8 OS &middot; company_os.equipment</div>
+  </div>
+</header>
+
+<section>
+  <h2>Why</h2>
+  <h3>We have an inventory, not a monitor</h3>
+  <p>The <strong>company_os.equipment</strong> register holds 23 active items: 21 laptops and 2 monitors, with assignments and requests already wired to the admin. That is a good record of what we own. What it cannot do is tell us whether a machine is still fit for the job, for the person actually using it. Nobody is watching the gap between the spec on file and the spec the work needs.</p>
+  <p>Only engineers are in scope right now. Cross-referencing every laptop against its holder's role narrows the fleet to <strong>12 engineer-held machines</strong>, and the picture there is sharp:</p>
+  <ul>
+    <li><strong>5 of 12 engineer laptops sit below the app-dev floor</strong> of 24 GB RAM and 512 GB SSD. Every one is RAM-bound at 16 to 18 GB; their disks are fine.</li>
+    <li><strong>AI Engineers are the hardest hit.</strong> Three of the four are on 16 GB. If AI work is the priority, this is the priority.</li>
+    <li><strong>The newest purchase went to an engineer, under-spec.</strong> The July 2026 M5 was assigned to an AI Engineer at 16 GB. The under-spec buying is ongoing, and it is landing on the people in scope.</li>
+    <li><strong>Redistribution barely helps here.</strong> The one capable spare is a 64 GB Windows ThinkPad, and the failing engineers are mostly on Macs. This is a buy-RAM problem, not a shuffle-the-cupboard one.</li>
+  </ul>
+  <div class="callout amber">
+    <p><strong>The role filter is not a nicety, it changes the answer.</strong> A fleet-wide pass flagged a 256 GB machine as the sharpest edge; once graded against role, that machine turned out to belong to a recruiter and dropped out of scope entirely. Grading without knowing who holds the machine points the budget at the wrong people.</p>
+  </div>
+  <div class="callout pink">
+    <p><strong>The cost is silent.</strong> A starved machine does not fail loudly. It swaps, throttles, and quietly taxes the engineer on it every day. By the time anyone raises it, the machine is already 18 months into a life it will not finish. A weekly agent turns that silent tax into a visible list.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The model</h2>
+  <h3>Cross-reference the holder, grade the in-scope machines, act on the outliers</h3>
+  <p>The agent does exactly what the manual review did this week, on a schedule, and never forgets to run. It joins every laptop to its holder's role first, so grading runs only on machines held by people in scope. Today that scope is engineers. Each in-scope laptop then gets one of three grades against policy:</p>
+  <div class="flowRow">
+    <div class="flowBox">
+      <span class="tag pass">PASS</span>
+      <div class="fTitle" style="margin-top:8px;">Meets the floor</div>
+      <div class="fSub">At or above 24 GB / 512 GB and under the replacement age. No action.</div>
+    </div>
+    <div class="flowBox">
+      <span class="tag watch">WATCH</span>
+      <div class="fTitle" style="margin-top:8px;">At the edge</div>
+      <div class="fSub">Exactly at the floor, low free disk, or nearing the 4-year mark. Plan ahead.</div>
+    </div>
+    <div class="flowBox">
+      <span class="tag fail">FAIL</span>
+      <div class="fTitle" style="margin-top:8px;">Below the floor</div>
+      <div class="fSub">Under 24 GB RAM or 512 GB SSD. On the upgrade list.</div>
+    </div>
+  </div>
+  <div class="aiBand">
+    <span class="bTitle">The policy the agent grades against</span>
+    App development, no local model work. Floor: 24 GB RAM, 512 GB SSD. Preferred: 48 GB, 1 TB. Keep at least 15 percent of the disk free. Flag any laptop over 4 years old for the replacement cycle.
+  </div>
+  <table>
+    <tr><th>What the agent produces each run</th><th>So that</th></tr>
+    <tr><td><strong>A grade per in-scope laptop</strong></td><td>Every engineer machine is PASS, WATCH, or FAIL with the reason spelled out. Out-of-scope holders are listed but not graded.</td></tr>
+    <tr><td><strong>A ranked upgrade list</strong></td><td>The sharpest pain comes first: sub-512 GB disks, then 16 GB machines held by active engineers.</td></tr>
+    <tr><td><strong>Redistribution suggestions</strong></td><td>In-stock 64 GB units get matched to the worst-off holders before any money is spent.</td></tr>
+    <tr><td><strong>A purchase guard</strong></td><td>Any newly added machine below the floor is flagged the moment it lands in the register.</td></tr>
+    <tr><td><strong>A data-gap list</strong></td><td>Blank or unparseable specs surface as their own to-do, because you cannot grade what you cannot read.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>How a run flows</h2>
+  <h3>Register in, action list out</h3>
+  <ol>
+    <li><strong>Read the register.</strong> The agent pulls every active row from company_os.equipment.</li>
+    <li><strong>Cross-reference the holder.</strong> Each machine is joined to its holder's role via current_team_members. Engineer-held laptops are in scope; everyone else is listed but set aside.</li>
+    <li><strong>Normalize the spec.</strong> RAM, storage, CPU, and model year are parsed into clean numbers, even from messy invoice-string fields. Rows it cannot parse go to the data-gap list.</li>
+    <li><strong>Grade against policy.</strong> Each in-scope laptop is scored PASS, WATCH, or FAIL, with the failing dimension named.</li>
+    <li><strong>Rank and match.</strong> FAIL machines are ordered by severity, then matched against in-stock units that would fix them.</li>
+    <li><strong>Report.</strong> The fleet page updates, and a short digest lands each quarter: new failures, resolved ones, redistribution moves, and any below-floor purchase caught since the last run.</li>
+  </ol>
+  <div class="callout mint">
+    <p><strong>The register stays the source of truth.</strong> The agent never invents a machine or edits a spec on its own. It reads what admin holds, grades it, and writes back only its verdict. Humans still make every buy, upgrade, and reassignment call.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Build plan</h2>
+  <h3>Three PRs on the register we already have</h3>
+  <p>The equipment schema, the admin CRUD at <strong>/admin/operations/equipment</strong>, and the team request form all exist. This work adds grading and reporting on top. No new destructive migrations.</p>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">PR 1</span><h4>Holder role join, spec normalization, and grading</h4></div>
+    <span class="lbl">WHAT IT DOES</span>
+    <p>Joins each laptop to its holder's role via current_team_members and marks engineer-held machines as in scope. Parses the messy processor, ram, and storage fields into clean structured values, and adds a computed fitness grade per in-scope laptop against the policy. Backfills the one blank machine (EQ-0014) and surfaces any it cannot parse.</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>Every engineer laptop has a clean RAM, SSD, and grade, the 5 known below-floor engineer machines all read FAIL, non-engineer holders are listed as out of scope, and the data-gap list names anything unparseable.</p>
+  </div>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">PR 2</span><h4>Fleet fitness page and quarterly digest</h4></div>
+    <span class="lbl">WHAT IT DOES</span>
+    <p>Adds a fitness view to the equipment admin: grades, the ranked upgrade list, redistribution suggestions, and the data-gap list. A quarterly routine runs the grading and writes the digest (to file, and to Lark if configured).</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>The page renders today's engineer fleet with correct grades, and the first digest leads with the 5 below-floor engineer machines (3 of them AI Engineers), names EQ-0018 as the one capable spare, and notes it is Windows so a Mac engineer would need a buy instead.</p>
+  </div>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">PR 3</span><h4>Purchase guard</h4></div>
+    <span class="lbl">WHAT IT DOES</span>
+    <p>When a machine is added or edited below the floor, the register flags it against the policy right there in the form, and the next digest calls it out. Stops the under-spec buying at the point of entry.</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>Adding a 16 GB laptop shows a policy warning on save, and that machine appears in the digest's caught-purchases section.</p>
+  </div>
+
+  <p>After PR 2, this week's manual review becomes a page that refreshes itself, and the agent's first real job is simply to keep it honest.</p>
+</section>
+
+<section>
+  <h2>Phase 2</h2>
+  <h3>From static specs to live health <span class="phaseTag later">Planned</span></h3>
+  <p>Everything above grades the spec on file. It does not yet see how a machine behaves under real load. Phase 2 adds that, and it is confirmed as the next step: a lightweight on-device reporter on each engineer's Mac sends a small health snapshot on a schedule, turning the register into a live monitor. Macs first; Windows machines follow once the Mac reporter is proven.</p>
+  <ul>
+    <li><strong>Memory pressure and swap</strong>, the single best signal that a machine is under-spec for its actual workload.</li>
+    <li><strong>Free disk percentage</strong>, warning under 15 percent.</li>
+    <li><strong>Thermal pressure</strong> under sustained load.</li>
+    <li><strong>OS and toolchain drift</strong>, so environments stay reproducible.</li>
+  </ul>
+  <div class="callout amber">
+    <p><strong>Phase 2 is out of scope for v1, not off the table.</strong> On-device reporting means installing a small agent on every engineer Mac. v1 delivers value from the data we already hold; Phase 2 turns that snapshot into a live feed once the grading foundation is in place.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Decisions</h2>
+  <h3>Confirmed, and the two calls still open</h3>
+  <table>
+    <tr><th>Decision</th><th>Confirmed</th></tr>
+    <tr><td><strong>The floor</strong></td><td>24 GB RAM / 512 GB SSD, preferred 48 GB / 1 TB.</td></tr>
+    <tr><td><strong>Scope by job title</strong></td><td>Grade runs against the holder's title. Engineers only for now.</td></tr>
+    <tr><td><strong>Macs first</strong></td><td>Grading and Phase 2 telemetry start on Macs; Windows follows.</td></tr>
+    <tr><td><strong>Phase 2 telemetry</strong></td><td>Confirmed as the next step after v1, not dropped.</td></tr>
+    <tr><td><strong>Cadence</strong></td><td>A quarterly routine, not weekly.</td></tr>
+  </table>
+  <h4>Still open</h4>
+  <ul>
+    <li>Do the two <strong>QA Automation Engineers</strong> count as in-scope engineers? Both pass on 64 GB either way, so it changes the roster label, not the upgrade list.</li>
+    <li>Should the <strong>Founder</strong> (on a 16 GB Mac) be graded in scope, or stay excluded by title?</li>
+  </ul>
+  <h4>Out of scope for v1</h4>
+  <ul>
+    <li>On-device telemetry, which is Phase 2.</li>
+    <li>Automated procurement. The agent recommends; humans buy.</li>
+    <li>Grading monitors, peripherals, and non-engineer machines. v1 focuses on engineer laptops, where the work happens.</li>
+  </ul>
+</section>
+
+<footer>
+  <span class="b">Edge8 AI</span> &middot; Fleet Fitness Agent plan &middot; August 2026 &middot; Reads company_os.equipment &middot; Builds on /admin/operations/equipment
+</footer>
+
+</div>
+</body>
+</html>
