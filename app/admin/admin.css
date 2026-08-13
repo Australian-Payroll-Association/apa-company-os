@@ -13,7 +13,7 @@
 
 /* :root is included so the token set still resolves for content portalled
    straight to <body> (e.g. PreviewRow's DetailDrawer, escaping the <table>
-   it's triggered from) — without it, vars fall back to unset and the drawer
+   it's triggered from), without it, vars fall back to unset and the drawer
    renders with a transparent background. */
 :root,
 .admin-shell,
@@ -34,20 +34,20 @@
   --admin-accent-on-dark-strong: var(--mint); /* hover */
   --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
 
-  /* Office accents (badges, section themes) — four brand steps, no off-brand hues.
+  /* Office accents (badges, section themes), four brand steps, no off-brand hues.
      Legacy names (green/pink/gold) retained to avoid a codebase-wide rename. */
   --admin-accent-blue: var(--data-chart-1);   /* brand blue    */
   --admin-accent-green: var(--data-chart-3);  /* deep blue     */
   --admin-accent-pink: var(--data-chart-4);   /* near-black    */
   --admin-accent-gold: var(--data-chart-5);   /* gray          */
 
-  /* Dark chrome (sidebar) — brand near-black, not navy */
+  /* Dark chrome (sidebar), brand near-black, not navy */
   --admin-sidebar-bg: var(--color-primary-dark);
   --admin-sidebar-strong: #ffffff;        /* office headers, the top-rank landmark */
   --admin-sidebar-ink: #c4c7cc;
   --admin-sidebar-muted: #7c8189;
 
-  /* Neutrals — re-rooted onto the data layer */
+  /* Neutrals, re-rooted onto the data layer */
   --admin-bg: var(--data-canvas);
   --admin-surface: var(--data-surface);
   --admin-surface-2: var(--data-surface-2); /* thead / zebra / insets */
@@ -59,19 +59,19 @@
   --admin-line-soft: var(--data-line-soft);
   --admin-line-strong: var(--data-line-strong);
 
-  /* Radii — re-rooted onto the data layer */
+  /* Radii, re-rooted onto the data layer */
   --admin-radius: var(--data-radius);     /* cards / surfaces */
   --admin-radius-sm: var(--data-btn-radius); /* buttons / inputs (default) */
   --admin-radius-xs: var(--data-radius-sm);  /* chips / small controls */
   --admin-radius-pill: 9999px;            /* badges / avatars */
 
-  /* Shadows — overlay elevation from the data layer (resting cards stay flat) */
+  /* Shadows, overlay elevation from the data layer (resting cards stay flat) */
   --admin-shadow: var(--data-elevation-1);
   --admin-shadow-md: var(--data-elevation-2);
   --admin-shadow-drawer: var(--data-elevation-drawer);
   --admin-shadow-modal: var(--data-elevation-modal);
 
-  /* Status tokens — re-rooted onto the data layer */
+  /* Status tokens, re-rooted onto the data layer */
   --admin-ok-bg: var(--data-ok-bg); --admin-ok-ink: var(--data-ok-ink);
   --admin-warn-bg: var(--data-warn-bg); --admin-warn-ink: var(--data-warn-ink);
   --admin-err-bg: var(--data-err-bg); --admin-err-ink: var(--data-err-ink);
@@ -203,7 +203,7 @@
 .admin-brandmenu li > button:hover { background: rgba(255, 255, 255, 0.08); }
 .admin-brandmenu li > button[aria-current="true"] { color: #fff; font-weight: 600; }
 
-/* Overlay popover anchored below the brand row — absolute so opening it never
+/* Overlay popover anchored below the brand row, absolute so opening it never
    shifts the nav below (the old in-flow version pushed the whole nav down). */
 .admin-profilemenu {
   position: absolute;
@@ -255,7 +255,7 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
 
 .admin-nav { flex: 1; padding: 4px 0 12px; }
 .admin-nav-group { padding: 4px 12px 2px; }
-/* Office label (L1) — the top-rank landmark: brighter, heavier, sentence case. */
+/* Office label (L1), the top-rank landmark: brighter, heavier, sentence case. */
 .admin-nav-grouplabel {
   font-size: 12px;
   font-weight: 600;
@@ -442,7 +442,7 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
 .admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 /* Anchors styled as buttons: `.admin-shell a` (0,1,1) outranks the plain
    button classes (0,1,0), turning primary buttons accent-on-accent
-   (invisible). Restate each variant's color at anchor specificity — at rest
+   (invisible). Restate each variant's color at anchor specificity, at rest
    AND on hover, where `.admin-shell a:hover` (0,2,1) would otherwise repaint
    the label link-hover blue (blue-on-accent, unreadable). */
 a.admin-btn { color: var(--admin-ink); }
@@ -569,7 +569,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 
 /* ─── Team portal glance strip ────────────────────────
    One quiet, hairline-divided card for the employee's personal facts. Values
-   stay at body scale on purpose — this is a glance, not a dashboard KPI. */
+   stay at body scale on purpose, this is a glance, not a dashboard KPI. */
 .team-glance {
   display: flex;
   flex-wrap: wrap;
@@ -607,7 +607,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 /* ─── Team portal org chart ───────────────────────────
    Classic top-down hierarchy: centered cards per level, hairline connectors
    drawn with li/ul pseudo-elements (top rails + center drop lines). The whole
-   chart scrolls horizontally inside .team-org-wrap — wide levels are the
+   chart scrolls horizontally inside .team-org-wrap, wide levels are the
    nature of org charts, the page never stretches. */
 .team-org-wrap { overflow-x: auto; padding: 4px 2px 16px; }
 .team-org,
@@ -659,7 +659,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 .team-org li:last-child::after { border-top: 0; border-left: 0; }
 .team-org li:last-child::before { border-right: 1px solid var(--admin-line-strong); border-radius: 0 8px 0 0; }
 .team-org li:first-child::after { border-radius: 8px 0 0 0; }
-/* An only child needs no rail — the parent stem reaches its card directly. */
+/* An only child needs no rail, the parent stem reaches its card directly. */
 .team-org li:only-child { padding-top: 0; }
 .team-org li:only-child::before,
 .team-org li:only-child::after { display: none; }
@@ -671,7 +671,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
 /* ── Stacked levels (3rd level and deeper) ──
    Leaf teams render as a vertical ladder: the parent stem jogs left onto a
    spine, and each card hangs off the spine on a short stub. Keeps the chart
-   narrow — one column per manager instead of one per person. */
+   narrow, one column per manager instead of one per person. */
 .team-org ul.is-stack {
   flex-direction: column;
   align-items: stretch;
@@ -744,7 +744,7 @@ a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px);
   max-width: 200px;
 }
 .team-org-card.is-root { border-color: var(--admin-accent); }
-/* Cards link to the member's profile — inherit ink, lift on hover. */
+/* Cards link to the member's profile, inherit ink, lift on hover. */
 a.team-org-card {
   color: inherit;
   transition: border-color var(--transition), transform var(--transition);
@@ -752,7 +752,7 @@ a.team-org-card {
 a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
 .team-org-name { font-weight: 600; font-size: 13px; color: var(--admin-ink); overflow-wrap: anywhere; }
 .team-org-meta { font-size: 11px; color: var(--admin-muted); overflow-wrap: anywhere; line-height: 1.4; }
-/* Employment badges — blue for FTE, orange for contractor. */
+/* Employment badges, blue for FTE, orange for contractor. */
 .team-org-badge {
   margin-top: 3px;
   font-size: 9px;
@@ -1097,7 +1097,7 @@ a.ts-btn.ghost:hover { color: #cfe0fb; }
 
 /* ─── Directory name cell (avatar + name) ─────────────── */
 .dir-name { display: inline-flex; align-items: center; gap: 10px; }
-/* Name links to the member's profile — ink at rest, accent on hover. */
+/* Name links to the member's profile, ink at rest, accent on hover. */
 a.dir-name { color: var(--admin-ink); }
 a.dir-name:hover { color: var(--admin-accent); }
 .dir-avatar {
@@ -1230,12 +1230,12 @@ a.team-collage-photo:hover img { transform: scale(1.04); }
   font-size: 18px; font-weight: 700;
   overflow: hidden;
 }
-/* Faces are links to profiles now — keep initials white, ring on hover. */
+/* Faces are links to profiles now, keep initials white, ring on hover. */
 a.team-collage-avatar { color: #fff; transition: box-shadow var(--transition); }
 a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 0 0 1.5px var(--admin-accent); }
 .team-collage-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Masonry photo wall (team browse) — CSS columns keep it dependency-free. */
+/* Masonry photo wall (team browse), CSS columns keep it dependency-free. */
 .gallery-masonry { columns: 4 220px; column-gap: 12px; }
 .gallery-tile {
   position: relative;
@@ -1759,14 +1759,14 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .idea-plan blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 10px; padding: 2px 12px; color: var(--admin-muted); }
 .idea-plan code { font-family: var(--admin-font-mono); font-size: 12px; }
 
-/* Idea backlog — build ideas and learnings side by side, stacking on narrow */
+/* Idea backlog, build ideas and learnings side by side, stacking on narrow */
 .ideas-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 @media (max-width: 980px) { .ideas-columns { grid-template-columns: 1fr; } }
 .ideas-col-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; }
 .ideas-col-head h2 { font-size: 14px; font-weight: 600; color: var(--admin-ink); margin: 0; }
 .ideas-col-count { font-size: 12px; color: var(--admin-muted); font-family: var(--admin-font-mono); }
 
-/* rendered markdown (uploaded plan documents — onboarding plans)
+/* rendered markdown (uploaded plan documents, onboarding plans)
    Distinct from .idea-plan: an idea plan is a short AI-generated note, a plan
    document runs to hundreds of lines with tables and checklists, so it needs
    real heading hierarchy and separation to be readable rather than a wall. */
@@ -1815,7 +1815,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-tabs {
   /* globals.css ships `nav { position: fixed; top:0; ... }` for the marketing
      navbar and it leaks in here; a bare <nav> would pin itself to the top of
-     the viewport over the sidebar. Opt out — these tabs are inline content. */
+     the viewport over the sidebar. Opt out, these tabs are inline content. */
   position: static;
   background: transparent;
   backdrop-filter: none;
@@ -2048,7 +2048,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .sap-card-title { font-weight: 600; font-size: 13px; color: var(--admin-ink); }
 .sap-card-sub { font-size: 12px; color: var(--admin-muted); margin-top: 3px; }
 .sap-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-/* Role tag on cross-req boards — color + tint arrive inline per req. */
+/* Role tag on cross-req boards, color + tint arrive inline per req. */
 .sap-role-tag {
   font-size: 11px;
   font-weight: 600;
@@ -2059,7 +2059,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Handoff accept/reject controls sit on a draggable card face — keep tap
+/* Handoff accept/reject controls sit on a draggable card face, keep tap
    targets at the 44px WCAG 2.5.5 minimum so touch users can hit them. */
 .sap-card-handoff .admin-btn,
 .sap-card-handoff .admin-input { min-height: 44px; }
@@ -2308,7 +2308,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 
 /* ─── Drag-to-reorder rows (deals list, priority order) ───────────────────── */
 /* Fixed layout keeps column widths stable once a row leaves flow while
-   dragging — without it the row's cells collapse to content width mid-drag. */
+   dragging, without it the row's cells collapse to content width mid-drag. */
 .admin-table:has(.admin-cell-drag) { table-layout: fixed; }
 .admin-table td.admin-cell-drag, .admin-table th.admin-cell-drag { width: 28px; padding: 0 0 0 12px; }
 .admin-table td.admin-cell-drag {
@@ -2615,7 +2615,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .chatw-send:hover:not(:disabled) { background: var(--admin-accent-strong); }
 .chatw-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* History — the saved-conversation list; replaces the messages+composer area when
+/* History, the saved-conversation list; replaces the messages+composer area when
    the History toggle is on. Shared by the admin and team widgets. */
 .chatw-history {
   flex: 1;
@@ -2717,7 +2717,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   box-shadow: var(--admin-focus-ring);
 }
 
-/* History toggle button in the panel header — matches the New chat button. */
+/* History toggle button in the panel header, matches the New chat button. */
 .chatw-history-btn {
   background: transparent;
   border: 1px solid var(--admin-line);
@@ -2819,8 +2819,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 }
 .coach-hero__role { font-size: 13px; color: var(--admin-muted); margin-top: 4px; }
 .coach-hero__stats { margin-bottom: 0; }
-/* Six vitals, so the cells run a touch denser than the default glance strip —
-   all six sit on one row on desktop and wrap evenly (not 5 + 1 orphan) below. */
+/* Six vitals, so the cells run a touch denser than the default glance strip, all six sit on one row on desktop and wrap evenly (not 5 + 1 orphan) below. */
 .coach-hero__stats .team-glance-cell { flex-basis: 150px; padding: 14px 16px; }
 /* The next-1-1 vital carries a hairline accent rail so the eye lands there first. */
 .coach-hero__cell--attn { box-shadow: inset 3px 0 0 var(--admin-accent); }
@@ -3164,7 +3163,7 @@ a.ideas-share-card:hover {
 }
 .ideas-share-card p { font-size: 13px; color: var(--admin-muted); margin: 0; line-height: 1.5; }
 
-/* History: secondary — a muted section label, divider, everything smaller
+/* History: secondary, a muted section label, divider, everything smaller
    in weight than the share cards above it. */
 .ideas-history { padding-top: 22px; border-top: 1px solid var(--admin-line-soft); }
 .ideas-history-head {
@@ -3518,3 +3517,37 @@ a.ideas-share-card:hover {
   border-radius: 999px;
   background: var(--admin-accent);
 }
+
+/* ---- Interview loop (admin req page + /team/hiring) ---------------------- */
+/* One row per interview in the loop, numbered in running order. Resting cards
+   stay flat per Foundations; the number chip carries the only accent. */
+.loop-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--admin-line);
+}
+.loop-step-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.loop-step-body { flex: 1 1 auto; min-width: 0; display: grid; gap: 6px; }
+.loop-step-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.loop-step-people { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.loop-step-actions { display: flex; gap: 6px; flex-wrap: wrap; flex: none; }
+.loop-step-actions .admin-btn { padding: 4px 10px; font-size: 12px; }
+
+/* Read-only variant on /team/hiring: no controls, tighter. */
+.loop-step--read { padding: 8px 0; }
+.loop-step--read .loop-step-num { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
+.loop-step-booked { font-size: 13px; display: grid; gap: 3px; }

@@ -5,6 +5,13 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { screenApplication } from "@/lib/resume-screen";
+import {
+  addLoopStep,
+  deleteLoopStep,
+  moveLoopStep,
+  setStepInterviewers,
+  updateLoopStep,
+} from "@/lib/ats/loop";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -137,4 +144,63 @@ export async function updateJobPosting(jobReqId: string, patch: JobPostingPatch)
   revalidatePath(`/admin/talent/jobs/${jobReqId}`);
   revalidatePath("/careers");
   return { ok: true };
+}
+
+// ---- interview loop ---------------------------------------------------------
+// The loop is defined on the requisition and inherited by every candidate who
+// reaches the Interview stage. Admin-only writes; /team/hiring only reads.
+
+const refreshReq = (reqId: string) => revalidatePath(`/admin/talent/jobs/${reqId}`);
+
+export async function addInterviewStep(
+  reqId: string,
+  name: string,
+  durationMinutes: number | null,
+  interviewerIds: string[],
+): Promise<Result> {
+  await requireAdmin();
+  const res = await addLoopStep(reqId, { name, durationMinutes, interviewerIds });
+  if (res.ok) refreshReq(reqId);
+  return res;
+}
+
+export async function updateInterviewStep(
+  reqId: string,
+  stepId: string,
+  name: string,
+  durationMinutes: number | null,
+): Promise<Result> {
+  await requireAdmin();
+  const res = await updateLoopStep(stepId, { name, durationMinutes });
+  if (res.ok) refreshReq(reqId);
+  return res;
+}
+
+export async function setInterviewStepInterviewers(
+  reqId: string,
+  stepId: string,
+  personIds: string[],
+): Promise<Result> {
+  await requireAdmin();
+  const res = await setStepInterviewers(stepId, personIds);
+  if (res.ok) refreshReq(reqId);
+  return res;
+}
+
+export async function removeInterviewStep(reqId: string, stepId: string): Promise<Result> {
+  await requireAdmin();
+  const res = await deleteLoopStep(stepId);
+  if (res.ok) refreshReq(reqId);
+  return res;
+}
+
+export async function moveInterviewStep(
+  reqId: string,
+  stepId: string,
+  direction: "up" | "down",
+): Promise<Result> {
+  await requireAdmin();
+  const res = await moveLoopStep(stepId, direction);
+  if (res.ok) refreshReq(reqId);
+  return res;
 }

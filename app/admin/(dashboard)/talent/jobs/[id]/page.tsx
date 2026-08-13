@@ -10,6 +10,8 @@ import { JobReqBoard, type AppCard } from "./JobReqBoard";
 import { JobPostingEditor } from "./JobPostingEditor";
 import { AiRanking, type AiRankRow } from "./AiRanking";
 import type { AiScreenSummary } from "@/lib/resume-screen";
+import { getInterviewerOptions, getLoop } from "@/lib/ats/loop";
+import { InterviewLoop } from "./InterviewLoop";
 
 export const dynamic = "force-dynamic";
 // Data cache can freeze Supabase reads despite force-dynamic — see applications/page.tsx.
@@ -123,6 +125,8 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
     };
   });
 
+  const [loopSteps, interviewerOptions] = await Promise.all([getLoop(id), getInterviewerOptions()]);
+
   const co = one(req.companies)?.name ?? null;
   const salary =
     req.salary_min_cents != null || req.salary_max_cents != null
@@ -164,6 +168,8 @@ export default async function JobReqDetailPage({ params }: { params: { id: strin
       <JobReqBoard jobReqId={id} columns={columns} initialCards={cards} />
 
       <AiRanking jobReqId={id} rows={aiRows} />
+
+      <InterviewLoop reqId={id} steps={loopSteps} interviewerOptions={interviewerOptions} />
 
       <JobPostingEditor
         reqId={id}

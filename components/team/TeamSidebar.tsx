@@ -27,13 +27,15 @@ function companyGroup(): NavGroup {
   };
 }
 
-// Coaching appears only for actors who coach ≥1 person (coaching_profiles
-// rows, not the manager role — dotted-line coaches included).
-function myTeamGroup(isCoach: boolean): NavGroup {
+// Coaching appears only for actors who coach >=1 person (coaching_profiles
+// rows, not the manager role, dotted-line coaches included). Hiring is the
+// other way round: it is the org chart's, so it follows the manager role.
+function myTeamGroup(isCoach: boolean, isManager: boolean): NavGroup {
   return {
     label: "My Team",
     items: [
       ...(isCoach ? [{ label: "Coaching", href: "/team/coaching", ico: "◎", enabled: true }] : []),
+      ...(isManager ? [{ label: "Hiring", href: "/team/hiring", ico: "◇", enabled: true }] : []),
       { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
       { label: "Approvals", href: "/team/approvals", ico: "✓" },
     ],
@@ -111,7 +113,7 @@ export function TeamSidebar({
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
     // Widening scope: me, then my team, then the company.
     meGroup(isCoached, hasClients),
-    ...(role === "manager" || isCoach ? [myTeamGroup(isCoach)] : []),
+    ...(role === "manager" || isCoach ? [myTeamGroup(isCoach, role === "manager")] : []),
     companyGroup(),
   ];
   const userInitials = initials(name);
