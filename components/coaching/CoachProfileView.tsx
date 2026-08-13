@@ -40,7 +40,6 @@ import {
   saveTranscript,
   setCadence,
   setMinutesLink,
-  setModeSplit,
   setRetentionRoot,
   summarizeAction,
   updateCommitmentStatus,
@@ -375,7 +374,6 @@ function PrioritiesCard({
         <div key={p.id} className="coach-commitment">
           <div className="coach-commitment-main">
             <span className="coach-commitment-title">{p.title}</span>
-            <LadderBadge ladder={p.ladder} />
           </div>
           {p.detailMarkdown && <div className="admin-cell-muted coach-priority-detail">{p.detailMarkdown}</div>}
           <div className="coach-commitment-controls">
@@ -661,13 +659,27 @@ function TalkingPointsCard({
   run: (label: string, fn: () => Promise<ActionResult>) => void;
   busy: boolean;
 }) {
-  if (detail.talkingPoints.length === 0) return null;
+  if (detail.talkingPoints.length === 0) {
+    return (
+      <section className="admin-card coach-section">
+        <div className="admin-card-title">
+          Their talking points <span className="admin-cell-muted">what {detail.member.name} wants to cover</span>
+        </div>
+        <div className="admin-empty">
+          Nothing raised yet. What {detail.member.name} adds to their agenda on their own page (before the 1-1) shows up
+          here and feeds the prep.
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="admin-card coach-section coach-carried">
       <div className="admin-card-title">
         Their talking points <span className="admin-cell-muted">what {detail.member.name} wants to cover</span>
       </div>
-      <div className="admin-hint">Raised for this 1-1, and folded into the prep. Mark addressed once you have covered it.</div>
+      <div className="admin-hint">
+        Raised for this 1-1, and folded into the prep. Mark addressed once you have covered it.
+      </div>
       {detail.talkingPoints.map((t) => (
         <div key={t.id} className="coach-carried-row">
           <span className="coach-carried-title">{t.body}</span>
@@ -829,7 +841,12 @@ function MeetingsCard({
   // "next" shows only the upcoming 1-1, already open on its prep, the
   // walk-into-the-room view; "log" is the full history. Scheduling and logging
   // live in the header, so this card no longer carries those forms.
-  const rows = view === "next" ? detail.meetings.filter((m) => m.id === nextMeetingId) : detail.meetings;
+  // "next" is the single upcoming 1-1; "log" is the past, so it excludes the
+  // still-scheduled (future) meeting entirely.
+  const rows =
+    view === "next"
+      ? detail.meetings.filter((m) => m.id === nextMeetingId)
+      : detail.meetings.filter((m) => m.status !== "scheduled");
 
   return (
     <section className="admin-card coach-section">
@@ -873,11 +890,6 @@ function MeetingRow({
   const [sharedMd, setSharedMd] = useState(m.sharedSummaryMarkdown ?? "");
   const [transcript, setTranscript] = useState("");
   const [minutesUrl, setMinutesUrl] = useState("");
-  const [mode, setMode] = useState({
-    coach: m.modeSplit ? String(m.modeSplit.coach) : "",
-    mentor: m.modeSplit ? String(m.modeSplit.mentor) : "",
-    direct: m.modeSplit ? String(m.modeSplit.direct) : "",
-  });
 
   const published = Boolean(m.sharedPublishedAt);
 
@@ -928,42 +940,18 @@ function MeetingRow({
 
           {isNext && prepBlock}
 
-          {/* Mode split (coach-only) */}
-          <div className="coach-block">
-            <div className="coach-block-head">
-              <span className="admin-eyebrow">Mode split: coach / mentor / direct (target 80/15/5)</span>
+          {/* Mode split — generated from the transcript when the 1-1 is
+              analyzed, never entered by hand. Shown only once it exists. */}
+          {m.modeSplit && (
+            <div className="coach-block">
+              <div className="coach-block-head">
+                <span className="admin-eyebrow">Mode split, from the transcript (target 80/15/5)</span>
+              </div>
+              <div className="admin-cell-muted">
+                {m.modeSplit.coach}% coach · {m.modeSplit.mentor}% mentor · {m.modeSplit.direct}% direct
+              </div>
             </div>
-            <div className="coach-add-row coach-mode-row">
-              {(["coach", "mentor", "direct"] as const).map((k) => (
-                <input
-                  key={k}
-                  className="admin-input"
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder={k}
-                  aria-label={`${k} %`}
-                  value={mode[k]}
-                  onChange={(e) => setMode({ ...mode, [k]: e.target.value })}
-                />
-              ))}
-              <button
-                className="admin-btn admin-btn--sm"
-                disabled={busy || !(mode.coach && mode.mentor && mode.direct)}
-                onClick={() =>
-                  run("Mode split", () =>
-                    setModeSplit(m.id, {
-                      coach: Number(mode.coach),
-                      mentor: Number(mode.mentor),
-                      direct: Number(mode.direct),
-                    }),
-                  )
-                }
-              >
-                Save
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Lark Minutes link */}
           <div className="coach-block">
