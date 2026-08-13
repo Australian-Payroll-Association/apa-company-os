@@ -17,7 +17,6 @@ import { recordAudit } from "@/lib/admin/audit";
 
 export const TALENT_DIRECTOR_EMAIL = "mai@edge8.ai";
 export const DAY8_SURVEY_SLUG = "onboarding-day-8-feedback";
-export const REVIEW_SURVEY_SLUG = "probation-45-review";
 
 // Kanban columns, in order. `complete` renders inside the Day 180 column.
 export const CYCLE_STAGES = [
@@ -104,7 +103,6 @@ export type CycleRow = {
   day8_survey_sent_at: string | null;
   day8_response_id: string | null;
   day45_email_sent_at: string | null;
-  day45_response_id: string | null;
   decision: CycleDecision | null;
   decision_at: string | null;
   day60_promoted_at: string | null;
@@ -133,7 +131,7 @@ const displayName = (p: PersonEmbed | null): string =>
 
 const CYCLE_SELECT =
   "id, team_member_id, stage, plan_url, plan_path, plan_uploaded_at, day8_survey_sent_at, day8_response_id, " +
-  "day45_email_sent_at, day45_response_id, decision, decision_at, day60_promoted_at, " +
+  "day45_email_sent_at, decision, decision_at, day60_promoted_at, " +
   "day180_email_sent_at, completed_at, " +
   "team_members:team_members!team_member_id(id, person_id, start_date, manager_id, status, " +
   "employment_stage, probation_ends_on, contract_start_date, " +
@@ -154,7 +152,6 @@ function toCycleRow(raw: Record<string, unknown>): CycleRow {
     day8_survey_sent_at: (raw.day8_survey_sent_at as string | null) ?? null,
     day8_response_id: (raw.day8_response_id as string | null) ?? null,
     day45_email_sent_at: (raw.day45_email_sent_at as string | null) ?? null,
-    day45_response_id: (raw.day45_response_id as string | null) ?? null,
     decision: (raw.decision as CycleDecision | null) ?? null,
     decision_at: (raw.decision_at as string | null) ?? null,
     day60_promoted_at: (raw.day60_promoted_at as string | null) ?? null,
@@ -450,8 +447,8 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
         subject: `Probation review due: ${name}`,
         html:
           `<p><strong>${name}</strong>${row.member.positionTitle ? ` (${row.member.positionTitle})` : ""} finishes probation on <strong>${probEnd}</strong>.</p>` +
-          `<p>Complete their review now — one decision: offer full time, extend probation 30 days, or terminate.</p>` +
-          `<p><a href="${origin}/surveys/${REVIEW_SURVEY_SLUG}?subject=${row.team_member_id}">Open the review</a></p>`,
+          `<p>Record your decision — offer full time, extend probation 30 days, or terminate.</p>` +
+          `<p><a href="${origin}/team/probation/${row.team_member_id}">Record the decision</a></p>`,
         logMeta: { source: "onboarding-cycle", kind: "day45_review" },
       });
       if (ok) {
@@ -476,7 +473,7 @@ export async function runOnboardingCycle(todayISO: string): Promise<CycleRunSumm
         html:
           `<p><strong>${name}</strong>'s probation ends on <strong>${probEnd}</strong> and no decision is recorded.</p>` +
           `<p>Nothing happens automatically until you decide. This reminder repeats daily.</p>` +
-          `<p><a href="${origin}/surveys/${REVIEW_SURVEY_SLUG}?subject=${row.team_member_id}">Record the decision</a></p>`,
+          `<p><a href="${origin}/team/probation/${row.team_member_id}">Record the decision</a></p>`,
         logMeta: { source: "onboarding-cycle", kind: "decision_reminder" },
       });
       if (ok) summary.decisionReminders += 1;
@@ -581,19 +578,18 @@ export async function recordDay8Response(personId: string, responseId: string): 
   await patchJourney(j.id, { day8_response_id: responseId });
 }
 
-// 45-day review: record the manager's decision and apply its consequences.
-// The subject arrives as a query param on a link only the manager was emailed;
-// we still verify the respondent is the subject's manager (or the talent
-// director) by email before recording anything. Termination is never executed
-// by the system — it notifies the talent director and stops.
-export async function processProbationReview(input: {
+// Record a manager's probation decision and apply its consequences. The caller
+// authorizes the decider (the /team/probation page checks manager/admin/talent
+// via requireTeamMember, replacing the old public survey's email check), so
+// this core just applies the decision. Termination is never executed by the
+// system — it notifies the talent director and stops.
+export async function applyProbationDecision(input: {
   subjectTeamMemberId: string;
-  responseId: string;
-  decisionLabel: string;
-  respondentEmail: string | null;
-}): Promise<void> {
-  const decision = DECISION_BY_CHOICE[input.decisionLabel];
-  if (!decision) return;
+  decision: CycleDecision;
+  decidedByTmId: string | null;
+  actorEmail: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const decision = input.decision;
 
   const { data: tmData } = await companyOs
     .from("team_members")
@@ -603,27 +599,9 @@ export async function processProbationReview(input: {
     )
     .eq("id", input.subjectTeamMemberId)
     .maybeSingle();
-  if (!tmData) return;
+  if (!tmData) return { ok: false, error: "Team member not found." };
   const tm = tmData as unknown as Record<string, unknown>;
   const subjectName = displayName(one(tm.people as PersonEmbed | PersonEmbed[] | null));
-  const managerId = (tm.manager_id as string | null) ?? null;
-
-  // Authorize: the respondent's email must match the subject's manager (or the
-  // talent director). The survey link is emailed only to the manager, but the
-  // endpoint is public, so this check keeps a forwarded link from letting
-  // anyone else record the decision.
-  const respondent = (input.respondentEmail ?? "").trim().toLowerCase();
-  const managerEmail = managerId
-    ? (await resolveMemberContacts([managerId])).get(managerId)?.email?.toLowerCase() ?? null
-    : null;
-  const authorized =
-    respondent.length > 0 && (respondent === managerEmail || respondent === TALENT_DIRECTOR_EMAIL);
-  if (!authorized) {
-    console.error(
-      `[onboarding-cycle] review for ${input.subjectTeamMemberId} ignored: respondent ${respondent || "(none)"} is not the manager`,
-    );
-    return;
-  }
 
   await ensureJourney(input.subjectTeamMemberId);
   const { data: journeyData } = await companyOs
@@ -632,11 +610,10 @@ export async function processProbationReview(input: {
     .eq("team_member_id", input.subjectTeamMemberId)
     .maybeSingle();
   const journeyId = (journeyData as { id: string } | null)?.id;
-  if (!journeyId) return;
+  if (!journeyId) return { ok: false, error: "No onboarding record for this person." };
 
-  // The decider's team_members row (for decision_by), resolved by email.
-  let decidedBy: string | null = null;
-  if (managerEmail && respondent === managerEmail) decidedBy = managerId;
+  const respondent = input.actorEmail.trim().toLowerCase();
+  const decidedBy = input.decidedByTmId;
 
   if (decision === "extend_probation_30") {
     const start = (tm.start_date as string | null) ?? null;
@@ -648,30 +625,30 @@ export async function processProbationReview(input: {
         .from("team_members")
         .update({ probation_ends_on: newEnd, contract_start_date: addDays(newEnd, 1) })
         .eq("id", input.subjectTeamMemberId);
-      if (error) console.error("[onboarding-cycle] extension update failed:", error.message);
-      else
-        await recordAudit({
-          table: "team_members",
-          recordId: input.subjectTeamMemberId,
-          operation: "update",
-          actor: respondent,
-          context: { action: "probation_extended_30", new_end: newEnd },
-        });
+      if (error) {
+        console.error("[onboarding-cycle] extension update failed:", error.message);
+        return { ok: false, error: "Could not extend probation." };
+      }
+      await recordAudit({
+        table: "team_members",
+        recordId: input.subjectTeamMemberId,
+        operation: "update",
+        actor: respondent,
+        context: { action: "probation_extended_30", new_end: newEnd },
+      });
     }
     // Re-arm the review for the new window: the next review email fires 15
     // days before the new probation end.
     await patchJourney(journeyId, {
-      day45_response_id: input.responseId,
       decision: null,
       decision_at: null,
       decision_by: null,
       day45_email_sent_at: null,
     });
-    return;
+    return { ok: true };
   }
 
   await patchJourney(journeyId, {
-    day45_response_id: input.responseId,
     decision,
     decision_at: new Date().toISOString(),
     decision_by: decidedBy,
@@ -694,6 +671,7 @@ export async function processProbationReview(input: {
       logMeta: { source: "onboarding-cycle", kind: "terminate_notice" },
     });
   }
+  return { ok: true };
 }
 
 // ---- manual stage moves -----------------------------------------------------

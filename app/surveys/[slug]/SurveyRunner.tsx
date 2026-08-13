@@ -25,7 +25,6 @@ export function SurveyRunner({
   actorName,
   needIdentity,
   cohort,
-  subject,
   reviewId = null,
   subjectName = null,
   expectedLevel = null,
@@ -42,10 +41,6 @@ export function SurveyRunner({
   // (/surveys/x?cohort=<event-slug>) — stamped onto the response so answers
   // stay attributable per event while the survey is shared across events.
   cohort?: string | null;
-  // Who the response is ABOUT (not who answers): a team_members id carried on
-  // review links (/surveys/x?subject=<id>) so the probation-review processor
-  // knows which report the manager is reviewing.
-  subject?: string | null;
   // Performance reviews (purpose 'performance_review'): the review row this
   // submission fills. Enables the localStorage draft and is sent to the API,
   // which re-authorizes the rater server-side.
@@ -159,7 +154,6 @@ export function SurveyRunner({
           email: respEmail,
           answers,
           cohort: cohort ?? undefined,
-          subject: subject ?? undefined,
           review: reviewId ?? undefined,
         }),
       });

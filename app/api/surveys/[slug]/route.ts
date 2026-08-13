@@ -5,7 +5,7 @@ import { resolveSurveyActor, classifyEmail, type RespondentKind } from "@/lib/su
 import { notifyOps } from "@/lib/lark";
 import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
-import { processProbationReview, recordDay8Response } from "@/lib/onboarding-cycle";
+import { recordDay8Response } from "@/lib/onboarding-cycle";
 import { backfillCompanyIndustry, isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
 import { applyReviewSubmission, getReviewRunContext, visibleReviewFields } from "@/lib/reviews";
 
@@ -147,17 +147,6 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       cohortSlug = eventRow?.slug ?? null;
     }
 
-    // Review subject: ?subject=<team_members id> rides the probation-review
-    // link so the processor knows who the review is ABOUT. Only accepted for
-    // that purpose and only when it looks like a UUID; stamped into the
-    // response metadata for auditability.
-    const subjectRaw = typeof body.subject === "string" ? body.subject.trim() : "";
-    const subjectTeamMemberId =
-      surveyData.purpose === "probation_review" &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subjectRaw)
-        ? subjectRaw
-        : null;
-
     const { data: response, error: rErr } = await companyOs
       .from("survey_responses")
       .insert({
@@ -167,7 +156,6 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         respondent_name: respondentName,
         respondent_email: respondentEmail,
         ...(cohortSlug ? { cohort_slug: cohortSlug } : {}),
-        ...(subjectTeamMemberId ? { metadata: { subject_team_member_id: subjectTeamMemberId } } : {}),
       })
       .select("id")
       .single();
@@ -228,23 +216,6 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         console.error("[survey] day8 post-process failed:", err);
       }
     }
-    if (surveyData.purpose === "probation_review" && subjectTeamMemberId) {
-      const decisionField = fields.find((f) => f.type === "single_choice");
-      const decisionLabel = decisionField
-        ? answerRows.find((a) => a.field_id === decisionField.id)?.value ?? ""
-        : "";
-      try {
-        await processProbationReview({
-          subjectTeamMemberId,
-          responseId: response.id,
-          decisionLabel,
-          respondentEmail,
-        });
-      } catch (err) {
-        console.error("[survey] probation-review post-process failed:", err);
-      }
-    }
-
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Survey submit error:", err);
