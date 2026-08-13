@@ -1,12 +1,18 @@
 // /team/hiring, the manager's read on open roles: what is open, who is in
 // flight, what the loop is, and where the manager personally sits in it.
 //
-// SCOPE: the manager's department. company_os.departments exists but nothing
-// populates positions.department_id or job_requisitions.department_id yet, so a
-// department filter today would return an empty page. Until they are filled in,
-// a manager with no department on file sees every open req; the moment a
-// department lands on their position, the filter narrows to it with no code
-// change. Read-only throughout: hiring is written from /admin.
+// SCOPE: the manager's department, read from team_members.department_id.
+// NOT positions.department_id: a position row is shared by everyone holding
+// that title, so "AI Engineer" is one row spanning three clients and Product,
+// and a department there would be meaningless. Department is a property of the
+// person.
+//
+// Admins see every open req regardless of department: a founder scoped to one
+// department loses sight of the company's hiring, which is the opposite of the
+// point. A manager with no department on file also sees everything, so a
+// missing row never yields a blank page.
+//
+// Read-only throughout: hiring is written from /admin.
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
@@ -75,25 +81,19 @@ export type TeamHiring = {
 
 const OPEN_STATUSES = ["open", "on_hold", "draft"];
 
-// The actor's department, via their position. Null when unset, which today is
-// everyone (see the scope note above).
+// The actor's own department. Null means "not filed", which reads as no filter.
 async function actorDepartmentId(actor: TeamActor): Promise<string | null> {
   const { data } = await companyOs
     .from("team_members")
-    .select("positions:positions!position_id(department_id)")
+    .select("department_id")
     .eq("id", actor.teamMemberId)
     .maybeSingle();
-  const pos = one(
-    ((data as unknown as Record<string, unknown> | null)?.positions ?? null) as
-      | { department_id: string | null }
-      | { department_id: string | null }[]
-      | null,
-  );
-  return pos?.department_id ?? null;
+  return (data as { department_id: string | null } | null)?.department_id ?? null;
 }
 
 export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
-  const departmentId = await actorDepartmentId(actor);
+  // Admins are deliberately unscoped, see the note at the top of the file.
+  const departmentId = actor.isAdmin ? null : await actorDepartmentId(actor);
 
   let reqQuery = companyOs
     .from("job_requisitions")
