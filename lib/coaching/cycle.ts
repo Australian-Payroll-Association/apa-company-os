@@ -354,44 +354,41 @@ export async function runCoachingCycle(todayISO: string): Promise<CoachingRunSum
       }
     }
 
-    // 4) Monthly trend report for the prior month, in the first 3 days of the
-    //    month (self-heals a missed 1st). The trends row is the once-only stamp.
-    const dayOfMonth = Number(todayISO.slice(8, 10));
-    if (dayOfMonth <= 3) {
-      const priorMonthLastDay = addDays(`${todayISO.slice(0, 7)}-01`, -1);
-      const period = priorMonthLastDay.slice(0, 7);
+    // 4) Trend report across the last few 1-1s. Refresh it once the latest
+    //    summarized 1-1 (keyed by its month) has no report yet, so it keeps up
+    //    with each 1-1 instead of running once a month. Needs 2+ summarized 1-1s.
+    const { data: recentHeld } = await companyOs
+      .from("coaching_one_on_ones")
+      .select("held_on")
+      .eq("coaching_profile_id", p.id)
+      .eq("status", "held")
+      .is("archived_at", null)
+      .not("summary_markdown", "is", null)
+      .order("held_on", { ascending: false })
+      .limit(2);
+    const heldRows = (recentHeld ?? []) as Array<{ held_on: string }>;
+    if (heldRows.length >= 2) {
+      const period = heldRows[0].held_on.slice(0, 7);
       const { data: existing } = await companyOs
         .from("coaching_trends")
-        .select("id, report_markdown")
+        .select("report_markdown")
         .eq("coaching_profile_id", p.id)
         .eq("period", period)
         .maybeSingle();
       const hasReport = Boolean((existing as { report_markdown: string | null } | null)?.report_markdown);
       if (!hasReport) {
-        const { data: monthMeetings } = await companyOs
-          .from("coaching_one_on_ones")
-          .select("id")
-          .eq("coaching_profile_id", p.id)
-          .eq("status", "held")
-          .is("archived_at", null)
-          .not("summary_markdown", "is", null)
-          .gte("held_on", `${period}-01`)
-          .lt("held_on", `${period}-32`)
-          .limit(1);
-        if ((monthMeetings ?? []).length > 0) {
-          const res = await generateTrendReport(p.id, period);
-          if (res.ok) {
-            summary.trendsGenerated += 1;
-            await notifyBoth({
-              email: coach?.email ?? null,
-              subject: `Monthly coaching trends: ${p.memberName} (${period})`,
-              html:
-                `<p>The ${period} trend report for <strong>${p.memberName}</strong> is ready: growth trajectory, recurring themes, follow-through, and flags.</p>` +
-                `<p><a href="${profileLink}">Read it on their coaching page</a></p>`,
-              larkText: `Monthly coaching trends ready: ${p.memberName} (${period}). Read: ${profileLink}`,
-              logKind: "trend_ready",
-            });
-          }
+        const res = await generateTrendReport(p.id);
+        if (res.ok) {
+          summary.trendsGenerated += 1;
+          await notifyBoth({
+            email: coach?.email ?? null,
+            subject: `Coaching trends: ${p.memberName}`,
+            html:
+              `<p>A fresh trend report for <strong>${p.memberName}</strong> is ready, across their last few 1-1s: growth trajectory, recurring themes, follow-through, and flags.</p>` +
+              `<p><a href="${profileLink}">Read it on their coaching page</a></p>`,
+            larkText: `Coaching trends ready: ${p.memberName}. Read: ${profileLink}`,
+            logKind: "trend_ready",
+          });
         }
       }
     }
