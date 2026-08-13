@@ -617,21 +617,41 @@ export async function generateCheckinMessage(
 
 // ---- 4) monthly trend report ------------------------------------------------
 
-const TREND_SYSTEM = `You write a monthly coaching trend report about one team member, for their coach's eyes only. You look across the month's 1-1 summaries, the commitment ledger, and check-ins, and surface what meeting-to-meeting attention misses.
+const TREND_SYSTEM = `You write a coaching trend report about one team member, for their coach's eyes only. You look across their last few 1-1s (two or three), the commitment ledger, and check-ins, and surface what meeting-to-meeting attention misses.
 
 Produce Markdown with exactly these ## sections, in order:
-## Growth trajectory: growing, plateauing, or struggling, with specific evidence.
+## Growth trajectory: growing, plateauing, or struggling across these 1-1s, with specific evidence.
 ## Goal progress: each FAST goal against its ladder target: moving, stalled, or blocked, with the numbers where the goal is metric-linked.
-## Recurring themes: topics and patterns that keep coming up.
+## Recurring themes: topics and patterns that keep coming up across the meetings.
 ## Commitment follow-through: completed vs in progress vs dropped, and the pattern in what gets done.
-## Mode trajectory: the coach's C/M/D splits this month vs the 80/15/5 target and vs prior months: moving the right way or not, and what to change.
-## Coaching opportunities: specific things to coach next cycle (never generic "develop leadership skills"; name the observed behavior and the move).
+## Mode trajectory: the coach's C/M/D splits across these 1-1s vs the 80/15/5 target: moving the right way or not, and what to change.
+## Coaching opportunities: specific things to coach next 1-1 (never generic "develop leadership skills"; name the observed behavior and the move).
 ## Flags: burnout signals, disengagement, recurring blockers, escalating personal situations, retention-root shifts. Omit the section if there are none.
-## Quarter comparison: better, worse, or flat vs the prior period, if prior data exists.
+## Since last trend: better, worse, or flat vs the previous trend report, if one exists.
 
 ${VOICE_RULES}`;
 
-export async function generateTrendReport(profileId: string, period: string): Promise<Ok | Err> {
+export async function generateTrendReport(profileId: string): Promise<Ok | Err> {
+  const profile = await loadProfileContext(profileId);
+  if (!profile) return { ok: false, error: "Profile not found." };
+
+  // The window is the last 3 held, summarized 1-1s (2 minimum: a trend needs at
+  // least two points), NOT a calendar month.
+  const { data: recent } = await companyOs
+    .from("coaching_one_on_ones")
+    .select("held_on, summary_markdown")
+    .eq("coaching_profile_id", profileId)
+    .eq("status", "held")
+    .is("archived_at", null)
+    .not("summary_markdown", "is", null)
+    .order("held_on", { ascending: false })
+    .limit(3);
+  const meetings = ((recent ?? []) as Array<{ held_on: string; summary_markdown: string }>).reverse();
+  if (meetings.length < 2) return { ok: false, error: "Need at least 2 summarized 1-1s to trend." };
+
+  // Keyed by the latest 1-1's month (the coaching_trends.period CHECK is
+  // YYYY-MM); re-running for the same latest 1-1 upserts rather than piling up.
+  const period = meetings[meetings.length - 1].held_on.slice(0, 7);
   const stamp = async (patch: Record<string, unknown>): Promise<void> => {
     await companyOs
       .from("coaching_trends")
@@ -640,42 +660,24 @@ export async function generateTrendReport(profileId: string, period: string): Pr
         { onConflict: "coaching_profile_id,period" },
       );
   };
+
   try {
-    if (!/^\d{4}-\d{2}$/.test(period)) return { ok: false, error: "Bad period." };
-    const profile = await loadProfileContext(profileId);
-    if (!profile) return { ok: false, error: "Profile not found." };
-
-    // The month's summaries plus the two before them for trajectory contrast.
-    const monthStart = `${period}-01`;
-    const { data: monthMeetings } = await companyOs
-      .from("coaching_one_on_ones")
-      .select("held_on, summary_markdown")
-      .eq("coaching_profile_id", profileId)
-      .eq("status", "held")
-      .is("archived_at", null)
-      .not("summary_markdown", "is", null)
-      .gte("held_on", monthStart)
-      .lt("held_on", `${period}-32`)
-      .order("held_on", { ascending: true });
-    const inMonth = (monthMeetings ?? []) as Array<{ held_on: string; summary_markdown: string }>;
-    if (inMonth.length === 0) return { ok: false, error: `No summarized 1-1s in ${period}.` };
-
     const [docs, commitments, priorTrend, checkins, goals, modeHistory] = await Promise.all([
       loadCoachDocs(profile.coachId),
       loadAllCommitmentsBlock(profileId),
       loadPriorTrend(profileId, period),
-      loadCheckinsBlock(profileId, monthStart),
+      loadCheckinsBlock(profileId, meetings[0].held_on),
       loadGoalsBlock(profileId),
       loadModeHistoryBlock(profileId),
     ]);
 
-    const meetingsBlock = inMonth
+    const meetingsBlock = meetings
       .map((m) => `<meeting held_on="${m.held_on}">\n${clip(m.summary_markdown, MAX_DOC_CHARS)}\n</meeting>`)
       .join("\n\n");
 
     const report = await textCompletion(
       TREND_SYSTEM,
-      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals with ladders\n${goals}\n\n# Mode split history\n${modeHistory}\n\n# This month's 1-1 summaries (${period})\n${meetingsBlock}\n\n# The commitment ledger\n${commitments}\n\n# Check-ins this month\n${checkins}\n\n# Prior trend report\n${priorTrend}\n\nWrite the ${period} trend report.`,
+      `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals with ladders\n${goals}\n\n# Mode split history\n${modeHistory}\n\n# The last ${meetings.length} 1-1 summaries\n${meetingsBlock}\n\n# The commitment ledger\n${commitments}\n\n# Recent check-ins\n${checkins}\n\n# Prior trend report\n${priorTrend}\n\nWrite the trend report across these last ${meetings.length} 1-1s.`,
       8000,
     );
 
@@ -683,7 +685,7 @@ export async function generateTrendReport(profileId: string, period: string): Pr
     return { ok: true };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[coaching-ai] trend ${profileId} ${period} failed:`, msg);
+    console.error(`[coaching-ai] trend ${profileId} failed:`, msg);
     await stamp({ ai_error: msg.slice(0, 500) });
     return { ok: false, error: msg };
   }

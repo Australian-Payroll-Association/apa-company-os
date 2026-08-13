@@ -321,10 +321,10 @@ export async function reorderCommitments(
 }
 
 // Run (or re-run) the trend report for a month, e.g. "2026-07".
-export async function runTrendReport(profileId: string, period: string): Promise<Result> {
+export async function runTrendReport(profileId: string): Promise<Result> {
   const actor = await requireTeamMember();
   if (!(await assertCoachOwnsProfile(actor, profileId))) return { ok: false, error: "Not found." };
-  const res = await generateTrendReport(profileId, period);
+  const res = await generateTrendReport(profileId);
   refresh(profileId);
   return res;
 }

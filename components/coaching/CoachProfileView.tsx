@@ -1143,30 +1143,38 @@ function TrendsCard({
   run: (label: string, fn: () => Promise<ActionResult>) => void;
   busy: boolean;
 }) {
-  const now = new Date();
-  const defaultPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [period, setPeriod] = useState(defaultPeriod);
+  const summarized = detail.meetings.filter((m) => m.status === "held" && m.summaryMarkdown).length;
+  const canRun = summarized >= 2;
 
   return (
     <section className="admin-card coach-section">
-      <div className="admin-card-title">Trend reports</div>
-      <div className="coach-add-row">
-        <input className="admin-input" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
+      <div className="admin-card-title">
+        Trend report <span className="admin-cell-muted">across the last 3 1-1s</span>
+      </div>
+      <div className="admin-hint">
+        A read across the recent 1-1s: trajectory, recurring themes, follow-through, mode split, and what to coach next.
+        Needs at least 2 summarized 1-1s.
+      </div>
+      <div className="admin-form-actions">
         <button
           className="admin-btn"
-          disabled={busy || !/^\d{4}-\d{2}$/.test(period)}
-          onClick={() => run("Trend report", () => runTrendReport(detail.profileId, period))}
+          disabled={busy || !canRun}
+          onClick={() => run("Trend report", () => runTrendReport(detail.profileId))}
         >
-          Run report
+          Run trend report
         </button>
       </div>
       {detail.trends.length === 0 && (
-        <div className="admin-empty">No trend reports yet. They also run automatically on the 1st of each month.</div>
+        <div className="admin-empty">
+          {canRun
+            ? "No trend report yet. Run one across the last 3 1-1s."
+            : "A trend report needs at least 2 summarized 1-1s."}
+        </div>
       )}
       {detail.trends.map((t) => (
         <details key={t.id} className="coach-trend">
           <summary>
-            <strong>{t.period}</strong>
+            <strong>Trend as of {fmt(t.createdAt)}</strong>
             {t.aiError && <span className="admin-badge admin-badge--err">failed</span>}
           </summary>
           {html.trends[t.id] ? (
