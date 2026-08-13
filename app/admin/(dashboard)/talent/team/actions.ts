@@ -638,24 +638,27 @@ export async function resendPortalInvite(teamMemberId: string): Promise<Result> 
 
   if (!t.authUserId) return { ok: false, error: "Not invited yet — use Invite instead." };
 
+  // token_hash + /team/verify instead of the raw action_link: the raw link is
+  // a one-time GET that email security scanners consume before the person
+  // clicks. The verify page only redeems the token on a button press.
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email: t.email,
     options: { redirectTo: `${siteOrigin()}/team/callback` },
   });
-  const actionLink = data?.properties?.action_link;
-  if (error || !actionLink) {
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) {
     return { ok: false, error: error?.message ?? "Could not generate a sign-in link." };
   }
+  const verifyUrl = `${siteOrigin()}/team/verify?token_hash=${encodeURIComponent(tokenHash)}&type=magiclink`;
 
   await sendTransactionalEmail({
     to: t.email,
     subject: "Your Edge8 AI Workspace sign-in link",
     html: `
       <p>Here is your sign-in link for the Edge8 AI Workspace:</p>
-      <p><a href="${actionLink}">Sign in to Edge8 AI Workspace</a></p>
-      <p>The link expires shortly. If it does, you can request a fresh one any
-      time at <a href="${siteOrigin()}/team/login">${siteOrigin()}/team/login</a>.</p>
+      <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Sign in to the Edge8 AI Workspace</a></p>
+      <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page. Press "Sign in" there and you're in. If the link expires, you can request a fresh one any time at <a href="${siteOrigin()}/team/login">${siteOrigin()}/team/login</a>.</p>
     `,
   });
 

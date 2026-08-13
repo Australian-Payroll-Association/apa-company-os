@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { requestSignInLink } from "./actions";
 
-// Magic-link (passwordless) sign-in. We never create a user here
-// (shouldCreateUser: false) — accounts are minted only by an admin invite — and
-// the notice is deliberately neutral so the form cannot be used to enumerate who
-// has an account.
+// Magic-link (passwordless) sign-in. The link email is sent server-side (see
+// ./actions.ts) through the /team/verify interstitial: corporate mail security
+// (e.g. Microsoft Safe Links) prefetches raw one-time links and consumes the
+// token before the person can click, so the emailed link must redeem only on a
+// button press. We never create a user here; accounts are minted only by an
+// admin invite, and the notice is deliberately neutral so the form cannot be
+// used to enumerate who has an account.
 export function LoginForm() {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
@@ -21,20 +24,15 @@ export function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/team`,
-      },
-    });
-    setLoading(false);
-    // Neutral response regardless of whether an account exists.
-    if (error && error.status && error.status >= 500) {
+    try {
+      await requestSignInLink(email);
+    } catch {
       setError("Something went wrong sending your link. Please try again.");
+      setLoading(false);
       return;
     }
+    setLoading(false);
+    // Neutral response regardless of whether an account exists.
     setSent(true);
   }
 
@@ -42,7 +40,7 @@ export function LoginForm() {
     return (
       <div className="admin-alert admin-alert--ok">
         If an account exists for {email.trim().toLowerCase()}, a sign-in link is on its way. Check
-        your email and open the link on this device.
+        your email and press the button in it to sign in.
       </div>
     );
   }

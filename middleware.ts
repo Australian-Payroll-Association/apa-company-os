@@ -12,13 +12,17 @@ export async function middleware(request: NextRequest) {
 
   // The login pages and auth callbacks must stay reachable without a session.
   // The invite callbacks carry the session in the URL *hash*, which never
-  // reaches the server — bouncing them to login would strand the invite.
+  // reaches the server — bouncing them to login would strand the invite. The
+  // /verify interstitials redeem an emailed token_hash for people who have no
+  // session yet, so they must be reachable session-less too.
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/team/login") ||
     pathname.startsWith("/team/callback") ||
+    pathname.startsWith("/team/verify") ||
     pathname.startsWith("/portal/login") ||
     pathname.startsWith("/portal/callback") ||
+    pathname.startsWith("/portal/verify") ||
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next({ request });

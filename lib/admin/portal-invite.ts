@@ -24,7 +24,7 @@ export function siteOrigin(): string {
   return host ? `https://${host}` : "https://www.edge8.ai";
 }
 
-async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
+export async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
   const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (error || !data?.users) return null;
   const match = data.users.find((u) => (u.email ?? "").trim().toLowerCase() === email);
