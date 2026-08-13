@@ -76,24 +76,15 @@ engineer floor" note next to the spec fields on save.
 
 ---
 
-## PR 3: `feat/equipment-check` (built) — twice-a-year self-report
+## Phase 2 (to build): equipment pulse via the survey system
 
 On-device telemetry was considered and **ruled out**: we do not access anyone's computer.
-Instead, twice a year every equipment holder self-reports the state of their machines, and
-that human signal sits next to the spec grade.
+The pulse is a twice-a-year self-report, and because it is a survey it must run on the
+**existing survey system** (`company_os.surveys` / `survey_fields` / `survey_responses`,
+the admin SurveyBuilder, and the public `/surveys/[slug]` form). No new tables, no bespoke
+form. One radio question ("how is it doing?": awesome / ok, may need upgrading / slows me
+down) plus an optional note, with a field to identify the machine (asset tag), sent twice a
+year over Lark. To be designed against the survey system before any code.
 
-- **`company_os.equipment_check`** (migration `20260813120000_equipment_check.sql`): one row
-  per holder-item-cycle. Cycle is the implicit half-year (`2026-H2`), resetting 1 Jan / 1 Jul.
-- **`lib/admin/equipment-check.ts`**: `currentCheckCycle`, `CHECK_TYPES` (laptop/desktop),
-  `CHECK_CONDITIONS`, `loadChecksByEquipment`.
-- **/team equipment page**: a "Twice-a-year equipment check" section shows a short form
-  (condition, holds-me-back, needs-upgrade, optional note) for each machine the holder owes
-  this cycle; submitted items drop off. `submitEquipmentCheck` forces `person_id` server-side
-  and confirms the item is actually held by the actor.
-- **Fleet Fitness page**: a "Self-report" column on the graded tables and a "Flagged by
-  holder" tile, so a machine someone still calls painful gets seen even if its spec passes.
-- **Biannual routine** `equipment-check-biannual` (1 Jan / 1 Jul): opens the cycle and nudges
-  each holder over Lark with a link. Everyone with a machine is asked, not just engineers.
-
-**Done when.** A holder sees the check on /team, submits it, and the answer appears in the
-Self-report column on the Fitness page; a second submit for the same machine is refused.
+Note: an earlier attempt built this as a bespoke `equipment_check` table and /team form
+(PR #626); it was reverted for bloat. Reuse the survey system instead.

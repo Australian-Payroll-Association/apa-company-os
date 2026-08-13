@@ -11,12 +11,6 @@ import {
   type FitnessGrade,
   type GradedMachine,
 } from "@/lib/admin/fleet-fitness";
-import {
-  loadChecksByEquipment,
-  conditionLabel,
-  currentCheckCycle,
-  type EquipmentCheckRow,
-} from "@/lib/admin/equipment-check";
 
 export const dynamic = "force-dynamic";
 
@@ -47,31 +41,7 @@ function specText(m: GradedMachine): string {
   return `${formatGb(m.ramGb)} / ${formatGb(m.ssdGb)}`;
 }
 
-// The holder's own last read on the machine, if they filed one this cycle.
-function SelfReportCell({ check }: { check: EquipmentCheckRow | undefined }) {
-  if (!check) return <span style={{ color: "var(--admin-muted)" }}>Not reported</span>;
-  const tone: BadgeTone = check.holding_back ? "err" : check.condition === "poor" ? "warn" : "ok";
-  const flags = [
-    check.holding_back ? "holds them back" : null,
-    check.needs_upgrade ? "wants upgrade" : null,
-  ].filter(Boolean);
-  return (
-    <span>
-      <Badge tone={tone}>{conditionLabel(check.condition).split(",")[0]}</Badge>
-      {flags.length > 0 && (
-        <span style={{ color: "var(--admin-muted)", marginLeft: 6 }}>{flags.join(", ")}</span>
-      )}
-    </span>
-  );
-}
-
-function GradeTable({
-  machines,
-  checks,
-}: {
-  machines: GradedMachine[];
-  checks: Map<string, EquipmentCheckRow>;
-}) {
+function GradeTable({ machines }: { machines: GradedMachine[] }) {
   return (
     <div className="admin-table-wrap">
       <div className="admin-table-scroll">
@@ -85,7 +55,6 @@ function GradeTable({
               <th>Year</th>
               <th>Grade</th>
               <th>Reason</th>
-              <th>Self-report</th>
             </tr>
           </thead>
           <tbody>
@@ -100,9 +69,6 @@ function GradeTable({
                   <GradeBadge grade={m.grade} />
                 </td>
                 <td>{m.reason}</td>
-                <td>
-                  <SelfReportCell check={checks.get(m.id)} />
-                </td>
               </tr>
             ))}
           </tbody>
@@ -113,11 +79,7 @@ function GradeTable({
 }
 
 export default async function FleetFitnessPage() {
-  const cycle = currentCheckCycle();
-  const [fit, checks] = await Promise.all([loadFleetFitness(), loadChecksByEquipment(cycle)]);
-
-  // Engineer Macs whose holder said the machine holds them back this cycle.
-  const flaggedByHolder = fit.macEngineers.filter((m) => checks.get(m.id)?.holding_back).length;
+  const fit = await loadFleetFitness();
 
   return (
     <>
@@ -139,7 +101,6 @@ export default async function FleetFitnessPage() {
         <MetricCard label="At the floor" value={fit.counts.macWatch} sub="Watch, plan ahead" />
         <MetricCard label="Meets the floor" value={fit.counts.macPass} sub="Pass" />
         <MetricCard label="Under-spec buys" value={fit.purchaseGuard.length} sub="Bought below floor, last 90 days" />
-        <MetricCard label="Flagged by holder" value={flaggedByHolder} sub={`Say it holds them back (${cycle})`} />
       </div>
 
       <section className="admin-section-card" style={{ marginBottom: 18 }}>
@@ -168,7 +129,7 @@ export default async function FleetFitnessPage() {
 
       <section className="admin-section-card" style={{ marginBottom: 18 }}>
         <div className="admin-section-label">Engineer Macs</div>
-        <GradeTable machines={fit.macEngineers} checks={checks} />
+        <GradeTable machines={fit.macEngineers} />
       </section>
 
       <section className="admin-section-card" style={{ marginBottom: 18 }}>
@@ -227,7 +188,7 @@ export default async function FleetFitnessPage() {
         {fit.otherEngineers.length === 0 ? (
           <p className="admin-page-sub">None.</p>
         ) : (
-          <GradeTable machines={fit.otherEngineers} checks={checks} />
+          <GradeTable machines={fit.otherEngineers} />
         )}
       </section>
 
