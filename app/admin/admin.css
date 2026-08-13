@@ -3233,6 +3233,13 @@ a.ideas-share-card:hover {
 @media (max-width: 860px) { .team-eq-columns { grid-template-columns: 1fr; } }
 .team-eq-heading { font-size: 14px; font-weight: 600; color: var(--admin-ink); margin: 0 0 6px; }
 .team-eq-lede { font-size: 12px; color: var(--admin-muted); line-height: 1.6; margin: 0 0 14px; }
+.team-eq-check { margin-bottom: 16px; }
+.team-eq-check-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .team-eq-check-list { grid-template-columns: 1fr; } }
+.team-eq-check-list .admin-form { border: 1px solid var(--admin-line); border-radius: 10px; padding: 14px; }
+.team-eq-check-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--admin-ink); }
+.team-eq-check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--admin-ink); line-height: 1.5; margin-bottom: 10px; cursor: pointer; }
+.team-eq-check-row input { margin-top: 2px; }
 .team-eq-requests { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .team-eq-requests li { border-left: 2px solid var(--admin-line); padding-left: 12px; }
 .team-eq-req-top { display: flex; align-items: center; gap: 8px; }
