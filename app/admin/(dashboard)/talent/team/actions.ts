@@ -239,6 +239,231 @@ export async function sendReviewNow(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Inline shelf edits. The roster shelf writes one field at a time via
+// updateTeamMember; the fields live across three tables (people, team_members,
+// positions), so this routes each key to the right table. Title/Level/"manages
+// people" are attributes of the shared `positions` catalog, so a title change is
+// a REPOINT of team_members.position_id (pick an existing row, or create one),
+// never an in-place rename that would hit every co-holder and open requisition.
+
+const STATUS_VALUES = ["active", "pre_start", "on_leave", "notice", "terminated", "alumni"];
+const STAGE_VALUES = ["pre_boarding", "probation", "full_time", "declined_offer", "rescinded", "failed_probation"];
+const TYPE_VALUES = ["full_time", "part_time", "contract", "intern", "temp", "advisor"];
+
+// Free-text/scalar columns, split by owning table. Anything not listed is
+// ignored, so a stray key from the client can never write an unexpected column.
+const PEOPLE_FIELDS = new Set(["preferred_name", "email", "phone", "linkedin_url", "city", "country"]);
+const TM_FIELDS = new Set([
+  "status",
+  "employment_stage",
+  "employment_type",
+  "work_location",
+  "start_date",
+  "contract_start_date",
+  "probation_ends_on",
+  "end_date",
+  "termination_reason",
+  "manager_id",
+  "department_id",
+  "position_id",
+]);
+const DATE_FIELDS = new Set(["start_date", "contract_start_date", "probation_ends_on", "end_date"]);
+
+export type TeamMemberPatch = Partial<{
+  preferred_name: string | null;
+  email: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  city: string | null;
+  country: string | null;
+  status: string | null;
+  employment_stage: string | null;
+  employment_type: string | null;
+  work_location: string | null;
+  start_date: string | null;
+  contract_start_date: string | null;
+  probation_ends_on: string | null;
+  end_date: string | null;
+  termination_reason: string | null;
+  manager_id: string | null;
+  department_id: string | null;
+  position_id: string | null;
+}>;
+
+// Empty string means "cleared" -> null; otherwise trim. Keeps the DB free of
+// blank strings so "no value" is always null.
+function toNullable(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s === "" ? null : s;
+}
+
+export async function updateTeamMember(
+  teamMemberId: string,
+  patch: TeamMemberPatch,
+): Promise<SaveResult> {
+  const admin = await requireAdmin();
+  if (!teamMemberId) return { ok: false, error: "Missing team member." };
+
+  const peoplePatch: Record<string, unknown> = {};
+  const tmPatch: Record<string, unknown> = {};
+
+  for (const [key, raw] of Object.entries(patch)) {
+    const value = toNullable(raw);
+    if (DATE_FIELDS.has(key) && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return { ok: false, error: "Enter a valid date." };
+    }
+    if (key === "status" && value && !STATUS_VALUES.includes(value)) return { ok: false, error: "Unknown status." };
+    if (key === "employment_stage" && value && !STAGE_VALUES.includes(value)) return { ok: false, error: "Unknown stage." };
+    if (key === "employment_type" && value && !TYPE_VALUES.includes(value)) return { ok: false, error: "Unknown type." };
+    if (key === "email" && value && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return { ok: false, error: "Enter a valid email." };
+    if (key === "manager_id" && value && value === teamMemberId) {
+      return { ok: false, error: "A team member can't be their own manager." };
+    }
+
+    if (PEOPLE_FIELDS.has(key)) peoplePatch[key] = value;
+    else if (TM_FIELDS.has(key)) tmPatch[key] = value;
+  }
+
+  if (Object.keys(tmPatch).length > 0) {
+    const { error } = await companyOs.from("team_members").update(tmPatch).eq("id", teamMemberId);
+    if (error) {
+      console.error("[talent] team_members update failed:", error.message);
+      return { ok: false, error: "Could not save. Please try again." };
+    }
+    await recordAudit({ table: "team_members", recordId: teamMemberId, operation: "update", actor: admin.email, newData: tmPatch });
+  }
+
+  if (Object.keys(peoplePatch).length > 0) {
+    const { data: tm, error: tmErr } = await companyOs
+      .from("team_members")
+      .select("person_id")
+      .eq("id", teamMemberId)
+      .maybeSingle();
+    if (tmErr || !tm?.person_id) return { ok: false, error: tmErr?.message ?? "No linked person to update." };
+    peoplePatch.updated_at = new Date().toISOString();
+    const { error } = await companyOs.from("people").update(peoplePatch).eq("id", tm.person_id);
+    if (error) {
+      console.error("[talent] people update failed:", error.message);
+      // Surface the most common conflict (email is unique) in plain language.
+      const msg = /duplicate|unique/i.test(error.message) ? "That email is already used by another person." : "Could not save. Please try again.";
+      return { ok: false, error: msg };
+    }
+    await recordAudit({ table: "people", recordId: tm.person_id as string, operation: "update", actor: admin.email, newData: peoplePatch });
+  }
+
+  revalidatePath("/admin/talent/team");
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+  return { ok: true };
+}
+
+function slugifyTitle(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "position"
+  );
+}
+
+export type PositionResult =
+  | { ok: true; position: { id: string; title: string; level: string | null; is_people_manager: boolean } }
+  | { ok: false; error: string };
+
+// Create a new catalog title and point this one person at it. The new position
+// inherits department + employment type from the member so the catalog row is
+// internally consistent. Used by the shelf's "New title…" path.
+export async function createAndAssignPosition(
+  teamMemberId: string,
+  input: { title: string; level?: string | null; isPeopleManager?: boolean },
+): Promise<PositionResult> {
+  const admin = await requireAdmin();
+  if (!teamMemberId) return { ok: false, error: "Missing team member." };
+  const title = (input.title ?? "").trim();
+  if (!title) return { ok: false, error: "Enter a title." };
+  const level = toNullable(input.level);
+  const isPeopleManager = !!input.isPeopleManager;
+
+  const { data: tm, error: tmErr } = await companyOs
+    .from("team_members")
+    .select("department_id, employment_type")
+    .eq("id", teamMemberId)
+    .maybeSingle();
+  // Abort if the id no longer resolves — otherwise we'd insert an orphan catalog
+  // row with null dept/type, no-op the repoint, and falsely report success.
+  if (tmErr || !tm) return { ok: false, error: tmErr?.message ?? "Team member not found." };
+
+  // Keep slug unique within the catalog: take the kebab of the title, and if it
+  // (or numbered variants) already exist, use the next free suffix.
+  let slug = slugifyTitle(title);
+  const { data: clashes } = await companyOs.from("positions").select("slug").ilike("slug", `${slug}%`);
+  const taken = new Set(((clashes as { slug: string | null }[] | null) ?? []).map((r) => r.slug));
+  if (taken.has(slug)) {
+    let i = 2;
+    while (taken.has(`${slug}-${i}`)) i++;
+    slug = `${slug}-${i}`;
+  }
+
+  const { data: created, error: insErr } = await companyOs
+    .from("positions")
+    .insert({
+      title,
+      slug,
+      level,
+      is_people_manager: isPeopleManager,
+      active: true,
+      department_id: (tm?.department_id as string | null) ?? null,
+      employment_type: (tm?.employment_type as string | null) ?? null,
+    })
+    .select("id, title, level, is_people_manager")
+    .maybeSingle();
+  if (insErr || !created) {
+    console.error("[talent] position insert failed:", insErr?.message);
+    return { ok: false, error: "Could not create the title." };
+  }
+
+  const { error: repErr } = await companyOs
+    .from("team_members")
+    .update({ position_id: created.id })
+    .eq("id", teamMemberId);
+  if (repErr) {
+    console.error("[talent] position repoint failed:", repErr.message);
+    return { ok: false, error: "Title created but could not assign it." };
+  }
+
+  await recordAudit({
+    table: "positions",
+    recordId: created.id as string,
+    operation: "insert",
+    actor: admin.email,
+    newData: { title, slug },
+    context: { via: "team_shelf", team_member_id: teamMemberId },
+  });
+  await recordAudit({
+    table: "team_members",
+    recordId: teamMemberId,
+    operation: "update",
+    actor: admin.email,
+    newData: { position_id: created.id },
+    context: { via: "team_shelf_new_position" },
+  });
+
+  revalidatePath("/admin/talent/team");
+  revalidatePath(`/admin/talent/team/${teamMemberId}`);
+  return {
+    ok: true,
+    position: {
+      id: created.id as string,
+      title: created.title as string,
+      level: (created.level as string | null) ?? null,
+      is_people_manager: !!created.is_people_manager,
+    },
+  };
+}
+
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the
 // people.auth_user_id link intact so access can be restored by re-inviting.
 // Sessions die on the next request: every gate revalidates via getUser(), which

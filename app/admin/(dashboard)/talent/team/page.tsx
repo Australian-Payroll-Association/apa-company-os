@@ -8,6 +8,12 @@ import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { getSignedInAuthUserIds, portalStatusOf } from "@/lib/admin/portal-status";
 import { personName } from "@/lib/people-name";
+import {
+  TeamShelfProvider,
+  TeamShelfRow,
+  type ShelfOptions,
+  type TeamShelfRowData,
+} from "./TeamShelf";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +22,8 @@ export const metadata = {
   description: "Edge8 team members and departments.",
 };
 
-// Talent office: internal team (persona=employee). Name opens the Team Member profile.
+// Talent office: internal team (persona=employee). Rows open an inline-editable
+// shelf (TeamShelf); the Name still deep-links to the full Team Member profile.
 type P = {
   display_name: string | null;
   full_name: string | null;
@@ -46,6 +53,8 @@ type TeamMember = {
   created_at: string;
   person_id: string | null;
   manager_id: string | null;
+  position_id: string | null;
+  department_id: string | null;
   people: P | P[] | null;
   positions: Position | Position[] | null;
   departments: Department | Department[] | null;
@@ -87,6 +96,12 @@ const SEGMENTS: { key: SegKey; label: string; filter: NonNullable<Parameters<typ
   { key: "all", label: "All", filter: {} },
 ];
 
+const PORTAL_LABEL: Record<string, string> = {
+  active: "Signed in",
+  invited: "Invited, never signed in",
+  none: "Not invited",
+};
+
 export default async function TeamPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const q = firstParam(searchParams.q) ?? "";
@@ -104,12 +119,14 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
   // appears in the list.
   const peopleEmbed = `people!person_id${q ? "!inner" : ""}(display_name, full_name, preferred_name, email, phone, auth_user_id, city, country, linkedin_url)`;
 
-  // List the active segment's rows, and (in parallel) count every segment for
-  // its tab badge. Counts reflect the whole segment, independent of the search.
-  const [list, counts] = await Promise.all([
+  // List the active segment's rows, count every segment for its tab badge, and
+  // load the picker option lists (departments, position catalog, all members for
+  // the manager picker + distinct work locations). The option lists don't depend
+  // on the page's rows, so they run in the same wave.
+  const [list, counts, deptRes, posRes, membersRes] = await Promise.all([
     listEntity<TeamMember>(
       "team_members",
-      "id, employee_number, employment_type, employment_stage, work_location, career_level, status, start_date, contract_start_date, probation_ends_on, end_date, termination_reason, created_at, person_id, manager_id, " +
+      "id, employee_number, employment_type, employment_stage, work_location, career_level, status, start_date, contract_start_date, probation_ends_on, end_date, termination_reason, created_at, person_id, manager_id, position_id, department_id, " +
         `${peopleEmbed}, positions!position_id(title, level, is_people_manager), departments!department_id(name)`,
       {
         page,
@@ -122,29 +139,24 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
       },
     ),
     Promise.all(SEGMENTS.map((s) => countEntity("team_members", s.filter))),
+    companyOs.from("departments").select("id, name").order("name"),
+    companyOs.from("positions").select("id, title, level, is_people_manager").eq("active", true).order("title"),
+    companyOs
+      .from("team_members")
+      .select("id, work_location, people!person_id(display_name, preferred_name, full_name, email)")
+      .order("created_at"),
   ]);
   const { rows, total, pageSize, error } = list;
 
-  // Two per-row lookups, both keyed only on the rows we just fetched, so they
-  // run as one wave rather than two.
-  //
   // Portal status needs auth.users.last_sign_in_at; fetch the signed-in set once
-  // for the visible rows so the Portal column can show invited vs signed in
-  // without a lookup per cell.
+  // for the visible rows so the shelf can show invited vs signed in.
   //
-  // Manager is a self-FK on team_members. It is deliberately NOT an embed:
-  // PostgREST resolves a self-referencing embed in the reverse direction, so
-  // `team_members!manager_id(...)` returns the row's first direct report rather
-  // than its manager. Resolving the ids in a second pass keeps it correct.
+  // The "Last 1-1" column reads the newest held coaching session per member.
   const authIds = rows.map((r) => one(r.people)?.auth_user_id).filter((x): x is string => !!x);
-  const managerIds = [...new Set(rows.map((r) => r.manager_id).filter((x): x is string => !!x))];
   const rowIds = rows.map((r) => r.id);
 
-  const [signedIn, managerRes, coachingRes] = await Promise.all([
+  const [signedIn, coachingRes] = await Promise.all([
     getSignedInAuthUserIds(authIds),
-    managerIds.length
-      ? companyOs.from("team_members").select("id, people!person_id(display_name, full_name, preferred_name, email)").in("id", managerIds)
-      : Promise.resolve({ data: null }),
     rowIds.length
       ? companyOs.from("coaching_profiles").select("id, team_member_id").in("team_member_id", rowIds)
       : Promise.resolve({ data: null }),
@@ -174,11 +186,60 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
     }
   }
 
-  type ManagerRow = { id: string; people: P | P[] | null };
-  const managerName = new Map<string, string>();
-  for (const m of ((managerRes.data as ManagerRow[] | null) ?? [])) {
-    const p = one(m.people);
-    if (p) managerName.set(m.id, personName(p));
+  // Shelf option lists.
+  type MemberRow = { id: string; work_location: string | null; people: P | P[] | null };
+  const allMembers = ((membersRes.data as MemberRow[] | null) ?? []);
+  const shelfOptions: ShelfOptions = {
+    departments: ((deptRes.data as { id: string; name: string | null }[] | null) ?? []).map((d) => ({
+      id: d.id,
+      name: d.name ?? "(unnamed)",
+    })),
+    positions: ((posRes.data as { id: string; title: string | null; level: string | null; is_people_manager: boolean | null }[] | null) ?? []).map((p) => ({
+      id: p.id,
+      title: p.title ?? "(untitled)",
+      level: p.level,
+      isPeopleManager: !!p.is_people_manager,
+    })),
+    managers: allMembers
+      .map((m) => ({ id: m.id, name: personName(one(m.people)) }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    workLocations: [...new Set(allMembers.map((m) => m.work_location).filter((x): x is string => !!x))].sort(),
+  };
+
+  // Flatten each visible row into the serializable shape the client shelf edits.
+  const shelfData = new Map<string, TeamShelfRowData>();
+  for (const r of rows) {
+    const p = one(r.people);
+    const pos = one(r.positions);
+    const portal = portalStatusOf(p?.auth_user_id, signedIn);
+    shelfData.set(r.id, {
+      id: r.id,
+      personId: r.person_id,
+      name: p ? personName(p) : "Team member",
+      preferred_name: p?.preferred_name ?? null,
+      email: p?.email ?? null,
+      phone: p?.phone ?? null,
+      linkedin_url: p?.linkedin_url ?? null,
+      city: p?.city ?? null,
+      country: p?.country ?? null,
+      status: r.status,
+      employment_stage: r.employment_stage,
+      employment_type: r.employment_type,
+      work_location: r.work_location,
+      start_date: r.start_date,
+      contract_start_date: r.contract_start_date,
+      probation_ends_on: r.probation_ends_on,
+      end_date: r.end_date,
+      termination_reason: r.termination_reason,
+      manager_id: r.manager_id,
+      department_id: r.department_id,
+      position_id: r.position_id,
+      position_title: pos?.title ?? null,
+      position_level: pos?.level ?? null,
+      is_people_manager: pos?.is_people_manager ?? null,
+      portalLabel: PORTAL_LABEL[portal] ?? "Not invited",
+      isPast: r.status === "terminated" || r.status === "alumni",
+    });
   }
 
   const columns: Column<TeamMember>[] = [
@@ -238,97 +299,25 @@ export default async function TeamPage({ searchParams }: { searchParams: SearchP
           </Link>
         ))}
       </nav>
-      <DataTable
-        columns={columns}
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        sort={sort}
-        dir={dir}
-        basePath="/admin/talent/team"
-        searchParams={searchParams}
-        searchPlaceholder="Search by name…"
-        emptyText={seg.key === "contractors" ? "No contractors yet." : seg.key === "pre-start" ? "No pre-start hires." : "No team members match."}
-        getRowPreview={(r) => {
-          const p = one(r.people);
-          const pos = one(r.positions);
-          const basedIn = [p?.city, p?.country].filter(Boolean).join(", ");
-          const portal = portalStatusOf(p?.auth_user_id, signedIn);
-          const isPast = r.status === "terminated" || r.status === "alumni";
-          return {
-            eyebrow: pos?.title || "Team member",
-            title: p ? personName(p) : "Team member",
-            body: (
-              <>
-                <dl className="admin-kv">
-                  <dt>Goes by</dt>
-                  <dd>{p?.preferred_name || "—"}</dd>
-                  <dt>Email</dt>
-                  <dd>{p?.email || "—"}</dd>
-                  <dt>Phone</dt>
-                  <dd>{p?.phone || "—"}</dd>
-                  <dt>LinkedIn</dt>
-                  <dd>
-                    {p?.linkedin_url ? (
-                      <a href={p.linkedin_url} target="_blank" rel="noreferrer">
-                        Profile
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </dd>
-
-                  <dt>Title</dt>
-                  <dd>{pos?.title || "—"}</dd>
-                  <dt>Level</dt>
-                  <dd>{pos?.level ? humanize(pos.level) : "—"}</dd>
-                  <dt>Department</dt>
-                  <dd>{one(r.departments)?.name || "—"}</dd>
-                  <dt>Manager</dt>
-                  <dd>{(r.manager_id && managerName.get(r.manager_id)) || "—"}</dd>
-                  <dt>Manages people</dt>
-                  <dd>{pos?.is_people_manager ? "Yes" : "No"}</dd>
-
-                  <dt>Status</dt>
-                  <dd>{r.status ? <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge> : "—"}</dd>
-                  <dt>Stage</dt>
-                  <dd>{r.employment_stage ? humanize(r.employment_stage) : "—"}</dd>
-                  <dt>Type</dt>
-                  <dd>{r.employment_type ? <Badge>{humanize(r.employment_type)}</Badge> : "—"}</dd>
-                  <dt>Work location</dt>
-                  <dd>{r.work_location || "—"}</dd>
-                  <dt>Based in</dt>
-                  <dd>{basedIn || "—"}</dd>
-
-                  <dt>Started</dt>
-                  <dd>{r.start_date ? formatDate(r.start_date) : "—"}</dd>
-                  <dt>Contract start</dt>
-                  <dd>{r.contract_start_date ? formatDate(r.contract_start_date) : "—"}</dd>
-                  <dt>Probation ends</dt>
-                  <dd>{r.probation_ends_on ? formatDate(r.probation_ends_on) : "—"}</dd>
-                  {isPast && (
-                    <>
-                      <dt>Ended</dt>
-                      <dd>{r.end_date ? formatDate(r.end_date) : "—"}</dd>
-                      <dt>Reason</dt>
-                      <dd>{r.termination_reason ? humanize(r.termination_reason) : "—"}</dd>
-                    </>
-                  )}
-
-                  <dt>Portal</dt>
-                  <dd>{portal === "active" ? "Signed in" : portal === "invited" ? "Invited, never signed in" : "Not invited"}</dd>
-                </dl>
-                <div style={{ marginTop: 16 }}>
-                  <Link href={`/admin/talent/team/${r.id}`} className="admin-btn admin-btn--primary">
-                    Open full profile
-                  </Link>
-                </div>
-              </>
-            ),
-          };
-        }}
-      />
+      <TeamShelfProvider options={shelfOptions}>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          sort={sort}
+          dir={dir}
+          basePath="/admin/talent/team"
+          searchParams={searchParams}
+          searchPlaceholder="Search by name…"
+          emptyText={seg.key === "contractors" ? "No contractors yet." : seg.key === "pre-start" ? "No pre-start hires." : "No team members match."}
+          renderRow={(r, cells) => {
+            const data = shelfData.get(r.id);
+            return data ? <TeamShelfRow row={data}>{cells}</TeamShelfRow> : <tr>{cells}</tr>;
+          }}
+        />
+      </TeamShelfProvider>
     </>
   );
 }

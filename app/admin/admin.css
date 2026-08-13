@@ -1719,6 +1719,35 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-kv dt { color: var(--admin-muted); }
 .admin-kv dd { color: var(--admin-ink); word-break: break-word; }
 
+/* inline-editable key/value rows (Team roster shelf) */
+.admin-kv--editable { gap: 2px 12px; align-items: center; }
+.admin-kv--editable dt { align-self: center; }
+.admin-kv-readonly { color: var(--admin-muted); padding: 6px 8px; }
+.admin-editable {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--admin-radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.admin-editable:hover { background: var(--admin-accent-soft); border-color: var(--admin-line); }
+.admin-editable:focus-visible { outline: 0; border-color: var(--admin-accent); box-shadow: var(--admin-focus-ring); }
+.admin-editable:disabled { cursor: default; opacity: 0.6; }
+.admin-editable-empty { color: var(--admin-muted); }
+.admin-kv--editable .admin-input, .admin-kv--editable .admin-select { padding: 6px 8px; font-size: 13px; }
+
+/* "New title…" inline form inside the shelf position picker */
+.admin-shelf-newpos { display: flex; flex-direction: column; gap: 6px; }
+.admin-shelf-newpos-check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--admin-ink); }
+.admin-shelf-newpos-actions { display: flex; gap: 6px; }
+
 /* rendered markdown (Ideas Backlog product plans) */
 .idea-plan { font-size: 13px; color: var(--admin-ink); line-height: 1.65; }
 .idea-plan h1, .idea-plan h2 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
