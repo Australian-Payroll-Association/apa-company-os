@@ -49,7 +49,9 @@ export default function PortalVerify() {
       return;
     }
     window.history.replaceState(null, "", window.location.pathname);
-    router.replace("/portal");
+    // A recovery link exists to set a new password — land there, not the
+    // portal home (the session is established either way).
+    router.replace(otpType === "recovery" ? "/portal/change-password" : "/portal");
   }
 
   return (
@@ -71,7 +73,11 @@ export default function PortalVerify() {
           </>
         ) : (
           <>
-            <p className="admin-auth-sub">You&rsquo;re one click away from your portal.</p>
+            <p className="admin-auth-sub">
+              {otpType === "recovery"
+                ? "You’re one click away from setting a new password."
+                : "You’re one click away from your portal."}
+            </p>
             <div className="admin-form-actions">
               <button
                 type="button"

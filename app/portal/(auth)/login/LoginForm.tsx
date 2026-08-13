@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { PasswordField } from "@/components/admin/PasswordField";
+import { requestSignInLink, requestPasswordReset } from "./actions";
 
 // Magic-link (passwordless) sign-in for client contacts, with a password
-// fallback for contacts whose mail security (e.g. Microsoft Safe Links)
-// consumes one-time links before they can be clicked. We never create a
-// user here (shouldCreateUser: false) — accounts are minted only by an admin
-// invite — and the notice is deliberately neutral so the form cannot be used
-// to enumerate who has an account.
+// fallback plus a self-serve password reset. The link and reset emails are
+// sent server-side (see ./actions.ts) through the /portal/verify interstitial:
+// corporate mail security (e.g. Microsoft Safe Links) prefetches raw one-time
+// links and consumes the token before the person can click, so the emailed
+// link must redeem only on a button press. Accounts are never created here —
+// they are minted only by an admin invite — and every notice is deliberately
+// neutral so the form cannot be used to enumerate who has an account.
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -20,28 +23,23 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(
     params.get("error") ? "That sign-in link was invalid or expired. Request a new one below." : null,
   );
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<"link" | "reset" | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/portal`,
-      },
-    });
-    setLoading(false);
-    // Neutral response regardless of whether an account exists.
-    if (error && error.status && error.status >= 500) {
+    try {
+      await requestSignInLink(email);
+    } catch {
       setError("Something went wrong sending your link. Please try again.");
+      setLoading(false);
       return;
     }
-    setSent(true);
+    setLoading(false);
+    // Neutral response regardless of whether an account exists.
+    setSent("link");
   }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
@@ -63,11 +61,30 @@ export function LoginForm() {
     router.refresh();
   }
 
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError("Enter your email above first, then press Forgot password.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await requestPasswordReset(email);
+    } catch {
+      setError("Something went wrong sending the reset link. Please try again.");
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    setSent("reset");
+  }
+
   if (sent) {
     return (
       <div className="admin-alert admin-alert--ok">
-        If an account exists for {email.trim().toLowerCase()}, a sign-in link is on its way. Check
-        your email and open the link on this device.
+        {sent === "link"
+          ? `If an account exists for ${email.trim().toLowerCase()}, a sign-in link is on its way. Check your email and press the button in it to sign in.`
+          : `If an account exists for ${email.trim().toLowerCase()}, a password reset link is on its way. Check your email and press the button in it to choose a new password.`}
       </div>
     );
   }
@@ -95,6 +112,14 @@ export function LoginForm() {
         <div className="admin-form-actions">
           <button type="submit" className="admin-btn admin-btn--primary" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={loading}
+            onClick={handleForgotPassword}
+          >
+            Forgot password?
           </button>
           <button
             type="button"

@@ -1,8 +1,11 @@
 // Server-only. Core client-portal provisioning, shared between the admin UI
-// server actions (app/admin/(dashboard)/revenue/companies/portal-actions.ts)
-// and the admin assistant's approval-gated invite_portal_member tool
-// (lib/admin-chat/actions.ts). Callers are responsible for the auth gate
-// (requireAdmin / the chat route's privileged-admin check).
+// server actions (app/admin/(dashboard)/revenue/companies/portal-actions.ts),
+// the admin assistant's approval-gated invite_portal_member tool
+// (lib/admin-chat/actions.ts), and the portal login page's self-serve
+// sign-in-link / password-reset actions (app/portal/(auth)/login/actions.ts).
+// Admin callers are responsible for the auth gate (requireAdmin / the chat
+// route's privileged-admin check); the self-serve functions gate themselves
+// on active portal membership.
 
 import { headers } from "next/headers";
 import { supabase, companyOs } from "@/lib/supabase";
@@ -262,6 +265,119 @@ export async function resendPortalLinkCore(
   });
 
   return { ok: true, message: "Sign-in link sent." };
+}
+
+// ---------------------------------------------------------------------------
+// Self-serve emails, triggered from the /portal/login page (no admin session).
+//
+// These exist because the browser-side signInWithOtp() path sends Supabase's
+// raw one-time verify URL, and corporate mail security (Microsoft Safe Links
+// et al) prefetches that link and consumes the token before the person can
+// click it — they see "invalid or expired" on a link minutes old. This burned
+// the first Doxa invite and locked OnTarget's CTO out entirely. Like the
+// admin invite/resend paths above, we mint the token server-side and email a
+// link to /portal/verify, which only redeems the token_hash on a button
+// press — something scanners don't do.
+//
+// Anti-abuse: emails are only ever sent to auth users with an ACTIVE portal
+// membership (a small allowlist of known client contacts), the caller-facing
+// result is always neutral (no account enumeration), and repeat requests for
+// the same email are throttled. The throttle map is per serverless instance —
+// best-effort, but the membership gate is the real limiter.
+
+const SELF_SERVE_COOLDOWN_MS = 60_000;
+const lastSelfServeSend = new Map<string, number>();
+
+function throttled(email: string): boolean {
+  const now = Date.now();
+  const last = lastSelfServeSend.get(email) ?? 0;
+  if (now - last < SELF_SERVE_COOLDOWN_MS) return true;
+  lastSelfServeSend.set(email, now);
+  return false;
+}
+
+// The auth user for `email`, but only when they hold an active portal
+// membership and are not banned; null (silently) otherwise.
+async function activePortalAuthUser(email: string): Promise<{ id: string } | null> {
+  const user = await findAuthUserByEmail(email);
+  if (!user) return null;
+  const { data: fullUser } = await supabase.auth.admin.getUserById(user.id);
+  if (!fullUser?.user || bannedUntil(fullUser.user)) return null;
+
+  const { data: people } = await companyOs
+    .from("people")
+    .select("id")
+    .eq("auth_user_id", user.id)
+    .is("archived_at", null);
+  const personIds = (people ?? []).map((p) => p.id as string);
+  if (personIds.length === 0) return null;
+
+  const { data: memberships } = await companyOs
+    .from("portal_members")
+    .select("id")
+    .in("person_id", personIds)
+    .eq("status", "active")
+    .limit(1);
+  if ((memberships ?? []).length === 0) return null;
+
+  return { id: user.id };
+}
+
+// Self-serve "Send sign-in link". Always resolves — the login page shows the
+// same neutral notice whether or not an email went out.
+export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || throttled(email)) return;
+  if (!(await activePortalAuthUser(email))) return;
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo: `${siteOrigin()}/portal/callback` },
+  });
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) return;
+  const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=magiclink`;
+
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Your Edge8 Client Portal sign-in link",
+    html: `
+      <p>Here is your sign-in link for the Edge8 Client Portal:</p>
+      <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Sign in to the Client Portal</a></p>
+      <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, you can request a fresh one any time at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a>.</p>
+    `,
+    logMeta: { source: "portal_self_serve_link" },
+  });
+}
+
+// Self-serve "Forgot password". Sends a recovery link through the same
+// scanner-proof /portal/verify interstitial; verifying lands the person on
+// /portal/change-password to choose a new one. Always resolves (neutral).
+export async function sendSelfServePasswordReset(rawEmail: string): Promise<void> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || throttled(`reset:${email}`)) return;
+  if (!(await activePortalAuthUser(email))) return;
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${siteOrigin()}/portal/change-password` },
+  });
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) return;
+  const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Reset your Edge8 Client Portal password",
+    html: `
+      <p>We received a request to set a new password for your Edge8 Client Portal account.</p>
+      <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Set a new password</a></p>
+      <p style="font-size:13px;color:#64748b;">The button takes you to a confirmation page — press "Sign in" there, then choose your new password. If you didn't request this, you can ignore this email.</p>
+    `,
+    logMeta: { source: "portal_self_serve_reset" },
+  });
 }
 
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the

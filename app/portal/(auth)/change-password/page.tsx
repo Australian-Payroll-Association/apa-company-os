@@ -13,7 +13,7 @@ export default async function PortalChangePasswordPage() {
           Edge8 Client Portal
         </div>
         <p className="admin-auth-sub">
-          You signed in with a temporary password. Choose your own to continue.
+          Choose a new password for your account to continue.
         </p>
         <ChangePasswordForm />
       </div>
