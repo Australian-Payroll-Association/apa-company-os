@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
+import { listAssignablePeople, listPeopleNames, type PersonOption } from "@/lib/admin/people-options";
 import { ApplicationManage, type AppManageData } from "../ApplicationManage";
 import { ApplicationLifecycle } from "./ApplicationLifecycle";
 
@@ -19,6 +20,7 @@ type Cp = {
   current_title: string | null;
   portfolio_url: string | null;
   do_not_hire: boolean;
+  pool_status: string | null;
   english_proficiency: string | null;
   salary_expectation_cents: number | null;
   salary_expectation_currency: string | null;
@@ -28,6 +30,8 @@ type P = {
   full_name: string | null;
   email: string;
   phone: string | null;
+  city: string | null;
+  country: string | null;
   linkedin_url: string | null;
   candidate_profile: Cp | Cp[] | null;
 };
@@ -40,6 +44,9 @@ type RawApp = {
   rejection_reason: string | null;
   applied_at: string | null;
   decided_at: string | null;
+  source: string | null;
+  source_detail: string | null;
+  referrer_person_id: string | null;
   current_stage_id: string | null;
   resume_document_id: string | null;
   job_requisition_id: string | null;
@@ -57,7 +64,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const { data, error } = await companyOs
     .from("applications")
     .select(
-      "id, status, rating, rejection_reason, applied_at, decided_at, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
+      "id, status, rating, rejection_reason, applied_at, decided_at, source, source_detail, referrer_person_id, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, city, country, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, pool_status, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -77,6 +84,16 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const cp = one(p?.candidate_profile ?? null);
   const candidateName = p?.full_name || p?.email || null;
 
+  // Referrer picker: assignable team members (the usual referrers), plus the
+  // current referrer if it happens to be someone no longer assignable, so the
+  // stored value still renders and stays selectable.
+  const referrerOptions: PersonOption[] = await listAssignablePeople();
+  if (r.referrer_person_id && !referrerOptions.some((o) => o.id === r.referrer_person_id)) {
+    const names = await listPeopleNames([r.referrer_person_id]);
+    const name = names.get(r.referrer_person_id);
+    if (name) referrerOptions.unshift({ id: r.referrer_person_id, name });
+  }
+
   const app: AppManageData = {
     id: r.id,
     jobReqId: r.job_requisition_id,
@@ -90,14 +107,20 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
     currentStageName: one(r.application_stages)?.name ?? null,
     appliedAt: r.applied_at,
     decidedAt: r.decided_at,
+    source: r.source,
+    sourceDetail: r.source_detail,
+    referrerId: r.referrer_person_id,
     resumeDocumentId: r.resume_document_id,
     email: p?.email ?? null,
     phone: p?.phone ?? null,
+    city: p?.city ?? null,
+    country: p?.country ?? null,
     headline: cp?.headline ?? null,
     currentTitle: cp?.current_title ?? null,
     linkedinUrl: p?.linkedin_url ?? null,
     portfolioUrl: cp?.portfolio_url ?? null,
     doNotHire: Boolean(cp?.do_not_hire),
+    poolStatus: cp?.pool_status ?? null,
     hrAssessment: r.hr_assessment,
     englishProficiency: cp?.english_proficiency ?? null,
     salaryExpectationCents: cp?.salary_expectation_cents ?? null,
@@ -124,7 +147,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       )}
 
       <div style={{ maxWidth: 760 }}>
-        <ApplicationManage app={app} />
+        <ApplicationManage app={app} referrerOptions={referrerOptions} />
       </div>
     </>
   );
