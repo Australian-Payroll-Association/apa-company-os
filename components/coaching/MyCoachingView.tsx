@@ -126,7 +126,6 @@ export function MyCoachingView({
                     <li key={p.id}>
                       <strong>{p.title}</strong>
                       {p.detailMarkdown ? <span className="admin-cell-muted">: {p.detailMarkdown}</span> : null}
-                      {p.ladder ? <span className="admin-cell-muted"> (ladders to {p.ladder.label})</span> : null}
                     </li>
                   ))}
                 </ul>
