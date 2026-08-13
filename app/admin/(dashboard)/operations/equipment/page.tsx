@@ -152,6 +152,9 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Se
         action={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ArchivedToggle basePath="/admin/operations/equipment" searchParams={searchParams} showArchived={showArchived} />
+            <Link href="/admin/operations/equipment/fitness" className="admin-btn">
+              Fitness
+            </Link>
             <Link href="/admin/operations/equipment/new" className="admin-btn admin-btn--primary">
               New equipment
             </Link>
