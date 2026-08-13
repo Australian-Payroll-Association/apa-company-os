@@ -12,6 +12,13 @@ export const metadata: Metadata = {
 
 const ITEMS: LibraryItem[] = [
   {
+    category: 'plan',
+    href: '/workflows/private/ai-officer-institute/aio-pad-styling-plan.html',
+    title: 'AIO Pad Styling Plan',
+    description:
+      'Before and after styling plan for the AIO Pad (Lumiere Riverside, Thao Dien): nine paired angles, room by room, with the exact items and prices behind each, plus the budget and a 12-day sequence.',
+  },
+  {
     category: 'prototype',
     href: '/workflows/private/ai-officer-institute/hub.html',
     title: 'Learning Hub (unified prototype)',
