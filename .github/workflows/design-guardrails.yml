@@ -13,6 +13,9 @@ on:
       - "lib/**"
       - "public/**"
       - "scripts/design/**"
+      - "scripts/check-crons.mjs"
+      - "vercel.json"
+      - "next.config.mjs"
       - ".github/workflows/design-guardrails.yml"
 
 jobs:
@@ -25,3 +28,13 @@ jobs:
           node-version: "20"
       - name: Check referenced assets exist and font weights are backed by real faces
         run: node scripts/design/check-assets.mjs
+
+  check-crons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check every cron path reaches a handler instead of a 308
+        run: node scripts/check-crons.mjs
