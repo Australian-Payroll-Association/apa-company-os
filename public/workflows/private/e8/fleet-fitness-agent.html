@@ -200,16 +200,16 @@
 
 <section>
   <h2>Phase 2</h2>
-  <h3>From static specs to live health <span class="phaseTag later">Planned</span></h3>
-  <p>Everything above grades the spec on file. It does not yet see how a machine behaves under real load. Phase 2 adds that, and it is confirmed as the next step: a lightweight on-device reporter on each engineer's Mac sends a small health snapshot on a schedule, turning the register into a live monitor. Macs first; Windows machines follow once the Mac reporter is proven.</p>
+  <h3>The human signal, asked not taken <span class="phaseTag">Built</span></h3>
+  <p>The spec grade says what a machine is on paper. It does not say whether the person on it is struggling. We add that by asking, not by watching: on-device telemetry was considered and ruled out. We do not access anyone's computer. Instead, twice a year, every equipment holder tells us how their kit is doing.</p>
   <ul>
-    <li><strong>Memory pressure and swap</strong>, the single best signal that a machine is under-spec for its actual workload.</li>
-    <li><strong>Free disk percentage</strong>, warning under 15 percent.</li>
-    <li><strong>Thermal pressure</strong> under sustained load.</li>
-    <li><strong>OS and toolchain drift</strong>, so environments stay reproducible.</li>
+    <li><strong>A short self-report</strong> on the /team equipment page: condition, whether the machine is too slow and holds them back, whether they think it needs replacing, and an optional note. Ten seconds per machine.</li>
+    <li><strong>A twice-a-year cycle</strong> (1 January and 1 July). A routine opens the cycle and nudges each holder over Lark with a link.</li>
+    <li><strong>Everyone with a machine</strong> is asked, not just engineers, since any machine can degrade.</li>
+    <li><strong>Both signals side by side</strong> on the Fleet Fitness page: the spec grade and the holder's own read, so a 32 GB machine someone still calls painful gets seen.</li>
   </ul>
-  <div class="callout amber">
-    <p><strong>Phase 2 is out of scope for v1, not off the table.</strong> On-device reporting means installing a small agent on every engineer Mac. v1 delivers value from the data we already hold; Phase 2 turns that snapshot into a live feed once the grading foundation is in place.</p>
+  <div class="callout mint">
+    <p><strong>Ask, don't surveil.</strong> No agent, no reporter, no reading anyone's disk or memory. The one signal telemetry cannot give (does this actually slow you down) is exactly the one a person answers best, and the one we collect. Everything else stays off their machine.</p>
   </div>
 </section>
 
@@ -220,9 +220,9 @@
     <tr><th>Decision</th><th>Confirmed</th></tr>
     <tr><td><strong>The floor</strong></td><td>24 GB RAM / 512 GB SSD, preferred 48 GB / 1 TB.</td></tr>
     <tr><td><strong>Scope by job title</strong></td><td>Grade runs against the holder's title. Engineers only for now.</td></tr>
-    <tr><td><strong>Macs first</strong></td><td>Grading and Phase 2 telemetry start on Macs; Windows follows.</td></tr>
-    <tr><td><strong>Phase 2 telemetry</strong></td><td>Confirmed as the next step after v1, not dropped.</td></tr>
-    <tr><td><strong>Cadence</strong></td><td>A quarterly routine, not weekly.</td></tr>
+    <tr><td><strong>Macs first</strong></td><td>Grading leads with Macs; Windows follows.</td></tr>
+    <tr><td><strong>No machine access</strong></td><td>On-device telemetry ruled out. We ask holders, twice a year, instead.</td></tr>
+    <tr><td><strong>Cadence</strong></td><td>Grading routine quarterly; the self-report survey twice a year.</td></tr>
   </table>
   <h4>Still open</h4>
   <ul>
@@ -231,7 +231,7 @@
   </ul>
   <h4>Out of scope for v1</h4>
   <ul>
-    <li>On-device telemetry, which is Phase 2.</li>
+    <li>On-device telemetry. Ruled out; we ask holders instead (see Phase 2).</li>
     <li>Automated procurement. The agent recommends; humans buy.</li>
     <li>Grading monitors, peripherals, and non-engineer machines. v1 focuses on engineer laptops, where the work happens.</li>
   </ul>

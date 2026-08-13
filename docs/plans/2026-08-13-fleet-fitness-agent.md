@@ -76,9 +76,24 @@ engineer floor" note next to the spec fields on save.
 
 ---
 
-## Phase 2 (later): on-device telemetry
+## PR 3: `feat/equipment-check` (built) — twice-a-year self-report
 
-Out of scope here. A lightweight reporter on each engineer Mac sends memory pressure, free
-disk, thermal, and toolchain drift to a new snapshot table, turning static specs into a
-live feed. Confirmed as the next step after v1; Macs first. Needs its own plan once PR 1
-and PR 2 are in.
+On-device telemetry was considered and **ruled out**: we do not access anyone's computer.
+Instead, twice a year every equipment holder self-reports the state of their machines, and
+that human signal sits next to the spec grade.
+
+- **`company_os.equipment_check`** (migration `20260813120000_equipment_check.sql`): one row
+  per holder-item-cycle. Cycle is the implicit half-year (`2026-H2`), resetting 1 Jan / 1 Jul.
+- **`lib/admin/equipment-check.ts`**: `currentCheckCycle`, `CHECK_TYPES` (laptop/desktop),
+  `CHECK_CONDITIONS`, `loadChecksByEquipment`.
+- **/team equipment page**: a "Twice-a-year equipment check" section shows a short form
+  (condition, holds-me-back, needs-upgrade, optional note) for each machine the holder owes
+  this cycle; submitted items drop off. `submitEquipmentCheck` forces `person_id` server-side
+  and confirms the item is actually held by the actor.
+- **Fleet Fitness page**: a "Self-report" column on the graded tables and a "Flagged by
+  holder" tile, so a machine someone still calls painful gets seen even if its spec passes.
+- **Biannual routine** `equipment-check-biannual` (1 Jan / 1 Jul): opens the cycle and nudges
+  each holder over Lark with a link. Everyone with a machine is asked, not just engineers.
+
+**Done when.** A holder sees the check on /team, submits it, and the answer appears in the
+Self-report column on the Fitness page; a second submit for the same machine is refused.
