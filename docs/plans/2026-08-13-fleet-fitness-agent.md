@@ -76,15 +76,23 @@ engineer floor" note next to the spec fields on save.
 
 ---
 
-## Phase 2 (to build): equipment pulse via the survey system
+## Phase 2 (built): Team Pulse survey
 
-On-device telemetry was considered and **ruled out**: we do not access anyone's computer.
-The pulse is a twice-a-year self-report, and because it is a survey it must run on the
-**existing survey system** (`company_os.surveys` / `survey_fields` / `survey_responses`,
-the admin SurveyBuilder, and the public `/surveys/[slug]` form). No new tables, no bespoke
-form. One radio question ("how is it doing?": awesome / ok, may need upgrading / slows me
-down) plus an optional note, with a field to identify the machine (asset tag), sent twice a
-year over Lark. To be designed against the survey system before any code.
+On-device telemetry was **ruled out** (no computer access), and so was a bespoke equipment
+table (PR #626, reverted #629). Equipment is now one question in a short, person-linked
+**Team Pulse** that also reads work, manager, and team, on the existing survey system. No
+new tables, no new form.
 
-Note: an earlier attempt built this as a bespoke `equipment_check` table and /team form
-(PR #626); it was reverted for bloat. Reuse the survey system instead.
+- **Migration** `20260813140000_team_pulse_survey.sql` seeds one survey (`team-pulse`,
+  `purpose = 'team_pulse'`, not anonymous) and six `survey_fields`: three agree/disagree
+  ratings (work, manager, team), one `single_choice` on the machine (awesome / ok, may need
+  upgrading / slows me down), and two optional `long_text` notes. Idempotent.
+- **Reuse only.** The public runner at `/surveys/team-pulse`, person attribution
+  (`lib/survey-identity.ts` links a logged-in team member's response to their people row),
+  and the admin results view all already exist. `purpose = 'team_pulse'` is not special-cased,
+  so it takes the normal survey flow and writes person-linked `survey_responses`.
+- **Cadence.** A scheduled task (`team-pulse-biannual`, 15 Jan / 15 Jul) sends the link over
+  Lark to every active team member. Everyone on the team, not just engineers.
+
+**Done when.** `/surveys/team-pulse` renders all six questions publicly (verified on prod,
+HTTP 200), and a submitted response lands in the survey results with the respondent attached.
