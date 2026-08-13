@@ -52,22 +52,34 @@ export const LEVEL_EXPECTATION: Record<string, number> = {
   principal: 4,
 };
 
-// Which seeded survey captures which row.
+// Two forms feed the one performance_reviews table: the team member's
+// self-assessment, and the manager's review. The manager form is the same for
+// every cycle type; its decision section is shown or hidden per review_type at
+// render time (see visibleReviewFields), so there is one manager survey, not
+// one per type.
 const SELF_SLUG = "perf-review-self";
-const MANAGER_SLUGS: Partial<Record<ReviewType, string>> = {
-  probation: "perf-review-manager-probation",
-  midyear: "perf-review-manager-midyear",
-  renewal: "perf-review-manager-renewal",
-  // adhoc reviews carry no scheduled decision; the probation-shaped form is
-  // not right for them, so they reuse the self field set via the self survey.
-};
+const MANAGER_SLUG = "perf-review-manager";
 
 export function reviewSurveySlug(row: { rater_kind: string; review_type: string }): string {
-  if (row.rater_kind === "self") return SELF_SLUG;
-  return MANAGER_SLUGS[row.review_type as ReviewType] ?? SELF_SLUG;
+  return row.rater_kind === "self" ? SELF_SLUG : MANAGER_SLUG;
 }
 
-export const PERFORMANCE_REVIEW_SLUGS = new Set([SELF_SLUG, ...Object.values(MANAGER_SLUGS)]);
+export const PERFORMANCE_REVIEW_SLUGS = new Set([SELF_SLUG, MANAGER_SLUG]);
+
+// The manager form carries every decision field; keep only the ones whose
+// config.show_when.types includes this cycle (fields without show_when always
+// show). Applied identically in the survey page and the submit API so a hidden
+// required field never blocks a submit. The self form has no gated fields, so
+// this is a no-op there.
+export function visibleReviewFields<T extends { config: { show_when?: { types?: string[] } } | null }>(
+  fields: T[],
+  reviewType: string,
+): T[] {
+  return fields.filter((f) => {
+    const types = f.config?.show_when?.types;
+    return !types || types.includes(reviewType);
+  });
+}
 
 // Survey decision labels -> stored enum.
 const DECISION_BY_LABEL: Record<string, string> = {

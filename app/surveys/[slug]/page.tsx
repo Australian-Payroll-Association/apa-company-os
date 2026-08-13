@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { resolveSurveyActor } from "@/lib/survey-identity";
 import { isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
-import { getReviewRunContext } from "@/lib/reviews";
+import { getReviewRunContext, visibleReviewFields } from "@/lib/reviews";
 import type { SurveyFieldRow, SurveyRow } from "@/lib/admin/surveys";
 import { SurveyRunner } from "./SurveyRunner";
 import styles from "./survey.module.css";
@@ -85,6 +85,12 @@ export default async function PublicSurveyPage({
       .select("id, survey_id, position, type, label, help_text, required, config")
       .eq("survey_id", survey.id)
       .order("position", { ascending: true });
+    // The manager form carries every decision field; show only the ones this
+    // cycle uses (self form has none, so this is a no-op there).
+    const reviewFields = visibleReviewFields(
+      (reviewFieldsData ?? []) as SurveyFieldRow[],
+      ctx.review.review_type,
+    );
     return (
       <main className={styles.page}>
         <SurveyRunner
@@ -93,7 +99,7 @@ export default async function PublicSurveyPage({
           introText={survey.intro_text ?? survey.description}
           thankYouText={survey.thank_you_text}
           isAnonymous={false}
-          fields={(reviewFieldsData ?? []) as SurveyFieldRow[]}
+          fields={reviewFields}
           actorName={null}
           needIdentity={false}
           reviewId={ctx.review.id}

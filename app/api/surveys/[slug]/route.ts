@@ -7,7 +7,7 @@ import { validateAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 import { processOnboardingSubmission } from "@/lib/onboarding";
 import { processProbationReview, recordDay8Response } from "@/lib/onboarding-cycle";
 import { backfillCompanyIndustry, isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
-import { applyReviewSubmission, getReviewRunContext } from "@/lib/reviews";
+import { applyReviewSubmission, getReviewRunContext, visibleReviewFields } from "@/lib/reviews";
 
 export const runtime = "nodejs";
 
@@ -54,9 +54,12 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       if (ctx === "closed")
         return NextResponse.json({ error: "This review was already submitted." }, { status: 409 });
 
+      // Validate only the fields this cycle shows — the manager form's hidden
+      // decision fields (wrong type) must not count as missing-required.
+      const reviewFields = visibleReviewFields(fields, ctx.review.review_type);
       const rawReviewAnswers = (body.answers ?? {}) as Record<string, unknown>;
       const validated = new Map<string, { value: string; value_json: unknown }>();
-      for (const field of fields) {
+      for (const field of reviewFields) {
         const v = validateAnswer(field, rawReviewAnswers[field.id]);
         if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
         if (v.skip) continue;
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       if (validated.size === 0)
         return NextResponse.json({ error: "The response is empty." }, { status: 400 });
 
-      const applied = await applyReviewSubmission(ctx.review, fields, validated);
+      const applied = await applyReviewSubmission(ctx.review, reviewFields, validated);
       if (!applied.ok) return NextResponse.json({ error: applied.error }, { status: 409 });
       return NextResponse.json({ ok: true });
     }

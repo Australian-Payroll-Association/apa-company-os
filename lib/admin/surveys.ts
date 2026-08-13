@@ -66,6 +66,11 @@ export type FieldConfig = {
   // Performance reviews: draw the "expected for level" marker on this scale
   // (the level itself comes from the subject's team_members.career_level).
   expected_marker?: boolean;
+  // Performance reviews: conditional visibility. The one manager form carries
+  // every decision field; `types` limits a field to those review_type values
+  // (e.g. the probation decision shows only on a probation review). Absent =
+  // always shown. Filtered in the survey page and API (see visibleReviewFields).
+  show_when?: { types?: string[] };
 };
 
 export type SurveyRow = {

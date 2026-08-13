@@ -10,7 +10,7 @@ import { sendTransactionalEmail } from "@/lib/email";
 import { setPersonAvatar, type AvatarResult } from "@/lib/avatars";
 import { upsertPeopleSensitive, type SensitiveInput } from "@/lib/admin/people-sensitive";
 import { saveSalaryChange as recordSalaryChange } from "@/lib/admin/compensation";
-import { openReviewCycle } from "@/lib/reviews";
+import { openReviewCycle, reviewSurveySlug } from "@/lib/reviews";
 
 type Result = { ok: true; message: string } | { ok: false; error: string };
 
@@ -205,16 +205,8 @@ export async function sendReviewNow(
   });
 
   const typeName = REVIEW_TYPE_NAMES[reviewType] ?? "Performance review";
-  const selfLink = `${SITE_ORIGIN}/surveys/perf-review-self?review=${cycle.selfId}`;
-  const managerSlug =
-    reviewType === "probation"
-      ? "perf-review-manager-probation"
-      : reviewType === "midyear"
-        ? "perf-review-manager-midyear"
-        : reviewType === "renewal"
-          ? "perf-review-manager-renewal"
-          : "perf-review-self";
-  const managerLink = `${SITE_ORIGIN}/surveys/${managerSlug}?review=${cycle.managerId}`;
+  const selfLink = `${SITE_ORIGIN}/surveys/${reviewSurveySlug({ rater_kind: "self", review_type: reviewType })}?review=${cycle.selfId}`;
+  const managerLink = `${SITE_ORIGIN}/surveys/${reviewSurveySlug({ rater_kind: "manager", review_type: reviewType })}?review=${cycle.managerId}`;
 
   if (subjectPerson?.email) {
     await sendTransactionalEmail({
