@@ -9,6 +9,11 @@ import { SurveyRunner } from "./SurveyRunner";
 import styles from "./survey.module.css";
 
 export const dynamic = "force-dynamic";
+// force-dynamic alone does not stop the Supabase reads below from being served
+// from Next's Data Cache, so an edited or deleted survey can keep rendering its
+// old form. Opt every fetch on this route out of the cache so survey state is
+// always read live.
+export const fetchCache = "force-no-store";
 
 // Survey links are shared directly; keep them out of search engines.
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
