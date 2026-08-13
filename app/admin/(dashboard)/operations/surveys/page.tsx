@@ -16,12 +16,15 @@ type Row = {
   slug: string;
   name: string;
   status: string;
-  is_anonymous: boolean;
   updated_at: string;
-  survey_responses: { count: number }[];
+  response_count: number;
+  last_response_at: string | null;
 };
 
 const BASE = "/admin/operations/surveys";
+const SORTABLE = ["name", "status", "updated_at", "response_count", "last_response_at"];
+// A survey counts as having "new" responses if its latest one landed within a week.
+const NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default async function SurveysPage({
   searchParams,
@@ -33,13 +36,13 @@ export default async function SurveysPage({
 
   const [list, total, published, responses] = await Promise.all([
     listEntity<Row>(
-      "surveys",
-      "id, slug, name, status, is_anonymous, updated_at, survey_responses(count)",
+      "survey_list",
+      "id, slug, name, status, updated_at, response_count, last_response_at",
       {
         page: Number(firstParam(searchParams.page) ?? 1),
         search: firstParam(searchParams.q),
         searchColumns: ["name", "slug"],
-        sort: ["name", "status", "updated_at"].includes(sort) ? sort : "updated_at",
+        sort: SORTABLE.includes(sort) ? sort : "updated_at",
         dir,
         excludeArchived: true,
       },
@@ -49,7 +52,8 @@ export default async function SurveysPage({
     countEntity("survey_responses"),
   ]);
 
-  const responseCount = (r: Row) => r.survey_responses?.[0]?.count ?? 0;
+  const isRecent = (ts: string | null) =>
+    !!ts && Date.now() - new Date(ts).getTime() < NEW_WINDOW_MS;
 
   const columns: Column<Row>[] = [
     {
@@ -69,15 +73,26 @@ export default async function SurveysPage({
       cell: (r) => <Badge tone={surveyStatusTone(r.status)}>{r.status}</Badge>,
     },
     {
-      key: "is_anonymous",
-      header: "Anonymous",
-      cell: (r) => (r.is_anonymous ? <Badge tone="info">anonymous</Badge> : "—"),
-    },
-    {
-      key: "responses",
+      key: "response_count",
       header: "Responses",
       align: "right",
-      cell: (r) => <span className="admin-cell-mono">{responseCount(r)}</span>,
+      sortable: true,
+      cell: (r) => <span className="admin-cell-mono">{r.response_count}</span>,
+    },
+    {
+      key: "last_response_at",
+      header: "Last response",
+      sortable: true,
+      cell: (r) => (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          {formatDate(r.last_response_at)}
+          {isRecent(r.last_response_at) && (
+            <Badge tone="ok" dot>
+              new
+            </Badge>
+          )}
+        </span>
+      ),
     },
     {
       key: "updated_at",
