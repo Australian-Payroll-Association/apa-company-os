@@ -2,8 +2,11 @@ import { companyOs } from "@/lib/supabase";
 
 // Server-only QuickBooks Online client. NEVER import from a client component.
 //
-// One connection (Talent Edge LLC), stored in the single-row
-// company_os.qbo_connection table. OAuth quirks that shape this module:
+// Two connections, one row each in company_os.qbo_connection, keyed by
+// entity: 'edge8' (Talent Edge LLC — private retreats + client work billing)
+// and 'aio' (public retreats). One Intuit app authorizes both; each company
+// has its own realm_id + token set. Callers that predate the second company
+// pass nothing and default to 'edge8'. OAuth quirks that shape this module:
 //  - access tokens last ~60 min; refresh tokens ROTATE on every refresh and
 //    die ~100 days after issue. An unpersisted rotation bricks the
 //    connection, so the refresh write is a conditional update keyed on the
@@ -25,6 +28,12 @@ const API_BASE =
 const TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
 const MINOR_VERSION = "75";
+
+// Which QuickBooks company a call targets. The row id in qbo_connection IS
+// this string. 'edge8' is the original connection (migrated from the old
+// 'default' row id); 'aio' is the public-retreats company.
+export type QboEntity = "edge8" | "aio";
+const DEFAULT_ENTITY: QboEntity = "edge8";
 
 type ConnectionRow = {
   id: string;
@@ -57,11 +66,11 @@ export function qboConfigured(): boolean {
   return Boolean(process.env.QBO_CLIENT_ID && process.env.QBO_CLIENT_SECRET && process.env.QBO_REDIRECT_URI);
 }
 
-async function loadConnection(): Promise<ConnectionRow | null> {
+async function loadConnection(entity: QboEntity): Promise<ConnectionRow | null> {
   const { data, error } = await companyOs
     .from("qbo_connection")
     .select("*")
-    .eq("id", "default")
+    .eq("id", entity)
     .maybeSingle();
   if (error) {
     console.error("[qbo] connection load failed:", error.message);
@@ -70,8 +79,10 @@ async function loadConnection(): Promise<ConnectionRow | null> {
   return (data as ConnectionRow | null) ?? null;
 }
 
-export async function getQboConnectionStatus(): Promise<QboConnectionStatus> {
-  const conn = await loadConnection();
+export async function getQboConnectionStatus(
+  entity: QboEntity = DEFAULT_ENTITY,
+): Promise<QboConnectionStatus> {
+  const conn = await loadConnection(entity);
   if (!conn) return { connected: false };
   return {
     connected: true,
@@ -139,6 +150,7 @@ export async function exchangeQboCode(
   code: string,
   realmId: string,
   connectedBy: string,
+  entity: QboEntity = DEFAULT_ENTITY,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const tokens = await requestTokens(
     new URLSearchParams({
@@ -150,7 +162,7 @@ export async function exchangeQboCode(
   if ("error" in tokens) return { ok: false, error: tokens.error };
 
   const { error } = await companyOs.from("qbo_connection").upsert({
-    id: "default",
+    id: entity,
     realm_id: realmId,
     environment: QBO_ENV,
     connected_by: connectedBy,
@@ -162,8 +174,10 @@ export async function exchangeQboCode(
 
 // Refresh-on-demand with rotation safety. Returns a usable access token +
 // realm id, or null when disconnected/expired (callers degrade, never throw).
-async function getAccessToken(): Promise<{ accessToken: string; realmId: string } | null> {
-  const conn = await loadConnection();
+async function getAccessToken(
+  entity: QboEntity,
+): Promise<{ accessToken: string; realmId: string } | null> {
+  const conn = await loadConnection(entity);
   if (!conn) return null;
 
   // Fresh enough — use as-is (2 min headroom for the API call itself).
@@ -178,7 +192,7 @@ async function getAccessToken(): Promise<{ accessToken: string; realmId: string 
     // invalid_grant = the refresh token is dead (expired or superseded by a
     // rotation we lost) — a concurrent lambda may have refreshed first, so
     // re-read before giving up.
-    const reread = await loadConnection();
+    const reread = await loadConnection(entity);
     if (reread && reread.refresh_token !== conn.refresh_token) {
       return { accessToken: reread.access_token, realmId: reread.realm_id };
     }
@@ -192,13 +206,13 @@ async function getAccessToken(): Promise<{ accessToken: string; realmId: string 
   const { data: updated, error } = await companyOs
     .from("qbo_connection")
     .update(tokenRow(tokens))
-    .eq("id", "default")
+    .eq("id", entity)
     .eq("refresh_token", conn.refresh_token)
     .select("id");
   if (error) console.error("[qbo] token persist failed:", error.message);
   if (!error && (updated ?? []).length === 0) {
     // Lost the race — use the winner's tokens.
-    const winner = await loadConnection();
+    const winner = await loadConnection(entity);
     if (winner) return { accessToken: winner.access_token, realmId: winner.realm_id };
   }
   return { accessToken: tokens.access_token, realmId: conn.realm_id };
@@ -206,8 +220,10 @@ async function getAccessToken(): Promise<{ accessToken: string; realmId: string 
 
 // Exported for the weekly keepalive cron: refreshes tokens so the ~100-day
 // refresh-token idle expiry never hits between invoices.
-export async function refreshQboTokens(): Promise<{ ok: boolean; error?: string }> {
-  const conn = await loadConnection();
+export async function refreshQboTokens(
+  entity: QboEntity = DEFAULT_ENTITY,
+): Promise<{ ok: boolean; error?: string }> {
+  const conn = await loadConnection(entity);
   if (!conn) return { ok: false, error: "not connected" };
   const tokens = await requestTokens(
     new URLSearchParams({ grant_type: "refresh_token", refresh_token: conn.refresh_token }),
@@ -216,7 +232,7 @@ export async function refreshQboTokens(): Promise<{ ok: boolean; error?: string 
   const { error } = await companyOs
     .from("qbo_connection")
     .update(tokenRow(tokens))
-    .eq("id", "default")
+    .eq("id", entity)
     .eq("refresh_token", conn.refresh_token);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -225,8 +241,9 @@ export async function refreshQboTokens(): Promise<{ ok: boolean; error?: string 
 async function qboFetch(
   path: string,
   init: RequestInit,
+  entity: QboEntity = DEFAULT_ENTITY,
 ): Promise<{ ok: true; json: Record<string, unknown> } | { ok: false; error: string }> {
-  const auth = await getAccessToken();
+  const auth = await getAccessToken(entity);
   if (!auth) return { ok: false, error: "QuickBooks is not connected (reconnect at /admin/settings/quickbooks)." };
 
   try {

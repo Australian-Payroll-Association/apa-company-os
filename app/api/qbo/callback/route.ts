@@ -23,11 +23,13 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
 
   const cookieState = cookies().get("qbo_oauth_state")?.value;
+  const entity = cookies().get("qbo_oauth_entity")?.value === "aio" ? "aio" : "edge8";
   cookies().delete("qbo_oauth_state");
+  cookies().delete("qbo_oauth_entity");
   if (!state || !cookieState || state !== cookieState) return settingsUrl("state_mismatch");
   if (!code || !realmId) return settingsUrl("missing_code");
 
-  const result = await exchangeQboCode(code, realmId, admin.email);
+  const result = await exchangeQboCode(code, realmId, admin.email, entity);
   if (!result.ok) {
     console.error("[qbo/callback] exchange failed:", result.error);
     return settingsUrl("error");
@@ -35,7 +37,7 @@ export async function GET(request: Request) {
 
   await recordAudit({
     table: "qbo_connection",
-    recordId: "default",
+    recordId: entity,
     operation: "update",
     actor: admin.email,
     newData: { realm_id: realmId },

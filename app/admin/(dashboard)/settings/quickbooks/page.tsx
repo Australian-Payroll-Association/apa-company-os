@@ -1,9 +1,14 @@
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getQboConnectionStatus, qboConfigured } from "@/lib/qbo";
+import { getQboConnectionStatus, qboConfigured, type QboEntity } from "@/lib/qbo";
 import { formatDate } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+
+const CONNECTIONS: { entity: QboEntity; label: string; sub: string }[] = [
+  { entity: "edge8", label: "Edge8 (Talent Edge LLC)", sub: "Private retreats + client work-request billing." },
+  { entity: "aio", label: "AIO", sub: "Public retreats." },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +32,7 @@ const STATUS_MESSAGE: Record<string, { tone: "ok" | "err"; text: string }> = {
 // accountant email until reconnected.
 export default async function QuickBooksSettingsPage({ searchParams }: { searchParams: SearchParamsObj }) {
   await requireAdmin();
-  const status = await getQboConnectionStatus();
+  const statuses = await Promise.all(CONNECTIONS.map((c) => getQboConnectionStatus(c.entity)));
   const flash = STATUS_MESSAGE[firstParam(searchParams.status) ?? ""] ?? null;
 
   return (
@@ -35,7 +40,7 @@ export default async function QuickBooksSettingsPage({ searchParams }: { searchP
       <PageHead
         eyebrow="Settings"
         title="QuickBooks"
-        sub="Automatic client invoicing for portal work requests."
+        sub="One connection per company: Edge8 for client billing and private retreats, AIO for public retreats."
       />
 
       {flash && (
@@ -44,35 +49,40 @@ export default async function QuickBooksSettingsPage({ searchParams }: { searchP
         </div>
       )}
 
-      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
-          Connection {status.connected ? <Badge tone="ok">Connected</Badge> : <Badge tone="warn">Not connected</Badge>}
-        </h2>
-        {status.connected ? (
-          <dl className="admin-kv">
-            <dt>Realm</dt>
-            <dd className="admin-cell-mono">{status.realmId}</dd>
-            <dt>Environment</dt>
-            <dd>{status.environment}</dd>
-            <dt>Connected by</dt>
-            <dd>{status.connectedBy}</dd>
-            <dt>Last token refresh</dt>
-            <dd>{formatDate(status.updatedAt)}</dd>
-            <dt>Refresh token expires</dt>
-            <dd>{formatDate(status.refreshTokenExpiresAt)} (auto-renewed weekly)</dd>
-          </dl>
-        ) : (
-          <p className="admin-page-sub" style={{ margin: 0 }}>
-            Until QuickBooks is connected, accepted portal work is flagged for manual invoicing and the
-            accountant is emailed the details instead.
-          </p>
-        )}
-        <div style={{ marginTop: 14 }}>
-          <a href="/api/qbo/connect" className="admin-btn admin-btn--primary">
-            {status.connected ? "Reconnect" : "Connect QuickBooks"}
-          </a>
-        </div>
-      </div>
+      {CONNECTIONS.map((conn, i) => {
+        const status = statuses[i];
+        return (
+          <div key={conn.entity} className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+            <h2 className="admin-card-title" style={{ marginBottom: 4 }}>
+              {conn.label} {status.connected ? <Badge tone="ok">Connected</Badge> : <Badge tone="warn">Not connected</Badge>}
+            </h2>
+            <p className="admin-page-sub" style={{ marginTop: 0, marginBottom: 10 }}>{conn.sub}</p>
+            {status.connected ? (
+              <dl className="admin-kv">
+                <dt>Realm</dt>
+                <dd className="admin-cell-mono">{status.realmId}</dd>
+                <dt>Environment</dt>
+                <dd>{status.environment}</dd>
+                <dt>Connected by</dt>
+                <dd>{status.connectedBy}</dd>
+                <dt>Last token refresh</dt>
+                <dd>{formatDate(status.updatedAt)}</dd>
+                <dt>Refresh token expires</dt>
+                <dd>{formatDate(status.refreshTokenExpiresAt)} (auto-renewed weekly)</dd>
+              </dl>
+            ) : (
+              <p className="admin-page-sub" style={{ margin: 0 }}>
+                Not connected. Click Connect and pick the {conn.label} company in Intuit&rsquo;s picker.
+              </p>
+            )}
+            <div style={{ marginTop: 14 }}>
+              <a href={`/api/qbo/connect?entity=${conn.entity}`} className="admin-btn admin-btn--primary">
+                {status.connected ? "Reconnect" : "Connect QuickBooks"}
+              </a>
+            </div>
+          </div>
+        );
+      })}
 
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Setup notes</h2>
