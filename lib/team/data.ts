@@ -24,9 +24,6 @@ const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   // handed back (its custody row stays, but the item is someone else's).
   equipment: { column: "current_holder_id", scope: "person" },
   equipment_requests: { column: "person_id", scope: "person" },
-  // Twice-a-year self-report. Scoped to the person, so teamRead only ever
-  // returns your own submissions and teamInsertOwn forces person_id to you.
-  equipment_check: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {

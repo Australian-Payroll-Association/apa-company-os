@@ -46,13 +46,6 @@ export async function getMyEquipment(actor: TeamActor): Promise<MyEquipment[]> {
   return (data ?? []) as unknown as MyEquipment[];
 }
 
-// Equipment ids this person has already self-reported for the given cycle, so
-// the page shows the check form only on the machines still owed.
-export async function getSubmittedCheckIds(actor: TeamActor, cycle: string): Promise<Set<string>> {
-  const { data } = await teamRead(actor, "equipment_check", "equipment_id").eq("cycle", cycle);
-  return new Set(((data ?? []) as unknown as { equipment_id: string }[]).map((r) => r.equipment_id));
-}
-
 export async function getMyEquipmentRequests(actor: TeamActor): Promise<MyEquipmentRequest[]> {
   const { data } = await teamRead(
     actor,
