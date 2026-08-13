@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Team Tasks Kanban: UI mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Mockup only. Token values copied from app/globals.css (data layer) so this
+     previews faithfully as a standalone file; the real build reads the tokens. */
+  :root{
+    color-scheme:light;
+    --canvas:#F1F3F5; --surface:#FFFFFF; --surface-2:#F5F6F8;
+    --ink:#101014; --ink-2:#797c82; --muted:#9CA3AF;
+    --line:#E6E6E6; --line-soft:#F0F1F3; --line-strong:#D4DAE4;
+    --blue:#287BE8; --blue-strong:#1D6AD4; --blue-soft:#eaf2ff; --mint:#6FF2C1;
+    --ok-bg:#d8f3e8; --ok-ink:#157a5a;
+    --warn-bg:#fbf0cf; --warn-ink:#8a6a0f;
+    --err-bg:#fde4e4; --err-ink:#b0332f;
+    --info-bg:#e2ecfd; --info-ink:#1D6AD4;
+    --muted-bg:#F0F1F3; --muted-ink:#5c6178;
+    --radius:12px; --radius-sm:6px;
+    --elev-1:0 1px 2px rgba(4,16,45,.06),0 1px 3px rgba(4,16,45,.08);
+    --elev-modal:0 8px 16px rgba(4,16,45,.10),0 24px 56px rgba(4,16,45,.18);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:'Manrope',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+  .doc-head{margin-bottom:8px}
+  .doc-head .eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700}
+  .doc-head h1{font-size:22px; margin:4px 0 4px; letter-spacing:-.01em}
+  .doc-head p{color:var(--ink-2); margin:0; max-width:78ch}
+
+  .mock-label{
+    margin:34px 0 10px; display:flex; align-items:baseline; gap:10px;
+  }
+  .mock-label .tag{
+    font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    background:var(--ink); color:#fff; border-radius:var(--radius-sm); padding:3px 8px;
+  }
+  .mock-label h2{font-size:14px; margin:0}
+  .mock-label span{color:var(--muted); font-size:12px}
+
+  .screen{
+    background:var(--canvas); border:1px solid var(--line-strong); border-radius:var(--radius);
+    overflow:hidden; box-shadow:var(--elev-1);
+  }
+
+  /* faux OS chrome */
+  .os-top{
+    background:var(--surface); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:14px; padding:10px 16px;
+  }
+  .os-top .crumb{font-size:12px; color:var(--muted)}
+  .os-top .crumb b{color:var(--ink); font-weight:700}
+  .os-top .spacer{flex:1}
+  .btn{
+    appearance:none; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    font-family:inherit; font-size:12px; font-weight:600; padding:6px 12px; border-radius:var(--radius-sm); cursor:pointer;
+  }
+  .btn.primary{background:var(--blue); border-color:var(--blue); color:#fff}
+  .btn.small{padding:4px 9px; font-size:11.5px}
+
+  .page-head{padding:16px 16px 0}
+  .page-head h3{margin:0 0 2px; font-size:16px}
+  .page-head p{margin:0; color:var(--ink-2); font-size:12.5px}
+
+  /* tabs */
+  .tabs{display:flex; gap:2px; padding:12px 16px 0; border-bottom:1px solid var(--line); background:transparent}
+  .tab{
+    padding:7px 14px; font-size:12.5px; font-weight:600; color:var(--ink-2);
+    border:1px solid transparent; border-bottom:none; border-radius:8px 8px 0 0; cursor:pointer;
+  }
+  .tab.active{background:var(--surface); border-color:var(--line); color:var(--ink); position:relative; top:1px}
+  .tab .count{color:var(--muted); font-weight:600; font-variant-numeric:tabular-nums}
+  .filters{display:flex; gap:8px; align-items:center; padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--line)}
+  .filters .chip-filter{
+    border:1px solid var(--line); border-radius:9999px; padding:4px 11px; font-size:11.5px; font-weight:600; color:var(--ink-2); background:var(--surface);
+  }
+  .chip-filter.on{background:var(--blue-soft); border-color:#c9dbfc; color:var(--blue-strong)}
+  .filters .right{margin-left:auto; color:var(--muted); font-size:11.5px}
+
+  /* board */
+  .board{display:flex; gap:12px; padding:14px 16px 18px; overflow-x:auto; background:var(--canvas)}
+  .col{flex:0 0 208px; min-width:208px}
+  .col-head{display:flex; align-items:center; gap:6px; padding:2px 4px 8px}
+  .col-head b{font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:800}
+  .col-head .n{font-size:11px; color:var(--muted); background:var(--muted-bg); border-radius:9999px; padding:0 7px; font-variant-numeric:tabular-nums}
+  .col-body{display:flex; flex-direction:column; gap:8px; min-height:40px}
+
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:10px 11px 9px; cursor:grab;
+  }
+  .card:hover{border-color:var(--line-strong)}
+  .card.ghost{border-style:dashed; background:transparent; color:var(--muted); text-align:center; padding:12px; font-size:12px; cursor:default}
+  .card .t{font-weight:700; font-size:12.5px; line-height:1.35; margin-bottom:6px}
+  .chips{display:flex; flex-wrap:wrap; gap:4px; margin-bottom:7px}
+  .chip{
+    font-size:10.5px; font-weight:700; letter-spacing:.02em; border-radius:var(--radius-sm);
+    padding:1px 7px; border:1px solid transparent;
+  }
+  .chip.dept{background:var(--muted-bg); color:var(--muted-ink)}
+  .chip.dept.product{background:#101014; color:#fff}
+  .chip.src-roadmap{background:var(--warn-bg); color:var(--warn-ink)}
+  .chip.src-coaching{background:#fbe6f1; color:#b03571}
+  .chip.src-request{background:var(--info-bg); color:var(--info-ink)}
+  .chip.subs{background:var(--surface-2); color:var(--ink-2); border-color:var(--line)}
+  .chip.rollover{background:var(--err-bg); color:var(--err-ink)}
+  .chip.midsprint{background:var(--warn-bg); color:var(--warn-ink)}
+  .chip.blocked{background:var(--err-bg); color:var(--err-ink)}
+  .meta{display:flex; align-items:center; gap:8px}
+  .avatar{
+    width:20px; height:20px; border-radius:9999px; background:var(--blue-soft); color:var(--blue-strong);
+    font-size:9.5px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 20px;
+  }
+  .avatar.g2{background:#d8f3e8; color:#157a5a}
+  .avatar.g3{background:#fbf0cf; color:#8a6a0f}
+  .avatar.g4{background:#fbe6f1; color:#b03571}
+  .meta .due{font-size:11px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+  .meta .due.hot{color:var(--err-ink); font-weight:700}
+  .meta .pri{margin-left:auto; width:8px; height:8px; border-radius:9999px}
+  .pri.urgent{background:#b0332f} .pri.high{background:#8a6a0f} .pri.normal{background:var(--blue)} .pri.low{background:var(--muted)}
+
+  /* sprint lens extras */
+  .sprint-bar{
+    display:flex; align-items:center; gap:14px; padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--line);
+  }
+  .sprint-bar select{
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:6px 10px; border:1px solid var(--line);
+    border-radius:var(--radius-sm); background:var(--surface); color:var(--ink);
+  }
+  .sprint-bar .goal{font-size:12.5px; color:var(--ink-2)}
+  .sprint-bar .goal b{color:var(--ink)}
+  .sprint-bar .days{margin-left:auto; font-size:11.5px; font-weight:700; color:var(--blue-strong); background:var(--blue-soft); padding:3px 10px; border-radius:9999px; font-variant-numeric:tabular-nums}
+  .split{display:flex; align-items:flex-start; gap:0}
+  .backlog-rail{
+    flex:0 0 234px; border-right:1px solid var(--line); background:var(--surface); align-self:stretch; padding:14px 12px;
+  }
+  .backlog-rail h4{margin:0 0 2px; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+  .backlog-rail p{margin:0 0 10px; font-size:11px; color:var(--muted)}
+  .backlog-rail .card{margin-bottom:8px}
+  .pull{display:block; text-align:center; font-size:11px; font-weight:700; color:var(--blue-strong); background:var(--blue-soft); border-radius:var(--radius-sm); padding:4px; margin-top:6px}
+
+  /* modal */
+  .modal-stage{position:relative; padding:34px 16px 40px; background:rgba(16,16,20,.38)}
+  .modal{
+    max-width:660px; margin:0 auto; background:var(--surface); border-radius:var(--radius);
+    box-shadow:var(--elev-modal); overflow:hidden;
+  }
+  .modal-head{padding:18px 20px 0; display:flex; align-items:flex-start; gap:12px}
+  .modal-head h3{margin:0 0 3px; font-size:16px; line-height:1.3}
+  .modal-head .x{margin-left:auto; color:var(--muted); font-size:16px; cursor:pointer}
+  .modal-sub{padding:0 20px; color:var(--ink-2); font-size:12.5px}
+  .modal-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:14px 20px}
+  .field label{display:block; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:800; margin-bottom:3px}
+  .field .v{font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:6px}
+  .field .v select{font-family:inherit; font-size:12px; font-weight:700; padding:4px 8px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface)}
+  .subs-block{border-top:1px solid var(--line); padding:14px 20px 6px}
+  .subs-block .subs-head{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+  .subs-block h4{margin:0; font-size:12.5px}
+  .progress{flex:1; max-width:180px; height:6px; border-radius:9999px; background:var(--line-soft); overflow:hidden}
+  .progress i{display:block; height:100%; width:33%; background:var(--blue); border-radius:9999px}
+  .subs-head .pct{font-size:11.5px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+  .sub{display:flex; align-items:center; gap:10px; padding:8px 2px; border-top:1px solid var(--line-soft)}
+  .sub:first-of-type{border-top:none}
+  .cb{width:16px; height:16px; border-radius:5px; border:1.5px solid var(--line-strong); flex:0 0 16px}
+  .cb.done{background:var(--blue); border-color:var(--blue); position:relative}
+  .cb.done::after{content:"✓"; color:#fff; font-size:10px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+  .sub .st{flex:1; font-size:12.5px; font-weight:600}
+  .sub .st.done{color:var(--muted); text-decoration:line-through}
+  .sub .status-chip{font-size:10.5px; font-weight:700; border-radius:var(--radius-sm); padding:1px 7px}
+  .status-chip.doing{background:var(--info-bg); color:var(--info-ink)}
+  .status-chip.todo{background:var(--muted-bg); color:var(--muted-ink)}
+  .status-chip.donec{background:var(--ok-bg); color:var(--ok-ink)}
+  .sub .due{font-size:11px; color:var(--ink-2); font-variant-numeric:tabular-nums; width:56px; text-align:right}
+  .add-sub{display:flex; align-items:center; gap:8px; padding:9px 2px 12px; color:var(--muted); font-size:12px; font-weight:600}
+  .add-sub .cb{border-style:dashed}
+  .modal-foot{display:flex; gap:8px; padding:12px 20px 18px; border-top:1px solid var(--line); background:var(--surface-2)}
+  .modal-foot .right{margin-left:auto; display:flex; gap:8px}
+  .link-danger{color:var(--err-ink); font-size:12px; font-weight:600; align-self:center}
+
+  .note{margin-top:10px; font-size:12px; color:var(--ink-2)}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="doc-head">
+  <div class="eyebrow">Edge8 OS, mockup</div>
+  <h1>Team Tasks Kanban</h1>
+  <p>Three screens using the data-layer tokens (Manrope, 13px scale, flat resting cards, brand blue accent).
+  Companion to the build plan; the real build copies board mechanics from the existing deals and applications boards.</p>
+</div>
+
+<!-- ============ MOCKUP 1: central board ============ -->
+<div class="mock-label"><span class="tag">1</span><h2>Central board</h2><span>/team/tasks, the "All" tab: every department on one board</span></div>
+<div class="screen">
+  <div class="os-top"><span class="crumb">Edge8 OS · Team · <b>Tasks</b></span><span class="spacer"></span><button class="btn">My tasks</button><button class="btn primary">+ New task</button></div>
+  <div class="tabs">
+    <div class="tab active">All <span class="count">14</span></div>
+    <div class="tab">Operations <span class="count">9</span></div>
+    <div class="tab">Product <span class="count">5</span></div>
+  </div>
+  <div class="filters">
+    <span class="chip-filter on">All assignees</span>
+    <span class="chip-filter">Mine</span>
+    <span class="chip-filter">My reports</span>
+    <span class="right">Open-book: you can see everything, edit your own</span>
+  </div>
+  <div class="board">
+    <div class="col">
+      <div class="col-head"><b>Backlog</b><span class="n">3</span></div>
+      <div class="col-body">
+        <div class="card">
+          <div class="t">Bstore: MYOB Acumatica API research spike</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip src-roadmap">Roadmap · Bstore F1</span></div>
+          <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Standardise laptop spec for new engineers</div>
+          <div class="chips"><span class="chip dept">Operations</span></div>
+          <div class="meta"><span class="avatar g2">MP</span><span class="pri low"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Portal invoices page v1</div>
+          <div class="chips"><span class="chip dept product">Product</span></div>
+          <div class="meta"><span class="avatar g3">QC</span><span class="pri normal"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-head"><b>Todo</b><span class="n">4</span></div>
+      <div class="col-body">
+        <div class="card">
+          <div class="t">Buy replacement monitor for design pod</div>
+          <div class="chips"><span class="chip dept">Operations</span></div>
+          <div class="meta"><span class="avatar g2">MP</span><span class="due">Aug 20</span><span class="pri high"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">On Target: client data export</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip src-request">Work request</span></div>
+          <div class="meta"><span class="avatar g4">LA</span><span class="due">Aug 18</span><span class="pri urgent"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Ship the client report template</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip src-coaching">Coaching</span></div>
+          <div class="meta"><span class="avatar g3">QC</span><span class="due">Aug 26</span><span class="pri normal"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Kanban drag on mobile</div>
+          <div class="chips"><span class="chip dept product">Product</span></div>
+          <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-head"><b>In progress</b><span class="n">3</span></div>
+      <div class="col-body">
+        <div class="card">
+          <div class="t">Run the Sydney retreat, Aug 31 to Sept 1</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip subs">☑ 1/3</span></div>
+          <div class="meta"><span class="avatar g3">QC</span><span class="due">Sept 1</span><span class="pri high"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Sprint close screen</div>
+          <div class="chips"><span class="chip dept product">Product</span></div>
+          <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Vendor comparison: team headsets</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip blocked">Blocked</span></div>
+          <div class="meta"><span class="avatar g2">MP</span><span class="due hot">Aug 14</span><span class="pri normal"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-head"><b>Review</b><span class="n">2</span></div>
+      <div class="col-body">
+        <div class="card">
+          <div class="t">Equipment register offboarding checklist</div>
+          <div class="chips"><span class="chip dept">Operations</span></div>
+          <div class="meta"><span class="avatar g4">LA</span><span class="pri normal"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Story: roadmap promote flow</div>
+          <div class="chips"><span class="chip dept product">Product</span><span class="chip subs">☑ 4/4</span></div>
+          <div class="meta"><span class="avatar g3">QC</span><span class="pri normal"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-head"><b>Done</b><span class="n">2</span></div>
+      <div class="col-body">
+        <div class="card">
+          <div class="t">Book Q3 all-hands venue</div>
+          <div class="chips"><span class="chip dept">Operations</span></div>
+          <div class="meta"><span class="avatar g2">MP</span><span class="pri low"></span></div>
+        </div>
+        <div class="card">
+          <div class="t">Wareease: weekly sync report automation</div>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip src-request">Work request</span></div>
+          <div class="meta"><span class="avatar g4">LA</span><span class="pri normal"></span></div>
+        </div>
+        <div class="card ghost">Archive clears done cards</div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note"><b>What to notice:</b> department chips only render on the All tab; source chips (Roadmap, amber · Work request, blue · Coaching, pink) mark cards that came in through an integration and link back to their record; the ☑ 1/3 chip is the subtask progress; the Coaching card shows only the title its owner chose to publish.</p>
+
+<!-- ============ MOCKUP 2: product sprint lens ============ -->
+<div class="mock-label"><span class="tag">2</span><h2>Product sprint lens</h2><span>the Product tab: same board, time-boxed, backlog rail on the left</span></div>
+<div class="screen">
+  <div class="os-top"><span class="crumb">Edge8 OS · Team · <b>Tasks</b></span><span class="spacer"></span><button class="btn">Close sprint</button><button class="btn primary">+ New story</button></div>
+  <div class="tabs">
+    <div class="tab">All <span class="count">14</span></div>
+    <div class="tab">Operations <span class="count">9</span></div>
+    <div class="tab active">Product <span class="count">5</span></div>
+  </div>
+  <div class="sprint-bar">
+    <select><option>Sprint 12 · Aug 17 to Aug 28</option></select>
+    <span class="goal"><b>Goal:</b> client portal invoices end to end</span>
+    <span class="days">8 days left</span>
+  </div>
+  <div class="split">
+    <div class="backlog-rail">
+      <h4>Product backlog</h4>
+      <p>Un-sprinted stories. Integrations land here, never in the active sprint.</p>
+      <div class="card">
+        <div class="t">Portal invoices page v1</div>
+        <div class="chips"><span class="chip src-roadmap">Roadmap · WH R2</span></div>
+        <div class="meta"><span class="avatar g3">QC</span><span class="pri normal"></span></div>
+        <span class="pull">Pull into Sprint 12 →</span>
+      </div>
+      <div class="card">
+        <div class="t">Notifications on assignment</div>
+        <div class="meta"><span class="avatar">DH</span><span class="pri low"></span></div>
+        <span class="pull">Pull into Sprint 12 →</span>
+      </div>
+    </div>
+    <div class="board" style="flex:1">
+      <div class="col">
+        <div class="col-head"><b>Todo</b><span class="n">2</span></div>
+        <div class="col-body">
+          <div class="card">
+            <div class="t">Kanban drag on mobile</div>
+            <div class="chips"><span class="chip rollover">Rollover ×2</span></div>
+            <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+          </div>
+          <div class="card">
+            <div class="t">Invoice PDF export</div>
+            <div class="chips"><span class="chip midsprint">Added mid-sprint</span></div>
+            <div class="meta"><span class="avatar g3">QC</span><span class="pri high"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-head"><b>In progress</b><span class="n">1</span></div>
+        <div class="col-body">
+          <div class="card">
+            <div class="t">Sprint close screen</div>
+            <div class="chips"><span class="chip subs">☑ 2/3</span></div>
+            <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-head"><b>Review</b><span class="n">1</span></div>
+        <div class="col-body">
+          <div class="card">
+            <div class="t">Story: roadmap promote flow</div>
+            <div class="chips"><span class="chip subs">☑ 4/4</span></div>
+            <div class="meta"><span class="avatar g3">QC</span><span class="pri normal"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-head"><b>Done</b><span class="n">1</span></div>
+        <div class="col-body">
+          <div class="card">
+            <div class="t">Sprint schema + one-active index</div>
+            <div class="meta"><span class="avatar">DH</span><span class="pri normal"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note"><b>What to notice:</b> the sprint bar carries the goal and days left; Rollover ×2 (red) is the prioritisation signal from the plan; Added mid-sprint (amber) keeps scope creep visible at close; the backlog rail is where roadmap promotions and work requests land, and pulling them in is an explicit planning act. Backlog column is hidden here because the rail is the backlog.</p>
+
+<!-- ============ MOCKUP 3: card detail ============ -->
+<div class="mock-label"><span class="tag">3</span><h2>Card detail with subtasks</h2><span>the Sydney retreat, opened from mockup 1</span></div>
+<div class="screen">
+  <div class="modal-stage">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3>Run the Sydney retreat, Aug 31 to Sept 1</h3>
+          <div class="chips"><span class="chip dept">Operations</span><span class="chip subs">☑ 1/3</span></div>
+        </div>
+        <span class="x">✕</span>
+      </div>
+      <p class="modal-sub">Two-day client retreat in Sydney. Venue is confirmed; logistics tracked as subtasks below.</p>
+      <div class="modal-grid">
+        <div class="field"><label>Status</label><div class="v"><select><option>In progress</option></select></div></div>
+        <div class="field"><label>Assignee</label><div class="v"><span class="avatar g3">QC</span> Quan</div></div>
+        <div class="field"><label>Due</label><div class="v">Sept 1</div></div>
+        <div class="field"><label>Priority</label><div class="v"><span class="pri high" style="display:inline-block"></span>&nbsp;High</div></div>
+      </div>
+      <div class="subs-block">
+        <div class="subs-head">
+          <h4>Subtasks</h4>
+          <div class="progress"><i></i></div>
+          <span class="pct">1 of 3 done</span>
+        </div>
+        <div class="sub">
+          <span class="cb done"></span>
+          <span class="st done">Survey the participants</span>
+          <span class="status-chip donec">Done</span>
+          <span class="avatar g2">MP</span>
+          <span class="due">Aug 15</span>
+        </div>
+        <div class="sub">
+          <span class="cb"></span>
+          <span class="st">Buy the Mac Mini</span>
+          <span class="status-chip doing">In progress</span>
+          <span class="avatar g4">LA</span>
+          <span class="due">Aug 22</span>
+        </div>
+        <div class="sub">
+          <span class="cb"></span>
+          <span class="st">Book the plane</span>
+          <span class="status-chip todo">Todo</span>
+          <span class="avatar g3">QC</span>
+          <span class="due">Aug 25</span>
+        </div>
+        <div class="add-sub"><span class="cb"></span>Add a subtask…</div>
+      </div>
+      <div class="modal-foot">
+        <span class="link-danger">Archive</span>
+        <div class="right">
+          <button class="btn small">Detach subtask to card</button>
+          <button class="btn small primary">Mark done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note"><b>What to notice:</b> subtasks are real rows (own assignee, status, due date) rendered as a checklist, not board cards; each appears in its assignee's "My tasks"; Mark done with open subtasks triggers the per-subtask prompt from workflow W7; Detach turns a grown subtask into its own card. Names shown are illustrative.</p>
+
+</div>
+</body>
+</html>

@@ -16,6 +16,7 @@
     --teal:#0d9488; --teal-soft:#e2f5f2;
     --amber:#b45309; --amber-soft:#fef3e2;
     --purple:#7c3aed; --purple-soft:#f1eafe;
+    --rose:#be123c; --rose-soft:#fdeaef;
     --good:#0d9488; --warn:#b45309;
     --radius:14px; --shadow:0 1px 2px rgba(15,30,61,.05),0 8px 24px rgba(15,30,61,.06);
   }
@@ -45,6 +46,7 @@
   }
   .callout b{color:var(--ink)}
   .callout.good{border-left-color:var(--good)}
+  .callout.rose{border-left-color:var(--rose)}
   .panel{
     background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
     box-shadow:var(--shadow); padding:18px 18px 20px;
@@ -89,6 +91,7 @@
   .wf.teal .wf-id{background:var(--teal-soft); color:var(--teal)}
   .wf.amber .wf-id{background:var(--amber-soft); color:var(--amber)}
   .wf.purple .wf-id{background:var(--purple-soft); color:var(--purple)}
+  .wf.rose .wf-id{background:var(--rose-soft); color:var(--rose)}
   .wf h3{margin:0; font-size:15px; color:var(--navy)}
   .wf .wf-sub{font-size:12.5px; color:var(--muted); margin:6px 0 12px; max-width:80ch}
   .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:10px 0}
@@ -100,6 +103,7 @@
   .node small{color:var(--muted); font-size:11px; line-height:1.35; display:block; margin-top:2px}
   .node.terminal{background:var(--teal-soft); border-color:#bfe6dd}
   .node.entry{background:var(--blue-soft); border-color:#c9dbfc}
+  .node.gate{background:var(--rose-soft); border-color:#f3c6d2}
   .arrow{align-self:center; padding:0 8px; color:var(--muted); font-size:15px}
   .edges{margin-top:12px}
   .edges h4{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:12px 0 6px}
@@ -136,22 +140,29 @@
   <div class="eyebrow">Edge8 OS, build plan</div>
   <h1>Team Tasks Kanban</h1>
   <p class="sub">
-    A team-level task board on Edge8 OS. One table, one board component, three scoped views:
-    admin sees and manages everything, managers work their reports' lanes, team members work their own.
-    Client roadmap items and work requests feed the board instead of living beside it.
+    A team-level task board on Edge8 OS. One table, one board component, one central view and one view per department.
+    Admin sees and manages everything, managers work their reports' lanes, team members work their own.
+    Client roadmap items, work requests, and coaching commitments feed the board instead of living beside it.
+    Tasks carry one level of subtasks for composite work, and the product team runs its stories in sprints on the same table.
   </p>
   <div class="basis">
-    <span class="chip"><b>Date</b> 2026-08-12</span>
+    <span class="chip"><b>Date</b> 2026-08-12, updated 2026-08-13</span>
     <span class="chip"><b>Status</b> Plan, awaiting build</span>
-    <span class="chip"><b>Table</b> <span class="mono">company_os.team_tasks</span></span>
+    <span class="chip"><b>Tables</b> <span class="mono">company_os.team_tasks</span> + <span class="mono">company_os.sprints</span></span>
     <span class="chip"><b>Surfaces</b> /admin/operations/tasks + /team/tasks</span>
-    <span class="chip"><b>First team</b> Operations</span>
+    <span class="chip"><b>First departments</b> Operations, Product</span>
   </div>
   <div class="callout">
     <b>Interpretation of "roadmap items need to be moved":</b> a roadmap item is <b>promoted onto the board</b> as a linked task.
     The <span class="mono">client_backlog_items</span> row stays where it is (it is the client-facing record in the portal roadmap);
     the task carries a foreign key back to it. Nothing is duplicated and nothing disappears from the client's view.
-    If you meant physically migrating roadmap rows into the tasks table instead, flag it before Phase 3.
+    If you meant physically migrating roadmap rows into the tasks table instead, flag it before the roadmap phase.
+  </div>
+  <div class="callout rose">
+    <b>Coaching privacy boundary:</b> the coaching module was built with two-tier visibility and its migration states the
+    commitments ledger holds "commitments, never tasks". This plan keeps that invariant: the ledger stays the source of truth
+    inside coaching, and a commitment reaches the open-book board only when its owner explicitly sends it there,
+    with a board-facing title they control. Nothing from a 1-1 auto-publishes.
   </div>
 </header>
 
@@ -170,28 +181,52 @@
       <div class="why">Admin and managers assign anyone in scope; team members default to self-assignment.</div>
     </div>
     <div class="decision">
-      <div class="q">Board grouping</div>
-      <div class="a">Per team, starting with Operations</div>
-      <div class="why"><span class="mono">team</span> column with a CHECK constraint. New teams are a one-line migration.</div>
+      <div class="q">Board structure</div>
+      <div class="a">Central + per department</div>
+      <div class="why">One central board across all departments plus a filtered board per department. Same table, the <span class="mono">team</span> column decides the lane. Operations and Product first.</div>
+    </div>
+    <div class="decision">
+      <div class="q">Sprints</div>
+      <div class="a">Same table, sprint layer on top</div>
+      <div class="why">A <span class="mono">sprints</span> table plus a nullable <span class="mono">sprint_id</span> on tasks. Product runs time-boxed; other departments ignore the column entirely.</div>
     </div>
     <div class="decision">
       <div class="q">Integrations</div>
-      <div class="a">Roadmap items + work requests</div>
-      <div class="why">Both spawn linked tasks on the board. Coaching commitments stay out of v1.</div>
+      <div class="a">Roadmap items + work requests + coaching commitments</div>
+      <div class="why">All three spawn linked tasks on the board. Coaching is opt-in per commitment because of the privacy boundary above.</div>
+    </div>
+    <div class="decision">
+      <div class="q">Subtasks</div>
+      <div class="a">One level deep</div>
+      <div class="why">A parent task can carry subtasks, each with its own assignee, due date, and status. The board shows the parent card with a progress chip; subtasks live in its detail view.</div>
     </div>
   </div>
+</section>
+
+<!-- ============================ TASK SHAPES ============================ -->
+<section class="panel section-gap">
+  <h2>Task shapes by department</h2>
+  <p>One table serves three shapes of work. Nothing below needs a different data model; the shape is just which optional
+  columns are used.</p>
+  <ul>
+    <li><b>Operations one-off:</b> a single card with a due date. <i>"Buy the replacement monitor by Aug 20."</i> No sprint, no subtasks.</li>
+    <li><b>Operations composite:</b> a parent task with subtasks, each independently owned and dated. <i>"Run the Sydney retreat, Aug 31 to Sept 1"</i> with subtasks: 1. survey the participants, 2. buy the Mac Mini, 3. book the plane. The parent is the card on the board (showing 2/3 done); the subtasks are the checklist inside it, and each appears in its assignee's "My tasks".</li>
+    <li><b>Product story:</b> a task pulled into a sprint (<span class="mono">sprint_id</span> set). <i>"This week we have ten stories."</i> A story can also carry subtasks as its breakdown; rollover at sprint close moves the story and its open subtasks together.</li>
+  </ul>
+  <p>An operations manager ensuring the team has the best equipment works the composite shape: one standing parent per
+  initiative, subtasks per purchase, and the equipment register keeps custody once items arrive (that handoff stays manual in v1).</p>
 </section>
 
 <!-- ============================ DATA MODEL ============================ -->
 <section class="panel section-gap">
   <h2>Data model</h2>
-  <p>One new table following house conventions: <span class="mono">company_os</span> schema, RLS on with no policies,
+  <p>Two new tables following house conventions: <span class="mono">company_os</span> schema, RLS on with no policies,
   explicit <span class="mono">service_role</span> grant (without it the app cannot see the table), text statuses with CHECK,
   <span class="mono">sort_order</span> within a column, soft archive.</p>
 <pre><span class="k">create table</span> company_os.team_tasks (
   id               uuid <span class="k">primary key default</span> gen_random_uuid(),
   team             text <span class="k">not null default</span> <span class="s">'operations'</span>
-                     <span class="k">check</span> (team <span class="k">in</span> (<span class="s">'operations'</span>)),
+                     <span class="k">check</span> (team <span class="k">in</span> (<span class="s">'operations'</span>,<span class="s">'product'</span>)),
   title            text <span class="k">not null</span>,
   description      text,
   status           text <span class="k">not null default</span> <span class="s">'todo'</span>
@@ -202,11 +237,18 @@
   due_date         date,
   sort_order       int <span class="k">not null default</span> 0,
 
+  <span class="c">-- subtasks: one level deep (enforced server-side), children die with the parent</span>
+  parent_task_id   uuid <span class="k">references</span> company_os.team_tasks(id) <span class="k">on delete cascade</span>,
+
+  <span class="c">-- sprint container, used by product; null for un-sprinted work</span>
+  sprint_id        uuid <span class="k">references</span> company_os.sprints(id) <span class="k">on delete set null</span>,
+
   <span class="c">-- integration links: exactly one may be set, per source</span>
   source           text <span class="k">not null default</span> <span class="s">'manual'</span>
-                     <span class="k">check</span> (source <span class="k">in</span> (<span class="s">'manual'</span>,<span class="s">'roadmap'</span>,<span class="s">'work_request'</span>)),
+                     <span class="k">check</span> (source <span class="k">in</span> (<span class="s">'manual'</span>,<span class="s">'roadmap'</span>,<span class="s">'work_request'</span>,<span class="s">'coaching'</span>)),
   backlog_item_id  uuid <span class="k">references</span> company_os.client_backlog_items(id) <span class="k">on delete set null</span>,
   work_request_id  uuid <span class="k">references</span> company_os.work_requests(id) <span class="k">on delete set null</span>,
+  commitment_id    uuid <span class="k">references</span> company_os.coaching_commitments(id) <span class="k">on delete set null</span>,
 
   archived_at      timestamptz,
   archived_by      text,
@@ -214,12 +256,42 @@
   updated_at       timestamptz <span class="k">not null default</span> now()
 );
 
+<span class="k">create table</span> company_os.sprints (
+  id          uuid <span class="k">primary key default</span> gen_random_uuid(),
+  team        text <span class="k">not null default</span> <span class="s">'product'</span>
+                <span class="k">check</span> (team <span class="k">in</span> (<span class="s">'operations'</span>,<span class="s">'product'</span>)),
+  name        text <span class="k">not null</span>,                    <span class="c">-- 'Sprint 12', 'Aug 17-28'</span>
+  goal        text,                             <span class="c">-- the one-line sprint goal</span>
+  starts_on   date <span class="k">not null</span>,
+  ends_on     date <span class="k">not null</span>,
+  status      text <span class="k">not null default</span> <span class="s">'planned'</span>
+                <span class="k">check</span> (status <span class="k">in</span> (<span class="s">'planned'</span>,<span class="s">'active'</span>,<span class="s">'closed'</span>)),
+  created_at  timestamptz <span class="k">not null default</span> now(),
+  updated_at  timestamptz <span class="k">not null default</span> now(),
+  <span class="k">check</span> (ends_on &gt; starts_on)
+);
+
+<span class="c">-- one active sprint per team at a time</span>
+<span class="k">create unique index on</span> company_os.sprints (team) <span class="k">where</span> status = <span class="s">'active'</span>;
+
+<span class="k">create index on</span> company_os.team_tasks (parent_task_id) <span class="k">where</span> parent_task_id <span class="k">is not null</span>;
 <span class="k">create index on</span> company_os.team_tasks (team, status, sort_order) <span class="k">where</span> archived_at <span class="k">is null</span>;
 <span class="k">create index on</span> company_os.team_tasks (assignee_id) <span class="k">where</span> archived_at <span class="k">is null</span>;
+<span class="k">create index on</span> company_os.team_tasks (sprint_id) <span class="k">where</span> sprint_id <span class="k">is not null</span>;
 <span class="k">create index on</span> company_os.team_tasks (backlog_item_id) <span class="k">where</span> backlog_item_id <span class="k">is not null</span>;
+<span class="k">create index on</span> company_os.team_tasks (commitment_id) <span class="k">where</span> commitment_id <span class="k">is not null</span>;
 
 <span class="k">alter table</span> company_os.team_tasks <span class="k">enable row level security</span>;
-<span class="k">grant select, insert, update, delete on</span> company_os.team_tasks <span class="k">to</span> service_role;</pre>
+<span class="k">alter table</span> company_os.sprints <span class="k">enable row level security</span>;
+<span class="k">grant select, insert, update, delete on</span> company_os.team_tasks <span class="k">to</span> service_role;
+<span class="k">grant select, insert, update, delete on</span> company_os.sprints <span class="k">to</span> service_role;</pre>
+
+  <h3>Why sprints live on the same table</h3>
+  <p>The product team's sprint is a time-boxed container over the same work, not a different kind of work. Keeping it on
+  <span class="mono">team_tasks</span> means the central board, the integrations, and the permission model all apply to sprint
+  work for free, and a product task still shows up when leadership looks at the company-wide view. A dedicated tool only
+  becomes worth it if the product team later needs estimation, velocity charts, or epic hierarchies; the
+  <span class="mono">sprint_id</span> design leaves that door open without blocking it.</p>
 
   <h3>Conventions that apply</h3>
   <ul>
@@ -227,7 +299,8 @@
     <li><b>Done is a column, deleted is an archive.</b> <span class="mono">done</span> keeps the win visible on the board; <span class="mono">archived_at</span> clears it. No hard deletes.</li>
     <li><b>Manager scope is derived, not stored.</b> Manager relationships come from <span class="mono">people.manager_id</span>, resolved with an explicit query (never a PostgREST self-FK embed, which resolves reversed).</li>
     <li><b>Identity:</b> the team portal resolves the caller through the existing <span class="mono">auth_user_id → people</span> linkage. All access rules are enforced server-side in actions; the client only ever talks to the service-role server.</li>
-    <li><b>Caching:</b> both pages set <span class="mono">fetchCache = 'force-no-store'</span> (the Next 14 data-cache freeze that bit the ATS pages).</li>
+    <li><b>Coaching tables stay locked down.</b> <span class="mono">coaching_commitments</span> already revokes chatbot roles; the board only ever reads the commitment via the server action that created the link, and the task row itself carries no 1-1 content beyond the title its owner chose.</li>
+    <li><b>Caching:</b> all pages set <span class="mono">fetchCache = 'force-no-store'</span> (the Next 14 data-cache freeze that bit the ATS pages).</li>
   </ul>
 </section>
 
@@ -235,7 +308,12 @@
 <section class="panel section-gap">
   <h2>Views and permission matrix</h2>
   <p>There is no separate manager app. Admin lives at <span class="mono">/admin/operations/tasks</span>; managers and team
-  members share <span class="mono">/team/tasks</span>, and the server decides their edit scope. One board component, rendered three ways.</p>
+  members share <span class="mono">/team/tasks</span>, and the server decides their edit scope. One board component, rendered
+  with two lenses:</p>
+  <ul>
+    <li><b>Central board:</b> the default view, all departments together, each card carrying a department chip. This is the leadership and cross-team lens.</li>
+    <li><b>Department boards:</b> the same page filtered to one department (tabs: All / Operations / Product). Product's tab adds the sprint lens: a sprint selector (active sprint by default), the sprint goal in the header, and a backlog panel for un-sprinted product tasks.</li>
+  </ul>
   <div class="table-scroll">
   <table>
     <tr>
@@ -244,26 +322,35 @@
       <th>Manager (/team)</th>
       <th>Team member (/team)</th>
     </tr>
-    <tr><td>See the full board (all teams, all tasks)</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes, read-only beyond own tasks</td></tr>
+    <tr><td>See the central board and every department board</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes, read-only beyond own tasks</td></tr>
     <tr><td>Create a task</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes, defaults to self-assign</td></tr>
     <tr><td>Assign / reassign</td><td class="y">Anyone</td><td class="p">Self + direct reports</td><td class="p">Self only</td></tr>
     <tr><td>Move / edit a task</td><td class="y">Any task</td><td class="p">Own + direct reports' tasks</td><td class="p">Own tasks only</td></tr>
     <tr><td>Archive</td><td class="y">Any task</td><td class="p">Own + direct reports' tasks</td><td class="p">Own tasks only</td></tr>
+    <tr><td>Create / start / close a sprint</td><td class="y">Yes</td><td class="p">Own department only</td><td class="n">No</td></tr>
+    <tr><td>Pull tasks into / out of a sprint</td><td class="y">Yes</td><td class="p">Own department only</td><td class="p">Own tasks, into the open sprint</td></tr>
     <tr><td>Promote a roadmap item to a task</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
     <tr><td>Spawn a task from a work request</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
-    <tr><td>Add a team (new board lane group)</td><td class="p">Via migration</td><td class="n">No</td><td class="n">No</td></tr>
+    <tr><td>Send a coaching commitment to the board</td><td class="n">No (privacy boundary)</td><td class="p">Own commitments, as coach</td><td class="p">Own commitments</td></tr>
+    <tr><td>Add a department (new team value)</td><td class="p">Via migration</td><td class="n">No</td><td class="n">No</td></tr>
   </table>
+  </div>
+  <div class="callout rose">
+    <b>Why admin cannot send commitments:</b> only the two people inside a coaching relationship (member, or their coach)
+    know whether a commitment is safe to publish on an open-book board. Admin sees the resulting task like any other once
+    it exists, but the send decision belongs to the owner.
   </div>
 </section>
 
 <!-- ============================ WORKFLOWS ============================ -->
 <section class="panel section-gap">
   <h2>Workflows</h2>
-  <p class="sub">Four workflows, none of them linear. Forward paths are the happy path; the dashed edges below each
+  <p class="sub">Seven workflows, none of them linear. Forward paths are the happy path; the dashed edges below each
   diagram are the backward moves and loops that real work takes.</p>
   <div class="legend">
     <span><span class="swatch" style="background:var(--blue-soft); border:1px solid #c9dbfc"></span>Entry point</span>
     <span><span class="swatch" style="background:var(--bg); border:1px solid var(--line)"></span>State / step</span>
+    <span><span class="swatch" style="background:var(--rose-soft); border:1px solid #f3c6d2"></span>Human gate</span>
     <span><span class="swatch" style="background:var(--teal-soft); border:1px solid #bfe6dd"></span>Resting state</span>
     <span style="color:var(--amber); font-weight:600">← backward move</span>
     <span style="color:var(--purple); font-weight:600">↻ loop</span>
@@ -298,13 +385,13 @@
   <!-- W2 -->
   <div class="wf teal">
     <div class="wf-head"><span class="wf-id">W2</span><h3>Task creation</h3></div>
-    <p class="wf-sub">Four ways onto the board, converging on the same table. What differs is who may assign whom.</p>
+    <p class="wf-sub">Five ways onto the board, converging on the same table. What differs is who may assign whom and which column the card lands in.</p>
     <div class="flow">
-      <div class="node entry"><b>Entry</b><small>admin board · team board · roadmap promote (W3) · work request (W4)</small></div>
+      <div class="node entry"><b>Entry</b><small>admin board · team board · roadmap promote (W3) · work request (W4) · coaching send (W5)</small></div>
       <div class="arrow">→</div>
       <div class="node"><b>Role branch</b><small>admin: assign anyone<br/>manager: self or report<br/>member: self (default)</small></div>
       <div class="arrow">→</div>
-      <div class="node"><b>Card created</b><small>team = operations, status per branch below</small></div>
+      <div class="node"><b>Card created</b><small>department + status per branch below</small></div>
       <div class="arrow">→</div>
       <div class="node terminal"><b>On the board</b><small>enters W1</small></div>
     </div>
@@ -313,6 +400,7 @@
       <div class="edge"><span class="path">manual → todo</span><span class="desc">Tasks created by hand land in Todo (or Backlog if flagged "not yet committed" at creation).</span></div>
       <div class="edge"><span class="path">roadmap → backlog</span><span class="desc">Promoted roadmap items land in Backlog: they represent scoped-but-unscheduled work by definition.</span></div>
       <div class="edge"><span class="path">work_request → todo</span><span class="desc">Accepted work requests are already a commitment, so they land in Todo assigned to the request's assignee.</span></div>
+      <div class="edge"><span class="path">coaching → todo</span><span class="desc">Sent commitments land in Todo assigned to the commitment's owner, in that person's department.</span></div>
       <div class="edge"><span class="path back">assign fails</span><span class="desc">A manager attempting to assign outside their reports gets a server-side rejection, not a silent save.</span></div>
     </div>
   </div>
@@ -324,11 +412,11 @@
     <div class="flow">
       <div class="node entry"><b>Roadmap item</b><small>admin Client Roadmaps, status accepted / active</small></div>
       <div class="arrow">→</div>
-      <div class="node"><b>"Send to team board"</b><small>title + client prefilled, team = operations</small></div>
+      <div class="node"><b>"Send to team board"</b><small>title + client prefilled, department chosen at send</small></div>
       <div class="arrow">→</div>
       <div class="node"><b>Linked task(s)</b><small>source = roadmap, works through W1</small></div>
       <div class="arrow">→</div>
-      <div class="node"><b>All linked tasks done</b><small>admin prompted, not auto-shipped</small></div>
+      <div class="node gate"><b>All linked tasks done</b><small>admin prompted, not auto-shipped</small></div>
       <div class="arrow">→</div>
       <div class="node terminal"><b>Item marked shipped</b><small>or kept active for more tasks</small></div>
     </div>
@@ -353,7 +441,7 @@
       <div class="arrow">→</div>
       <div class="node"><b>Worked through W1</b><small>visible next to all other team work</small></div>
       <div class="arrow">→</div>
-      <div class="node"><b>Task done</b><small>prompt: complete the request?</small></div>
+      <div class="node gate"><b>Task done</b><small>prompt: complete the request?</small></div>
       <div class="arrow">→</div>
       <div class="node terminal"><b>Request completed</b><small>existing billing flow continues</small></div>
     </div>
@@ -365,35 +453,137 @@
       <div class="edge"><span class="path">no task (opt-out)</span><span class="desc">Small requests can be accepted without spawning a board task; the checkbox defaults on. Not every request needs a card.</span></div>
     </div>
   </div>
+
+  <!-- W5 -->
+  <div class="wf rose">
+    <div class="wf-head"><span class="wf-id">W5</span><h3>Coaching commitment → team board</h3></div>
+    <p class="wf-sub">Commitments from biweekly 1-1s stay in the coaching ledger (<span class="mono">coaching_commitments</span>) as the source of truth. The owner (member, or their coach) can send one to the open-book board as a linked task, choosing the public title at send time. Status flows back to the ledger through prompts, never silently.</p>
+    <div class="flow">
+      <div class="node entry"><b>Commitment</b><small>from a 1-1, status open</small></div>
+      <div class="arrow">→</div>
+      <div class="node gate"><b>"Send to board"</b><small>owner-only, edits the public title, picks department</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Linked task</b><small>source = coaching, assignee = commitment owner</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Worked through W1</b><small>visible next to all other work</small></div>
+      <div class="arrow">→</div>
+      <div class="node gate"><b>Task done</b><small>prompt: complete the commitment?</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Commitment completed</b><small>ledger updated, 1-1 prep reflects it</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches, loops, and backward moves</h4>
+      <div class="edge"><span class="path">private (default)</span><span class="desc">Most commitments never touch the board. Sending is the exception, for commitments that are real work items ("ship the client report template"), not personal growth ("speak up earlier in meetings").</span></div>
+      <div class="edge"><span class="path">task done → complete commitment</span><span class="desc">Completing the task prompts the owner to mark the commitment completed in the ledger. One click, never automatic, so the ledger note can differ from the public card.</span></div>
+      <div class="edge"><span class="path back">task blocked → needs_attention</span><span class="desc">Marking the linked task blocked prompts a <span class="mono">needs_attention</span> status on the commitment, so the next 1-1 prep surfaces it.</span></div>
+      <div class="edge"><span class="path back">commitment dropped → task archived</span><span class="desc">If the commitment is dropped in a 1-1, the linked open task is prompted for archive.</span></div>
+      <div class="edge"><span class="path loop">next 1-1 ↻ new commitments</span><span class="desc">Every cycle produces new commitments; each one independently gets the send-or-keep-private choice. The loop is the coaching cadence itself.</span></div>
+      <div class="edge"><span class="path back">unsend</span><span class="desc">The owner can pull a sent task off the board (archive it) at any time without touching the commitment; the privacy decision stays reversible.</span></div>
+    </div>
+  </div>
+
+  <!-- W6 -->
+  <div class="wf blue">
+    <div class="wf-head"><span class="wf-id">W6</span><h3>Sprint cycle (product)</h3></div>
+    <p class="wf-sub">The product team runs the same board time-boxed. A sprint is a container (<span class="mono">sprint_id</span>) over ordinary tasks; the cycle below is the loop the team lives in. Only one sprint per department is active at a time (enforced by a unique index).</p>
+    <div class="flow">
+      <div class="node entry"><b>Plan</b><small>create sprint, set goal + dates, pull tasks from product backlog</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Active</b><small>board defaults to sprint view, tasks work through W1</small></div>
+      <div class="arrow">→</div>
+      <div class="node gate"><b>Close</b><small>manager reviews: what shipped, what didn't</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Rollover decision</b><small>per unfinished task</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Next sprint</b><small>the cycle repeats</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches, loops, and backward moves</h4>
+      <div class="edge"><span class="path loop">plan ↻ active ↻ close</span><span class="desc">The whole workflow is a loop on the team's cadence (dates are free-form; two weeks is a convention, not a constraint).</span></div>
+      <div class="edge"><span class="path">mid-sprint add</span><span class="desc">Urgent work can be pulled into the active sprint. The card gets a "added mid-sprint" marker so scope creep is visible at close, not hidden.</span></div>
+      <div class="edge"><span class="path back">mid-sprint remove</span><span class="desc">Descoped tasks drop back to the product backlog (<span class="mono">sprint_id</span> cleared), keeping their status and history.</span></div>
+      <div class="edge"><span class="path">rollover → next sprint</span><span class="desc">Unfinished stories roll into the next sprint by default at close, each one individually confirmable. A story's open subtasks travel with it (W7).</span></div>
+      <div class="edge"><span class="path back">rollover → backlog</span><span class="desc">Or a task that keeps rolling over gets demoted to backlog instead: three sprints of rollover is a prioritisation signal, and the close screen shows the rollover count.</span></div>
+      <div class="edge"><span class="path">integrations respect sprints</span><span class="desc">Roadmap promotions (W3) and work requests (W4) targeting product land in the product backlog, never directly in the active sprint; pulling them in is a planning decision.</span></div>
+    </div>
+  </div>
+
+  <!-- W7 -->
+  <div class="wf teal">
+    <div class="wf-head"><span class="wf-id">W7</span><h3>Parent task and subtasks</h3></div>
+    <p class="wf-sub">A parent task ("Run the Sydney retreat, Aug 31 to Sept 1") carries subtasks that are real rows: each has its own assignee, due date, and status ("survey the participants", "buy the Mac Mini", "book the plane"). The board shows one card, the parent, with a progress chip; the subtasks are its checklist and appear in each assignee's "My tasks". One level deep, enforced server-side.</p>
+    <div class="flow">
+      <div class="node entry"><b>Parent task</b><small>the card on the board</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Subtasks added</b><small>own assignee + due date each, any time</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Worked in parallel</b><small>each subtask runs W1 independently</small></div>
+      <div class="arrow">→</div>
+      <div class="node gate"><b>Last subtask done</b><small>prompt: complete the parent?</small></div>
+      <div class="arrow">→</div>
+      <div class="node terminal"><b>Parent done</b><small>chip reads 3/3</small></div>
+    </div>
+    <div class="edges">
+      <h4>Branches, loops, and backward moves</h4>
+      <div class="edge"><span class="path loop">subtasks ↻ mid-flight</span><span class="desc">Subtasks can be added while the parent is in progress; the retreat gains "order name badges" without a new board card. The progress chip recounts.</span></div>
+      <div class="edge"><span class="path">parent done gate</span><span class="desc">Completing a parent with open subtasks prompts a per-subtask decision: finish it, archive it, or detach it into a standalone task. No silent bulk-complete.</span></div>
+      <div class="edge"><span class="path back">subtask reopens ← parent</span><span class="desc">If a subtask reopens after the parent is done (the plane got rebooked), the parent is prompted back to in_progress.</span></div>
+      <div class="edge"><span class="path">subtask visibility</span><span class="desc">Subtasks do not appear as board cards, only inside the parent and in "My tasks" lists; the board stays readable at the initiative level.</span></div>
+      <div class="edge"><span class="path back">promote to task</span><span class="desc">A subtask that grows into real work detaches into its own card (<span class="mono">parent_task_id</span> cleared), keeping history and links.</span></div>
+      <div class="edge"><span class="path">edit scope inherits W2</span><span class="desc">Whoever can edit the parent can add subtasks; a subtask's assignee can work their own subtask even when the parent belongs to someone else.</span></div>
+    </div>
+  </div>
 </section>
 
 <!-- ============================ BUILD PHASES ============================ -->
 <section class="panel section-gap">
   <h2>Build phases</h2>
-  <p>Four PRs, each independently shippable and verified before the next starts. Board mechanics are copied from the
+  <p>Six PRs, each independently shippable and verified before the next starts. Board mechanics are copied from the
   existing <span class="mono">DealsBoard</span> / <span class="mono">ApplicationsBoard</span> components, not hand-rolled;
   UI comes from <span class="mono">/admin/patterns</span>.</p>
 
   <div class="phase">
     <div class="num">1</div>
     <div class="body">
-      <b>Schema + admin board.</b> Migration for <span class="mono">team_tasks</span> (table, indexes, RLS, service_role grant)
-      and <span class="mono">/admin/operations/tasks</span>: full board with drag between columns, create/edit modal,
-      assignee picker from <span class="mono">people</span>, team filter (one team for now), soft archive, archived toggle.
-      <div class="verify"><b>Verify:</b> migration applied and probe insert rolled back; <span class="mono">tsc</span> + <span class="mono">next build</span> + <span class="mono">npm run check:design</span> green; card created, dragged across all five columns, archived, restored via curl-level checks against prod after merge.</div>
+      <b>Schema + admin board.</b> Migration for <span class="mono">team_tasks</span> and <span class="mono">sprints</span>
+      (tables, indexes, RLS, service_role grants) and <span class="mono">/admin/operations/tasks</span>: central board with
+      department tabs (All / Operations / Product), drag between columns, create/edit modal, assignee picker from
+      <span class="mono">people</span>, soft archive, archived toggle, and the subtask checklist in the card detail
+      (add, assign, date, complete, detach) with the progress chip on the card (W7). Sprint UI comes in Phase 3;
+      the schema ships now so there is exactly one migration to review.
+      <div class="verify"><b>Verify:</b> migration applied and probe insert rolled back; <span class="mono">tsc</span> + <span class="mono">next build</span> + <span class="mono">npm run check:design</span> green; card created in each department, dragged across all five columns, archived, restored; a parent with three subtasks shows 2/3 after two complete, and completing it prompts on the open one; checked against prod after merge.</div>
     </div>
   </div>
   <div class="phase">
     <div class="num">2</div>
     <div class="body">
       <b>Team portal board.</b> <span class="mono">/team/tasks</span> sharing the board component: open-book read for everyone,
-      edit scope resolved server-side (self, or self + direct reports for managers via <span class="mono">people.manager_id</span>),
-      create with self-assign default, "My tasks" filter, nav card on the /team hub.
+      the same central + department tabs, edit scope resolved server-side (self, or self + direct reports for managers via
+      <span class="mono">people.manager_id</span>), create with self-assign default, "My tasks" filter (including subtasks
+      assigned to you), nav card on the /team hub.
       <div class="verify"><b>Verify:</b> as a manager account, a report's task moves; as a non-manager, the same action is rejected server-side; own task moves for both. Confirmed on prod with two real accounts.</div>
     </div>
   </div>
   <div class="phase">
     <div class="num">3</div>
+    <div class="body">
+      <b>Sprints for product (W6).</b> Sprint create/start/close on the product tab (admin + product manager), sprint selector
+      and goal header, product backlog panel, pull in / drop out, close screen with per-task rollover decisions and rollover
+      counts, mid-sprint-add marker.
+      <div class="verify"><b>Verify:</b> full cycle on prod: plan a sprint with three tasks, finish one, close, roll one over, demote one to backlog; second active sprint for the same team is rejected by the unique index.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num">4</div>
+    <div class="body">
+      <b>Coaching commitments (W5).</b> "Send to board" on the commitment (member view and coach view, never admin),
+      public-title editor, coaching chip on the task card (links only for the owner and their coach), done/blocked prompts
+      syncing the ledger, unsend.
+      <div class="verify"><b>Verify:</b> send a real commitment with an edited title, confirm the board card shows only that title; complete the task and accept the prompt, confirm the ledger updates and the next 1-1 prep shows it; unsend leaves the commitment untouched.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num">5</div>
     <div class="body">
       <b>Roadmap integration (W3).</b> "Send to team board" on the admin Client Roadmaps item view, linked-tasks shelf on the
       roadmap item, roadmap chip on the task card linking back, ship prompt when the last linked task completes,
@@ -402,7 +592,7 @@
     </div>
   </div>
   <div class="phase">
-    <div class="num">4</div>
+    <div class="num">6</div>
     <div class="body">
       <b>Work request integration (W4).</b> Spawn-task checkbox on request acceptance, request chip on the task card,
       completion handshake (task done prompts request completion; request cancellation archives the task).
@@ -416,15 +606,17 @@
   <h2>Deliberately out of v1</h2>
   <ul>
     <li><b>Comments on tasks.</b> If needed, a <span class="mono">task_comments</span> table follows the coaching-goal-comments pattern later.</li>
-    <li><b>Subtasks, labels, estimates.</b> Chunking happens by promoting a roadmap item more than once, not by nesting cards.</li>
+    <li><b>Nesting beyond one level, labels, estimates, velocity charts.</b> Subtasks are in (one level, W7); sub-subtasks are not. If product later needs estimation and velocity, that is the trigger to revisit (the <span class="mono">sprint_id</span> design keeps the data ready for it).</li>
     <li><b>Configurable columns.</b> Statuses are fixed by CHECK, matching every other board in the app. A new column is a migration, not a settings screen.</li>
-    <li><b>Coaching commitments on the board.</b> They stay in the coaching module; revisit only if the team asks.</li>
-    <li><b>Additional teams.</b> The schema is ready (<span class="mono">team</span> CHECK), Operations proves the flow first.</li>
+    <li><b>Auto-publishing coaching content.</b> Commitments reach the board one at a time, by their owner's hand, always.</li>
+    <li><b>Departments beyond Operations and Product.</b> The schema is ready (<span class="mono">team</span> CHECK); these two prove the flow first.</li>
     <li><b>Notifications.</b> No Lark pings on assignment in v1; the open-book board is the notification.</li>
   </ul>
   <div class="callout good">
-    <b>Definition of done for the feature:</b> Operations runs a real week on the board; at least one client roadmap item
-    and one work request travel their full loop (including a backward move) without leaving the app.
+    <b>Definition of done for the feature:</b> Operations runs a real week on the board including one composite task worked
+    through subtasks (the Sydney retreat shape); Product plans, runs, and closes one full sprint including a rollover;
+    at least one client roadmap item, one work request, and one coaching commitment travel their full loop
+    (including a backward move) without leaving the app.
   </div>
 </section>
 
