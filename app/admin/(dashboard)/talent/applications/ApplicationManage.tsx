@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/admin/format";
 import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { APPLICATION_STATUS_OPTIONS } from "@/lib/admin/application-status";
+import { APPLICATION_SOURCE_OPTIONS, POOL_STATUS_OPTIONS } from "@/lib/admin/recruiting-options";
+import { COUNTRIES } from "@/lib/admin/countries";
+import type { PersonOption } from "@/lib/admin/people-options";
 import { InterviewRounds } from "./InterviewRounds";
 import {
   addApplicationNote,
@@ -34,15 +38,22 @@ export type AppManageData = {
   currentStageName: string | null;
   appliedAt: string | null;
   decidedAt: string | null;
+  // sourcing (writes applications)
+  source: string | null;
+  sourceDetail: string | null;
+  referrerId: string | null;
   resumeDocumentId: string | null;
   // person-side profile (edits write to people)
   email: string | null;
   phone: string | null;
+  city: string | null;
+  country: string | null;
   headline: string | null;
   currentTitle: string | null;
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   doNotHire: boolean;
+  poolStatus: string | null;
   // recruiter's own assessment for this application (writes applications)
   hrAssessment: string | null;
   // recruiter overrides for the AI-extracted fields (write candidate_profile)
@@ -61,9 +72,37 @@ type AppFieldForm = {
   rating: number | null;
   rejectionReason: string;
   hrAssessment: string;
+  source: string;
+  sourceDetail: string;
+  referrerId: string;
+  appliedAt: string;
+  decidedAt: string;
 };
 
-export function ApplicationManage({ app }: { app: AppManageData }) {
+// A stored timestamp -> the YYYY-MM-DD a <input type="date"> expects. The org
+// operates in Vietnam, so read the instant as its Ho Chi Minh calendar day; a
+// plain UTC slice shows the wrong day for timestamps near midnight. The fixed
+// timezone also keeps SSR and client hydration in agreement.
+const APP_TZ = "Asia/Ho_Chi_Minh";
+const toDateInput = (v: string | null): string => {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v.slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+};
+
+export function ApplicationManage({
+  app,
+  referrerOptions,
+}: {
+  app: AppManageData;
+  referrerOptions: PersonOption[];
+}) {
   const router = useRouter();
 
   const [stages, setStages] = useState<StageOption[]>([]);
@@ -77,10 +116,15 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
       rating: app.rating ?? null,
       rejectionReason: app.rejectionReason ?? "",
       hrAssessment: app.hrAssessment ?? "",
+      source: app.source ?? "",
+      sourceDetail: app.sourceDetail ?? "",
+      referrerId: app.referrerId ?? "",
+      appliedAt: toDateInput(app.appliedAt),
+      decidedAt: toDateInput(app.decidedAt),
     },
     saveAppField,
   );
-  const { stageId, status, rating, rejectionReason, hrAssessment } = form;
+  const { stageId, status, rating, rejectionReason, hrAssessment, source, sourceDetail, referrerId, appliedAt, decidedAt } = form;
 
   // Load this req's hiring stages when the shelf opens.
   useEffect(() => {
@@ -122,6 +166,9 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
     switch (key) {
       case "stageId":
         r = await updateApplication(app.id, { current_stage_id: (value as string) || null });
+        // Moving onto a terminal stage auto-stamps decided_at server-side; mirror
+        // that into the form so the Decided field reflects it without a reload.
+        if (r.ok && r.decidedAt !== undefined) field("decidedAt", toDateInput(r.decidedAt));
         break;
       case "status":
         r = await updateApplication(app.id, { status: value as string });
@@ -135,6 +182,21 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
       case "hrAssessment":
         r = await updateApplication(app.id, { hr_assessment: (value as string).trim() || null });
         break;
+      case "source":
+        r = await updateApplication(app.id, { source: (value as string) || null });
+        break;
+      case "sourceDetail":
+        r = await updateApplication(app.id, { source_detail: (value as string).trim() || null });
+        break;
+      case "referrerId":
+        r = await updateApplication(app.id, { referrer_person_id: (value as string) || null });
+        break;
+      case "appliedAt":
+        r = await updateApplication(app.id, { applied_at: (value as string) || null });
+        break;
+      case "decidedAt":
+        r = await updateApplication(app.id, { decided_at: (value as string) || null });
+        break;
       default:
         return { ok: true as const };
     }
@@ -144,17 +206,37 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
 
   return (
     <>
-      <dl className="admin-kv" style={{ marginBottom: 16 }}>
+      <dl className="admin-kv" style={{ marginBottom: 16, alignItems: "center", rowGap: 8 }}>
         <dt>Job req</dt>
         <dd>{app.jobReqTitle || "—"}</dd>
         <dt>Applied</dt>
-        <dd>{app.appliedAt ? formatDate(app.appliedAt) : "—"}</dd>
-        {app.decidedAt && (
-          <>
-            <dt>Decided</dt>
-            <dd>{formatDate(app.decidedAt)}</dd>
-          </>
-        )}
+        <dd>
+          <input
+            className="admin-input"
+            type="date"
+            aria-label="Applied date"
+            value={appliedAt}
+            style={{ maxWidth: 180 }}
+            onChange={(e) => {
+              field("appliedAt", e.target.value);
+              commit("appliedAt", e.target.value);
+            }}
+          />
+        </dd>
+        <dt>Decided</dt>
+        <dd>
+          <input
+            className="admin-input"
+            type="date"
+            aria-label="Decided date"
+            value={decidedAt}
+            style={{ maxWidth: 180 }}
+            onChange={(e) => {
+              field("decidedAt", e.target.value);
+              commit("decidedAt", e.target.value);
+            }}
+          />
+        </dd>
         <dt>Resume</dt>
         <dd>
           <ResumeField applicationId={app.id} resumeDocumentId={app.resumeDocumentId} />
@@ -237,6 +319,64 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
           </div>
         )}
 
+        <div
+          style={{
+            marginTop: 4,
+            paddingTop: 12,
+            borderTop: "1px solid var(--admin-line)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="admin-field">
+              <label className="admin-label">Source</label>
+              <select
+                className="admin-select"
+                value={source}
+                onChange={(e) => {
+                  field("source", e.target.value);
+                  commit("source", e.target.value);
+                }}
+              >
+                <option value="">—</option>
+                {APPLICATION_SOURCE_OPTIONS.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+                {source && !APPLICATION_SOURCE_OPTIONS.some(([v]) => v === source) && (
+                  <option value={source}>{source}</option>
+                )}
+              </select>
+            </div>
+            <div className="admin-field">
+              <label className="admin-label">Referred by</label>
+              <PersonSelect
+                value={referrerId}
+                onChange={(v) => {
+                  field("referrerId", v);
+                  commit("referrerId", v);
+                }}
+                options={referrerOptions.map((o) => ({ value: o.id, label: o.name }))}
+                emptyLabel="No referrer"
+                ariaLabel="Referred by"
+              />
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Source detail</label>
+            <input
+              className="admin-input"
+              placeholder="Which job board, event, or who sourced them"
+              value={sourceDetail}
+              onChange={(e) => field("sourceDetail", e.target.value)}
+              onBlur={(e) => commit("sourceDetail", e.target.value)}
+            />
+          </div>
+        </div>
+
         {saveStatus.state === "error" && <div className="admin-alert admin-alert--err">{saveStatus.error}</div>}
       </div>
 
@@ -293,11 +433,14 @@ export function ApplicationManage({ app }: { app: AppManageData }) {
           name={app.candidateName}
           email={app.email}
           phone={app.phone}
+          city={app.city}
+          country={app.country}
           headline={app.headline}
           currentTitle={app.currentTitle}
           linkedinUrl={app.linkedinUrl}
           portfolioUrl={app.portfolioUrl}
           doNotHire={app.doNotHire}
+          poolStatus={app.poolStatus}
           englishProficiency={app.englishProficiency}
           salaryExpectationCents={app.salaryExpectationCents}
           salaryExpectationCurrency={app.salaryExpectationCurrency}
@@ -426,12 +569,16 @@ function ResumeField({
 // do_not_hire is the recruiting flag — separate from the do_not_contact
 // consent opt-out, which is managed from Contact 360, not here.
 type ApplicantFieldForm = {
+  email: string;
   phone: string;
+  city: string;
+  country: string;
   headline: string;
   currentTitle: string;
   linkedinUrl: string;
   portfolioUrl: string;
   doNotHire: boolean;
+  poolStatus: string;
   englishProficiency: string;
   noticePeriod: string;
 };
@@ -451,11 +598,14 @@ function ApplicantProfile(props: {
   name: string | null;
   email: string | null;
   phone: string | null;
+  city: string | null;
+  country: string | null;
   headline: string | null;
   currentTitle: string | null;
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   doNotHire: boolean;
+  poolStatus: string | null;
   englishProficiency: string | null;
   salaryExpectationCents: number | null;
   salaryExpectationCurrency: string | null;
@@ -466,25 +616,49 @@ function ApplicantProfile(props: {
 }) {
   const { form, field, commit, status } = useAutosave<ApplicantFieldForm>(
     {
+      email: props.email ?? "",
       phone: props.phone ?? "",
+      city: props.city ?? "",
+      country: props.country ?? "",
       headline: props.headline ?? "",
       currentTitle: props.currentTitle ?? "",
       linkedinUrl: props.linkedinUrl ?? "",
       portfolioUrl: props.portfolioUrl ?? "",
       doNotHire: props.doNotHire,
+      poolStatus: props.poolStatus ?? "",
       englishProficiency: props.englishProficiency ?? "",
       noticePeriod: props.noticePeriod ?? "",
     },
     saveProfileField,
   );
-  const { phone, headline, currentTitle, linkedinUrl, portfolioUrl, doNotHire, englishProficiency, noticePeriod } =
-    form;
+  const {
+    email,
+    phone,
+    city,
+    country,
+    headline,
+    currentTitle,
+    linkedinUrl,
+    portfolioUrl,
+    doNotHire,
+    poolStatus,
+    englishProficiency,
+    noticePeriod,
+  } = form;
 
   async function saveProfileField(patch: Partial<ApplicantFieldForm>) {
     const [key, value] = Object.entries(patch)[0] as [keyof ApplicantFieldForm, string | boolean];
     switch (key) {
+      case "email":
+        return updateApplicantProfile(props.personId, { email: (value as string).trim() || null });
       case "phone":
         return updateApplicantProfile(props.personId, { phone: (value as string).trim() || null });
+      case "city":
+        return updateApplicantProfile(props.personId, { city: (value as string).trim() || null });
+      case "country":
+        return updateApplicantProfile(props.personId, { country: (value as string).trim() || null });
+      case "poolStatus":
+        return updateApplicantProfile(props.personId, { pool_status: (value as string) || null });
       case "headline":
         return updateApplicantProfile(props.personId, { headline: (value as string).trim() || null });
       case "currentTitle":
@@ -511,6 +685,16 @@ function ApplicantProfile(props: {
         <AutosaveIndicator status={status} />
       </div>
       <div className="admin-form">
+        <div className="admin-field">
+          <label className="admin-label">Email</label>
+          <input
+            className="admin-input"
+            type="email"
+            value={email}
+            onChange={(e) => field("email", e.target.value)}
+            onBlur={(e) => commit("email", e.target.value)}
+          />
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Headline</label>
@@ -552,6 +736,38 @@ function ApplicantProfile(props: {
               onChange={(e) => field("linkedinUrl", e.target.value)}
               onBlur={(e) => commit("linkedinUrl", e.target.value)}
             />
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="admin-field">
+            <label className="admin-label">City</label>
+            <input
+              className="admin-input"
+              value={city}
+              onChange={(e) => field("city", e.target.value)}
+              onBlur={(e) => commit("city", e.target.value)}
+            />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Country</label>
+            <select
+              className="admin-select"
+              value={country}
+              onChange={(e) => {
+                field("country", e.target.value);
+                commit("country", e.target.value);
+              }}
+            >
+              <option value="">—</option>
+              {country && !(COUNTRIES as readonly string[]).includes(country) && (
+                <option value={country}>{country}</option>
+              )}
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="admin-field">
@@ -615,6 +831,28 @@ function ApplicantProfile(props: {
             currency={props.salaryExpectationCurrency}
             aiFallback={aiHint(props.aiSalary)}
           />
+        </div>
+
+        <div className="admin-field">
+          <label className="admin-label">Pool status</label>
+          <select
+            className="admin-select"
+            value={poolStatus}
+            onChange={(e) => {
+              field("poolStatus", e.target.value);
+              commit("poolStatus", e.target.value);
+            }}
+          >
+            <option value="">—</option>
+            {POOL_STATUS_OPTIONS.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+            {poolStatus && !POOL_STATUS_OPTIONS.some(([v]) => v === poolStatus) && (
+              <option value={poolStatus}>{poolStatus}</option>
+            )}
+          </select>
         </div>
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>

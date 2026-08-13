@@ -5,9 +5,13 @@ import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { APPLICATION_SOURCES, POOL_STATUSES } from "@/lib/admin/recruiting-options";
 import type { AiScreenSummary } from "@/lib/resume-screen";
 
 type Result = { ok: true } | { ok: false; error: string };
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // Matches the applications_status_check constraint.
 const APP_STATUSES = new Set([
@@ -96,9 +100,21 @@ export type ApplicationPatch = {
   rejection_reason?: string | null;
   current_stage_id?: string | null;
   hr_assessment?: string | null;
+  source?: string | null;
+  source_detail?: string | null;
+  referrer_person_id?: string | null;
+  applied_at?: string | null;
+  decided_at?: string | null;
 };
 
-export async function updateApplication(applicationId: string, patch: ApplicationPatch): Promise<Result> {
+// The ok result carries decided_at back when a terminal-stage move auto-stamps
+// it, so the client can reconcile a field the user did not type into.
+type UpdateApplicationResult = { ok: true; decidedAt?: string | null } | { ok: false; error: string };
+
+export async function updateApplication(
+  applicationId: string,
+  patch: ApplicationPatch,
+): Promise<UpdateApplicationResult> {
   const admin = await requireAdmin();
   const updates: Record<string, unknown> = {};
 
@@ -119,6 +135,27 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   }
   if (patch.hr_assessment !== undefined) {
     updates.hr_assessment = patch.hr_assessment?.trim() || null;
+  }
+  if (patch.source !== undefined) {
+    const s = patch.source?.trim() || null;
+    if (s && !APPLICATION_SOURCES.has(s)) return { ok: false, error: "Unknown source." };
+    updates.source = s;
+  }
+  if (patch.source_detail !== undefined) {
+    updates.source_detail = patch.source_detail?.trim() || null;
+  }
+  if (patch.referrer_person_id !== undefined) {
+    updates.referrer_person_id = patch.referrer_person_id?.trim() || null;
+  }
+  if (patch.applied_at !== undefined) {
+    const d = patch.applied_at?.trim() || null;
+    if (d && !DATE_RE.test(d)) return { ok: false, error: "Enter a valid applied date." };
+    updates.applied_at = d;
+  }
+  if (patch.decided_at !== undefined) {
+    const d = patch.decided_at?.trim() || null;
+    if (d && !DATE_RE.test(d)) return { ok: false, error: "Enter a valid decided date." };
+    updates.decided_at = d;
   }
   if (patch.current_stage_id !== undefined) {
     if (patch.current_stage_id === null) {
@@ -148,7 +185,11 @@ export async function updateApplication(applicationId: string, patch: Applicatio
   });
   revalidatePath("/admin/talent/applications");
   revalidatePath(`/admin/talent/applications/${applicationId}`);
-  return { ok: true };
+  // Surface decided_at whenever this write set it (terminal-stage auto-stamp or a
+  // manual date edit), so the caller can keep its form in sync without a reload.
+  return Object.prototype.hasOwnProperty.call(updates, "decided_at")
+    ? { ok: true, decidedAt: (updates.decided_at as string | null) ?? null }
+    : { ok: true };
 }
 
 // Soft-archive: a recruiter "deletes" a duplicate or wrong-person application by
@@ -204,7 +245,11 @@ export type ApplicantProfilePatch = {
   linkedin_url?: string | null;
   portfolio_url?: string | null;
   phone?: string | null;
+  email?: string | null;
+  city?: string | null;
+  country?: string | null;
   do_not_hire?: boolean;
+  pool_status?: string | null;
   // Recruiter overrides for the fields the AI extracts from the resume. Shown in
   // place of the AI value once set; persist across the person's applications.
   english_proficiency?: string | null;
@@ -220,6 +265,18 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
 
   if (patch.linkedin_url !== undefined) personUpdates.linkedin_url = patch.linkedin_url?.trim() || null;
   if (patch.phone !== undefined) personUpdates.phone = patch.phone?.trim() || null;
+  if (patch.email !== undefined) {
+    const e = patch.email?.trim() || null;
+    if (e && !EMAIL_RE.test(e)) return { ok: false, error: "Enter a valid email." };
+    personUpdates.email = e;
+  }
+  if (patch.city !== undefined) personUpdates.city = patch.city?.trim() || null;
+  if (patch.country !== undefined) personUpdates.country = patch.country?.trim() || null;
+  if (patch.pool_status !== undefined) {
+    const s = patch.pool_status?.trim() || null;
+    if (s && !POOL_STATUSES.has(s)) return { ok: false, error: "Unknown pool status." };
+    profileUpdates.pool_status = s;
+  }
   if (patch.headline !== undefined) profileUpdates.headline = patch.headline?.trim() || null;
   if (patch.current_title !== undefined) profileUpdates.current_title = patch.current_title?.trim() || null;
   if (patch.portfolio_url !== undefined) profileUpdates.portfolio_url = patch.portfolio_url?.trim() || null;
@@ -241,7 +298,12 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
 
   if (Object.keys(personUpdates).length > 0) {
     const { error } = await companyOs.from("people").update(personUpdates).eq("id", personId);
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? "That email is already used by another person."
+        : error.message;
+      return { ok: false, error: msg };
+    }
     await recordAudit({
       table: "people",
       recordId: personId,
