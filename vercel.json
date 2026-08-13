@@ -8,6 +8,7 @@
     { "path": "/api/cron/coaching-cycle/", "schedule": "45 0 * * *" },
     { "path": "/api/cron/coaching-recaps/", "schedule": "25 * * * *" },
     { "path": "/api/cron/qbo-refresh/", "schedule": "0 5 * * 1" },
+    { "path": "/api/cron/qbo-invoice-sync/", "schedule": "30 5 * * 1" },
     { "path": "/api/cron/ideas-digest/", "schedule": "0 1 * * *" }
   ],
   "redirects": [

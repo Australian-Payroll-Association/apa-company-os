@@ -346,3 +346,88 @@ export async function sendQboInvoice(
   const res = await qboFetch(path, { method: "POST" });
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
+
+// One invoice as QBO returns it, flattened to what the mirror stores. Kept
+// here (QBO-shaped) so lib/admin/qbo-invoice-sync.ts deals only in DB rows.
+export type QboSyncLine = {
+  description: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  item_name: string;
+};
+export type QboSyncInvoice = {
+  externalId: string; // bare QBO Invoice.Id
+  docNumber: string | null;
+  txnDate: string;
+  dueDate: string | null;
+  currency: string;
+  amountCents: number;
+  balanceCents: number;
+  memo: string | null;
+  customerId: string | null;
+  customerName: string | null;
+  lines: QboSyncLine[];
+};
+
+type QboQueryInvoice = QboInvoiceJson & {
+  Balance?: number;
+  PrivateNote?: string;
+  CustomerRef?: { value?: string; name?: string };
+  Line?: Array<{
+    Amount?: number;
+    Description?: string;
+    DetailType?: string;
+    SalesItemLineDetail?: { ItemRef?: { name?: string }; Qty?: number; UnitPrice?: number };
+  }>;
+};
+
+function parseInvoice(inv: QboQueryInvoice): QboSyncInvoice {
+  const lines: QboSyncLine[] = (inv.Line ?? [])
+    .filter((l) => l.DetailType === "SalesItemLineDetail")
+    .map((l) => ({
+      description: l.Description ?? "",
+      quantity: l.SalesItemLineDetail?.Qty ?? 0,
+      rate: l.SalesItemLineDetail?.UnitPrice ?? 0,
+      amount: l.Amount ?? 0,
+      item_name: l.SalesItemLineDetail?.ItemRef?.name ?? "",
+    }));
+  return {
+    externalId: String(inv.Id ?? ""),
+    docNumber: inv.DocNumber ?? null,
+    txnDate: inv.TxnDate ?? "",
+    dueDate: inv.DueDate ?? null,
+    currency: (inv.CurrencyRef?.value ?? "USD").toLowerCase(),
+    amountCents: Math.round((inv.TotalAmt ?? 0) * 100),
+    balanceCents: Math.round((inv.Balance ?? 0) * 100),
+    memo: inv.PrivateNote ?? null,
+    customerId: inv.CustomerRef?.value ?? null,
+    customerName: inv.CustomerRef?.name ?? null,
+    lines,
+  };
+}
+
+// Pull every invoice for one company on/after `since` (YYYY-MM-DD), paging
+// through the QBO query API (1000/page). Read-only; degrades to {ok:false}.
+export async function listQboInvoices(
+  entity: QboEntity,
+  since: string,
+): Promise<{ ok: true; invoices: QboSyncInvoice[] } | { ok: false; error: string }> {
+  const PAGE = 1000;
+  const out: QboSyncInvoice[] = [];
+  let start = 1;
+  // Bounded loop: 50 pages = 50k invoices, far beyond any real book.
+  for (let guard = 0; guard < 50; guard++) {
+    const sql =
+      `select * from Invoice where TxnDate >= '${since}'` +
+      ` order by TxnDate startposition ${start} maxresults ${PAGE}`;
+    const res = await qboFetch(`/query?query=${encodeURIComponent(sql)}`, { method: "GET" }, entity);
+    if (!res.ok) return res;
+    const qr = (res.json.QueryResponse ?? {}) as { Invoice?: QboQueryInvoice[] };
+    const batch = qr.Invoice ?? [];
+    out.push(...batch.map(parseInvoice));
+    if (batch.length < PAGE) break;
+    start += PAGE;
+  }
+  return { ok: true, invoices: out };
+}

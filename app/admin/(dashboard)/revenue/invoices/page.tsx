@@ -7,8 +7,9 @@ import { Badge, statusTone } from "@/components/admin/Badge";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { INVOICE_SELECT, type InvoiceListRow } from "./invoice-shared";
+import { INVOICE_SELECT, ENTITY_LABEL, type InvoiceListRow, type InvoiceEntity } from "./invoice-shared";
 import { InvoicesShelfProvider, InvoiceShelfRow } from "./InvoicesShelf";
+import { SyncButton } from "./SyncButton";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export const metadata = {
 const PAGE_SIZES = [25, 50, 100];
 const SORTABLE = new Set(["doc_number", "txn_date", "due_date", "amount_cents", "balance_cents"]);
 const STATUSES = ["paid", "open", "overdue", "voided"] as const;
+const ENTITIES = ["edge8", "aio"] as const;
 
 export default async function InvoicesPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
@@ -30,6 +32,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "txn_date";
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const statusParam = firstParam(searchParams.status);
+  const entityParam = firstParam(searchParams.entity);
 
   // Voided invoices are hidden unless explicitly filtered to — they stay
   // reachable via the Voided option in the status filter.
@@ -38,6 +41,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
     filters.status = statusParam;
   } else {
     filters.status = STATUSES.filter((s) => s !== "voided");
+  }
+  if (entityParam && (ENTITIES as readonly string[]).includes(entityParam)) {
+    filters.entity = entityParam;
   }
 
   const [{ rows, total, pageSize, error }, outstandingRes] = await Promise.all([
@@ -110,6 +116,11 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         ),
     },
     {
+      key: "entity",
+      header: "Source",
+      cell: (r) => <span className="admin-cell-muted">{ENTITY_LABEL[r.entity] ?? r.entity}</span>,
+    },
+    {
       key: "status",
       header: "Status",
       cell: (r) => <Badge tone={statusTone(r.status)}>{humanize(r.status)}</Badge>,
@@ -122,6 +133,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         eyebrow="Revenue"
         title="Invoices"
         sub={`${total.toLocaleString()} ${total === 1 ? "invoice" : "invoices"} · ${formatCents(outstandingCents)} outstanding · synced from QuickBooks`}
+        action={<SyncButton />}
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
       <InvoicesShelfProvider>
@@ -144,6 +156,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
               searchParams={searchParams}
               filters={[
                 { key: "status", label: "Status", options: STATUSES.map((s) => ({ value: s, label: humanize(s) })) },
+                { key: "entity", label: "Source", options: ENTITIES.map((e) => ({ value: e, label: ENTITY_LABEL[e as InvoiceEntity] })) },
               ]}
             />
           }

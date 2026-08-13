@@ -9,9 +9,12 @@ export type InvoiceLine = {
   item_name: string;
 };
 
+export type InvoiceEntity = "edge8" | "aio";
+
 export type InvoiceListRow = {
   id: string;
   external_id: string;
+  entity: InvoiceEntity;
   doc_number: string | null;
   txn_date: string;
   due_date: string | null;
@@ -30,7 +33,9 @@ export type InvoiceListRow = {
 };
 
 export const INVOICE_SELECT =
-  "id, external_id, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, memo, customer_name, lines, company_id, companies(name, person_companies(is_primary, people(id, full_name)))";
+  "id, external_id, entity, doc_number, txn_date, due_date, currency, amount_cents, balance_cents, status, memo, customer_name, lines, company_id, companies(name, person_companies(is_primary, people(id, full_name)))";
+
+export const ENTITY_LABEL: Record<InvoiceEntity, string> = { edge8: "Edge8", aio: "AIO" };
 
 // Same convention as portal-assume: the is_primary link wins, else the first.
 export function primaryContact(row: InvoiceListRow): { id: string; full_name: string | null } | null {
@@ -39,12 +44,14 @@ export function primaryContact(row: InvoiceListRow): { id: string; full_name: st
   return best?.people ?? null;
 }
 
-// QBO deep link, matching the `link` field the QBO MCP returns per invoice:
-// the txnId is the numeric suffix of our external_id, the realm id is the
-// QuickBooks company ("Talent Edge LLC").
-const QBO_REALM_ID = "9341452654454281";
+// QBO deep link. external_id is the bare QBO Invoice txn id; the realm id is
+// the QuickBooks company the invoice belongs to (entity).
+const QBO_REALM_ID: Record<InvoiceEntity, string> = {
+  edge8: "9341452654454281", // Talent Edge LLC
+  aio: "9341455538178258", // AI Officer Institute
+};
 
-export function qboInvoiceUrl(externalId: string): string {
+export function qboInvoiceUrl(externalId: string, entity: InvoiceEntity = "edge8"): string {
   const txnId = externalId.split(":").pop() ?? "";
-  return `https://qbo.intuit.com/app/login?pagereq=${encodeURIComponent(`invoice?txnId=${txnId}`)}&deeplinkcompanyid=${QBO_REALM_ID}`;
+  return `https://qbo.intuit.com/app/login?pagereq=${encodeURIComponent(`invoice?txnId=${txnId}`)}&deeplinkcompanyid=${QBO_REALM_ID[entity]}`;
 }
