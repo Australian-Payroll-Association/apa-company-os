@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
@@ -45,26 +47,41 @@ const INTERVIEW_STATE_CHIP: Record<MyInterviewState, { className: string; label:
   done: { className: "admin-badge admin-badge--ok", label: "Scored" },
 };
 
-// One grid cell: where a candidate stands on one loop step.
+// One grid cell: where a candidate stands on one loop step. When the cell is
+// backed by a real interview, the chip links to that interview's kit.
 function GridCellNode({ cell }: { cell: GridCell }) {
+  let inner: ReactNode;
   switch (cell.status) {
     case "done":
-      return <span className="admin-badge admin-badge--ok">Done</span>;
+      inner = <span className="admin-badge admin-badge--ok">Done</span>;
+      break;
     case "pending":
-      return (
+      inner = (
         <span className="admin-badge admin-badge--warn" title={`${cell.label} human scorecards in`}>
           {cell.label}
         </span>
       );
+      break;
     case "booked":
-      return <span className="admin-badge admin-badge--info">{cell.label}</span>;
+      inner = <span className="admin-badge admin-badge--info">{cell.label}</span>;
+      break;
     case "action":
-      return <span className="admin-badge admin-badge--err">Nothing booked</span>;
+      inner = <span className="admin-badge admin-badge--err">Nothing booked</span>;
+      break;
     case "open":
-      return <span className="admin-cell-muted">Not booked</span>;
+      inner = <span className="admin-cell-muted">Not booked</span>;
+      break;
     default:
-      return <span className="admin-cell-muted">-</span>;
+      inner = <span className="admin-cell-muted">-</span>;
   }
+  if (cell.interviewId) {
+    return (
+      <Link href={`/team/hiring/${cell.interviewId}`} style={{ textDecoration: "none" }}>
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
 
 // /team/hiring, managers only, for now (Dave, 2026-08-13). Read-only: open
@@ -119,6 +136,13 @@ export default async function TeamHiringPage() {
                       <div className="loop-step-head">
                         <strong>{iv.candidateName}</strong>
                         <span className={chip.className}>{chip.label}</span>
+                        <Link
+                          href={`/team/hiring/${iv.interviewId}`}
+                          className="admin-btn admin-btn--sm"
+                          style={{ marginLeft: "auto" }}
+                        >
+                          {iv.state === "scorecard_due" || iv.state === "in_progress" ? "Submit scorecard" : "Open kit"}
+                        </Link>
                       </div>
                       <div className="admin-cell-muted" style={{ fontSize: 13 }}>
                         {[
