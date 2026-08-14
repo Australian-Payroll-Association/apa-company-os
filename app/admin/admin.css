@@ -3641,6 +3641,90 @@ a.ideas-share-card:hover {
 .loop-step--read .loop-step-num { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
 .loop-step-booked { font-size: 13px; display: grid; gap: 3px; }
 
+/* ─── Hiring (manager view) ─────────────────────────
+   Treatment layered on the OS shell for /team/hiring and the interview kit.
+   Scoped to .hire-* so /admin and /portal are untouched. All values are shell
+   tokens (no raw hex, radius, or shadow). */
+
+/* Day strip: one booked interview the manager sits on. A left rail carries the
+   state colour so the day reads at a glance; the time sits in a tinted tile. */
+.hire-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-line);
+  border-left: 3px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.hire-slot + .hire-slot { margin-top: 8px; }
+.hire-slot:hover { box-shadow: var(--admin-shadow); border-color: var(--admin-muted); }
+.hire-slot--due { border-left-color: var(--admin-warn-ink); }
+.hire-slot--now { border-left-color: var(--admin-accent); }
+.hire-slot--next { border-left-color: var(--admin-accent); }
+.hire-slot--done { border-left-color: var(--admin-ok-ink); }
+.hire-slot-time {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--admin-muted-bg);
+  color: var(--admin-ink);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.hire-slot-body { flex: 1 1 auto; min-width: 0; }
+.hire-slot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hire-slot-name { font-weight: 600; font-size: 14px; }
+.hire-slot-meta { font-size: 13px; color: var(--admin-muted); margin-top: 3px; }
+.hire-slot-cta { margin-left: auto; flex: none; }
+
+/* Scorecard rubric: criterion rows read as one grouped table, not a stack of
+   loose fields. Label, a compact score select, then the evidence note. */
+.hire-criteria {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 2px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.hire-criterion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--admin-line);
+}
+.hire-criterion:first-child { border-top: 0; }
+.hire-criterion-label { flex: 0 0 150px; font-weight: 500; font-size: 14px; color: var(--admin-ink); }
+.hire-criterion-score { flex: 0 0 68px; }
+.hire-criterion-note { flex: 1 1 auto; min-width: 0; }
+
+/* Panel seats: the other scorecards, revealed side by side once you submit.
+   The AI panelist's card is softly tinted so it reads as the machine voice. */
+.hire-seat {
+  padding: 14px 16px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+.hire-seat--ai { background: var(--admin-info-bg); border-color: transparent; }
+.hire-seat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hire-seat-name { font-weight: 600; font-size: 14px; }
+.hire-seat-chips { display: inline-flex; gap: 6px; flex: none; }
+.hire-seat-body { margin-top: 8px; line-height: 1.6; }
+
+@media (max-width: 640px) {
+  .hire-criterion { flex-wrap: wrap; }
+  .hire-criterion-label { flex-basis: 100%; }
+  .hire-criterion-note { flex-basis: 100%; }
+}
+
 /* ─── Application detail: decision-first workspace ──────────────────────────
    The recruiter's single application surface — a sticky decision header, a
    clickable pipeline strip, and a two-pane body (judge on the left, facts on the

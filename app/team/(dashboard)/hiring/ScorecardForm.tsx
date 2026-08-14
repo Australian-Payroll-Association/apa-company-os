@@ -65,65 +65,70 @@ export function ScorecardForm({
 
   return (
     <div className="admin-form">
-      <div className="admin-field">
-        <label className="admin-label">Recommendation</label>
-        <select
-          className="admin-select"
-          value={recommendation}
-          onChange={(e) => setRecommendation(e.target.value as RecommendationKey | "")}
-        >
-          <option value="">Choose one</option>
-          {RECOMMENDATIONS.map((r) => (
-            <option key={r.key} value={r.key}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="admin-field">
-        <label className="admin-label">Overall score</label>
-        <select
-          className="admin-select"
-          value={overall}
-          onChange={(e) => setOverall(e.target.value === "" ? "" : Number(e.target.value))}
-        >
-          <option value="">Not scored</option>
-          {SCORE_OPTIONS.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {rows.map((row, i) => (
-        <div key={row.criterion} className="admin-field">
-          <label className="admin-label">{row.criterion}</label>
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-            <select
-              className="admin-select"
-              style={{ width: 92, flex: "0 0 auto" }}
-              value={row.score ?? ""}
-              onChange={(e) => setRow(i, { score: e.target.value === "" ? null : Number(e.target.value) })}
-            >
-              <option value="">-</option>
-              {SCORE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <input
-              className="admin-input"
-              style={{ flex: 1 }}
-              placeholder="Evidence from the interview"
-              value={row.comment}
-              onChange={(e) => setRow(i, { comment: e.target.value })}
-            />
-          </div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div className="admin-field" style={{ flex: "1 1 200px" }}>
+          <label className="admin-label">Recommendation</label>
+          <select
+            className="admin-select"
+            value={recommendation}
+            onChange={(e) => setRecommendation(e.target.value as RecommendationKey | "")}
+          >
+            <option value="">Choose one</option>
+            {RECOMMENDATIONS.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.label}
+              </option>
+            ))}
+          </select>
         </div>
-      ))}
+
+        <div className="admin-field" style={{ flex: "0 0 140px" }}>
+          <label className="admin-label">Overall score</label>
+          <select
+            className="admin-select"
+            value={overall}
+            onChange={(e) => setOverall(e.target.value === "" ? "" : Number(e.target.value))}
+          >
+            <option value="">Not scored</option>
+            {SCORE_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="admin-label" style={{ display: "block", marginBottom: 6 }}>
+          Rubric
+        </label>
+        <div className="hire-criteria">
+          {rows.map((row, i) => (
+            <div key={row.criterion} className="hire-criterion">
+              <span className="hire-criterion-label">{row.criterion}</span>
+              <select
+                className="admin-select hire-criterion-score"
+                value={row.score ?? ""}
+                onChange={(e) => setRow(i, { score: e.target.value === "" ? null : Number(e.target.value) })}
+              >
+                <option value="">-</option>
+                {SCORE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="admin-input hire-criterion-note"
+                placeholder="Evidence from the interview"
+                value={row.comment}
+                onChange={(e) => setRow(i, { comment: e.target.value })}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="admin-field">
         <label className="admin-label">Summary</label>

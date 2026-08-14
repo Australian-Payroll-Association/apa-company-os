@@ -48,6 +48,14 @@ const INTERVIEW_STATE_CHIP: Record<MyInterviewState, { className: string; label:
   done: { className: "admin-badge admin-badge--ok", label: "Scored" },
 };
 
+// Day-slot left-rail colour per state (see .hire-slot--* in admin.css).
+const SLOT_MODIFIER: Record<MyInterviewState, string> = {
+  up_next: "next",
+  in_progress: "now",
+  scorecard_due: "due",
+  done: "done",
+};
+
 // One grid cell: where a candidate stands on one loop step. When the cell is
 // backed by a real interview, the chip links to that interview's kit.
 function GridCellNode({ cell }: { cell: GridCell }) {
@@ -125,27 +133,18 @@ export default async function TeamHiringPage() {
               )}
             </div>
             <div className="admin-hint">Today, and any conversation still waiting on your scorecard.</div>
-            <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
+            <div style={{ marginTop: 10 }}>
               {myDay.map((iv) => {
                 const chip = INTERVIEW_STATE_CHIP[iv.state];
                 return (
-                  <div key={iv.interviewId} className="loop-step loop-step--read">
-                    <span className="loop-step-num" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {fmtTime(iv.scheduledAt)}
-                    </span>
-                    <div className="loop-step-body">
-                      <div className="loop-step-head">
-                        <strong>{iv.candidateName}</strong>
+                  <div key={iv.interviewId} className={`hire-slot hire-slot--${SLOT_MODIFIER[iv.state]}`}>
+                    <span className="hire-slot-time">{fmtTime(iv.scheduledAt)}</span>
+                    <div className="hire-slot-body">
+                      <div className="hire-slot-head">
+                        <span className="hire-slot-name">{iv.candidateName}</span>
                         <span className={chip.className}>{chip.label}</span>
-                        <Link
-                          href={`/team/hiring/${iv.interviewId}`}
-                          className="admin-btn admin-btn--sm"
-                          style={{ marginLeft: "auto" }}
-                        >
-                          {iv.state === "scorecard_due" || iv.state === "in_progress" ? "Submit scorecard" : "Open kit"}
-                        </Link>
                       </div>
-                      <div className="admin-cell-muted" style={{ fontSize: 13 }}>
+                      <div className="hire-slot-meta">
                         {[
                           iv.stepName,
                           iv.reqTitle,
@@ -157,6 +156,9 @@ export default async function TeamHiringPage() {
                           .join(" · ")}
                       </div>
                     </div>
+                    <Link href={`/team/hiring/${iv.interviewId}`} className="admin-btn admin-btn--sm hire-slot-cta">
+                      {iv.state === "scorecard_due" || iv.state === "in_progress" ? "Submit scorecard" : "Open kit"}
+                    </Link>
                   </div>
                 );
               })}
