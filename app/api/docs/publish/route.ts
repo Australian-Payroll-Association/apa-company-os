@@ -40,9 +40,17 @@ export async function POST(req: NextRequest) {
 
   const publishedAt = new Date().toISOString()
 
+  // cacheControl must be '0'. Storage defaults to 3600, which caches the object
+  // for an hour: a republish is stored but the old copy keeps being served, so
+  // updating a document silently does nothing. The whole point of this route is
+  // that overwriting a slug updates what the team sees immediately.
   const upload = await supabase.storage
     .from(DOCS_BUCKET)
-    .upload(`${slug}.html`, html, { contentType: 'text/html; charset=utf-8', upsert: true })
+    .upload(`${slug}.html`, html, {
+      contentType: 'text/html; charset=utf-8',
+      upsert: true,
+      cacheControl: '0',
+    })
   if (upload.error) {
     return NextResponse.json({ error: upload.error.message }, { status: 500 })
   }
@@ -54,6 +62,7 @@ export async function POST(req: NextRequest) {
     .upload(`${slug}.meta.json`, JSON.stringify({ title: title || slug, publishedAt }, null, 2), {
       contentType: 'application/json',
       upsert: true,
+      cacheControl: '0',
     })
 
   return NextResponse.json({
