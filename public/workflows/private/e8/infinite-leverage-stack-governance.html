@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Managing and testing the stack</title>
+<style>
+  :root{
+    --navy:#04102D; --gray:#EAEEF2; --white:#FFFFFF; --blue:#287BE8;
+    --magenta:#D1458B; --mint:#6FF2C1; --orange:#FF6B35;
+    --body:#2A3044; --muted:#6B7280; --border:#D4D9E0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--body);background:var(--white);font-size:17px;line-height:1.6}
+  .container{max-width:880px;margin:0 auto;padding:0 32px}
+  section{margin-top:72px;padding-top:72px;border-top:1px solid var(--border)}
+  .label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+  h1{font-size:42px;font-weight:700;color:var(--navy);line-height:1.15;margin-bottom:18px}
+  h2{font-size:26px;font-weight:700;color:var(--navy);margin-bottom:12px;max-width:640px}
+  h3{font-size:17px;font-weight:700;color:var(--navy);margin:22px 0 8px}
+  p{margin-bottom:13px}
+  .hero{padding-top:64px}
+  .hero p.lede{font-size:21px;color:var(--muted);max-width:700px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;background:var(--gray);padding:1px 6px;border-radius:4px;color:var(--navy)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th{text-align:left;font-weight:700;color:var(--navy);border-bottom:2px solid var(--navy);padding:9px 10px 7px}
+  td{border-bottom:1px solid var(--border);padding:9px 10px;vertical-align:top}
+  .quote{background:var(--gray);border-left:3px solid var(--blue);padding:20px 26px;font-style:italic;font-weight:500;font-size:15px;color:var(--navy);margin:20px 0}
+  .diagram{margin:26px 0;border:1px solid var(--border);border-radius:8px;padding:18px 12px;overflow-x:auto}
+  .diagram svg{display:block;width:100%;height:auto;min-width:640px}
+  .caption{font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:20px 0}
+  .card{border-top:2px solid var(--blue);background:var(--white);padding:16px 4px 0;font-size:14px}
+  .card .chead{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:6px}
+  .card .cname{font-weight:700;color:var(--navy);font-size:16px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:13.5px}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:4px;letter-spacing:.03em}
+  .chip.fleet{background:#F4F8FE;color:var(--blue);border:1px solid var(--blue)}
+  .chip.rig{background:#FFF3ED;color:var(--orange);border:1px solid var(--orange)}
+  .chip.both{background:var(--navy);color:var(--mint)}
+  footer{margin-top:72px;padding:40px 0 56px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:14px}
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+  .reveal.on{opacity:1;transform:none}
+  @media(max-width:720px){
+    .container{padding:0 20px}
+    section{margin-top:48px;padding-top:48px}
+    h1{font-size:30px} h2{font-size:21px}
+    body{font-size:15.5px}
+    .cards{grid-template-columns:1fr}
+    table{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="container hero reveal">
+  <div class="label">Governance and testing · 13 August 2026</div>
+  <h1>Managing and testing the stack</h1>
+  <p class="lede">How the setup skill and prompt are owned, versioned, released, and proven: one product repo, one release train, and two testing channels feeding one improvement loop.</p>
+</div>
+
+<!-- ============ 1. SYSTEM ARCHITECTURE ============ -->
+<section><div class="container reveal">
+  <div class="label">Architecture</div>
+  <h2>One product repo, everything else consumes</h2>
+  <p>All content lives in the template repo. The plugin carries no skills, the workshop page owns no prompt text, and machines pull updates through one path. The fork that caused this project is structurally impossible.</p>
+
+  <div class="diagram"><svg viewBox="0 0 880 440" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,sans-serif">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#287BE8"/>
+      </marker>
+    </defs>
+
+    <!-- canonical repo -->
+    <rect x="20" y="30" width="310" height="380" rx="8" fill="#FFFFFF" stroke="#04102D" stroke-width="2"/>
+    <text x="40" y="58" font-size="11" font-weight="700" fill="#287BE8" letter-spacing="1.2">THE PRODUCT · EDIT ONLY HERE</text>
+    <text x="40" y="80" font-size="14" font-weight="700" fill="#04102D">infiniteleverage-8-agents-template</text>
+
+    <rect x="40" y="98" width="270" height="30" rx="4" fill="#EAEEF2"/>
+    <text x="52" y="117" font-size="12" fill="#04102D">.claude/agents · the 8 agents</text>
+    <rect x="40" y="134" width="270" height="30" rx="4" fill="#EAEEF2"/>
+    <text x="52" y="153" font-size="12" fill="#04102D">.claude/rules + global skills</text>
+    <rect x="40" y="170" width="270" height="30" rx="4" fill="#EAEEF2"/>
+    <text x="52" y="189" font-size="12" fill="#04102D">templates/project-scaffold</text>
+
+    <rect x="40" y="206" width="270" height="128" rx="4" fill="#F4F8FE" stroke="#287BE8"/>
+    <text x="52" y="226" font-size="12" font-weight="700" fill="#287BE8">setup-skills/infiniteleverage-init</text>
+    <text x="52" y="246" font-size="12" fill="#04102D">SKILL.md · PROMPT.md</text>
+    <text x="52" y="264" font-size="12" fill="#04102D">SKILL-REGRESSION-CHECK.md</text>
+    <text x="52" y="282" font-size="12" fill="#04102D">scripts/check-contract.py</text>
+    <text x="52" y="300" font-size="12" fill="#04102D">TESTING.md · references/</text>
+    <text x="52" y="324" font-size="11" fill="#6B7280" font-style="italic">skill + prompt versioned together</text>
+
+    <text x="40" y="368" font-size="12" fill="#6B7280">engineer PRs land on main;</text>
+    <text x="40" y="385" font-size="12" fill="#6B7280">main may break, stable may not</text>
+
+    <!-- release workflow -->
+    <line x1="330" y1="220" x2="392" y2="220" stroke="#287BE8" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="336" y="208" font-size="11" fill="#6B7280">release</text>
+    <rect x="395" y="150" width="180" height="140" rx="8" fill="#04102D"/>
+    <text x="415" y="178" font-size="11" font-weight="700" fill="#6FF2C1" letter-spacing="1.2">RELEASE WORKFLOW</text>
+    <text x="415" y="202" font-size="12" fill="#FFFFFF">tag vX.Y.Z + notes</text>
+    <text x="415" y="222" font-size="12" fill="#FFFFFF">(notes become the advisory)</text>
+    <text x="415" y="242" font-size="12" fill="#FFFFFF">fast-forward stable</text>
+    <text x="415" y="262" font-size="12" fill="#FFFFFF">rebuild the zips</text>
+
+    <!-- stable pill -->
+    <line x1="485" y1="290" x2="485" y2="322" stroke="#287BE8" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="425" y="325" width="120" height="34" rx="17" fill="#287BE8"/>
+    <text x="485" y="347" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">stable</text>
+
+    <!-- consumers -->
+    <rect x="640" y="40" width="220" height="86" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="656" y="64" font-size="12" font-weight="700" fill="#04102D">Workshop page</text>
+    <text x="656" y="84" font-size="11.5" fill="#6B7280">renders PROMPT.md from stable</text>
+    <text x="656" y="101" font-size="11.5" fill="#6B7280">owns no prompt text of its own</text>
+
+    <rect x="640" y="146" width="220" height="86" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="656" y="170" font-size="12" font-weight="700" fill="#04102D">Every machine</text>
+    <text x="656" y="190" font-size="11.5" fill="#6B7280">session advisory offers the update;</text>
+    <text x="656" y="207" font-size="11.5" fill="#6B7280">/infiniteleverage-patch applies it</text>
+
+    <rect x="640" y="252" width="220" height="102" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="656" y="276" font-size="12" font-weight="700" fill="#04102D">Plugin: runtime shim</text>
+    <text x="656" y="296" font-size="11.5" fill="#6B7280">hooks + advisory + routing only</text>
+    <rect x="656" y="308" width="128" height="24" rx="12" fill="#FFF3ED" stroke="#FF6B35"/>
+    <text x="720" y="324" font-size="11" font-weight="700" fill="#FF6B35" text-anchor="middle">carries no skills</text>
+    <text x="656" y="348" font-size="10.5" fill="#6B7280" font-style="italic">CI fails if a skills/ dir reappears</text>
+
+    <!-- arrows stable -> consumers -->
+    <path d="M 545 335 C 600 320, 600 100, 636 84" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr)"/>
+    <path d="M 545 340 C 590 335, 600 200, 636 190" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr)"/>
+    <path d="M 545 345 C 595 355, 600 295, 636 298" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- archived mirror note -->
+    <text x="640" y="392" font-size="11" fill="#6B7280" font-style="italic">infiniteleverage-8-plugin: archived</text>
+    <text x="640" y="408" font-size="11" fill="#6B7280" font-style="italic">(pending Khoa's confirmation)</text>
+  </svg></div>
+  <div class="caption">Edits happen in one place; releases move one branch; three consumers read it. No second maintained copy exists anywhere.</div>
+</div></section>
+
+<!-- ============ 2. RELEASE TRAIN ============ -->
+<section><div class="container reveal">
+  <div class="label">Management process</div>
+  <h2>The release train</h2>
+  <p>One version number for the whole system, defined meanings for each bump, and a pipeline where the printed handout URL never changes but its content moves only deliberately.</p>
+
+  <div class="diagram"><svg viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,sans-serif">
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#287BE8"/>
+      </marker>
+    </defs>
+    <!-- 6 pipeline boxes -->
+    <g>
+      <rect x="10" y="40" width="125" height="78" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+      <text x="72" y="68" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Engineer PR</text>
+      <text x="72" y="88" font-size="10.5" fill="#6B7280" text-anchor="middle">to main, incl. same-day</text>
+      <text x="72" y="102" font-size="10.5" fill="#6B7280" text-anchor="middle">PRs for field hand-fixes</text>
+    </g>
+    <line x1="135" y1="79" x2="155" y2="79" stroke="#287BE8" stroke-width="2" marker-end="url(#arr2)"/>
+    <g>
+      <rect x="158" y="40" width="125" height="78" rx="8" fill="#F4F8FE" stroke="#287BE8"/>
+      <text x="220" y="68" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">CI gate</text>
+      <text x="220" y="88" font-size="10.5" fill="#6B7280" text-anchor="middle">contract test · gate lint</text>
+      <text x="220" y="102" font-size="10.5" fill="#6B7280" text-anchor="middle">refs exist · stable pinned</text>
+    </g>
+    <line x1="283" y1="79" x2="303" y2="79" stroke="#287BE8" stroke-width="2" marker-end="url(#arr2)"/>
+    <g>
+      <rect x="306" y="40" width="125" height="78" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+      <text x="368" y="68" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Operator review</text>
+      <text x="368" y="88" font-size="10.5" fill="#6B7280" text-anchor="middle">CODEOWNERS: setup-skills</text>
+      <text x="368" y="102" font-size="10.5" fill="#6B7280" text-anchor="middle">+ prompts need Quan</text>
+    </g>
+    <line x1="431" y1="79" x2="451" y2="79" stroke="#287BE8" stroke-width="2" marker-end="url(#arr2)"/>
+    <g>
+      <rect x="454" y="40" width="125" height="78" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+      <text x="516" y="68" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Regression check</text>
+      <text x="516" y="88" font-size="10.5" fill="#6B7280" text-anchor="middle">12 invariants ticked</text>
+      <text x="516" y="102" font-size="10.5" fill="#6B7280" text-anchor="middle">in the PR description</text>
+    </g>
+    <line x1="579" y1="79" x2="599" y2="79" stroke="#287BE8" stroke-width="2" marker-end="url(#arr2)"/>
+    <g>
+      <rect x="602" y="40" width="125" height="78" rx="8" fill="#04102D"/>
+      <text x="664" y="68" font-size="12.5" font-weight="700" fill="#6FF2C1" text-anchor="middle">Release vX.Y.Z</text>
+      <text x="664" y="88" font-size="10.5" fill="#FFFFFF" text-anchor="middle">notes in plain English</text>
+      <text x="664" y="102" font-size="10.5" fill="#FFFFFF" text-anchor="middle">stable fast-forwards</text>
+    </g>
+    <line x1="727" y1="79" x2="747" y2="79" stroke="#287BE8" stroke-width="2" marker-end="url(#arr2)"/>
+    <g>
+      <rect x="750" y="40" width="122" height="78" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+      <text x="811" y="68" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Machines update</text>
+      <text x="811" y="88" font-size="10.5" fill="#6B7280" text-anchor="middle">advisory → patch →</text>
+      <text x="811" y="102" font-size="10.5" fill="#6B7280" text-anchor="middle">version stamp</text>
+    </g>
+    <text x="440" y="165" font-size="12" fill="#6B7280" text-anchor="middle" font-style="italic">Operating rule: no releases on retreat days. Main may break on a Wednesday; stable may not.</text>
+  </svg></div>
+
+  <table>
+    <tr><th>Bump</th><th>Means</th><th>Testing required</th></tr>
+    <tr><td><strong>Major</strong></td><td>The flow changed in a way that invalidates printed handouts or requires re-running setup</td><td>All nine runs, both channels</td></tr>
+    <tr><td><strong>Minor</strong></td><td>A new capability, gate, or fork; existing machines unaffected</td><td>Runs 0–2 plus whatever the change touches</td></tr>
+    <tr><td><strong>Patch</strong></td><td>Wording and fixes</td><td>CI plus a read against the regression checklist</td></tr>
+  </table>
+</div></section>
+
+<!-- ============ 3. WHO OWNS WHAT ============ -->
+<section><div class="container reveal">
+  <div class="label">Ownership</div>
+  <h2>Who does what</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="chead">Operator</div>
+      <div class="cname">Owns the experience</div>
+      <p>Reviews every change to setup-skills and prompts (CODEOWNERS). Settles open decisions. Cuts releases. Runs the pre-retreat dress rehearsal.</p>
+    </div>
+    <div class="card">
+      <div class="chead">Engineers</div>
+      <div class="cname">Own the pieces</div>
+      <p>PR all changes to main; never hand-edit a client machine without filing the fix the same day. Onboard with the real prompt, verbatim: their setups are the field tests.</p>
+    </div>
+    <div class="card">
+      <div class="chead">CI</div>
+      <div class="cname">Owns the contract</div>
+      <p>Contract test, gate lint, reference resolution, stable pinning, secret shapes, and the plugin-repo guard that fails if a skills directory ever reappears.</p>
+    </div>
+  </div>
+  <div class="quote">Never hand-edit agents, skills, or scaffold files on a client machine. Changes go to the canonical repo by PR, get released, and reach machines via the patch skill.</div>
+</div></section>
+
+<!-- ============ 4. TESTING CHANNELS ============ -->
+<section><div class="container reveal">
+  <div class="label">Testing process</div>
+  <h2>Three channels, one evidence pool</h2>
+  <p>Cheapest first: CI statics catch contract drift in seconds, the onboarding fleet tests reality for free, and a small crash rig does what you can't ask of a real engineer.</p>
+
+  <div class="diagram"><svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,sans-serif">
+    <defs>
+      <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#287BE8"/>
+      </marker>
+    </defs>
+    <!-- channel 1 -->
+    <rect x="15" y="20" width="270" height="150" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="35" y="48" font-size="11" font-weight="700" fill="#287BE8" letter-spacing="1.2">EVERY PR · SECONDS</text>
+    <text x="35" y="72" font-size="14" font-weight="700" fill="#04102D">CI statics</text>
+    <text x="35" y="96" font-size="12" fill="#6B7280">prompt-skill contract test</text>
+    <text x="35" y="115" font-size="12" fill="#6B7280">every gate has its three parts</text>
+    <text x="35" y="134" font-size="12" fill="#6B7280">references exist, stable pinned</text>
+    <text x="35" y="153" font-size="12" fill="#6B7280">nothing shaped like a secret</text>
+
+    <!-- channel 2 -->
+    <rect x="305" y="20" width="270" height="150" rx="8" fill="#F4F8FE" stroke="#287BE8" stroke-width="2"/>
+    <text x="325" y="48" font-size="11" font-weight="700" fill="#287BE8" letter-spacing="1.2">CONTINUOUS · REAL WORLD</text>
+    <text x="325" y="72" font-size="14" font-weight="700" fill="#04102D">Onboarding fleet</text>
+    <text x="325" y="96" font-size="12" fill="#2A3044">every engineer setup is a test run</text>
+    <text x="325" y="115" font-size="12" fill="#2A3044">real accounts, machines, networks</text>
+    <text x="325" y="134" font-size="12" fill="#2A3044">the real prompt, verbatim, no shortcuts</text>
+    <text x="325" y="153" font-size="12" fill="#2A3044">hand-fix = a bug, filed same day</text>
+
+    <!-- channel 3 -->
+    <rect x="595" y="20" width="270" height="150" rx="8" fill="#FFFFFF" stroke="#FF6B35"/>
+    <text x="615" y="48" font-size="11" font-weight="700" fill="#FF6B35" letter-spacing="1.2">PER RELEASE · SYNTHETIC</text>
+    <text x="615" y="72" font-size="14" font-weight="700" fill="#04102D">Crash rig</text>
+    <text x="615" y="96" font-size="12" fill="#6B7280">throwaway accounts + VM snapshot</text>
+    <text x="615" y="115" font-size="12" fill="#6B7280">destructive forks, kill-and-resume</text>
+    <text x="615" y="134" font-size="12" fill="#6B7280">lying at gates, corporate blocks</text>
+    <text x="615" y="153" font-size="12" fill="#6B7280">never on a real engineer's accounts</text>
+
+    <!-- arrows down -->
+    <line x1="150" y1="170" x2="330" y2="228" stroke="#287BE8" stroke-width="2" marker-end="url(#arr3)"/>
+    <line x1="440" y1="170" x2="440" y2="225" stroke="#287BE8" stroke-width="2" marker-end="url(#arr3)"/>
+    <line x1="730" y1="170" x2="550 " y2="228" stroke="#287BE8" stroke-width="2" marker-end="url(#arr3)"/>
+
+    <!-- evidence pool -->
+    <rect x="190" y="232" width="500" height="76" rx="8" fill="#04102D"/>
+    <text x="440" y="262" font-size="13" font-weight="700" fill="#6FF2C1" text-anchor="middle">One evidence pool: setup-report issues + run records</text>
+    <text x="440" y="286" font-size="11.5" fill="#FFFFFF" text-anchor="middle">version, OS, triage state, stage timings, gate outcomes, verify failures, hand-fixes</text>
+  </svg></div>
+  <div class="caption">Stage F of the skill files the report itself: engineers' runs become issues on the repo automatically; outside attendees get a local SETUP-REPORT.md.</div>
+</div></section>
+
+<!-- ============ 5. THE VERSION LOOP ============ -->
+<section><div class="container reveal">
+  <div class="label">The improvement loop</div>
+  <h2>Install bugs become the next version</h2>
+
+  <div class="diagram"><svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,sans-serif">
+    <defs>
+      <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#287BE8"/>
+      </marker>
+    </defs>
+    <!-- center -->
+    <text x="440" y="195" font-size="13" font-weight="700" fill="#04102D" text-anchor="middle">the version loop</text>
+    <text x="440" y="215" font-size="11.5" fill="#6B7280" text-anchor="middle">improvement is measured, not felt:</text>
+    <text x="440" y="231" font-size="11.5" fill="#6B7280" text-anchor="middle">timings and hand-fix counts, vN vs vN+1</text>
+
+    <!-- node 1 top -->
+    <rect x="330" y="18" width="220" height="56" rx="8" fill="#04102D"/>
+    <text x="440" y="42" font-size="12.5" font-weight="700" fill="#6FF2C1" text-anchor="middle">Release vN lands on stable</text>
+    <text x="440" y="60" font-size="10.5" fill="#FFFFFF" text-anchor="middle">notes name the reports it closes</text>
+
+    <!-- node 2 right top -->
+    <rect x="628" y="105" width="230" height="56" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="743" y="129" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Engineer onboards</text>
+    <text x="743" y="147" font-size="10.5" fill="#6B7280" text-anchor="middle">the real prompt, verbatim, at stable</text>
+
+    <!-- node 3 right bottom -->
+    <rect x="628" y="248" width="230" height="56" rx="8" fill="#F4F8FE" stroke="#287BE8"/>
+    <text x="743" y="272" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Run files its own report</text>
+    <text x="743" y="290" font-size="10.5" fill="#6B7280" text-anchor="middle">setup-report issue, automatic, Stage F</text>
+
+    <!-- node 4 bottom -->
+    <rect x="330" y="330" width="220" height="56" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="440" y="354" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Weekly triage</text>
+    <text x="440" y="372" font-size="10.5" fill="#6B7280" text-anchor="middle">and before every release</text>
+
+    <!-- node 5 left bottom -->
+    <rect x="22" y="248" width="230" height="56" rx="8" fill="#FFFFFF" stroke="#D4D9E0"/>
+    <text x="137" y="272" font-size="12.5" font-weight="700" fill="#04102D" text-anchor="middle">Fixes land as PRs</text>
+    <text x="137" y="290" font-size="10.5" fill="#6B7280" text-anchor="middle">CI contract + operator review</text>
+
+    <!-- node 6 left top -->
+    <rect x="22" y="105" width="230" height="56" rx="8" fill="#04102D"/>
+    <text x="137" y="129" font-size="12.5" font-weight="700" fill="#6FF2C1" text-anchor="middle">Release vN+1</text>
+    <text x="137" y="147" font-size="10.5" fill="#FFFFFF" text-anchor="middle">next onboarding tests it for free</text>
+
+    <!-- ring arrows -->
+    <path d="M 555 55 C 640 62, 700 80, 733 100" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+    <path d="M 743 165 L 743 243" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+    <path d="M 700 308 C 650 335, 600 348, 556 355" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+    <path d="M 326 355 C 270 348, 220 335, 175 310" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+    <path d="M 137 243 L 137 166" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+    <path d="M 150 100 C 190 78, 250 62, 324 52" fill="none" stroke="#287BE8" stroke-width="2" marker-end="url(#arr4)"/>
+  </svg></div>
+  <div class="caption">The DOXA engineers onboarding now are the first fleet: v2 can have real field reports before Sydney.</div>
+</div></section>
+
+<!-- ============ 6. RUN MATRIX ============ -->
+<section><div class="container reveal">
+  <div class="label">The run matrix</div>
+  <h2>Nine runs, two channels</h2>
+  <table>
+    <tr><th>Run</th><th>What it proves</th><th>Channel</th></tr>
+    <tr><td>0 · Static</td><td>Contract test green, 12 invariants ticked</td><td><span class="chip both">CI</span></td></tr>
+    <tr><td>1 · Clean Mac, full flow</td><td>Gates three-part, graduation lap, catalog filled, telemetry rows landed, timing fits the morning</td><td><span class="chip both">both</span></td></tr>
+    <tr><td>2 · Reuse</td><td>Working stack found, keep-or-fresh asked once, verify-and-repair only</td><td><span class="chip both">both</span></td></tr>
+    <tr><td>3 · Fresh alongside</td><td>Archive by rename, nothing deleted, old site still live</td><td><span class="chip rig">rig</span></td></tr>
+    <tr><td>4 · Kill and resume</td><td>Triage finds the half-finished state, continues without redoing</td><td><span class="chip rig">rig</span></td></tr>
+    <tr><td>5 · Windows gates</td><td>Native never offered, W1–W3 with reasons, resume-after-reboot survives</td><td><span class="chip both">both</span></td></tr>
+    <tr><td>6 · Corporate verdicts</td><td>No local attempt on managed machines; blocked network gives the loaner stop</td><td><span class="chip rig">rig</span></td></tr>
+    <tr><td>7 · Chat surface</td><td>No shell detected, routes to the cloud track without one local step</td><td><span class="chip rig">rig</span></td></tr>
+    <tr><td>8 · Negative gates</td><td>Saying "done" without doing it gets caught by every verify</td><td><span class="chip rig">rig</span></td></tr>
+    <tr><td>9 · Update path</td><td>Previous-release machine patches clean, hooks invariants intact</td><td><span class="chip fleet">fleet</span></td></tr>
+  </table>
+  <p style="font-size:14px;color:var(--muted)">Plus the pre-retreat dress rehearsal: one genuinely non-technical person, all four blocks, an engineer silent with a stopwatch, and a zero-interventions target, because engineers never hesitate where attendees will.</p>
+</div></section>
+
+<footer>
+  <div class="container">Managing and testing the stack · Infinite Leverage · Edge8 AI</div>
+</footer>
+
+<script>
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})},{threshold:.1});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%3*0.08)+'s';io.observe(el)});
+</script>
+</body>
+</html>

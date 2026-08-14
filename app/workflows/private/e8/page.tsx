@@ -86,6 +86,13 @@ const ITEMS: LibraryItem[] = [
   },
   {
     category: 'workflow',
+    href: '/workflows/private/e8/infinite-leverage-stack-governance.html',
+    title: 'Infinite Leverage Stack: Management and Testing',
+    description:
+      'How the setup skill and prompt are owned, versioned, and released: the one product repo, the release train, and the two testing channels (engineer onboardings and the crash rig) that feed one improvement loop.',
+  },
+  {
+    category: 'workflow',
     href: '/workflows/private/e8/vung-tau-leg.html',
     title: 'Bánh Mì Ballers: Saigon + Vung Tau Leg',
     description: 'Itinerary for the Saigon and Vung Tau leg.',
