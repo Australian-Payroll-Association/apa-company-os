@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cache } from "react";
+import type { Metadata } from "next";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { listAssignablePeople, listPeopleNames, type PersonOption } from "@/lib/admin/people-options";
+import { appSlug, isShortCode, isUuid, shortCodeRange, shortOf } from "@/lib/admin/slug";
 import { ApplicationManage, type AppManageData } from "../ApplicationManage";
 import { ApplicationLifecycle } from "./ApplicationLifecycle";
 
@@ -60,13 +63,104 @@ type RawApp = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
+type PeopleName = { full_name: string | null; email: string | null };
+type RefRow = { id: string; people: PeopleName | PeopleName[] | null };
+
+type AppRef = {
+  id: string;
+  name: string | null;
+  canonical: string;
+  redirect: "permanent" | "temporary" | null;
+};
+
+// Three outcomes, kept distinct on purpose: a DB error must not masquerade as a
+// missing row. The original page showed a retryable error alert for a query error
+// and a 404 only for a genuinely absent row; the resolver preserves that split so
+// a transient timeout doesn't tell the recruiter the application was deleted.
+type AppRefResult =
+  | { kind: "ok"; ref: AppRef }
+  | { kind: "error"; message: string }
+  | { kind: "notfound" };
+
+// Resolve a URL segment — a name+short-code slug like "nguyen-thi-mai-a7dfed24",
+// or a legacy full uuid — to the application row. Wrapped in cache() so
+// generateMetadata and the page body share one DB round-trip per request.
+const resolveApplicationRef = cache(async (segment: string): Promise<AppRefResult> => {
+  const nameOf = (row: RefRow) => {
+    const p = one(row.people);
+    return p?.full_name || p?.email || null;
+  };
+
+  // Legacy full-uuid link: resolve exactly, then send it on to the canonical slug.
+  if (isUuid(segment)) {
+    const { data, error } = await companyOs
+      .from("applications")
+      .select("id, people!person_id(full_name, email)")
+      .eq("id", segment)
+      .maybeSingle();
+    if (error) return { kind: "error", message: error.message };
+    const row = data as unknown as RefRow | null;
+    if (!row) return { kind: "notfound" };
+    const name = nameOf(row);
+    return { kind: "ok", ref: { id: row.id, name, canonical: appSlug(name, row.id), redirect: "permanent" } };
+  }
+
+  // Slug: the trailing hyphen group is the 8-hex short code. PostgREST can't ILIKE
+  // a uuid column, so match the code with an index-friendly uuid range instead.
+  const short = shortOf(segment);
+  if (!isShortCode(short)) return { kind: "notfound" };
+  const { lo, hi } = shortCodeRange(short);
+  const { data, error } = await companyOs
+    .from("applications")
+    .select("id, people!person_id(full_name, email)")
+    .gte("id", lo)
+    .lte("id", hi)
+    .limit(2);
+  if (error) return { kind: "error", message: error.message };
+  const rows = (data as unknown as RefRow[] | null) ?? [];
+  if (rows.length === 0) return { kind: "notfound" };
+
+  let row = rows[0];
+  if (rows.length > 1) {
+    // Astronomically rare 32-bit collision: keep only the row whose canonical slug
+    // is exactly what was requested; if none, we can't safely disambiguate.
+    const exact = rows.find((r) => appSlug(nameOf(r), r.id) === segment);
+    if (!exact) return { kind: "notfound" };
+    row = exact;
+  }
+  const name = nameOf(row);
+  const canonical = appSlug(name, row.id);
+  return { kind: "ok", ref: { id: row.id, name, canonical, redirect: segment === canonical ? null : "temporary" } };
+});
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const resolved = await resolveApplicationRef(params.id);
+  return { title: resolved.kind === "ok" ? resolved.ref.name ?? "Candidate" : "Candidate" };
+}
+
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
+  const resolved = await resolveApplicationRef(params.id);
+  if (resolved.kind === "error") {
+    return (
+      <>
+        <PageHead eyebrow={<Link href="/admin/talent/applications">← Applications</Link>} title="Application" />
+        <div className="admin-alert admin-alert--err">{resolved.message}</div>
+      </>
+    );
+  }
+  if (resolved.kind === "notfound") notFound();
+  const ref = resolved.ref;
+  // A legacy uuid link is permanently canonicalized; a stale-name slug (the
+  // candidate was renamed) redirects temporarily, since the name can change again.
+  if (ref.redirect === "permanent") permanentRedirect(`/admin/talent/applications/${ref.canonical}`);
+  if (ref.redirect === "temporary") redirect(`/admin/talent/applications/${ref.canonical}`);
+
   const { data, error } = await companyOs
     .from("applications")
     .select(
       "id, status, rating, rejection_reason, applied_at, decided_at, source, source_detail, referrer_person_id, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, city, country, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, pool_status, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
     )
-    .eq("id", params.id)
+    .eq("id", ref.id)
     .maybeSingle();
 
   if (error) {
