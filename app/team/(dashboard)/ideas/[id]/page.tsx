@@ -7,6 +7,7 @@ import { getSharedIdea, type SharedIdea } from "@/lib/team/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
+import { EditablePlan } from "./EditablePlan";
 import {
   IDEA_STATUS_LABEL,
   OFFICE_LABEL,
@@ -107,13 +108,21 @@ export default async function IdeaDetailPage({ params }: { params: { id: string 
           </>
         ) : (
           <>
-            {aiHtml ? (
+            {aiHtml && isOwner ? (
+              <EditablePlan
+                ideaId={idea.id}
+                title={idea.title}
+                markdown={idea.ai_plan ?? ""}
+                html={aiHtml}
+                sub={
+                  "Written from your 5D answers. It's in the company backlog now — this is the document to bring when someone asks \"what would we actually build?\""
+                }
+              />
+            ) : aiHtml ? (
               <div className="admin-card" style={{ padding: "22px 24px", marginBottom: 20 }}>
-                <h2 className="admin-card-title">{isOwner ? "Your product plan" : "The product plan"}</h2>
+                <h2 className="admin-card-title">The product plan</h2>
                 <p className="admin-page-sub" style={{ marginTop: 0 }}>
-                  {isOwner
-                    ? "Written from your 5D answers. It's in the company backlog now — this is the document to bring when someone asks \"what would we actually build?\""
-                    : `Written from ${idea.submitterName}'s 5D answers. It's in the company backlog.`}
+                  {`Written from ${idea.submitterName}'s 5D answers. It's in the company backlog.`}
                 </p>
                 <div className="idea-plan" dangerouslySetInnerHTML={{ __html: aiHtml }} />
               </div>

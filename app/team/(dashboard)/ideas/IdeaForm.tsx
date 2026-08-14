@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitIdea } from "./actions";
+import { PlanGenerating } from "./PlanGenerating";
 import { appendDictation, useDictation } from "./useDictation";
 
 // Guided 5D submission form. One step per D (Define, Discover, Design,
@@ -116,15 +117,7 @@ export function IdeaForm() {
   }
 
   if (submitting) {
-    return (
-      <div className="admin-card" style={{ padding: "28px 24px", textAlign: "center" }}>
-        <h2 className="admin-card-title">Building your product plan…</h2>
-        <p className="admin-page-sub" style={{ marginTop: 6 }}>
-          Your idea is saved. Claude is now turning it into a product plan — restating the problem,
-          picking a program type, and drafting a FAST goal. This takes about 20 seconds.
-        </p>
-      </div>
-    );
+    return <PlanGenerating />;
   }
 
   return (
