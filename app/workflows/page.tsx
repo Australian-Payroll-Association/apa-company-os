@@ -1,15 +1,6 @@
 import Link from 'next/link'
 import { allWorkflows } from '@/lib/workflowsData'
-import { CategoryChip } from './ui'
-
-const OFFICE_ORDER = ['Revenue', 'Talent', 'Operations', 'Innovation'] as const
-
-const OFFICE_TAGLINES: Record<(typeof OFFICE_ORDER)[number], string> = {
-  Revenue: 'How money gets made, invoiced, and reconciled.',
-  Talent: 'How people get hired, coached, and grown.',
-  Operations: 'How the machine runs day to day.',
-  Innovation: 'How ideas become plans and skills become proof.',
-}
+import WorkflowsBrowser from './browser'
 
 export default function WorkflowsPage() {
   return (
@@ -30,47 +21,7 @@ export default function WorkflowsPage() {
         </div>
       </section>
 
-      {OFFICE_ORDER.map((office, i) => {
-        const workflows = allWorkflows.filter((w) => w.category === office)
-        if (workflows.length === 0) return null
-        return (
-          <section
-            key={office}
-            className="section"
-            style={{ padding: '64px 0', background: i % 2 === 1 ? 'var(--tint)' : undefined }}
-          >
-            <div className="container">
-              <span className="section-label" style={i % 2 === 1 ? { background: 'var(--white)' } : undefined}>
-                {office} office
-              </span>
-              <h2 className="section-title" style={{ fontSize: 32, marginBottom: 8 }}>
-                {office}
-              </h2>
-              <p className="section-sub" style={{ marginBottom: 32 }}>
-                {OFFICE_TAGLINES[office]}
-              </p>
-              <div className="wf-grid">
-                {workflows.map((w) => (
-                  <Link key={w.slug} href={`/workflows/${w.slug}`} className="wf-card">
-                    <div className="wf-card-top">
-                      <CategoryChip category={w.category} />
-                      <span className="wf-card-date">
-                        {new Date(w.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </div>
-                    <h3 className="wf-card-title">{w.title}</h3>
-                    <p className="wf-card-excerpt">{w.excerpt}</p>
-                    <div className="wf-card-foot">
-                      <span className="wf-card-steps">{w.steps} steps</span>
-                      <span className="wf-card-read">View workflow →</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        )
-      })}
+      <WorkflowsBrowser workflows={allWorkflows} />
 
       <section className="section" style={{ background: 'var(--dark)', padding: '72px 0' }}>
         <div className="container">
