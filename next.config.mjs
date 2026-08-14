@@ -25,6 +25,8 @@ const nextConfig = {
       { source: '/team/okrs', destination: '/team/company-goals', permanent: true },
       // The AI Resume Screen workflow was folded into the end-to-end Recruitment workflow.
       { source: '/workflows/ai-resume-screen', destination: '/workflows/recruitment', permanent: true },
+      // Sales Call Intelligence was superseded by the scheduled-agent version of the same pipeline.
+      { source: '/workflows/sales-call-intelligence', destination: '/workflows/lark-scheduler-to-crm-updates', permanent: true },
       // The onboarding deck moved into the private workflows library, now under the E8 brand.
       { source: '/blueprints/team-onboarding', destination: '/workflows/private/e8/team-onboarding', permanent: true },
       // The private workflows library was split into E8 and AIO Labs brands; the

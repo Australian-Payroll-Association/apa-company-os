@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Teknorot Australia AI Program: the Ordering and Cash Dashboard</title>
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+    --amber:#E9A23B;
+    --ink:#1a2340;
+    --muted:#5a6480;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--mist);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px;margin:0 auto;background:var(--white);}
+  header{background:var(--navy);color:var(--white);padding:60px 60px 52px;}
+  .eyebrow{font-size:13px;letter-spacing:.18em;color:var(--mint);font-weight:600;margin-bottom:18px;}
+  header h1{font-size:38px;line-height:1.15;font-weight:700;margin-bottom:14px;}
+  header p.sub{font-size:18px;color:var(--mist);max-width:680px;}
+  .meta{margin-top:32px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;color:var(--mist);}
+  .meta div span{display:block;color:var(--mint);font-size:11px;letter-spacing:.12em;margin-bottom:3px;}
+  section{padding:46px 60px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px;}
+  h3{font-size:25px;font-weight:700;margin-bottom:18px;color:var(--navy);}
+  h4{font-size:17px;font-weight:700;margin:26px 0 8px;color:var(--navy);}
+  p{margin-bottom:15px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul,ol{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li,ol li{position:relative;padding-left:24px;margin-bottom:10px;font-size:16px;}
+  ul li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;background:var(--mint);border-radius:50%;}
+  ol{counter-reset:num;}
+  ol li{counter-increment:num;padding-left:32px;}
+  ol li::before{content:counter(num);position:absolute;left:0;top:1px;width:22px;height:22px;background:var(--navy);color:var(--mint);border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;}
+  th{background:var(--navy);color:var(--white);text-align:left;padding:10px 12px;font-weight:650;font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid var(--mist);vertical-align:top;}
+  tr:nth-child(even) td{background:#F7F9FC;}
+  .callout{background:#F0F7FF;border-left:4px solid var(--blue);padding:18px 22px;border-radius:0 8px 8px 0;margin:20px 0;}
+  .callout.mint{background:#EFFCF7;border-left-color:var(--mint);}
+  .callout.pink{background:#FDF2F8;border-left-color:var(--pink);}
+  .callout.amber{background:#FDF6EC;border-left-color:var(--amber);}
+  .callout p{font-size:15px;}
+  .callout .qWho{display:block;font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin-top:8px;}
+  .prCard{border:1px solid var(--mist);border-radius:12px;padding:22px 24px;margin-bottom:16px;}
+  .prCard .prHead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .prCard .num{font-size:13px;font-weight:800;color:var(--white);background:var(--navy);border-radius:8px;padding:2px 9px;}
+  .prCard h4{margin:0;font-size:19px;}
+  .prCard .lbl{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--blue);display:block;margin:14px 0 4px;}
+  .prCard p{font-size:15px;}
+  .flowRow{display:flex;gap:12px;margin:20px 0;flex-wrap:wrap;}
+  .flowBox{flex:1;min-width:150px;border:1px solid var(--mist);border-radius:12px;padding:16px 18px;}
+  .flowBox .fTitle{font-weight:700;font-size:15px;color:var(--navy);margin-bottom:4px;}
+  .flowBox .fSub{font-size:13px;color:var(--muted);}
+  .aiBand{background:var(--navy);border-radius:12px;padding:18px 22px;color:var(--mist);font-size:14.5px;margin:0 0 20px;}
+  .aiBand .bTitle{color:var(--mint);font-weight:800;font-size:12px;letter-spacing:.12em;display:block;margin-bottom:4px;}
+  .phaseTag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;padding:2px 9px;border-radius:6px;background:#E7F1FE;color:var(--blue);margin-left:6px;vertical-align:middle;}
+  .phaseTag.later{background:#EFEFF4;color:var(--muted);}
+  footer{background:var(--navy);color:var(--mist);padding:34px 60px;font-size:13px;}
+  footer .b{color:var(--mint);font-weight:700;}
+  @media (max-width:720px){
+    header,section,footer{padding-left:24px;padding-right:24px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Edge8 AI &middot; AI Program &middot; Private</div>
+  <h1>Teknorot Australia: the Ordering and Cash Dashboard</h1>
+  <p class="sub">Warren runs a deliberately lean parts business on clean systems: Peach for inventory, Xero for accounting, Auto Info for orders. The data is all there. Nobody is reporting on it. This program turns the three questions he asked on the discovery call into three dashboard panels, built on a central database he owns, by him, at the Sydney retreat.</p>
+  <div class="meta">
+    <div><span>Status</span>Plan v1 for review</div>
+    <div><span>Client</span>Warren Wolman &middot; Teknorot Australia</div>
+    <div><span>Prepared by</span>Dave Hajdu</div>
+    <div><span>Source</span>Discovery call, 14 August 2026</div>
+    <div><span>Program</span>Sydney retreat, Aug 31 to Sep 1</div>
+  </div>
+</header>
+
+<section>
+  <h2>Why</h2>
+  <h3>Three questions, in Warren's own words</h3>
+  <p>Every dashboard starts with a decision, not with data. Warren asked three questions on the call. Each one is a decision he cannot currently make, and each becomes one panel.</p>
+  <div class="callout">
+    <p><strong>"How do you know how much money we'll have in February?"</strong> Cash flow forecasting against long stock lead times. He orders months ahead and cannot see whether the cash will be there when the stock lands.<span class="qWho">PANEL 1 &middot; CASH POSITION FORECAST</span></p>
+  </div>
+  <div class="callout mint">
+    <p><strong>"How many stock days do we have, what's our stock turn, how much stock do we need, when are our peaks?"</strong> Stock coverage and reorder timing. Ordering today is "just going and going", with no reorder points and no view of seasonality.<span class="qWho">PANEL 2 &middot; STOCK COVERAGE</span></p>
+  </div>
+  <div class="callout pink">
+    <p><strong>"We might be ordering our fastest moving stock but making the least margin on it. We should be ordering our medium stock and making more margin."</strong> Margin-weighted ordering. He suspects the mix is wrong and has no way to put a number on it.<span class="qWho">PANEL 3 &middot; MARGIN MIX</span></p>
+  </div>
+</section>
+
+<section>
+  <h2>The method</h2>
+  <h3>Decision first, data second, AI last</h3>
+  <p>More than 70% of a dashboard build is not the dashboard. It is deciding what you are trying to decide, then getting the right data into a place you own. Once that foundation exists, the reports are conversations with Claude, not engineering projects.</p>
+  <div class="flowRow">
+    <div class="flowBox"><div class="fTitle">1. Decision</div><div class="fSub">What am I trying to decide? Warren already named all three.</div></div>
+    <div class="flowBox"><div class="fTitle">2. Data</div><div class="fSub">What does that decision need, and which system holds it today?</div></div>
+    <div class="flowBox"><div class="fTitle">3. Workflow</div><div class="fSub">How does the data move from Peach and Xero into the central database?</div></div>
+    <div class="flowBox"><div class="fTitle">4. Build</div><div class="fSub">AI builds the panel on top. Warren asks for changes in plain English.</div></div>
+  </div>
+  <div class="aiBand"><span class="bTitle">The foundation</span>A central Supabase database Warren owns, fed by exports from the systems he already runs. Not API calls scattered through a website builder: the data lands in his database first, and everything else, including the website his contractor is building, can sit on top of it. Start with manual CSV exports at the retreat; automate the pipelines after. <strong>Done when:</strong> one Peach export and one Xero export load cleanly, and Claude answers "what were my top 20 SKUs by revenue last quarter?" from his own data.</div>
+</section>
+
+<section>
+  <h2>The panels</h2>
+  <h3>Three decisions, three panels</h3>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">Panel 1</span><h4>Cash Position Forecast</h4><span class="phaseTag later">POST-RETREAT</span></div>
+    <span class="lbl">DECISION IT SERVES</span>
+    <p>Can I pay for the stock that's arriving, and how much can I commit to the next order?</p>
+    <span class="lbl">DATA</span>
+    <p>Xero bank balance, receivables and payables with due dates. Peach open purchase orders with ETAs and payment terms. Trailing sales run rate for the inflow line.</p>
+    <span class="lbl">WHAT YOU'LL SEE</span>
+    <p>A forward cash line, month by month for six months, with stock payments overlaid as the big outflows. February is a point on the line, not a guess.</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>The projected month-end balance for each of the next six months is on screen, and it changes when Warren adds a hypothetical purchase order.</p>
+  </div>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">Panel 2</span><h4>Stock Coverage</h4><span class="phaseTag">RETREAT DAY 2, IF TIME</span></div>
+    <span class="lbl">DECISION IT SERVES</span>
+    <p>What do I reorder now, how much, and what can wait?</p>
+    <span class="lbl">DATA</span>
+    <p>Peach stock on hand by SKU. Sales velocity on a rolling 90 days, plus the same period last year for peaks. Supplier lead times.</p>
+    <span class="lbl">WHAT YOU'LL SEE</span>
+    <p>Stock days and stock turn per SKU, a reorder point per SKU (lead time demand plus buffer), and a ranked "order these next" list.</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>The list flags every SKU that will stock out inside its lead time, and nothing else.</p>
+  </div>
+
+  <div class="prCard">
+    <div class="prHead"><span class="num">Panel 3</span><h4>Margin Mix</h4><span class="phaseTag">RETREAT DAY 2, FIRST BUILD</span></div>
+    <span class="lbl">DECISION IT SERVES</span>
+    <p>Order for profit, not just for speed.</p>
+    <span class="lbl">DATA</span>
+    <p>Peach sales lines with cost and sell price per SKU. One export, one table: which is exactly why it is the first build.</p>
+    <span class="lbl">WHAT YOU'LL SEE</span>
+    <p>A quadrant of velocity against margin. The corner that matters is high margin and mid velocity: the "medium stock" Warren suspects he is under-ordering. Each quadrant carries its share of revenue and gross profit, so the suspicion gets a dollar figure.</p>
+    <span class="lbl">DONE WHEN</span>
+    <p>Warren can name his ten most under-ordered high-margin SKUs, and what the mix shift is worth per year.</p>
+  </div>
+
+  <div class="callout amber">
+    <p><strong>The follow-on: the monthly board pack.</strong> Once the three panels are live, a monthly job assembles them into the board pack Warren asked for: cash forecast, stock position, margin mix, plus P&amp;L from Xero, delivered to his inbox on the 1st. Post-retreat work, built with human tokens.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The sequence</h2>
+  <h3>From install session to board pack</h3>
+  <ol>
+    <li><strong>Phase 0, Monday Aug 17, online install session.</strong> Machine set up, Claude connected, Supabase account created. 9:30am Perth time, about two hours.</li>
+    <li><strong>Phase 1, retreat day 1 (Aug 31).</strong> Foundation database plus the CRM build exercise, then the roadmap session turns this document into Warren's own written roadmap.</li>
+    <li><strong>Phase 2, retreat day 2 (Sep 1).</strong> Build Panel 3 (Margin Mix) first with a real Peach export: one export, one table, immediate payoff. Start Panel 2 if time allows.</li>
+    <li><strong>Phase 3, post-retreat, with human tokens.</strong> Automated Peach and Xero pipelines, Panels 1 and 2 completed, the monthly board pack job.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Bring to the retreat</h2>
+  <h3>What Warren exports before day 2</h3>
+  <table>
+    <tr><th>Source</th><th>Export</th><th>Feeds</th></tr>
+    <tr><td>Peach</td><td>Sales lines, trailing 12 months, with cost and sell price</td><td>Panel 3, Panel 2</td></tr>
+    <tr><td>Peach</td><td>Stock on hand by SKU</td><td>Panel 2</td></tr>
+    <tr><td>Peach</td><td>Open purchase orders with ETAs; supplier lead times if tracked</td><td>Panel 1, Panel 2</td></tr>
+    <tr><td>Xero</td><td>Bank summary, aged receivables, aged payables</td><td>Panel 1</td></tr>
+    <tr><td>Warren</td><td>His seasonality knowledge: which months peak. The data will confirm it, but he already knows.</td><td>Panel 2</td></tr>
+  </table>
+</section>
+
+<footer>
+  <span class="b">Edge8 AI</span> &middot; Teknorot Australia AI Program &middot; Prepared 14 August 2026 &middot; Private, not for distribution
+</footer>
+
+</div>
+</body>
+</html>

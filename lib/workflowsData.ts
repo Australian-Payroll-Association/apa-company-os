@@ -144,12 +144,12 @@ export const allWorkflows: Workflow[] = [
     steps: 5,
   },
   {
-    slug: 'sales-call-intelligence',
-    title: 'Sales Call Intelligence',
+    slug: 'lark-scheduler-to-crm-updates',
+    title: 'Lark Scheduler to CRM Updates',
     category: 'Revenue',
     excerpt:
-      'Every discovery and closing call is classified, structured into the CRM as JSON, summarized for the client and the rep, and rolled up monthly for the manager. The deal moves stage on the outcome.',
-    date: '2026-07-16',
+      'Two scheduled agents bracket every sales call: bookings become CRM leads before the call, and recorded calls become complete CRM records, drafted follow-ups, and coaching notes after it.',
+    date: '2026-08-14',
     steps: 7,
   },
   {
