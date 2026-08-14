@@ -44,11 +44,36 @@ export async function ensureBucket(): Promise<void> {
   await supabase.storage.createBucket(DOCS_BUCKET, { public: false })
 }
 
+// Same reason as downloadFresh: storage.list() goes through a cached fetch, so a
+// newly published document did not appear in the index until something else
+// evicted it. Call the list endpoint directly with no-store.
+async function listObjects(): Promise<{ name: string }[]> {
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY
+  if (!url || !key) return []
+
+  const res = await fetch(`${url}/storage/v1/object/list/${DOCS_BUCKET}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      apikey: key,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prefix: '',
+      limit: 200,
+      offset: 0,
+      sortBy: { column: 'updated_at', order: 'desc' },
+    }),
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  return (await res.json()) as { name: string }[]
+}
+
 export async function listDocs(): Promise<DocMeta[]> {
-  const { data, error } = await supabase.storage
-    .from(DOCS_BUCKET)
-    .list('', { limit: 200, sortBy: { column: 'updated_at', order: 'desc' } })
-  if (error || !data) return []
+  const data = await listObjects()
+  if (!data.length) return []
 
   const slugs = data.filter((o) => o.name.endsWith('.html')).map((o) => o.name.replace(/\.html$/, ''))
 
