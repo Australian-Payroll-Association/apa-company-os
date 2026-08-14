@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Officer (AIO Labs) — Workflow Documentation &amp; UX Audit</title>
+<style>
+  :root{
+    --ink:#0d1526; --ink-2:#3d4a63; --ink-3:#6b7890;
+    --line:#e2e6ee; --line-2:#eef1f6;
+    --bg:#ffffff; --bg-2:#f7f9fc;
+    --accent:#1a56db;
+    --p0:#b42318; --p0-bg:#fef3f2;
+    --p1:#b54708; --p1-bg:#fffaeb;
+    --p2:#175cd3; --p2-bg:#eff8ff;
+    --p3:#475467; --p3-bg:#f2f4f7;
+    --ok:#067647; --ok-bg:#ecfdf3;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:56px 28px 120px}
+  header.cover{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:44px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  h1{font-size:40px;line-height:1.15;letter-spacing:-.02em;margin:12px 0 10px;font-weight:800}
+  .sub{font-size:18px;color:var(--ink-2);margin:0 0 20px;max-width:64ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:13px;color:var(--ink-3)}
+  .meta b{color:var(--ink-2);font-weight:600}
+
+  h2{font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700;
+     margin:56px 0 6px;padding-top:20px;border-top:1px solid var(--line)}
+  h2 + .h2sub{font-size:26px;font-weight:800;letter-spacing:-.015em;margin:0 0 18px;color:var(--ink)}
+  h3{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:34px 0 8px}
+  h4{font-size:15px;font-weight:700;margin:22px 0 6px;color:var(--ink)}
+  p{margin:0 0 14px;color:var(--ink-2)}
+  ul,ol{margin:0 0 16px;padding-left:22px;color:var(--ink-2)}
+  li{margin:0 0 6px}
+  strong{color:var(--ink);font-weight:650}
+  code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg-2);
+       border:1px solid var(--line-2);border-radius:4px;padding:1px 5px;color:var(--ink)}
+  a{color:var(--accent)}
+
+  .callout{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:20px 0}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{background:var(--p1-bg);border-color:#fedf89}
+  .callout.stop{background:var(--p0-bg);border-color:#fecdc9}
+
+  /* flow diagram */
+  .flow{border:1px solid var(--line);border-radius:10px;padding:20px;margin:16px 0 22px;background:var(--bg-2);overflow-x:auto}
+  .flow-row{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 13px;min-width:132px;max-width:190px;font-size:13px;line-height:1.4}
+  .step .n{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700;display:block;margin-bottom:3px}
+  .step b{display:block;font-size:13.5px;margin-bottom:2px}
+  .step span.note{color:var(--ink-3);font-size:12px}
+  .step.gap{border-color:#fecdc9;background:var(--p0-bg)}
+  .step.gap b{color:var(--p0)}
+  .step.soft{border-style:dashed;background:transparent;color:var(--ink-3)}
+  .arrow{align-self:center;padding:0 9px;color:var(--ink-3);font-size:15px;flex:0 0 auto}
+  .flow-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin-bottom:12px}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+     font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line);vertical-align:bottom}
+  td{padding:10px;border-bottom:1px solid var(--line-2);vertical-align:top;color:var(--ink-2)}
+  td:first-child{white-space:nowrap;font-weight:600;color:var(--ink)}
+  tbody tr:hover{background:var(--bg-2)}
+
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:20px;white-space:nowrap}
+  .P0{background:var(--p0-bg);color:var(--p0)}
+  .P1{background:var(--p1-bg);color:var(--p1)}
+  .P2{background:var(--p2-bg);color:var(--p2)}
+  .P3{background:var(--p3-bg);color:var(--p3)}
+  .OK{background:var(--ok-bg);color:var(--ok)}
+
+  .finding{border-left:3px solid var(--line);padding:2px 0 2px 18px;margin:22px 0}
+  .finding.p0{border-color:var(--p0)}
+  .finding.p1{border-color:#f79009}
+  .finding.p2{border-color:var(--p2)}
+  .finding.p3{border-color:#98a2b3}
+  .finding h4{margin-top:0;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .fid{font:11px ui-monospace,monospace;color:var(--ink-3);font-weight:700}
+  .ev{font-size:13.5px;color:var(--ink-3);border-top:1px dotted var(--line);margin-top:9px;padding-top:8px}
+  .ev b{color:var(--ink-2);font-weight:650}
+  .fix{font-size:14px;background:var(--bg-2);border-radius:6px;padding:10px 13px;margin-top:10px}
+  .fix b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:3px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}h1{font-size:30px}.wrap{padding:32px 18px 80px}}
+  .card{border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .card h4{margin-top:0}
+  .card p:last-child,.card ul:last-child{margin-bottom:0}
+
+  .toc{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin:0 0 8px}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:34px}
+  @media(max-width:720px){.toc ol{columns:1}}
+  .toc li{margin-bottom:5px;font-size:14.5px;break-inside:avoid}
+  .toc a{text-decoration:none;color:var(--ink-2)}
+  .toc a:hover{color:var(--accent);text-decoration:underline}
+  footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">Product design · Workflow documentation &amp; heuristic audit</div>
+  <h1>AI Officer — current-state workflows, bottlenecks &amp; missing steps</h1>
+  <p class="sub">Four workflows documented as-built from the live product (<code>aiolabz.com</code>), with 33 prioritised findings covering user sign-up, company sign-up, student certificate progress, and the blog content flow.</p>
+  <div class="meta">
+    <span><b>Prepared for</b> AIO Labs / Edge8</span>
+    <span><b>Date</b> 14 Aug 2026</span>
+    <span><b>Method</b> Authenticated walkthrough, learner + team-admin roles</span>
+    <span><b>Account</b> viet.ha@edge8.ai (edge8.ai team)</span>
+  </div>
+</header>
+
+<div class="toc">
+  <ol>
+    <li><a href="#summary">Executive summary</a></li>
+    <li><a href="#scope">Scope, method &amp; limits</a></li>
+    <li><a href="#ia">Current information architecture</a></li>
+    <li><a href="#f1">Workflow 1 — User sign-up &amp; activation</a></li>
+    <li><a href="#f2">Workflow 2 — Company sign-up &amp; team admin</a></li>
+    <li><a href="#f3">Workflow 3 — Student certificate progress</a></li>
+    <li><a href="#f4">Workflow 4 — Blog content flow</a></li>
+    <li><a href="#cross">Cross-cutting: data integrity, states, a11y</a></li>
+    <li><a href="#matrix">Prioritised findings register</a></li>
+    <li><a href="#roadmap">Recommended sequence</a></li>
+    <li><a href="#open">Assumptions &amp; open questions</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="summary">01</h2>
+<div class="h2sub">Executive summary</div>
+
+<p>The product is further along than its problems suggest. The learning core — mission → challenge → chat-driven activities with an AI Buddy — is a genuinely differentiated model, the micro-session and coaching pages show real editorial care, and the team admin surface already has the right nouns (learners, seats, subscription, support). The design language is consistent and calm.</p>
+
+<p>What is missing is <strong>closure</strong>. Almost every flow in the product opens cleanly and then fails to finish:</p>
+
+<ul>
+  <li><strong>The certificate flow completes and then hands the learner nothing.</strong> The account is marked <code>CERTIFIED</code> with a celebration banner, and both <em>Download Certificate</em> and <em>Share on LinkedIn</em> are disabled, with no tooltip or explanation. The single most valuable artefact the product promises is unreachable at the exact moment it is earned.</li>
+  <li><strong>Identity is never verified, and the cost is pushed onto the paying customer.</strong> Sign-up sets a 6-character password with no email verification and no terms consent. The consequence appears in the admin as <em>"Accounts to review (2) — signed up with a password and did not verify their email … please check each is a real member of your team."</em> One of those unverified accounts is already 100% certified. For a <em>certification</em> product, this is an integrity problem, not a convenience one.</li>
+  <li><strong>Money has no price.</strong> The Subscription screen offers "Buy seats" with no unit price, currency, total, confirmation step, invoice history, payment method, or cancellation path.</li>
+  <li><strong>Admins can diagnose but not treat.</strong> The Students table clearly shows three learners not started and one who has never logged in — and offers no nudge, reminder, bulk action, assignment, or deadline.</li>
+  <li><strong>Numbers disagree with each other across screens.</strong> The same learner is 56% on Home and 53% in the admin table. AI Engineer is "6 sessions" in onboarding and 8 missions in Certification. Leadership is "12 lessons" three times on its own page and 18 missions in its own roadmap. A micro session simultaneously reports "1 of 3 done" and "Attended: No".</li>
+  <li><strong>The blog is a stalled pipeline pointed at by an in-product CTA.</strong> Newest article is 15 Apr 2026 — four months old — the footer reads "© 2025", one article is tagged <code>STRATEGY</code> in the list and <code>REVENUE</code> on its own page, and 31 articles render with no search, sort, or pagination.</li>
+</ul>
+
+<p>None of this requires a redesign. The interaction model, IA and visual system are sound. What the product needs is a pass that makes each flow <em>terminate correctly</em>: one source of truth for progress, a real certificate artefact, verified identity, priced seats, and one action the admin can actually take. That is roughly the P0/P1 list below and it is mostly finishing work, not new design.</p>
+
+<div class="callout">
+  <p><b>Headline count:</b> <span class="pill P0">P0 ×3</span> &nbsp;<span class="pill P1">P1 ×12</span> &nbsp;<span class="pill P2">P2 ×14</span> &nbsp;<span class="pill P3">P3 ×4</span> — 33 findings across 4 workflows.</p>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="scope">02</h2>
+<div class="h2sub">Scope, method &amp; limits</div>
+
+<h4>What was done</h4>
+<p>A live walkthrough of the authenticated product on 14 Aug 2026, signed in as <code>viet.ha@edge8.ai</code>, which holds <strong>both</strong> a learner account and team-admin rights on the <code>edge8.ai</code> team. Every primary surface was visited and its states recorded: Home, Certification, mission detail, challenge runtime, Micro Sessions, Videos, Blog (list + article), Coaching, Leadership (locked), the onboarding carousel, and the full Team area (Dashboard, Students, student detail, Seats, Subscription, Company, Support). Public sign-in and sign-up screens were inspected unauthenticated.</p>
+
+<h4>Deliberate limits — read these before acting on the findings</h4>
+<ul>
+  <li><strong>No account was created and no form was submitted.</strong> Sign-up, invite, Request Access, Buy seats, Send request and Remove were documented from their UI only. Validation rules, error copy, and success states for those flows are therefore <em>unverified</em> — several findings below are about their <em>absence at rest</em>, not about a tested failure.</li>
+  <li><strong>One state change was made:</strong> Challenge 1 of the AI Engineer mission "Enter the AI Engineer" was started, to document the challenge runtime. No answer was submitted; mission progress remains 0%.</li>
+  <li><strong>Responsive behaviour was not verified.</strong> The automation harness renders a fixed desktop viewport. Every mobile/responsive comment below is a design recommendation, not an observed defect.</li>
+  <li><strong>Roles not observed:</strong> coach/program-manager, Edge8 super-admin, and the invited-but-not-yet-signed-up learner. The blog authoring/editorial surface was not found in-product and is assumed external.</li>
+  <li>Findings are anchored to what was on screen. Where a claim depends on an inference (e.g. "certification rules are undocumented"), it is stated as such.</li>
+</ul>
+
+<!-- ============================================================= -->
+<h2 id="ia">03</h2>
+<div class="h2sub">Current information architecture</div>
+
+<p>The product is two applications behind one login, switched via a single <em>Switch to team</em> item in the profile menu. There is no persistent indicator of which context you are in beyond the sidebar changing.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Learner shell</h4>
+    <ul>
+      <li><b>LEARN</b> — Home · Certification · Leadership <span class="pill P3">locked</span> · Micro Sessions · Videos</li>
+      <li><b>COMMUNITY</b> — Blog · Coaching</li>
+      <li><b>Utility (bottom)</b> — Report a Bug · Get Started (→ <code>/onboarding</code>) · account menu</li>
+      <li><b>Nested</b> — <code>/program/:id/mission/:id</code> → <code>/challenge/:id</code> (sidebar auto-collapses to icons)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Team shell (<code>/team</code>)</h4>
+    <ul>
+      <li>Dashboard · Students (→ student detail) · Seats · Subscription · Company · Contact Support</li>
+      <li>No breadcrumb back to the learner shell except the account menu</li>
+      <li>No settings, no roles &amp; permissions screen, no audit log</li>
+    </ul>
+  </div>
+</div>
+
+<h4>Structural observations</h4>
+<ul>
+  <li><strong>Onboarding is orphaned.</strong> <code>/onboarding</code> is reachable only from a low-contrast "Get Started" link pinned to the bottom of the learner sidebar, below the fold on shorter screens — the least discoverable position in the layout for the most first-time-critical content.</li>
+  <li><strong>The marketing IA exists only inside blog articles.</strong> The article footer exposes Certification, Leadership Training, About, Blog, Video, Keynotes and Agentic AI for Business. None of these appear anywhere else in the product, and the logged-out root is a bare sign-in gate. There is effectively no path from "heard about AI Officer" to "became a customer".</li>
+  <li><strong>Every page shares one <code>&lt;title&gt;</code>:</strong> <em>"AI Officer Mission Control | Your Certification Journey"</em> on mission, challenge and all Team pages. Tab switching, browser history, bookmarks and shared links are all unusable as wayfinding.</li>
+</ul>
+
+<!-- ============================================================= -->
+<h2 id="f1">04</h2>
+<div class="h2sub">Workflow 1 — User sign-up &amp; activation</div>
+
+<p><b>Problem it solves:</b> get an invited employee from an email link to their first completed activity.<br>
+<b>User goal:</b> "Start the thing my company put me in, without friction."<br>
+<b>Business goal:</b> activate the seat — a paid seat that never starts is pure churn risk and shows up in the admin as <em>Not Started</em>.</p>
+
+<h4>As-built flow</h4>
+<div class="flow">
+  <div class="flow-label">Invited learner → first activity</div>
+  <div class="flow-row">
+    <div class="step"><span class="n">1</span><b>Invite email</b><span class="note">sent from Seats; sign-up link tied to address</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b>/signup</b><span class="note">First, Last, Email, Password (min 6)</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">3</span><b>No verification</b><span class="note">no email confirm, no ToS consent, no invite-code check</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">4</span><b>Signed in</b><span class="note">"your admin will confirm your account"</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">5</span><b>Home</b><span class="note">onboarding not triggered; no first-run guidance</span></div>
+  </div>
+  <div class="flow-row" style="margin-top:12px">
+    <div class="step soft"><span class="n">optional</span><b>Get Started</b><span class="note">sidebar bottom → /onboarding</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">a</span><b>Role: Founder / Student</b></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">b</span><b>9 passive slides</b><span class="note">captures nothing; "Choose your certification" is not choosable</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">c</span><b>"Go to Home"</b><span class="note">not "start mission 1"</span></div>
+  </div>
+</div>
+
+<div class="finding p0">
+  <h4><span class="fid">F-01</span> <span class="pill P0">P0</span> Sign-up creates unverified identities and delegates verification to the customer</h4>
+  <p>Account creation asks for a password (minimum 6 characters, no confirm field, no strength meter) and never verifies the email address. No terms or privacy consent is presented. The downstream cost surfaces in the admin as a permanent chore.</p>
+  <div class="ev"><b>Evidence.</b> <code>/signup</code>: "Set a password to sign in. Your admin will confirm your account." · Seats screen: <em>"Accounts to review (2) — These teammates signed up with a password and did not verify their email (their invite email may be blocked). We couldn't confirm they own the address — please check each is a real member of your team."</em> Listed: <code>ash@edge8.ai</code> (signed up 29 Jul 2026) and <code>viet.ha@edge8.ai</code> (28 Jul 2026). <code>ash@edge8.ai</code> shows <b>Certified · 100%</b> in Student Management.</div>
+  <div class="fix"><b>Recommendation</b> Make the invite link itself the proof of address: single-use magic link or invite token, password optional and set after landing. If passwords stay, add verify-email-before-first-mission, a confirm field, 8+ characters with a strength meter, and an explicit terms/privacy checkbox. A certification whose holder was never verified is not defensible to the employer paying for it.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-02</span> <span class="pill P1">P1</span> Names are optional in practice, so the roster is unreadable</h4>
+  <p>Sign-up collects First and Last name, but the product tolerates records without them and never prompts to complete a profile.</p>
+  <div class="ev"><b>Evidence.</b> Student Management lists <code>viet.ha@edge8.ai</code> and <code>khoa.doan@edge8.ai</code> with a bare email in the Student column. The Seats "Accounts to review" table shows <code>—</code> in the Name field for <code>viet.ha@edge8.ai</code>.</div>
+  <div class="fix"><b>Recommendation</b> Require name at sign-up (it costs nothing and is the primary key humans use), or add a dismissible profile-completion prompt on Home. Show a stable fallback (initials + email) in tables rather than a raw <code>—</code>.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-03</span> <span class="pill P1">P1</span> No account settings exist anywhere in the product</h4>
+  <p>The account menu contains three items: the email address, <em>Switch to team</em>, and <em>Log out</em>. There is no route to change name, email, password, notification preferences, or timezone; and no data export or account deletion.</p>
+  <div class="ev"><b>Evidence.</b> Account menu, learner and team shells. Every scheduled time in the product is hard-coded GMT+7 (micro sessions Tue 16:00, coaching Thu 11:00), with "A US-friendly time is coming soon." rendered as a disabled chip.</div>
+  <div class="fix"><b>Recommendation</b> Ship a minimal <code>/settings</code>: profile, password, timezone, email notifications. Timezone is the highest-value single field — the product schedules live sessions and currently assumes every learner is in Indochina Time.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-04</span> <span class="pill P2">P2</span> Onboarding is a 9-slide carousel that captures nothing and contains a false affordance</h4>
+  <p>After the role question (Founder/Sponsor or Student) the flow becomes nine passive value-proposition slides. Slide 3 is headed <em>"Choose your certification"</em> and presents three track cards — none of them is selectable; in the accessibility tree they are <code>generic</code> containers, not controls. The dot pagination renders as <code>&lt;button aria-label="Go to step 7"&gt;</code> but clicking a dot does not navigate; only the arrows work. The final slide's CTA is <em>"Go to Home"</em>.</p>
+  <div class="ev"><b>Evidence.</b> <code>/onboarding/student</code>, slides 1–9. Clicking the "AI Officer · 10 missions" card produced no state change; clicking dot 7 left the carousel on slide 3.</div>
+  <div class="fix"><b>Recommendation</b> Collapse to three interactive steps that each capture something and each pay it back: (1) role, (2) <em>actually</em> pick a track — write it to the profile and use it to seed Home, (3) pick a weekly time commitment → used for pacing and nudges. End on <b>"Start Mission 1"</b>, deep-linked into the first challenge. Either make the dots work or replace them with a non-interactive progress bar; a button that does nothing is worse than no button.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-05</span> <span class="pill P2">P2</span> No first-run guidance in the product itself</h4>
+  <p>Onboarding is not triggered on first login; it lives behind a "Get Started" link at the bottom of the sidebar. A learner who lands on Home sees a dashboard of empty counters with no explanation of what a mission, a micro session, an elective or a capstone is.</p>
+  <div class="fix"><b>Recommendation</b> Trigger onboarding once on first session (with Skip retained), and give Home a distinct zero-state: one primary "Start your first mission" card instead of the 0/0 stat row.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-06</span> <span class="pill P2">P2</span> The logged-out entry point has no product and no commercial path</h4>
+  <p>The root URL is a sign-in field, a "Create your account" link for invited users, and a Typeform survey link marked "Testing phase only". There is no explanation of the product, no pricing, and no "for teams" enquiry route.</p>
+  <div class="fix"><b>Recommendation</b> This may be deliberate for a closed beta — if so, say so on the page. Otherwise add a minimal public layer (what it is, the three tracks, a "Talk to us about your team" form) so the marketing IA that already exists in the blog footer has somewhere to land.</div>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="f2">05</h2>
+<div class="h2sub">Workflow 2 — Company sign-up &amp; team administration</div>
+
+<p><b>Problem it solves:</b> let a company buy seats, get its people in, and prove the programme is working.<br>
+<b>User goal (admin):</b> "Who is stuck, and what do I do about it?"<br>
+<b>Business goal:</b> seat expansion and renewal — which depends entirely on the admin being able to show utilisation.</p>
+
+<div class="callout warn">
+  <p><b>There is no self-serve company sign-up.</b> No route in the product creates a company. The <code>edge8.ai</code> team already existed; Company name is read-only ("To change your company name, contact us."); seats are "billed separately by Edge8". Company acquisition is entirely sales-led and off-platform. That is a legitimate strategy — but nothing in the product reflects it, so the on-platform commercial controls behave as if self-serve exists when it does not.</p>
+</div>
+
+<h4>As-built flow</h4>
+<div class="flow">
+  <div class="flow-label">Company → activated cohort</div>
+  <div class="flow-row">
+    <div class="step gap"><span class="n">1</span><b>Off-platform</b><span class="note">company + plan created by Edge8; no in-product path</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b>Seats</b><span class="note">paste emails → Send invites</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">3</span><b>No role at invite</b><span class="note">admin / Leadership seat set elsewhere</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">4</span><b>Invited</b><span class="note">Resend only; no expiry shown</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">5</span><b>Active</b><span class="note">appears in Students</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">6</span><b>Stalled?</b><span class="note">visible, but no nudge / reminder / assignment exists</span></div>
+  </div>
+</div>
+
+<div class="finding p0">
+  <h4><span class="fid">F-07</span> <span class="pill P0">P0</span> Seats can be "bought" with no price, total, confirmation or receipt</h4>
+  <p>The Subscription screen offers two number inputs (Basic seats, Leadership seats) each with a <em>Buy seats</em> button. There is no unit price, no currency, no computed total, no confirmation step, no invoice history, no payment method on file, and no cancel or downgrade path. The plan period renders as <code>Active · 7/9/2026 – —</code>: an ambiguous date format with an empty end date shown as an em dash.</p>
+  <div class="ev"><b>Evidence.</b> <code>/team/subscription</code>. Helper copy: "Edge8 invoices both separately; seats are usable immediately." — so the button is a <em>request</em>, but it is labelled and styled as a <em>purchase</em>.</div>
+  <div class="fix"><b>Recommendation</b> Pick one model and make the UI honest about it. If invoicing stays offline, relabel to <b>"Request additional seats"</b>, show the quantity, the indicative price if one exists, and a confirmation step that states "Edge8 will invoice you and the seats activate immediately." Add an invoice/receipt list and a named billing contact. Never take a commercial commitment on an unpriced, unconfirmed button click — it is the single largest trust liability in the admin area.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-08</span> <span class="pill P1">P1</span> Admins can see who is stalled and can do nothing about it</h4>
+  <p>Student Management surfaces the exact problem an admin cares about — 3 <em>Not Started</em>, one learner "Never" active, one at 35 days, one at 27 — and offers no lever. There is no nudge, reminder, message, bulk selection, track assignment, or deadline. The only outputs are <em>Download Report</em> and a read-only drill-down.</p>
+  <div class="ev"><b>Evidence.</b> <code>/team/students</code>: My Pham (0%, 35d ago), Minh Vu (0%, Never), Lan Anh Pham (0%, 27d ago). Row actions: none. The student detail page has a <code>…</code> overflow menu whose contents were not opened.</div>
+  <div class="fix"><b>Recommendation</b> Add one action and the screen becomes a tool rather than a report: multi-select → <b>"Send a nudge"</b> with an editable default message, plus a visible record of when each learner was last nudged (so it can't be abused). Second: assign a track and a target date at invite time, so "Not Started" has a deadline to be measured against. This is the highest-leverage change in the entire admin area for renewal.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-09</span> <span class="pill P1">P1</span> Leadership seats are exhausted but the "+ Leadership" control stays live on every row</h4>
+  <p>Subscription reports <code>Leadership seats (billed) 2 / 2 used</code>. The seat list still renders an active <em>+ Leadership</em> affordance on all ten non-Leadership rows, with no disabled state, no "0 remaining" indicator, and no path to buy more from the point of failure.</p>
+  <div class="ev"><b>Evidence.</b> <code>/team/seats</code> seat list; <code>/team/subscription</code> allocation bars. (The click was not performed, so the failure mode — silent no-op vs. error toast — is unverified; the missing <em>preventive</em> state is the finding.)</div>
+  <div class="fix"><b>Recommendation</b> Disable the control at 0 remaining with an inline reason and an inline route: "Leadership seats full (2/2) — <u>request more</u>". Show remaining counts next to the column header. Recognition over recall: the admin should never have to hold the seat maths in their head.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-10</span> <span class="pill P2">P2</span> The invite form captures less than the seat list displays</h4>
+  <p>Inviting is a single textarea of pasted emails. Yet the seat list shows an <code>admin</code> badge (on <code>mai@edge8.ai</code>, still in <em>Invited</em> state) and a Leadership column — so role and seat type exist as concepts but cannot be set at the moment of invitation. No expiry, no CSV import, no personal message, no per-invite track assignment.</p>
+  <div class="fix"><b>Recommendation</b> Extend the invite form to email + role + seat type + track (+ optional target date), applied per batch. Show invite age and auto-expiry on pending rows. Add CSV import — a 35-seat plan will not be filled by pasting.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-11</span> <span class="pill P2">P2</span> "Remove" is a bare destructive link and the safeguard is 13 rows away</h4>
+  <p>Every seat row ends in a red <em>Remove</em> text link with no visible confirmation affordance. The warning that removing an admin revokes their access sits in a paragraph above the table — out of sight for anyone scrolled to the bottom rows.</p>
+  <div class="fix"><b>Recommendation</b> Confirmation dialogue naming the person and stating the consequence (progress retained or lost — currently unstated anywhere), plus a short undo window. Move the admin-specific warning into the confirmation for admin rows only, where it will actually be read.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-12</span> <span class="pill P2">P2</span> Dashboard trends are undefined, undrillable and colour-only</h4>
+  <p><em>"This week: 15 missions passed ↘ -20 vs last week · 5 students active ↘ -2 vs last week"</em>. "Week" is not defined (rolling 7 days? calendar week?), the deltas are not clickable, and the direction is carried by a small red arrow plus red text — colour as the sole differentiator.</p>
+  <div class="fix"><b>Recommendation</b> State the window explicitly ("7 days to 14 Aug"), make deltas link to the filtered cohort, and pair colour with an unambiguous label. A −20 with no way to ask "who?" is anxiety without action.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-13</span> <span class="pill P2">P2</span> Company profile is thin and the support loop is one-way</h4>
+  <p>Company holds only address, phone, website; the name is read-only, and there is no logo, domain allowlist, SSO, or billing contact. Contact Support has no attachments and no stated response time, and the request list leaks a raw enum — <em>"Resolution: Resolve"</em> — instead of the actual reply. There is no thread view.</p>
+  <div class="fix"><b>Recommendation</b> Show the support reply inline with the request, replace enum leakage with human copy, add attachments and an expected-response line. Add domain allowlisting to Company — it also solves half of F-01 by letting <code>@edge8.ai</code> addresses self-verify.</div>
+</div>
+
+<div class="finding p3">
+  <h4><span class="fid">F-14</span> <span class="pill P3">P3</span> The "Inactive 7+ Days" filter reads as active while showing all learners</h4>
+  <p>The chip is rendered in a selected/emphasised style while the table reports "Showing 11 students" — the full roster. Selection state is ambiguous.</p>
+  <div class="fix"><b>Recommendation</b> Distinct on/off states, plus an active-filter summary row with a clear-all control.</div>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="f3">06</h2>
+<div class="h2sub">Workflow 3 — Student certificate progress</div>
+
+<p><b>Problem it solves:</b> make progress toward a credential legible, motivating and finally <em>collectable</em>.<br>
+<b>User goal:</b> "How far am I, what's next, and how do I get the certificate."<br>
+<b>Business goal:</b> completion rate, and the LinkedIn share that markets the programme for free.</p>
+
+<h4>As-built flow</h4>
+<div class="flow">
+  <div class="flow-label">Learner → certificate</div>
+  <div class="flow-row">
+    <div class="step"><span class="n">1</span><b>Home</b><span class="note">% + streak + AI Buddy next-step</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">2</span><b>Certification</b><span class="note">journey list, programs, mission grid</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">3</span><b>Mission</b><span class="note">challenges + Textbook + Catalogue</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">4</span><b>Challenge</b><span class="note">chat runtime, 5 activities in right rail</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">5</span><b>Capstone</b><span class="note">pass/redo</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">6</span><b>CERTIFIED</b><span class="note">Download + Share both disabled</span></div>
+  </div>
+  <div class="flow-row" style="margin-top:12px">
+    <div class="step soft"><span class="n">elective</span><b>Micro session</b><span class="note">sign up → attend → read → submit = 1 credit</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">·</span><b>Step 1 pre-ticked</b><span class="note">"1 of 3 done" vs "Attended: No"</span></div>
+  </div>
+</div>
+
+<div class="finding p0">
+  <h4><span class="fid">F-15</span> <span class="pill P0">P0</span> The certificate cannot be downloaded or shared at the moment it is earned</h4>
+  <p>The Certification page shows a full-width celebration banner — <em>"CERTIFICATION COMPLETE · Congratulations! You're a certified AI Officer · All 10 missions cleared and your capstone passed"</em> — with a <code>CERTIFIED</code> badge. Directly beneath it, <b>Download Certificate</b> and <b>Share on LinkedIn</b> are rendered greyed out. Hovering produces no tooltip and no explanation of what is missing or when it will be available.</p>
+  <div class="ev"><b>Evidence.</b> <code>/certification</code>, learner state: 10/10 missions, capstone passed, 0 sessions attended, 0/1 micro sessions. Only <em>View Mission Map</em> is enabled — and it merely scrolls the page. <i>Verification note: the disabled appearance and the absent tooltip were observed visually; the underlying <code>disabled</code> / <code>aria-disabled</code> attributes were not read from the DOM before the session's browser connection dropped. Whether the control is truly disabled or merely styled as such does not change the finding — either way the learner is told nothing.</i></div>
+  <div class="fix"><b>Recommendation</b> This is the product's payoff moment and it currently ends in a dead end, which will read to the learner as "the certificate isn't real". Two fixes, in order: <b>(a)</b> if a requirement is genuinely outstanding, never show the celebration state — show a "one step left: complete 1 micro session" state with the action attached; <b>(b)</b> ship the artefact — a verifiable certificate page with a public URL, a PDF, and a pre-composed LinkedIn share. Disabled controls must always carry an accessible reason; a greyed button with no explanation is the most expensive silence in the product.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-16</span> <span class="pill P1">P1</span> Progress is reported with different numbers on different screens</h4>
+  <p>The same learner, same session:</p>
+  <table>
+    <thead><tr><th>Surface</th><th>Reads</th><th>Problem</th></tr></thead>
+    <tbody>
+      <tr><td>Home</td><td>56% · "10 of 18 missions"</td><td>Blends two programs into one figure</td></tr>
+      <tr><td>Certification</td><td>56% · AI Officer 100% · AI Engineer 0%</td><td>Consistent with Home</td></tr>
+      <tr><td>Admin › Students</td><td><b>53%</b> · Certified</td><td>Different number for the same person</td></tr>
+      <tr><td>Home › cert card</td><td>AI Officer 100% + badge <b>"Enrolled"</b></td><td>Status never advances to Certified</td></tr>
+    </tbody>
+  </table>
+  <div class="fix"><b>Recommendation</b> One progress service, one definition, rendered everywhere. Never aggregate across programs into a headline percentage — show per-program progress and let the learner choose the active track. Make the card badge a real state machine: <code>Not started → In progress → Certified</code>.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-17</span> <span class="pill P1">P1</span> "You're all caught up 🎉" is shown to a learner who has 8 missions and 22 artefacts outstanding</h4>
+  <p>The Certification page renders an ALL CAUGHT UP card celebrating completion while the same page shows AI Engineer at 0/8 and My Catalogue at "22 artifacts across 8 missions", all <code>PENDING</code>. The card's only CTA is <em>Read the Blog</em> — which routes the learner out of the learning loop, into content whose newest item is four months old.</p>
+  <div class="fix"><b>Recommendation</b> Replace with a next-best-action card driven by the same logic the AI Buddy already uses on Home ("Your next challenge is Enter the AI Engineer"). Reserve "all caught up" for genuine zero-outstanding states. Celebration at the wrong moment devalues celebration at the right one.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-18</span> <span class="pill P1">P1</span> Program sizes contradict each other across four surfaces</h4>
+  <table>
+    <thead><tr><th>Program</th><th>Onboarding</th><th>Program page</th><th>Its own roadmap</th></tr></thead>
+    <tbody>
+      <tr><td>AI Officer</td><td>10 missions</td><td>10 missions</td><td>10 ✓</td></tr>
+      <tr><td>AI Engineer</td><td><b>6 sessions</b></td><td><b>8 missions</b></td><td>E01–E08 = 8</td></tr>
+      <tr><td>Leadership</td><td><b>12 sessions</b></td><td><b>"12 lessons"</b> ×3</td><td><b>L1–L18 = 18</b></td></tr>
+    </tbody>
+  </table>
+  <p>Leadership is additionally mis-scoped: L13–L15 are finance modules (F01–F03 Dashboard / Financial Workflow Data / Forecasting Tool) and L16–L18 are talent modules (T01–T03), inside a programme sold as a 12-lesson leadership series. Separately, mission cards read "0/5 activities" while the mission detail beneath shows <b>1</b> challenge.</p>
+  <div class="fix"><b>Recommendation</b> Derive every count from the curriculum data, never from hand-written copy. Agree one unit of measure (mission vs lesson vs session vs activity) and apply it in a glossary the whole team writes against. For a product that sells rigour, arithmetic that disagrees with itself is disproportionately damaging.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-19</span> <span class="pill P1">P1</span> A micro session reports itself both done and not started</h4>
+  <p>"Your path to credit" shows step 1 <em>Attend &amp; watch</em> with a completed check and a "1 of 3 done" counter. The data panel eighteen pixels to the right reads: <code>1 · Signed up: No</code>, <code>2 · Attended: No</code>, <code>3 · Minutes watched: 1</code>, <code>4 · Challenge submitted: No</code>.</p>
+  <div class="ev"><b>Evidence.</b> <code>/micro-sessions</code>, "Evaluating an Agent You Did Not Build", Tue 18 Aug. A single logged minute of viewing appears to satisfy the step.</div>
+  <div class="fix"><b>Recommendation</b> Define and publish the completion threshold for each step; drive the checklist from the same fields the data panel renders. Given the page states "Credit is earned by submitting the challenge, not by watch time", step 1 should probably show partial progress ("1 min watched"), not a tick.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-20</span> <span class="pill P1">P1</span> The coaching archive promises recordings it does not have</h4>
+  <p><em>"Archive — Every past session, recorded and published automatically."</em> All five past sessions, including #005 dated 13 Aug 2026 (yesterday) and #004 dated 6 Aug, are badged <b>Coming soon</b> with no recording and no publication date. #005 has no topic, tags or coach at all — just the placeholder "Live group coaching".</p>
+  <div class="fix"><b>Recommendation</b> Either fix the pipeline or fix the promise. Minimum: an honest state ("Recording in review — available within 48h") and a notify-me. The "Can't make it live? Sign up anyway and we'll email you the recording" card immediately above is currently writing cheques the archive does not cash.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-21</span> <span class="pill P2">P2</span> Certification requirements are never stated</h4>
+  <p>The account is Certified with <code>Sessions Attended: 0</code> and <code>Micro sessions: 0/1</code>, while the same page says electives count toward the certificate. Nowhere does the product state what is actually required to certify.</p>
+  <div class="fix"><b>Recommendation</b> A short, permanent "What it takes to certify" panel on the Certification page: N missions + capstone + N electives, with each requirement showing live progress. Recognition over recall, and it makes the disabled certificate button in F-15 self-explanatory.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-22</span> <span class="pill P2">P2</span> My Catalogue fabricates inventory for a track that was never started</h4>
+  <p>The header reads "22 artifacts across 8 missions" and renders eight identical grey <code>PENDING</code> tiles for the AI Engineer track at 0% — a horizontal scroller of placeholders. The mission-level catalogue does this correctly ("No works saved yet — AI-generated artifacts and graded submissions will appear here automatically").</p>
+  <div class="fix"><b>Recommendation</b> Reuse the mission-level empty state at program level. Count only artefacts that exist. Give the horizontal scroller keyboard-reachable controls or replace it with a wrapping grid.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-23</span> <span class="pill P2">P2</span> The challenge runtime shows the wrong status vocabulary and no position</h4>
+  <p>On starting Activity 1, the assistant's first message is preceded by a collapsed disclosure labelled <b>"Finishing up"</b>; expanded, it reads <em>"Finishing up — Tidying the wording before sending"</em> followed by <em>"Processing Complete"</em>. This is generation-pipeline vocabulary surfaced as learner-facing status at the very beginning of the task. Meanwhile the Activities rail stays at 0% with no active-state on Activity 1 — the learner cannot see where they are — and there is no save-and-exit, no time estimate, and no explicit resume affordance.</p>
+  <div class="fix"><b>Recommendation</b> Replace pipeline vocabulary with task vocabulary ("Preparing your warm-up…") or remove the disclosure entirely. Mark the current activity as in-progress in the rail. Add "Time: ~15 min" on the mission card and a persistent "Save &amp; exit" — this is a long-form task and learners will leave mid-way.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-24</span> <span class="pill P2">P2</span> Video credit assignment is an unset, unexplained required decision</h4>
+  <p>The Videos page presents <em>"Certification credit goes to: [Choose a track ▾]"</em> in an unset state, with no explanation of what happens if it stays unset, whether it can be changed later, or what becomes of minutes already watched (the page shows 1 video and 1 minute already logged, and MS02 at 18%).</p>
+  <div class="fix"><b>Recommendation</b> Default to the learner's active track, explain the consequence inline, and confirm on change ("Future watch time will count toward AI Engineer. Minutes already logged stay with AI Officer.").</div>
+</div>
+
+<div class="finding p3">
+  <h4><span class="fid">F-25</span> <span class="pill P3">P3</span> Session times are hard-coded to a single timezone</h4>
+  <p>All scheduling is GMT+7 with "A US-friendly time is coming soon." presented as a disabled chip. With no timezone in the profile (F-03), every non-Indochina learner is doing mental arithmetic on every screen.</p>
+</div>
+
+<div class="finding p3">
+  <h4><span class="fid">F-26</span> <span class="pill P3">P3</span> "View Mission Map" only scrolls, and every page shares one title</h4>
+  <p>The primary enabled CTA on the certified state performs an in-page scroll — no navigation, no map. And <code>&lt;title&gt;</code> is <em>"AI Officer Mission Control | Your Certification Journey"</em> on every mission, challenge and Team page.</p>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="f4">07</h2>
+<div class="h2sub">Workflow 4 — Blog content flow</div>
+
+<p><b>Problem it solves:</b> attract and retain the audience, and give learners somewhere useful to go between missions.<br>
+<b>User goal:</b> "Find something relevant to what I'm working on."<br>
+<b>Business goal:</b> top-of-funnel acquisition — currently the only outward-facing content the product has.</p>
+
+<h4>As-built flow</h4>
+<div class="flow">
+  <div class="flow-label">Reader path (authoring surface not found in-product)</div>
+  <div class="flow-row">
+    <div class="step gap"><span class="n">0</span><b>Authoring</b><span class="note">no in-app editorial surface; external CMS assumed</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">1</span><b>/blog</b><span class="note">hero + 7 category chips + "31 articles"</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">2</span><b>All 31 in one page</b><span class="note">no search, sort, pagination or date filter</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="n">3</span><b>Article</b><span class="note">hero, body, related posts, marketing footer</span></div>
+    <div class="arrow">→</div>
+    <div class="step gap"><span class="n">4</span><b>Dead end</b><span class="note">no author, share, next, or CTA back into product</span></div>
+  </div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-27</span> <span class="pill P1">P1</span> The publishing pipeline is visibly stalled — and an in-product CTA points at it</h4>
+  <p>The newest article is dated <b>15 Apr 2026</b>: four months stale as of today. The site footer reads <b>"© 2025 by AI Officer Institute"</b>. The Certification page's "You're all caught up" card (F-17) sends learners here with "Keep the momentum going — explore the latest articles and insights."</p>
+  <div class="fix"><b>Recommendation</b> Either restore cadence or stop advertising freshness — remove "latest" from the CTA and surface evergreen/most-read instead. Auto-generate the copyright year. A four-month gap on a page about moving fast in AI is read as a signal about the company, not the blog.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-28</span> <span class="pill P1">P1</span> Taxonomy and titles disagree between the list and the article</h4>
+  <p>"AI Personalization in Hospitality" is tagged <b>STRATEGY</b> on the index and <b>REVENUE</b> on its own page — and REVENUE is not one of the seven filter chips (Career, Insights, Leadership, Strategy, Tools, Trends, Workflows), so the article is unreachable by its own stated category. The list title is also truncated relative to the article title ("…: How Hotels Use AI to Transform Guest Experiences").</p>
+  <div class="fix"><b>Recommendation</b> One category field, one controlled vocabulary, rendered from the same source on both surfaces; validate at publish time. Support a separate short display title if truncation is intentional, rather than storing two titles.</div>
+</div>
+
+<div class="finding p1">
+  <h4><span class="fid">F-29</span> <span class="pill P1">P1</span> 31 articles, no search, no sort, no pagination</h4>
+  <p>The index renders the entire archive — Jul 2025 to Apr 2026 — in a single scroll. Category chips are the only filter. There is no search, no sort, no date grouping, no reading-time filter, no series or track mapping. The Coaching archive, by contrast, <em>does</em> have search and filters — the pattern exists in the design system and simply was not applied here.</p>
+  <div class="fix"><b>Recommendation</b> Reuse the Coaching archive pattern: search, chips, sort, and load-more. At 31 items this is uncomfortable; at 100 it is unusable, and the content strategy clearly intends to reach 100.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-30</span> <span class="pill P2">P2</span> Articles have no author, no share, and no route back into the product</h4>
+  <p>The article template carries a category, a title, a date and body copy. No author or byline (despite the programme's authority resting on named experts — "Georgetown Former Associate Dean"), no share controls, no reading progress, no next/previous, no newsletter capture, and no conversion CTA. A reader who finishes an article has nowhere to go but the footer.</p>
+  <div class="fix"><b>Recommendation</b> Add byline + author page, share, and a single contextual end-of-article CTA mapped to the article's topic — for logged-out readers "See the AI Officer programme", for learners "This maps to Mission G03 — open it". That link is the only thing that makes the blog a funnel rather than a cost centre.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-31</span> <span class="pill P2">P2</span> The marketing IA appears only in the blog footer</h4>
+  <p>The article footer is the sole place exposing Certification, Leadership Training, About, Blog, Video, Keynotes and Agentic AI for Business, plus phone numbers and <code>hello@ai-officer.com</code> — a different domain from the app. This navigation exists nowhere else, and the logged-out root does not link to it.</p>
+  <div class="fix"><b>Recommendation</b> Decide where the marketing site lives and make one consistent shell for public content, including the logged-out entry point. Reconcile the <code>ai-officer.com</code> / <code>aiolabz.com</code> split, which currently reads as two companies.</div>
+</div>
+
+<div class="finding p3">
+  <h4><span class="fid">F-32</span> <span class="pill P3">P3</span> No in-product editorial surface, so the content workflow is undocumented</h4>
+  <p>No authoring, scheduling, draft, or review UI was found in either shell. Nothing connects an article to a mission, track or micro session, so content cannot be recommended contextually — which is what would make F-17 and F-30 solvable.</p>
+  <div class="fix"><b>Recommendation</b> Even without building a CMS, add a <em>topic/track</em> tag to each article so the product can recommend "related to your current mission". That is a data change, not an interface build, and it unlocks the most valuable placement the blog has.</div>
+</div>
+
+<div class="finding p2">
+  <h4><span class="fid">F-33</span> <span class="pill P2">P2</span> Blog article state coverage is thin</h4>
+  <p>No visible handling for: an empty category (five of seven chips untested but the pattern shows no empty state), a failed image load (article heroes are full-bleed text-in-image, which also makes headlines unsearchable and inaccessible), or a long-title overflow. Reading time is shown on cards but not on the article.</p>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="cross">08</h2>
+<div class="h2sub">Cross-cutting concerns</div>
+
+<h3>Missing states — a systematic gap</h3>
+<p>The product has strong <em>default</em> states and weak <em>edge</em> states. Where a state is missing, the interface tends to render an optimistic default rather than the truth. This is the single mechanism behind F-15, F-17, F-19, F-20 and F-22.</p>
+<table>
+  <thead><tr><th>State</th><th>Handled well</th><th>Missing / wrong</th></tr></thead>
+  <tbody>
+    <tr><td>Empty</td><td>Mission catalogue ("No works saved yet")</td><td>Program catalogue fabricates 22 pending tiles; no empty state for blog categories or a zero-learner team</td></tr>
+    <tr><td>Loading</td><td>Chat typing indicator</td><td>Page loads render blank for 3–5s with no skeleton (Home, Certification, Videos)</td></tr>
+    <tr><td>Error</td><td>—</td><td>No error state observed anywhere; none of the destructive or commercial actions shows a failure path</td></tr>
+    <tr><td>Success</td><td>Certification banner</td><td>Shown at the wrong time (F-17) and not backed by the artefact (F-15)</td></tr>
+    <tr><td>Disabled</td><td>—</td><td>Disabled controls carry no reason: Download Certificate, Share on LinkedIn, "US-friendly time"</td></tr>
+    <tr><td>Locked / gated</td><td>Leadership page is a good gate</td><td>No pricing, no cohort date, no expected response time after Request Access</td></tr>
+    <tr><td>Stale</td><td>—</td><td>Past sessions still "Coming soon"; © 2025; four-month-old "latest" articles</td></tr>
+  </tbody>
+</table>
+
+<h3>Accessibility</h3>
+<p>Observed, not audited with tooling — treat as a starting list for a proper WCAG 2.2 AA pass.</p>
+<ul>
+  <li><b>Target size (2.5.8).</b> Onboarding carousel dots are roughly 8px — well below the 24×24 minimum — and they do not function (F-04).</li>
+  <li><b>Name, role, value (4.1.2).</b> Carousel dots expose <code>aria-label="Go to step N"</code> but perform no action. Track cards read as <code>generic</code> containers while looking like choices.</li>
+  <li><b>Use of colour (1.4.1).</b> Progress bars, dashboard trend arrows and status text rely on colour alone. Green "Complete" vs blue "in progress" carries no non-colour cue in the admin table.</li>
+  <li><b>Contrast (1.4.3).</b> Grey-on-white "Skip", "Locked", disabled button labels and helper text appear likely to fall below 4.5:1.</li>
+  <li><b>Cues for disabled controls.</b> A disabled button with no <code>aria-describedby</code> reason is silent for screen-reader and sighted users alike (F-15).</li>
+  <li><b>Page titles (2.4.2).</b> One title for every route.</li>
+  <li><b>Images of text.</b> Blog hero images carry the headline as pixels — invisible to search, screen readers and translation.</li>
+  <li><b>Keyboard.</b> Horizontal card scrollers (My Catalogue, Recently watched) show no keyboard affordance; focus order through the collapsed icon sidebar was not verified.</li>
+</ul>
+
+<h3>Scalability risks</h3>
+<ul>
+  <li><b>Copy holds data.</b> "12-lesson", "6 sessions", "22 artifacts", "31 articles" are hand-maintained and already wrong. Every new track will multiply the drift.</li>
+  <li><b>Unbounded lists.</b> Blog (31, no pagination), Seat list (13, no pagination or search), Students (defaults to 100/page). A 500-seat customer breaks all three.</li>
+  <li><b>No roles model surfaced.</b> <code>admin</code> exists as a badge but there is no permissions screen. Coach and program-manager roles are implied by copy ("logged for your coach and program manager") but have no UI.</li>
+  <li><b>Single-timezone assumption</b> baked into scheduling copy across four pages.</li>
+  <li><b>Two domains, two brands</b> (<code>aiolabz.com</code> app, <code>ai-officer.com</code> contact) with no explanation to the user.</li>
+</ul>
+
+<!-- ============================================================= -->
+<h2 id="matrix">09</h2>
+<div class="h2sub">Prioritised findings register</div>
+
+<table>
+  <thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>Flow</th><th>Effort</th></tr></thead>
+  <tbody>
+    <tr><td>F-15</td><td><span class="pill P0">P0</span></td><td>Certificate download &amp; share disabled at the certified moment, unexplained</td><td>Progress</td><td>M</td></tr>
+    <tr><td>F-01</td><td><span class="pill P0">P0</span></td><td>No email verification; identity checking delegated to the customer admin</td><td>Sign-up</td><td>M</td></tr>
+    <tr><td>F-07</td><td><span class="pill P0">P0</span></td><td>"Buy seats" with no price, total, confirmation or receipt</td><td>Company</td><td>S</td></tr>
+    <tr><td>F-16</td><td><span class="pill P1">P1</span></td><td>Progress percentages disagree across Home / Certification / Admin</td><td>Progress</td><td>M</td></tr>
+    <tr><td>F-18</td><td><span class="pill P1">P1</span></td><td>Program sizes contradict across onboarding, program page and roadmap</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-17</td><td><span class="pill P1">P1</span></td><td>"All caught up" shown with 8 missions outstanding; CTA exits the loop</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-19</td><td><span class="pill P1">P1</span></td><td>Micro session reports both "1 of 3 done" and "Attended: No"</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-20</td><td><span class="pill P1">P1</span></td><td>Coaching archive promises auto-published recordings it does not have</td><td>Progress</td><td>M</td></tr>
+    <tr><td>F-08</td><td><span class="pill P1">P1</span></td><td>Admin sees stalled learners but has no nudge, reminder or assignment</td><td>Company</td><td>M</td></tr>
+    <tr><td>F-09</td><td><span class="pill P1">P1</span></td><td>Leadership seats 2/2 full while "+ Leadership" stays enabled everywhere</td><td>Company</td><td>S</td></tr>
+    <tr><td>F-02</td><td><span class="pill P1">P1</span></td><td>Nameless accounts render as bare emails and "—" across the roster</td><td>Sign-up</td><td>S</td></tr>
+    <tr><td>F-03</td><td><span class="pill P1">P1</span></td><td>No account settings: name, password, timezone, notifications, deletion</td><td>Sign-up</td><td>M</td></tr>
+    <tr><td>F-27</td><td><span class="pill P1">P1</span></td><td>Blog four months stale, "© 2025", and an in-product CTA points at it</td><td>Blog</td><td>S</td></tr>
+    <tr><td>F-28</td><td><span class="pill P1">P1</span></td><td>Category and title differ between list and article; category not filterable</td><td>Blog</td><td>S</td></tr>
+    <tr><td>F-29</td><td><span class="pill P1">P1</span></td><td>31 articles, no search, sort or pagination</td><td>Blog</td><td>S</td></tr>
+    <tr><td>F-04</td><td><span class="pill P2">P2</span></td><td>Onboarding: 9 passive slides, non-selectable "Choose your certification", dead dots</td><td>Sign-up</td><td>M</td></tr>
+    <tr><td>F-05</td><td><span class="pill P2">P2</span></td><td>Onboarding not triggered on first run; Home has no zero-state</td><td>Sign-up</td><td>S</td></tr>
+    <tr><td>F-06</td><td><span class="pill P2">P2</span></td><td>Logged-out root has no product explanation and no commercial path</td><td>Sign-up</td><td>M</td></tr>
+    <tr><td>F-10</td><td><span class="pill P2">P2</span></td><td>Invite captures emails only — no role, seat type, track, expiry or CSV</td><td>Company</td><td>M</td></tr>
+    <tr><td>F-11</td><td><span class="pill P2">P2</span></td><td>"Remove" is a bare destructive link; safeguard is far from the control</td><td>Company</td><td>S</td></tr>
+    <tr><td>F-12</td><td><span class="pill P2">P2</span></td><td>Dashboard trends undefined, undrillable, colour-only</td><td>Company</td><td>S</td></tr>
+    <tr><td>F-13</td><td><span class="pill P2">P2</span></td><td>Thin company profile; support replies leak enums and have no thread</td><td>Company</td><td>M</td></tr>
+    <tr><td>F-21</td><td><span class="pill P2">P2</span></td><td>Certification requirements never stated anywhere</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-22</td><td><span class="pill P2">P2</span></td><td>My Catalogue invents 22 pending artefacts for an unstarted track</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-23</td><td><span class="pill P2">P2</span></td><td>Challenge shows "Finishing up" at the start; no current-activity state, no save &amp; exit</td><td>Progress</td><td>M</td></tr>
+    <tr><td>F-24</td><td><span class="pill P2">P2</span></td><td>Video credit track unset with no explanation of consequence</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-30</td><td><span class="pill P2">P2</span></td><td>Articles have no author, share, or route back into the product</td><td>Blog</td><td>M</td></tr>
+    <tr><td>F-31</td><td><span class="pill P2">P2</span></td><td>Marketing IA exists only in the blog footer; two domains, two brands</td><td>Blog</td><td>M</td></tr>
+    <tr><td>F-33</td><td><span class="pill P2">P2</span></td><td>Blog edge states thin; headlines rendered as images of text</td><td>Blog</td><td>S</td></tr>
+    <tr><td>F-14</td><td><span class="pill P3">P3</span></td><td>"Inactive 7+ Days" filter reads active while showing all learners</td><td>Company</td><td>S</td></tr>
+    <tr><td>F-25</td><td><span class="pill P3">P3</span></td><td>All session times hard-coded GMT+7</td><td>Progress</td><td>M</td></tr>
+    <tr><td>F-26</td><td><span class="pill P3">P3</span></td><td>"View Mission Map" only scrolls; one page title across all routes</td><td>Progress</td><td>S</td></tr>
+    <tr><td>F-32</td><td><span class="pill P3">P3</span></td><td>No editorial surface; articles not mapped to missions or tracks</td><td>Blog</td><td>M</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================= -->
+<h2 id="roadmap">10</h2>
+<div class="h2sub">Recommended sequence</div>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Wave 1 — Make the flows terminate <span class="pill P0">P0</span></h4>
+    <p>Nothing else matters until the product can finish what it starts.</p>
+    <ul>
+      <li>Ship the certificate artefact: public verifiable URL + PDF + LinkedIn share (F-15)</li>
+      <li>Gate the celebration state on real completion; add a reason to every disabled control (F-15, F-21)</li>
+      <li>Verify email at sign-up — magic-link invite is the cheapest route — and add terms consent (F-01)</li>
+      <li>Relabel and confirm the seat purchase; add price or an honest "request" framing (F-07)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Wave 2 — One source of truth <span class="pill P1">P1</span></h4>
+    <p>Mostly data plumbing; disproportionate credibility return.</p>
+    <ul>
+      <li>Single progress service consumed by Home, Certification and Admin (F-16)</li>
+      <li>Derive all counts from curriculum data; agree the unit vocabulary (F-18)</li>
+      <li>Fix the micro-session checklist against its own data panel (F-19)</li>
+      <li>Next-best-action card replacing "All caught up" (F-17)</li>
+      <li>Honest states for the coaching archive (F-20)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Wave 3 — Give the admin a lever <span class="pill P1">P1</span></h4>
+    <ul>
+      <li>Multi-select nudge with a visible last-nudged record (F-08)</li>
+      <li>Role + seat type + track + target date at invite; CSV import (F-10)</li>
+      <li>Seat-exhaustion prevention and inline route to request more (F-09)</li>
+      <li>Confirmation + undo on Remove (F-11)</li>
+      <li>Account settings, starting with timezone (F-03)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Wave 4 — Close the funnel <span class="pill P1">P1</span>/<span class="pill P2">P2</span></h4>
+    <ul>
+      <li>Blog search/sort/pagination reusing the Coaching archive pattern (F-29)</li>
+      <li>Single category vocabulary validated at publish (F-28)</li>
+      <li>Byline, share and one contextual end-of-article CTA (F-30)</li>
+      <li>Tag articles to tracks/missions so content can be recommended in-product (F-32)</li>
+      <li>Rebuild onboarding as three capturing steps ending in "Start Mission 1" (F-04, F-05)</li>
+      <li>Decide the public shell and reconcile the two domains (F-06, F-31)</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Design-system work that pays for itself across all four waves</h3>
+<ul>
+  <li><b>A state kit.</b> Empty, loading (skeletons), error, success, disabled-with-reason, locked, stale — as components, not per-screen decisions. Most findings above are one missing variant.</li>
+  <li><b>A status-badge state machine.</b> One component for <code>Not started / In progress / Certified / Locked / Pending / Coming soon</code>, driven by data — this alone resolves F-16's "100% but Enrolled", F-20's stale "Coming soon", and F-22's fake PENDING.</li>
+  <li><b>A destructive-action pattern.</b> Confirmation naming the object, stating the consequence, offering undo.</li>
+  <li><b>A data-table pattern.</b> Search + filter + sort + pagination + row actions + bulk select, applied to Students, Seats and Blog alike.</li>
+  <li><b>A glossary.</b> Program / track / certification / mission / challenge / activity / session / lesson / micro session / elective / artefact are currently used interchangeably. Fix the words and half the number problems stop recurring.</li>
+</ul>
+
+<!-- ============================================================= -->
+<h2 id="open">11</h2>
+<div class="h2sub">Assumptions &amp; open questions</div>
+
+<h4>Assumptions made</h4>
+<ul>
+  <li>Company creation is intentionally sales-led and off-platform; the absence of self-serve is a strategy, not a defect. Flagged only where the UI contradicts it.</li>
+  <li>Blog authoring happens in an external system; no in-product editorial surface was found on either shell.</li>
+  <li>"Testing phase only" on the sign-in page indicates a closed beta, which may excuse F-06 but not F-01 or F-07.</li>
+  <li>The <code>edge8.ai</code> team's data is representative of a real customer's shape (11 learners, 35 basic + 2 leadership seats).</li>
+</ul>
+
+<h4>Questions that change the recommendations</h4>
+<ol>
+  <li><b>Is the certificate blocked by an unmet requirement, or is the feature unbuilt?</b> If the former, F-15 is a state-logic fix; if the latter, it is a build. This is the first thing to answer.</li>
+  <li><b>What are the actual certification rules?</b> Missions + capstone + how many electives? Nothing in the product states them, so F-21 cannot be written without the answer.</li>
+  <li><b>Is Leadership 12 or 18 modules,</b> and do the F0x/T0x finance and talent modules belong to it?</li>
+  <li><b>Who is the primary buyer</b> — the sponsoring founder or an L&amp;D/program manager? The admin area currently serves neither fully, and the nudge design in F-08 depends on the answer.</li>
+  <li><b>Is the coaching-recording pipeline broken or just unpublished?</b> Determines whether F-20 is a copy fix or an ops fix.</li>
+  <li><b>Are <code>ai-officer.com</code> and <code>aiolabz.com</code> intended as separate brands,</b> or is this a migration in progress?</li>
+  <li><b>Which mobile breakpoints matter?</b> Responsive was untestable here; the challenge runtime (chat + right rail) and the Students table are the two screens most likely to break.</li>
+</ol>
+
+<footer>
+  Prepared 14 August 2026 from a live walkthrough of <b>aiolabz.com</b>. All findings are anchored to observed on-screen states; unverified items are marked as such in §02. No accounts were created and no forms were submitted.
+</footer>
+
+</div>
+</body>
+</html>

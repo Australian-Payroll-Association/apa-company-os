@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Officer — UX Audit: One-Page Brief</title>
+<style>
+  :root{
+    --ink:#0d1526;--ink2:#3d4a63;--ink3:#6b7890;
+    --line:#e2e6ee;--line2:#eef1f6;--bg2:#f7f9fc;
+    --p0:#b42318;--p0bg:#fef3f2;--p1:#b54708;--p1bg:#fffaeb;
+    --p2:#175cd3;--p2bg:#eff8ff;--p3:#475467;--p3bg:#f2f4f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);
+    font:14.5px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .page{max-width:900px;margin:0 auto;padding:40px 32px 64px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+  .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+  h1{font-size:27px;line-height:1.15;letter-spacing:-.02em;margin:8px 0 6px;font-weight:800}
+  .meta{font-size:12px;color:var(--ink3)}
+  .meta b{color:var(--ink2);font-weight:600}
+  h2{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);
+     font-weight:700;margin:26px 0 9px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  p{margin:0 0 11px;color:var(--ink2)}
+  strong{color:var(--ink);font-weight:650}
+  code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg2);
+       border:1px solid var(--line2);border-radius:3px;padding:0 4px;color:var(--ink)}
+  ul{margin:0 0 11px;padding-left:19px;color:var(--ink2)}
+  li{margin:0 0 5px}
+  .lede{font-size:16px;line-height:1.5;color:var(--ink);margin-bottom:4px}
+  .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;
+        padding:1.5px 6px;border-radius:20px;white-space:nowrap;vertical-align:1px}
+  .P0{background:var(--p0bg);color:var(--p0)}
+  .P1{background:var(--p1bg);color:var(--p1)}
+  .P2{background:var(--p2bg);color:var(--p2)}
+  .P3{background:var(--p3bg);color:var(--p3)}
+  .item{display:flex;gap:11px;margin:0 0 13px;align-items:baseline}
+  .num{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--p0);color:#fff;
+       font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;
+       align-self:flex-start;margin-top:2px}
+  .item .body{flex:1}
+  .item b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:2px}
+  .item span{font-size:13.5px;color:var(--ink2)}
+  table{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:13px}
+  th{text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);
+     font-weight:700;padding:5px 8px;border-bottom:1.5px solid var(--line)}
+  td{padding:6px 8px;border-bottom:1px solid var(--line2);color:var(--ink2)}
+  td:first-child{font-weight:600;color:var(--ink);white-space:nowrap}
+  .bad{color:var(--p0);font-weight:700}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:700px){.cols{grid-template-columns:1fr}.page{padding:26px 18px 48px}h1{font-size:22px}}
+  .wave{margin-bottom:11px}
+  .wave b{display:block;font-size:13.5px;color:var(--ink)}
+  .wave span{font-size:13px;color:var(--ink2)}
+  .ask{background:var(--p0bg);border:1px solid #fecdc9;border-radius:8px;padding:14px 17px;margin:20px 0 0}
+  .ask b{color:var(--p0)}
+  .ask p:last-child{margin-bottom:0}
+  .note{font-size:12px;color:var(--ink3);border-top:1px solid var(--line);margin-top:26px;padding-top:11px}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">UX Audit · Executive brief · 1 page</div>
+  <h1>AI Officer — what to fix, in order</h1>
+  <div class="meta"><b>14 Aug 2026</b> · Live walkthrough of aiolabz.com as learner + team admin · <b>33 findings</b>
+  <span class="pill P0">P0 ×3</span> <span class="pill P1">P1 ×12</span> <span class="pill P2">P2 ×14</span> <span class="pill P3">P3 ×4</span>
+  · Full detail in the companion report</div>
+</header>
+
+<p class="lede">The product is stronger than the finding count suggests. The learning core — mission → challenge → AI Buddy — is genuinely differentiated, and the design language is consistent. <strong>The problem is closure: nearly every flow opens cleanly and fails to finish.</strong></p>
+
+<h2>Three things that need fixing first</h2>
+
+<div class="item">
+  <div class="num">1</div>
+  <div class="body">
+    <b>The certificate is unreachable at the moment it is earned <span class="pill P0">P0</span></b>
+    <span>The screen says <em>"Congratulations! You're a certified AI Officer"</em> with a <code>CERTIFIED</code> badge — and <strong>Download Certificate</strong> and <strong>Share on LinkedIn</strong> are both greyed out, with no tooltip and no stated reason. This is the product's payoff, and it dead-ends. To a learner it reads as "the certificate isn't real."</span>
+  </div>
+</div>
+
+<div class="item">
+  <div class="num">2</div>
+  <div class="body">
+    <b>Sign-up never verifies identity — and the cost lands on the paying customer <span class="pill P0">P0</span></b>
+    <span>Sign-up takes a 6-character password, no email verification, no terms consent. The consequence appears in the admin: <em>"Accounts to review (2) — signed up with a password and did not verify their email … please check each is a real member of your team."</em> One unverified account (<code>ash@edge8.ai</code>) is already <strong>Certified at 100%</strong>. For a certification product this is an integrity problem, not a convenience one.</span>
+  </div>
+</div>
+
+<div class="item">
+  <div class="num">3</div>
+  <div class="body">
+    <b>"Buy seats" has no price <span class="pill P0">P0</span></b>
+    <span>No unit price, currency, total, confirmation step, invoice history, payment method, or cancellation path. Helper copy says Edge8 invoices separately — so the control is a <em>request</em>, but it is labelled and styled as a <em>purchase</em>. Largest trust liability in the admin area.</span>
+  </div>
+</div>
+
+<h2>Second theme — the numbers disagree with each other</h2>
+<table>
+  <thead><tr><th>What</th><th>One screen says</th><th>Another says</th></tr></thead>
+  <tbody>
+    <tr><td>Same learner's progress</td><td>Home: 56%</td><td class="bad">Admin › Students: 53%</td></tr>
+    <tr><td>AI Engineer size</td><td>Onboarding: 6 sessions</td><td class="bad">Certification: 8 missions</td></tr>
+    <tr><td>Leadership size</td><td>Its page: "12 lessons" ×3</td><td class="bad">Its own roadmap: 18 (L1–L18)</td></tr>
+    <tr><td>Micro session status</td><td>"1 of 3 done" ✓</td><td class="bad">Same card: "Attended: No"</td></tr>
+    <tr><td>AI Officer track</td><td>100% complete</td><td class="bad">Badge still reads "Enrolled"</td></tr>
+  </tbody>
+</table>
+<p>Root cause: these counts are <strong>hand-written in copy</strong> rather than derived from curriculum data. Individually trivial; together they undercut a product that sells rigour. Cheap to fix, high credibility return.</p>
+
+<div class="cols">
+  <div>
+    <h2>Other high-impact gaps <span class="pill P1">P1</span></h2>
+    <ul>
+      <li><strong>Admins can diagnose but not treat.</strong> The roster shows 3 learners never started and one who has never logged in — with no nudge, reminder, bulk action, track assignment or deadline. Highest-leverage single change for renewal.</li>
+      <li><strong>"You're all caught up 🎉"</strong> is shown with 8 missions outstanding, and its only CTA sends the learner out to the blog.</li>
+      <li><strong>The blog is a stalled pipeline the product points at.</strong> Newest post 15 Apr 2026 (4 months old), footer reads "© 2025", 31 articles with no search or pagination, one article tagged <code>STRATEGY</code> in the list and <code>REVENUE</code> on its own page.</li>
+      <li><strong>Coaching archive promises auto-published recordings</strong> it does not have — all five past sessions read "Coming soon."</li>
+      <li><strong>No account settings exist at all</strong> — no name, password, notifications or <em>timezone</em>. Every session time is hard-coded GMT+7.</li>
+    </ul>
+  </div>
+  <div>
+    <h2>Recommended sequence</h2>
+    <div class="wave"><b>Wave 1 — make flows terminate</b><span>Ship the certificate artefact (public URL + PDF + share). Gate the celebration on real completion. Verify email at sign-up. Price or honestly relabel the seat purchase.</span></div>
+    <div class="wave"><b>Wave 2 — one source of truth</b><span>Single progress service across Home / Certification / Admin. Derive every count from curriculum data. Fix the micro-session checklist against its own data panel.</span></div>
+    <div class="wave"><b>Wave 3 — give the admin a lever</b><span>Multi-select nudge with a last-nudged record. Role + seat type + track + target date at invite. Prevent seat exhaustion. Confirm destructive actions. Ship <code>/settings</code>, starting with timezone.</span></div>
+    <div class="wave"><b>Wave 4 — close the funnel</b><span>Blog search/sort (the Coaching archive pattern already exists — reuse it). One category vocabulary. Byline + one contextual CTA back into a mission. Rebuild onboarding as three capturing steps ending in "Start Mission 1".</span></div>
+  </div>
+</div>
+
+<div class="ask">
+  <p><b>One decision blocks the roadmap:</b> is the certificate download blocked by an unmet requirement, or is the feature simply unbuilt?</p>
+  <p>If it is a requirement, Wave 1 is a state-logic fix this week and the celebration banner should never have appeared. If it is unbuilt, it is the next thing to build — and everything else waits.</p>
+</div>
+
+<p class="note"><b>Scope note.</b> No accounts were created and no forms submitted — invite, Buy seats, Request Access and Remove were documented from their UI only, so their validation and error states are unverified. Responsive behaviour was untestable (fixed desktop viewport), so mobile comments are recommendations, not observed defects. One AI Engineer challenge was started to document the runtime; nothing was submitted and progress remains 0%.</p>
+
+</div>
+</body>
+</html>
