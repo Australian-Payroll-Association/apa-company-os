@@ -79,7 +79,42 @@ export type TeamHiring = {
   departmentScoped: boolean;
 };
 
+// A booked interview this manager personally sits on, seen from the day view:
+// up next, happening now, a scorecard owed, or already scored. Distinct from
+// MyLoopSlot (standing loop membership) — this is one specific conversation.
+export type MyInterviewState = "up_next" | "in_progress" | "scorecard_due" | "done";
+
+export type MyInterview = {
+  interviewId: string;
+  applicationId: string;
+  candidateName: string;
+  reqTitle: string;
+  stepName: string;
+  scheduledAt: string;
+  durationMinutes: number | null;
+  mode: string | null;
+  status: string | null;
+  state: MyInterviewState;
+  isToday: boolean;
+};
+
 const OPEN_STATUSES = ["open", "on_hold", "draft"];
+
+// The clock everyone on this team reads. "Today" and the in-progress window are
+// judged in Saigon time, not the server's UTC.
+const SAIGON_TZ = "Asia/Ho_Chi_Minh";
+
+// YYYY-MM-DD for a moment, as seen in Saigon. en-CA formats ISO-style.
+function saigonDateKey(d: Date): string {
+  return d.toLocaleDateString("en-CA", { timeZone: SAIGON_TZ });
+}
+
+// Interviews carrying no scorecard need are skipped from the scorecard-due
+// backlog: a cancelled conversation is not owed a card.
+const DEAD_INTERVIEW_STATUSES = new Set(["cancelled", "canceled", "withdrawn", "no_show"]);
+// How far back an unscored interview keeps nagging. Older than this and it has
+// aged out of the day view (the record still exists in admin).
+const SCORECARD_DUE_WINDOW_DAYS = 30;
 
 // The actor's own department. Null means "not filed", which reads as no filter.
 async function actorDepartmentId(actor: TeamActor): Promise<string | null> {
@@ -240,4 +275,132 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   mySlots.sort((a, b) => a.reqTitle.localeCompare(b.reqTitle) || a.position - b.position);
 
   return { reqs: out, mySlots, departmentScoped: Boolean(departmentId) };
+}
+
+// The manager's day: every booked interview they personally sit on that is
+// either happening today or overdue a scorecard from them. Seats are read from
+// interview_interviewers (the per-interview panel the Lark ingest writes from
+// the loop's assigned interviewers), matched on personId. Scoping is implicit:
+// an actor only ever sees interviews they hold a seat on, so no department
+// filter is needed or wanted here.
+export async function getMyInterviewDay(actor: TeamActor): Promise<MyInterview[]> {
+  const { data: seatRows } = await companyOs
+    .from("interview_interviewers")
+    .select(
+      "interview_id, " +
+        "interviews:interviews!interview_id ( id, title, scheduled_at, duration_minutes, mode, status, application_id, " +
+        "requisition_loop_steps:requisition_loop_steps!loop_step_id ( name ), " +
+        "applications:applications!application_id ( id, archived_at, " +
+        "job_requisitions:job_requisitions!job_requisition_id ( title ), " +
+        "people:people!person_id ( full_name, preferred_name, email ) ) )",
+    )
+    .eq("interviewer_id", actor.personId);
+
+  const rows = (seatRows ?? []) as unknown as Record<string, unknown>[];
+  if (rows.length === 0) return [];
+
+  const now = new Date();
+  const nowMs = now.getTime();
+  const todayKey = saigonDateKey(now);
+  const cutoffMs = nowMs - SCORECARD_DUE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+  // First pass: keep the seats that could plausibly appear (real booking, live
+  // application, not aged out), so the scorecard lookup only spans those.
+  type Candidate = {
+    interviewId: string;
+    applicationId: string;
+    candidateName: string;
+    reqTitle: string;
+    stepName: string;
+    scheduledAt: string;
+    startMs: number;
+    endMs: number;
+    durationMinutes: number | null;
+    mode: string | null;
+    status: string | null;
+    isToday: boolean;
+  };
+  const candidates: Candidate[] = [];
+  for (const r of rows) {
+    const iv = one(r.interviews as Record<string, unknown> | Record<string, unknown>[] | null);
+    if (!iv) continue;
+    const scheduledAt = (iv.scheduled_at as string | null) ?? null;
+    if (!scheduledAt) continue;
+    const status = (iv.status as string | null) ?? null;
+    if (status && DEAD_INTERVIEW_STATUSES.has(status)) continue;
+    const app = one(iv.applications as Record<string, unknown> | Record<string, unknown>[] | null);
+    if (!app || (app.archived_at as string | null)) continue;
+
+    const startMs = new Date(scheduledAt).getTime();
+    if (Number.isNaN(startMs)) continue;
+    const isToday = saigonDateKey(new Date(startMs)) === todayKey;
+    // A future interview on another day belongs to that day, not this view.
+    // Keep today's (any time) and past ones inside the nag window.
+    if (!isToday && (startMs > nowMs || startMs < cutoffMs)) continue;
+
+    const durationMinutes = (iv.duration_minutes as number | null) ?? null;
+    const step = one(iv.requisition_loop_steps as Record<string, unknown> | Record<string, unknown>[] | null);
+    const req = one(app.job_requisitions as Record<string, unknown> | Record<string, unknown>[] | null);
+    candidates.push({
+      interviewId: iv.id as string,
+      applicationId: app.id as string,
+      candidateName: displayName(one(app.people as PersonRow | PersonRow[] | null)),
+      reqTitle: (req?.title as string | null) ?? "(untitled req)",
+      stepName: (step?.name as string | null) || (iv.title as string | null) || "Interview",
+      scheduledAt,
+      startMs,
+      endMs: startMs + (durationMinutes ?? 60) * 60 * 1000,
+      durationMinutes,
+      mode: (iv.mode as string | null) ?? null,
+      status,
+      isToday,
+    });
+  }
+  if (candidates.length === 0) return [];
+
+  // Which of these has this actor already scored? A submitted scorecard clears
+  // the "due" flag and drops an overdue interview out of the view entirely.
+  const submitted = new Set<string>();
+  const { data: scRows } = await companyOs
+    .from("interview_scorecards")
+    .select("interview_id")
+    .eq("interviewer_id", actor.personId)
+    .not("submitted_at", "is", null)
+    .in(
+      "interview_id",
+      candidates.map((c) => c.interviewId),
+    );
+  for (const s of (scRows ?? []) as { interview_id: string }[]) submitted.add(s.interview_id);
+
+  const out: MyInterview[] = [];
+  for (const c of candidates) {
+    const hasScorecard = submitted.has(c.interviewId);
+    let state: MyInterviewState;
+    if (c.isToday) {
+      if (hasScorecard) state = "done";
+      else if (nowMs < c.startMs) state = "up_next";
+      else if (nowMs <= c.endMs) state = "in_progress";
+      else state = "scorecard_due";
+    } else {
+      // Past, within the window. Only surfaces while a scorecard is still owed.
+      if (hasScorecard) continue;
+      state = "scorecard_due";
+    }
+    out.push({
+      interviewId: c.interviewId,
+      applicationId: c.applicationId,
+      candidateName: c.candidateName,
+      reqTitle: c.reqTitle,
+      stepName: c.stepName,
+      scheduledAt: c.scheduledAt,
+      durationMinutes: c.durationMinutes,
+      mode: c.mode,
+      status: c.status,
+      state,
+      isToday: c.isToday,
+    });
+  }
+  // Soonest first; overdue (earlier) naturally sorts to the top.
+  out.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  return out;
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { getTeamHiring } from "@/lib/team/hiring";
+import { getTeamHiring, getMyInterviewDay, type MyInterviewState } from "@/lib/team/hiring";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,15 @@ function fmtWhen(iso: string): string {
   });
 }
 
+// Time only, for the day strip where the date is a given.
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function fmt(iso: string | null): string {
   if (!iso) return "-";
   return new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
@@ -28,6 +37,14 @@ function fmt(iso: string | null): string {
   });
 }
 
+// State to chip: colour and label for a booked interview on the day strip.
+const INTERVIEW_STATE_CHIP: Record<MyInterviewState, { className: string; label: string }> = {
+  up_next: { className: "admin-badge admin-badge--info", label: "Up next" },
+  in_progress: { className: "admin-badge admin-badge--info admin-badge--dot", label: "In progress" },
+  scorecard_due: { className: "admin-badge admin-badge--warn", label: "Scorecard due" },
+  done: { className: "admin-badge admin-badge--ok", label: "Scored" },
+};
+
 // /team/hiring, managers only, for now (Dave, 2026-08-13). Read-only: open
 // reqs, who is in flight, the interview loop each role runs, and where this
 // manager personally sits in those loops. Everything here is written from
@@ -36,8 +53,12 @@ export default async function TeamHiringPage() {
   const actor = await requireTeamMember();
   if (actor.role !== "manager") redirect("/team");
 
-  const { reqs, mySlots, departmentScoped } = await getTeamHiring(actor);
+  const [{ reqs, mySlots, departmentScoped }, myDay] = await Promise.all([
+    getTeamHiring(actor),
+    getMyInterviewDay(actor),
+  ]);
   const totalActive = reqs.reduce((n, r) => n + r.activeCount, 0);
+  const dueCount = myDay.filter((i) => i.state === "scorecard_due").length;
 
   return (
     <>
@@ -47,14 +68,58 @@ export default async function TeamHiringPage() {
         sub={
           reqs.length === 0
             ? "No open roles"
-            : `${reqs.length} open ${reqs.length === 1 ? "role" : "roles"} · ${totalActive} in flight`
+            : `${reqs.length} open ${reqs.length === 1 ? "role" : "roles"} · ${totalActive} in flight` +
+              (myDay.length > 0 ? ` · ${myDay.length} interview${myDay.length === 1 ? "" : "s"} for you` : "")
         }
       />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {myDay.length > 0 && (
+          <section className="admin-card coach-section">
+            <div className="admin-card-title">
+              Your interviews{" "}
+              {dueCount > 0 && (
+                <span className="admin-badge admin-badge--warn">
+                  {dueCount} scorecard{dueCount === 1 ? "" : "s"} due
+                </span>
+              )}
+            </div>
+            <div className="admin-hint">Today, and any conversation still waiting on your scorecard.</div>
+            <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
+              {myDay.map((iv) => {
+                const chip = INTERVIEW_STATE_CHIP[iv.state];
+                return (
+                  <div key={iv.interviewId} className="loop-step loop-step--read">
+                    <span className="loop-step-num" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {fmtTime(iv.scheduledAt)}
+                    </span>
+                    <div className="loop-step-body">
+                      <div className="loop-step-head">
+                        <strong>{iv.candidateName}</strong>
+                        <span className={chip.className}>{chip.label}</span>
+                      </div>
+                      <div className="admin-cell-muted" style={{ fontSize: 13 }}>
+                        {[
+                          iv.stepName,
+                          iv.reqTitle,
+                          iv.durationMinutes != null ? `${iv.durationMinutes} min` : null,
+                          iv.mode,
+                          iv.isToday ? null : `was ${fmtWhen(iv.scheduledAt)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {mySlots.length > 0 && (
           <section className="admin-card coach-section">
-            <div className="admin-card-title">Your interviews</div>
+            <div className="admin-card-title">Your loops</div>
             <div className="admin-hint">
               The loops you are named in. Times appear here once the interview is booked.
             </div>
