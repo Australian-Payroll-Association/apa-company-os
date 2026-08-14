@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import { getTeamHiring, getMyInterviewDay, type MyInterviewState, type GridCell } from "@/lib/team/hiring";
+import { CandidateActions } from "./CandidateActions";
 
 export const dynamic = "force-dynamic";
 
@@ -211,7 +212,11 @@ export default async function TeamHiringPage() {
           </section>
         )}
 
-        {reqs.map((req) => (
+        {reqs.map((req) => {
+          // The req's hiring manager (or an admin in the team view) gets the
+          // verbs. Everyone else sees the grid read-only.
+          const canManage = req.hiringManagerIsMe || actor.isAdmin;
+          return (
           <section key={req.id} className="admin-card coach-section">
             <div className="admin-card-title">
               {req.title}{" "}
@@ -309,6 +314,7 @@ export default async function TeamHiringPage() {
                           {i + 1}. {step.name}
                         </th>
                       ))}
+                      {canManage && <th style={{ textAlign: "right" }}>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -325,6 +331,15 @@ export default async function TeamHiringPage() {
                             <GridCellNode cell={cell} />
                           </td>
                         ))}
+                        {canManage && (
+                          <td style={{ textAlign: "right" }}>
+                            <CandidateActions
+                              applicationId={row.applicationId}
+                              canRequestBooking={row.cells.some((c) => c.status === "action")}
+                              bookingRequested={Boolean(row.bookingRequestedAt)}
+                            />
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -332,7 +347,8 @@ export default async function TeamHiringPage() {
               </div>
             )}
           </section>
-        ))}
+          );
+        })}
       </div>
     </>
   );

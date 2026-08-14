@@ -89,6 +89,9 @@ export type HiringGridRow = {
   stageName: string | null;
   atInterview: boolean;
   cells: GridCell[]; // aligned to HiringReq.loop order
+  // When a manager has already asked recruiting to book (metadata stamp), so the
+  // grid shows "requested" instead of offering the button again.
+  bookingRequestedAt: string | null;
 };
 
 export type MyLoopSlot = {
@@ -197,13 +200,21 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     companyOs
       .from("applications")
       .select(
-        "id, job_requisition_id, current_stage_id, rating, applied_at, archived_at, " +
+        "id, job_requisition_id, current_stage_id, rating, applied_at, archived_at, metadata, " +
           "people:people!person_id(full_name, preferred_name, email)",
       )
       .in("job_requisition_id", reqIds)
       .is("archived_at", null),
     getLoopsForRequisitions(reqIds),
   ]);
+
+  // When each application last had a booking requested by a manager (metadata
+  // stamp), used to show "requested" rather than re-offering the grid button.
+  const bookingReqByApp = new Map<string, string | null>();
+  for (const a of ((appRows ?? []) as unknown as Record<string, unknown>[])) {
+    const meta = a.metadata as { booking_requested_at?: string } | null;
+    bookingReqByApp.set(a.id as string, (meta && meta.booking_requested_at) || null);
+  }
 
   const stages = (stageRows ?? []) as Array<{
     id: string;
@@ -394,7 +405,15 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
         if (idx === firstUnbookedIdx) return { status: "action", label: "Nothing booked", interviewId: null, scheduledAt: null };
         return { status: "open", label: "Not booked", interviewId: null, scheduledAt: null };
       });
-      rows.push({ applicationId: c.applicationId, name: c.name, rating: c.rating, stageName: c.stageName, atInterview, cells });
+      rows.push({
+        applicationId: c.applicationId,
+        name: c.name,
+        rating: c.rating,
+        stageName: c.stageName,
+        atInterview,
+        cells,
+        bookingRequestedAt: bookingReqByApp.get(c.applicationId) ?? null,
+      });
     }
     req.grid = rows;
   }
