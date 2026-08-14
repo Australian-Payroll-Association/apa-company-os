@@ -676,13 +676,27 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ whiteSpace: "pre-wrap", color: "var(--admin-ink-2)", maxWidth: "68ch" }}>{s.overview}</div>
           {s.skills.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {s.skills.map((sk, j) => (
-                <Badge key={j} tone="neutral">
-                  {sk}
-                </Badge>
-              ))}
-            </div>
+            <ul className="appdet-ai-points">
+              {s.skills.map((sk, j) => {
+                // The model writes many points as "Label: detail" — bold the label
+                // when there is a short one. These are full sentences, not tags, so
+                // they wrap as a list rather than overflow as nowrap chips.
+                const c = sk.indexOf(": ");
+                const label = c > 0 && c < 48 ? sk.slice(0, c) : null;
+                return (
+                  <li key={j}>
+                    {label ? (
+                      <>
+                        <strong>{label}:</strong>
+                        {sk.slice(c + 1)}
+                      </>
+                    ) : (
+                      sk
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       ) : (

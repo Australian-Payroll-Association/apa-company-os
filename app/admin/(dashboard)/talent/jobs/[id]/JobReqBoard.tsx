@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
-import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
-import { formatDate, humanize } from "@/lib/admin/format";
+import { humanize } from "@/lib/admin/format";
+import { appPath } from "@/lib/admin/slug";
 import { moveApplicationStage } from "./actions";
 
 export type AppCard = {
@@ -28,10 +28,9 @@ export function JobReqBoard({
   columns: KanbanColumn[];
   initialCards: AppCard[];
 }) {
+  const router = useRouter();
   const [cards, setCards] = useState<AppCard[]>(initialCards);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
-  const selected = cards.find((c) => c.id === selectedId) ?? null;
 
   function move(cardId: string, toColumnId: string) {
     const prev = cards;
@@ -60,7 +59,9 @@ export function JobReqBoard({
         columns={columns}
         cards={cards}
         onMove={move}
-        onCardClick={(c) => setSelectedId(c.id)}
+        // Clicking a card opens the candidate's full application, not a summary
+        // shelf — that page is where the recruiter actually works the candidate.
+        onCardClick={(c) => router.push(appPath(c.candidateName, c.id))}
         renderCard={(c) => (
           <>
             <div className="sap-card-title">{c.candidateName || "(unknown)"}</div>
@@ -74,33 +75,6 @@ export function JobReqBoard({
           </>
         )}
       />
-      <DetailDrawer
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        eyebrow={selected ? humanize(selected.status) : ""}
-        title={selected?.candidateName || "Application"}
-      >
-        {selected && (
-          <dl className="admin-kv">
-            <dt>Status</dt>
-            <dd><Badge tone={statusTone(selected.status ?? "")}>{humanize(selected.status)}</Badge></dd>
-            <dt>Rating</dt>
-            <dd>{selected.rating != null ? `${selected.rating}★` : "—"}</dd>
-            <dt>Headline</dt>
-            <dd>{selected.headline || "—"}</dd>
-            <dt>Applied</dt>
-            <dd>{selected.appliedAt ? formatDate(selected.appliedAt) : "—"}</dd>
-            <dt>Contact</dt>
-            <dd>
-              {selected.personId ? (
-                <Link href={`/admin/contacts/${selected.personId}`} className="admin-cell-strong">Open Contact 360</Link>
-              ) : (
-                "—"
-              )}
-            </dd>
-          </dl>
-        )}
-      </DetailDrawer>
     </>
   );
 }
