@@ -79,8 +79,13 @@ export async function writeScorecard(
   if (scErr || !sc) return { ok: false, error: scErr?.message ?? "Could not save the scorecard." };
   const scorecardId = sc.id as string;
 
-  // Replace criterion rows wholesale: the criteria set can change between saves.
-  await companyOs.from("scorecard_scores").delete().eq("scorecard_id", scorecardId);
+  // Upsert each criterion row on (scorecard_id, criterion). We deliberately do
+  // NOT delete-then-insert: the app's write role has INSERT/UPDATE on this table
+  // but no DELETE grant, so a delete is a silent no-op and the re-insert would
+  // then collide on the unique key (that was the "duplicate key" bug on resubmit).
+  // Upsert re-scores in place instead. The rubric is fixed per round today, so a
+  // criterion never disappears between saves; if per-role rubrics later allow
+  // that, dropping a criterion will need a DELETE grant or an explicit clear.
   const rows = input.scores
     .filter((s) => s.criterion.trim())
     .map((s, i) => {
@@ -94,7 +99,9 @@ export async function writeScorecard(
       };
     });
   if (rows.length > 0) {
-    const { error: rowErr } = await companyOs.from("scorecard_scores").insert(rows);
+    const { error: rowErr } = await companyOs
+      .from("scorecard_scores")
+      .upsert(rows, { onConflict: "scorecard_id,criterion" });
     if (rowErr) return { ok: false, error: rowErr.message };
   }
   return { ok: true, scorecardId };
