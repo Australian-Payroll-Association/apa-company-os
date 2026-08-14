@@ -22,14 +22,18 @@ const VIEWS: { key: View; label: string }[] = [
   { key: 'alphabetical', label: 'Alphabetical' },
 ]
 
+type Layout = 'card' | 'list'
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
 function WorkflowCard({ w }: { w: Workflow }) {
   return (
     <Link href={`/workflows/${w.slug}`} className="wf-card">
       <div className="wf-card-top">
         <CategoryChip category={w.category} />
-        <span className="wf-card-date">
-          {new Date(w.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </span>
+        <span className="wf-card-date">{formatDate(w.date)}</span>
       </div>
       <h3 className="wf-card-title">{w.title}</h3>
       <p className="wf-card-excerpt">{w.excerpt}</p>
@@ -41,8 +45,61 @@ function WorkflowCard({ w }: { w: Workflow }) {
   )
 }
 
+function WorkflowRow({ w }: { w: Workflow }) {
+  return (
+    <Link href={`/workflows/${w.slug}`} className="wf-row">
+      <CategoryChip category={w.category} />
+      <span className="wf-row-title">{w.title}</span>
+      <span className="wf-row-steps">{w.steps} steps</span>
+      <span className="wf-row-date">{formatDate(w.date)}</span>
+      <span className="wf-row-arrow">→</span>
+    </Link>
+  )
+}
+
+function WorkflowSet({ workflows, layout }: { workflows: Workflow[]; layout: Layout }) {
+  if (layout === 'list') {
+    return (
+      <div className="wf-list">
+        {workflows.map((w) => (
+          <WorkflowRow key={w.slug} w={w} />
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="wf-grid">
+      {workflows.map((w) => (
+        <WorkflowCard key={w.slug} w={w} />
+      ))}
+    </div>
+  )
+}
+
+function CardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  )
+}
+
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </svg>
+  )
+}
+
 export default function WorkflowsBrowser({ workflows }: { workflows: Workflow[] }) {
   const [view, setView] = useState<View>('offices')
+  const [layout, setLayout] = useState<Layout>('card')
   const [query, setQuery] = useState('')
 
   const q = query.trim().toLowerCase()
@@ -87,14 +144,34 @@ export default function WorkflowsBrowser({ workflows }: { workflows: Workflow[] 
                 </button>
               ))}
             </div>
-            <input
-              type="search"
-              className="wf-search"
-              placeholder="Search workflows…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search workflows"
-            />
+            <div className="wf-controls-right">
+              <input
+                type="search"
+                className="wf-search"
+                placeholder="Search workflows…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search workflows"
+              />
+              <div className="wf-layouts" role="group" aria-label="Layout">
+                <button
+                  className={`wf-layout-btn${layout === 'card' ? ' active' : ''}`}
+                  aria-label="Card view"
+                  aria-pressed={layout === 'card'}
+                  onClick={() => setLayout('card')}
+                >
+                  <CardIcon />
+                </button>
+                <button
+                  className={`wf-layout-btn${layout === 'list' ? ' active' : ''}`}
+                  aria-label="List view"
+                  aria-pressed={layout === 'list'}
+                  onClick={() => setLayout('list')}
+                >
+                  <ListIcon />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -122,22 +199,14 @@ export default function WorkflowsBrowser({ workflows }: { workflows: Workflow[] 
               <p className="section-sub" style={{ marginBottom: 32 }}>
                 {OFFICE_TAGLINES[office]}
               </p>
-              <div className="wf-grid">
-                {officeWorkflows.map((w) => (
-                  <WorkflowCard key={w.slug} w={w} />
-                ))}
-              </div>
+              <WorkflowSet workflows={officeWorkflows} layout={layout} />
             </div>
           </section>
         ))
       ) : (
         <section className="section" style={{ padding: '48px 0 72px' }}>
           <div className="container">
-            <div className="wf-grid">
-              {sorted.map((w) => (
-                <WorkflowCard key={w.slug} w={w} />
-              ))}
-            </div>
+            <WorkflowSet workflows={sorted} layout={layout} />
           </div>
         </section>
       )}
