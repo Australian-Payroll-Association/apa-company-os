@@ -653,3 +653,24 @@
   .wf-row-title { flex-basis: 100%; order: -1; }
   .wf-controls-right { min-width: 0; }
 }
+
+/* ─── GRAPH ENGINE (real control-flow diagrams) ───── */
+.wf-graph-scroll { overflow-x: auto; margin: 28px 0 8px; }
+.wf-graph-scroll svg { display: block; }
+.wf-graph-caption { font-size: 13.5px; color: var(--body-text); margin: 6px 0 0; }
+.wf-graph-legend {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+  margin-top: 14px; font-size: 12.5px; color: var(--grey-mid);
+}
+.wf-graph-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ─── EXCEPTION / CONTRACT TABLES ─────────────────── */
+.wf-table-wrap { overflow-x: auto; margin-top: 24px; }
+.wf-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+.wf-table th {
+  text-align: left; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--grey-mid); padding: 10px 14px; border-bottom: 2px solid var(--tint-deep);
+}
+.wf-table td { padding: 12px 14px; border-bottom: 1px solid var(--tint); vertical-align: top; color: var(--dark); }
+.wf-table td:first-child { font-weight: 600; }
+.wf-table td:last-child { color: var(--body-text); }
