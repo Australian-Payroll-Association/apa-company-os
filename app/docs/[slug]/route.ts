@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DOCS_BUCKET, DOCS_COOKIE, isValidSlug } from '@/lib/docs'
-import { supabase } from '@/lib/supabase'
+import { DOCS_COOKIE, downloadFresh, isValidSlug } from '@/lib/docs'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,12 +17,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
     return NextResponse.redirect(new URL('/docs/', req.url))
   }
 
-  const { data, error } = await supabase.storage.from(DOCS_BUCKET).download(`${slug}.html`)
-  if (error || !data) {
+  const html = await downloadFresh(`${slug}.html`)
+  if (html === null) {
     return new NextResponse('Not found', { status: 404 })
   }
 
-  return new NextResponse(await data.text(), {
+  return new NextResponse(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
