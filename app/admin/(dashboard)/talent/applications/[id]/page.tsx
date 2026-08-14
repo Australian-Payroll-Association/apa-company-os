@@ -6,8 +6,8 @@ import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { listAssignablePeople, listPeopleNames, type PersonOption } from "@/lib/admin/people-options";
 import { appSlug, isShortCode, isUuid, shortCodeRange, shortOf } from "@/lib/admin/slug";
+import { stageEnteredAt as readStageEnteredAt } from "@/lib/ats/stage-log";
 import { ApplicationManage, type AppManageData } from "../ApplicationManage";
-import { ApplicationLifecycle } from "./ApplicationLifecycle";
 
 export const dynamic = "force-dynamic";
 // Same data-cache pin as the list — a stale read here would show an old stage or
@@ -222,27 +222,16 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
     noticePeriod: cp?.notice_period ?? null,
   };
 
+  // When the candidate entered the current stage (drives the pipeline strip's
+  // days-in-stage). Null for applications that predate stage logging.
+  const enteredAt = r.current_stage_id ? await readStageEnteredAt(r.id, r.current_stage_id) : null;
+
   return (
-    <>
-      <PageHead
-        eyebrow={<Link href="/admin/talent/applications">← Applications</Link>}
-        title={candidateName || "Candidate"}
-        sub={app.jobReqTitle || undefined}
-        action={<ApplicationLifecycle applicationId={r.id} archived={Boolean(r.archived_at)} />}
-      />
-
-      {r.archived_at && (
-        <div
-          className="admin-alert"
-          style={{ marginBottom: 14, border: "1px solid var(--admin-line-strong)" }}
-        >
-          This application is archived and hidden from the pipeline. Use Restore to bring it back.
-        </div>
-      )}
-
-      <div style={{ maxWidth: 760 }}>
-        <ApplicationManage app={app} referrerOptions={referrerOptions} />
-      </div>
-    </>
+    <ApplicationManage
+      app={app}
+      referrerOptions={referrerOptions}
+      archived={Boolean(r.archived_at)}
+      stageEnteredAt={enteredAt}
+    />
   );
 }
