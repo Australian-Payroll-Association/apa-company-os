@@ -11,6 +11,7 @@ import { companyOs } from "@/lib/supabase";
 import { RECOMMENDATIONS, recommendationToDb, type RecommendationKey } from "@/lib/admin/interview-panel";
 
 export type Result = { ok: true } | { ok: false; error: string };
+export type WriteResult = { ok: true; scorecardId: string } | { ok: false; error: string };
 
 export type ScorecardInput = {
   recommendation: RecommendationKey | null;
@@ -23,26 +24,40 @@ const REC_KEYS = new Set<string>(RECOMMENDATIONS.map((r) => r.key));
 
 // null passes through; a number in [1,5] is kept (one decimal); anything else
 // is "bad" so the caller can reject or drop it.
-export function normalizeScore(v: number | null): number | null | "bad" {
+function normalizeScore(v: number | null): number | null | "bad" {
   if (v === null || v === undefined) return null;
   if (typeof v !== "number" || Number.isNaN(v)) return "bad";
   if (v < 1 || v > 5) return "bad";
   return Math.round(v * 10) / 10;
 }
 
+// A scorecard must say something before it counts as submitted. Without this a
+// panelist could stamp an empty card just to unlock (reveal) the rest of the
+// panel, defeating the blind-first anti-anchoring the feature is built on.
+function hasContent(input: ScorecardInput): boolean {
+  if (input.recommendation) return true;
+  if (input.overallScore != null) return true;
+  if (input.summary.trim()) return true;
+  return input.scores.some((s) => s.score != null || s.comment.trim());
+}
+
 // Upsert one seat's scorecard on (interview_id, interviewer_id), then replace
 // its per-criterion score rows. Stamps submitted_at so the seat counts as
-// decided. Pure persistence — no auth, no audit, no revalidate.
+// decided. Pure persistence: no auth, no audit, no revalidate. Returns the
+// scorecard row id so callers can audit the exact record.
 export async function writeScorecard(
   interviewId: string,
   interviewerId: string,
   input: ScorecardInput,
-): Promise<Result> {
+): Promise<WriteResult> {
   if (input.recommendation !== null && !REC_KEYS.has(input.recommendation)) {
     return { ok: false, error: "Unknown recommendation." };
   }
   const overall = normalizeScore(input.overallScore);
   if (overall === "bad") return { ok: false, error: "Overall score must be between 1 and 5." };
+  if (!hasContent(input)) {
+    return { ok: false, error: "Add a recommendation, a score, or a note before submitting." };
+  }
 
   const stamp = new Date().toISOString();
   const { data: sc, error: scErr } = await companyOs
@@ -64,7 +79,7 @@ export async function writeScorecard(
   if (scErr || !sc) return { ok: false, error: scErr?.message ?? "Could not save the scorecard." };
   const scorecardId = sc.id as string;
 
-  // Replace criterion rows wholesale — the criteria set can change between saves.
+  // Replace criterion rows wholesale: the criteria set can change between saves.
   await companyOs.from("scorecard_scores").delete().eq("scorecard_id", scorecardId);
   const rows = input.scores
     .filter((s) => s.criterion.trim())
@@ -82,5 +97,5 @@ export async function writeScorecard(
     const { error: rowErr } = await companyOs.from("scorecard_scores").insert(rows);
     if (rowErr) return { ok: false, error: rowErr.message };
   }
-  return { ok: true };
+  return { ok: true, scorecardId };
 }

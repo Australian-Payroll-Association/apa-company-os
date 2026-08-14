@@ -177,7 +177,7 @@ function PanelSeatCard({
               {scorecard.scores.map((sc, i) => (
                 <li key={i}>
                   <strong>{sc.criterion}</strong>
-                  {sc.score != null ? ` — ${sc.score}` : ""}
+                  {sc.score != null ? ` · ${sc.score}` : ""}
                   {sc.comment ? `: ${sc.comment}` : ""}
                 </li>
               ))}

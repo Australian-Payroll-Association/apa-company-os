@@ -1,8 +1,9 @@
-// Application pipeline moves, shared write layer. Advancing, rejecting, and
-// flagging "please book this" are the same operations whether they come from
-// /admin or a manager on /team; the callers own authorization and cache
-// revalidation. Terminal-stage moves stamp decided_at, mirroring the admin
-// stage write in talent/applications/actions.ts.
+// Application pipeline moves for the manager verbs on /team: advance, reject,
+// and flag "please book this". Kept in lib/ats so admin can adopt the same
+// write later; today admin drives stage changes through its own patch-based
+// updateApplication (talent/applications/actions.ts). Callers own authorization
+// and cache revalidation. Terminal-stage moves stamp decided_at, mirroring that
+// admin stage write.
 
 import { companyOs } from "@/lib/supabase";
 
@@ -44,6 +45,11 @@ export async function advanceApplicationStage(applicationId: string): Promise<Re
   if (stages.length === 0) return { ok: false, error: "This role has no pipeline stages." };
 
   const curIdx = app.currentStageId ? stages.findIndex((s) => s.id === app.currentStageId) : -1;
+  // A set current stage that isn't in this req's pipeline is a data problem, not
+  // "start from the beginning"; refuse rather than silently reset to stage one.
+  if (app.currentStageId && curIdx === -1) {
+    return { ok: false, error: "This candidate's current stage is not in the role's pipeline." };
+  }
   const next = stages[curIdx + 1];
   if (!next) return { ok: false, error: "Already at the final stage." };
 

@@ -9,9 +9,9 @@ import { waitUntil } from "@vercel/functions";
 import { ensureAiPanelist, scoreInterview } from "@/lib/interview-panelist";
 import { writeScorecard, type ScorecardInput } from "@/lib/ats/scorecard";
 import {
-  AI_PANELIST_EMAIL,
   ROUND_MODES,
   recommendationFromDb,
+  isAiPanelist,
   type RecommendationKey,
 } from "@/lib/admin/interview-panel";
 
@@ -50,13 +50,6 @@ export type InterviewRound = {
 };
 
 export type TeamOption = { id: string; name: string };
-
-function isAiPerson(p: { email?: string | null; metadata?: unknown } | null): boolean {
-  if (!p) return false;
-  if (p.email === AI_PANELIST_EMAIL) return true;
-  const meta = p.metadata as { is_ai?: boolean } | null;
-  return Boolean(meta && meta.is_ai);
-}
 
 // Team members eligible to sit on a panel.
 export async function listTeamMembers(): Promise<{ ok: true; members: TeamOption[] } | { ok: false; error: string }> {
@@ -134,7 +127,7 @@ export async function getInterviewRounds(
         interviewerId: iv.interviewer_id as string,
         name: (person?.full_name as string | null) || (person?.email as string | null) || "panelist",
         role: (iv.role as string) ?? "interviewer",
-        isAi: isAiPerson(person),
+        isAi: isAiPanelist(person),
         scorecard: sc
           ? {
               recommendation: recommendationFromDb(sc.recommendation as string | null),
@@ -270,7 +263,7 @@ export async function removePanelist(roundId: string, interviewerId: string): Pr
     .select("email, metadata")
     .eq("id", interviewerId)
     .maybeSingle();
-  if (isAiPerson(person)) return { ok: false, error: "The AI panelist always holds a seat." };
+  if (isAiPanelist(person)) return { ok: false, error: "The AI panelist always holds a seat." };
 
   const { data: sc } = await companyOs
     .from("interview_scorecards")
@@ -411,7 +404,7 @@ export async function submitScorecard(
   if (!r.ok) return r;
   await recordAudit({
     table: "interview_scorecards",
-    recordId: roundId,
+    recordId: r.scorecardId,
     operation: "update",
     actor: admin.email,
     newData: { interview_id: roundId, interviewer_id: interviewerId, recommendation: input.recommendation },
