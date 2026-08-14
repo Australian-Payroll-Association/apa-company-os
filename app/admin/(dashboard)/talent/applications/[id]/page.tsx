@@ -73,11 +73,19 @@ type AppRef = {
   redirect: "permanent" | "temporary" | null;
 };
 
+// Three outcomes, kept distinct on purpose: a DB error must not masquerade as a
+// missing row. The original page showed a retryable error alert for a query error
+// and a 404 only for a genuinely absent row; the resolver preserves that split so
+// a transient timeout doesn't tell the recruiter the application was deleted.
+type AppRefResult =
+  | { kind: "ok"; ref: AppRef }
+  | { kind: "error"; message: string }
+  | { kind: "notfound" };
+
 // Resolve a URL segment — a name+short-code slug like "nguyen-thi-mai-a7dfed24",
 // or a legacy full uuid — to the application row. Wrapped in cache() so
 // generateMetadata and the page body share one DB round-trip per request.
-// Returns null when nothing matches (the caller renders notFound()).
-const resolveApplicationRef = cache(async (segment: string): Promise<AppRef | null> => {
+const resolveApplicationRef = cache(async (segment: string): Promise<AppRefResult> => {
   const nameOf = (row: RefRow) => {
     const p = one(row.people);
     return p?.full_name || p?.email || null;
@@ -85,52 +93,63 @@ const resolveApplicationRef = cache(async (segment: string): Promise<AppRef | nu
 
   // Legacy full-uuid link: resolve exactly, then send it on to the canonical slug.
   if (isUuid(segment)) {
-    const { data } = await companyOs
+    const { data, error } = await companyOs
       .from("applications")
       .select("id, people!person_id(full_name, email)")
       .eq("id", segment)
       .maybeSingle();
+    if (error) return { kind: "error", message: error.message };
     const row = data as unknown as RefRow | null;
-    if (!row) return null;
+    if (!row) return { kind: "notfound" };
     const name = nameOf(row);
-    return { id: row.id, name, canonical: appSlug(name, row.id), redirect: "permanent" };
+    return { kind: "ok", ref: { id: row.id, name, canonical: appSlug(name, row.id), redirect: "permanent" } };
   }
 
   // Slug: the trailing hyphen group is the 8-hex short code. PostgREST can't ILIKE
   // a uuid column, so match the code with an index-friendly uuid range instead.
   const short = shortOf(segment);
-  if (!isShortCode(short)) return null;
+  if (!isShortCode(short)) return { kind: "notfound" };
   const { lo, hi } = shortCodeRange(short);
-  const { data } = await companyOs
+  const { data, error } = await companyOs
     .from("applications")
     .select("id, people!person_id(full_name, email)")
     .gte("id", lo)
     .lte("id", hi)
     .limit(2);
+  if (error) return { kind: "error", message: error.message };
   const rows = (data as unknown as RefRow[] | null) ?? [];
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return { kind: "notfound" };
 
   let row = rows[0];
   if (rows.length > 1) {
     // Astronomically rare 32-bit collision: keep only the row whose canonical slug
     // is exactly what was requested; if none, we can't safely disambiguate.
     const exact = rows.find((r) => appSlug(nameOf(r), r.id) === segment);
-    if (!exact) return null;
+    if (!exact) return { kind: "notfound" };
     row = exact;
   }
   const name = nameOf(row);
   const canonical = appSlug(name, row.id);
-  return { id: row.id, name, canonical, redirect: segment === canonical ? null : "temporary" };
+  return { kind: "ok", ref: { id: row.id, name, canonical, redirect: segment === canonical ? null : "temporary" } };
 });
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const ref = await resolveApplicationRef(params.id);
-  return { title: ref?.name ?? "Candidate" };
+  const resolved = await resolveApplicationRef(params.id);
+  return { title: resolved.kind === "ok" ? resolved.ref.name ?? "Candidate" : "Candidate" };
 }
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
-  const ref = await resolveApplicationRef(params.id);
-  if (!ref) notFound();
+  const resolved = await resolveApplicationRef(params.id);
+  if (resolved.kind === "error") {
+    return (
+      <>
+        <PageHead eyebrow={<Link href="/admin/talent/applications">← Applications</Link>} title="Application" />
+        <div className="admin-alert admin-alert--err">{resolved.message}</div>
+      </>
+    );
+  }
+  if (resolved.kind === "notfound") notFound();
+  const ref = resolved.ref;
   // A legacy uuid link is permanently canonicalized; a stale-name slug (the
   // candidate was renamed) redirects temporarily, since the name can change again.
   if (ref.redirect === "permanent") permanentRedirect(`/admin/talent/applications/${ref.canonical}`);
