@@ -1759,6 +1759,95 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .idea-plan blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 10px; padding: 2px 12px; color: var(--admin-muted); }
 .idea-plan code { font-family: var(--admin-font-mono); font-size: 12px; }
 
+/* ─── Idea plan generation (PlanGenerating) ───────────
+   The ~20s wait after submitting an idea: a four-D step rail above a document
+   that writes itself. Stage timing lives in the component; everything here is
+   presentation. All motion is decorative and switched off under
+   prefers-reduced-motion (lines still appear per stage, which is discrete). */
+.idea-gen { padding: 28px 24px; text-align: center; }
+.idea-gen-steps {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 20px 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.idea-gen-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-faint);
+  transition: color var(--transition);
+}
+.idea-gen-step.is-done { color: var(--admin-muted); }
+.idea-gen-step.is-active { color: var(--admin-accent); }
+.idea-gen-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-line);
+  transition: background var(--transition);
+}
+.idea-gen-step.is-done .idea-gen-dot { background: var(--admin-accent); }
+.idea-gen-step.is-active .idea-gen-dot {
+  background: var(--admin-accent);
+  animation: idea-gen-pulse 1.4s ease-in-out infinite;
+}
+@keyframes idea-gen-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--admin-accent-soft); }
+  50% { box-shadow: 0 0 0 6px var(--admin-accent-soft); }
+}
+.idea-gen-doc {
+  max-width: 420px;
+  min-height: 208px; /* room for all 8 lines + caret, so the card doesn't grow per stage */
+  margin: 0 auto;
+  padding: 18px 20px;
+  text-align: left;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius);
+}
+.idea-gen-line {
+  display: block;
+  height: 10px;
+  margin-bottom: 9px;
+  border-radius: 5px;
+  background: var(--admin-line);
+  animation: idea-gen-line-in 0.5s ease-out;
+}
+.idea-gen-line.is-fresh {
+  background: linear-gradient(90deg, var(--admin-line) 25%, var(--admin-accent-soft) 50%, var(--admin-line) 75%);
+  background-size: 200% 100%;
+  animation: idea-gen-line-in 0.5s ease-out, admin-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes idea-gen-line-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.idea-gen-caret {
+  display: inline-block;
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--admin-accent);
+  vertical-align: text-bottom;
+  animation: idea-gen-blink 1s step-end infinite;
+}
+@keyframes idea-gen-blink {
+  50% { opacity: 0; }
+}
+.idea-gen-status {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .idea-gen-dot, .idea-gen-line, .idea-gen-line.is-fresh, .idea-gen-caret { animation: none; }
+}
+
 /* Idea backlog, build ideas and learnings side by side, stacking on narrow */
 .ideas-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 @media (max-width: 980px) { .ideas-columns { grid-template-columns: 1fr; } }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
-import { teamInsertOwn } from "@/lib/team/data";
+import { teamInsertOwn, teamRead, teamUpdateInScope } from "@/lib/team/data";
 import { generateIdeaPlan } from "@/lib/ai/idea-plan";
 
 // Own-service idea submission for /team. teamInsertOwn forces
@@ -16,6 +16,7 @@ type SubmitResult = { ok: true; id: string } | { ok: false; error: string };
 const MAX_FIELD = 5000;
 const MAX_SOURCE_URLS = 10;
 const MAX_URL_LEN = 500;
+const MAX_PLAN = 20000;
 
 // Keep only well-formed http(s) links — a bad scheme here (e.g. javascript:)
 // would otherwise get rendered as a clickable href on the detail page.
@@ -78,6 +79,34 @@ export async function submitIdea(input: {
 
   revalidatePath("/team/ideas");
   return { ok: true, id: data.id };
+}
+
+// Owner edit of a generated plan (title + markdown body). Strictly self: the
+// person scope can include reports, so ownership is re-checked against
+// actor.personId, never trusted from the client or widened to the scope.
+export async function updateIdeaPlan(
+  id: string,
+  input: { title: string; plan: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const actor = await requireTeamMember();
+
+  const title = input.title?.trim();
+  const plan = input.plan?.trim();
+  if (!title) return { ok: false, error: "Keep a short title on the idea." };
+  if (title.length > 200) return { ok: false, error: "Keep the title under 200 characters." };
+  if (!plan) return { ok: false, error: "The plan can't be empty. Edit it instead of clearing it." };
+  if (plan.length > MAX_PLAN) return { ok: false, error: "Keep the plan under 20,000 characters." };
+
+  const { data } = await teamRead(actor, "ideas", "id, person_id").eq("id", id).maybeSingle();
+  const owner = (data as { person_id: string } | null)?.person_id;
+  if (!owner || owner !== actor.personId) return { ok: false, error: "Only the submitter can edit this plan." };
+
+  const r = await teamUpdateInScope(actor, "ideas", id, { title: title.slice(0, 200), ai_plan: plan });
+  if (!r.ok) return { ok: false, error: r.error ?? "Could not save your changes." };
+
+  revalidatePath(`/team/ideas/${id}`);
+  revalidatePath("/team/ideas");
+  return { ok: true };
 }
 
 // "What have I learned?" — the light half of Ideas that Spark Solutions.
