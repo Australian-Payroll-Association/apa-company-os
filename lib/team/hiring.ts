@@ -17,6 +17,7 @@
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
 import { getLoopsForRequisitions, type LoopStep } from "@/lib/ats/loop";
+import { AI_PANELIST_EMAIL } from "@/lib/admin/interview-panel";
 
 type PersonRow = { full_name: string | null; preferred_name: string | null; email: string | null };
 
@@ -25,6 +26,15 @@ const one = <T,>(e: T | T[] | null | undefined): T | null =>
 
 const displayName = (p: PersonRow | null): string =>
   p?.preferred_name || p?.full_name || p?.email || "-";
+
+// The AI panelist holds a real seat like a human; it must not count toward the
+// human scorecard tally that decides "done" vs "pending" on the grid.
+const isAiSeat = (p: { email?: string | null; metadata?: unknown } | null): boolean => {
+  if (!p) return false;
+  if (p.email === AI_PANELIST_EMAIL) return true;
+  const meta = p.metadata as { is_ai?: boolean } | null;
+  return Boolean(meta && meta.is_ai);
+};
 
 export type HiringCandidate = {
   applicationId: string;
@@ -48,6 +58,37 @@ export type HiringReq = {
   candidates: HiringCandidate[];
   // Candidates sitting on a non-terminal stage, the number a manager acts on.
   activeCount: number;
+  // The candidate x loop-step matrix for the active candidates on this req.
+  grid: HiringGridRow[];
+  // Booked interviews on this req that the ingest could not match to a loop
+  // step (loop_step_id is null). Surfaced so they are never silently invisible.
+  unassignedCount: number;
+};
+
+// One cell of the candidate x round grid: where this candidate stands on one
+// loop step, derived from bookings, scorecards, and the candidate's stage.
+export type GridCellStatus =
+  | "done" // interview happened, all human scorecards in
+  | "pending" // interview happened, human scorecards outstanding
+  | "booked" // scheduled ahead
+  | "action" // at the interview stage, this is the next unbooked step
+  | "open" // at the interview stage, a later unbooked step
+  | "none"; // not reached yet, or already past this candidate
+
+export type GridCell = {
+  status: GridCellStatus;
+  label: string;
+  interviewId: string | null;
+  scheduledAt: string | null;
+};
+
+export type HiringGridRow = {
+  applicationId: string;
+  name: string;
+  rating: number | null;
+  stageName: string | null;
+  atInterview: boolean;
+  cells: GridCell[]; // aligned to HiringReq.loop order
 };
 
 export type MyLoopSlot = {
@@ -222,37 +263,140 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
       loop: loops.get(id) ?? [],
       candidates: list,
       activeCount: active,
+      grid: [],
+      unassignedCount: 0,
     };
   });
 
-  // Booked conversations against these reqs' loop steps. Written by the Lark
-  // ingest; absent until a recruiter has actually put something in a calendar.
-  const stepIds = out.flatMap((r) => r.loop.map((s) => s.id));
+  // Every interview on these reqs' applications, with each panel's human-seat
+  // count and how many humans have submitted. One query feeds three things: the
+  // booked-by-step list (mySlots), the candidate x round grid, and the count of
+  // interviews the ingest could not match to a loop step. Read by application,
+  // so null-loop_step_id rows come back too (the by-step query would drop them).
+  const appIds = out.flatMap((r) => r.candidates.map((c) => c.applicationId));
+  const candByApp = new Map<string, { name: string; reqId: string; stageName: string | null; rating: number | null }>();
+  for (const req of out) {
+    for (const c of req.candidates) {
+      candByApp.set(c.applicationId, { name: c.name, reqId: req.id, stageName: c.stageName, rating: c.rating });
+    }
+  }
+
+  type IvRow = {
+    id: string;
+    loopStepId: string | null;
+    scheduledAt: string | null;
+    durationMinutes: number | null;
+    status: string | null;
+    mode: string | null;
+    humanSeats: number;
+    submittedHuman: number;
+  };
+  const ivByApp = new Map<string, IvRow[]>();
   const bookedByStep = new Map<string, BookedInterview[]>();
-  if (stepIds.length > 0) {
+  const unassignedByReq = new Map<string, number>();
+
+  if (appIds.length > 0) {
     const { data: ivRows } = await companyOs
       .from("interviews")
       .select(
-        "id, loop_step_id, scheduled_at, duration_minutes, status, mode, " +
-          "applications:applications!application_id(people:people!person_id(full_name, preferred_name, email))",
+        "id, application_id, loop_step_id, scheduled_at, duration_minutes, status, mode, " +
+          "interview_interviewers ( interviewer_id, people!interviewer_id ( email, metadata ) ), " +
+          "interview_scorecards ( interviewer_id, submitted_at )",
       )
-      .in("loop_step_id", stepIds)
-      .not("scheduled_at", "is", null)
-      .order("scheduled_at");
-    for (const r of ((ivRows ?? []) as unknown as Record<string, unknown>[])) {
-      const app = one(r.applications as Record<string, unknown> | Record<string, unknown>[] | null);
-      const stepId = r.loop_step_id as string;
-      const list = bookedByStep.get(stepId) ?? [];
-      list.push({
-        interviewId: r.id as string,
-        candidateName: displayName(one((app?.people ?? null) as PersonRow | PersonRow[] | null)),
-        scheduledAt: r.scheduled_at as string,
-        durationMinutes: (r.duration_minutes as number | null) ?? null,
-        status: (r.status as string | null) ?? null,
-        mode: (r.mode as string | null) ?? null,
-      });
-      bookedByStep.set(stepId, list);
+      .in("application_id", appIds);
+
+    for (const raw of ((ivRows ?? []) as unknown as Record<string, unknown>[])) {
+      const appId = raw.application_id as string;
+      const meta = candByApp.get(appId);
+      if (!meta) continue;
+
+      const seats = (raw.interview_interviewers ?? []) as Record<string, unknown>[];
+      const humanSeatIds = new Set<string>();
+      for (const s of seats) {
+        const person = one(s.people as { email?: string | null; metadata?: unknown } | Array<{ email?: string | null; metadata?: unknown }> | null);
+        if (isAiSeat(person)) continue;
+        humanSeatIds.add(s.interviewer_id as string);
+      }
+      const scorecards = (raw.interview_scorecards ?? []) as Record<string, unknown>[];
+      let submittedHuman = 0;
+      for (const sc of scorecards) {
+        if (sc.submitted_at && humanSeatIds.has(sc.interviewer_id as string)) submittedHuman += 1;
+      }
+
+      const loopStepId = (raw.loop_step_id as string | null) ?? null;
+      const scheduledAt = (raw.scheduled_at as string | null) ?? null;
+      const durationMinutes = (raw.duration_minutes as number | null) ?? null;
+      const status = (raw.status as string | null) ?? null;
+      const mode = (raw.mode as string | null) ?? null;
+
+      const list = ivByApp.get(appId) ?? [];
+      list.push({ id: raw.id as string, loopStepId, scheduledAt, durationMinutes, status, mode, humanSeats: humanSeatIds.size, submittedHuman });
+      ivByApp.set(appId, list);
+
+      if (loopStepId === null) {
+        unassignedByReq.set(meta.reqId, (unassignedByReq.get(meta.reqId) ?? 0) + 1);
+      } else if (scheduledAt) {
+        const bookedList = bookedByStep.get(loopStepId) ?? [];
+        bookedList.push({ interviewId: raw.id as string, candidateName: meta.name, scheduledAt, durationMinutes, status, mode });
+        bookedByStep.set(loopStepId, bookedList);
+      }
     }
+    for (const list of bookedByStep.values()) {
+      list.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    }
+  }
+
+  // Build each req's grid: active candidates (rows) x loop steps (columns).
+  const gridNow = new Date();
+  const gridNowMs = gridNow.getTime();
+  const gridTodayKey = saigonDateKey(gridNow);
+  const bookedLabel = (iso: string): string => {
+    const d = new Date(iso);
+    if (saigonDateKey(d) === gridTodayKey) {
+      return `Today ${d.toLocaleTimeString("en-GB", { timeZone: SAIGON_TZ, hour: "2-digit", minute: "2-digit" })}`;
+    }
+    return d.toLocaleDateString("en-GB", { timeZone: SAIGON_TZ, day: "numeric", month: "short" });
+  };
+  const cellForStep = (stepId: string, ivs: IvRow[]): GridCell | null => {
+    const stepIvs = ivs.filter((iv) => iv.loopStepId === stepId);
+    if (stepIvs.length === 0) return null;
+    const future = stepIvs
+      .filter((iv) => iv.scheduledAt && new Date(iv.scheduledAt).getTime() > gridNowMs)
+      .sort((a, b) => new Date(a.scheduledAt as string).getTime() - new Date(b.scheduledAt as string).getTime());
+    if (future.length > 0) {
+      const iv = future[0];
+      return { status: "booked", label: bookedLabel(iv.scheduledAt as string), interviewId: iv.id, scheduledAt: iv.scheduledAt };
+    }
+    // Otherwise it has already happened (or has no time). Latest wins.
+    const latest = stepIvs
+      .slice()
+      .sort((a, b) => (new Date(b.scheduledAt ?? 0).getTime() || 0) - (new Date(a.scheduledAt ?? 0).getTime() || 0))[0];
+    if (latest.humanSeats > 0 && latest.submittedHuman < latest.humanSeats) {
+      return { status: "pending", label: `${latest.submittedHuman}/${latest.humanSeats}`, interviewId: latest.id, scheduledAt: latest.scheduledAt };
+    }
+    return { status: "done", label: "Done", interviewId: latest.id, scheduledAt: latest.scheduledAt };
+  };
+
+  for (const req of out) {
+    req.unassignedCount = unassignedByReq.get(req.id) ?? 0;
+    const interviewStageId = interviewStageByReq.get(req.id) ?? null;
+    const rows: HiringGridRow[] = [];
+    for (const c of req.candidates) {
+      const stage = stages.find((s) => s.job_requisition_id === req.id && s.name === c.stageName) ?? null;
+      if (stage?.is_terminal) continue; // the grid tracks candidates still in flight
+      const atInterview = stage != null && interviewStageId != null && stage.id === interviewStageId;
+      const ivs = ivByApp.get(c.applicationId) ?? [];
+      const booked = req.loop.map((step) => cellForStep(step.id, ivs));
+      const firstUnbookedIdx = booked.findIndex((cell) => cell === null);
+      const cells: GridCell[] = booked.map((cell, idx) => {
+        if (cell) return cell;
+        if (!atInterview) return { status: "none", label: "-", interviewId: null, scheduledAt: null };
+        if (idx === firstUnbookedIdx) return { status: "action", label: "Nothing booked", interviewId: null, scheduledAt: null };
+        return { status: "open", label: "Not booked", interviewId: null, scheduledAt: null };
+      });
+      rows.push({ applicationId: c.applicationId, name: c.name, rating: c.rating, stageName: c.stageName, atInterview, cells });
+    }
+    req.grid = rows;
   }
 
   // Where this manager personally sits in a loop. Loops reference people, so
