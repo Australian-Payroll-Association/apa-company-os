@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
+import { appPath } from "@/lib/admin/slug";
 
 export type AppRow = {
   id: string;
@@ -46,7 +47,8 @@ const STATUS_ORDER = [
 
 // Client-owned applications table. All rows load once; search, filters, paging,
 // and sort happen client-side. A row click navigates to the full-page applicant
-// profile (/admin/talent/applications/<id>) — the shareable canonical view.
+// profile (/admin/talent/applications/<name>-<short-code>) — the shareable
+// canonical view.
 export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -125,8 +127,8 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const start = total === 0 ? 0 : startIdx + 1;
   const end = Math.min(startIdx + pageSize, total);
 
-  function open(id: string) {
-    router.push(`/admin/talent/applications/${id}`);
+  function open(row: AppRow) {
+    router.push(appPath(row.candidateName, row.id));
   }
 
   return (
@@ -259,11 +261,11 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
                   <tr
                     key={r.id}
                     className="is-clickable"
-                    onClick={() => open(r.id)}
+                    onClick={() => open(r)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        open(r.id);
+                        open(r);
                       }
                     }}
                     tabIndex={0}

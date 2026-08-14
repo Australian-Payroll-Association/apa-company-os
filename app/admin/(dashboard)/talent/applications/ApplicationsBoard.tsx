@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { humanize } from "@/lib/admin/format";
+import { appPath } from "@/lib/admin/slug";
 import { moveApplicationStage } from "../jobs/[id]/actions";
 import { type AppRow } from "./ApplicationsTable";
 
@@ -116,7 +117,7 @@ export function ApplicationsBoard({
           columns={columns}
           cards={cards}
           onMove={move}
-          onCardClick={(c) => router.push(`/admin/talent/applications/${c.id}`)}
+          onCardClick={(c) => router.push(appPath(c.row.candidateName, c.id))}
           renderCard={(c) => {
             const color = (c.row.jobReqId && roleColor.get(c.row.jobReqId)) || ROLE_COLORS[0];
             return (

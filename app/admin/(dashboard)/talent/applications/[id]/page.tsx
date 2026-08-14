@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cache } from "react";
+import type { Metadata } from "next";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { listAssignablePeople, listPeopleNames, type PersonOption } from "@/lib/admin/people-options";
+import { appSlug, isShortCode, isUuid, shortCodeRange, shortOf } from "@/lib/admin/slug";
 import { ApplicationManage, type AppManageData } from "../ApplicationManage";
 import { ApplicationLifecycle } from "./ApplicationLifecycle";
 
@@ -60,13 +63,85 @@ type RawApp = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
+type PeopleName = { full_name: string | null; email: string | null };
+type RefRow = { id: string; people: PeopleName | PeopleName[] | null };
+
+type AppRef = {
+  id: string;
+  name: string | null;
+  canonical: string;
+  redirect: "permanent" | "temporary" | null;
+};
+
+// Resolve a URL segment — a name+short-code slug like "nguyen-thi-mai-a7dfed24",
+// or a legacy full uuid — to the application row. Wrapped in cache() so
+// generateMetadata and the page body share one DB round-trip per request.
+// Returns null when nothing matches (the caller renders notFound()).
+const resolveApplicationRef = cache(async (segment: string): Promise<AppRef | null> => {
+  const nameOf = (row: RefRow) => {
+    const p = one(row.people);
+    return p?.full_name || p?.email || null;
+  };
+
+  // Legacy full-uuid link: resolve exactly, then send it on to the canonical slug.
+  if (isUuid(segment)) {
+    const { data } = await companyOs
+      .from("applications")
+      .select("id, people!person_id(full_name, email)")
+      .eq("id", segment)
+      .maybeSingle();
+    const row = data as unknown as RefRow | null;
+    if (!row) return null;
+    const name = nameOf(row);
+    return { id: row.id, name, canonical: appSlug(name, row.id), redirect: "permanent" };
+  }
+
+  // Slug: the trailing hyphen group is the 8-hex short code. PostgREST can't ILIKE
+  // a uuid column, so match the code with an index-friendly uuid range instead.
+  const short = shortOf(segment);
+  if (!isShortCode(short)) return null;
+  const { lo, hi } = shortCodeRange(short);
+  const { data } = await companyOs
+    .from("applications")
+    .select("id, people!person_id(full_name, email)")
+    .gte("id", lo)
+    .lte("id", hi)
+    .limit(2);
+  const rows = (data as unknown as RefRow[] | null) ?? [];
+  if (rows.length === 0) return null;
+
+  let row = rows[0];
+  if (rows.length > 1) {
+    // Astronomically rare 32-bit collision: keep only the row whose canonical slug
+    // is exactly what was requested; if none, we can't safely disambiguate.
+    const exact = rows.find((r) => appSlug(nameOf(r), r.id) === segment);
+    if (!exact) return null;
+    row = exact;
+  }
+  const name = nameOf(row);
+  const canonical = appSlug(name, row.id);
+  return { id: row.id, name, canonical, redirect: segment === canonical ? null : "temporary" };
+});
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const ref = await resolveApplicationRef(params.id);
+  return { title: ref?.name ?? "Candidate" };
+}
+
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
+  const ref = await resolveApplicationRef(params.id);
+  if (!ref) notFound();
+  // A legacy uuid link is permanently canonicalized; a stale-name slug (the
+  // candidate was renamed) redirects temporarily, since the name can change again.
+  if (ref.redirect === "permanent") permanentRedirect(`/admin/talent/applications/${ref.canonical}`);
+  if (ref.redirect === "temporary") redirect(`/admin/talent/applications/${ref.canonical}`);
+
   const { data, error } = await companyOs
     .from("applications")
     .select(
       "id, status, rating, rejection_reason, applied_at, decided_at, source, source_detail, referrer_person_id, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, city, country, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, pool_status, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
     )
-    .eq("id", params.id)
+    .eq("id", ref.id)
     .maybeSingle();
 
   if (error) {

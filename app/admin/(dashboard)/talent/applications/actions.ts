@@ -184,7 +184,9 @@ export async function updateApplication(
     newData: updates,
   });
   revalidatePath("/admin/talent/applications");
-  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  // The detail route is now a name+short-code slug, so revalidate the dynamic
+  // segment itself (the raw-uuid path would no longer match the rendered slug).
+  revalidatePath("/admin/talent/applications/[id]", "page");
   // Surface decided_at whenever this write set it (terminal-stage auto-stamp or a
   // manual date edit), so the caller can keep its form in sync without a reload.
   return Object.prototype.hasOwnProperty.call(updates, "decided_at")
@@ -210,7 +212,9 @@ export async function archiveApplication(applicationId: string): Promise<Result>
     newData: { archived_at: "now" },
   });
   revalidatePath("/admin/talent/applications");
-  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  // The detail route is now a name+short-code slug, so revalidate the dynamic
+  // segment itself (the raw-uuid path would no longer match the rendered slug).
+  revalidatePath("/admin/talent/applications/[id]", "page");
   return { ok: true };
 }
 
@@ -229,7 +233,9 @@ export async function unarchiveApplication(applicationId: string): Promise<Resul
     newData: { archived_at: null },
   });
   revalidatePath("/admin/talent/applications");
-  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  // The detail route is now a name+short-code slug, so revalidate the dynamic
+  // segment itself (the raw-uuid path would no longer match the rendered slug).
+  revalidatePath("/admin/talent/applications/[id]", "page");
   return { ok: true };
 }
 
@@ -481,7 +487,9 @@ export async function addApplicationNote(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/talent/applications");
-  revalidatePath(`/admin/talent/applications/${applicationId}`);
+  // The detail route is now a name+short-code slug, so revalidate the dynamic
+  // segment itself (the raw-uuid path would no longer match the rendered slug).
+  revalidatePath("/admin/talent/applications/[id]", "page");
   return {
     ok: true,
     item: {
