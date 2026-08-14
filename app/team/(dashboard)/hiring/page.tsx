@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { getTeamHiring, getMyInterviewDay, type MyInterviewState } from "@/lib/team/hiring";
+import { getTeamHiring, getMyInterviewDay, type MyInterviewState, type GridCell } from "@/lib/team/hiring";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +44,28 @@ const INTERVIEW_STATE_CHIP: Record<MyInterviewState, { className: string; label:
   scorecard_due: { className: "admin-badge admin-badge--warn", label: "Scorecard due" },
   done: { className: "admin-badge admin-badge--ok", label: "Scored" },
 };
+
+// One grid cell: where a candidate stands on one loop step.
+function GridCellNode({ cell }: { cell: GridCell }) {
+  switch (cell.status) {
+    case "done":
+      return <span className="admin-badge admin-badge--ok">Done</span>;
+    case "pending":
+      return (
+        <span className="admin-badge admin-badge--warn" title={`${cell.label} human scorecards in`}>
+          {cell.label}
+        </span>
+      );
+    case "booked":
+      return <span className="admin-badge admin-badge--info">{cell.label}</span>;
+    case "action":
+      return <span className="admin-badge admin-badge--err">Nothing booked</span>;
+    case "open":
+      return <span className="admin-cell-muted">Not booked</span>;
+    default:
+      return <span className="admin-cell-muted">-</span>;
+  }
+}
 
 // /team/hiring, managers only, for now (Dave, 2026-08-13). Read-only: open
 // reqs, who is in flight, the interview loop each role runs, and where this
@@ -221,32 +243,69 @@ export default async function TeamHiringPage() {
               ))
             )}
 
-            <div className="admin-label" style={{ marginTop: 16 }}>
-              Candidates
+            <div className="admin-label-row" style={{ marginTop: 16 }}>
+              <span className="admin-label">In flight</span>
+              {req.unassignedCount > 0 && (
+                <span className="admin-hint">
+                  {req.unassignedCount} interview{req.unassignedCount === 1 ? "" : "s"} not matched to a loop step
+                </span>
+              )}
             </div>
             {req.candidates.length === 0 ? (
               <div className="admin-empty">Nobody has applied yet.</div>
-            ) : (
+            ) : req.grid.length === 0 ? (
+              <div className="admin-empty">No candidates in flight. All applicants are at a closed stage.</div>
+            ) : req.loop.length === 0 ? (
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Candidate</th>
                     <th>Stage</th>
-                    <th>Applied</th>
                     <th>Rating</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {req.candidates.map((c) => (
-                    <tr key={c.applicationId}>
-                      <td>{c.name}</td>
-                      <td>{c.stageName ?? "-"}</td>
-                      <td>{fmt(c.appliedAt)}</td>
-                      <td>{c.rating ?? "-"}</td>
+                  {req.grid.map((row) => (
+                    <tr key={row.applicationId}>
+                      <td>{row.name}</td>
+                      <td>{row.stageName ?? "-"}</td>
+                      <td>{row.rating ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            ) : (
+              <div className="admin-table-scroll">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      {req.loop.map((step, i) => (
+                        <th key={step.id}>
+                          {i + 1}. {step.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {req.grid.map((row) => (
+                      <tr key={row.applicationId}>
+                        <td>
+                          <div>{row.name}</div>
+                          <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                            {row.rating != null ? `AI screen ${row.rating}` : row.stageName ?? "-"}
+                          </div>
+                        </td>
+                        {row.cells.map((cell, i) => (
+                          <td key={req.loop[i].id}>
+                            <GridCellNode cell={cell} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         ))}
