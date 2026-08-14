@@ -152,13 +152,13 @@ function PanelSeatCard({
 }) {
   const rec = scorecard?.recommendation ? REC_LABEL.get(scorecard.recommendation) : null;
   return (
-    <div className="admin-card" style={{ padding: 14 }}>
-      <div className="admin-label-row">
-        <span className="admin-label">
+    <div className={`hire-seat${isAi ? " hire-seat--ai" : ""}`}>
+      <div className="hire-seat-head">
+        <span className="hire-seat-name">
           {name}
           {isAi ? " (AI)" : ""}
         </span>
-        <span style={{ display: "inline-flex", gap: 6 }}>
+        <span className="hire-seat-chips">
           {rec && <span className="admin-badge admin-badge--info">{rec}</span>}
           {scorecard?.overallScore != null && (
             <span className="admin-badge">Overall {scorecard.overallScore}</span>

@@ -177,6 +177,14 @@ Specs to be authored here as they are formalized. Each references the tokens abo
 - **Side drawer** — `--data-elevation-drawer`, radius `--data-radius`.
 - **Dense form** — Foundations input (8px, focus blue), `--data-text-base` labels.
 
+### 8.1 Hiring (manager view) — `.hire-*`
+
+First formalized component set, shipped on `/team/hiring` and the interview kit. Additive over the OS shell (all values are `--admin-*` tokens, no raw hex/radius/shadow) and namespaced `.hire-*` so `/admin` and `/portal` are untouched. Other data-layer surfaces may adopt the same three patterns:
+
+- **Day slot** (`.hire-slot`, `.hire-slot--{due,now,next,done}`) — a booked item with a state-coloured left rail and a tinted time tile (`.hire-slot-time`). Use for "here is one thing on your day, and how urgent it is". The rail colour is the state's chip ink (`--admin-warn-ink`, `--admin-accent`, `--admin-ok-ink`).
+- **Grouped rubric** (`.hire-criteria` wrapping `.hire-criterion` rows: `.hire-criterion-label` + a compact `.hire-criterion-score` select + a `.hire-criterion-note` input) — a repeated label/value/note set reads as one bordered table, not a stack of loose fields.
+- **Voice-tinted card** (`.hire-seat`, `.hire-seat--ai`) — peer records shown side by side; the AI/machine voice gets `--admin-info-bg` so it is legible as non-human at a glance.
+
 ---
 
 ## 9. Migration path for the admin OS
