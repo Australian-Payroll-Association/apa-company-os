@@ -2,6 +2,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import PrivateGate from '../PrivateGate'
 import PrivateLibrary, { type LibraryItem } from '../PrivateLibrary'
+import { listDocs } from '@/lib/docs'
+
+// Published documents are read from Storage at request time, so adding one
+// never touches this file.
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Edge8 Consulting Private Workflows | Edge8',
@@ -99,7 +104,19 @@ const ITEMS: LibraryItem[] = [
   },
 ]
 
-export default function E8PrivateWorkflowsIndexPage() {
+export default async function E8PrivateWorkflowsIndexPage() {
+  // Documents published via scripts/docs/publish.mjs, listed alongside the
+  // hand-built pages above. Storage is the source; no entry is added here.
+  const published: LibraryItem[] = (await listDocs()).map((doc) => ({
+    category: 'workflow' as const,
+    href: `/workflows/private/e8/${doc.slug}`,
+    title: doc.title,
+    description: doc.publishedAt
+      ? `Published document, updated ${new Date(doc.publishedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.`
+      : 'Published document.',
+  }))
+  const items = [...published, ...ITEMS]
+
   return (
     <PrivateGate>
       <main>
@@ -124,7 +141,7 @@ export default function E8PrivateWorkflowsIndexPage() {
 
         <section className="section">
           <div className="container">
-            <PrivateLibrary items={ITEMS} />
+            <PrivateLibrary items={items} />
           </div>
         </section>
       </main>

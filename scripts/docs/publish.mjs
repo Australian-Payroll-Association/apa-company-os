@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Publish an HTML document to https://www.edge8.ai/docs/<slug>.
+ * Publish an HTML document to https://www.edge8.ai/workflows/private/e8/<slug>.
  *
  *   node scripts/docs/publish.mjs ~/code-projects/edge8-docs/my-doc.html
  *   node scripts/docs/publish.mjs my-doc.html --slug custom-slug

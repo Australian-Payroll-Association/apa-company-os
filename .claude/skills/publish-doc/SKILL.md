@@ -1,6 +1,6 @@
 ---
 name: publish-doc
-description: Publish an HTML document to edge8.ai/docs. Use when the operator says "publish this", "put this on edge8", "share this with the team", or hands over an HTML file to be given a link. Uploads to Supabase Storage; no commit, no deploy.
+description: Publish an HTML document into the private workflows library at edge8.ai/workflows/private/e8. Use when the operator says "publish this", "put this on edge8", "share this with the team", or hands over an HTML file to be given a link. Uploads to Supabase Storage; no commit, no deploy.
 ---
 
 # Publish a document
@@ -13,7 +13,7 @@ Documents live in Supabase Storage, not in this repo. Publishing is an upload, s
 node scripts/docs/publish.mjs ~/code-projects/edge8-docs/<file>.html
 ```
 
-The filename is the slug: `stack-governance.html` becomes `https://www.edge8.ai/docs/stack-governance`. Override with `--slug <slug>`. The `<title>` tag becomes the name shown in the index at `/docs`.
+The filename is the slug: `stack-governance.html` becomes `https://www.edge8.ai/workflows/private/e8/stack-governance`. Override with `--slug <slug>`. The `<title>` tag becomes the name shown in the index at `/docs`.
 
 Test against a preview deployment first with `--base https://<preview-url>` when the route itself has changed.
 
@@ -23,8 +23,8 @@ Test against a preview deployment first with `--base https://<preview-url>` when
 |---|---|
 | The operator's working copies | `~/code-projects/edge8-docs/` (a plain folder, not a repo) |
 | The published file | Supabase Storage, private bucket `documents`, as `<slug>.html` |
-| The link | `https://www.edge8.ai/docs/<slug>` |
-| The index | `https://www.edge8.ai/docs`, gated by the same access code as the private workflows library |
+| The link | `https://www.edge8.ai/workflows/private/e8/<slug>` |
+| The index | `https://www.edge8.ai/workflows/private/e8`, the private workflows library, which lists published documents automatically |
 
 ## Rules
 
