@@ -21,9 +21,9 @@ const ITEMS: LibraryItem[] = [
   {
     category: 'plan',
     href: '/workflows/private/ai-officer-institute/aio-labs-ux-brief.html',
-    title: 'UX Audit — One-Page Brief',
+    title: 'UX Audit: Open Questions',
     description:
-      'Executive one-pager: the three P0 fixes, where the numbers disagree, the high-impact gaps, and a four-wave recommended sequence. Companion to the full UX Audit.',
+      'Fifteen open decisions from the live walkthrough of aiolabz.com: what the headline progress % measures, what is required to certify, whether seat buying is self-serve, one source of truth for progress and badges, and more. Companion to the full UX Audit.',
   },
   {
     category: 'plan',
