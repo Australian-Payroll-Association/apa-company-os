@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { logStageMove } from "@/lib/ats/stage-log";
 import { APPLICATION_SOURCES, POOL_STATUSES } from "@/lib/admin/recruiting-options";
 import type { AiScreenSummary } from "@/lib/resume-screen";
 
@@ -157,9 +158,18 @@ export async function updateApplication(
     if (d && !DATE_RE.test(d)) return { ok: false, error: "Enter a valid decided date." };
     updates.decided_at = d;
   }
+  // Captured when the stage changes, so the move can be logged after the write.
+  let stageMove: { from: string | null; to: string | null } | null = null;
   if (patch.current_stage_id !== undefined) {
+    const { data: cur } = await companyOs
+      .from("applications")
+      .select("current_stage_id")
+      .eq("id", applicationId)
+      .maybeSingle();
+    const from = (cur?.current_stage_id as string | null) ?? null;
     if (patch.current_stage_id === null) {
       updates.current_stage_id = null;
+      stageMove = { from, to: null };
     } else {
       const { data: stage, error: stageErr } = await companyOs
         .from("application_stages")
@@ -169,6 +179,7 @@ export async function updateApplication(
       if (stageErr || !stage) return { ok: false, error: stageErr?.message ?? "Unknown stage." };
       updates.current_stage_id = patch.current_stage_id;
       if (stage.is_terminal) updates.decided_at = new Date().toISOString();
+      stageMove = { from, to: patch.current_stage_id };
     }
   }
 
@@ -176,6 +187,7 @@ export async function updateApplication(
 
   const { error } = await companyOs.from("applications").update(updates).eq("id", applicationId);
   if (error) return { ok: false, error: error.message };
+  if (stageMove) await logStageMove(applicationId, stageMove.from, stageMove.to);
   await recordAudit({
     table: "applications",
     recordId: applicationId,

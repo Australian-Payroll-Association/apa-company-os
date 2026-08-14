@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { logStageMove } from "@/lib/ats/stage-log";
 import { screenApplication } from "@/lib/resume-screen";
 import {
   addLoopStep,
@@ -31,11 +32,19 @@ export async function moveApplicationStage(
     .maybeSingle();
   if (stageErr || !stage) return { ok: false, error: stageErr?.message ?? "Unknown stage." };
 
+  const { data: cur } = await companyOs
+    .from("applications")
+    .select("current_stage_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+  const fromStageId = (cur?.current_stage_id as string | null) ?? null;
+
   const patch: Record<string, unknown> = { current_stage_id: toStageId };
   if (stage.is_terminal) patch.decided_at = new Date().toISOString();
 
   const { error } = await companyOs.from("applications").update(patch).eq("id", applicationId);
   if (error) return { ok: false, error: error.message };
+  await logStageMove(applicationId, fromStageId, toStageId);
 
   revalidatePath(`/admin/talent/jobs/${jobReqId}`);
   return { ok: true };

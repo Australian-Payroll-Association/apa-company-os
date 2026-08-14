@@ -3724,3 +3724,177 @@ a.ideas-share-card:hover {
   .hire-criterion-label { flex-basis: 100%; }
   .hire-criterion-note { flex-basis: 100%; }
 }
+
+/* ─── Application detail: decision-first workspace ──────────────────────────
+   The recruiter's single application surface — a sticky decision header, a
+   clickable pipeline strip, and a two-pane body (judge on the left, facts on the
+   right). Scoped .appdet-*; every value is a token or on the type/space scale. */
+
+/* Sticky decision header: name, stage, rating, and the two real actions stay in
+   view while the body scrolls under it. */
+.appdet-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--admin-bg);
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  margin-bottom: 16px;
+}
+.appdet-head-crumb { font-size: 12px; margin-bottom: 6px; }
+.appdet-head-row { display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap; }
+.appdet-head-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.appdet-head-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--admin-ink);
+}
+.appdet-head-meta { font-size: 13px; color: var(--admin-ink-2); }
+.appdet-head-meta strong { font-weight: 600; color: var(--admin-ink); }
+.appdet-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.appdet-saved { font-size: 12px; color: var(--admin-muted); }
+
+/* Kebab overflow (Archive / Restore) — no menu primitive exists in the OS, so
+   this mirrors the sidebar account flyout: absolute popover + full-screen
+   click-catcher to dismiss. */
+.appdet-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.appdet-iconbtn:hover { border-color: var(--admin-muted); }
+.appdet-iconbtn:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); }
+.appdet-menu-wrap { position: relative; }
+.appdet-menu-backdrop { position: fixed; inset: 0; z-index: 39; }
+.appdet-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: var(--admin-shadow-md);
+}
+.appdet-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--admin-radius-xs);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.appdet-menu-item:hover { background: var(--admin-surface-2); }
+.appdet-menu-item--danger { color: var(--admin-err-ink); }
+
+/* Pipeline strip: done / current / upcoming stages, each clickable to move. */
+.appdet-pipe {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  overflow-x: auto;
+}
+.appdet-step { display: flex; align-items: center; flex: 1; min-width: 0; }
+.appdet-step-hit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--admin-radius-xs);
+  cursor: pointer;
+}
+.appdet-step-hit:disabled { cursor: default; }
+.appdet-step-hit:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); }
+.appdet-step-node {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+}
+.appdet-step--done .appdet-step-node { background: var(--admin-ink); color: var(--admin-surface); }
+.appdet-step--now .appdet-step-node { background: var(--admin-accent); color: var(--admin-surface); box-shadow: 0 0 0 4px var(--admin-accent-soft); }
+.appdet-step--todo .appdet-step-node { background: var(--admin-surface-2); color: var(--admin-muted); border: 1px solid var(--admin-line-strong); }
+.appdet-step-label { min-width: 0; white-space: nowrap; font-size: 12px; text-align: left; }
+.appdet-step--done .appdet-step-label { color: var(--admin-ink-2); font-weight: 600; }
+.appdet-step--now .appdet-step-label { color: var(--admin-ink); font-weight: 700; }
+.appdet-step--todo .appdet-step-label { color: var(--admin-muted); }
+.appdet-step-sub { display: block; font-size: 11px; font-weight: 500; color: var(--admin-muted); }
+.appdet-step-bar { flex: 1; height: 2px; min-width: 12px; margin: 0 10px; background: var(--admin-line-strong); }
+.appdet-step--done .appdet-step-bar { background: var(--admin-ink); }
+
+/* Two-pane body: judge on the left (min 0 so it can shrink), facts rail on the
+   right; single column on narrow / laptop widths. */
+.appdet-cols { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 16px; align-items: start; }
+.appdet-rail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.appdet-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 980px) {
+  .appdet-cols { grid-template-columns: 1fr; }
+}
+
+/* Inline-edit affordances shared by components/admin/InlineEdit.tsx, extending
+   the existing .admin-editable pattern with a saving / error note. */
+.admin-editable-row { display: inline-flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.admin-editable-row .admin-editable { min-width: 0; }
+.admin-editable--block { white-space: normal; }
+.admin-editable-note { font-size: 12px; flex-shrink: 0; }
+.admin-editable-note--err { color: var(--admin-err-ink); }
+.admin-editable-link { display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 6px 8px; }
+.admin-editable-link a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-editable-pencil {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--admin-muted);
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: var(--admin-radius-xs);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.admin-editable-link:hover .admin-editable-pencil { opacity: 1; }
+.admin-editable-pencil:hover { color: var(--admin-accent); }
+.admin-editable-pencil:focus-visible { opacity: 1; outline: 0; box-shadow: var(--admin-focus-ring); }
