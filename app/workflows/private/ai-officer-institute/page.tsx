@@ -13,6 +13,20 @@ export const metadata: Metadata = {
 const ITEMS: LibraryItem[] = [
   {
     category: 'plan',
+    href: '/workflows/private/ai-officer-institute/aio-labs-ux-audit.html',
+    title: 'UX Audit — Workflow Documentation',
+    description:
+      'Current-state workflow documentation and heuristic UX audit of aiolabz.com as learner and team admin: the 33 findings in full, with bottlenecks, missing steps, and severity across the product.',
+  },
+  {
+    category: 'plan',
+    href: '/workflows/private/ai-officer-institute/aio-labs-ux-brief.html',
+    title: 'UX Audit — One-Page Brief',
+    description:
+      'Executive one-pager: the three P0 fixes, where the numbers disagree, the high-impact gaps, and a four-wave recommended sequence. Companion to the full UX Audit.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/ai-officer-institute/aio-pad-styling-plan.html',
     title: 'AIO Pad Styling Plan',
     description:
