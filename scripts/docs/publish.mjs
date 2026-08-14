@@ -60,9 +60,12 @@ if (!token) {
 const html = readFileSync(path, 'utf8')
 const slug = arg('--slug') || slugify(basename(path))
 const title = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || slug).trim()
-const base = arg('--base') || 'https://www.edge8.ai'
+// This site runs with trailingSlash: true, so /api/docs/publish answers with a
+// 308 to /api/docs/publish/ and the POST body is lost on the redirect. Always
+// post to the slashed form.
+const base = (arg('--base') || 'https://www.edge8.ai').replace(/\/+$/, '')
 
-const res = await fetch(`${base}/api/docs/publish`, {
+const res = await fetch(`${base}/api/docs/publish/`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
   body: JSON.stringify({ slug, title, html }),

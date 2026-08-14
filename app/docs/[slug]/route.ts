@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   }
 
   if (req.cookies.get(DOCS_COOKIE)?.value !== '1') {
-    return NextResponse.redirect(new URL('/docs', req.url))
+    return NextResponse.redirect(new URL('/docs/', req.url))
   }
 
   const { data, error } = await supabase.storage.from(DOCS_BUCKET).download(`${slug}.html`)
