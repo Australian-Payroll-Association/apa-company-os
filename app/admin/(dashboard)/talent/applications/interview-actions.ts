@@ -7,11 +7,10 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { waitUntil } from "@vercel/functions";
 import { ensureAiPanelist, scoreInterview } from "@/lib/interview-panelist";
+import { writeScorecard, type ScorecardInput } from "@/lib/ats/scorecard";
 import {
   AI_PANELIST_EMAIL,
-  RECOMMENDATIONS,
   ROUND_MODES,
-  recommendationToDb,
   recommendationFromDb,
   type RecommendationKey,
 } from "@/lib/admin/interview-panel";
@@ -21,7 +20,6 @@ type Result = { ok: true } | { ok: false; error: string };
 const TRANSCRIPT_BUCKET = "meeting-transcripts";
 const MAX_TRANSCRIPT_BYTES = 10 * 1024 * 1024;
 const MODE_VALUES = new Set<string>(ROUND_MODES.map((m) => m.value));
-const REC_KEYS = new Set<string>(RECOMMENDATIONS.map((r) => r.key));
 const SEAT_ROLES = new Set(["lead", "interviewer", "shadow", "observer"]);
 
 export type PanelSeat = {
@@ -400,68 +398,20 @@ export async function getTranscript(
   return { ok: true, text, mime: (doc.mime_type as string | null) ?? null };
 }
 
-// Submit (or resubmit) a human panelist's scorecard for a round. Upserts the
-// scorecard on (interview_id, interviewer_id), then replaces its per-criterion
-// score rows. Stamps submitted_at so the round counts as decided for this seat.
+// Submit (or resubmit) a human panelist's scorecard for a round. The write is
+// shared with the team interview kit (lib/ats/scorecard); admin adds the audit
+// trail and cache bust on top.
 export async function submitScorecard(
   roundId: string,
   interviewerId: string,
-  input: {
-    recommendation: RecommendationKey | null;
-    overallScore: number | null;
-    summary: string;
-    scores: { criterion: string; score: number | null; comment: string }[];
-  },
+  input: ScorecardInput,
 ): Promise<Result> {
   const admin = await requireAdmin();
-
-  if (input.recommendation !== null && !REC_KEYS.has(input.recommendation)) {
-    return { ok: false, error: "Unknown recommendation." };
-  }
-  const overall = normalizeScore(input.overallScore);
-  if (overall === "bad") return { ok: false, error: "Overall score must be between 1 and 5." };
-
-  const { data: sc, error: scErr } = await companyOs
-    .from("interview_scorecards")
-    .upsert(
-      {
-        interview_id: roundId,
-        interviewer_id: interviewerId,
-        recommendation: input.recommendation ? recommendationToDb(input.recommendation) : null,
-        overall_score: overall,
-        summary: input.summary.trim() || null,
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "interview_id,interviewer_id" },
-    )
-    .select("id")
-    .single();
-  if (scErr || !sc) return { ok: false, error: scErr?.message ?? "Could not save the scorecard." };
-  const scorecardId = sc.id as string;
-
-  // Replace criterion rows wholesale — the criteria set can change between saves.
-  await companyOs.from("scorecard_scores").delete().eq("scorecard_id", scorecardId);
-  const rows = input.scores
-    .filter((s) => s.criterion.trim())
-    .map((s, i) => {
-      const score = normalizeScore(s.score);
-      return {
-        scorecard_id: scorecardId,
-        criterion: s.criterion.trim(),
-        score: score === "bad" ? null : score,
-        comment: s.comment.trim() || null,
-        position: i,
-      };
-    });
-  if (rows.length > 0) {
-    const { error: rowErr } = await companyOs.from("scorecard_scores").insert(rows);
-    if (rowErr) return { ok: false, error: rowErr.message };
-  }
-
+  const r = await writeScorecard(roundId, interviewerId, input);
+  if (!r.ok) return r;
   await recordAudit({
     table: "interview_scorecards",
-    recordId: scorecardId,
+    recordId: roundId,
     operation: "update",
     actor: admin.email,
     newData: { interview_id: roundId, interviewer_id: interviewerId, recommendation: input.recommendation },
@@ -479,13 +429,4 @@ export async function runAiPanelist(roundId: string): Promise<Result> {
   if (!r.ok) return r;
   revalidatePath("/admin/talent/applications");
   return { ok: true };
-}
-
-// null passes through; a number in [1,5] is kept (one decimal); anything else
-// is "bad" so the caller can reject or drop it.
-function normalizeScore(v: number | null): number | null | "bad" {
-  if (v === null || v === undefined) return null;
-  if (typeof v !== "number" || Number.isNaN(v)) return "bad";
-  if (v < 1 || v > 5) return "bad";
-  return Math.round(v * 10) / 10;
 }
