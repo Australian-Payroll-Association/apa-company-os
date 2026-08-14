@@ -1,5 +1,5 @@
 // The interview kit: everything a seated panelist needs to run one interview
-// and file their scorecard, on /team. Access is by SEAT — a person may only
+// and file their scorecard, on /team. Access is by SEAT: a person may only
 // open the kit for an interview they hold a seat on (interview_interviewers),
 // and may only ever score as themselves. Blind-first is enforced HERE, on read:
 // the other seats' scorecards (humans and the AI panelist) are withheld until
@@ -12,6 +12,7 @@ import {
   recommendationFromDb,
   DEFAULT_CRITERIA,
   AI_PANELIST_EMAIL,
+  isAiPanelist,
   type RecommendationKey,
 } from "@/lib/admin/interview-panel";
 import type { AiScreenSummary } from "@/lib/resume-screen";
@@ -23,13 +24,6 @@ const displayName = (p: PersonRow | null): string =>
 
 const one = <T,>(e: T | T[] | null | undefined): T | null =>
   Array.isArray(e) ? e[0] ?? null : e ?? null;
-
-const isAi = (p: PersonRow | null): boolean => {
-  if (!p) return false;
-  if (p.email === AI_PANELIST_EMAIL) return true;
-  const meta = p.metadata as { is_ai?: boolean } | null;
-  return Boolean(meta && meta.is_ai);
-};
 
 export type KitScore = { criterion: string; score: number | null; comment: string | null };
 
@@ -69,7 +63,7 @@ export type InterviewKit = {
 };
 
 // Whether this person holds a seat on this interview. The only authorization the
-// team scorecard write trusts — never a client-supplied interviewer id.
+// team scorecard write trusts, never a client-supplied interviewer id.
 export async function actorHoldsSeat(personId: string, interviewId: string): Promise<boolean> {
   const { data } = await companyOs
     .from("interview_interviewers")
@@ -138,7 +132,7 @@ export async function getInterviewKit(actor: TeamActor, interviewId: string): Pr
       const sc = scByInterviewer.get(s.interviewer_id as string);
       return {
         name: displayName(person),
-        isAi: isAi(person),
+        isAi: isAiPanelist(person),
         submitted: Boolean(sc?.submitted_at),
         // Blind-first: only hand back the actual scorecard once the viewer has
         // committed their own. Until then a client never receives it at all.

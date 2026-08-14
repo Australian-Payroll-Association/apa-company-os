@@ -17,7 +17,7 @@
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
 import { getLoopsForRequisitions, type LoopStep } from "@/lib/ats/loop";
-import { AI_PANELIST_EMAIL } from "@/lib/admin/interview-panel";
+import { isAiPanelist } from "@/lib/admin/interview-panel";
 
 type PersonRow = { full_name: string | null; preferred_name: string | null; email: string | null };
 
@@ -27,14 +27,6 @@ const one = <T,>(e: T | T[] | null | undefined): T | null =>
 const displayName = (p: PersonRow | null): string =>
   p?.preferred_name || p?.full_name || p?.email || "-";
 
-// The AI panelist holds a real seat like a human; it must not count toward the
-// human scorecard tally that decides "done" vs "pending" on the grid.
-const isAiSeat = (p: { email?: string | null; metadata?: unknown } | null): boolean => {
-  if (!p) return false;
-  if (p.email === AI_PANELIST_EMAIL) return true;
-  const meta = p.metadata as { is_ai?: boolean } | null;
-  return Boolean(meta && meta.is_ai);
-};
 
 export type HiringCandidate = {
   applicationId: string;
@@ -89,6 +81,9 @@ export type HiringGridRow = {
   stageName: string | null;
   atInterview: boolean;
   cells: GridCell[]; // aligned to HiringReq.loop order
+  // When a manager has already asked recruiting to book (metadata stamp), so the
+  // grid shows "requested" instead of offering the button again.
+  bookingRequestedAt: string | null;
 };
 
 export type MyLoopSlot = {
@@ -122,7 +117,7 @@ export type TeamHiring = {
 
 // A booked interview this manager personally sits on, seen from the day view:
 // up next, happening now, a scorecard owed, or already scored. Distinct from
-// MyLoopSlot (standing loop membership) — this is one specific conversation.
+// MyLoopSlot (standing loop membership): this is one specific conversation.
 export type MyInterviewState = "up_next" | "in_progress" | "scorecard_due" | "done";
 
 export type MyInterview = {
@@ -197,13 +192,21 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     companyOs
       .from("applications")
       .select(
-        "id, job_requisition_id, current_stage_id, rating, applied_at, archived_at, " +
+        "id, job_requisition_id, current_stage_id, rating, applied_at, archived_at, metadata, " +
           "people:people!person_id(full_name, preferred_name, email)",
       )
       .in("job_requisition_id", reqIds)
       .is("archived_at", null),
     getLoopsForRequisitions(reqIds),
   ]);
+
+  // When each application last had a booking requested by a manager (metadata
+  // stamp), used to show "requested" rather than re-offering the grid button.
+  const bookingReqByApp = new Map<string, string | null>();
+  for (const a of ((appRows ?? []) as unknown as Record<string, unknown>[])) {
+    const meta = a.metadata as { booking_requested_at?: string } | null;
+    bookingReqByApp.set(a.id as string, (meta && meta.booking_requested_at) || null);
+  }
 
   const stages = (stageRows ?? []) as Array<{
     id: string;
@@ -314,7 +317,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
       const humanSeatIds = new Set<string>();
       for (const s of seats) {
         const person = one(s.people as { email?: string | null; metadata?: unknown } | Array<{ email?: string | null; metadata?: unknown }> | null);
-        if (isAiSeat(person)) continue;
+        if (isAiPanelist(person)) continue;
         humanSeatIds.add(s.interviewer_id as string);
       }
       const scorecards = (raw.interview_scorecards ?? []) as Record<string, unknown>[];
@@ -394,7 +397,15 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
         if (idx === firstUnbookedIdx) return { status: "action", label: "Nothing booked", interviewId: null, scheduledAt: null };
         return { status: "open", label: "Not booked", interviewId: null, scheduledAt: null };
       });
-      rows.push({ applicationId: c.applicationId, name: c.name, rating: c.rating, stageName: c.stageName, atInterview, cells });
+      rows.push({
+        applicationId: c.applicationId,
+        name: c.name,
+        rating: c.rating,
+        stageName: c.stageName,
+        atInterview,
+        cells,
+        bookingRequestedAt: bookingReqByApp.get(c.applicationId) ?? null,
+      });
     }
     req.grid = rows;
   }

@@ -49,3 +49,13 @@ export const DEFAULT_CRITERIA = ["Technical depth", "Communication", "Ownership"
 // rows like any human. It is identified by this sentinel email and metadata.is_ai.
 export const AI_PANELIST_EMAIL = "ai-panelist@edge8.local";
 export const AI_PANELIST_NAME = "Edge8 AI Panelist";
+
+// The single source of truth for "is this person the AI panelist". Kept here
+// (client-safe, alongside the sentinel it checks) so admin and team share one
+// rule instead of each re-implementing it.
+export function isAiPanelist(p: { email?: string | null; metadata?: unknown } | null): boolean {
+  if (!p) return false;
+  if (p.email === AI_PANELIST_EMAIL) return true;
+  const meta = p.metadata as { is_ai?: boolean } | null;
+  return Boolean(meta && meta.is_ai);
+}
