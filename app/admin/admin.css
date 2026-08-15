@@ -3916,3 +3916,37 @@ a.ideas-share-card:hover {
 /* Long rail values (email, url) stay inside the 312px rail. */
 .admin-kv--editable dd { min-width: 0; }
 .admin-kv--editable .admin-editable { overflow-wrap: anywhere; }
+
+/* HR assessment now sits in the main column beside the AI screen — give its
+   read-first body room so it reads as a real section, not a one-line field. */
+.appdet-assessment .admin-editable--block { min-height: 76px; max-width: 74ch; color: var(--admin-ink-2); }
+.appdet-assessment .admin-editable--block .admin-editable-empty { color: var(--admin-muted); }
+
+/* Clamp long AI-screen / HR-assessment content to a fixed height with a fade and
+   a Show more toggle (components/admin/Expandable.tsx). */
+.appdet-expand { position: relative; overflow: hidden; }
+.appdet-expand--clamped::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--admin-surface));
+  pointer-events: none;
+}
+.appdet-expand-toggle {
+  display: block;
+  margin-top: 8px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-accent);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.appdet-expand-toggle:hover { color: var(--admin-accent-strong); }
+.appdet-expand-toggle:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); border-radius: var(--admin-radius-xs); }

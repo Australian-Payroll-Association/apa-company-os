@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDate, humanize, timeAgo } from "@/lib/admin/format";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { PersonSelect } from "@/components/admin/PersonSelect";
+import { Expandable } from "@/components/admin/Expandable";
 import {
   EditableDate,
   EditableLink,
@@ -90,6 +91,10 @@ const toDateInput = (v: string | null): string => {
 };
 
 const ok = (): InlineSaveResult => ({ ok: true });
+
+// Collapsed height shared by the AI screen and the HR assessment, so the two
+// paired reads clamp to the same fixed height with a Show more toggle.
+const AI_COLLAPSED_HEIGHT = 232;
 
 // The whole recruiter workspace for one application: a sticky decision header, a
 // clickable pipeline strip, and a two-pane body (what you read to judge on the
@@ -286,6 +291,10 @@ export function ApplicationManage({
         <div className="appdet-main">
           {extras && <AiScreenCard extras={extras} resumeDocumentId={app.resumeDocumentId} />}
 
+          {/* The human read sits right under the machine read — AI screen, then
+              your assessment — as a paired judgment in the main column. */}
+          <AssessmentCard appId={app.id} hrAssessment={app.hrAssessment} />
+
           <section className="admin-card admin-section-card">
             <InterviewRounds applicationId={app.id} />
           </section>
@@ -342,8 +351,6 @@ export function ApplicationManage({
               aiNotice={extras?.aiSummary?.notice_period ?? null}
             />
           )}
-
-          <AssessmentCard appId={app.id} hrAssessment={app.hrAssessment} />
         </aside>
       </div>
     </>
@@ -697,6 +704,8 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
               <span>/5</span>
             </div>
           )}
+          <Expandable collapsedHeight={AI_COLLAPSED_HEIGHT}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ whiteSpace: "pre-wrap", color: "var(--admin-ink-2)", maxWidth: "68ch" }}>{s.overview}</div>
           {s.skills.length > 0 && (
             <ul className="appdet-ai-points">
@@ -724,6 +733,8 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
               })}
             </ul>
           )}
+          </div>
+          </Expandable>
         </div>
       ) : (
         extras.aiStatus !== "failed" && extras.aiStatus !== "pending" && <div className="admin-hint">No screen result yet.</div>
@@ -958,14 +969,20 @@ function SignalsCard(props: {
 
 function AssessmentCard({ appId, hrAssessment }: { appId: string; hrAssessment: string | null }) {
   return (
-    <section className="admin-card admin-section-card">
-      <div className="admin-section-label" style={{ marginBottom: 4 }}>HR assessment</div>
-      <div className="admin-hint" style={{ marginBottom: 8 }}>
+    <section className="admin-card admin-section-card appdet-assessment">
+      <div className="admin-section-label" style={{ marginBottom: 4, display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span>HR assessment</span>
+        <span className="admin-cell-muted" style={{ letterSpacing: 0, textTransform: "none", fontWeight: 500 }}>
+          your read
+        </span>
+      </div>
+      <div className="admin-hint" style={{ marginBottom: 10 }}>
         Your own read on this candidate. Separate from the AI screen and interview scorecards.
       </div>
       <EditableTextarea
         value={hrAssessment ?? ""}
-        rows={5}
+        rows={6}
+        collapsedHeight={AI_COLLAPSED_HEIGHT}
         placeholder="Strengths, concerns, anything the interview surfaced that the resume missed…"
         ariaLabel="HR assessment"
         onSave={(v) => updateApplication(appId, { hr_assessment: v.trim() || null }).then((r) => (r.ok ? ok() : r))}
