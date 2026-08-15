@@ -23,7 +23,15 @@ import {
   type TaskPriority,
 } from "@/lib/boards/types";
 import type { BoardDetail, BoardCard } from "@/lib/boards/data";
-import { createCard, moveCard, updateCard, archiveCard } from "./actions";
+import {
+  createCard,
+  moveCard,
+  updateCard,
+  archiveCard,
+  createSprint,
+  setCardSprint,
+  closeSprint,
+} from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
 
@@ -37,18 +45,27 @@ type Form = {
   assigneeId: string;
   dueDate: string;
   description: string;
+  sprintId: string; // "" = no sprint
+  origSprintId: string; // to detect a change on save
 };
 
 export function BoardView({ detail }: { detail: BoardDetail }) {
   const router = useRouter();
-  const { board, columns, members, cards: sourceCards } = detail;
+  const { board, columns, members, cards: sourceCards, sprints } = detail;
   const slug = board.slug;
+
+  const activeSprints = useMemo(() => sprints.filter((s) => s.status === "active"), [sprints]);
+  const sprintName = useMemo(() => new Map(sprints.map((s) => [s.id, s.name])), [sprints]);
 
   const [placement, setPlacement] = useState<Record<string, string>>({});
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [sprintFilter, setSprintFilter] = useState<string>(activeSprints[0]?.id ?? "all");
   const [banner, setBanner] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(null);
+  const [sprintsOpen, setSprintsOpen] = useState(false);
+  const [sprintForm, setSprintForm] = useState({ name: "", startsOn: "", endsOn: "", goal: "" });
+  const [rollTarget, setRollTarget] = useState<Record<string, string>>({}); // sprintId -> target ("" = backlog)
   const [saving, startSaving] = useTransition();
 
   const firstColumn = columns[0]?.id ?? "";
@@ -66,10 +83,16 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
     return sourceCards
       .filter((c) => !assigneeFilter || c.assignee_id === assigneeFilter)
       .filter((c) => !priorityFilter || c.priority === priorityFilter)
+      .filter((c) =>
+        sprintFilter === "all"
+          ? true
+          : sprintFilter === "backlog"
+            ? c.sprint_id == null
+            : c.sprint_id === sprintFilter,
+      )
       .map((c) => ({ ...c, columnId: placement[c.id] ?? c.board_column_id ?? firstColumn }));
-  }, [sourceCards, assigneeFilter, priorityFilter, placement, firstColumn]);
+  }, [sourceCards, assigneeFilter, priorityFilter, sprintFilter, placement, firstColumn]);
 
-  // Assignee options: board members, plus any current assignee not (yet) a member.
   const assigneeOptions = useMemo(() => {
     const map = new Map(members.map((m) => [m.id, m.name]));
     for (const c of sourceCards) {
@@ -99,41 +122,62 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       assigneeId: c.assignee_id ?? "",
       dueDate: c.due_date ?? "",
       description: c.description ?? "",
+      sprintId: c.sprint_id ?? "",
+      origSprintId: c.sprint_id ?? "",
     });
   }
 
   function openCreate(columnId: string) {
-    setForm({ id: null, columnId, title: "", priority: "p3", assigneeId: "", dueDate: "", description: "" });
+    const preset = sprintFilter !== "all" && sprintFilter !== "backlog" ? sprintFilter : "";
+    setForm({
+      id: null,
+      columnId,
+      title: "",
+      priority: "p3",
+      assigneeId: "",
+      dueDate: "",
+      description: "",
+      sprintId: preset,
+      origSprintId: "",
+    });
   }
 
   function save() {
     if (!form) return;
     setBanner(null);
     startSaving(async () => {
-      const r = form.id
-        ? await updateCard(
-            form.id,
-            {
-              title: form.title,
-              description: form.description,
-              priority: form.priority,
-              assigneeId: form.assigneeId || null,
-              dueDate: form.dueDate || null,
-            },
-            slug,
-          )
-        : await createCard({
-            boardId: board.id,
-            columnId: form.columnId,
+      if (form.id) {
+        const r = await updateCard(
+          form.id,
+          {
             title: form.title,
+            description: form.description,
             priority: form.priority,
-            assigneeId: form.assigneeId || undefined,
-            dueDate: form.dueDate || undefined,
-            description: form.description || undefined,
-          });
-      if (!r.ok) {
-        setBanner(r.error);
-        return;
+            assigneeId: form.assigneeId || null,
+            dueDate: form.dueDate || null,
+          },
+          slug,
+        );
+        if (!r.ok) return setBanner(r.error);
+        if (form.sprintId !== form.origSprintId) {
+          const sr = await setCardSprint(form.id, form.sprintId || null, slug);
+          if (!sr.ok) return setBanner(sr.error);
+        }
+      } else {
+        const r = await createCard({
+          boardId: board.id,
+          columnId: form.columnId,
+          title: form.title,
+          priority: form.priority,
+          assigneeId: form.assigneeId || undefined,
+          dueDate: form.dueDate || undefined,
+          description: form.description || undefined,
+        });
+        if (!r.ok) return setBanner(r.error);
+        if (form.sprintId && r.id) {
+          const sr = await setCardSprint(r.id, form.sprintId, slug);
+          if (!sr.ok) return setBanner(sr.error);
+        }
       }
       setForm(null);
       router.refresh();
@@ -145,11 +189,39 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
     setBanner(null);
     startSaving(async () => {
       const r = await archiveCard(form.id!, slug);
-      if (!r.ok) {
-        setBanner(r.error);
-        return;
-      }
+      if (!r.ok) return setBanner(r.error);
       setForm(null);
+      router.refresh();
+    });
+  }
+
+  function addSprint() {
+    if (!sprintForm.name.trim()) return setBanner("Name the sprint.");
+    setBanner(null);
+    startSaving(async () => {
+      const r = await createSprint(
+        board.id,
+        {
+          name: sprintForm.name,
+          startsOn: sprintForm.startsOn || undefined,
+          endsOn: sprintForm.endsOn || undefined,
+          goal: sprintForm.goal || undefined,
+        },
+        slug,
+      );
+      if (!r.ok) return setBanner(r.error);
+      setSprintForm({ name: "", startsOn: "", endsOn: "", goal: "" });
+      router.refresh();
+    });
+  }
+
+  function closeOne(sprintId: string) {
+    setBanner(null);
+    startSaving(async () => {
+      const target = rollTarget[sprintId] || null;
+      const r = await closeSprint(sprintId, target, slug);
+      if (!r.ok) return setBanner(r.error);
+      if (sprintFilter === sprintId) setSprintFilter("all");
       router.refresh();
     });
   }
@@ -162,6 +234,30 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
         <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => openCreate(firstColumn)}>
           New card
         </button>
+        {sprints.length > 0 && (
+          <select
+            className="admin-select"
+            style={{ maxWidth: 220 }}
+            value={sprintFilter}
+            onChange={(e) => setSprintFilter(e.target.value)}
+            aria-label="Filter by sprint"
+          >
+            <option value="all">All sprints</option>
+            <option value="backlog">Backlog (no sprint)</option>
+            {activeSprints.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+            {sprints
+              .filter((s) => s.status === "closed")
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} (closed)
+                </option>
+              ))}
+          </select>
+        )}
         <select
           className="admin-select"
           style={{ maxWidth: 200 }}
@@ -190,6 +286,9 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
             </option>
           ))}
         </select>
+        <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
+          Sprints
+        </button>
         <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
           Amber clock = in column &gt; {AGING_DAYS} days
         </span>
@@ -218,12 +317,16 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
         renderCard={(c) => {
           const days = daysInColumn(c.last_moved_at);
           const aging = days >= AGING_DAYS && c.status !== "done";
-          const overdue = c.due_date != null && c.status !== "done" && c.due_date < new Date().toISOString().slice(0, 10);
+          const overdue =
+            c.due_date != null && c.status !== "done" && c.due_date < new Date().toISOString().slice(0, 10);
           return (
             <>
               <div className="sap-card-title">{c.title}</div>
               <div className="sap-card-meta">
                 <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
+                {c.sprint_id && sprintName.get(c.sprint_id) && (
+                  <Badge tone="info">{sprintName.get(c.sprint_id)}</Badge>
+                )}
                 {c.internal && <Badge tone="neutral">Internal</Badge>}
               </div>
               <div className="sap-card-meta">
@@ -309,6 +412,24 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
               </select>
             </div>
 
+            {activeSprints.length > 0 && (
+              <div className="admin-field">
+                <label className="admin-label">Sprint</label>
+                <select
+                  className="admin-select"
+                  value={form.sprintId}
+                  onChange={(e) => setForm({ ...form, sprintId: e.target.value })}
+                >
+                  <option value="">No sprint (backlog)</option>
+                  {activeSprints.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="admin-field">
               <label className="admin-label">Due date</label>
               <input
@@ -341,6 +462,98 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
             </div>
           </div>
         )}
+      </DetailDrawer>
+
+      <DetailDrawer open={sprintsOpen} onClose={() => setSprintsOpen(false)} eyebrow="Board" title="Sprints">
+        <div className="admin-form">
+          <div className="admin-field">
+            <label className="admin-label">New sprint</label>
+            <input
+              className="admin-input"
+              placeholder="Name (e.g. Aug 18-29)"
+              value={sprintForm.name}
+              onChange={(e) => setSprintForm({ ...sprintForm, name: e.target.value })}
+            />
+          </div>
+          <div className="admin-field" style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label className="admin-label">Starts</label>
+              <input
+                className="admin-input"
+                type="date"
+                value={sprintForm.startsOn}
+                onChange={(e) => setSprintForm({ ...sprintForm, startsOn: e.target.value })}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="admin-label">Ends</label>
+              <input
+                className="admin-input"
+                type="date"
+                value={sprintForm.endsOn}
+                onChange={(e) => setSprintForm({ ...sprintForm, endsOn: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Goal (optional)</label>
+            <input
+              className="admin-input"
+              value={sprintForm.goal}
+              onChange={(e) => setSprintForm({ ...sprintForm, goal: e.target.value })}
+            />
+          </div>
+          <div className="admin-form-actions">
+            <button className="admin-btn admin-btn--primary" onClick={addSprint} disabled={saving}>
+              Add sprint
+            </button>
+          </div>
+
+          {sprints.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <label className="admin-label">Existing</label>
+              {sprints.map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 0",
+                    borderTop: "1px solid var(--admin-line)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span className="admin-cell-strong">{s.name}</span>
+                  <Badge tone={s.status === "active" ? "ok" : "neutral"}>{s.status}</Badge>
+                  {s.status === "active" && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                      <select
+                        className="admin-select"
+                        value={rollTarget[s.id] ?? ""}
+                        onChange={(e) => setRollTarget({ ...rollTarget, [s.id]: e.target.value })}
+                        aria-label="Roll unfinished to"
+                        style={{ maxWidth: 160 }}
+                      >
+                        <option value="">Roll to backlog</option>
+                        {activeSprints
+                          .filter((o) => o.id !== s.id)
+                          .map((o) => (
+                            <option key={o.id} value={o.id}>
+                              Roll to {o.name}
+                            </option>
+                          ))}
+                      </select>
+                      <button className="admin-btn admin-btn--sm" onClick={() => closeOne(s.id)} disabled={saving}>
+                        Close
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </DetailDrawer>
     </>
   );
