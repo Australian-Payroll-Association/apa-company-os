@@ -29,7 +29,7 @@ export function SyncButton() {
   const label = (s: SyncSummary) =>
     s.ok
       ? `${s.entity === "aio" ? "AIO" : "Edge8"}: ${s.upserted} synced` +
-        (s.skippedUnmapped ? `, ${s.skippedUnmapped} unmapped` : "")
+        (s.unmappedCount ? `, ${s.unmappedCount} unmapped` : "")
       : `${s.entity === "aio" ? "AIO" : "Edge8"}: ${s.error ?? "failed"}`;
 
   return (
