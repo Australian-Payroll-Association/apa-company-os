@@ -25,7 +25,7 @@ export type InvoiceListRow = {
   memo: string | null;
   customer_name: string | null;
   lines: InvoiceLine[];
-  company_id: string;
+  company_id: string | null;
   companies: {
     name: string;
     person_companies: Array<{ is_primary: boolean; people: { id: string; full_name: string | null } | null }>;

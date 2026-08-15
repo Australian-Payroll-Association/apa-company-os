@@ -13,7 +13,7 @@ export type SyncSummary = {
   error?: string;
   fetched: number;
   upserted: number;
-  skippedUnmapped: number;
+  unmappedCount: number;
 };
 
 export async function runInvoiceSync(): Promise<SyncSummary[]> {
@@ -28,7 +28,7 @@ export async function runInvoiceSync(): Promise<SyncSummary[]> {
       error: r.error,
       fetched: r.fetched,
       upserted: r.upserted,
-      skippedUnmapped: r.skippedUnmapped,
+      unmappedCount: r.unmappedCount,
     });
   }
   revalidatePath("/admin/revenue/invoices");

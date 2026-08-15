@@ -8,10 +8,11 @@ import { listQboInvoices, type QboEntity, type QboSyncInvoice } from "@/lib/qbo"
 // Customer -> company mapping is realm-aware and lives on company metadata:
 //   entity 'edge8' -> companies.metadata.qbo_customer_ids
 //   entity 'aio'   -> companies.metadata.qbo_customer_ids_aio
-// A QBO customer with no mapped company is reported (unmapped), never guessed
-// at — company_id is NOT NULL, so an unmapped invoice is skipped, not dropped
-// silently. AIO customers are mapped in a later step (the AIO pull); until
-// then an AIO sync simply reports everything as unmapped.
+// A QBO customer with no mapped company is never guessed at: the invoice syncs
+// with company_id null (customer_name still identifies it) and is reported as
+// unmapped. Revenue therefore counts every invoice either way; mapping a
+// customer later attaches its invoices on the next sync pass. AIO customers
+// are mostly individuals, so most AIO invoices stay unmapped by design.
 
 const MAPPING_KEY: Record<QboEntity, string> = {
   edge8: "qbo_customer_ids",
@@ -29,7 +30,7 @@ export type InvoiceSyncResult = {
   error?: string;
   fetched: number;
   upserted: number;
-  skippedUnmapped: number;
+  unmappedCount: number;
   unmapped: UnmappedCustomer[];
 };
 
@@ -66,7 +67,7 @@ export async function syncQboInvoices(entity: QboEntity): Promise<InvoiceSyncRes
     ok: false,
     fetched: 0,
     upserted: 0,
-    skippedUnmapped: 0,
+    unmappedCount: 0,
     unmapped: [],
   };
 
@@ -84,10 +85,9 @@ export async function syncQboInvoices(entity: QboEntity): Promise<InvoiceSyncRes
       const prev = unmapped.get(k);
       if (prev) prev.count++;
       else unmapped.set(k, { customerId: k, customerName: inv.customerName, count: 1 });
-      continue;
     }
     rows.push({
-      company_id: companyId,
+      company_id: companyId ?? null,
       source: "quickbooks",
       entity,
       external_id: inv.externalId,
@@ -117,7 +117,7 @@ export async function syncQboInvoices(entity: QboEntity): Promise<InvoiceSyncRes
     ok: true,
     fetched: listed.invoices.length,
     upserted: rows.length,
-    skippedUnmapped: [...unmapped.values()].reduce((s, u) => s + u.count, 0),
+    unmappedCount: [...unmapped.values()].reduce((s, u) => s + u.count, 0),
     unmapped: [...unmapped.values()].sort((a, b) => b.count - a.count),
   };
 }
