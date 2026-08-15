@@ -63,6 +63,19 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
     ]);
     const items = (data ?? []) as unknown as BacklogItem[];
     const groups = (groupRows ?? []) as unknown as RoadmapGroup[];
+
+    // Which items have a live (non-archived) board card linked to them.
+    const itemIds = items.map((i) => i.id);
+    let liveCardItemIds = new Set<string>();
+    if (itemIds.length > 0) {
+      const { data: linkRows } = await companyOs
+        .from("tasks")
+        .select("subject_id")
+        .eq("subject_type", "client_backlog_item")
+        .in("subject_id", itemIds)
+        .is("archived_at", null);
+      liveCardItemIds = new Set(((linkRows ?? []) as { subject_id: string }[]).map((r) => r.subject_id));
+    }
     const overviewBody = (overviewRow as { body: string } | null)?.body ?? "";
     const programs = (programRows ?? []) as ProgramOption[];
     const proposedCount = items.filter((i) => i.status === "proposed").length;
@@ -76,7 +89,13 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
           action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
         />
         <OverviewEditor companyId={selected.id} initialBody={overviewBody} />
-        <BacklogAdminEditor companyId={selected.id} groups={groups} items={items} showArchived={showArchived} />
+        <BacklogAdminEditor
+          companyId={selected.id}
+          groups={groups}
+          items={items}
+          showArchived={showArchived}
+          liveCardItemIds={liveCardItemIds}
+        />
         <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 4 }}>Documents</h2>
           <p className="admin-page-sub" style={{ margin: "0 0 12px", fontSize: 13 }}>

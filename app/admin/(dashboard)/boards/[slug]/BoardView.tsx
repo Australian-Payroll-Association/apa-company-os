@@ -19,6 +19,8 @@ import {
   PRIORITY_LABEL,
   PRIORITY_TONE,
   TASK_PRIORITIES,
+  SUBJECT_COMMITMENT,
+  SUBJECT_BACKLOG_ITEM,
   daysInColumn,
   type TaskPriority,
 } from "@/lib/boards/types";
@@ -31,6 +33,7 @@ import {
   createSprint,
   setCardSprint,
   closeSprint,
+  setCardRoadmapItem,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -46,13 +49,18 @@ type Form = {
   dueDate: string;
   description: string;
   sprintId: string; // "" = no sprint
-  origSprintId: string; // to detect a change on save
+  origSprintId: string;
+  subjectType: string | null; // commitment cards are not roadmap-linkable
+  subjectLabel: string | null;
+  roadmapItemId: string; // "" = none
+  origRoadmapItemId: string;
 };
 
 export function BoardView({ detail }: { detail: BoardDetail }) {
   const router = useRouter();
-  const { board, columns, members, cards: sourceCards, sprints } = detail;
+  const { board, columns, members, cards: sourceCards, sprints, backlogItems } = detail;
   const slug = board.slug;
+  const isClientBoard = board.client_company_id != null;
 
   const activeSprints = useMemo(() => sprints.filter((s) => s.status === "active"), [sprints]);
   const sprintName = useMemo(() => new Map(sprints.map((s) => [s.id, s.name])), [sprints]);
@@ -65,7 +73,7 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
   const [form, setForm] = useState<Form | null>(null);
   const [sprintsOpen, setSprintsOpen] = useState(false);
   const [sprintForm, setSprintForm] = useState({ name: "", startsOn: "", endsOn: "", goal: "" });
-  const [rollTarget, setRollTarget] = useState<Record<string, string>>({}); // sprintId -> target ("" = backlog)
+  const [rollTarget, setRollTarget] = useState<Record<string, string>>({});
   const [saving, startSaving] = useTransition();
 
   const firstColumn = columns[0]?.id ?? "";
@@ -109,6 +117,8 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       if (!r.ok) {
         setPlacement(prev);
         setBanner(`Couldn't move card: ${r.error}`);
+      } else {
+        router.refresh();
       }
     });
   }
@@ -124,6 +134,10 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       description: c.description ?? "",
       sprintId: c.sprint_id ?? "",
       origSprintId: c.sprint_id ?? "",
+      subjectType: c.subject_type,
+      subjectLabel: c.subject_label,
+      roadmapItemId: c.subject_type === SUBJECT_BACKLOG_ITEM ? c.subject_id ?? "" : "",
+      origRoadmapItemId: c.subject_type === SUBJECT_BACKLOG_ITEM ? c.subject_id ?? "" : "",
     });
   }
 
@@ -139,6 +153,10 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       description: "",
       sprintId: preset,
       origSprintId: "",
+      subjectType: null,
+      subjectLabel: null,
+      roadmapItemId: "",
+      origRoadmapItemId: "",
     });
   }
 
@@ -146,6 +164,7 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
     if (!form) return;
     setBanner(null);
     startSaving(async () => {
+      let cardId = form.id;
       if (form.id) {
         const r = await updateCard(
           form.id,
@@ -174,10 +193,16 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
           description: form.description || undefined,
         });
         if (!r.ok) return setBanner(r.error);
-        if (form.sprintId && r.id) {
-          const sr = await setCardSprint(r.id, form.sprintId, slug);
+        cardId = r.id ?? null;
+        if (form.sprintId && cardId) {
+          const sr = await setCardSprint(cardId, form.sprintId, slug);
           if (!sr.ok) return setBanner(sr.error);
         }
+      }
+      // Roadmap link (client boards, non-commitment cards) if it changed.
+      if (isClientBoard && form.subjectType !== SUBJECT_COMMITMENT && cardId && form.roadmapItemId !== form.origRoadmapItemId) {
+        const rr = await setCardRoadmapItem(cardId, form.roadmapItemId || null, slug);
+        if (!rr.ok) return setBanner(rr.error);
       }
       setForm(null);
       router.refresh();
@@ -324,6 +349,8 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
               <div className="sap-card-title">{c.title}</div>
               <div className="sap-card-meta">
                 <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
+                {c.subject_type === SUBJECT_COMMITMENT && <Badge tone="ok">Commitment</Badge>}
+                {c.subject_type === SUBJECT_BACKLOG_ITEM && <Badge tone="info">Roadmap</Badge>}
                 {c.sprint_id && sprintName.get(c.sprint_id) && (
                   <Badge tone="info">{sprintName.get(c.sprint_id)}</Badge>
                 )}
@@ -368,6 +395,26 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
                 autoFocus
               />
             </div>
+
+            {form.subjectType === SUBJECT_COMMITMENT && (
+              <div
+                className="admin-field"
+                style={{
+                  background: "var(--admin-ok-bg)",
+                  color: "var(--admin-ok-ink)",
+                  borderRadius: "var(--admin-radius-sm)",
+                  padding: "10px 12px",
+                }}
+              >
+                <label className="admin-label" style={{ color: "var(--admin-ok-ink)" }}>
+                  Linked commitment
+                </label>
+                <div>{form.subjectLabel ?? "Coaching commitment"}</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>
+                  Moving this card to a done column marks the commitment kept.
+                </div>
+              </div>
+            )}
 
             {form.id && (
               <div className="admin-field">
@@ -424,6 +471,24 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
                   {activeSprints.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {isClientBoard && form.subjectType !== SUBJECT_COMMITMENT && (
+              <div className="admin-field">
+                <label className="admin-label">Roadmap item</label>
+                <select
+                  className="admin-select"
+                  value={form.roadmapItemId}
+                  onChange={(e) => setForm({ ...form, roadmapItemId: e.target.value })}
+                >
+                  <option value="">Not linked</option>
+                  {backlogItems.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.title}
                     </option>
                   ))}
                 </select>

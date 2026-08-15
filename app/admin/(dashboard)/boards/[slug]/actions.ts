@@ -5,7 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { type Result } from "@/lib/admin/mutations";
-import { TASK_PRIORITIES, type TaskPriority } from "@/lib/boards/types";
+import { TASK_PRIORITIES, SUBJECT_COMMITMENT, SUBJECT_BACKLOG_ITEM, type TaskPriority } from "@/lib/boards/types";
 
 // Next position at the end of a column (cards order by position asc).
 async function endPosition(boardId: string, columnId: string): Promise<number> {
@@ -72,11 +72,17 @@ export async function moveCard(taskId: string, toColumnId: string, boardSlug: st
 
   const { data: task } = await companyOs
     .from("tasks")
-    .select("id, board_id, board_column_id")
+    .select("id, board_id, board_column_id, subject_type, subject_id")
     .eq("id", taskId)
     .maybeSingle();
   if (!task) return { ok: false, error: "Card not found." };
-  const t = task as { id: string; board_id: string; board_column_id: string | null };
+  const t = task as {
+    id: string;
+    board_id: string;
+    board_column_id: string | null;
+    subject_type: string | null;
+    subject_id: string | null;
+  };
 
   const { data: col } = await companyOs
     .from("board_columns")
@@ -104,6 +110,64 @@ export async function moveCard(taskId: string, toColumnId: string, boardSlug: st
     kind: "move",
     note: null,
   });
+
+  // One-way sync: moving a commitment-linked card into a done column marks the
+  // coaching commitment kept. Never the reverse.
+  if (isDone && t.subject_type === SUBJECT_COMMITMENT && t.subject_id) {
+    await companyOs
+      .from("coaching_commitments")
+      .update({ status: "completed", closed_at: new Date().toISOString() })
+      .eq("id", t.subject_id)
+      .neq("status", "completed");
+  }
+
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: updates });
+  revalidatePath(`/admin/boards/${boardSlug}`);
+  return { ok: true };
+}
+
+// Link (or clear) a card's roadmap item. Scoped to the board's client, and only
+// when the card isn't already linked to a commitment (one link per card).
+export async function setCardRoadmapItem(
+  taskId: string,
+  backlogItemId: string | null,
+  boardSlug: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: task } = await companyOs
+    .from("tasks")
+    .select("id, board_id, subject_type")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task) return { ok: false, error: "Card not found." };
+  const t = task as { id: string; board_id: string; subject_type: string | null };
+  if (t.subject_type === SUBJECT_COMMITMENT) {
+    return { ok: false, error: "This card is linked to a commitment. A card links to one thing." };
+  }
+
+  if (backlogItemId) {
+    const { data: board } = await companyOs
+      .from("boards")
+      .select("client_company_id")
+      .eq("id", t.board_id)
+      .maybeSingle();
+    const clientId = (board as { client_company_id: string | null } | null)?.client_company_id;
+    if (!clientId) return { ok: false, error: "This board has no linked client." };
+    const { data: item } = await companyOs
+      .from("client_backlog_items")
+      .select("id")
+      .eq("id", backlogItemId)
+      .eq("company_id", clientId)
+      .maybeSingle();
+    if (!item) return { ok: false, error: "That roadmap item is not on this client's roadmap." };
+  }
+
+  const updates = backlogItemId
+    ? { subject_type: SUBJECT_BACKLOG_ITEM, subject_id: backlogItemId }
+    : { subject_type: null, subject_id: null };
+  const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
   await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: updates });
   revalidatePath(`/admin/boards/${boardSlug}`);
   return { ok: true };
