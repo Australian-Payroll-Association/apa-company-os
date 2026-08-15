@@ -38,6 +38,7 @@ const NAV: NavSection[] = [
           { label: "Issues", href: "/admin/edges/issues", ico: "◉", enabled: true },
           { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
           { label: "Client Roadmaps", href: "/admin/edges/client-roadmaps", ico: "◔", enabled: true },
+          { label: "Work Boards", href: "/admin/boards", ico: "▦", enabled: true },
         ],
       },
     ],
@@ -151,15 +152,6 @@ const NAV: NavSection[] = [
       },
     ],
   },
-    ],
-  },
-  {
-    section: "Boards",
-    groups: [
-      {
-        label: null,
-        items: [{ label: "All boards", href: "/admin/boards", ico: "▦", enabled: true }],
-      },
     ],
   },
   {

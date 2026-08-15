@@ -1,5 +1,5 @@
 import { requireTeamMember } from "@/lib/team-auth";
-import { getMyWork } from "@/lib/team/boards";
+import { getMyWork, getActorBoards } from "@/lib/team/boards";
 import { PageHead } from "@/components/admin/PageHead";
 import { MyTasks } from "./MyTasks";
 
@@ -10,16 +10,16 @@ export const metadata = { title: "My Tasks" };
 
 export default async function MyTasksPage() {
   const actor = await requireTeamMember();
-  const work = await getMyWork(actor);
+  const [work, boards] = await Promise.all([getMyWork(actor), getActorBoards(actor)]);
 
   return (
     <>
       <PageHead
         eyebrow="Me"
         title="My Tasks"
-        sub="Everything with your name on it, across every board, plus your open commitments."
+        sub="Your boards, everything assigned to you across them, and your open commitments."
       />
-      <MyTasks work={work} />
+      <MyTasks work={work} boards={boards} />
     </>
   );
 }
