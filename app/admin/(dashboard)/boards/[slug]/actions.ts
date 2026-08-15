@@ -149,3 +149,90 @@ export async function archiveCard(taskId: string, boardSlug: string): Promise<Re
   revalidatePath(`/admin/boards/${boardSlug}`);
   return { ok: true };
 }
+
+export async function createSprint(
+  boardId: string,
+  input: { name: string; startsOn?: string; endsOn?: string; goal?: string },
+  boardSlug: string,
+): Promise<Result & { id?: string }> {
+  const admin = await requireAdmin();
+  const name = input.name?.trim();
+  if (!name) return { ok: false, error: "Name the sprint." };
+  const row = {
+    board_id: boardId,
+    name,
+    starts_on: input.startsOn || null,
+    ends_on: input.endsOn || null,
+    goal: input.goal?.trim() || null,
+    status: "active",
+  };
+  const { data, error } = await companyOs.from("sprints").insert(row).select("id").single();
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "sprints", recordId: data.id, operation: "insert", actor: admin.email, newData: row });
+  revalidatePath(`/admin/boards/${boardSlug}`);
+  return { ok: true, id: data.id };
+}
+
+export async function setCardSprint(
+  taskId: string,
+  sprintId: string | null,
+  boardSlug: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const { data: task } = await companyOs.from("tasks").select("sprint_id").eq("id", taskId).maybeSingle();
+  const from = (task as { sprint_id: string | null } | null)?.sprint_id ?? null;
+  if (from === sprintId) return { ok: true };
+  const { error } = await companyOs.from("tasks").update({ sprint_id: sprintId }).eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+  await companyOs
+    .from("task_stage_log")
+    .insert({ task_id: taskId, from_sprint_id: from, to_sprint_id: sprintId, kind: "sprint_move" });
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: { sprint_id: sprintId } });
+  revalidatePath(`/admin/boards/${boardSlug}`);
+  return { ok: true };
+}
+
+// Close a sprint: roll its unfinished (not done, not archived) cards to the
+// chosen next sprint or back to backlog (null), logging each rollover.
+export async function closeSprint(
+  sprintId: string,
+  rolloverToSprintId: string | null,
+  boardSlug: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const { data: openCards } = await companyOs
+    .from("tasks")
+    .select("id")
+    .eq("sprint_id", sprintId)
+    .neq("status", "done")
+    .is("archived_at", null);
+  const ids = ((openCards ?? []) as { id: string }[]).map((c) => c.id);
+  if (ids.length) {
+    const { error: upErr } = await companyOs.from("tasks").update({ sprint_id: rolloverToSprintId }).in("id", ids);
+    if (upErr) return { ok: false, error: upErr.message };
+    await companyOs
+      .from("task_stage_log")
+      .insert(
+        ids.map((id) => ({
+          task_id: id,
+          from_sprint_id: sprintId,
+          to_sprint_id: rolloverToSprintId,
+          kind: "sprint_rollover",
+        })),
+      );
+  }
+  const { error } = await companyOs
+    .from("sprints")
+    .update({ status: "closed", closed_at: new Date().toISOString() })
+    .eq("id", sprintId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: "sprints",
+    recordId: sprintId,
+    operation: "update",
+    actor: admin.email,
+    newData: { status: "closed", rolled: ids.length, to: rolloverToSprintId },
+  });
+  revalidatePath(`/admin/boards/${boardSlug}`);
+  return { ok: true };
+}
