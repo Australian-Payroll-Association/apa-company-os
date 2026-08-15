@@ -132,7 +132,7 @@ export default async function TeamHiringPage() {
                 </span>
               )}
             </div>
-            <div className="admin-hint">Today, and any conversation still waiting on your scorecard.</div>
+            <div className="admin-hint">Today, just completed, and anything still waiting on your scorecard.</div>
             <div style={{ marginTop: 10 }}>
               {myDay.map((iv) => {
                 const chip = INTERVIEW_STATE_CHIP[iv.state];

@@ -151,6 +151,9 @@ const DEAD_INTERVIEW_STATUSES = new Set(["cancelled", "canceled", "withdrawn", "
 // How far back an unscored interview keeps nagging. Older than this and it has
 // aged out of the day view (the record still exists in admin).
 const SCORECARD_DUE_WINDOW_DAYS = 30;
+// How long a scored interview lingers on the day view as "done" before the grid
+// and kit become its only home.
+const RECENTLY_SCORED_WINDOW_DAYS = 3;
 
 // The actor's own department. Null means "not filed", which reads as no filter.
 async function actorDepartmentId(actor: TeamActor): Promise<string | null> {
@@ -536,9 +539,15 @@ export async function getMyInterviewDay(actor: TeamActor): Promise<MyInterview[]
       else if (nowMs < c.startMs) state = "up_next";
       else if (nowMs <= c.endMs) state = "in_progress";
       else state = "scorecard_due";
+    } else if (hasScorecard) {
+      // Already scored. Keep it on the day view for a few days as "done" so a
+      // manager's finished interviews do not vanish the moment feedback lands
+      // (that read as "my work disappeared"). After the window it drops off; the
+      // durable record is the candidate x round grid and the kit.
+      if (nowMs - c.startMs > RECENTLY_SCORED_WINDOW_DAYS * 24 * 60 * 60 * 1000) continue;
+      state = "done";
     } else {
-      // Past, within the window. Only surfaces while a scorecard is still owed.
-      if (hasScorecard) continue;
+      // Past, unscored, within the nag window: a scorecard is still owed.
       state = "scorecard_due";
     }
     out.push({
