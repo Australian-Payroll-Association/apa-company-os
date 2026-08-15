@@ -29,7 +29,7 @@ const HOST_RE = /^(david hajdu|dave hajdu|dave)\b/i;
 // utterance on the following line(s), separated by blank lines. The file opens
 // with a date/duration header and a Keywords block, which never match the
 // speaker-line shape and fall through harmlessly.
-const SPEAKER_LINE = /^(.{1,60}?)\s+(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s*$/;
+const SPEAKER_LINE = /^(.{1,60}?)\s+((?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?)\s*$/;
 
 export function parseTranscript(raw: string): CallSegment[] {
   const segments: CallSegment[] = [];
