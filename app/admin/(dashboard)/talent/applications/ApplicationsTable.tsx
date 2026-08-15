@@ -34,6 +34,9 @@ export type AppRow = {
 
 const PAGE_SIZES = [25, 50, 100];
 
+type SortKey = "candidate" | "jobReq" | "stage" | "ai" | "recruiter" | "status" | "applied";
+const DESC_FIRST: SortKey[] = ["ai", "recruiter", "applied"]; // numbers/dates read best highest/newest-first
+
 // Canonical status order for the filter dropdown (pipeline-ish, ends terminal).
 const STATUS_ORDER = [
   "active",
@@ -58,8 +61,8 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
   const [showArchived, setShowArchived] = useState(false); // hide archived by default
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
-  // Mirrors the Candidate Pool table: rows rank by AI fit, toggling to recruiter rating.
-  const [sort, setSort] = useState<{ key: "ai" | "recruiter"; dir: "asc" | "desc" }>({ key: "ai", dir: "desc" });
+  // Every column header sorts; the default ranks by AI fit, highest first.
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "ai", dir: "desc" });
 
   // Job reqs for the filter dropdown: only reqs that are still open — closed
   // roles' applications remain findable via search/status/stage.
@@ -101,23 +104,45 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
         (v) => (v ? v.toLowerCase().includes(query) : false),
       );
     });
-    const val = (r: AppRow) => (sort.key === "ai" ? r.aiRating : r.rating);
+    const cell = (r: AppRow): string | number | null => {
+      switch (sort.key) {
+        case "ai":
+          return r.aiRating;
+        case "recruiter":
+          return r.rating;
+        case "applied":
+          return r.appliedAt ? new Date(r.appliedAt).getTime() : null;
+        case "candidate":
+          return r.candidateName;
+        case "jobReq":
+          return r.jobReqTitle;
+        case "stage":
+          return r.stageName;
+        case "status":
+          return r.status ? humanize(r.status) : null;
+      }
+    };
     return [...matched].sort((a, b) => {
-      const av = val(a);
-      const bv = val(b);
-      // Unrated always sinks to the bottom, regardless of direction.
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return sort.dir === "desc" ? bv - av : av - bv;
+      const av = cell(a);
+      const bv = cell(b);
+      // Empty/unrated always sinks to the bottom, regardless of direction.
+      const aEmpty = av == null || av === "";
+      const bEmpty = bv == null || bv === "";
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+      const d = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+      return sort.dir === "desc" ? -d : d;
     });
   }, [rows, reqFilter, statusFilter, stageFilter, showArchived, query, sort]);
 
-  function onSort(key: "ai" | "recruiter") {
-    setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
+  function onSort(key: SortKey) {
+    setSort((s) =>
+      s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: DESC_FIRST.includes(key) ? "desc" : "asc" },
+    );
   }
 
-  const sortArrow = (key: "ai" | "recruiter") => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
+  const sortArrow = (key: SortKey) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -232,9 +257,21 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
             <thead>
               <tr>
                 <th style={{ width: 44 }}>#</th>
-                <th>Candidate</th>
-                <th>Job req</th>
-                <th>Stage</th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("candidate")}>
+                    Candidate{sortArrow("candidate")}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("jobReq")}>
+                    Job req{sortArrow("jobReq")}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("stage")}>
+                    Stage{sortArrow("stage")}
+                  </button>
+                </th>
                 <th style={{ textAlign: "right" }}>
                   <button type="button" className="admin-th-sort" onClick={() => onSort("ai")}>
                     AI fit{sortArrow("ai")}
@@ -245,8 +282,16 @@ export function ApplicationsTable({ rows }: { rows: AppRow[] }) {
                     Recruiter{sortArrow("recruiter")}
                   </button>
                 </th>
-                <th>Status</th>
-                <th>Applied</th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("status")}>
+                    Status{sortArrow("status")}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="admin-th-sort" onClick={() => onSort("applied")}>
+                    Applied{sortArrow("applied")}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
