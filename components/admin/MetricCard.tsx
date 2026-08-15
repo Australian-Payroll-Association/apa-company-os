@@ -9,7 +9,7 @@ export function MetricCard({
 }: {
   label: string;
   value: ReactNode;
-  sub?: string;
+  sub?: ReactNode;
   href?: string;
 }) {
   const inner = (
