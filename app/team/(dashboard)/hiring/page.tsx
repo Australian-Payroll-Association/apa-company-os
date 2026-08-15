@@ -6,6 +6,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import {
   getTeamHiring,
   getMyInterviewDay,
+  isHiringManager,
   type MyInterviewState,
   type GridCell,
   type CandidateInterview,
@@ -154,15 +155,15 @@ function GridCellNode({ cell }: { cell: GridCell }) {
   return inner;
 }
 
-// /team/hiring, managers only, for now (Dave, 2026-08-13). Read-only: open
-// reqs, who is in flight, the interview loop each role runs, and where this
-// manager personally sits in those loops. Everything here is written from
-// /admin/talent.
+// /team/hiring, hiring managers only. A hiring manager is someone who owns at
+// least one requisition (or an admin); org "manager" role and interview-panel
+// seats do not grant access. Read-only: open reqs, who is in flight, the loop
+// each role runs, and where this manager sits. Written from /admin/talent.
 export default async function TeamHiringPage() {
   const actor = await requireTeamMember();
-  if (actor.role !== "manager") redirect("/team");
+  if (!(await isHiringManager(actor))) redirect("/team");
 
-  const [{ reqs, closedReqs, mySlots, departmentScoped }, myDay] = await Promise.all([
+  const [{ reqs, closedReqs, mySlots }, myDay] = await Promise.all([
     getTeamHiring(actor),
     getMyInterviewDay(actor),
   ]);
@@ -270,7 +271,7 @@ export default async function TeamHiringPage() {
         {reqs.length === 0 && (
           <section className="admin-card coach-section">
             <div className="admin-empty">
-              No open roles{departmentScoped ? " in your department" : ""} right now.
+              No open roles right now.
             </div>
           </section>
         )}
