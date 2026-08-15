@@ -59,6 +59,7 @@ export async function createCard(input: {
   assigneeId?: string;
   dueDate?: string;
   description?: string;
+  internal?: boolean;
 }): Promise<Result & { id?: string }> {
   const actor = await boardActorFor(input.boardId);
   if (!actor) return { ok: false, error: DENIED };
@@ -83,6 +84,7 @@ export async function createCard(input: {
     assignee_id: input.assigneeId || null,
     created_by: actor.personId,
     due_date: input.dueDate || null,
+    internal: input.internal ?? false,
     status: isDone ? "done" : "open",
     completed_at: isDone ? new Date().toISOString() : null,
     position: await endPosition(input.boardId, input.columnId),
@@ -294,6 +296,15 @@ export async function setCardSprint(taskId: string, sprintId: string | null, boa
   const t = task as { board_id: string; sprint_id: string | null };
   const actor = await boardActorFor(t.board_id);
   if (!actor) return { ok: false, error: DENIED };
+  if (sprintId) {
+    const { data: sprint } = await companyOs
+      .from("sprints")
+      .select("id")
+      .eq("id", sprintId)
+      .eq("board_id", t.board_id)
+      .maybeSingle();
+    if (!sprint) return { ok: false, error: "That sprint is not on this board." };
+  }
   if (t.sprint_id === sprintId) return { ok: true };
   const { error } = await companyOs.from("tasks").update({ sprint_id: sprintId }).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
@@ -314,8 +325,18 @@ export async function closeSprint(
 ): Promise<Result> {
   const { data: sprint } = await companyOs.from("sprints").select("board_id").eq("id", sprintId).maybeSingle();
   if (!sprint) return { ok: false, error: "Sprint not found." };
-  const actor = await boardActorFor((sprint as { board_id: string }).board_id);
+  const boardId = (sprint as { board_id: string }).board_id;
+  const actor = await boardActorFor(boardId);
   if (!actor) return { ok: false, error: DENIED };
+  if (rolloverToSprintId) {
+    const { data: target } = await companyOs
+      .from("sprints")
+      .select("id")
+      .eq("id", rolloverToSprintId)
+      .eq("board_id", boardId)
+      .maybeSingle();
+    if (!target) return { ok: false, error: "That sprint is not on this board." };
+  }
 
   const { data: openCards } = await companyOs
     .from("tasks")

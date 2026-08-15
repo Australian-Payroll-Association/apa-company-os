@@ -198,6 +198,7 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
           assigneeId: form.assigneeId || undefined,
           dueDate: form.dueDate || undefined,
           description: form.description || undefined,
+          internal: isClientBoard ? form.internal : undefined,
         });
         if (!r.ok) return setBanner(r.error);
         cardId = r.id ?? null;
@@ -211,9 +212,10 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
         const rr = await setCardRoadmapItem(cardId, form.roadmapItemId || null, slug);
         if (!rr.ok) return setBanner(rr.error);
       }
-      // Internal flag (client boards) if it changed.
-      if (isClientBoard && cardId && form.internal !== form.origInternal) {
-        const ir = await setCardInternal(cardId, form.internal, slug);
+      // Internal flag on existing cards (client boards) if it changed. New cards
+      // set it atomically in createCard above, so no client-visible window.
+      if (isClientBoard && form.id && form.internal !== form.origInternal) {
+        const ir = await setCardInternal(form.id, form.internal, slug);
         if (!ir.ok) return setBanner(ir.error);
       }
       setForm(null);

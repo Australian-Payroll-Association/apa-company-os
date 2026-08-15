@@ -22,6 +22,26 @@ import type { TeamActor } from "@/lib/team-auth";
 import { listActiveBoards } from "@/lib/boards/data";
 import { SUBJECT_COMMITMENT } from "@/lib/boards/types";
 
+// Boards a coach may push a commitment to: their own memberships (admins: all).
+// Scoped so the picker never exposes unrelated client boards.
+async function coachBoards(actor: TeamActor): Promise<{ id: string; slug: string; name: string }[]> {
+  if (actor.isAdmin) return listActiveBoards();
+  const { data: mem } = await companyOs
+    .from("board_members")
+    .select("board_id")
+    .eq("person_id", actor.personId);
+  const ids = ((mem ?? []) as { board_id: string }[]).map((m) => m.board_id);
+  if (ids.length === 0) return [];
+  const { data } = await companyOs
+    .from("boards")
+    .select("id, slug, name")
+    .in("id", ids)
+    .eq("status", "active")
+    .is("archived_at", null)
+    .order("sort_order");
+  return (data ?? []) as { id: string; slug: string; name: string }[];
+}
+
 // A pushed commitment's board card, for the inline "on the board" status.
 export type CommitmentCard = {
   boardSlug: string;
@@ -834,7 +854,7 @@ export async function getCoachProfileDetail(
 
   const commitmentList = ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment);
   const [boards, commitmentCards] = await Promise.all([
-    listActiveBoards(),
+    coachBoards(actor),
     loadCommitmentCards(commitmentList.map((c) => c.id)),
   ]);
 
@@ -1421,6 +1441,19 @@ export async function coachPushCommitmentToBoard(
   const row = await assertCoachOwnsCommitment(actor, commitmentId);
   if (!row) return { ok: false, error: "Not found." };
   if (!boardId) return { ok: false, error: "Pick a board." };
+  // The board is the write boundary: only a member (or admin) may add a card,
+  // exactly as every admin/team board mutation enforces. The actor is already
+  // resolved here, so check membership directly (no session helper — this module
+  // is reachable from client components and must not import next/headers).
+  if (!actor.isAdmin) {
+    const { data: mem } = await companyOs
+      .from("board_members")
+      .select("id")
+      .eq("board_id", boardId)
+      .eq("person_id", actor.personId)
+      .maybeSingle();
+    if (!mem) return { ok: false, error: "You are not a member of that board." };
+  }
 
   const { data: existing } = await companyOs
     .from("tasks")
