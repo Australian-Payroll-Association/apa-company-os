@@ -1,0 +1,347 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
+import { Badge } from "@/components/admin/Badge";
+import { DetailDrawer } from "@/components/admin/DetailDrawer";
+import { formatDate } from "@/lib/admin/format";
+import {
+  STAGE_WON,
+  STAGE_LEAD,
+  STAGE_NEUTRAL,
+  STAGE_PROPOSAL,
+  STAGE_DISCOVERY,
+  STAGE_CONTRACT,
+} from "@/lib/admin/stageColors";
+import {
+  AGING_DAYS,
+  PRIORITY_LABEL,
+  PRIORITY_TONE,
+  TASK_PRIORITIES,
+  daysInColumn,
+  type TaskPriority,
+} from "@/lib/boards/types";
+import type { BoardDetail, BoardCard } from "@/lib/boards/data";
+import { createCard, moveCard, updateCard, archiveCard } from "./actions";
+
+const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
+
+type Card = BoardCard & { columnId: string };
+
+type Form = {
+  id: string | null; // null = create
+  columnId: string;
+  title: string;
+  priority: TaskPriority;
+  assigneeId: string;
+  dueDate: string;
+  description: string;
+};
+
+export function BoardView({ detail }: { detail: BoardDetail }) {
+  const router = useRouter();
+  const { board, columns, members, cards: sourceCards } = detail;
+  const slug = board.slug;
+
+  const [placement, setPlacement] = useState<Record<string, string>>({});
+  const [assigneeFilter, setAssigneeFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [banner, setBanner] = useState<string | null>(null);
+  const [form, setForm] = useState<Form | null>(null);
+  const [saving, startSaving] = useTransition();
+
+  const firstColumn = columns[0]?.id ?? "";
+
+  const kanbanColumns: KanbanColumn[] = useMemo(() => {
+    let nd = 0;
+    return columns.map((c) => ({
+      id: c.id,
+      label: c.name,
+      accent: c.is_done ? STAGE_WON : NONDONE_ACCENTS[nd++ % NONDONE_ACCENTS.length],
+    }));
+  }, [columns]);
+
+  const cards: Card[] = useMemo(() => {
+    return sourceCards
+      .filter((c) => !assigneeFilter || c.assignee_id === assigneeFilter)
+      .filter((c) => !priorityFilter || c.priority === priorityFilter)
+      .map((c) => ({ ...c, columnId: placement[c.id] ?? c.board_column_id ?? firstColumn }));
+  }, [sourceCards, assigneeFilter, priorityFilter, placement, firstColumn]);
+
+  // Assignee options: board members, plus any current assignee not (yet) a member.
+  const assigneeOptions = useMemo(() => {
+    const map = new Map(members.map((m) => [m.id, m.name]));
+    for (const c of sourceCards) {
+      if (c.assignee_id && c.assignee_name && !map.has(c.assignee_id)) map.set(c.assignee_id, c.assignee_name);
+    }
+    return [...map.entries()].map(([id, name]) => ({ id, name }));
+  }, [members, sourceCards]);
+
+  function move(cardId: string, toColumnId: string) {
+    const prev = placement;
+    setPlacement((p) => ({ ...p, [cardId]: toColumnId }));
+    setBanner(null);
+    moveCard(cardId, toColumnId, slug).then((r) => {
+      if (!r.ok) {
+        setPlacement(prev);
+        setBanner(`Couldn't move card: ${r.error}`);
+      }
+    });
+  }
+
+  function openCard(c: Card) {
+    setForm({
+      id: c.id,
+      columnId: c.columnId,
+      title: c.title,
+      priority: c.priority,
+      assigneeId: c.assignee_id ?? "",
+      dueDate: c.due_date ?? "",
+      description: c.description ?? "",
+    });
+  }
+
+  function openCreate(columnId: string) {
+    setForm({ id: null, columnId, title: "", priority: "p3", assigneeId: "", dueDate: "", description: "" });
+  }
+
+  function save() {
+    if (!form) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = form.id
+        ? await updateCard(
+            form.id,
+            {
+              title: form.title,
+              description: form.description,
+              priority: form.priority,
+              assigneeId: form.assigneeId || null,
+              dueDate: form.dueDate || null,
+            },
+            slug,
+          )
+        : await createCard({
+            boardId: board.id,
+            columnId: form.columnId,
+            title: form.title,
+            priority: form.priority,
+            assigneeId: form.assigneeId || undefined,
+            dueDate: form.dueDate || undefined,
+            description: form.description || undefined,
+          });
+      if (!r.ok) {
+        setBanner(r.error);
+        return;
+      }
+      setForm(null);
+      router.refresh();
+    });
+  }
+
+  function archive() {
+    if (!form?.id) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await archiveCard(form.id!, slug);
+      if (!r.ok) {
+        setBanner(r.error);
+        return;
+      }
+      setForm(null);
+      router.refresh();
+    });
+  }
+
+  const columnName = (id: string) => columns.find((c) => c.id === id)?.name ?? "—";
+
+  return (
+    <>
+      <div className="admin-toolbar" style={{ gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => openCreate(firstColumn)}>
+          New card
+        </button>
+        <select
+          className="admin-select"
+          style={{ maxWidth: 200 }}
+          value={assigneeFilter}
+          onChange={(e) => setAssigneeFilter(e.target.value)}
+          aria-label="Filter by assignee"
+        >
+          <option value="">All assignees</option>
+          {assigneeOptions.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="admin-select"
+          style={{ maxWidth: 140 }}
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          aria-label="Filter by priority"
+        >
+          <option value="">All priorities</option>
+          {TASK_PRIORITIES.map((p) => (
+            <option key={p} value={p}>
+              {PRIORITY_LABEL[p]}
+            </option>
+          ))}
+        </select>
+        <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
+          Amber clock = in column &gt; {AGING_DAYS} days
+        </span>
+      </div>
+
+      {banner && (
+        <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
+          {banner}
+        </div>
+      )}
+
+      <KanbanBoard<Card>
+        columns={kanbanColumns}
+        cards={cards}
+        onMove={move}
+        onCardClick={openCard}
+        columnFooter={(col) => (
+          <button
+            className="admin-btn admin-btn--sm"
+            style={{ margin: "0 8px 8px", width: "calc(100% - 16px)" }}
+            onClick={() => openCreate(col.id)}
+          >
+            + Add a card
+          </button>
+        )}
+        renderCard={(c) => {
+          const days = daysInColumn(c.last_moved_at);
+          const aging = days >= AGING_DAYS && c.status !== "done";
+          const overdue = c.due_date != null && c.status !== "done" && c.due_date < new Date().toISOString().slice(0, 10);
+          return (
+            <>
+              <div className="sap-card-title">{c.title}</div>
+              <div className="sap-card-meta">
+                <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
+                {c.internal && <Badge tone="neutral">Internal</Badge>}
+              </div>
+              <div className="sap-card-meta">
+                <span className="sap-card-sub">{c.assignee_name ?? "Unassigned"}</span>
+                {c.due_date && (
+                  <span
+                    className="sap-card-sub"
+                    style={{ marginLeft: "auto", color: overdue ? "var(--admin-err-ink)" : undefined }}
+                  >
+                    {formatDate(c.due_date)}
+                  </span>
+                )}
+              </div>
+              {aging && (
+                <div className="sap-card-sub" style={{ color: "var(--admin-warn-ink)", marginTop: 4 }}>
+                  ◷ {days}d in column
+                </div>
+              )}
+            </>
+          );
+        }}
+      />
+
+      <DetailDrawer
+        open={form !== null}
+        onClose={() => setForm(null)}
+        eyebrow={form?.id ? "Card" : "New card"}
+        title={form?.id ? form.title || "Card" : "New card"}
+      >
+        {form && (
+          <div className="admin-form">
+            <div className="admin-field">
+              <label className="admin-label">Title</label>
+              <input
+                className="admin-input"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="What needs doing?"
+                autoFocus
+              />
+            </div>
+
+            {form.id && (
+              <div className="admin-field">
+                <label className="admin-label">Column</label>
+                <div className="admin-cell-strong">
+                  {columnName(placement[form.id] ?? form.columnId)}
+                  <span className="admin-cell-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
+                    (drag the card to move)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="admin-field">
+              <label className="admin-label">Priority</label>
+              <select
+                className="admin-select"
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
+              >
+                {TASK_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORITY_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="admin-field">
+              <label className="admin-label">Assignee</label>
+              <select
+                className="admin-select"
+                value={form.assigneeId}
+                onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}
+              >
+                <option value="">Unassigned</option>
+                {assigneeOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="admin-field">
+              <label className="admin-label">Due date</label>
+              <input
+                className="admin-input"
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label className="admin-label">Description</label>
+              <textarea
+                className="admin-textarea"
+                rows={4}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+
+            <div className="admin-form-actions" style={{ display: "flex", gap: 8 }}>
+              <button className="admin-btn admin-btn--primary" onClick={save} disabled={saving}>
+                {saving ? "Saving…" : form.id ? "Save" : "Create card"}
+              </button>
+              {form.id && (
+                <button className="admin-btn admin-btn--danger" onClick={archive} disabled={saving}>
+                  Archive
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </DetailDrawer>
+    </>
+  );
+}

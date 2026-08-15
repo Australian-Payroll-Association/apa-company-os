@@ -154,6 +154,15 @@ const NAV: NavSection[] = [
     ],
   },
   {
+    section: "Boards",
+    groups: [
+      {
+        label: null,
+        items: [{ label: "All boards", href: "/admin/boards", ico: "▦", enabled: true }],
+      },
+    ],
+  },
+  {
     section: "Workspace",
     groups: [
   {
