@@ -2,7 +2,7 @@ import mammoth from "mammoth";
 
 // Turn an uploaded meeting-notes file into plain transcript text. Unlike the
 // resume flow (which hands PDFs to Claude natively), meeting notes must end up
-// as readable TEXT: it is stored in meeting_notes.transcript and shown verbatim
+// as readable TEXT: it is stored in call_transcripts.transcript and shown verbatim
 // as the admin "Full transcript". So we only accept formats that extract to
 // clean text — .txt / .vtt / .srt / .md / .markdown as UTF-8, and .docx via
 // mammoth. PDFs are intentionally unsupported (paste the text instead).

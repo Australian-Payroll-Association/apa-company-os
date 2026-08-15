@@ -1,14 +1,19 @@
 import { companyOs } from "@/lib/supabase";
 
-// Reads for company_os.meeting_notes on the admin surface. Two shapes, because
-// the surface is split across three pages:
+// Reads for the client meeting-notes surface. These rows live in the central
+// company_os.meetings table, marked source='notes' (uploaded client
+// transcripts, AI-summarized, publishable to the portal) as distinct from the
+// imported ThoughtFlow call log. The transcript text lives in call_transcripts,
+// keyed by meeting_id. Two shapes, because the surface is split across pages:
 //   - AdminMeetingRow: the List page and the company 360 tab. No transcript and
-//     no summary, so a 350-row table never drags full transcripts through.
+//     no summary, so the table never drags full transcripts through.
 //   - AdminMeeting: the Details page. Everything, transcript included.
 // The client-facing /portal reads through lib/portal/meetings.ts instead
-// (summary only, published only).
+// (summary only, published only). The meeting date is stored in started_at.
 
 export type AiStatus = "pending" | "ready" | "failed";
+
+export const NOTES_SOURCE = "notes";
 
 export type AdminMeetingRow = {
   id: string;
@@ -30,13 +35,13 @@ export type AdminMeeting = AdminMeetingRow & {
 };
 
 const ROW_SELECT =
-  "id, company_id, meeting_date, title, attendees, ai_status, published_at, created_at, company:companies!company_id(name)";
-const FULL_SELECT = `${ROW_SELECT}, transcript, ai_summary, ai_error, source_file_name`;
+  "id, company_id, started_at, title, attendees, ai_status, published_at, created_at, company:companies!company_id(name)";
+const FULL_SELECT = `${ROW_SELECT}, summary, ai_error, source_file_name, call_transcripts(transcript)`;
 
 type Row = {
   id: string;
   company_id: string;
-  meeting_date: string | null;
+  started_at: string | null;
   title: string | null;
   attendees: string[] | null;
   ai_status: AiStatus;
@@ -46,21 +51,25 @@ type Row = {
 };
 
 type FullRow = Row & {
-  transcript: string;
-  ai_summary: string | null;
+  summary: string | null;
   ai_error: string | null;
   source_file_name: string | null;
+  call_transcripts?: { transcript: string | null }[] | { transcript: string | null } | null;
 };
 
 const one = <T,>(e: T | T[] | null | undefined): T | null =>
   Array.isArray(e) ? e[0] ?? null : e ?? null;
+
+// started_at is a timestamptz stored at UTC midnight for notes; the surface only
+// ever shows the calendar date, so hand back the date part.
+const asDate = (ts: string | null): string | null => (ts ? ts.slice(0, 10) : null);
 
 function mapRow(r: Row): AdminMeetingRow {
   return {
     id: r.id,
     companyId: r.company_id,
     companyName: one(r.company)?.name ?? null,
-    meetingDate: r.meeting_date,
+    meetingDate: asDate(r.started_at),
     title: r.title,
     attendees: r.attendees ?? [],
     aiStatus: r.ai_status,
@@ -71,19 +80,21 @@ function mapRow(r: Row): AdminMeetingRow {
 
 export async function getMeetingsForCompany(companyId: string): Promise<AdminMeetingRow[]> {
   const { data } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select(ROW_SELECT)
+    .eq("source", NOTES_SOURCE)
     .is("archived_at", null)
     .eq("company_id", companyId)
-    .order("meeting_date", { ascending: false, nullsFirst: false })
+    .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   return ((data ?? []) as Row[]).map(mapRow);
 }
 
 export async function getMeeting(id: string): Promise<AdminMeeting | null> {
   const { data } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select(FULL_SELECT)
+    .eq("source", NOTES_SOURCE)
     .is("archived_at", null)
     .eq("id", id)
     .maybeSingle();
@@ -91,8 +102,8 @@ export async function getMeeting(id: string): Promise<AdminMeeting | null> {
   const r = data as FullRow;
   return {
     ...mapRow(r),
-    transcript: r.transcript,
-    aiSummary: r.ai_summary,
+    transcript: one(r.call_transcripts)?.transcript ?? "",
+    aiSummary: r.summary,
     aiError: r.ai_error,
     sourceFileName: r.source_file_name,
   };
@@ -123,11 +134,12 @@ export async function listMeetings(params: MeetingListParams = {}): Promise<Meet
   const from = (page - 1) * pageSize;
 
   let q = companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select(ROW_SELECT, { count: "exact" })
+    .eq("source", NOTES_SOURCE)
     .is("archived_at", null)
     .range(from, from + pageSize - 1)
-    .order("meeting_date", { ascending: false, nullsFirst: false })
+    .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (params.status === "published") q = q.not("published_at", "is", null);

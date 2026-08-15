@@ -9,12 +9,14 @@ import { recordAudit } from "@/lib/admin/audit";
 import { extractTranscript, MEETING_MAX_BYTES } from "@/lib/meeting-extract";
 import { summarizeMeeting } from "@/lib/ai/meeting-summary";
 
-// Admin meeting-notes actions. Upload (paste OR file) creates one row with the
-// raw transcript, then kicks off AI summarization fire-and-forget. Edits, the
-// publish toggle, archive, and AI retry follow the CRM action conventions
-// (requireAdmin + recordAudit + revalidate).
+// Admin meeting-notes actions. These are source='notes' rows in the central
+// company_os.meetings table; the raw transcript lives in call_transcripts. Upload
+// (paste OR file) creates one meeting + one transcript, then kicks off AI
+// summarization fire-and-forget. Edits, the publish toggle, archive, and AI retry
+// follow the CRM action conventions (requireAdmin + recordAudit + revalidate).
 
 const BUCKET = "meeting-transcripts";
+const NOTES_SOURCE = "notes";
 
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 
@@ -73,12 +75,13 @@ export async function createMeeting(formData: FormData): Promise<CreateResult> {
   }
 
   const { data, error } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .insert({
+      source: NOTES_SOURCE,
+      meeting_type: "General",
       company_id: companyId,
-      meeting_date: manualDate,
+      started_at: manualDate,
       title: manualTitle || null,
-      transcript,
       source_file_path: source?.path ?? null,
       source_file_name: source?.name ?? null,
       ai_status: "pending",
@@ -93,7 +96,23 @@ export async function createMeeting(formData: FormData): Promise<CreateResult> {
     return { ok: false, error: error?.message ?? "Could not save the meeting." };
   }
 
-  await recordAudit({ table: "meeting_notes", recordId: data.id, operation: "insert", actor: admin.email });
+  // The transcript text lives in call_transcripts (one per meeting).
+  const { error: transcriptError } = await companyOs.from("call_transcripts").insert({
+    meeting_id: data.id,
+    title: manualTitle || "Untitled meeting",
+    started_at: manualDate,
+    source: NOTES_SOURCE,
+    call_type: "client",
+    transcript,
+  });
+  if (transcriptError) {
+    // Roll back so we never leave a transcript-less notes row.
+    await companyOs.from("meetings").delete().eq("id", data.id);
+    if (source) await supabase.storage.from(BUCKET).remove([source.path]);
+    return { ok: false, error: transcriptError.message };
+  }
+
+  await recordAudit({ table: "meetings", recordId: data.id, operation: "insert", actor: admin.email });
   waitUntil(summarizeMeeting(data.id));
   refresh(companyId, data.id);
   return { ok: true, id: data.id };
@@ -103,9 +122,10 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function loadMeeting(id: string) {
   const { data } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select("id, company_id, published_at")
     .eq("id", id)
+    .eq("source", NOTES_SOURCE)
     .maybeSingle();
   return data as { id: string; company_id: string; published_at: string | null } | null;
 }
@@ -127,18 +147,19 @@ export async function updateMeeting(
     .filter(Boolean);
 
   const { error } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .update({
       title: fields.title.trim() || null,
-      meeting_date: meetingDate,
+      started_at: meetingDate,
       attendees,
-      ai_summary: fields.summary.trim() || null,
+      summary: fields.summary.trim() || null,
+      summary_encrypted: false,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  await recordAudit({ table: "meeting_notes", recordId: id, operation: "update", actor: admin.email });
+  await recordAudit({ table: "meetings", recordId: id, operation: "update", actor: admin.email });
   refresh(meeting.company_id, id);
   return { ok: true };
 }
@@ -149,13 +170,13 @@ export async function setMeetingPublished(id: string, published: boolean): Promi
   if (!meeting) return { ok: false, error: "Meeting not found." };
 
   const { error } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .update({ published_at: published ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "meeting_notes",
+    table: "meetings",
     recordId: id,
     operation: "update",
     actor: admin.email,
@@ -173,20 +194,23 @@ export async function deleteMeeting(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
 
   const { data } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select("id, company_id, source_file_path")
     .eq("id", id)
+    .eq("source", NOTES_SOURCE)
     .maybeSingle();
   const meeting = data as { id: string; company_id: string; source_file_path: string | null } | null;
   if (!meeting) return { ok: false, error: "Meeting not found." };
 
-  const { error } = await companyOs.from("meeting_notes").delete().eq("id", id);
+  // Remove the transcript first (call_transcripts.meeting_id has no cascade).
+  await companyOs.from("call_transcripts").delete().eq("meeting_id", id);
+  const { error } = await companyOs.from("meetings").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   if (meeting.source_file_path) {
     await supabase.storage.from(BUCKET).remove([meeting.source_file_path]);
   }
-  await recordAudit({ table: "meeting_notes", recordId: id, operation: "delete", actor: admin.email });
+  await recordAudit({ table: "meetings", recordId: id, operation: "delete", actor: admin.email });
   refresh(meeting.company_id, id);
   return { ok: true };
 }
@@ -197,7 +221,7 @@ export async function retryMeetingSummary(id: string): Promise<ActionResult> {
   if (!meeting) return { ok: false, error: "Meeting not found." };
 
   await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .update({ ai_status: "pending", ai_error: null, updated_at: new Date().toISOString() })
     .eq("id", id);
   waitUntil(summarizeMeeting(id));
