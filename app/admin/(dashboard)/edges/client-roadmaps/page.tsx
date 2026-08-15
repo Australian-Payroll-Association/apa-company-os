@@ -9,6 +9,8 @@ import {
   type BacklogItem,
   type RoadmapGroup,
 } from "@/lib/client-backlog";
+import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
+import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { CompanyPicker } from "./CompanyPicker";
 import { BacklogAdminEditor } from "./BacklogAdminEditor";
 import { OverviewEditor } from "./OverviewEditor";
@@ -52,14 +54,17 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
       .eq("company_id", selected.id)
       .order("sort_order", { ascending: true });
     if (!showArchived) groupsQuery = groupsQuery.is("archived_at", null);
-    const [{ data }, { data: groupRows }, { data: overviewRow }] = await Promise.all([
+    const [{ data }, { data: groupRows }, { data: overviewRow }, documents, { data: programRows }] = await Promise.all([
       query,
       groupsQuery,
       companyOs.from("client_roadmap_overview").select("body").eq("company_id", selected.id).maybeSingle(),
+      listDocumentsForCompanies([selected.id]),
+      companyOs.from("ai_programs").select("id, name").eq("company_id", selected.id).order("created_at", { ascending: false }),
     ]);
     const items = (data ?? []) as unknown as BacklogItem[];
     const groups = (groupRows ?? []) as unknown as RoadmapGroup[];
     const overviewBody = (overviewRow as { body: string } | null)?.body ?? "";
+    const programs = (programRows ?? []) as ProgramOption[];
     const proposedCount = items.filter((i) => i.status === "proposed").length;
 
     return (
@@ -72,6 +77,13 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
         />
         <OverviewEditor companyId={selected.id} initialBody={overviewBody} />
         <BacklogAdminEditor companyId={selected.id} groups={groups} items={items} showArchived={showArchived} />
+        <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 4 }}>Documents</h2>
+          <p className="admin-page-sub" style={{ margin: "0 0 12px", fontSize: 13 }}>
+            Shared with {selected.name}: everything here is visible in their portal and to the assigned team.
+          </p>
+          <CompanyDocuments companyId={selected.id} documents={documents} programs={programs} />
+        </section>
       </>
     );
   }
