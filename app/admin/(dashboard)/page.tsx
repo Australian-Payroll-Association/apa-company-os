@@ -21,7 +21,7 @@ export const metadata = {
 type Embedded<T> = T | T[] | null;
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
-type InvoiceRow = { txn_date: string | null; amount_cents: number | null; balance_cents: number | null; status: string | null };
+type InvoiceRow = { txn_date: string | null; amount_cents: number | null; balance_cents: number | null; status: string | null; entity: string };
 type OrderRow = { created_at: string; amount_usd_cents: number | null; status: string | null };
 type DealRow = { status: string | null; amount_usd_cents: number | null; created_at: string; closed_at: string | null };
 type StaffingRow = { companies: Embedded<{ name: string | null }> };
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
     regsRes,
     surveysRes,
   ] = await Promise.all([
-    companyOs.from("invoices").select("txn_date, amount_cents, balance_cents, status").neq("status", "voided").limit(1000),
+    companyOs.from("invoices").select("txn_date, amount_cents, balance_cents, status, entity").neq("status", "voided").limit(1000),
     companyOs.from("orders").select("created_at, amount_usd_cents, status").limit(1000),
     companyOs.from("deals").select("status, amount_usd_cents, created_at, closed_at").is("archived_at", null).limit(1000),
     companyOs.from("lead").select("created_at").gte("created_at", iso60).limit(1000),
@@ -179,12 +179,25 @@ export default async function DashboardPage() {
   const revenueInvoices = invoices.filter((i) => i.txn_date);
   const paidOrders = orders.filter((o) => o.status === "paid");
 
-  const cashBetween = (fromDate: string, toDate: string) =>
-    revenueInvoices.reduce((s, i) => (i.txn_date! >= fromDate && i.txn_date! < toDate ? s + (i.amount_cents ?? 0) : s), 0) +
+  const invoiceCash = (fromDate: string, toDate: string, entity?: "edge8" | "aio") =>
+    revenueInvoices.reduce(
+      (s, i) =>
+        i.txn_date! >= fromDate && i.txn_date! < toDate && (!entity || i.entity === entity)
+          ? s + (i.amount_cents ?? 0)
+          : s,
+      0,
+    );
+  const stripeCash = (fromDate: string, toDate: string) =>
     paidOrders.reduce((s, o) => {
       const d = o.created_at.slice(0, 10);
       return d >= fromDate && d < toDate ? s + (o.amount_usd_cents ?? 0) : s;
     }, 0);
+  const cashBetween = (fromDate: string, toDate: string) => invoiceCash(fromDate, toDate) + stripeCash(fromDate, toDate);
+
+  // Per-company sub-line for the revenue tiles. Stripe checkout runs on
+  // edge8.ai, so its orders count on the Edge8 side of the split.
+  const entitySplit = (fromDate: string, toDate: string) =>
+    `Edge8 ${compactUsd(invoiceCash(fromDate, toDate, "edge8") + stripeCash(fromDate, toDate))} · AIO ${compactUsd(invoiceCash(fromDate, toDate, "aio"))}`;
 
   const tomorrow = new Date(now.getTime() + MS_DAY).toISOString().slice(0, 10);
   const cash30 = cashBetween(date30, tomorrow);
@@ -303,8 +316,16 @@ export default async function DashboardPage() {
 
       {/* ── Headline ── */}
       <div className="mp-kpi-grid">
-        <MetricCard label="Revenue · 30d" value={formatCents(cash30)} sub={vsPrior(cash30, cashPrev30, formatCents)} />
-        <MetricCard label="Revenue · YTD" value={formatCents(cashYtd)} sub={`invoices + Stripe since Jan 1, ${year}`} />
+        <MetricCard
+          label="Revenue · 30d"
+          value={formatCents(cash30)}
+          sub={`${entitySplit(date30, tomorrow)} · ${vsPrior(cash30, cashPrev30, formatCents)}`}
+        />
+        <MetricCard
+          label="Revenue · YTD"
+          value={formatCents(cashYtd)}
+          sub={`${entitySplit(yearStart, tomorrow)} · invoices + Stripe`}
+        />
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${openDeals.length} open deals`} href="/admin/revenue/deals" />
         <MetricCard label="AR outstanding" value={formatCents(arOutstanding)} sub={`${openInvoices.length} open invoices`} />
       </div>
