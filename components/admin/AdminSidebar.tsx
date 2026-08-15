@@ -25,7 +25,7 @@ const isSubsection = (e: NavEntry): e is NavSubsection => "subheading" in e;
 // Offices and Systems both collapse. Rows open the shared 360s.
 const NAV: NavSection[] = [
   {
-    section: "Eight Edges",
+    section: "Operating System",
     groups: [
       {
         label: "Edges",
@@ -307,7 +307,7 @@ export function AdminSidebar({
         >
           ☰
         </button>
-        <strong>Edge8 OS</strong>
+        <strong>Eight Edges</strong>
       </div>
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
@@ -315,7 +315,7 @@ export function AdminSidebar({
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Admin">
         <div className="admin-brand">
           <span className="admin-brand-lead">
-            Edge8 OS
+            Eight Edges
           </span>
           <span className="admin-brand-actions">
             <button
