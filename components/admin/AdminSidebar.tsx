@@ -61,6 +61,7 @@ const NAV: NavSection[] = [
           { label: "Clients", href: "/admin/revenue/clients", ico: "★", enabled: true },
           { label: "Contacts", href: "/admin/contacts", ico: "⚇", enabled: true },
           { label: "Meeting Notes", href: "/admin/revenue/meetings", ico: "☰", enabled: true },
+          { label: "Sales Intelligence", href: "/admin/revenue/sales-intelligence", ico: "◭", enabled: true },
         ],
       },
       {
