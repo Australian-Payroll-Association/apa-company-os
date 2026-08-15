@@ -42,6 +42,14 @@ export type CommitmentAuthoring = {
   onDelete: (id: string) => void;
 };
 
+// Supplied only on the coach page: lets the coach push a commitment onto a task
+// board and shows its card status inline once pushed.
+export type CommitmentBoardPush = {
+  boards: { id: string; slug: string; name: string }[];
+  cardFor: (c: Commitment) => { boardSlug: string; boardName: string; columnName: string; done: boolean } | null;
+  onPush: (commitmentId: string, boardId: string) => void;
+};
+
 export function CommitmentStack({
   commitments,
   busy,
@@ -49,6 +57,7 @@ export function CommitmentStack({
   onStatus,
   onReorder,
   authoring,
+  boardPush,
   emptyText = "No open commitments.",
 }: {
   commitments: Commitment[];
@@ -57,6 +66,7 @@ export function CommitmentStack({
   onStatus: (id: string, status: CommitmentStatus, note: string) => void;
   onReorder: (orderedIds: string[]) => void;
   authoring?: CommitmentAuthoring;
+  boardPush?: CommitmentBoardPush;
   emptyText?: string;
 }) {
   // Local copy so a drag lands instantly; the server is the tiebreaker on the
@@ -111,6 +121,7 @@ export function CommitmentStack({
                           ownerLabel={ownerLabel}
                           onStatus={onStatus}
                           authoring={authoring}
+                          boardPush={boardPush}
                         />
                       </div>
                     )}
@@ -146,18 +157,22 @@ function CommitmentCard({
   ownerLabel,
   onStatus,
   authoring,
+  boardPush,
 }: {
   c: Commitment;
   busy: boolean;
   ownerLabel: (c: Commitment) => string;
   onStatus: (id: string, status: CommitmentStatus, note: string) => void;
   authoring?: CommitmentAuthoring;
+  boardPush?: CommitmentBoardPush;
 }) {
   const [note, setNote] = useState(c.statusNote ?? "");
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(c.title);
   const [dueOn, setDueOn] = useState(c.dueOn ?? "");
+  const [pushBoardId, setPushBoardId] = useState("");
   const mine = authoring?.canEdit(c) ?? false;
+  const pushedCard = boardPush?.cardFor(c) ?? null;
 
   useEffect(() => setNote(c.statusNote ?? ""), [c.statusNote]);
 
@@ -258,6 +273,38 @@ function CommitmentCard({
           </>
         )}
       </div>
+      {boardPush &&
+        (pushedCard ? (
+          <div className="admin-cell-muted" style={{ marginTop: 6, fontSize: 12 }}>
+            On {pushedCard.boardName}: {pushedCard.done ? "Done" : pushedCard.columnName || "—"}
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <select
+              className="admin-input"
+              value={pushBoardId}
+              onChange={(e) => setPushBoardId(e.target.value)}
+              disabled={busy}
+              aria-label="Board"
+              style={{ maxWidth: 200 }}
+            >
+              <option value="">Push to board…</option>
+              {boardPush.boards.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={busy || !pushBoardId}
+              onClick={() => boardPush.onPush(c.id, pushBoardId)}
+            >
+              Push
+            </button>
+          </div>
+        ))}
     </div>
   );
 }

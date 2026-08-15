@@ -6,6 +6,7 @@ import {
   assertCoachOwnsMeeting,
   assertCoachOwnsProfile,
   coachAddCommitment,
+  coachPushCommitmentToBoard,
   coachAddGoal,
   coachAddPriority,
   coachAddToRoster,
@@ -305,6 +306,17 @@ export async function updateCommitmentStatus(
   const actor = await requireTeamMember();
   const res = await coachUpdateCommitment(actor, commitmentId, { status, statusNote: note });
   if (res.ok) refresh();
+  return res;
+}
+
+export async function pushCommitmentToBoard(
+  commitmentId: string,
+  boardId: string,
+  profileId: string,
+): Promise<Result> {
+  const actor = await requireTeamMember();
+  const res = await coachPushCommitmentToBoard(actor, commitmentId, boardId);
+  if (res.ok) refresh(profileId);
   return res;
 }
 

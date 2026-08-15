@@ -19,6 +19,55 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
+import { listActiveBoards } from "@/lib/boards/data";
+import { SUBJECT_COMMITMENT } from "@/lib/boards/types";
+
+// A pushed commitment's board card, for the inline "on the board" status.
+export type CommitmentCard = {
+  boardSlug: string;
+  boardName: string;
+  columnName: string;
+  done: boolean;
+};
+
+async function loadCommitmentCards(ids: string[]): Promise<Record<string, CommitmentCard>> {
+  if (ids.length === 0) return {};
+  const { data } = await companyOs
+    .from("tasks")
+    .select("subject_id, board_id, board_column_id, status")
+    .eq("subject_type", SUBJECT_COMMITMENT)
+    .in("subject_id", ids)
+    .is("archived_at", null);
+  const rows = (data ?? []) as {
+    subject_id: string;
+    board_id: string;
+    board_column_id: string | null;
+    status: string;
+  }[];
+  if (rows.length === 0) return {};
+  const boardIds = [...new Set(rows.map((r) => r.board_id))];
+  const colIds = [...new Set(rows.map((r) => r.board_column_id).filter(Boolean) as string[])];
+  const [boardsRes, colsRes] = await Promise.all([
+    companyOs.from("boards").select("id, slug, name").in("id", boardIds),
+    colIds.length
+      ? companyOs.from("board_columns").select("id, name").in("id", colIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const bmap = new Map((boardsRes.data ?? []).map((b) => [b.id, b as { id: string; slug: string; name: string }]));
+  const cmap = new Map((colsRes.data ?? []).map((c) => [c.id, (c as { id: string; name: string }).name]));
+  const out: Record<string, CommitmentCard> = {};
+  for (const r of rows) {
+    const b = bmap.get(r.board_id);
+    if (!b) continue;
+    out[r.subject_id] = {
+      boardSlug: b.slug,
+      boardName: b.name,
+      columnName: r.board_column_id ? cmap.get(r.board_column_id) ?? "" : "",
+      done: r.status === "done",
+    };
+  }
+  return out;
+}
 
 // (getEdgesLadderOptions below is also consumed by lib/coaching/ai.ts to give
 // the generators live goal-ladder context.)
@@ -702,6 +751,9 @@ export type CoachProfileDetail = {
   talkingPoints: TalkingPoint[];
   checkins: Checkin[];
   trends: TrendReport[];
+  // Boards the coach can push a commitment to, and any commitment already pushed.
+  boards: { id: string; slug: string; name: string }[];
+  commitmentCards: Record<string, CommitmentCard>;
 };
 
 // Ownership assertion for every coach-side read/write that takes a profile id
@@ -780,9 +832,17 @@ export async function getCoachProfileDetail(
   const goalRows = ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
   const goalComments = await getGoalComments(goalRows.map((g) => g.id));
 
+  const commitmentList = ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment);
+  const [boards, commitmentCards] = await Promise.all([
+    listActiveBoards(),
+    loadCommitmentCards(commitmentList.map((c) => c.id)),
+  ]);
+
   return {
     profileId,
     member: toMember(p),
+    boards,
+    commitmentCards,
     goals: attachComments(goalRows, goalComments),
     priorities: ((priorities.data ?? []) as unknown as Record<string, unknown>[]).map((x) => toPriority(x, edges)),
     ocean: ocean.data ? toOcean(ocean.data as unknown as Record<string, unknown>) : null,
@@ -792,7 +852,7 @@ export async function getCoachProfileDetail(
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
     meetings: ((meetings.data ?? []) as unknown as Record<string, unknown>[]).map(toOneOnOne),
-    commitments: ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment),
+    commitments: commitmentList,
     talkingPoints: ((talkingPoints.data ?? []) as unknown as Record<string, unknown>[]).map(toTalkingPoint),
     checkins: ((checkins.data ?? []) as unknown as Array<Record<string, unknown>>).map((c) => ({
       id: c.id as string,
@@ -1348,6 +1408,76 @@ export async function coachUpdateCommitment(
   if (patch.statusNote !== undefined) update.status_note = patch.statusNote.trim() || null;
   const { error } = await companyOs.from("coaching_commitments").update(update).eq("id", commitmentId);
   return error ? { ok: false, error: "Could not update the commitment." } : { ok: true };
+}
+
+// Push a commitment onto a task board as a linked card. Idempotent: if a live
+// card already links to this commitment, do nothing. Assignee is the coached
+// person for a member commitment, the coach for a coach commitment.
+export async function coachPushCommitmentToBoard(
+  actor: TeamActor,
+  commitmentId: string,
+  boardId: string,
+): Promise<Result> {
+  const row = await assertCoachOwnsCommitment(actor, commitmentId);
+  if (!row) return { ok: false, error: "Not found." };
+  if (!boardId) return { ok: false, error: "Pick a board." };
+
+  const { data: existing } = await companyOs
+    .from("tasks")
+    .select("id")
+    .eq("subject_type", SUBJECT_COMMITMENT)
+    .eq("subject_id", commitmentId)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (existing) return { ok: true };
+
+  const { data: cols } = await companyOs
+    .from("board_columns")
+    .select("id, is_done, position")
+    .eq("board_id", boardId)
+    .order("position");
+  const columns = (cols ?? []) as { id: string; is_done: boolean; position: number }[];
+  if (columns.length === 0) return { ok: false, error: "That board has no columns." };
+  const target = columns.find((c) => !c.is_done) ?? columns[0];
+
+  const owner = row.owner as CommitmentOwner;
+  const { data: prof } = await companyOs
+    .from("coaching_profiles")
+    .select("team_member_id, coach_id")
+    .eq("id", row.coaching_profile_id as string)
+    .maybeSingle();
+  const p = prof as { team_member_id: string; coach_id: string } | null;
+  const targetTm = owner === "coach" ? p?.coach_id : p?.team_member_id;
+  let assigneeId: string | null = null;
+  if (targetTm) {
+    const { data: tm } = await companyOs.from("team_members").select("person_id").eq("id", targetTm).maybeSingle();
+    assigneeId = (tm as { person_id: string } | null)?.person_id ?? null;
+  }
+
+  const { data: last } = await companyOs
+    .from("tasks")
+    .select("position")
+    .eq("board_id", boardId)
+    .eq("board_column_id", target.id)
+    .is("archived_at", null)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const position = ((last as { position: number } | null)?.position ?? 0) + 1;
+
+  const { error } = await companyOs.from("tasks").insert({
+    board_id: boardId,
+    board_column_id: target.id,
+    title: row.title as string,
+    assignee_id: assigneeId,
+    due_date: (row.due_on as string | null) ?? null,
+    priority: "p2",
+    status: "open",
+    subject_type: SUBJECT_COMMITMENT,
+    subject_id: commitmentId,
+    position,
+  });
+  return error ? { ok: false, error: "Could not add the card." } : { ok: true };
 }
 
 // ---- member tier ------------------------------------------------------------

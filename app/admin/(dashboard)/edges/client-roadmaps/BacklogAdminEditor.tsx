@@ -116,11 +116,14 @@ export function BacklogAdminEditor({
   groups,
   items,
   showArchived,
+  liveCardItemIds,
 }: {
   companyId: string;
   groups: RoadmapGroup[];
   items: BacklogItem[];
   showArchived: boolean;
+  // Item ids that have a live (non-archived) board card linked to them.
+  liveCardItemIds?: Set<string>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -188,6 +191,7 @@ export function BacklogAdminEditor({
           {it.build_desc && <div><span className="k">Build: </span>{it.build_desc}</div>}
           <div className="cbe-chips">
             {(it.needs ?? []).map((n) => <span key={n} className="cbe-chip">{n}</span>)}
+            {liveCardItemIds?.has(it.id) && <span className="cbe-chip tok">on a board</span>}
             {tok && <span className="cbe-chip tok">est. {tok} Human Tokens</span>}
             {it.source === "client" && <span className="cbe-chip client">client proposed</span>}
             {it.status !== "accepted" && it.source === "edge8" && <span className="cbe-chip">{it.status}</span>}

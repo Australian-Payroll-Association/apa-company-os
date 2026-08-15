@@ -31,6 +31,7 @@ import {
   generatePrepAction,
   publishOcean,
   publishRecap,
+  pushCommitmentToBoard,
   reorderCommitments,
   resolveTalkingPoint,
   runTrendReport,
@@ -785,6 +786,11 @@ function CommitmentsCard({
           run("Commitment", () => updateCommitmentStatus(id, status, note))
         }
         onReorder={(ids) => run("Order", () => reorderCommitments(detail.profileId, ids))}
+        boardPush={{
+          boards: detail.boards,
+          cardFor: (c) => detail.commitmentCards[c.id] ?? null,
+          onPush: (id, boardId) => run("Push to board", () => pushCommitmentToBoard(id, boardId, detail.profileId)),
+        }}
       />
 
       <div className="coach-add-row">

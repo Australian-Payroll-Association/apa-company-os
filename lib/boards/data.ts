@@ -9,6 +9,8 @@ import {
   BOARD_COLUMN_SELECT,
   SPRINT_SELECT,
   TASK_SELECT,
+  SUBJECT_COMMITMENT,
+  SUBJECT_BACKLOG_ITEM,
   type BoardRow,
   type BoardColumnRow,
   type SprintRow,
@@ -22,9 +24,11 @@ export type BoardListItem = BoardRow & {
 };
 
 export type BoardPerson = { id: string; name: string };
+export type BacklogRef = { id: string; title: string };
 
 export type BoardCard = TaskRow & {
   assignee_name: string | null;
+  subject_label: string | null; // commitment title or roadmap item title
   last_moved_at: string; // latest column-move, else created_at (drives aging)
 };
 
@@ -34,6 +38,7 @@ export type BoardDetail = {
   members: BoardPerson[];
   sprints: SprintRow[];
   cards: BoardCard[];
+  backlogItems: BacklogRef[]; // client board's roadmap items, for the link picker
 };
 
 function personName(p: { display_name: string | null; full_name: string | null; email: string }): string {
@@ -79,6 +84,17 @@ export async function listBoards(): Promise<BoardListItem[]> {
   }));
 }
 
+// Light list for pickers (e.g. push a commitment to a board).
+export async function listActiveBoards(): Promise<{ id: string; slug: string; name: string }[]> {
+  const { data } = await companyOs
+    .from("boards")
+    .select("id, slug, name")
+    .eq("status", "active")
+    .is("archived_at", null)
+    .order("sort_order");
+  return (data ?? []) as { id: string; slug: string; name: string }[];
+}
+
 // Full board for /admin/boards/[slug] and (reused, scoped) team/portal views.
 export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> {
   const { data: boardData } = await companyOs
@@ -114,24 +130,48 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
 
   // People: board members plus any assignee (an assignee might not be a member yet).
   const personIds = [
-    ...new Set([...memberRows.map((m) => m.person_id), ...tasks.map((t) => t.assignee_id).filter(Boolean) as string[]]),
+    ...new Set([
+      ...memberRows.map((m) => m.person_id),
+      ...(tasks.map((t) => t.assignee_id).filter(Boolean) as string[]),
+    ]),
   ];
   const peopleRes = personIds.length
     ? await companyOs.from("people").select("id, display_name, full_name, email").in("id", personIds)
     : { data: [] as { id: string; display_name: string | null; full_name: string | null; email: string }[] };
-  const nameById = new Map(
-    (peopleRes.data ?? []).map((p) => [p.id, personName(p)]),
-  );
+  const nameById = new Map((peopleRes.data ?? []).map((p) => [p.id, personName(p)]));
 
-  // Client name for a client-linked board.
+  // Subject labels: coaching commitments and client roadmap items linked to cards.
+  const commitmentIds = tasks
+    .filter((t) => t.subject_type === SUBJECT_COMMITMENT && t.subject_id)
+    .map((t) => t.subject_id as string);
+  const backlogIds = tasks
+    .filter((t) => t.subject_type === SUBJECT_BACKLOG_ITEM && t.subject_id)
+    .map((t) => t.subject_id as string);
+  const subjectLabel = new Map<string, string>();
+  if (commitmentIds.length) {
+    const { data } = await companyOs.from("coaching_commitments").select("id, title").in("id", commitmentIds);
+    for (const r of (data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
+  }
+  if (backlogIds.length) {
+    const { data } = await companyOs.from("client_backlog_items").select("id, title").in("id", backlogIds);
+    for (const r of (data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
+  }
+
+  // Client name + roadmap items (for the link picker) on a client-linked board.
   let client_name: string | null = null;
+  let backlogItems: BacklogRef[] = [];
   if (board.client_company_id) {
-    const { data: co } = await companyOs
-      .from("companies")
-      .select("name")
-      .eq("id", board.client_company_id)
-      .maybeSingle();
+    const [{ data: co }, { data: bl }] = await Promise.all([
+      companyOs.from("companies").select("name").eq("id", board.client_company_id).maybeSingle(),
+      companyOs
+        .from("client_backlog_items")
+        .select("id, title")
+        .eq("company_id", board.client_company_id)
+        .is("archived_at", null)
+        .order("sort_order"),
+    ]);
     client_name = (co as { name: string } | null)?.name ?? null;
+    backlogItems = (bl ?? []) as BacklogRef[];
   }
 
   // Latest column-move per card, for the days-in-column clock.
@@ -140,8 +180,9 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   if (taskIds.length) {
     const { data: logs } = await companyOs
       .from("task_stage_log")
-      .select("task_id, moved_at")
+      .select("task_id, moved_at, kind")
       .in("task_id", taskIds)
+      .eq("kind", "move")
       .order("moved_at", { ascending: false });
     for (const l of (logs ?? []) as { task_id: string; moved_at: string }[]) {
       if (!lastMove.has(l.task_id)) lastMove.set(l.task_id, l.moved_at);
@@ -151,6 +192,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   const cards: BoardCard[] = tasks.map((t) => ({
     ...t,
     assignee_name: t.assignee_id ? nameById.get(t.assignee_id) ?? null : null,
+    subject_label: t.subject_id ? subjectLabel.get(t.subject_id) ?? null : null,
     last_moved_at: lastMove.get(t.id) ?? t.created_at,
   }));
 
@@ -158,5 +200,5 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     .map((m) => ({ id: m.person_id, name: nameById.get(m.person_id) ?? "Unknown" }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { board: { ...board, client_name }, columns, members, sprints, cards };
+  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems };
 }
