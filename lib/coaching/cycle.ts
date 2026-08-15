@@ -19,6 +19,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/email";
+import { readCoachingTranscript, saveCoachingTranscript } from "@/lib/coaching/transcript";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { addDays, diffDays } from "@/lib/coaching/data";
 import { generateCheckinMessage, generatePrep, generateTrendReport, summarizeMeeting } from "@/lib/coaching/ai";
@@ -142,24 +143,27 @@ async function syncMinutesForProfile(
 ): Promise<void> {
   const { data } = await companyOs
     .from("coaching_one_on_ones")
-    .select("id, held_on, minutes_token, transcript, summary_markdown")
+    .select("id, held_on, minutes_token, transcript, meeting_id, summary_markdown")
     .eq("coaching_profile_id", p.id)
     .is("archived_at", null)
-    .not("minutes_token", "is", null)
-    .is("transcript", null);
+    .not("minutes_token", "is", null);
   for (const m of (data ?? []) as Array<{
     id: string;
     held_on: string;
     minutes_token: string;
+    meeting_id: string | null;
+    transcript: string | null;
     summary_markdown: string | null;
   }>) {
+    // Skip sessions whose transcript is already in (the linked meeting's
+    // call_transcripts, or the legacy column). This replaces the old
+    // `transcript is null` filter now that the text lives on the meeting.
+    const existing = (await readCoachingTranscript(m.meeting_id)) ?? m.transcript;
+    if (existing && existing.trim()) continue;
     const transcript = await fetchMinutesTranscript(m.minutes_token);
     if (!transcript) continue;
-    const { error } = await companyOs
-      .from("coaching_one_on_ones")
-      .update({ transcript, updated_at: new Date().toISOString() })
-      .eq("id", m.id);
-    if (error) continue;
+    const saved = await saveCoachingTranscript(m.id, transcript);
+    if (!saved.ok) continue;
     summary.transcriptsPulled += 1;
     const recent = diffDays(m.held_on, todayISO) <= 14;
     if (recent && !m.summary_markdown) {
