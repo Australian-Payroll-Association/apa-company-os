@@ -57,6 +57,7 @@ export async function getBoardForClient(actor: PortalActor): Promise<PortalBoard
       .select("id, title, priority, due_date, status, board_column_id, assignee_id, sprint_id")
       .eq("board_id", board.id)
       .eq("internal", false)
+      .is("parent_task_id", null)
       .is("archived_at", null)
       .order("position"),
   ]);

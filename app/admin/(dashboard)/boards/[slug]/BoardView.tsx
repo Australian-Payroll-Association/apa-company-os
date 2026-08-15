@@ -39,6 +39,8 @@ import {
   removeBoardMember,
   updateBoard,
   archiveBoard,
+  addSubtask,
+  toggleSubtask,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -95,7 +97,29 @@ export function BoardView({
   const [boardName, setBoardName] = useState(board.name);
   const [boardClientId, setBoardClientId] = useState(board.client_company_id ?? "");
   const [newMemberId, setNewMemberId] = useState("");
+  const [newSubtask, setNewSubtask] = useState("");
   const [saving, startSaving] = useTransition();
+
+  const activeCard = form?.id ? sourceCards.find((c) => c.id === form.id) ?? null : null;
+
+  function addSub() {
+    if (!form?.id || !newSubtask.trim()) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await addSubtask(form.id!, newSubtask, slug);
+      if (!r.ok) return setBanner(r.error);
+      setNewSubtask("");
+      router.refresh();
+    });
+  }
+  function toggleSub(id: string, done: boolean) {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await toggleSubtask(id, done, slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
 
   const memberIds = new Set(members.map((m) => m.id));
   const addableMembers = teamOptions.filter((p) => !memberIds.has(p.id));
@@ -444,6 +468,11 @@ export function BoardView({
                   </span>
                 )}
               </div>
+              {c.subtasks.length > 0 && (
+                <div className="sap-card-sub" style={{ marginTop: 4 }}>
+                  ☑ {c.subtasks.filter((s) => s.done).length}/{c.subtasks.length} subtasks
+                </div>
+              )}
               {aging && (
                 <div className="sap-card-sub" style={{ color: "var(--admin-warn-ink)", marginTop: 4 }}>
                   ◷ {days}d in column
@@ -604,6 +633,48 @@ export function BoardView({
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
+
+            {form.id && (
+              <div className="admin-field">
+                <label className="admin-label">
+                  Subtasks
+                  {activeCard && activeCard.subtasks.length > 0
+                    ? ` (${activeCard.subtasks.filter((s) => s.done).length}/${activeCard.subtasks.length})`
+                    : ""}
+                </label>
+                {activeCard?.subtasks.map((s) => (
+                  <label key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
+                    <input
+                      type="checkbox"
+                      checked={s.done}
+                      onChange={(e) => toggleSub(s.id, e.target.checked)}
+                      disabled={saving}
+                    />
+                    <span style={{ textDecoration: s.done ? "line-through" : undefined, color: s.done ? "var(--admin-muted)" : undefined }}>
+                      {s.title}
+                    </span>
+                  </label>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <input
+                    className="admin-input"
+                    placeholder="Add a subtask…"
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addSub();
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <button className="admin-btn" onClick={addSub} disabled={saving || !newSubtask.trim()}>
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="admin-form-actions" style={{ display: "flex", gap: 8 }}>
               <button className="admin-btn admin-btn--primary" onClick={save} disabled={saving}>

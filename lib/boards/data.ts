@@ -27,10 +27,13 @@ export type BoardListItem = BoardRow & {
 export type BoardPerson = { id: string; name: string };
 export type BacklogRef = { id: string; title: string };
 
+export type Subtask = { id: string; title: string; done: boolean };
+
 export type BoardCard = TaskRow & {
   assignee_name: string | null;
   subject_label: string | null; // commitment title or roadmap item title
   agent: boolean; // filed by a scheduled routine (metadata.source === 'agent')
+  subtasks: Subtask[];
   last_moved_at: string; // latest column-move, else created_at (drives aging)
 };
 
@@ -65,7 +68,12 @@ export async function listBoards(): Promise<BoardListItem[]> {
       ? companyOs.from("companies").select("id, name").in("id", companyIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     companyOs.from("board_members").select("board_id, person_id").in("board_id", boardIds),
-    companyOs.from("tasks").select("board_id, status").in("board_id", boardIds).is("archived_at", null),
+    companyOs
+      .from("tasks")
+      .select("board_id, status")
+      .in("board_id", boardIds)
+      .is("archived_at", null)
+      .is("parent_task_id", null),
   ]);
 
   const companyName = new Map((companiesRes.data ?? []).map((c) => [c.id, c.name]));
@@ -162,11 +170,21 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   const sprints = (sprintsRes.data ?? []) as SprintRow[];
   const tasks = (tasksRes.data ?? []) as TaskRow[];
 
+  // Top-level tasks are the board cards; children are subtasks shown in the drawer.
+  const parents = tasks.filter((t) => !t.parent_task_id);
+  const subtasksByParent = new Map<string, Subtask[]>();
+  for (const c of tasks) {
+    if (!c.parent_task_id) continue;
+    const list = subtasksByParent.get(c.parent_task_id) ?? [];
+    list.push({ id: c.id, title: c.title, done: c.status === "done" });
+    subtasksByParent.set(c.parent_task_id, list);
+  }
+
   // People: board members plus any assignee (an assignee might not be a member yet).
   const personIds = [
     ...new Set([
       ...memberRows.map((m) => m.person_id),
-      ...(tasks.map((t) => t.assignee_id).filter(Boolean) as string[]),
+      ...(parents.map((t) => t.assignee_id).filter(Boolean) as string[]),
     ]),
   ];
   const peopleRes = personIds.length
@@ -175,10 +193,10 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   const nameById = new Map((peopleRes.data ?? []).map((p) => [p.id, personName(p)]));
 
   // Subject labels: coaching commitments and client roadmap items linked to cards.
-  const commitmentIds = tasks
+  const commitmentIds = parents
     .filter((t) => t.subject_type === SUBJECT_COMMITMENT && t.subject_id)
     .map((t) => t.subject_id as string);
-  const backlogIds = tasks
+  const backlogIds = parents
     .filter((t) => t.subject_type === SUBJECT_BACKLOG_ITEM && t.subject_id)
     .map((t) => t.subject_id as string);
   const subjectLabel = new Map<string, string>();
@@ -209,7 +227,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   }
 
   // Latest column-move per card, for the days-in-column clock.
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = parents.map((t) => t.id);
   const lastMove = new Map<string, string>();
   if (taskIds.length) {
     const { data: logs } = await companyOs
@@ -223,11 +241,12 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     }
   }
 
-  const cards: BoardCard[] = tasks.map((t) => ({
+  const cards: BoardCard[] = parents.map((t) => ({
     ...t,
     assignee_name: t.assignee_id ? nameById.get(t.assignee_id) ?? null : null,
     subject_label: t.subject_id ? subjectLabel.get(t.subject_id) ?? null : null,
     agent: (t.metadata as { source?: string } | null)?.source === SOURCE_AGENT,
+    subtasks: subtasksByParent.get(t.id) ?? [],
     last_moved_at: lastMove.get(t.id) ?? t.created_at,
   }));
 
