@@ -46,6 +46,8 @@ export type HiringReq = {
   openedAt: string | null;
   hiringManagerName: string | null;
   hiringManagerIsMe: boolean;
+  // When the req was closed (filled / closed / cancelled). Null while open.
+  closedAt: string | null;
   loop: LoopStep[];
   candidates: HiringCandidate[];
   // Candidates sitting on a non-terminal stage, the number a manager acts on.
@@ -132,6 +134,9 @@ export type BookedInterview = {
 
 export type TeamHiring = {
   reqs: HiringReq[];
+  // Recently closed roles (filled / closed / cancelled), kept out of the main
+  // list so active roles stay in focus, but still openable read-only.
+  closedReqs: HiringReq[];
   mySlots: MyLoopSlot[];
   departmentScoped: boolean;
 };
@@ -156,6 +161,11 @@ export type MyInterview = {
 };
 
 const OPEN_STATUSES = ["open", "on_hold", "draft"];
+const CLOSED_STATUSES = ["filled", "closed", "cancelled"];
+// How far back closed roles stay on the page, and how many at most, so the
+// section is a recent-history list, not the whole archive.
+const CLOSED_WINDOW_DAYS = 180;
+const CLOSED_CAP = 25;
 
 // The clock everyone on this team reads. "Today" and the in-progress window are
 // judged in Saigon time, not the server's UTC.
@@ -200,20 +210,36 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   // Admins are deliberately unscoped, see the note at the top of the file.
   const departmentId = actor.isAdmin ? null : await actorDepartmentId(actor);
 
-  let reqQuery = companyOs
+  const reqSelect =
+    "id, title, status, headcount, location, employment_type, opened_at, closed_at, hiring_manager_id, " +
+    "people:people!hiring_manager_id(full_name, preferred_name, email)";
+
+  let openQuery = companyOs
     .from("job_requisitions")
-    .select(
-      "id, title, status, headcount, location, employment_type, opened_at, hiring_manager_id, " +
-        "people:people!hiring_manager_id(full_name, preferred_name, email)",
-    )
+    .select(reqSelect)
     .in("status", OPEN_STATUSES)
     .order("opened_at", { ascending: false });
-  if (departmentId) reqQuery = reqQuery.eq("department_id", departmentId);
+  if (departmentId) openQuery = openQuery.eq("department_id", departmentId);
 
-  const { data: reqRows } = await reqQuery;
-  const reqs = ((reqRows ?? []) as unknown as Record<string, unknown>[]);
+  // Recently closed roles, same department scope, newest first, capped.
+  const closedCutoff = new Date(Date.now() - CLOSED_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  let closedQuery = companyOs
+    .from("job_requisitions")
+    .select(reqSelect)
+    .in("status", CLOSED_STATUSES)
+    .gte("closed_at", closedCutoff)
+    .order("closed_at", { ascending: false })
+    .limit(CLOSED_CAP);
+  if (departmentId) closedQuery = closedQuery.eq("department_id", departmentId);
+
+  const [{ data: openRows }, { data: closedRows }] = await Promise.all([openQuery, closedQuery]);
+  // One enrichment pass covers both; they are partitioned back apart at the end.
+  const reqs = [
+    ...((openRows ?? []) as unknown as Record<string, unknown>[]),
+    ...((closedRows ?? []) as unknown as Record<string, unknown>[]),
+  ];
   if (reqs.length === 0) {
-    return { reqs: [], mySlots: [], departmentScoped: Boolean(departmentId) };
+    return { reqs: [], closedReqs: [], mySlots: [], departmentScoped: Boolean(departmentId) };
   }
   const reqIds = reqs.map((r) => r.id as string);
 
@@ -297,6 +323,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
         ? displayName(one(r.people as PersonRow | PersonRow[] | null))
         : null,
       hiringManagerIsMe: (r.hiring_manager_id as string | null) === actor.personId,
+      closedAt: (r.closed_at as string | null) ?? null,
       loop: loops.get(id) ?? [],
       candidates: list,
       activeCount: active,
@@ -455,10 +482,13 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   for (const req of out) {
     req.unassignedCount = unassignedByReq.get(req.id) ?? 0;
     const interviewStageId = interviewStageByReq.get(req.id) ?? null;
+    // A closed role shows its full history, hire and all; an open one shows only
+    // who is still in flight.
+    const reqClosed = !OPEN_STATUSES.includes(req.status);
     const rows: HiringGridRow[] = [];
     for (const c of req.candidates) {
       const stage = stages.find((s) => s.job_requisition_id === req.id && s.name === c.stageName) ?? null;
-      if (stage?.is_terminal) continue; // the grid tracks candidates still in flight
+      if (stage?.is_terminal && !reqClosed) continue; // in-flight only, for open roles
       const atInterview = stage != null && interviewStageId != null && stage.id === interviewStageId;
       const ivs = ivByApp.get(c.applicationId) ?? [];
       const interviews: CandidateInterview[] = ivs
@@ -496,10 +526,13 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     req.grid = rows;
   }
 
+  const openReqs = out.filter((r) => OPEN_STATUSES.includes(r.status));
+  const closedReqs = out.filter((r) => !OPEN_STATUSES.includes(r.status));
+
   // Where this manager personally sits in a loop. Loops reference people, so
-  // the match is on personId, never teamMemberId.
+  // the match is on personId, never teamMemberId. Only open roles count.
   const mySlots: MyLoopSlot[] = [];
-  for (const req of out) {
+  for (const req of openReqs) {
     for (const step of req.loop) {
       if (!step.interviewers.some((iv) => iv.personId === actor.personId)) continue;
       mySlots.push({
@@ -515,7 +548,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   }
   mySlots.sort((a, b) => a.reqTitle.localeCompare(b.reqTitle) || a.position - b.position);
 
-  return { reqs: out, mySlots, departmentScoped: Boolean(departmentId) };
+  return { reqs: openReqs, closedReqs, mySlots, departmentScoped: Boolean(departmentId) };
 }
 
 // The manager's day: every booked interview they personally sit on that is
