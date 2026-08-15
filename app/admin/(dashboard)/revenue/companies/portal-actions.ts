@@ -8,6 +8,8 @@ import {
   invitePortalMemberCore,
   resendPortalLinkCore,
   revokePortalMemberCore,
+  setTempPasswordCore,
+  type TempPasswordResult,
 } from "@/lib/admin/portal-invite";
 
 // Client-portal provisioning: the /portal sibling of the /team actions in
@@ -39,6 +41,20 @@ export async function invitePortalMember(personId: string, companyId: string): P
 export async function resendPortalMemberInvite(personId: string, companyId: string): Promise<Result> {
   const admin = await requireAdmin();
   return resendPortalLinkCore(personId, companyId, admin.email, "admin_ui");
+}
+
+// Set a temporary password for an already-provisioned member and email it, for
+// clients whose mail security eats every sign-in link. The generated password
+// is returned once so the admin can relay it directly if even this email is
+// quarantined. See setTempPasswordCore for the full semantics.
+export async function setPortalMemberTempPassword(
+  personId: string,
+  companyId: string,
+): Promise<TempPasswordResult> {
+  const admin = await requireAdmin();
+  const r = await setTempPasswordCore(personId, companyId, admin.email, "admin_ui");
+  if (r.ok) revalidate(companyId, personId);
+  return r;
 }
 
 // Revoke portal access for one company: mark the membership revoked, and when

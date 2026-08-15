@@ -48,12 +48,18 @@ async function logSentEmail(opts: {
 // "sent" markers (e.g. event_registrations.confirmation_sent_at) must not
 // stamp on a no-op or failure, or the real send never happens.
 // `logMeta` is merged into the interactions metadata (e.g. a source label).
+// `from` overrides the default sender — only for verified edge8.ai addresses
+// (e.g. the acting admin), so DKIM still aligns. `logBody` is stored in the
+// CRM interactions log instead of `html`: used when the email carries a secret
+// (e.g. a temp password) that must not be persisted.
 export async function sendTransactionalEmail(opts: {
   to: string | string[];
   subject: string;
   html: string;
+  from?: string;
   replyTo?: string;
   logMeta?: Record<string, unknown>;
+  logBody?: string;
 }): Promise<boolean> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set, skipping send to", opts.to);
@@ -61,7 +67,7 @@ export async function sendTransactionalEmail(opts: {
   }
 
   const { error } = await resend.emails.send({
-    from: emailFrom,
+    from: opts.from || emailFrom,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
@@ -76,7 +82,7 @@ export async function sendTransactionalEmail(opts: {
   await logSentEmail({
     to: Array.isArray(opts.to) ? opts.to : [opts.to],
     subject: opts.subject,
-    html: opts.html,
+    html: opts.logBody ?? opts.html,
     meta: opts.logMeta,
   });
   return true;
