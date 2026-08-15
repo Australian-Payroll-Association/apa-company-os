@@ -3,7 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { getTeamHiring, getMyInterviewDay, type MyInterviewState, type GridCell } from "@/lib/team/hiring";
+import {
+  getTeamHiring,
+  getMyInterviewDay,
+  type MyInterviewState,
+  type GridCell,
+  type CandidateInterview,
+} from "@/lib/team/hiring";
+import { RECOMMENDATIONS } from "@/lib/admin/interview-panel";
 import { CandidateActions } from "./CandidateActions";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +62,53 @@ const SLOT_MODIFIER: Record<MyInterviewState, string> = {
   scorecard_due: "due",
   done: "done",
 };
+
+// One interview's outcome, as a chip: the round, how the human panel came down
+// (advance / hold / reject, or Split when they disagree) and the average score,
+// linking to the kit. This is how logged feedback shows on the in-flight list
+// for roles with no loop template, so nothing a manager wrote is hidden.
+const REC_META = new Map(RECOMMENDATIONS.map((r) => [r.key, r]));
+const REC_TONE_CLASS: Record<string, string> = {
+  ok: "admin-badge--ok",
+  warn: "admin-badge--warn",
+  err: "admin-badge--err",
+};
+
+function InterviewOutcomeChip({ iv }: { iv: CandidateInterview }) {
+  const future = iv.scheduledAt != null && new Date(iv.scheduledAt).getTime() > Date.now();
+  let className = "admin-badge admin-badge--info";
+  let text = iv.label;
+
+  if (future) {
+    text = `${iv.label} · booked`;
+  } else if (!iv.revealed) {
+    // Viewer sits on this round and has not scored it; the outcome stays blind.
+    className = "admin-badge admin-badge--warn admin-badge--dot";
+    text = `${iv.label} · score it`;
+  } else if (iv.humanSeats > 0 && iv.submitted < iv.humanSeats) {
+    className = "admin-badge admin-badge--warn";
+    text = `${iv.label} · ${iv.submitted}/${iv.humanSeats} scored`;
+  } else if (iv.submitted > 0) {
+    const unique = Array.from(new Set(iv.recommendations));
+    if (unique.length === 1) {
+      const meta = REC_META.get(unique[0]);
+      className = `admin-badge ${REC_TONE_CLASS[meta?.tone ?? ""] ?? "admin-badge--info"}`;
+      text = `${iv.label} · ${meta?.label ?? "Scored"}`;
+    } else if (unique.length > 1) {
+      text = `${iv.label} · Split`;
+    } else {
+      className = "admin-badge admin-badge--ok";
+      text = `${iv.label} · Scored`;
+    }
+    if (iv.avgScore != null) text += ` ${iv.avgScore}`;
+  }
+
+  return (
+    <Link href={`/team/hiring/${iv.interviewId}`} style={{ textDecoration: "none" }}>
+      <span className={className}>{text}</span>
+    </Link>
+  );
+}
 
 // One grid cell: where a candidate stands on one loop step. When the cell is
 // backed by a real interview, the chip links to that interview's kit.
@@ -240,43 +294,41 @@ export default async function TeamHiringPage() {
                 .join(" · ")}
             </div>
 
-            <div className="admin-label" style={{ marginTop: 14 }}>
-              Interview loop
-            </div>
-            {req.loop.length === 0 ? (
-              <div className="admin-empty">
-                No loop defined for this role yet. It is set on the requisition in Admin.
-              </div>
-            ) : (
-              req.loop.map((step, i) => (
-                <div key={step.id} className="loop-step loop-step--read">
-                  <span className="loop-step-num">{i + 1}</span>
-                  <div className="loop-step-body">
-                    <div className="loop-step-head">
-                      <strong>{step.name}</strong>
-                      {step.durationMinutes != null && (
-                        <span className="admin-cell-muted">{step.durationMinutes} min</span>
-                      )}
-                    </div>
-                    <div className="loop-step-people">
-                      {step.interviewers.length === 0 ? (
-                        <span className="admin-cell-muted">No interviewer assigned</span>
-                      ) : (
-                        step.interviewers.map((iv) => (
-                          <span key={iv.personId} className="admin-badge">
-                            {iv.name}
-                          </span>
-                        ))
-                      )}
+            {req.loop.length > 0 && (
+              <>
+                <div className="admin-label" style={{ marginTop: 14 }}>
+                  Interview loop
+                </div>
+                {req.loop.map((step, i) => (
+                  <div key={step.id} className="loop-step loop-step--read">
+                    <span className="loop-step-num">{i + 1}</span>
+                    <div className="loop-step-body">
+                      <div className="loop-step-head">
+                        <strong>{step.name}</strong>
+                        {step.durationMinutes != null && (
+                          <span className="admin-cell-muted">{step.durationMinutes} min</span>
+                        )}
+                      </div>
+                      <div className="loop-step-people">
+                        {step.interviewers.length === 0 ? (
+                          <span className="admin-cell-muted">No interviewer assigned</span>
+                        ) : (
+                          step.interviewers.map((iv) => (
+                            <span key={iv.personId} className="admin-badge">
+                              {iv.name}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </>
             )}
 
             <div className="admin-label-row" style={{ marginTop: 16 }}>
               <span className="admin-label">In flight</span>
-              {req.unassignedCount > 0 && (
+              {req.loop.length > 0 && req.unassignedCount > 0 && (
                 <span className="admin-hint">
                   {req.unassignedCount} interview{req.unassignedCount === 1 ? "" : "s"} not matched to a loop step
                 </span>
@@ -287,24 +339,53 @@ export default async function TeamHiringPage() {
             ) : req.grid.length === 0 ? (
               <div className="admin-empty">No candidates in flight. All applicants are at a closed stage.</div>
             ) : req.loop.length === 0 ? (
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Candidate</th>
-                    <th>Stage</th>
-                    <th>Rating</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {req.grid.map((row) => (
-                    <tr key={row.applicationId}>
-                      <td>{row.name}</td>
-                      <td>{row.stageName ?? "-"}</td>
-                      <td>{row.rating ?? "-"}</td>
+              <div className="admin-table-scroll">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Stage</th>
+                      <th>Interviews</th>
+                      {canManage && <th style={{ textAlign: "right" }}>Actions</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {req.grid.map((row) => (
+                      <tr key={row.applicationId}>
+                        <td>
+                          <div>{row.name}</div>
+                          {row.rating != null && (
+                            <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                              AI screen {row.rating}
+                            </div>
+                          )}
+                        </td>
+                        <td>{row.stageName ?? "-"}</td>
+                        <td>
+                          {row.interviews.length === 0 ? (
+                            <span className="admin-cell-muted">No interviews yet</span>
+                          ) : (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {row.interviews.map((iv) => (
+                                <InterviewOutcomeChip key={iv.interviewId} iv={iv} />
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        {canManage && (
+                          <td style={{ textAlign: "right" }}>
+                            <CandidateActions
+                              applicationId={row.applicationId}
+                              canRequestBooking={row.atInterview && row.interviews.length === 0}
+                              bookingRequested={Boolean(row.bookingRequestedAt)}
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="admin-table-scroll">
                 <table className="admin-table">

@@ -17,7 +17,7 @@
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
 import { getLoopsForRequisitions, type LoopStep } from "@/lib/ats/loop";
-import { isAiPanelist } from "@/lib/admin/interview-panel";
+import { isAiPanelist, recommendationFromDb, type RecommendationKey } from "@/lib/admin/interview-panel";
 
 type PersonRow = { full_name: string | null; preferred_name: string | null; email: string | null };
 
@@ -81,9 +81,30 @@ export type HiringGridRow = {
   stageName: string | null;
   atInterview: boolean;
   cells: GridCell[]; // aligned to HiringReq.loop order
+  // Every interview this candidate has had or has booked, with its outcome.
+  // Populated for all reqs so the in-flight list shows feedback even when the
+  // role has no loop template (and there is therefore no grid to read it from).
+  interviews: CandidateInterview[];
   // When a manager has already asked recruiting to book (metadata stamp), so the
   // grid shows "requested" instead of offering the button again.
   bookingRequestedAt: string | null;
+};
+
+// One of a candidate's interviews, summarised for the in-flight list: what round
+// it was, when, and how the human panel came down (recommendations + average
+// score). Clicking through opens the kit with the full scorecards.
+export type CandidateInterview = {
+  interviewId: string;
+  label: string;
+  scheduledAt: string | null;
+  humanSeats: number;
+  submitted: number;
+  recommendations: RecommendationKey[];
+  avgScore: number | null;
+  // Blind-first: false when the viewer is a panelist on this interview who has
+  // not submitted their own scorecard yet. The panel's outcome is withheld until
+  // they do, so seeing it here cannot anchor them.
+  revealed: boolean;
 };
 
 export type MyLoopSlot = {
@@ -143,6 +164,16 @@ const SAIGON_TZ = "Asia/Ho_Chi_Minh";
 // YYYY-MM-DD for a moment, as seen in Saigon. en-CA formats ISO-style.
 function saigonDateKey(d: Date): string {
   return d.toLocaleDateString("en-CA", { timeZone: SAIGON_TZ });
+}
+
+// A short round name for an interview: the loop step if it has one, else the
+// interview title, unless that is a noisy calendar-invite title, in which case
+// just "Interview".
+function roundLabel(stepName: string | null | undefined, title: string | null): string {
+  if (stepName && stepName.trim()) return stepName.trim();
+  const t = (title ?? "").trim();
+  if (t && t.length <= 40 && !/invit/i.test(t)) return t;
+  return "Interview";
 }
 
 // Interviews carrying no scorecard need are skipped from the scorecard-due
@@ -290,12 +321,16 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   type IvRow = {
     id: string;
     loopStepId: string | null;
+    label: string;
     scheduledAt: string | null;
     durationMinutes: number | null;
     status: string | null;
     mode: string | null;
     humanSeats: number;
     submittedHuman: number;
+    recommendations: RecommendationKey[];
+    avgScore: number | null;
+    revealed: boolean;
   };
   const ivByApp = new Map<string, IvRow[]>();
   const bookedByStep = new Map<string, BookedInterview[]>();
@@ -305,9 +340,10 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     const { data: ivRows } = await companyOs
       .from("interviews")
       .select(
-        "id, application_id, loop_step_id, scheduled_at, duration_minutes, status, mode, " +
+        "id, application_id, loop_step_id, scheduled_at, duration_minutes, status, mode, title, " +
+          "requisition_loop_steps:requisition_loop_steps!loop_step_id ( name ), " +
           "interview_interviewers ( interviewer_id, people!interviewer_id ( email, metadata ) ), " +
-          "interview_scorecards ( interviewer_id, submitted_at )",
+          "interview_scorecards ( interviewer_id, submitted_at, recommendation, overall_score )",
       )
       .in("application_id", appIds);
 
@@ -325,18 +361,51 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
       }
       const scorecards = (raw.interview_scorecards ?? []) as Record<string, unknown>[];
       let submittedHuman = 0;
+      let actorSubmitted = false;
+      const recommendations: RecommendationKey[] = [];
+      const overallScores: number[] = [];
       for (const sc of scorecards) {
-        if (sc.submitted_at && humanSeatIds.has(sc.interviewer_id as string)) submittedHuman += 1;
+        if (!(sc.submitted_at && humanSeatIds.has(sc.interviewer_id as string))) continue;
+        submittedHuman += 1;
+        if ((sc.interviewer_id as string) === actor.personId) actorSubmitted = true;
+        const rec = recommendationFromDb(sc.recommendation as string | null);
+        if (rec) recommendations.push(rec);
+        const ov = sc.overall_score as number | null;
+        if (ov != null) overallScores.push(ov);
       }
+      // If the viewer sits on this interview, the outcome stays blind until they
+      // have filed their own scorecard.
+      const revealed = !humanSeatIds.has(actor.personId) || actorSubmitted;
+      const avgScore =
+        overallScores.length > 0
+          ? Math.round((overallScores.reduce((s, n) => s + n, 0) / overallScores.length) * 10) / 10
+          : null;
 
       const loopStepId = (raw.loop_step_id as string | null) ?? null;
       const scheduledAt = (raw.scheduled_at as string | null) ?? null;
       const durationMinutes = (raw.duration_minutes as number | null) ?? null;
       const status = (raw.status as string | null) ?? null;
       const mode = (raw.mode as string | null) ?? null;
+      const label = roundLabel(
+        one(raw.requisition_loop_steps as Record<string, unknown> | Record<string, unknown>[] | null)?.name as string | null,
+        raw.title as string | null,
+      );
 
       const list = ivByApp.get(appId) ?? [];
-      list.push({ id: raw.id as string, loopStepId, scheduledAt, durationMinutes, status, mode, humanSeats: humanSeatIds.size, submittedHuman });
+      list.push({
+        id: raw.id as string,
+        loopStepId,
+        label,
+        scheduledAt,
+        durationMinutes,
+        status,
+        mode,
+        humanSeats: humanSeatIds.size,
+        submittedHuman,
+        recommendations,
+        avgScore,
+        revealed,
+      });
       ivByApp.set(appId, list);
 
       if (loopStepId === null) {
@@ -392,6 +461,19 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
       if (stage?.is_terminal) continue; // the grid tracks candidates still in flight
       const atInterview = stage != null && interviewStageId != null && stage.id === interviewStageId;
       const ivs = ivByApp.get(c.applicationId) ?? [];
+      const interviews: CandidateInterview[] = ivs
+        .slice()
+        .sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime())
+        .map((iv) => ({
+          interviewId: iv.id,
+          label: iv.label,
+          scheduledAt: iv.scheduledAt,
+          humanSeats: iv.humanSeats,
+          submitted: iv.submittedHuman,
+          recommendations: iv.recommendations,
+          avgScore: iv.avgScore,
+          revealed: iv.revealed,
+        }));
       const booked = req.loop.map((step) => cellForStep(step.id, ivs));
       const firstUnbookedIdx = booked.findIndex((cell) => cell === null);
       const cells: GridCell[] = booked.map((cell, idx) => {
@@ -407,6 +489,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
         stageName: c.stageName,
         atInterview,
         cells,
+        interviews,
         bookingRequestedAt: bookingReqByApp.get(c.applicationId) ?? null,
       });
     }
