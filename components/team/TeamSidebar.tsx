@@ -28,14 +28,15 @@ function companyGroup(): NavGroup {
 }
 
 // Coaching appears only for actors who coach >=1 person (coaching_profiles
-// rows, not the manager role, dotted-line coaches included). Hiring is the
-// other way round: it is the org chart's, so it follows the manager role.
-function myTeamGroup(isCoach: boolean, isManager: boolean): NavGroup {
+// rows, not the manager role, dotted-line coaches included). Hiring follows the
+// same idea, not the org "manager" role: it shows only to hiring managers, i.e.
+// people who own a requisition (or admins). See isHiringManager in lib/team/hiring.
+function myTeamGroup(isCoach: boolean, isHiringManager: boolean): NavGroup {
   return {
     label: "My Team",
     items: [
       ...(isCoach ? [{ label: "Coaching", href: "/team/coaching", ico: "◎", enabled: true }] : []),
-      ...(isManager ? [{ label: "Hiring", href: "/team/hiring", ico: "◇", enabled: true }] : []),
+      ...(isHiringManager ? [{ label: "Hiring", href: "/team/hiring", ico: "◇", enabled: true }] : []),
       { label: "Onboarding", href: "/team/onboarding", ico: "◐", enabled: true },
       { label: "Approvals", href: "/team/approvals", ico: "✓" },
     ],
@@ -91,6 +92,7 @@ export function TeamSidebar({
   isCoach = false,
   isCoached = false,
   hasClients = false,
+  isHiringManager = false,
 }: {
   name: string;
   role: TeamRole;
@@ -99,6 +101,8 @@ export function TeamSidebar({
   isCoached?: boolean;
   // Team members assigned to a client see a "Clients" link under Me.
   hasClients?: boolean;
+  // Hiring managers (req owners, or admins) see the Hiring link.
+  isHiringManager?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
@@ -113,7 +117,9 @@ export function TeamSidebar({
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
     // Widening scope: me, then my team, then the company.
     meGroup(isCoached, hasClients),
-    ...(role === "manager" || isCoach ? [myTeamGroup(isCoach, role === "manager")] : []),
+    ...(role === "manager" || isCoach || isHiringManager
+      ? [myTeamGroup(isCoach, isHiringManager)]
+      : []),
     companyGroup(),
   ];
   const userInitials = initials(name);

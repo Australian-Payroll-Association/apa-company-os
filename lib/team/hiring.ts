@@ -1,16 +1,12 @@
-// /team/hiring, the manager's read on open roles: what is open, who is in
-// flight, what the loop is, and where the manager personally sits in it.
+// /team/hiring, the hiring manager's read on their roles: what is open, who is
+// in flight, what the loop is, and where they personally sit in it.
 //
-// SCOPE: the manager's department, read from team_members.department_id.
-// NOT positions.department_id: a position row is shared by everyone holding
-// that title, so "AI Engineer" is one row spanning three clients and Product,
-// and a department there would be meaningless. Department is a property of the
-// person.
-//
-// Admins see every open req regardless of department: a founder scoped to one
-// department loses sight of the company's hiring, which is the opposite of the
-// point. A manager with no department on file also sees everything, so a
-// missing row never yields a blank page.
+// SCOPE is by hiring ownership, and only that. A non-admin sees only the reqs
+// they are the hiring_manager_id of; admins (who also have /admin/talent) see
+// all. Being an org "manager" (having direct reports) or an interview panelist
+// does NOT grant access to the board: a panelist reaches only their own kit, by
+// link. isHiringManager() is the single gate the page and the sidebar both use,
+// so a non-hiring-manager never sees the board, its link, or any req.
 //
 // Read-only throughout: hiring is written from /admin.
 
@@ -138,7 +134,6 @@ export type TeamHiring = {
   // list so active roles stay in focus, but still openable read-only.
   closedReqs: HiringReq[];
   mySlots: MyLoopSlot[];
-  departmentScoped: boolean;
 };
 
 // A booked interview this manager personally sits on, seen from the day view:
@@ -196,20 +191,25 @@ const SCORECARD_DUE_WINDOW_DAYS = 30;
 // and kit become its only home.
 const RECENTLY_SCORED_WINDOW_DAYS = 3;
 
-// The actor's own department. Null means "not filed", which reads as no filter.
-async function actorDepartmentId(actor: TeamActor): Promise<string | null> {
-  const { data } = await companyOs
-    .from("team_members")
-    .select("department_id")
-    .eq("id", actor.teamMemberId)
-    .maybeSingle();
-  return (data as { department_id: string | null } | null)?.department_id ?? null;
+// Whether this person may see the hiring board at all: an admin, or the hiring
+// manager on at least one requisition (any status). Org "manager" role (having
+// direct reports) and interview-panel seats do NOT grant access; a panelist
+// reaches only their own interview kit, by link. Used by the page gate and the
+// sidebar nav so a non-hiring-manager never sees the board or its link.
+export async function isHiringManager(actor: TeamActor): Promise<boolean> {
+  if (actor.isAdmin) return true;
+  const { count } = await companyOs
+    .from("job_requisitions")
+    .select("id", { count: "exact", head: true })
+    .eq("hiring_manager_id", actor.personId);
+  return (count ?? 0) > 0;
 }
 
 export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
-  // Admins are deliberately unscoped, see the note at the top of the file.
-  const departmentId = actor.isAdmin ? null : await actorDepartmentId(actor);
-
+  // Scope is by hiring ownership, not org role: a non-admin sees only the reqs
+  // they are the hiring manager of. Admins oversee all hiring (they also have
+  // /admin/talent). There is no department-wide or people-manager fallback, so
+  // someone who owns no reqs gets an empty result.
   const reqSelect =
     "id, title, status, headcount, location, employment_type, opened_at, closed_at, hiring_manager_id, " +
     "people:people!hiring_manager_id(full_name, preferred_name, email)";
@@ -219,9 +219,9 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     .select(reqSelect)
     .in("status", OPEN_STATUSES)
     .order("opened_at", { ascending: false });
-  if (departmentId) openQuery = openQuery.eq("department_id", departmentId);
+  if (!actor.isAdmin) openQuery = openQuery.eq("hiring_manager_id", actor.personId);
 
-  // Recently closed roles, same department scope, newest first, capped.
+  // Recently closed roles I own, newest first, capped.
   const closedCutoff = new Date(Date.now() - CLOSED_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   let closedQuery = companyOs
     .from("job_requisitions")
@@ -230,7 +230,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     .gte("closed_at", closedCutoff)
     .order("closed_at", { ascending: false })
     .limit(CLOSED_CAP);
-  if (departmentId) closedQuery = closedQuery.eq("department_id", departmentId);
+  if (!actor.isAdmin) closedQuery = closedQuery.eq("hiring_manager_id", actor.personId);
 
   const [{ data: openRows }, { data: closedRows }] = await Promise.all([openQuery, closedQuery]);
   // One enrichment pass covers both; they are partitioned back apart at the end.
@@ -239,7 +239,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
     ...((closedRows ?? []) as unknown as Record<string, unknown>[]),
   ];
   if (reqs.length === 0) {
-    return { reqs: [], closedReqs: [], mySlots: [], departmentScoped: Boolean(departmentId) };
+    return { reqs: [], closedReqs: [], mySlots: [] };
   }
   const reqIds = reqs.map((r) => r.id as string);
 
@@ -548,7 +548,7 @@ export async function getTeamHiring(actor: TeamActor): Promise<TeamHiring> {
   }
   mySlots.sort((a, b) => a.reqTitle.localeCompare(b.reqTitle) || a.position - b.position);
 
-  return { reqs: openReqs, closedReqs, mySlots, departmentScoped: Boolean(departmentId) };
+  return { reqs: openReqs, closedReqs, mySlots };
 }
 
 // The manager's day: every booked interview they personally sit on that is
