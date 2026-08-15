@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDate, humanize, timeAgo } from "@/lib/admin/format";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { PersonSelect } from "@/components/admin/PersonSelect";
+import { Expandable } from "@/components/admin/Expandable";
 import {
   EditableDate,
   EditableLink,
@@ -90,6 +91,10 @@ const toDateInput = (v: string | null): string => {
 };
 
 const ok = (): InlineSaveResult => ({ ok: true });
+
+// Collapsed height shared by the AI screen and the HR assessment, so the two
+// paired reads clamp to the same fixed height with a Show more toggle.
+const AI_COLLAPSED_HEIGHT = 232;
 
 // The whole recruiter workspace for one application: a sticky decision header, a
 // clickable pipeline strip, and a two-pane body (what you read to judge on the
@@ -699,6 +704,8 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
               <span>/5</span>
             </div>
           )}
+          <Expandable collapsedHeight={AI_COLLAPSED_HEIGHT}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ whiteSpace: "pre-wrap", color: "var(--admin-ink-2)", maxWidth: "68ch" }}>{s.overview}</div>
           {s.skills.length > 0 && (
             <ul className="appdet-ai-points">
@@ -726,6 +733,8 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
               })}
             </ul>
           )}
+          </div>
+          </Expandable>
         </div>
       ) : (
         extras.aiStatus !== "failed" && extras.aiStatus !== "pending" && <div className="admin-hint">No screen result yet.</div>
@@ -973,6 +982,7 @@ function AssessmentCard({ appId, hrAssessment }: { appId: string; hrAssessment: 
       <EditableTextarea
         value={hrAssessment ?? ""}
         rows={6}
+        collapsedHeight={AI_COLLAPSED_HEIGHT}
         placeholder="Strengths, concerns, anything the interview surfaced that the resume missed…"
         ariaLabel="HR assessment"
         onSave={(v) => updateApplication(appId, { hr_assessment: v.trim() || null }).then((r) => (r.ok ? ok() : r))}

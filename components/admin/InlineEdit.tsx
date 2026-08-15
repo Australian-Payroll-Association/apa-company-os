@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { formatDate } from "@/lib/admin/format";
+import { Expandable } from "@/components/admin/Expandable";
 
 // Read-first click-to-edit fields for record detail rails: a value renders as
 // text and swaps to an input on click, committing on blur / Enter and reporting
@@ -236,12 +237,16 @@ export function EditableTextarea({
   placeholder = "Add…",
   ariaLabel,
   rows = 3,
+  collapsedHeight,
 }: {
   value: string;
   onSave: Save;
   placeholder?: string;
   ariaLabel?: string;
   rows?: number;
+  // When set, the read view clamps to this height with a Show more toggle. The
+  // edit textarea is never clamped.
+  collapsedHeight?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -265,7 +270,7 @@ export function EditableTextarea({
   }
 
   if (!editing) {
-    return (
+    const display = (
       <div className="admin-editable-row">
         <button
           type="button"
@@ -286,6 +291,7 @@ export function EditableTextarea({
         <SaveNote saving={saving} error={error} />
       </div>
     );
+    return collapsedHeight ? <Expandable collapsedHeight={collapsedHeight}>{display}</Expandable> : display;
   }
   return (
     <textarea
