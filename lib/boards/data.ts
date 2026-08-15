@@ -86,6 +86,38 @@ export async function listBoards(): Promise<BoardListItem[]> {
   }));
 }
 
+// Options for board settings: active team people (member picker) + client
+// companies (the board's client link). Admin management surfaces only.
+export type ManageOptions = { team: BoardPerson[]; clients: { id: string; name: string }[] };
+
+export async function listBoardManageOptions(): Promise<ManageOptions> {
+  const [tmRes, coRes] = await Promise.all([
+    companyOs
+      .from("team_members")
+      .select("status, people:people!person_id(id, display_name, full_name, email)")
+      .in("status", ["active", "on_leave", "notice", "pre_start"]),
+    companyOs
+      .from("companies")
+      .select("id, name")
+      .in("lifecycle_stage", ["customer", "evangelist"])
+      .is("archived_at", null)
+      .order("name"),
+  ]);
+
+  type PersonEmbed = { id: string; display_name: string | null; full_name: string | null; email: string };
+  const seen = new Set<string>();
+  const team: BoardPerson[] = [];
+  for (const r of (tmRes.data ?? []) as { people: PersonEmbed | PersonEmbed[] | null }[]) {
+    const p = Array.isArray(r.people) ? r.people[0] : r.people;
+    if (!p || seen.has(p.id)) continue;
+    seen.add(p.id);
+    team.push({ id: p.id, name: p.display_name || p.full_name || p.email });
+  }
+  team.sort((a, b) => a.name.localeCompare(b.name));
+  const clients = (coRes.data ?? []) as { id: string; name: string }[];
+  return { team, clients };
+}
+
 // Light list for pickers (e.g. push a commitment to a board).
 export async function listActiveBoards(): Promise<{ id: string; slug: string; name: string }[]> {
   const { data } = await companyOs

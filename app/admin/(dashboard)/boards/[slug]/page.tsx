@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHead } from "@/components/admin/PageHead";
-import { getBoardBySlug } from "@/lib/boards/data";
+import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { BoardView } from "./BoardView";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,7 @@ export const metadata = {
 export default async function BoardDetailPage({ params }: { params: { slug: string } }) {
   const detail = await getBoardBySlug(params.slug);
   if (!detail) notFound();
+  const options = await listBoardManageOptions();
 
   const { board } = detail;
   return (
@@ -28,7 +29,7 @@ export default async function BoardDetailPage({ params }: { params: { slug: stri
             : "Cards move, promises get kept."
         }
       />
-      <BoardView detail={detail} />
+      <BoardView detail={detail} canManage teamOptions={options.team} clientOptions={options.clients} />
     </>
   );
 }

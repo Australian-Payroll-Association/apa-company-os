@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
-import { listBoards } from "@/lib/boards/data";
+import { listBoards, listBoardManageOptions } from "@/lib/boards/data";
+import { NewBoardForm } from "./NewBoardForm";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -12,7 +13,7 @@ export const metadata = {
 };
 
 export default async function BoardsPage() {
-  const boards = await listBoards();
+  const [boards, options] = await Promise.all([listBoards(), listBoardManageOptions()]);
 
   return (
     <>
@@ -21,6 +22,8 @@ export default async function BoardsPage() {
         title="Boards"
         sub="Trello-style boards for client projects, our own products, and day-to-day work."
       />
+
+      <NewBoardForm clients={options.clients} />
 
       {boards.length === 0 ? (
         <div className="admin-card admin-section-card">
