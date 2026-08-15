@@ -380,8 +380,21 @@ function DecisionHeader(props: {
         <div className="appdet-head-id">
           <h1 className="appdet-head-title">
             <span>{props.name}</span>
-            {props.stageName && <Badge tone="info">{props.stageName}</Badge>}
-            {props.status !== "active" && <Badge tone={statusTone(props.status)}>{humanize(props.status)}</Badge>}
+            {(() => {
+              // Stage and status are different axes, but on a terminal stage they
+              // read the same word (both "Rejected"/"Hired"). Show one badge then,
+              // toned by the status; otherwise show the stage and, if not active,
+              // the status.
+              const statusLabel = humanize(props.status);
+              const showStatus = props.status !== "active";
+              const dup = props.stageName != null && showStatus && props.stageName.toLowerCase() === statusLabel.toLowerCase();
+              return (
+                <>
+                  {props.stageName && !dup && <Badge tone="info">{props.stageName}</Badge>}
+                  {showStatus && <Badge tone={statusTone(props.status)}>{statusLabel}</Badge>}
+                </>
+              );
+            })()}
             <HeaderStars value={props.rating} onChange={props.onRate} />
           </h1>
           <div className="appdet-head-meta">
@@ -608,7 +621,11 @@ function PipelineStrip({
   }
   if (!stages.length) return null;
 
-  const currentIdx = stages.findIndex((s) => s.id === stageId);
+  // Terminal stages (Hired / Rejected) are parallel outcomes, not sequential
+  // steps. Show only the current terminal one, so a rejected candidate doesn't
+  // render "Hired" as a completed step sitting before "Rejected".
+  const shown = stages.filter((s) => !s.isTerminal || s.id === stageId);
+  const currentIdx = shown.findIndex((s) => s.id === stageId);
 
   function ageLabel(): string | null {
     if (!mounted) return null;
@@ -622,7 +639,7 @@ function PipelineStrip({
 
   return (
     <div className="appdet-pipe" role="list" aria-label="Hiring stages">
-      {stages.map((s, i) => {
+      {shown.map((s, i) => {
         const state = i < currentIdx ? "done" : i === currentIdx ? "now" : "todo";
         const age = state === "now" ? ageLabel() : null;
         return (
@@ -640,7 +657,7 @@ function PipelineStrip({
                 {age && <span className="appdet-step-sub">{age}</span>}
               </span>
             </button>
-            {i < stages.length - 1 && <span className="appdet-step-bar" />}
+            {i < shown.length - 1 && <span className="appdet-step-bar" />}
           </div>
         );
       })}
@@ -657,15 +674,15 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
   const s = extras.aiSummary;
   return (
     <section className="admin-card admin-section-card">
-      <div className="admin-section-label" style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <span>AI screen{extras.aiRating != null ? ` — ${extras.aiRating}/5` : ""}</span>
+      <div className="admin-section-label" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span>AI screen</span>
         <span style={{ display: "inline-flex", gap: 10, letterSpacing: 0, textTransform: "none", fontWeight: 500 }}>
+          {extras.aiScreenedAt && <span className="admin-cell-muted">{formatDate(extras.aiScreenedAt)}</span>}
           {resumeDocumentId && (
             <a href={`/admin/talent/resume/${resumeDocumentId}`} target="_blank" rel="noreferrer">
               Resume ↗
             </a>
           )}
-          {extras.aiScreenedAt && <span className="admin-cell-muted">{formatDate(extras.aiScreenedAt)}</span>}
         </span>
       </div>
       {extras.aiStatus === "failed" && extras.aiError && (
@@ -674,17 +691,26 @@ function AiScreenCard({ extras, resumeDocumentId }: { extras: ApplicationExtras;
       {extras.aiStatus === "pending" && <div className="admin-hint">Screen in progress…</div>}
       {s ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {extras.aiRating != null && (
+            <div className="appdet-ai-score">
+              {extras.aiRating}
+              <span>/5</span>
+            </div>
+          )}
           <div style={{ whiteSpace: "pre-wrap", color: "var(--admin-ink-2)", maxWidth: "68ch" }}>{s.overview}</div>
           {s.skills.length > 0 && (
             <ul className="appdet-ai-points">
               {s.skills.map((sk, j) => {
-                // The model writes many points as "Label: detail" — bold the label
-                // when there is a short one. These are full sentences, not tags, so
-                // they wrap as a list rather than overflow as nowrap chips.
+                // The model writes many points as "Label: detail" — bold the label.
+                // These are full sentences, not tags, so they wrap as a list. Tint
+                // each by sentiment (strength vs concern) to echo the screen chips.
                 const c = sk.indexOf(": ");
                 const label = c > 0 && c < 48 ? sk.slice(0, c) : null;
+                const neg = /\b(gaps?|concerns?|risks?|no |not |lack|limited|missing|weak|inconsisten|unclear|reliab|however|but )/i.test(
+                  label ?? sk,
+                );
                 return (
-                  <li key={j}>
+                  <li key={j} className={`appdet-ai-point appdet-ai-point--${neg ? "neg" : "pos"}`}>
                     {label ? (
                       <>
                         <strong>{label}:</strong>
@@ -886,7 +912,7 @@ function SignalsCard(props: {
       <dl className="admin-kv admin-kv--editable">
         <dt>English</dt>
         <dd>
-          <EditableText value={props.englishProficiency ?? ""} placeholder={english ? `AI: ${english}` : "Add…"} ariaLabel="English proficiency"
+          <EditableText value={props.englishProficiency ?? ""} fallback={english} placeholder="Add…" ariaLabel="English proficiency"
             onSave={(v) => updateApplicantProfile(props.personId, { english_proficiency: v.trim() || null })} />
         </dd>
         <dt>Salary</dt>
@@ -900,7 +926,7 @@ function SignalsCard(props: {
         </dd>
         <dt>Notice</dt>
         <dd>
-          <EditableText value={props.noticePeriod ?? ""} placeholder={notice ? `AI: ${notice}` : "Add…"} ariaLabel="Notice period"
+          <EditableText value={props.noticePeriod ?? ""} fallback={notice} placeholder="Add…" ariaLabel="Notice period"
             onSave={(v) => updateApplicantProfile(props.personId, { notice_period: v.trim() || null })} />
         </dd>
         <dt>Pool</dt>
