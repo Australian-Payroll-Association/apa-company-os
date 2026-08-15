@@ -1,7 +1,8 @@
 # Task Boards: development plan
 
-Trello-style boards in Edge8 OS, tied to coaching commitments, with agents as
-board users. Product plan: `public/workflows/private/e8/task-board-product-plan.html`.
+Trello-style boards in Edge8 OS for client projects, our own products, and
+day-to-day work, with agents as board users. Product plan:
+`public/workflows/private/e8/task-board-product-plan.html`.
 Mockup: `public/workflows/private/e8/task-board-mockup.html`.
 
 Ground rules for the whole build:
