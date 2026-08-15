@@ -432,3 +432,38 @@ export async function archiveBoard(boardId: string): Promise<Result> {
   revalidatePath("/team/boards", "layout");
   return { ok: true };
 }
+
+// ── Subtasks (checklist under a card) ─────────────────────────────────────
+export async function addSubtask(parentTaskId: string, title: string, boardSlug: string): Promise<Result> {
+  const { data: parent } = await companyOs.from("tasks").select("board_id").eq("id", parentTaskId).maybeSingle();
+  if (!parent) return { ok: false, error: "Card not found." };
+  const boardId = (parent as { board_id: string }).board_id;
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+  const t = title?.trim();
+  if (!t) return { ok: false, error: "Give the subtask a title." };
+  const { data, error } = await companyOs
+    .from("tasks")
+    .insert({ board_id: boardId, parent_task_id: parentTaskId, title: t, status: "open", priority: "p3", position: 0 })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "tasks", recordId: data.id, operation: "insert", actor: actor.label, newData: { parent_task_id: parentTaskId, title: t } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+export async function toggleSubtask(subtaskId: string, done: boolean, boardSlug: string): Promise<Result> {
+  const { data: st } = await companyOs.from("tasks").select("board_id").eq("id", subtaskId).maybeSingle();
+  if (!st) return { ok: false, error: "Subtask not found." };
+  const actor = await boardActorFor((st as { board_id: string }).board_id);
+  if (!actor) return { ok: false, error: DENIED };
+  const { error } = await companyOs
+    .from("tasks")
+    .update({ status: done ? "done" : "open", completed_at: done ? new Date().toISOString() : null })
+    .eq("id", subtaskId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "tasks", recordId: subtaskId, operation: "update", actor: actor.label, newData: { status: done ? "done" : "open" } });
+  refresh(boardSlug);
+  return { ok: true };
+}

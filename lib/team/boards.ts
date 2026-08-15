@@ -78,6 +78,7 @@ export async function getMyWork(actor: TeamActor): Promise<MyWork> {
     .select("id, title, priority, due_date, board_id, board_column_id")
     .eq("assignee_id", actor.personId)
     .neq("status", "done")
+    .is("parent_task_id", null)
     .is("archived_at", null);
   const rows = (taskData ?? []) as {
     id: string;
