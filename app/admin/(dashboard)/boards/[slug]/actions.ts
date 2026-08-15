@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "@/lib/admin/audit";
+import { requireAdmin } from "@/lib/admin-auth";
 import { type Result } from "@/lib/admin/mutations";
 import { boardActorFor } from "@/lib/boards/access";
 import { TASK_PRIORITIES, SUBJECT_COMMITMENT, SUBJECT_BACKLOG_ITEM, type TaskPriority } from "@/lib/boards/types";
@@ -371,5 +372,63 @@ export async function closeSprint(
     newData: { status: "closed", rolled: ids.length, to: rolloverToSprintId },
   });
   refresh(boardSlug);
+  return { ok: true };
+}
+
+
+// ── Board management (admin only) ─────────────────────────────────────────
+export async function addBoardMember(boardId: string, personId: string, boardSlug: string): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!personId) return { ok: false, error: "Pick a person." };
+  const { error } = await companyOs
+    .from("board_members")
+    .upsert({ board_id: boardId, person_id: personId, role: "member" }, { onConflict: "board_id,person_id", ignoreDuplicates: true });
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "board_members", recordId: boardId, operation: "insert", actor: admin.email, newData: { person_id: personId } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+export async function removeBoardMember(boardId: string, personId: string, boardSlug: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs.from("board_members").delete().eq("board_id", boardId).eq("person_id", personId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "board_members", recordId: boardId, operation: "delete", actor: admin.email, context: { person_id: personId } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+export async function updateBoard(
+  boardId: string,
+  patch: { name?: string; clientCompanyId?: string | null },
+  boardSlug: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const updates: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    const n = patch.name.trim();
+    if (!n) return { ok: false, error: "The board needs a name." };
+    updates.name = n;
+  }
+  if (patch.clientCompanyId !== undefined) updates.client_company_id = patch.clientCompanyId || null;
+  if (Object.keys(updates).length === 0) return { ok: true };
+  const { error } = await companyOs.from("boards").update(updates).eq("id", boardId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "boards", recordId: boardId, operation: "update", actor: admin.email, newData: updates });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+export async function archiveBoard(boardId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs
+    .from("boards")
+    .update({ archived_at: new Date().toISOString(), archived_by: admin.email })
+    .eq("id", boardId)
+    .is("archived_at", null);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "boards", recordId: boardId, operation: "archive", actor: admin.email });
+  revalidatePath("/admin/boards", "layout");
+  revalidatePath("/team/boards", "layout");
   return { ok: true };
 }

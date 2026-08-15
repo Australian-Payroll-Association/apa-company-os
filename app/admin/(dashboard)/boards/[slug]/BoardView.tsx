@@ -24,7 +24,7 @@ import {
   daysInColumn,
   type TaskPriority,
 } from "@/lib/boards/types";
-import type { BoardDetail, BoardCard } from "@/lib/boards/data";
+import type { BoardDetail, BoardCard, BoardPerson } from "@/lib/boards/data";
 import {
   createCard,
   moveCard,
@@ -35,6 +35,10 @@ import {
   closeSprint,
   setCardRoadmapItem,
   setCardInternal,
+  addBoardMember,
+  removeBoardMember,
+  updateBoard,
+  archiveBoard,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -59,7 +63,17 @@ type Form = {
   origInternal: boolean;
 };
 
-export function BoardView({ detail }: { detail: BoardDetail }) {
+export function BoardView({
+  detail,
+  canManage = false,
+  teamOptions = [],
+  clientOptions = [],
+}: {
+  detail: BoardDetail;
+  canManage?: boolean;
+  teamOptions?: BoardPerson[];
+  clientOptions?: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const { board, columns, members, cards: sourceCards, sprints, backlogItems } = detail;
   const slug = board.slug;
@@ -77,7 +91,50 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
   const [sprintsOpen, setSprintsOpen] = useState(false);
   const [sprintForm, setSprintForm] = useState({ name: "", startsOn: "", endsOn: "", goal: "" });
   const [rollTarget, setRollTarget] = useState<Record<string, string>>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [boardName, setBoardName] = useState(board.name);
+  const [boardClientId, setBoardClientId] = useState(board.client_company_id ?? "");
+  const [newMemberId, setNewMemberId] = useState("");
   const [saving, startSaving] = useTransition();
+
+  const memberIds = new Set(members.map((m) => m.id));
+  const addableMembers = teamOptions.filter((p) => !memberIds.has(p.id));
+
+  function saveSettings() {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await updateBoard(board.id, { name: boardName, clientCompanyId: boardClientId || null }, slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
+  function addMember() {
+    if (!newMemberId) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await addBoardMember(board.id, newMemberId, slug);
+      if (!r.ok) return setBanner(r.error);
+      setNewMemberId("");
+      router.refresh();
+    });
+  }
+  function removeMember(personId: string) {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await removeBoardMember(board.id, personId, slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
+  function archiveThisBoard() {
+    if (!confirm(`Archive board "${board.name}"? It disappears from everyone's boards.`)) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await archiveBoard(board.id);
+      if (!r.ok) return setBanner(r.error);
+      router.push("/admin/boards");
+    });
+  }
 
   const firstColumn = columns[0]?.id ?? "";
 
@@ -328,6 +385,11 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
         <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
           Sprints
         </button>
+        {canManage && (
+          <button className="admin-btn admin-btn--sm" onClick={() => setSettingsOpen(true)}>
+            Board settings
+          </button>
+        )}
         <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
           Amber clock = in column &gt; {AGING_DAYS} days
         </span>
@@ -646,6 +708,84 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
               ))}
             </div>
           )}
+        </div>
+      </DetailDrawer>
+
+      <DetailDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} eyebrow="Board" title="Board settings">
+        <div className="admin-form">
+          <div className="admin-field">
+            <label className="admin-label">Name</label>
+            <input className="admin-input" value={boardName} onChange={(e) => setBoardName(e.target.value)} />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Client</label>
+            <select
+              className="admin-select"
+              value={boardClientId}
+              onChange={(e) => setBoardClientId(e.target.value)}
+            >
+              <option value="">No client (internal board)</option>
+              {clientOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="admin-hint">A client board is read-only in that client&apos;s portal.</p>
+          </div>
+          <div className="admin-form-actions">
+            <button className="admin-btn admin-btn--primary" onClick={saveSettings} disabled={saving}>
+              Save
+            </button>
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <label className="admin-label">Members ({members.length})</label>
+            {members.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "7px 0",
+                  borderTop: "1px solid var(--admin-line)",
+                }}
+              >
+                <span className="admin-cell-strong" style={{ flex: 1 }}>
+                  {m.name}
+                </span>
+                <button className="admin-btn admin-btn--sm" onClick={() => removeMember(m.id)} disabled={saving}>
+                  Remove
+                </button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <select
+                className="admin-select"
+                value={newMemberId}
+                onChange={(e) => setNewMemberId(e.target.value)}
+                aria-label="Add member"
+                style={{ flex: 1 }}
+              >
+                <option value="">Add a member…</option>
+                {addableMembers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button className="admin-btn" onClick={addMember} disabled={saving || !newMemberId}>
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, borderTop: "1px solid var(--admin-line)", paddingTop: 12 }}>
+            <button className="admin-btn admin-btn--danger" onClick={archiveThisBoard} disabled={saving}>
+              Archive board
+            </button>
+          </div>
         </div>
       </DetailDrawer>
     </>
