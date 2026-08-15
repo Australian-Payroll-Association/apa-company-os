@@ -63,6 +63,13 @@ const SLOT_MODIFIER: Record<MyInterviewState, string> = {
   done: "done",
 };
 
+// How a closed role's outcome reads in the Closed roles section.
+const CLOSED_OUTCOME: Record<string, { className: string; label: string }> = {
+  filled: { className: "admin-badge admin-badge--ok", label: "Filled" },
+  closed: { className: "admin-badge", label: "Closed" },
+  cancelled: { className: "admin-badge admin-badge--err", label: "Cancelled" },
+};
+
 // One interview's outcome, as a chip: the round, how the human panel came down
 // (advance / hold / reject, or Split when they disagree) and the average score,
 // linking to the kit. This is how logged feedback shows on the in-flight list
@@ -155,7 +162,7 @@ export default async function TeamHiringPage() {
   const actor = await requireTeamMember();
   if (actor.role !== "manager") redirect("/team");
 
-  const [{ reqs, mySlots, departmentScoped }, myDay] = await Promise.all([
+  const [{ reqs, closedReqs, mySlots, departmentScoped }, myDay] = await Promise.all([
     getTeamHiring(actor),
     getMyInterviewDay(actor),
   ]);
@@ -432,6 +439,78 @@ export default async function TeamHiringPage() {
           </section>
           );
         })}
+
+        {closedReqs.length > 0 && (
+          <details className="admin-card coach-section">
+            <summary style={{ cursor: "pointer", listStyle: "revert" }}>
+              <span className="admin-card-title" style={{ display: "inline" }}>
+                Closed roles
+              </span>{" "}
+              <span className="admin-cell-muted">({closedReqs.length})</span>
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 14 }}>
+              {closedReqs.map((req) => {
+                const outcome = CLOSED_OUTCOME[req.status] ?? { className: "admin-badge", label: req.status };
+                return (
+                  <div key={req.id}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                      <strong>{req.title}</strong>
+                      <span className={outcome.className}>{outcome.label}</span>
+                      {req.closedAt && (
+                        <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+                          closed {fmt(req.closedAt)}
+                        </span>
+                      )}
+                    </div>
+                    {req.grid.length === 0 ? (
+                      <div className="admin-hint" style={{ marginTop: 6 }}>
+                        No candidates recorded.
+                      </div>
+                    ) : (
+                      <div className="admin-table-scroll" style={{ marginTop: 8 }}>
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Candidate</th>
+                              <th>Stage</th>
+                              <th>Interviews</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {req.grid.map((row) => (
+                              <tr key={row.applicationId}>
+                                <td>
+                                  <div>{row.name}</div>
+                                  {row.rating != null && (
+                                    <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                                      AI screen {row.rating}
+                                    </div>
+                                  )}
+                                </td>
+                                <td>{row.stageName ?? "-"}</td>
+                                <td>
+                                  {row.interviews.length === 0 ? (
+                                    <span className="admin-cell-muted">No interviews</span>
+                                  ) : (
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                      {row.interviews.map((iv) => (
+                                        <InterviewOutcomeChip key={iv.interviewId} iv={iv} />
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
       </div>
     </>
   );
