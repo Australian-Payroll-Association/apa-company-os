@@ -284,51 +284,79 @@ export async function resendPortalLinkCore(
 // result is always neutral (no account enumeration), and repeat requests for
 // the same email are throttled. The throttle map is per serverless instance —
 // best-effort, but the membership gate is the real limiter.
+//
+// The UI stays neutral, but every refusal is logged server-side: an OnTarget
+// contact's request once no-op'd with zero trace anywhere (no auth log, no
+// Resend record, no function log), which turned a support email into a
+// forensic dig. Silence toward the visitor must not mean silence in the logs.
 
 const SELF_SERVE_COOLDOWN_MS = 60_000;
 const lastSelfServeSend = new Map<string, number>();
 
-function throttled(email: string): boolean {
-  const now = Date.now();
-  const last = lastSelfServeSend.get(email) ?? 0;
-  if (now - last < SELF_SERVE_COOLDOWN_MS) return true;
-  lastSelfServeSend.set(email, now);
-  return false;
+function inCooldown(key: string): boolean {
+  return Date.now() - (lastSelfServeSend.get(key) ?? 0) < SELF_SERVE_COOLDOWN_MS;
+}
+
+// Recorded only after a successful send, so a member whose first attempt hit
+// a transient failure is not locked out of an immediate retry.
+function markSent(key: string): void {
+  lastSelfServeSend.set(key, Date.now());
+}
+
+function refuse(email: string, reason: string): null {
+  console.warn(`[portal-self-serve] refused for ${email}: ${reason}`);
+  return null;
 }
 
 // The auth user for `email`, but only when they hold an active portal
-// membership and are not banned; null (silently) otherwise.
+// membership and are not banned; null otherwise (neutral to the visitor,
+// logged for us). The CRM is the source of truth: the contact is looked up in
+// people by email, NOT via auth.admin.listUsers — a transient listUsers
+// failure used to read as "no such user" and refuse a legitimate member with
+// no trace. LIKE wildcards in the input are escaped so a crafted email like
+// %@example.com cannot match someone else's row.
 async function activePortalAuthUser(email: string): Promise<{ id: string } | null> {
-  const user = await findAuthUserByEmail(email);
-  if (!user) return null;
-  const { data: fullUser } = await supabase.auth.admin.getUserById(user.id);
-  if (!fullUser?.user || bannedUntil(fullUser.user)) return null;
-
-  const { data: people } = await companyOs
+  const { data: people, error: pErr } = await companyOs
     .from("people")
-    .select("id")
-    .eq("auth_user_id", user.id)
+    .select("id, auth_user_id")
+    .ilike("email", email.replace(/([%_\\])/g, "\\$1"))
     .is("archived_at", null);
-  const personIds = (people ?? []).map((p) => p.id as string);
-  if (personIds.length === 0) return null;
+  if (pErr) return refuse(email, `people lookup failed: ${pErr.message}`);
+  const rows = people ?? [];
+  if (rows.length === 0) return refuse(email, "no person with this email");
 
-  const { data: memberships } = await companyOs
+  const { data: memberships, error: mErr } = await companyOs
     .from("portal_members")
     .select("id")
-    .in("person_id", personIds)
+    .in("person_id", rows.map((p) => p.id as string))
     .eq("status", "active")
     .limit(1);
-  if ((memberships ?? []).length === 0) return null;
+  if (mErr) return refuse(email, `membership lookup failed: ${mErr.message}`);
+  if ((memberships ?? []).length === 0) return refuse(email, "no active portal membership");
 
-  return { id: user.id };
+  const authUserId = rows.map((p) => p.auth_user_id as string | null).find(Boolean) ?? null;
+  if (!authUserId) return refuse(email, "member has no auth user (not invited yet)");
+
+  const { data: fullUser, error: uErr } = await supabase.auth.admin.getUserById(authUserId);
+  if (uErr || !fullUser?.user) {
+    return refuse(email, `auth user ${authUserId} not found: ${uErr?.message ?? "no user"}`);
+  }
+  if (bannedUntil(fullUser.user)) return refuse(email, "auth user is banned");
+
+  return { id: authUserId };
 }
 
 // Self-serve "Send sign-in link". Always resolves — the login page shows the
 // same neutral notice whether or not an email went out.
 export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
   const email = rawEmail.trim().toLowerCase();
-  if (!email || throttled(email)) return;
-  if (!(await activePortalAuthUser(email))) return;
+  if (!email) return;
+  if (inCooldown(email)) {
+    refuse(email, "in cooldown");
+    return;
+  }
+  const member = await activePortalAuthUser(email);
+  if (!member) return;
 
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "magiclink",
@@ -336,10 +364,13 @@ export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
     options: { redirectTo: `${siteOrigin()}/portal/callback` },
   });
   const tokenHash = data?.properties?.hashed_token;
-  if (error || !tokenHash) return;
+  if (error || !tokenHash) {
+    refuse(email, `generateLink(magiclink) failed: ${error?.message ?? "no token_hash"}`);
+    return;
+  }
   const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=magiclink`;
 
-  await sendTransactionalEmail({
+  const sent = await sendTransactionalEmail({
     to: email,
     subject: "Your Edge8 Client Portal sign-in link",
     html: `
@@ -349,6 +380,8 @@ export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
     `,
     logMeta: { source: "portal_self_serve_link" },
   });
+  if (sent) markSent(email);
+  else refuse(email, "sign-in email send failed (see [email] log above)");
 }
 
 // Self-serve "Forgot password". Sends a recovery link through the same
@@ -356,8 +389,13 @@ export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
 // /portal/change-password to choose a new one. Always resolves (neutral).
 export async function sendSelfServePasswordReset(rawEmail: string): Promise<void> {
   const email = rawEmail.trim().toLowerCase();
-  if (!email || throttled(`reset:${email}`)) return;
-  if (!(await activePortalAuthUser(email))) return;
+  if (!email) return;
+  if (inCooldown(`reset:${email}`)) {
+    refuse(email, "reset in cooldown");
+    return;
+  }
+  const member = await activePortalAuthUser(email);
+  if (!member) return;
 
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "recovery",
@@ -365,10 +403,13 @@ export async function sendSelfServePasswordReset(rawEmail: string): Promise<void
     options: { redirectTo: `${siteOrigin()}/portal/change-password` },
   });
   const tokenHash = data?.properties?.hashed_token;
-  if (error || !tokenHash) return;
+  if (error || !tokenHash) {
+    refuse(email, `generateLink(recovery) failed: ${error?.message ?? "no token_hash"}`);
+    return;
+  }
   const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
 
-  await sendTransactionalEmail({
+  const sent = await sendTransactionalEmail({
     to: email,
     subject: "Reset your Edge8 Client Portal password",
     html: `
@@ -378,6 +419,8 @@ export async function sendSelfServePasswordReset(rawEmail: string): Promise<void
     `,
     logMeta: { source: "portal_self_serve_reset" },
   });
+  if (sent) markSent(`reset:${email}`);
+  else refuse(email, "reset email send failed (see [email] log above)");
 }
 
 // Ban horizon for revoked portal access. Banning (not deleting) keeps the
