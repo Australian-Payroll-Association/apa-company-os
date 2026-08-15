@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { PRIORITY_LABEL, PRIORITY_TONE } from "@/lib/boards/types";
-import type { MyWork } from "@/lib/team/boards";
+import type { MyWork, ActorBoard } from "@/lib/team/boards";
 import { moveCard } from "@/app/admin/(dashboard)/boards/[slug]/actions";
 
-export function MyTasks({ work }: { work: MyWork }) {
+export function MyTasks({ work, boards }: { work: MyWork; boards: ActorBoard[] }) {
   const router = useRouter();
   const [banner, setBanner] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -38,6 +38,28 @@ export function MyTasks({ work }: { work: MyWork }) {
           {banner}
         </div>
       )}
+
+      <section className="admin-card admin-section-card" style={{ marginBottom: 18 }}>
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
+          My boards <span className="admin-cell-muted">({boards.length})</span>
+        </h2>
+        {boards.length === 0 ? (
+          <span className="admin-cell-muted">You are not on any boards yet.</span>
+        ) : (
+          <div className="mp-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+            {boards.map((b) => (
+              <Link
+                key={b.id}
+                href={`/team/boards/${b.slug}`}
+                className="admin-card admin-section-card is-clickable"
+                style={{ display: "block", textDecoration: "none" }}
+              >
+                <span className="admin-cell-strong">{b.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="admin-card admin-section-card" style={{ marginBottom: 18 }}>
         <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
