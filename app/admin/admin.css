@@ -3901,9 +3901,18 @@ a.ideas-share-card:hover {
 
 /* AI screen points are full sentences, so they wrap as a list rather than
    overflow the card as nowrap chips (which pushed the whole page sideways). */
-.appdet-ai-points { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--admin-ink-2); font-size: 13px; max-width: 76ch; }
-.appdet-ai-points li { overflow-wrap: anywhere; }
-.appdet-ai-points strong { color: var(--admin-ink); font-weight: 600; }
+/* Big AI screen score, then the extracted points tinted by sentiment (a wrapping
+   echo of the mockup's green strength / amber concern chips). */
+.appdet-ai-score { font-size: 28px; font-weight: 700; line-height: 1; color: var(--admin-ink); font-variant-numeric: tabular-nums; }
+.appdet-ai-score span { margin-left: 2px; font-size: 14px; font-weight: 600; color: var(--admin-muted); }
+.appdet-ai-points { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.appdet-ai-point { overflow-wrap: anywhere; border-radius: var(--admin-radius-sm); padding: 7px 11px; font-size: 13px; }
+.appdet-ai-point strong { font-weight: 600; }
+.appdet-ai-point--pos { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.appdet-ai-point--neg { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+/* AI-screen fallback shown in a recruiter-override field until they set their own. */
+.admin-editable-fallback { color: var(--admin-muted); }
+.admin-editable-aitag { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--admin-ink-2); background: var(--admin-surface-2); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-pill); vertical-align: 1px; }
 /* Long rail values (email, url) stay inside the 312px rail. */
 .admin-kv--editable dd { min-width: 0; }
 .admin-kv--editable .admin-editable { overflow-wrap: anywhere; }

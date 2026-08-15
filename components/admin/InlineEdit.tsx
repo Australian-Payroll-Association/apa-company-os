@@ -47,6 +47,7 @@ export function EditableText({
   placeholder = "Add…",
   ariaLabel,
   render,
+  fallback,
 }: {
   value: string;
   onSave: Save;
@@ -54,6 +55,10 @@ export function EditableText({
   placeholder?: string;
   ariaLabel?: string;
   render?: (value: string) => ReactNode;
+  // Shown (with an "AI" tag) when the field is empty, in place of the placeholder —
+  // e.g. the AI-screen value a recruiter hasn't overridden yet. Editing starts
+  // empty, so saving records the recruiter's own value and the tag drops away.
+  fallback?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -89,7 +94,16 @@ export function EditableText({
             setEditing(true);
           }}
         >
-          {current ? render ? render(current) : current : <span className="admin-editable-empty">{placeholder}</span>}
+          {current ? (
+            render ? render(current) : current
+          ) : fallback ? (
+            <span className="admin-editable-fallback">
+              {fallback}
+              <span className="admin-editable-aitag">AI</span>
+            </span>
+          ) : (
+            <span className="admin-editable-empty">{placeholder}</span>
+          )}
         </button>
         <SaveNote saving={saving} error={error} />
       </span>
