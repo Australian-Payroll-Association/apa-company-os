@@ -194,10 +194,14 @@ export default async function DashboardPage() {
     }, 0);
   const cashBetween = (fromDate: string, toDate: string) => invoiceCash(fromDate, toDate) + stripeCash(fromDate, toDate);
 
-  // Per-company sub-line for the revenue tiles. Stripe checkout runs on
-  // edge8.ai, so its orders count on the Edge8 side of the split.
-  const entitySplit = (fromDate: string, toDate: string) =>
-    `Edge8 ${compactUsd(invoiceCash(fromDate, toDate, "edge8") + stripeCash(fromDate, toDate))} · AIO ${compactUsd(invoiceCash(fromDate, toDate, "aio"))}`;
+  // Per-company lines for the revenue tiles, one company per line. Stripe
+  // checkout runs on edge8.ai, so its orders count on the Edge8 side.
+  const entitySplit = (fromDate: string, toDate: string) => (
+    <>
+      <div>Edge8 {compactUsd(invoiceCash(fromDate, toDate, "edge8") + stripeCash(fromDate, toDate))}</div>
+      <div>AIO {compactUsd(invoiceCash(fromDate, toDate, "aio"))}</div>
+    </>
+  );
 
   const tomorrow = new Date(now.getTime() + MS_DAY).toISOString().slice(0, 10);
   const cash30 = cashBetween(date30, tomorrow);
@@ -319,12 +323,22 @@ export default async function DashboardPage() {
         <MetricCard
           label="Revenue · 30d"
           value={formatCents(cash30)}
-          sub={`${entitySplit(date30, tomorrow)} · ${vsPrior(cash30, cashPrev30, formatCents)}`}
+          sub={
+            <>
+              {entitySplit(date30, tomorrow)}
+              <div>{vsPrior(cash30, cashPrev30, formatCents)}</div>
+            </>
+          }
         />
         <MetricCard
           label="Revenue · YTD"
           value={formatCents(cashYtd)}
-          sub={`${entitySplit(yearStart, tomorrow)} · invoices + Stripe`}
+          sub={
+            <>
+              {entitySplit(yearStart, tomorrow)}
+              <div>invoices + Stripe</div>
+            </>
+          }
         />
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${openDeals.length} open deals`} href="/admin/revenue/deals" />
         <MetricCard label="AR outstanding" value={formatCents(arOutstanding)} sub={`${openInvoices.length} open invoices`} />
