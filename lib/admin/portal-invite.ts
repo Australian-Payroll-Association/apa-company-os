@@ -7,6 +7,7 @@
 // route's privileged-admin check); the self-serve functions gate themselves
 // on active portal membership.
 
+import { randomInt } from "crypto";
 import { headers } from "next/headers";
 import { supabase, companyOs } from "@/lib/supabase";
 import { isAdminEmail } from "@/lib/admin-auth";
@@ -265,6 +266,118 @@ export async function resendPortalLinkCore(
   });
 
   return { ok: true, message: "Sign-in link sent." };
+}
+
+// A readable, out-of-band temporary password: two capitalized words and four
+// digits (e.g. "Falcon-Harbor-3927"). Not meant to be strong at rest — it is
+// delivered by email (and shown once in the admin), must be changed on first
+// sign-in, and Supabase rate-limits sign-in attempts. Readability matters more
+// than entropy because the client often types it by hand or reads it over the
+// phone when their mail security has quarantined every link we sent.
+const TEMP_PW_WORDS = [
+  "Harbor", "Falcon", "Summit", "Cedar", "Maple", "Anchor", "Compass", "Meadow",
+  "Orchid", "Granite", "Lantern", "Osprey", "Willow", "Beacon", "Canyon", "Marigold",
+  "Juniper", "Cobalt", "Pebble", "Thistle", "Quartz", "Sable", "Verbena", "Wander",
+  "Cypress", "Dune", "Ember", "Fjord", "Glacier", "Heron", "Indigo", "Kestrel",
+  "Lark", "Mesa", "Nimbus", "Onyx", "Prairie", "Rowan", "Slate", "Tundra",
+];
+
+function generateTempPassword(): string {
+  const word = () => TEMP_PW_WORDS[randomInt(TEMP_PW_WORDS.length)];
+  return `${word()}-${word()}-${randomInt(1000, 10000)}`;
+}
+
+export type TempPasswordResult =
+  | { ok: true; message: string; password: string }
+  | { ok: false; error: string };
+
+// Set a temporary password for an already-provisioned portal member and email
+// it to them, flagged so the /portal layout forces a password change on first
+// sign-in (user_metadata.must_change_password, see ChangePasswordForm). This is
+// the deliberate fallback for clients whose mail security consumes or hides
+// every link we send: a password sign-in depends on no emailed link at all. The
+// generated password is returned to the caller so the admin can read it out
+// directly when even this email gets quarantined — it is never stored in the
+// CRM (the interactions row logs a redacted body). The email is sent from the
+// acting admin's address (a verified edge8.ai sender) so the client sees a
+// human they know rather than a no-reply system address.
+export async function setTempPasswordCore(
+  personId: string,
+  companyId: string,
+  actor: string,
+  via: PortalProvisionVia,
+): Promise<TempPasswordResult> {
+  const loaded = await loadPortalTarget(personId);
+  if ("error" in loaded) return { ok: false, error: loaded.error };
+  const t = loaded.target;
+
+  if (!t.authUserId) return { ok: false, error: "Not invited yet — use Invite first." };
+
+  const { data: row } = await companyOs
+    .from("portal_members")
+    .select("id, status")
+    .eq("person_id", personId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (!row || row.status !== "active") {
+    return { ok: false, error: "No active membership — use Invite first." };
+  }
+
+  // A banned (revoked) auth user cannot sign in with any password; Invite is
+  // what lifts the ban, so send the admin there instead of silently no-op'ing.
+  const { data: current } = await supabase.auth.admin.getUserById(t.authUserId);
+  if (current?.user && bannedUntil(current.user)) {
+    return { ok: false, error: "This account is revoked — use Invite to restore access first." };
+  }
+
+  const password = generateTempPassword();
+  const { error: pwErr } = await supabase.auth.admin.updateUserById(t.authUserId, {
+    password,
+    user_metadata: { must_change_password: true },
+  });
+  if (pwErr) return { ok: false, error: `Could not set the password: ${pwErr.message}` };
+
+  const loginUrl = `${siteOrigin()}/portal/login`;
+  const sent = await sendTransactionalEmail({
+    to: t.email,
+    from: `Edge8 Client Portal <${actor}>`,
+    replyTo: actor,
+    subject: "Your Edge8 Client Portal access",
+    html: `
+      <p>Hi,</p>
+      <p>Sorry for the sign-in trouble. The emailed links have not been reaching you reliably, so here is a temporary password instead. It works right away:</p>
+      <ol style="line-height:1.8;">
+        <li>Go to <a href="${loginUrl}">${loginUrl}</a></li>
+        <li>Press <strong>Sign in with a password</strong></li>
+        <li>Email: <strong>${t.email}</strong></li>
+        <li>Temporary password: <span style="font-family:monospace;font-size:15px;font-weight:600;background:#f1f5f9;padding:3px 10px;border-radius:6px;">${password}</span></li>
+      </ol>
+      <p>You'll be asked to choose your own password right after you sign in.</p>
+      <p style="font-size:13px;color:#64748b;">If anything gets in the way, just reply to this email.</p>
+    `.trim(),
+    logMeta: { source: "portal_temp_password" },
+    logBody:
+      `<p>Temporary portal password issued and emailed (password redacted). Sign-in at ${loginUrl} with a forced password change on first sign-in.</p>`,
+  });
+
+  await recordAudit({
+    table: "portal_members",
+    recordId: row.id as string,
+    operation: "update",
+    actor,
+    context: { action: "portal_temp_password", person_id: t.personId, company_id: companyId, via },
+  });
+
+  // The password was set regardless of email delivery — the admin holds it in
+  // the one-time reveal, which is exactly the out-of-band relay this feature
+  // exists for. Report the email status without failing the action.
+  return {
+    ok: true,
+    password,
+    message: sent
+      ? "Temporary password set and emailed. It is shown once below — copy it in case the email is delayed."
+      : "Temporary password set, but the email failed to send. Copy it below and share it directly.",
+  };
 }
 
 // ---------------------------------------------------------------------------
