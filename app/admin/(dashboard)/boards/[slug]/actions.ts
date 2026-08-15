@@ -2,12 +2,37 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { type Result } from "@/lib/admin/mutations";
+import { boardActorFor } from "@/lib/boards/access";
 import { TASK_PRIORITIES, SUBJECT_COMMITMENT, SUBJECT_BACKLOG_ITEM, type TaskPriority } from "@/lib/boards/types";
 
-// Next position at the end of a column (cards order by position asc).
+const DENIED = "You do not have access to this board.";
+
+// These actions serve both /admin/boards and /team/boards, so refresh both.
+function refresh(slug?: string) {
+  if (slug) {
+    revalidatePath(`/admin/boards/${slug}`);
+    revalidatePath(`/team/boards/${slug}`);
+  } else {
+    revalidatePath("/admin/boards", "layout");
+    revalidatePath("/team/boards", "layout");
+  }
+  revalidatePath("/team/my-tasks");
+}
+
+async function boardIdForTask(taskId: string): Promise<string | null> {
+  const { data } = await companyOs.from("tasks").select("board_id").eq("id", taskId).maybeSingle();
+  return (data as { board_id: string | null } | null)?.board_id ?? null;
+}
+
+// Assigning a card to someone makes them a board member (they need to see it).
+async function ensureMember(boardId: string, personId: string): Promise<void> {
+  await companyOs
+    .from("board_members")
+    .upsert({ board_id: boardId, person_id: personId, role: "member" }, { onConflict: "board_id,person_id", ignoreDuplicates: true });
+}
+
 async function endPosition(boardId: string, columnId: string): Promise<number> {
   const { data } = await companyOs
     .from("tasks")
@@ -35,7 +60,8 @@ export async function createCard(input: {
   dueDate?: string;
   description?: string;
 }): Promise<Result & { id?: string }> {
-  const admin = await requireAdmin();
+  const actor = await boardActorFor(input.boardId);
+  if (!actor) return { ok: false, error: DENIED };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "Give the card a title." };
 
@@ -55,6 +81,7 @@ export async function createCard(input: {
     description: input.description?.trim() || null,
     priority: cleanPriority(input.priority),
     assignee_id: input.assigneeId || null,
+    created_by: actor.personId,
     due_date: input.dueDate || null,
     status: isDone ? "done" : "open",
     completed_at: isDone ? new Date().toISOString() : null,
@@ -62,14 +89,13 @@ export async function createCard(input: {
   };
   const { data, error } = await companyOs.from("tasks").insert(row).select("id").single();
   if (error) return { ok: false, error: error.message };
-  await recordAudit({ table: "tasks", recordId: data.id, operation: "insert", actor: admin.email, newData: row });
-  revalidatePath("/admin/boards", "layout");
+  if (input.assigneeId) await ensureMember(input.boardId, input.assigneeId);
+  await recordAudit({ table: "tasks", recordId: data.id, operation: "insert", actor: actor.label, newData: row });
+  refresh();
   return { ok: true, id: data.id };
 }
 
 export async function moveCard(taskId: string, toColumnId: string, boardSlug: string): Promise<Result> {
-  const admin = await requireAdmin();
-
   const { data: task } = await companyOs
     .from("tasks")
     .select("id, board_id, board_column_id, subject_type, subject_id")
@@ -83,6 +109,8 @@ export async function moveCard(taskId: string, toColumnId: string, boardSlug: st
     subject_type: string | null;
     subject_id: string | null;
   };
+  const actor = await boardActorFor(t.board_id);
+  if (!actor) return { ok: false, error: DENIED };
 
   const { data: col } = await companyOs
     .from("board_columns")
@@ -108,6 +136,7 @@ export async function moveCard(taskId: string, toColumnId: string, boardSlug: st
     from_column_id: t.board_column_id,
     to_column_id: toColumnId,
     kind: "move",
+    moved_by: actor.personId,
     note: null,
   });
 
@@ -121,8 +150,8 @@ export async function moveCard(taskId: string, toColumnId: string, boardSlug: st
       .neq("status", "completed");
   }
 
-  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: updates });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: updates });
+  refresh(boardSlug);
   return { ok: true };
 }
 
@@ -133,8 +162,6 @@ export async function setCardRoadmapItem(
   backlogItemId: string | null,
   boardSlug: string,
 ): Promise<Result> {
-  const admin = await requireAdmin();
-
   const { data: task } = await companyOs
     .from("tasks")
     .select("id, board_id, subject_type")
@@ -142,6 +169,8 @@ export async function setCardRoadmapItem(
     .maybeSingle();
   if (!task) return { ok: false, error: "Card not found." };
   const t = task as { id: string; board_id: string; subject_type: string | null };
+  const actor = await boardActorFor(t.board_id);
+  if (!actor) return { ok: false, error: DENIED };
   if (t.subject_type === SUBJECT_COMMITMENT) {
     return { ok: false, error: "This card is linked to a commitment. A card links to one thing." };
   }
@@ -168,8 +197,8 @@ export async function setCardRoadmapItem(
     : { subject_type: null, subject_id: null };
   const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
-  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: updates });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: updates });
+  refresh(boardSlug);
   return { ok: true };
 }
 
@@ -184,7 +213,11 @@ export async function updateCard(
   },
   boardSlug: string,
 ): Promise<Result> {
-  const admin = await requireAdmin();
+  const boardId = await boardIdForTask(taskId);
+  if (!boardId) return { ok: false, error: "Card not found." };
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+
   const updates: Record<string, unknown> = {};
   if (patch.title !== undefined) {
     const t = patch.title.trim();
@@ -199,18 +232,22 @@ export async function updateCard(
 
   const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
-  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: updates });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  if (patch.assigneeId) await ensureMember(boardId, patch.assigneeId);
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: updates });
+  refresh(boardSlug);
   return { ok: true };
 }
 
 export async function archiveCard(taskId: string, boardSlug: string): Promise<Result> {
-  const admin = await requireAdmin();
-  const updates = { archived_at: new Date().toISOString(), archived_by: admin.email };
+  const boardId = await boardIdForTask(taskId);
+  if (!boardId) return { ok: false, error: "Card not found." };
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+  const updates = { archived_at: new Date().toISOString(), archived_by: actor.label };
   const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId).is("archived_at", null);
   if (error) return { ok: false, error: error.message };
-  await recordAudit({ table: "tasks", recordId: taskId, operation: "archive", actor: admin.email });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "archive", actor: actor.label });
+  refresh(boardSlug);
   return { ok: true };
 }
 
@@ -219,7 +256,8 @@ export async function createSprint(
   input: { name: string; startsOn?: string; endsOn?: string; goal?: string },
   boardSlug: string,
 ): Promise<Result & { id?: string }> {
-  const admin = await requireAdmin();
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
   const name = input.name?.trim();
   if (!name) return { ok: false, error: "Name the sprint." };
   const row = {
@@ -232,27 +270,25 @@ export async function createSprint(
   };
   const { data, error } = await companyOs.from("sprints").insert(row).select("id").single();
   if (error) return { ok: false, error: error.message };
-  await recordAudit({ table: "sprints", recordId: data.id, operation: "insert", actor: admin.email, newData: row });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  await recordAudit({ table: "sprints", recordId: data.id, operation: "insert", actor: actor.label, newData: row });
+  refresh(boardSlug);
   return { ok: true, id: data.id };
 }
 
-export async function setCardSprint(
-  taskId: string,
-  sprintId: string | null,
-  boardSlug: string,
-): Promise<Result> {
-  const admin = await requireAdmin();
-  const { data: task } = await companyOs.from("tasks").select("sprint_id").eq("id", taskId).maybeSingle();
-  const from = (task as { sprint_id: string | null } | null)?.sprint_id ?? null;
-  if (from === sprintId) return { ok: true };
+export async function setCardSprint(taskId: string, sprintId: string | null, boardSlug: string): Promise<Result> {
+  const { data: task } = await companyOs.from("tasks").select("board_id, sprint_id").eq("id", taskId).maybeSingle();
+  if (!task) return { ok: false, error: "Card not found." };
+  const t = task as { board_id: string; sprint_id: string | null };
+  const actor = await boardActorFor(t.board_id);
+  if (!actor) return { ok: false, error: DENIED };
+  if (t.sprint_id === sprintId) return { ok: true };
   const { error } = await companyOs.from("tasks").update({ sprint_id: sprintId }).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
   await companyOs
     .from("task_stage_log")
-    .insert({ task_id: taskId, from_sprint_id: from, to_sprint_id: sprintId, kind: "sprint_move" });
-  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: admin.email, newData: { sprint_id: sprintId } });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+    .insert({ task_id: taskId, from_sprint_id: t.sprint_id, to_sprint_id: sprintId, kind: "sprint_move", moved_by: actor.personId });
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: { sprint_id: sprintId } });
+  refresh(boardSlug);
   return { ok: true };
 }
 
@@ -263,7 +299,11 @@ export async function closeSprint(
   rolloverToSprintId: string | null,
   boardSlug: string,
 ): Promise<Result> {
-  const admin = await requireAdmin();
+  const { data: sprint } = await companyOs.from("sprints").select("board_id").eq("id", sprintId).maybeSingle();
+  if (!sprint) return { ok: false, error: "Sprint not found." };
+  const actor = await boardActorFor((sprint as { board_id: string }).board_id);
+  if (!actor) return { ok: false, error: DENIED };
+
   const { data: openCards } = await companyOs
     .from("tasks")
     .select("id")
@@ -274,16 +314,15 @@ export async function closeSprint(
   if (ids.length) {
     const { error: upErr } = await companyOs.from("tasks").update({ sprint_id: rolloverToSprintId }).in("id", ids);
     if (upErr) return { ok: false, error: upErr.message };
-    await companyOs
-      .from("task_stage_log")
-      .insert(
-        ids.map((id) => ({
-          task_id: id,
-          from_sprint_id: sprintId,
-          to_sprint_id: rolloverToSprintId,
-          kind: "sprint_rollover",
-        })),
-      );
+    await companyOs.from("task_stage_log").insert(
+      ids.map((id) => ({
+        task_id: id,
+        from_sprint_id: sprintId,
+        to_sprint_id: rolloverToSprintId,
+        kind: "sprint_rollover",
+        moved_by: actor.personId,
+      })),
+    );
   }
   const { error } = await companyOs
     .from("sprints")
@@ -294,9 +333,9 @@ export async function closeSprint(
     table: "sprints",
     recordId: sprintId,
     operation: "update",
-    actor: admin.email,
+    actor: actor.label,
     newData: { status: "closed", rolled: ids.length, to: rolloverToSprintId },
   });
-  revalidatePath(`/admin/boards/${boardSlug}`);
+  refresh(boardSlug);
   return { ok: true };
 }

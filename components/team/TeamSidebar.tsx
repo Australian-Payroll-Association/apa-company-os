@@ -50,6 +50,7 @@ function meGroup(isCoached: boolean, hasClients: boolean): NavGroup {
   return {
     label: "Me",
     items: [
+      { label: "My Tasks", href: "/team/my-tasks", ico: "☑", enabled: true },
       ...(isCoached
         ? [{ label: "My Coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
         : []),
@@ -93,6 +94,7 @@ export function TeamSidebar({
   isCoached = false,
   hasClients = false,
   isHiringManager = false,
+  boards = [],
 }: {
   name: string;
   role: TeamRole;
@@ -103,6 +105,8 @@ export function TeamSidebar({
   hasClients?: boolean;
   // Hiring managers (req owners, or admins) see the Hiring link.
   isHiringManager?: boolean;
+  // Boards the member belongs to (admins get all). Rendered as their own group.
+  boards?: { id: string; slug: string; name: string }[];
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
@@ -117,6 +121,19 @@ export function TeamSidebar({
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
     // Widening scope: me, then my team, then the company.
     meGroup(isCoached, hasClients),
+    ...(boards.length
+      ? [
+          {
+            label: "Boards",
+            items: boards.map((b) => ({
+              label: b.name,
+              href: `/team/boards/${b.slug}`,
+              ico: "▦",
+              enabled: true,
+            })),
+          },
+        ]
+      : []),
     ...(role === "manager" || isCoach || isHiringManager
       ? [myTeamGroup(isCoach, isHiringManager)]
       : []),
