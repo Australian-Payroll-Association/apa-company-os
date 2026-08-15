@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { isPortalAdmin, canContribute } from "@/lib/portal/roles";
-import { getBacklogForActor, getOverviewForActor } from "@/lib/portal/backlog";
+import { getBacklogForActor, getGroupsForActor, getOverviewForActor } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
 import { BotText } from "@/components/assistant/BotText";
 import { BacklogPortalView } from "./BacklogPortalView";
@@ -15,8 +15,9 @@ export const metadata: Metadata = {
 
 export default async function PortalBacklogPage() {
   const actor = await requirePortalMember();
-  const [items, overview] = await Promise.all([
+  const [items, groups, overview] = await Promise.all([
     getBacklogForActor(actor),
+    getGroupsForActor(actor),
     getOverviewForActor(actor),
   ]);
 
@@ -49,7 +50,7 @@ export default async function PortalBacklogPage() {
           </div>
         </section>
       )}
-      <BacklogPortalView items={items} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
+      <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
     </>
   );
 }

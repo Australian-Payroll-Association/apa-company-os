@@ -10,8 +10,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalActor } from "@/lib/portal-auth";
 import { contributorCompanyScope } from "@/lib/portal/roles";
-import { ROADMAP_ASSIST_SYSTEM_PROMPT } from "@/lib/portal/roadmap-assist-prompt";
-import { BACKLOG_GROUPS, isBacklogPriority } from "@/lib/client-backlog";
+import { getGroupsForActor } from "@/lib/portal/backlog";
+import { buildRoadmapAssistPrompt } from "@/lib/portal/roadmap-assist-prompt";
+import { isBacklogPriority } from "@/lib/client-backlog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export type RoadmapDraft = {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-function parseDraft(text: string): RoadmapDraft | null {
+function parseDraft(text: string, validKeys: string[]): RoadmapDraft | null {
   const m = text.match(/```json\s*([\s\S]*?)```/);
   if (!m) return null;
   try {
@@ -37,9 +38,9 @@ function parseDraft(text: string): RoadmapDraft | null {
     const title = typeof raw.title === "string" ? raw.title.trim().slice(0, 120) : "";
     const note = typeof raw.note === "string" ? raw.note.trim().slice(0, 1000) : "";
     if (!title) return null;
-    const groupKey = (BACKLOG_GROUPS as readonly string[]).includes(raw.groupKey ?? "")
+    const groupKey = validKeys.includes(raw.groupKey ?? "")
       ? (raw.groupKey as string)
-      : "assist";
+      : validKeys[0] ?? "";
     const priority = isBacklogPriority(raw.priority ?? "") ? (raw.priority as string) : "next";
     return { title, note, groupKey, priority };
   } catch {
@@ -75,7 +76,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "messages must end with a user turn" }, { status: 400 });
   }
 
-  const system = `${ROADMAP_ASSIST_SYSTEM_PROMPT}\n\nThe client's name is ${actor.displayName}.`;
+  const groups = await getGroupsForActor(actor);
+  if (groups.length === 0) {
+    return NextResponse.json({ error: "Your roadmap has no sections yet, so there is nowhere to propose an item." }, { status: 409 });
+  }
+  const system = `${buildRoadmapAssistPrompt(groups)}\n\nThe client's name is ${actor.displayName}.`;
   try {
     const client = new Anthropic();
     const msg = await client.messages.create({
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
       .filter((b): b is Anthropic.TextBlock => b.type === "text")
       .map((b) => b.text)
       .join("");
-    const draft = parseDraft(text);
+    const draft = parseDraft(text, groups.map((g) => g.key));
     const reply = draft ? text.replace(/```json[\s\S]*?```/, "").trim() : text.trim();
     return NextResponse.json({
       reply,

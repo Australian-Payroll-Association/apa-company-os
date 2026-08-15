@@ -3,32 +3,39 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BACKLOG_GROUPS,
   BACKLOG_PRIORITIES,
   BACKLOG_STATUSES,
-  GROUP_META,
   PRIORITY_LABEL,
   tokenLabel,
-  type BacklogGroupKey,
   type BacklogItem,
   type BacklogPriority,
+  type RoadmapGroup,
 } from "@/lib/client-backlog";
 import {
   acceptProposedItem,
   archiveBacklogItem,
+  archiveRoadmapGroup,
   createBacklogItem,
+  createRoadmapGroup,
+  moveRoadmapGroup,
   restoreBacklogItem,
+  restoreRoadmapGroup,
+  seedTemplateGroups,
   setEdge8Priority,
   updateBacklogItem,
+  updateRoadmapGroup,
   type BacklogItemInput,
+  type RoadmapGroupInput,
 } from "./actions";
 
 const STYLES = `
 .cbe { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; }
 .cbe .cbe-group { margin-bottom: 20px; }
+.cbe .cbe-group.archived { opacity:.55; }
 .cbe .cbe-group-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 4px; }
 .cbe .cbe-step { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; background:rgba(40,123,232,.1); color:#287BE8; }
 .cbe .cbe-group-title { font-weight:700; font-size:15px; }
+.cbe .cbe-group-tools { display:flex; gap:8px; align-items:center; margin-left:auto; }
 .cbe .cbe-group-intro { color:#797c82; font-size:13px; margin:2px 0 12px; }
 .cbe .cbe-item { border:1px solid var(--admin-border,#E6E6E6); border-radius:12px; padding:13px 15px; margin-bottom:9px; background:#fff; }
 .cbe .cbe-item.archived { opacity:.55; }
@@ -51,6 +58,7 @@ const STYLES = `
 .cbe .cbe-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .cbe .cbe-link { font-size:12px; font-weight:600; color:#287BE8; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
 .cbe .cbe-link.danger { color:#c0392b; }
+.cbe .cbe-link.muted { color:#797c82; }
 .cbe .cbe-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
 .cbe .cbe-form .full { grid-column:1 / -1; }
 .cbe .cbe-form label { font-size:12px; font-weight:600; color:#797c82; display:block; margin-bottom:3px; }
@@ -60,10 +68,18 @@ const STYLES = `
 .cbe .cbe-proposed h3 { margin:0 0 8px; font-size:14px; color:#b06508; }
 .cbe .cbe-add { margin-top:6px; }
 .cbe .cbe-err { color:#c0392b; font-size:12px; margin-top:6px; }
+.cbe .cbe-empty { border:1px dashed var(--admin-border,#C9CDD3); border-radius:12px; padding:22px 24px; }
+.cbe .cbe-empty p { margin:0 0 12px; color:#797c82; font-size:14px; }
+.cbe .cbe-empty .row { display:flex; gap:10px; flex-wrap:wrap; }
+.cbe .cbe-btn { font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border-radius:99px; padding:8px 16px; border:1px solid #287BE8; background:#287BE8; color:#fff; }
+.cbe .cbe-btn.ghost { background:#fff; color:#287BE8; }
+.cbe .cbe-newgroup { border:1px dashed var(--admin-border,#C9CDD3); border-radius:12px; padding:14px 16px; margin-bottom:20px; }
 @media (max-width:640px){ .cbe .cbe-form { grid-template-columns:1fr; } }
 `;
 
 type Draft = Partial<BacklogItemInput> & { needsCsv?: string };
+
+type GroupDraft = { step_label: string; title: string; intro: string };
 
 function itemToDraft(it: BacklogItem): Draft {
   return {
@@ -82,7 +98,7 @@ function itemToDraft(it: BacklogItem): Draft {
 
 function draftToInput(d: Draft): BacklogItemInput {
   return {
-    group_key: (d.group_key ?? "reports") as BacklogGroupKey,
+    group_key: d.group_key ?? "",
     title: d.title ?? "",
     who: d.who,
     today_state: d.today_state,
@@ -97,10 +113,12 @@ function draftToInput(d: Draft): BacklogItemInput {
 
 export function BacklogAdminEditor({
   companyId,
+  groups,
   items,
   showArchived,
 }: {
   companyId: string;
+  groups: RoadmapGroup[];
   items: BacklogItem[];
   showArchived: boolean;
 }) {
@@ -108,8 +126,12 @@ export function BacklogAdminEditor({
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const [addGroup, setAddGroup] = useState<BacklogGroupKey | null>(null);
+  const [addGroup, setAddGroup] = useState<string | null>(null);
   const [addDraft, setAddDraft] = useState<Draft>({});
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  const [groupDrafts, setGroupDrafts] = useState<Record<string, GroupDraft>>({});
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [newGroup, setNewGroup] = useState<GroupDraft>({ step_label: "", title: "", intro: "" });
   const [err, setErr] = useState<string | null>(null);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
@@ -125,6 +147,13 @@ export function BacklogAdminEditor({
   }
 
   const proposed = items.filter((i) => i.status === "proposed");
+  const activeGroups = groups.filter((g) => !g.archived_at);
+  const knownKeys = new Set(groups.map((g) => g.key));
+  const orphans = items.filter((i) => !knownKeys.has(i.group_key));
+
+  function groupInput(d: GroupDraft): RoadmapGroupInput {
+    return { step_label: d.step_label, title: d.title, intro: d.intro };
+  }
 
   function renderItem(it: BacklogItem) {
     const isEditing = editing === it.id;
@@ -177,8 +206,8 @@ export function BacklogAdminEditor({
             </div>
             <div>
               <label>Group</label>
-              <select value={d.group_key} onChange={(e) => setD({ group_key: e.target.value as BacklogGroupKey })}>
-                {BACKLOG_GROUPS.map((g) => <option key={g} value={g}>{GROUP_META[g].title}</option>)}
+              <select value={d.group_key} onChange={(e) => setD({ group_key: e.target.value })}>
+                {activeGroups.map((g) => <option key={g.key} value={g.key}>{g.title}</option>)}
               </select>
             </div>
             <div>
@@ -242,6 +271,124 @@ export function BacklogAdminEditor({
     );
   }
 
+  function renderGroupForm(d: GroupDraft, setG: (patch: Partial<GroupDraft>) => void) {
+    return (
+      <div className="cbe-form">
+        <div className="full">
+          <label>Title</label>
+          <input autoFocus value={d.title} onChange={(e) => setG({ title: e.target.value })} placeholder="e.g. Chatbot on payrolliq" />
+        </div>
+        <div>
+          <label>Step label (optional chip, e.g. Step 1, Anytime)</label>
+          <input value={d.step_label} onChange={(e) => setG({ step_label: e.target.value })} />
+        </div>
+        <div className="full">
+          <label>Intro (optional line under the title)</label>
+          <textarea value={d.intro} onChange={(e) => setG({ intro: e.target.value })} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderGroup(g: RoadmapGroup, index: number) {
+    const groupItems = items.filter((i) => i.group_key === g.key);
+    const isEditingGroup = editingGroup === g.id;
+    const gd = groupDrafts[g.id] ?? { step_label: g.step_label ?? "", title: g.title, intro: g.intro ?? "" };
+    const setG = (patch: Partial<GroupDraft>) => setGroupDrafts((prev) => ({ ...prev, [g.id]: { ...gd, ...patch } }));
+
+    return (
+      <div key={g.id} className={`cbe-group${g.archived_at ? " archived" : ""}`}>
+        <div className="cbe-group-head">
+          {g.step_label && <span className="cbe-step">{g.step_label}</span>}
+          <span className="cbe-group-title">{g.title}</span>
+          {!g.archived_at ? (
+            <span className="cbe-group-tools">
+              <button type="button" className="cbe-link muted" disabled={pending || index === 0} onClick={() => run(() => moveRoadmapGroup(g.id, "up"))} title="Move group up">↑</button>
+              <button type="button" className="cbe-link muted" disabled={pending || index === activeGroups.length - 1} onClick={() => run(() => moveRoadmapGroup(g.id, "down"))} title="Move group down">↓</button>
+              <button type="button" className="cbe-link muted" onClick={() => { setGroupDrafts((p) => ({ ...p, [g.id]: { step_label: g.step_label ?? "", title: g.title, intro: g.intro ?? "" } })); setEditingGroup(isEditingGroup ? null : g.id); }}>
+                {isEditingGroup ? "Close" : "Edit group"}
+              </button>
+              {groupItems.filter((i) => !i.archived_at).length === 0 && (
+                <button type="button" className="cbe-link danger" disabled={pending} onClick={() => run(() => archiveRoadmapGroup(g.id))}>Archive group</button>
+              )}
+            </span>
+          ) : (
+            <span className="cbe-group-tools">
+              <button type="button" className="cbe-link" disabled={pending} onClick={() => run(() => restoreRoadmapGroup(g.id))}>Restore group</button>
+            </span>
+          )}
+        </div>
+        {g.intro && <div className="cbe-group-intro">{g.intro}</div>}
+
+        {isEditingGroup && (
+          <div className="cbe-item">
+            {renderGroupForm(gd, setG)}
+            <div className="cbe-actions">
+              <button type="button" className="cbe-link" disabled={pending} onClick={() => run(() => updateRoadmapGroup(g.id, groupInput(gd)), () => setEditingGroup(null))}>
+                Save group
+              </button>
+              <button type="button" className="cbe-link" onClick={() => setEditingGroup(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {groupItems.map(renderItem)}
+
+        {!g.archived_at && (addGroup === g.key ? (
+          <div className="cbe-item">
+            <div className="cbe-form">
+              <div className="full">
+                <label>Title</label>
+                <input autoFocus value={addDraft.title ?? ""} onChange={(e) => setAddDraft({ ...addDraft, title: e.target.value })} />
+              </div>
+              <div>
+                <label>Priority</label>
+                <select value={addDraft.edge8_priority ?? "next"} onChange={(e) => setAddDraft({ ...addDraft, edge8_priority: e.target.value as BacklogPriority })}>
+                  {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label>Who</label>
+                <input value={addDraft.who ?? ""} onChange={(e) => setAddDraft({ ...addDraft, who: e.target.value })} />
+              </div>
+              <div className="full">
+                <label>Build (optional)</label>
+                <textarea value={addDraft.build_desc ?? ""} onChange={(e) => setAddDraft({ ...addDraft, build_desc: e.target.value })} />
+              </div>
+            </div>
+            <div className="cbe-actions">
+              <button type="button" className="cbe-link" disabled={pending} onClick={() => run(() => createBacklogItem(companyId, { ...draftToInput({ ...addDraft, group_key: g.key }) }), () => { setAddGroup(null); setAddDraft({}); })}>
+                Add item
+              </button>
+              <button type="button" className="cbe-link" onClick={() => { setAddGroup(null); setAddDraft({}); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="cbe-link cbe-add" onClick={() => { setAddGroup(g.key); setAddDraft({ edge8_priority: "next" }); }}>
+            + Add item to {g.step_label || g.title}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const newGroupForm = (
+    <div className="cbe-newgroup">
+      {renderGroupForm(newGroup, (patch) => setNewGroup((p) => ({ ...p, ...patch })))}
+      <div className="cbe-actions">
+        <button
+          type="button"
+          className="cbe-link"
+          disabled={pending || !newGroup.title.trim()}
+          onClick={() => run(() => createRoadmapGroup(companyId, groupInput(newGroup)), () => { setNewGroupOpen(false); setNewGroup({ step_label: "", title: "", intro: "" }); })}
+        >
+          Create group
+        </button>
+        <button type="button" className="cbe-link" onClick={() => setNewGroupOpen(false)}>Cancel</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="cbe">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
@@ -249,64 +396,54 @@ export function BacklogAdminEditor({
 
       {proposed.length > 0 && (
         <div className="cbe-proposed">
-          <h3>Client proposed {proposed.length} item{proposed.length === 1 ? "" : "s"} — review below</h3>
+          <h3>Client proposed {proposed.length} item{proposed.length === 1 ? "" : "s"}: review below</h3>
           <div style={{ fontSize: 13, color: "#8a6512" }}>
             {proposed.map((p) => p.title).join(" · ")}
           </div>
         </div>
       )}
 
-      {BACKLOG_GROUPS.map((g) => {
-        const groupItems = items.filter((i) => i.group_key === g);
-        const meta = GROUP_META[g];
-        return (
-          <div key={g} className="cbe-group">
-            <div className="cbe-group-head">
-              <span className="cbe-step">{meta.step}</span>
-              <span className="cbe-group-title">{meta.title}</span>
-            </div>
-            <div className="cbe-group-intro">{meta.intro}</div>
-            {groupItems.map(renderItem)}
-
-            {addGroup === g ? (
-              <div className="cbe-item">
-                <div className="cbe-form">
-                  <div className="full">
-                    <label>Title</label>
-                    <input autoFocus value={addDraft.title ?? ""} onChange={(e) => setAddDraft({ ...addDraft, title: e.target.value })} />
-                  </div>
-                  <div>
-                    <label>Priority</label>
-                    <select value={addDraft.edge8_priority ?? "next"} onChange={(e) => setAddDraft({ ...addDraft, edge8_priority: e.target.value as BacklogPriority })}>
-                      {BACKLOG_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Who</label>
-                    <input value={addDraft.who ?? ""} onChange={(e) => setAddDraft({ ...addDraft, who: e.target.value })} />
-                  </div>
-                  <div className="full">
-                    <label>Build (optional)</label>
-                    <textarea value={addDraft.build_desc ?? ""} onChange={(e) => setAddDraft({ ...addDraft, build_desc: e.target.value })} />
-                  </div>
-                </div>
-                <div className="cbe-actions">
-                  <button type="button" className="cbe-link" disabled={pending} onClick={() => run(() => createBacklogItem(companyId, { ...draftToInput({ ...addDraft, group_key: g }) }), () => { setAddGroup(null); setAddDraft({}); })}>
-                    Add item
-                  </button>
-                  <button type="button" className="cbe-link" onClick={() => { setAddGroup(null); setAddDraft({}); }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button type="button" className="cbe-link cbe-add" onClick={() => { setAddGroup(g); setAddDraft({ edge8_priority: "next" }); }}>
-                + Add item to {meta.step}
+      {groups.length === 0 ? (
+        <div className="cbe-empty">
+          <p>
+            No roadmap yet. A roadmap is a set of groups you define for this client:
+            start from a blank group, or seed the standard Edge8 5-step layout and
+            shape it from there.
+          </p>
+          {newGroupOpen ? (
+            newGroupForm
+          ) : (
+            <div className="row">
+              <button type="button" className="cbe-btn" onClick={() => setNewGroupOpen(true)}>Create a group</button>
+              <button type="button" className="cbe-btn ghost" disabled={pending} onClick={() => run(() => seedTemplateGroups(companyId))}>
+                Start from the Edge8 template
               </button>
-            )}
-          </div>
-        );
-      })}
-      {items.length === 0 && !showArchived && (
-        <div style={{ color: "#797c82", fontSize: 14 }}>No backlog items yet. Add the first one above.</div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {activeGroups.map(renderGroup)}
+          {showArchived && groups.filter((g) => g.archived_at).map((g) => renderGroup(g, -1))}
+
+          {orphans.length > 0 && (
+            <div className="cbe-group">
+              <div className="cbe-group-head">
+                <span className="cbe-group-title">Ungrouped</span>
+              </div>
+              <div className="cbe-group-intro">
+                These items point at a group that no longer exists here. Edit each one to move it into a current group.
+              </div>
+              {orphans.map(renderItem)}
+            </div>
+          )}
+
+          {newGroupOpen ? (
+            newGroupForm
+          ) : (
+            <button type="button" className="cbe-link" onClick={() => setNewGroupOpen(true)}>+ Add a group</button>
+          )}
+        </>
       )}
     </div>
   );

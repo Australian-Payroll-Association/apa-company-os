@@ -61,7 +61,7 @@ export function OverviewEditor({ companyId, initialBody }: { companyId: string; 
         </div>
       ) : (
         <p className="admin-page-sub" style={{ margin: 0 }}>
-          No overview yet. Every roadmap should open with one — a short, client-facing summary of
+          No overview yet. Every roadmap should open with one: a short, client-facing summary of
           what this roadmap is and how the plan works.
         </p>
       )}

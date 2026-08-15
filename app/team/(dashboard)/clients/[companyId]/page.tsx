@@ -6,8 +6,6 @@ import { ClientDocumentsList } from "./ClientDocumentsList";
 import { PageHead } from "@/components/admin/PageHead";
 import { BotText } from "@/components/assistant/BotText";
 import {
-  BACKLOG_GROUPS,
-  GROUP_META,
   PRIORITY_LABEL,
   effectivePriority,
   tokenLabel,
@@ -57,7 +55,7 @@ export default async function TeamClientRoadmapPage({ params }: { params: { comp
   ]);
   if (!roadmap) notFound();
 
-  const { company, overview, items } = roadmap;
+  const { company, overview, groups, items } = roadmap;
 
   function renderItem(it: BacklogItem) {
     const eff = effectivePriority(it);
@@ -109,17 +107,16 @@ export default async function TeamClientRoadmapPage({ params }: { params: { comp
           <p className="admin-page-sub" style={{ margin: 0 }}>No roadmap items yet for this client.</p>
         </div>
       ) : (
-        BACKLOG_GROUPS.map((g) => {
-          const groupItems = items.filter((i) => i.group_key === g);
+        groups.map((g) => {
+          const groupItems = items.filter((i) => i.group_key === g.key);
           if (groupItems.length === 0) return null;
-          const meta = GROUP_META[g];
           return (
-            <div key={g} className="tcr-group">
+            <div key={g.key} className="tcr-group">
               <div className="tcr-group-head">
-                <span className="tcr-step">{meta.step}</span>
-                <span className="tcr-group-title">{meta.title}</span>
+                {g.step_label && <span className="tcr-step">{g.step_label}</span>}
+                <span className="tcr-group-title">{g.title}</span>
               </div>
-              <div className="tcr-group-intro">{meta.intro}</div>
+              {g.intro && <div className="tcr-group-intro">{g.intro}</div>}
               {groupItems.map(renderItem)}
             </div>
           );

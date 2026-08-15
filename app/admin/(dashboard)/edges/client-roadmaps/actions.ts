@@ -6,15 +6,15 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import type { Result } from "@/lib/admin/mutations";
 import {
-  BACKLOG_GROUPS,
   BACKLOG_PRIORITIES,
   BACKLOG_STATUSES,
-  type BacklogGroupKey,
+  ROADMAP_TEMPLATE,
   type BacklogPriority,
   type BacklogStatus,
 } from "@/lib/client-backlog";
 
 const TABLE = "client_backlog_items";
+const GROUPS_TABLE = "client_roadmap_groups";
 const BASE = "/admin/edges/client-roadmaps";
 
 function refresh() {
@@ -22,7 +22,7 @@ function refresh() {
 }
 
 export type BacklogItemInput = {
-  group_key: BacklogGroupKey;
+  group_key: string;
   ref?: string;
   title: string;
   who?: string;
@@ -35,7 +35,7 @@ export type BacklogItemInput = {
   status?: BacklogStatus;
 };
 
-function clean(input: Partial<BacklogItemInput>): Record<string, unknown> {
+function clean(input: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(input)) {
     if (v === undefined) continue;
@@ -50,8 +50,18 @@ function clean(input: Partial<BacklogItemInput>): Record<string, unknown> {
   return out;
 }
 
-function validGroup(g: string | undefined): g is BacklogGroupKey {
-  return !!g && (BACKLOG_GROUPS as readonly string[]).includes(g);
+// Groups are per-company rows now: a key is valid when the company has an
+// active group with that key.
+async function groupExists(companyId: string, key: string | undefined): Promise<boolean> {
+  if (!key) return false;
+  const { data } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("key", key)
+    .is("archived_at", null)
+    .maybeSingle();
+  return !!data;
 }
 
 export async function createBacklogItem(
@@ -60,7 +70,7 @@ export async function createBacklogItem(
 ): Promise<Result & { id?: string }> {
   const admin = await requireAdmin();
   if (!companyId) return { ok: false, error: "Pick a client first." };
-  if (!validGroup(input.group_key)) return { ok: false, error: "Invalid group." };
+  if (!(await groupExists(companyId, input.group_key))) return { ok: false, error: "Invalid group." };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "Title is required." };
   if (input.edge8_priority && !BACKLOG_PRIORITIES.includes(input.edge8_priority)) {
@@ -87,8 +97,12 @@ export async function createBacklogItem(
 
 export async function updateBacklogItem(id: string, patch: Partial<BacklogItemInput>): Promise<Result> {
   const admin = await requireAdmin();
-  if (patch.group_key !== undefined && !validGroup(patch.group_key)) {
-    return { ok: false, error: "Invalid group." };
+  if (patch.group_key !== undefined) {
+    const { data: item } = await companyOs.from(TABLE).select("company_id").eq("id", id).maybeSingle();
+    if (!item) return { ok: false, error: "Item not found." };
+    if (!(await groupExists((item as { company_id: string }).company_id, patch.group_key))) {
+      return { ok: false, error: "Invalid group." };
+    }
   }
   if (patch.edge8_priority && !BACKLOG_PRIORITIES.includes(patch.edge8_priority)) {
     return { ok: false, error: "Invalid priority." };
@@ -106,7 +120,7 @@ export async function updateBacklogItem(id: string, patch: Partial<BacklogItemIn
   return { ok: true };
 }
 
-// Set the Edge8-proposed priority — the most common single edit, kept separate
+// Set the Edge8-proposed priority, the most common single edit, kept separate
 // so the board pills can call it directly.
 export async function setEdge8Priority(id: string, priority: BacklogPriority): Promise<Result> {
   if (!BACKLOG_PRIORITIES.includes(priority)) return { ok: false, error: "Invalid priority." };
@@ -165,6 +179,191 @@ export async function saveRoadmapOverview(companyId: string, body: string): Prom
     );
   if (error) return { ok: false, error: error.message };
   await recordAudit({ table: "client_roadmap_overview", recordId: companyId, operation: "update", actor: admin.email });
+  refresh();
+  return { ok: true };
+}
+
+// ── Roadmap groups ──────────────────────────────────────────────────
+
+export type RoadmapGroupInput = {
+  step_label?: string;
+  title: string;
+  intro?: string;
+};
+
+function slugify(title: string): string {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "group"
+  );
+}
+
+export async function createRoadmapGroup(
+  companyId: string,
+  input: RoadmapGroupInput,
+): Promise<Result & { id?: string }> {
+  const admin = await requireAdmin();
+  if (!companyId) return { ok: false, error: "Pick a client first." };
+  const title = input.title?.trim();
+  if (!title) return { ok: false, error: "Give the group a title." };
+
+  // Unique key per company: slug of the title, suffixed on collision.
+  const base = slugify(title);
+  const { data: siblings } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("key, sort_order")
+    .eq("company_id", companyId);
+  const rows = (siblings ?? []) as Array<{ key: string; sort_order: number }>;
+  const taken = new Set(rows.map((r) => r.key));
+  let key = base;
+  for (let n = 2; taken.has(key); n += 1) key = `${base}-${n}`;
+  const sortOrder = rows.reduce((m, r) => Math.max(m, r.sort_order), 0) + 10;
+
+  const row = {
+    company_id: companyId,
+    key,
+    step_label: input.step_label?.trim() || null,
+    title,
+    intro: input.intro?.trim() || null,
+    sort_order: sortOrder,
+  };
+  const { data, error } = await companyOs.from(GROUPS_TABLE).insert(row).select("id").single();
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: GROUPS_TABLE, recordId: data.id, operation: "insert", actor: admin.email, newData: row });
+  refresh();
+  return { ok: true, id: data.id };
+}
+
+export async function updateRoadmapGroup(id: string, patch: RoadmapGroupInput): Promise<Result> {
+  const admin = await requireAdmin();
+  const title = patch.title?.trim();
+  if (!title) return { ok: false, error: "Title can't be empty." };
+  const updates = {
+    title,
+    step_label: patch.step_label?.trim() || null,
+    intro: patch.intro?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await companyOs.from(GROUPS_TABLE).update(updates).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: GROUPS_TABLE, recordId: id, operation: "update", actor: admin.email, newData: updates });
+  refresh();
+  return { ok: true };
+}
+
+// Move a group one slot up or down in its company's roadmap by swapping
+// sort_order with its neighbour.
+export async function moveRoadmapGroup(id: string, direction: "up" | "down"): Promise<Result> {
+  const admin = await requireAdmin();
+  const { data: row } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("id, company_id, sort_order")
+    .eq("id", id)
+    .maybeSingle();
+  const group = row as { id: string; company_id: string; sort_order: number } | null;
+  if (!group) return { ok: false, error: "Group not found." };
+
+  const { data: all } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("id, sort_order")
+    .eq("company_id", group.company_id)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+  const list = (all ?? []) as Array<{ id: string; sort_order: number }>;
+  const idx = list.findIndex((g) => g.id === id);
+  const swapWith = direction === "up" ? list[idx - 1] : list[idx + 1];
+  if (idx < 0 || !swapWith) return { ok: true }; // already at the edge
+
+  const now = new Date().toISOString();
+  const results = await Promise.all([
+    companyOs.from(GROUPS_TABLE).update({ sort_order: swapWith.sort_order, updated_at: now }).eq("id", id),
+    companyOs.from(GROUPS_TABLE).update({ sort_order: list[idx].sort_order, updated_at: now }).eq("id", swapWith.id),
+  ]);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+  await recordAudit({ table: GROUPS_TABLE, recordId: id, operation: "update", actor: admin.email, newData: { moved: direction } });
+  refresh();
+  return { ok: true };
+}
+
+// Archive is only allowed once the group holds no unarchived items, so nothing
+// a client can see ever loses its section.
+export async function archiveRoadmapGroup(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { data: row } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("id, company_id, key")
+    .eq("id", id)
+    .maybeSingle();
+  const group = row as { id: string; company_id: string; key: string } | null;
+  if (!group) return { ok: false, error: "Group not found." };
+
+  const { data: liveItems } = await companyOs
+    .from(TABLE)
+    .select("id")
+    .eq("company_id", group.company_id)
+    .eq("group_key", group.key)
+    .is("archived_at", null)
+    .limit(1);
+  if ((liveItems ?? []).length > 0) {
+    return { ok: false, error: "Move or archive this group's items first." };
+  }
+
+  const { error } = await companyOs
+    .from(GROUPS_TABLE)
+    .update({ archived_at: new Date().toISOString(), archived_by: admin.email })
+    .eq("id", id)
+    .is("archived_at", null);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: GROUPS_TABLE, recordId: id, operation: "archive", actor: admin.email });
+  refresh();
+  return { ok: true };
+}
+
+export async function restoreRoadmapGroup(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs
+    .from(GROUPS_TABLE)
+    .update({ archived_at: null, archived_by: null })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: GROUPS_TABLE, recordId: id, operation: "restore", actor: admin.email });
+  refresh();
+  return { ok: true };
+}
+
+// Seed the classic Edge8 5-step layout for a client. Skips any key the company
+// already has (including archived ones), so it is safe to run on a partly
+// built roadmap.
+export async function seedTemplateGroups(companyId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  if (!companyId) return { ok: false, error: "Pick a client first." };
+  const { data: existing } = await companyOs
+    .from(GROUPS_TABLE)
+    .select("key, sort_order")
+    .eq("company_id", companyId);
+  const rows = (existing ?? []) as Array<{ key: string; sort_order: number }>;
+  const taken = new Set(rows.map((r) => r.key));
+  let sortOrder = rows.reduce((m, r) => Math.max(m, r.sort_order), 0);
+
+  const inserts = ROADMAP_TEMPLATE.filter((t) => !taken.has(t.key)).map((t) => {
+    sortOrder += 10;
+    return { company_id: companyId, ...t, sort_order: sortOrder };
+  });
+  if (inserts.length === 0) return { ok: true };
+
+  const { error } = await companyOs.from(GROUPS_TABLE).insert(inserts);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({
+    table: GROUPS_TABLE,
+    recordId: companyId,
+    operation: "insert",
+    actor: admin.email,
+    newData: { seeded: inserts.map((i) => i.key) },
+  });
   refresh();
   return { ok: true };
 }

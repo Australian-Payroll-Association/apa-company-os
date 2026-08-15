@@ -13,17 +13,30 @@ import {
   type ClientDocument,
 } from "@/lib/client-documents";
 import {
-  BACKLOG_GROUPS,
   BACKLOG_SELECT,
+  ROADMAP_GROUPS_SELECT,
   effectivePriority,
+  groupRank,
   type BacklogItem,
   type BacklogPriority,
+  type RoadmapGroup,
 } from "@/lib/client-backlog";
 
 export type ClientCompany = { id: string; name: string; roleTitle: string | null };
 
 const PRIORITY_RANK: Record<BacklogPriority, number> = { now: 0, next: 1, later: 2, park: 3 };
-const GROUP_RANK: Record<string, number> = Object.fromEntries(BACKLOG_GROUPS.map((g, i) => [g, i]));
+
+// Active roadmap groups for a set of companies, in display order.
+async function groupsForCompanies(companyIds: string[]): Promise<RoadmapGroup[]> {
+  if (companyIds.length === 0) return [];
+  const { data } = await companyOs
+    .from("client_roadmap_groups")
+    .select(ROADMAP_GROUPS_SELECT)
+    .in("company_id", companyIds)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as unknown as RoadmapGroup[];
+}
 
 // The client companies this team member is actively assigned to.
 export async function getActorClientCompanies(actor: TeamActor): Promise<ClientCompany[]> {
@@ -62,10 +75,10 @@ async function actorCompanyIds(actor: TeamActor): Promise<Set<string>> {
   return new Set((await getActorClientCompanies(actor)).map((c) => c.id));
 }
 
-function orderItems(items: BacklogItem[]): BacklogItem[] {
+function orderItems(items: BacklogItem[], rank: Map<string, number>): BacklogItem[] {
   return items.sort(
     (a, b) =>
-      (GROUP_RANK[a.group_key] ?? 99) - (GROUP_RANK[b.group_key] ?? 99) ||
+      (rank.get(a.group_key) ?? 9999) - (rank.get(b.group_key) ?? 9999) ||
       (a.client_sort_order ?? a.sort_order) - (b.client_sort_order ?? b.sort_order),
   );
 }
@@ -73,6 +86,7 @@ function orderItems(items: BacklogItem[]): BacklogItem[] {
 export type ClientRoadmap = {
   company: ClientCompany;
   overview: string | null;
+  groups: RoadmapGroup[];
   items: BacklogItem[];
 };
 
@@ -86,12 +100,13 @@ export async function getClientRoadmapForActor(
   const company = companies.find((c) => c.id === companyId);
   if (!company) return null;
 
-  const [{ data: itemRows }, { data: overviewRow }] = await Promise.all([
+  const [{ data: itemRows }, groups, { data: overviewRow }] = await Promise.all([
     companyOs
       .from("client_backlog_items")
       .select(BACKLOG_SELECT)
       .eq("company_id", companyId)
       .is("archived_at", null),
+    groupsForCompanies([companyId]),
     companyOs
       .from("client_roadmap_overview")
       .select("body")
@@ -99,9 +114,9 @@ export async function getClientRoadmapForActor(
       .maybeSingle(),
   ]);
 
-  const items = orderItems((itemRows ?? []) as unknown as BacklogItem[]);
+  const items = orderItems((itemRows ?? []) as unknown as BacklogItem[], groupRank(groups));
   const overview = ((overviewRow as { body: string } | null)?.body ?? "").trim() || null;
-  return { company, overview, items };
+  return { company, overview, groups, items };
 }
 
 export type ClientRoadmapSnippet = {
@@ -120,11 +135,14 @@ export async function getClientRoadmapSnippets(
   if (companies.length === 0) return [];
   const ids = companies.map((c) => c.id);
 
-  const { data } = await companyOs
-    .from("client_backlog_items")
-    .select("id, company_id, ref, title, group_key, edge8_priority, client_priority, sort_order, client_sort_order")
-    .in("company_id", ids)
-    .is("archived_at", null);
+  const [{ data }, allGroups] = await Promise.all([
+    companyOs
+      .from("client_backlog_items")
+      .select("id, company_id, ref, title, group_key, edge8_priority, client_priority, sort_order, client_sort_order")
+      .in("company_id", ids)
+      .is("archived_at", null),
+    groupsForCompanies(ids),
+  ]);
   const rows = (data ?? []) as unknown as Array<
     Pick<BacklogItem, "id" | "company_id" | "ref" | "title" | "group_key" | "edge8_priority" | "client_priority" | "sort_order" | "client_sort_order">
   >;
@@ -133,13 +151,14 @@ export async function getClientRoadmapSnippets(
   for (const company of companies) {
     const mine = rows.filter((r) => r.company_id === company.id);
     if (mine.length === 0) continue;
+    const rank = groupRank(allGroups.filter((g) => g.company_id === company.id));
     const ranked = mine
       .map((r) => ({ ...r, priority: effectivePriority(r) }))
       .filter((r) => r.priority !== "park")
       .sort(
         (a, b) =>
           PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
-          (GROUP_RANK[a.group_key] ?? 99) - (GROUP_RANK[b.group_key] ?? 99) ||
+          (rank.get(a.group_key) ?? 9999) - (rank.get(b.group_key) ?? 9999) ||
           (a.client_sort_order ?? a.sort_order) - (b.client_sort_order ?? b.sort_order),
       );
     snippets.push({
