@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { PRIORITY_LABEL, PRIORITY_TONE } from "@/lib/boards/types";
-import type { MyWork, ActorBoard } from "@/lib/team/boards";
+import type { MyWork, MyBoardSummary } from "@/lib/team/boards";
 import { moveCard } from "@/app/admin/(dashboard)/boards/[slug]/actions";
 
-export function MyTasks({ work, boards }: { work: MyWork; boards: ActorBoard[] }) {
+export function MyTasks({ work, boards }: { work: MyWork; boards: MyBoardSummary[] }) {
   const router = useRouter();
   const [banner, setBanner] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [boardsView, setBoardsView] = useState<"card" | "list">("card");
   const [, startTransition] = useTransition();
 
   function markDone(taskId: string, doneColumnId: string | null, boardSlug: string) {
@@ -40,13 +41,32 @@ export function MyTasks({ work, boards }: { work: MyWork; boards: ActorBoard[] }
       )}
 
       <section className="admin-card admin-section-card" style={{ marginBottom: 18 }}>
-        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
-          My boards <span className="admin-cell-muted">({boards.length})</span>
-        </h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+          <h2 className="admin-card-title" style={{ margin: 0 }}>
+            My boards <span className="admin-cell-muted">({boards.length})</span>
+          </h2>
+          {boards.length > 0 && (
+            <div className="admin-viewtoggle">
+              <button
+                className={`admin-tab${boardsView === "card" ? " is-active" : ""}`}
+                onClick={() => setBoardsView("card")}
+              >
+                Cards
+              </button>
+              <button
+                className={`admin-tab${boardsView === "list" ? " is-active" : ""}`}
+                onClick={() => setBoardsView("list")}
+              >
+                List
+              </button>
+            </div>
+          )}
+        </div>
+
         {boards.length === 0 ? (
           <span className="admin-cell-muted">You are not on any boards yet.</span>
-        ) : (
-          <div className="mp-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+        ) : boardsView === "card" ? (
+          <div className="mp-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
             {boards.map((b) => (
               <Link
                 key={b.id}
@@ -54,9 +74,44 @@ export function MyTasks({ work, boards }: { work: MyWork; boards: ActorBoard[] }
                 className="admin-card admin-section-card is-clickable"
                 style={{ display: "block", textDecoration: "none" }}
               >
-                <span className="admin-cell-strong">{b.name}</span>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                  <span className="admin-cell-strong">{b.name}</span>
+                  {b.clientName && <Badge tone="info">Client</Badge>}
+                </div>
+                {b.clientName && (
+                  <div className="admin-cell-muted" style={{ marginTop: 4 }}>
+                    {b.clientName}
+                  </div>
+                )}
+                <div className="admin-cell-muted" style={{ marginTop: 12, display: "flex", gap: 14 }}>
+                  <span>{b.openCount} open</span>
+                  <span>{b.assignedToMe} mine</span>
+                </div>
               </Link>
             ))}
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Board</th>
+                  <th style={{ width: 200 }}>Client</th>
+                  <th style={{ width: 110, textAlign: "right" }}>Open tasks</th>
+                  <th style={{ width: 130, textAlign: "right" }}>Assigned to me</th>
+                </tr>
+              </thead>
+              <tbody>
+                {boards.map((b) => (
+                  <tr key={b.id} className="is-clickable" onClick={() => router.push(`/team/boards/${b.slug}`)}>
+                    <td className="admin-cell-strong">{b.name}</td>
+                    <td className="admin-cell-muted">{b.clientName ?? "—"}</td>
+                    <td style={{ textAlign: "right" }}>{b.openCount}</td>
+                    <td style={{ textAlign: "right" }}>{b.assignedToMe}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

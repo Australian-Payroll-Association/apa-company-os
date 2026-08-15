@@ -1,5 +1,5 @@
 import { requireTeamMember } from "@/lib/team-auth";
-import { getMyWork, getActorBoards } from "@/lib/team/boards";
+import { getMyWork, getMyBoardSummaries } from "@/lib/team/boards";
 import { PageHead } from "@/components/admin/PageHead";
 import { MyTasks } from "./MyTasks";
 
@@ -10,7 +10,7 @@ export const metadata = { title: "My Tasks" };
 
 export default async function MyTasksPage() {
   const actor = await requireTeamMember();
-  const [work, boards] = await Promise.all([getMyWork(actor), getActorBoards(actor)]);
+  const [work, boards] = await Promise.all([getMyWork(actor), getMyBoardSummaries(actor)]);
 
   return (
     <>

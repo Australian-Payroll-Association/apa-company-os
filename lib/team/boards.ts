@@ -38,6 +38,74 @@ export async function getActorBoards(actor: TeamActor): Promise<ActorBoard[]> {
   return (data ?? []) as ActorBoard[];
 }
 
+export type MyBoardSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  clientName: string | null;
+  openCount: number;
+  assignedToMe: number;
+};
+
+// The actor's boards enriched with client name, open-card count, and how many
+// of those cards are assigned to the actor. Powers the My Tasks boards views.
+export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSummary[]> {
+  let boardRows: { id: string; slug: string; name: string; client_company_id: string | null }[];
+  if (actor.isAdmin) {
+    const { data } = await companyOs
+      .from("boards")
+      .select("id, slug, name, client_company_id")
+      .eq("status", "active")
+      .is("archived_at", null)
+      .order("sort_order");
+    boardRows = (data ?? []) as typeof boardRows;
+  } else {
+    const { data: mem } = await companyOs.from("board_members").select("board_id").eq("person_id", actor.personId);
+    const ids = ((mem ?? []) as { board_id: string }[]).map((m) => m.board_id);
+    if (ids.length === 0) return [];
+    const { data } = await companyOs
+      .from("boards")
+      .select("id, slug, name, client_company_id")
+      .in("id", ids)
+      .eq("status", "active")
+      .is("archived_at", null)
+      .order("sort_order");
+    boardRows = (data ?? []) as typeof boardRows;
+  }
+  if (boardRows.length === 0) return [];
+
+  const ids = boardRows.map((b) => b.id);
+  const companyIds = [...new Set(boardRows.map((b) => b.client_company_id).filter(Boolean))] as string[];
+  const [tasksRes, companiesRes] = await Promise.all([
+    companyOs
+      .from("tasks")
+      .select("board_id, status, assignee_id")
+      .in("board_id", ids)
+      .is("parent_task_id", null)
+      .is("archived_at", null),
+    companyIds.length
+      ? companyOs.from("companies").select("id, name").in("id", companyIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const companyName = new Map(((companiesRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+  const open = new Map<string, number>();
+  const mine = new Map<string, number>();
+  for (const t of (tasksRes.data ?? []) as { board_id: string; status: string; assignee_id: string | null }[]) {
+    if (t.status === "done") continue;
+    open.set(t.board_id, (open.get(t.board_id) ?? 0) + 1);
+    if (t.assignee_id === actor.personId) mine.set(t.board_id, (mine.get(t.board_id) ?? 0) + 1);
+  }
+
+  return boardRows.map((b) => ({
+    id: b.id,
+    slug: b.slug,
+    name: b.name,
+    clientName: b.client_company_id ? companyName.get(b.client_company_id) ?? null : null,
+    openCount: open.get(b.id) ?? 0,
+    assignedToMe: mine.get(b.id) ?? 0,
+  }));
+}
+
 // Full board detail iff the actor is a member (or admin). Null otherwise.
 export async function getBoardForActor(actor: TeamActor, slug: string): Promise<BoardDetail | null> {
   const detail = await getBoardBySlug(slug);
