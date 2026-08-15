@@ -363,6 +363,7 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
                 <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
                 {c.subject_type === SUBJECT_COMMITMENT && <Badge tone="ok">Commitment</Badge>}
                 {c.subject_type === SUBJECT_BACKLOG_ITEM && <Badge tone="info">Roadmap</Badge>}
+                {c.agent && <Badge tone="neutral">Agent</Badge>}
                 {c.sprint_id && sprintName.get(c.sprint_id) && (
                   <Badge tone="info">{sprintName.get(c.sprint_id)}</Badge>
                 )}

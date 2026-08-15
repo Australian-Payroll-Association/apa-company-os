@@ -34,6 +34,9 @@ export type SprintStatus = (typeof SPRINT_STATUSES)[number];
 export const SUBJECT_COMMITMENT = "coaching_commitment";
 export const SUBJECT_BACKLOG_ITEM = "client_backlog_item";
 
+// metadata.source for cards filed by a scheduled routine (they get an AGENT badge).
+export const SOURCE_AGENT = "agent";
+
 // A card sitting in one column longer than this shows an amber "aging" clock.
 export const AGING_DAYS = 7;
 
@@ -109,13 +112,14 @@ export type TaskRow = {
   internal: boolean;
   subject_type: string | null;
   subject_id: string | null;
+  metadata: Record<string, unknown>;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
 export const TASK_SELECT =
-  "id, title, description, board_id, board_column_id, sprint_id, position, assignee_id, created_by, status, priority, due_date, completed_at, internal, subject_type, subject_id, archived_at, created_at, updated_at";
+  "id, title, description, board_id, board_column_id, sprint_id, position, assignee_id, created_by, status, priority, due_date, completed_at, internal, subject_type, subject_id, metadata, archived_at, created_at, updated_at";
 
 // Whole days a card has sat in its current column, given the last move time.
 export function daysInColumn(since: string | null | undefined, now: Date = new Date()): number {
