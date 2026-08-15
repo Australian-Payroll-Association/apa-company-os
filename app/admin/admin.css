@@ -3916,3 +3916,8 @@ a.ideas-share-card:hover {
 /* Long rail values (email, url) stay inside the 312px rail. */
 .admin-kv--editable dd { min-width: 0; }
 .admin-kv--editable .admin-editable { overflow-wrap: anywhere; }
+
+/* HR assessment now sits in the main column beside the AI screen — give its
+   read-first body room so it reads as a real section, not a one-line field. */
+.appdet-assessment .admin-editable--block { min-height: 76px; max-width: 74ch; color: var(--admin-ink-2); }
+.appdet-assessment .admin-editable--block .admin-editable-empty { color: var(--admin-muted); }

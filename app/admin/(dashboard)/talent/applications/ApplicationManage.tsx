@@ -286,6 +286,10 @@ export function ApplicationManage({
         <div className="appdet-main">
           {extras && <AiScreenCard extras={extras} resumeDocumentId={app.resumeDocumentId} />}
 
+          {/* The human read sits right under the machine read — AI screen, then
+              your assessment — as a paired judgment in the main column. */}
+          <AssessmentCard appId={app.id} hrAssessment={app.hrAssessment} />
+
           <section className="admin-card admin-section-card">
             <InterviewRounds applicationId={app.id} />
           </section>
@@ -342,8 +346,6 @@ export function ApplicationManage({
               aiNotice={extras?.aiSummary?.notice_period ?? null}
             />
           )}
-
-          <AssessmentCard appId={app.id} hrAssessment={app.hrAssessment} />
         </aside>
       </div>
     </>
@@ -958,14 +960,19 @@ function SignalsCard(props: {
 
 function AssessmentCard({ appId, hrAssessment }: { appId: string; hrAssessment: string | null }) {
   return (
-    <section className="admin-card admin-section-card">
-      <div className="admin-section-label" style={{ marginBottom: 4 }}>HR assessment</div>
-      <div className="admin-hint" style={{ marginBottom: 8 }}>
+    <section className="admin-card admin-section-card appdet-assessment">
+      <div className="admin-section-label" style={{ marginBottom: 4, display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span>HR assessment</span>
+        <span className="admin-cell-muted" style={{ letterSpacing: 0, textTransform: "none", fontWeight: 500 }}>
+          your read
+        </span>
+      </div>
+      <div className="admin-hint" style={{ marginBottom: 10 }}>
         Your own read on this candidate. Separate from the AI screen and interview scorecards.
       </div>
       <EditableTextarea
         value={hrAssessment ?? ""}
-        rows={5}
+        rows={6}
         placeholder="Strengths, concerns, anything the interview surfaced that the resume missed…"
         ariaLabel="HR assessment"
         onSave={(v) => updateApplication(appId, { hr_assessment: v.trim() || null }).then((r) => (r.ok ? ok() : r))}
