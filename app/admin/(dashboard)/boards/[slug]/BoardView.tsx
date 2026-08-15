@@ -34,6 +34,7 @@ import {
   setCardSprint,
   closeSprint,
   setCardRoadmapItem,
+  setCardInternal,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -54,6 +55,8 @@ type Form = {
   subjectLabel: string | null;
   roadmapItemId: string; // "" = none
   origRoadmapItemId: string;
+  internal: boolean;
+  origInternal: boolean;
 };
 
 export function BoardView({ detail }: { detail: BoardDetail }) {
@@ -138,6 +141,8 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       subjectLabel: c.subject_label,
       roadmapItemId: c.subject_type === SUBJECT_BACKLOG_ITEM ? c.subject_id ?? "" : "",
       origRoadmapItemId: c.subject_type === SUBJECT_BACKLOG_ITEM ? c.subject_id ?? "" : "",
+      internal: c.internal,
+      origInternal: c.internal,
     });
   }
 
@@ -157,6 +162,8 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       subjectLabel: null,
       roadmapItemId: "",
       origRoadmapItemId: "",
+      internal: false,
+      origInternal: false,
     });
   }
 
@@ -203,6 +210,11 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
       if (isClientBoard && form.subjectType !== SUBJECT_COMMITMENT && cardId && form.roadmapItemId !== form.origRoadmapItemId) {
         const rr = await setCardRoadmapItem(cardId, form.roadmapItemId || null, slug);
         if (!rr.ok) return setBanner(rr.error);
+      }
+      // Internal flag (client boards) if it changed.
+      if (isClientBoard && cardId && form.internal !== form.origInternal) {
+        const ir = await setCardInternal(cardId, form.internal, slug);
+        if (!ir.ok) return setBanner(ir.error);
       }
       setForm(null);
       router.refresh();
@@ -492,6 +504,19 @@ export function BoardView({ detail }: { detail: BoardDetail }) {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {isClientBoard && (
+              <div className="admin-field">
+                <label className="admin-label" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={form.internal}
+                    onChange={(e) => setForm({ ...form, internal: e.target.checked })}
+                  />
+                  Internal (hidden from the client portal)
+                </label>
               </div>
             )}
 

@@ -7,6 +7,7 @@ import { hasEventRegistrations } from "@/lib/portal/events";
 import { hasAffiliateCode } from "@/lib/portal/referrals";
 import { adminCompanyScope } from "@/lib/portal/roles";
 import { hasMeetings } from "@/lib/portal/meetings";
+import { hasBoard } from "@/lib/portal/boards";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { AssumeBanner } from "@/components/portal/AssumeBanner";
 import "../../admin/admin.css";
@@ -32,13 +33,15 @@ export default async function PortalDashboardLayout({
       : actor.memberships.map((m) => m.companyName).filter(Boolean).join(" · ") || null;
   // Time Off is visible iff Team is (same scope source: an active staff
   // assignment) — one lookup covers both, per the design doc's entitlement rules.
-  const [hasStaff, hasInvoicesResult, hasEventsResult, hasReferrals, hasMeetingsResult] = await Promise.all([
-    hasAssignedStaff(actor),
-    hasInvoices(actor),
-    hasEventRegistrations(actor),
-    hasAffiliateCode(actor),
-    hasMeetings(actor),
-  ]);
+  const [hasStaff, hasInvoicesResult, hasEventsResult, hasReferrals, hasMeetingsResult, hasBoardResult] =
+    await Promise.all([
+      hasAssignedStaff(actor),
+      hasInvoices(actor),
+      hasEventRegistrations(actor),
+      hasAffiliateCode(actor),
+      hasMeetings(actor),
+      hasBoard(actor),
+    ]);
   const entitlements = {
     team: hasStaff,
     timeOff: hasStaff,
@@ -50,6 +53,7 @@ export default async function PortalDashboardLayout({
     // admin-only rule as Users.
     companyProfile: adminCompanyScope(actor).length > 0,
     meetings: hasMeetingsResult,
+    board: hasBoardResult,
   };
 
   return (

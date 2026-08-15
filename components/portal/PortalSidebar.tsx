@@ -18,6 +18,7 @@ export type PortalEntitlements = {
   events: boolean;
   referrals: boolean;
   meetings: boolean;
+  board: boolean;
   users: boolean;
   companyProfile: boolean;
 };
@@ -48,6 +49,7 @@ const NAV: NavGroup[] = [
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
+      { label: "Board", href: "/portal/board", ico: "\u25a6", built: true, entitlementKey: "board" },
       { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
     ],
   },

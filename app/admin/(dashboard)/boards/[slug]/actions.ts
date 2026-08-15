@@ -251,6 +251,19 @@ export async function archiveCard(taskId: string, boardSlug: string): Promise<Re
   return { ok: true };
 }
 
+// Hide/show a card in the linked client's portal (client boards only in the UI).
+export async function setCardInternal(taskId: string, internal: boolean, boardSlug: string): Promise<Result> {
+  const boardId = await boardIdForTask(taskId);
+  if (!boardId) return { ok: false, error: "Card not found." };
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+  const { error } = await companyOs.from("tasks").update({ internal }).eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: { internal } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
 export async function createSprint(
   boardId: string,
   input: { name: string; startsOn?: string; endsOn?: string; goal?: string },
