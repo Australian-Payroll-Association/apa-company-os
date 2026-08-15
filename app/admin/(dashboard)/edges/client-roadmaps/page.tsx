@@ -3,7 +3,12 @@ import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { BACKLOG_SELECT, type BacklogItem } from "@/lib/client-backlog";
+import {
+  BACKLOG_SELECT,
+  ROADMAP_GROUPS_SELECT,
+  type BacklogItem,
+  type RoadmapGroup,
+} from "@/lib/client-backlog";
 import { CompanyPicker } from "./CompanyPicker";
 import { BacklogAdminEditor } from "./BacklogAdminEditor";
 import { OverviewEditor } from "./OverviewEditor";
@@ -12,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Client Roadmaps",
-  description: "Per-client AI Program roadmap — items, priorities and client proposals.",
+  description: "Per-client AI Program roadmap: items, priorities and client proposals.",
 };
 
 const CLIENT_STAGES = ["customer", "evangelist"];
@@ -39,14 +44,21 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
       .from("client_backlog_items")
       .select(BACKLOG_SELECT)
       .eq("company_id", selected.id)
-      .order("group_key", { ascending: true })
       .order("sort_order", { ascending: true });
     if (!showArchived) query = query.is("archived_at", null);
-    const [{ data }, { data: overviewRow }] = await Promise.all([
+    let groupsQuery = companyOs
+      .from("client_roadmap_groups")
+      .select(ROADMAP_GROUPS_SELECT)
+      .eq("company_id", selected.id)
+      .order("sort_order", { ascending: true });
+    if (!showArchived) groupsQuery = groupsQuery.is("archived_at", null);
+    const [{ data }, { data: groupRows }, { data: overviewRow }] = await Promise.all([
       query,
+      groupsQuery,
       companyOs.from("client_roadmap_overview").select("body").eq("company_id", selected.id).maybeSingle(),
     ]);
     const items = (data ?? []) as unknown as BacklogItem[];
+    const groups = (groupRows ?? []) as unknown as RoadmapGroup[];
     const overviewBody = (overviewRow as { body: string } | null)?.body ?? "";
     const proposedCount = items.filter((i) => i.status === "proposed").length;
 
@@ -59,7 +71,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
           action={<CompanyPicker clients={clients} selectedId={companyId} showArchived={showArchived} />}
         />
         <OverviewEditor companyId={selected.id} initialBody={overviewBody} />
-        <BacklogAdminEditor companyId={selected.id} items={items} showArchived={showArchived} />
+        <BacklogAdminEditor companyId={selected.id} groups={groups} items={items} showArchived={showArchived} />
       </>
     );
   }
@@ -96,7 +108,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
       <PageHead
         eyebrow="Edges"
         title="Client Roadmaps"
-        sub="Each client's AI Program roadmap — what they see in their portal. Open one to edit items, set priorities, and review their proposals."
+        sub="Each client's AI Program roadmap: what they see in their portal. Open one to shape its groups, edit items, set priorities, and review their proposals."
       />
 
       <div className="admin-card" style={{ padding: 0, overflow: "hidden" }}>

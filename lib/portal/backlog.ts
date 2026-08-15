@@ -9,12 +9,13 @@ import type { PortalActor } from "@/lib/portal-auth";
 import { portalRead, assertInScope } from "@/lib/portal/data";
 import { isPortalAdmin, canContribute, ROLE_DENIED } from "@/lib/portal/roles";
 import {
-  BACKLOG_GROUPS,
   BACKLOG_SELECT,
+  ROADMAP_GROUPS_SELECT,
+  groupRank,
   isBacklogPriority,
   type BacklogItem,
-  type BacklogGroupKey,
   type BacklogPriority,
+  type RoadmapGroup,
 } from "@/lib/client-backlog";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -32,11 +33,19 @@ export type RoadmapPreviewItem = {
   ref: string | null;
   title: string;
   priority: BacklogPriority;
-  groupKey: BacklogGroupKey;
+  groupKey: string;
 };
 
 const PRIORITY_RANK: Record<BacklogPriority, number> = { now: 0, next: 1, later: 2, park: 3 };
-const GROUP_RANK: Record<string, number> = Object.fromEntries(BACKLOG_GROUPS.map((g, i) => [g, i]));
+
+// The actor's roadmap groups (their company's sections), in display order.
+export async function getGroupsForActor(actor: PortalActor): Promise<RoadmapGroup[]> {
+  if (actor.companyScope.length === 0) return [];
+  const { data } = await portalRead(actor, "client_roadmap_groups", ROADMAP_GROUPS_SELECT)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as unknown as RoadmapGroup[];
+}
 
 // The next few items on the roadmap for the home page: highest effective
 // priority first (client choice wins over Edge8's), parked items excluded.
@@ -46,28 +55,32 @@ export async function getRoadmapPreviewForActor(
   limit = 3,
 ): Promise<{ items: RoadmapPreviewItem[]; total: number }> {
   if (actor.companyScope.length === 0) return { items: [], total: 0 };
-  const { data } = await portalRead(
-    actor,
-    "client_backlog_items",
-    "id, ref, title, group_key, edge8_priority, client_priority, sort_order",
-  ).is("archived_at", null);
+  const [{ data }, groups] = await Promise.all([
+    portalRead(
+      actor,
+      "client_backlog_items",
+      "id, ref, title, group_key, edge8_priority, client_priority, sort_order",
+    ).is("archived_at", null),
+    getGroupsForActor(actor),
+  ]);
   const rows = (data ?? []) as unknown as Array<{
     id: string;
     ref: string | null;
     title: string;
-    group_key: BacklogGroupKey;
+    group_key: string;
     edge8_priority: BacklogPriority;
     client_priority: BacklogPriority | null;
     sort_order: number;
   }>;
 
+  const rank = groupRank(groups);
   const ranked = rows
     .map((r) => ({ ...r, priority: r.client_priority ?? r.edge8_priority }))
     .filter((r) => r.priority !== "park")
     .sort(
       (a, b) =>
         PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
-        (GROUP_RANK[a.group_key] ?? 99) - (GROUP_RANK[b.group_key] ?? 99) ||
+        (rank.get(a.group_key) ?? 9999) - (rank.get(b.group_key) ?? 9999) ||
         a.sort_order - b.sort_order,
     );
 
@@ -96,8 +109,7 @@ export async function getOverviewForActor(actor: PortalActor): Promise<string | 
 export async function getBacklogForActor(actor: PortalActor): Promise<BacklogItem[]> {
   if (actor.companyScope.length === 0) return [];
   const { data } = await portalRead(actor, "client_backlog_items", BACKLOG_SELECT)
-    .is("archived_at", null)
-    .order("group_key", { ascending: true });
+    .is("archived_at", null);
   const items = (data ?? []) as unknown as BacklogItem[];
   // Effective order within a group is the client's dragged order when set,
   // else Edge8's sort_order. Sort here since PostgREST can't coalesce in order.
@@ -189,7 +201,7 @@ export async function setClientNoteForActor(
 // resolved from the actor's scope, never trusted from the client.
 export async function proposeItemForActor(
   actor: PortalActor,
-  input: { companyId: string; groupKey: BacklogGroupKey; title: string; note?: string; priority?: string },
+  input: { companyId: string; groupKey: string; title: string; note?: string; priority?: string },
 ): Promise<Result & { id?: string }> {
   if (!actor.companyScope.includes(input.companyId)) {
     return { ok: false, error: "Not your company." };
@@ -197,6 +209,15 @@ export async function proposeItemForActor(
   if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "A short title is required." };
+  // The group must be one of this company's own active sections.
+  const { data: groupRow } = await companyOs
+    .from("client_roadmap_groups")
+    .select("id")
+    .eq("company_id", input.companyId)
+    .eq("key", input.groupKey)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (!groupRow) return { ok: false, error: "That roadmap section no longer exists." };
   const priority = isBacklogPriority(input.priority) ? input.priority : "next";
 
   const { data, error } = await companyOs

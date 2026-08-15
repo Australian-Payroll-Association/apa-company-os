@@ -8,11 +8,10 @@ import {
   proposeItemForActor,
   reorderGroupForActor,
 } from "@/lib/portal/backlog";
-import type { BacklogGroupKey } from "@/lib/client-backlog";
 
 const BASE = "/portal/roadmap";
 
-export async function reorderMyGroup(groupKey: BacklogGroupKey, orderedIds: string[]) {
+export async function reorderMyGroup(groupKey: string, orderedIds: string[]) {
   const actor = await requirePortalMember();
   const r = await reorderGroupForActor(actor, groupKey, orderedIds);
   if (r.ok) revalidatePath(BASE);
@@ -35,7 +34,7 @@ export async function setMyNote(itemId: string, note: string) {
 
 export async function proposeMyItem(input: {
   companyId: string;
-  groupKey: BacklogGroupKey;
+  groupKey: string;
   title: string;
   note?: string;
   priority?: string;

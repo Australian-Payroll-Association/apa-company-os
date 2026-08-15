@@ -9,15 +9,13 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 import {
-  BACKLOG_GROUPS,
   BACKLOG_PRIORITIES,
-  GROUP_META,
   PRIORITY_LABEL,
   effectivePriority,
   tokenLabel,
-  type BacklogGroupKey,
   type BacklogItem,
   type BacklogPriority,
+  type RoadmapGroup,
 } from "@/lib/client-backlog";
 import { setMyPriority, proposeMyItem, reorderMyGroup } from "./actions";
 import { ProposeAssist } from "./ProposeAssist";
@@ -65,19 +63,26 @@ const STYLES = `
 
 // Rebuild the flat item list from a single group's reordered array, preserving
 // every other group's order and the overall group sequence.
-function rebuild(all: BacklogItem[], group: BacklogGroupKey, reordered: BacklogItem[]): BacklogItem[] {
-  return BACKLOG_GROUPS.flatMap((g) =>
-    g === group ? reordered : all.filter((i) => i.group_key === g),
+function rebuild(
+  all: BacklogItem[],
+  groups: RoadmapGroup[],
+  group: string,
+  reordered: BacklogItem[],
+): BacklogItem[] {
+  return groups.flatMap((g) =>
+    g.key === group ? reordered : all.filter((i) => i.group_key === g.key),
   );
 }
 
 export function BacklogPortalView({
   items,
+  groups,
   companyId,
   canPrioritize,
   canPropose,
 }: {
   items: BacklogItem[];
+  groups: RoadmapGroup[];
   companyId: string;
   // Role gates (PR 2): admins reorder + set priorities; contributors propose;
   // viewers read. The server actions re-check, this only shapes the UI.
@@ -87,7 +92,7 @@ export function BacklogPortalView({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const [proposeGroup, setProposeGroup] = useState<BacklogGroupKey | null>(null);
+  const [proposeGroup, setProposeGroup] = useState<string | null>(null);
   const [pTitle, setPTitle] = useState("");
   const [pNote, setPNote] = useState("");
   const [pPriority, setPPriority] = useState<BacklogPriority>("next");
@@ -120,11 +125,11 @@ export function BacklogPortalView({
     const { source, destination } = result;
     if (!destination || destination.droppableId !== source.droppableId) return;
     if (destination.index === source.index) return;
-    const group = source.droppableId as BacklogGroupKey;
+    const group = source.droppableId;
     const arr = ordered.filter((i) => i.group_key === group);
     const [moved] = arr.splice(source.index, 1);
     arr.splice(destination.index, 0, moved);
-    const next = rebuild(ordered, group, arr);
+    const next = rebuild(ordered, groups, group, arr);
     setOrdered(next); // optimistic
     const ids = arr.map((i) => i.id);
     setErr(null);
@@ -172,7 +177,7 @@ export function BacklogPortalView({
                         className={`cbp-pill${eff === p ? ` on-${p}` : ""}`}
                         disabled={pending}
                         onClick={() => run(() => setMyPriority(it.id, it.client_priority === p ? null : p))}
-                        title={it.client_priority ? "Your priority" : "Edge8 proposed — click to set yours"}
+                        title={it.client_priority ? "Your priority" : "Edge8 proposed, click to set yours"}
                       >
                         {PRIORITY_LABEL[p]}
                       </button>
@@ -190,7 +195,7 @@ export function BacklogPortalView({
                   {(it.needs ?? []).map((n) => <span key={n} className="cbp-chip">{n}</span>)}
                   {tok && <span className="cbp-chip tok">est. {tok} Human Tokens</span>}
                   {it.source === "client" && (
-                    <span className="cbp-chip proposed">{it.status === "proposed" ? "your proposal — awaiting Edge8" : "your idea"}</span>
+                    <span className="cbp-chip proposed">{it.status === "proposed" ? "your proposal, awaiting Edge8" : "your idea"}</span>
                   )}
                   {it.client_priority && it.client_priority !== it.edge8_priority && (
                     <span className="cbp-chip mine">you changed from Edge8&apos;s {PRIORITY_LABEL[it.edge8_priority]}</span>
@@ -213,12 +218,10 @@ export function BacklogPortalView({
     <div className="cbp">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <p className="cbp-intro">
-        <strong>Step 1</strong> gets your data into one central database (read-only, masked). That
-        unlocks every report here. <strong>Step 2</strong> picks a short list of workflows to
-        automate, which we choose together.{" "}
+        Your roadmap, section by section, as agreed with Edge8.{" "}
         {canPrioritize && (
           <>Set your priority on any item, drag the handle to reorder within a section, and use{" "}
-          <em>Propose an item</em> to add your own — it comes to us to review.{" "}</>
+          <em>Propose an item</em> to add your own (it comes to us to review).{" "}</>
         )}
         {!canPrioritize && canPropose && (
           <>Use <em>Propose an item</em> to add your own (it comes to us to review); your account
@@ -236,18 +239,17 @@ export function BacklogPortalView({
       {err && <div className="cbp-err">{err}</div>}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        {BACKLOG_GROUPS.map((g) => {
-          const groupItems = ordered.filter((i) => i.group_key === g);
-          const meta = GROUP_META[g];
+        {groups.map((g) => {
+          const groupItems = ordered.filter((i) => i.group_key === g.key);
           return (
-            <div key={g} className="cbp-group">
+            <div key={g.key} className="cbp-group">
               <div className="cbp-group-head">
-                <span className="cbp-step">{meta.step}</span>
-                <span className="cbp-group-title">{meta.title}</span>
+                {g.step_label && <span className="cbp-step">{g.step_label}</span>}
+                <span className="cbp-group-title">{g.title}</span>
               </div>
-              <div className="cbp-group-intro">{meta.intro}</div>
+              {g.intro && <div className="cbp-group-intro">{g.intro}</div>}
 
-              <Droppable droppableId={g}>
+              <Droppable droppableId={g.key}>
                 {(provided) => (
                   <div ref={provided.innerRef} {...provided.droppableProps}>
                     {groupItems.map((it, i) => renderItem(it, i))}
@@ -256,16 +258,17 @@ export function BacklogPortalView({
                 )}
               </Droppable>
 
-              {companyId && canPropose && (proposeGroup === g ? (
+              {companyId && canPropose && (proposeGroup === g.key ? (
                 <div className="cbp-propose">
                   <ProposeAssist
                     onDraft={(d) => {
                       setPTitle(d.title);
                       setPNote(d.note);
                       setPPriority((BACKLOG_PRIORITIES as readonly string[]).includes(d.priority) ? (d.priority as BacklogPriority) : "next");
+                      const suggested = groups.find((x) => x.key === d.groupKey);
                       setPHint(
-                        d.groupKey !== g
-                          ? `Tip: this might fit better under ${GROUP_META[d.groupKey as BacklogGroupKey]?.title ?? d.groupKey}. You can propose it there instead, or send it here and Edge8 will place it.`
+                        d.groupKey !== g.key
+                          ? `Tip: this might fit better under ${suggested?.title ?? d.groupKey}. You can propose it there instead, or send it here and Edge8 will place it.`
                           : null,
                       );
                     }}
@@ -282,7 +285,7 @@ export function BacklogPortalView({
                       className="cbp-btn"
                       disabled={pending || !pTitle.trim()}
                       onClick={() => run(
-                        () => proposeMyItem({ companyId, groupKey: g, title: pTitle, note: pNote, priority: pPriority }),
+                        () => proposeMyItem({ companyId, groupKey: g.key, title: pTitle, note: pNote, priority: pPriority }),
                         () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); setPHint(null); },
                       )}
                     >
@@ -292,8 +295,8 @@ export function BacklogPortalView({
                   </div>
                 </div>
               ) : (
-                <button type="button" className="cbp-link" style={{ marginTop: 6 }} onClick={() => setProposeGroup(g)}>
-                  + Propose an item for {meta.step}
+                <button type="button" className="cbp-link" style={{ marginTop: 6 }} onClick={() => setProposeGroup(g.key)}>
+                  + Propose an item for {g.step_label || g.title}
                 </button>
               ))}
             </div>
