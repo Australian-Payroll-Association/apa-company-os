@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Eight Edges: Demo Video Series Plan</title>
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+    --amber:#E9A23B;
+    --ink:#1a2340;
+    --muted:#5a6480;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--mist);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px;margin:0 auto;background:var(--white);}
+  header{background:var(--navy);color:var(--white);padding:60px 60px 52px;}
+  .eyebrow{font-size:13px;letter-spacing:.18em;color:var(--mint);font-weight:600;margin-bottom:18px;}
+  header h1{font-size:38px;line-height:1.15;font-weight:700;margin-bottom:14px;}
+  header p.sub{font-size:18px;color:var(--mist);max-width:680px;}
+  .meta{margin-top:32px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;color:var(--mist);}
+  .meta div span{display:block;color:var(--mint);font-size:11px;letter-spacing:.12em;margin-bottom:3px;}
+  section{padding:46px 60px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px;}
+  h3{font-size:25px;font-weight:700;margin-bottom:18px;color:var(--navy);}
+  h4{font-size:17px;font-weight:700;margin:26px 0 8px;color:var(--navy);}
+  p{margin-bottom:15px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul,ol{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li,ol li{position:relative;padding-left:24px;margin-bottom:10px;font-size:16px;}
+  ul li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;background:var(--mint);border-radius:50%;}
+  ol{counter-reset:num;}
+  ol li{counter-increment:num;padding-left:32px;}
+  ol li::before{content:counter(num);position:absolute;left:0;top:1px;width:22px;height:22px;background:var(--navy);color:var(--mint);border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;}
+  th{background:var(--navy);color:var(--white);text-align:left;padding:10px 12px;font-weight:650;font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid var(--mist);vertical-align:top;}
+  tr:nth-child(even) td{background:#F7F9FC;}
+  .callout{background:#F0F7FF;border-left:4px solid var(--blue);padding:18px 22px;border-radius:0 8px 8px 0;margin:20px 0;}
+  .callout.mint{background:#EFFCF7;border-left-color:var(--mint);}
+  .callout.amber{background:#FDF6EC;border-left-color:var(--amber);}
+  .callout p{font-size:15px;}
+  .flowRow{display:flex;gap:12px;margin:20px 0;flex-wrap:wrap;}
+  .flowBox{flex:1;min-width:150px;border:1px solid var(--mist);border-radius:12px;padding:16px 18px;}
+  .flowBox .fTitle{font-weight:700;font-size:15px;color:var(--navy);margin-bottom:4px;}
+  .flowBox .fSub{font-size:13px;color:var(--muted);}
+  .ep{border:1px solid var(--mist);border-radius:14px;padding:26px 28px;margin:0 0 26px;}
+  .ep .epTag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;padding:2px 10px;border-radius:6px;background:#E7F1FE;color:var(--blue);margin-bottom:10px;}
+  .ep h4{margin:0 0 4px;font-size:20px;}
+  .ep .epLen{font-size:13px;color:var(--muted);margin-bottom:14px;}
+  .ep .lbl{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--pink);margin:16px 0 6px;text-transform:uppercase;}
+  .ep .vo{background:#F7F9FC;border-radius:10px;padding:16px 20px;font-size:15px;}
+  .ep .vo p{font-size:15px;margin-bottom:12px;}
+  .ep .vo p:last-child{margin-bottom:0;}
+  .ep ul li{font-size:15px;margin-bottom:7px;}
+  footer{background:var(--navy);color:var(--mist);padding:34px 60px;font-size:13px;}
+  footer .b{color:var(--mint);font-weight:700;}
+  @media (max-width:720px){
+    header,section,footer{padding-left:24px;padding-right:24px;}
+    .ep{padding:20px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">EIGHT EDGES · DEMO VIDEO SERIES</div>
+  <h1>One system, one edge a day</h1>
+  <p class="sub">A production plan for an Overview film plus a daily feature series on Eight Edges: AI-driven screen recordings, AI voiceover, zero studio time. Published to YouTube and LinkedIn in 16:9.</p>
+  <div class="meta">
+    <div><span>DATE</span>Aug 15, 2026</div>
+    <div><span>OWNER</span>Dave Hajdu</div>
+    <div><span>STATUS</span>Draft for approval</div>
+    <div><span>CHANNELS</span>YouTube · LinkedIn</div>
+  </div>
+</header>
+
+<section>
+  <h2>01 · The idea</h2>
+  <h3>Show the real system, daily</h3>
+  <p>One Overview film (3 to 4 minutes) tells the whole story: how strategy becomes goals, goals become metrics, metrics get reviewed weekly, and problems become issues that get solved. Then a daily series, one feature per episode, 60 to 90 seconds each, posted on a steady cadence.</p>
+  <p>Every episode follows the same skeleton so production is repeatable:</p>
+  <ol>
+    <li><strong>Cold open on the UI</strong> (0 to 5s): the feature already on screen, mid-action. No logo intro.</li>
+    <li><strong>Hook</strong> (one line): the pain this feature kills.</li>
+    <li><strong>Three beats</strong> (15 to 25s each): three things you can do, shown live in the product.</li>
+    <li><strong>Close</strong> (5 to 10s): one-line takeaway plus a soft CTA ("Full series in the playlist. Built by Edge8.").</li>
+  </ol>
+  <div class="callout mint">
+    <p><strong>Format:</strong> 16:9 landscape, 1080p, for YouTube and the LinkedIn feed. No Shorts for now. If Shorts come later, the same Playwright specs re-render at 9:16 with tighter zooms; nothing is re-shot.</p>
+  </div>
+</section>
+
+<section>
+  <h2>02 · The pipeline</h2>
+  <h3>AI does the recording, you do the approving</h3>
+  <p>No human screen-records anything. The whole episode renders end to end from a script file:</p>
+  <div class="flowRow">
+    <div class="flowBox"><div class="fTitle">1 · Demo tenant</div><div class="fSub">A seeded company in Eight Edges with realistic fake people, deals, goals, and boards. No client data ever on screen.</div></div>
+    <div class="flowBox"><div class="fTitle">2 · Playwright flow</div><div class="fSub">One spec per episode logs in, drives the scripted clicks, and records 1080p video. Re-run to re-record after any UI change.</div></div>
+    <div class="flowBox"><div class="fTitle">3 · AI voiceover</div><div class="fSub">ElevenLabs reads the approved script. One consistent voice across the series.</div></div>
+    <div class="flowBox"><div class="fTitle">4 · Assembly</div><div class="fSub">ffmpeg lays VO over the capture, adds title card, captions, and end card. Descript as manual fallback for fine cuts.</div></div>
+    <div class="flowBox"><div class="fTitle">5 · Your QC</div><div class="fSub">You watch the render, approve or request a change, then post. The only human step.</div></div>
+  </div>
+  <h4>Timing sync</h4>
+  <p>Each script beat carries a rough duration. The Playwright spec paces its actions to those durations (deliberate cursor moves, short holds on the payoff frame), so VO and screen stay aligned without manual editing. Where drift happens, ffmpeg trims the longer side at beat boundaries.</p>
+  <h4>Where avatar tools fit</h4>
+  <p>Synthesia or HeyGen can supply a 10-second talking-head intro and outro for the Overview film only. The daily episodes stay pure product plus voiceover: faster to make, and the product is the star. Higgsfield and similar generative video tools are not a fit here, they invent footage, and we want the real UI.</p>
+</section>
+
+<section>
+  <h2>03 · Prerequisites</h2>
+  <h3>What has to exist before episode one</h3>
+  <ul>
+    <li><strong>Demo tenant:</strong> a seeded company ("Northwind Manufacturing" or similar) with 8 to 10 fake people, 3 active deals, a full goal tree, populated metrics with history, a weekly sync with items, open issues, one client roadmap, one task board mid-sprint, and an ATS req with candidates across stages.</li>
+    <li><strong>Demo login:</strong> a dedicated demo admin account, scoped to the demo tenant.</li>
+    <li><strong>Recording rig:</strong> a Playwright project in the repo (specs, fixtures, video config), plus an ElevenLabs voice pick and an ffmpeg assembly script.</li>
+    <li><strong>Brand kit:</strong> title card and end card templates (navy, mint, Manrope), caption style, thumbnail template.</li>
+  </ul>
+  <div class="callout amber">
+    <p><strong>Brand rules apply on screen and in copy:</strong> "Edge8" is never written in all caps, and no em dashes anywhere, including captions, titles, and descriptions.</p>
+  </div>
+</section>
+
+<section>
+  <h2>04 · Episode list</h2>
+  <h3>Seventeen episodes, three arcs</h3>
+  <table>
+    <tr><th>#</th><th>Episode</th><th>Arc</th><th>Length</th></tr>
+    <tr><td>E00</td><td>Overview: the whole system in four minutes</td><td>Launch</td><td>3 to 4 min</td></tr>
+    <tr><td>E01</td><td>Company Dashboard</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E02</td><td>Goals</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E03</td><td>Metrics</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E04</td><td>Weekly Sync</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E05</td><td>Issues</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E06</td><td>Client Roadmaps</td><td>Operating System</td><td>60 to 90s</td></tr>
+    <tr><td>E07</td><td>CRM and Deals</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E08</td><td>Call to Proposal in minutes</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E09</td><td>Talent pipeline (ATS)</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E10</td><td>Hiring Manager view</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E11</td><td>Interview scorecards</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E12</td><td>Coaching</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E13</td><td>Fleet Fitness</td><td>Four Offices</td><td>60 to 90s</td></tr>
+    <tr><td>E14</td><td>Task Boards</td><td>Portals</td><td>60 to 90s</td></tr>
+    <tr><td>E15</td><td>Team Portal</td><td>Portals</td><td>60 to 90s</td></tr>
+    <tr><td>E16</td><td>Client Portal</td><td>Portals</td><td>60 to 90s</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>05 · Scripts</h2>
+  <h3>Voiceover plus on-screen flow, per episode</h3>
+  <p>Each script is the voiceover text (what ElevenLabs reads) plus the on-screen beats (what the Playwright spec performs). Word counts target 140 to 200 words per daily episode, which reads at 60 to 85 seconds.</p>
+
+  <div class="ep">
+    <span class="epTag">E00 · LAUNCH</span>
+    <h4>Overview: the whole system in four minutes</h4>
+    <div class="epLen">3 to 4 minutes · optional avatar intro and outro</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Most companies run on two disconnected things: a strategy deck nobody opens, and a pile of tools nobody reconciles. Eight Edges is what happens when you connect them.</p>
+      <p>It starts at the top. The Company Dashboard shows the whole business on one screen: goals, the metrics behind them, and the issues in the way. Nothing here is typed in by hand, it all flows up from work happening below.</p>
+      <p>Goals cascade. The company goal breaks into team goals, team goals into personal ones, so every person can trace their week to the mission. Each goal is wired to metrics, real numbers with real history, updated on schedule, not the night before the board meeting.</p>
+      <p>Once a week the leadership team runs a Sync inside the system. Same agenda every week: review the scorecard, review the goals, surface issues. Anything off track becomes an issue with an owner and a deadline, and it stays on the list until it is actually solved.</p>
+      <p>Then the offices. Revenue runs the CRM, where a sales call becomes a live proposal in minutes. Talent runs hiring, from pipeline to interview scorecards to coaching once they join. Operations keeps the machine healthy, down to grading every laptop in the fleet. And everything execution-shaped lands on task boards shared by the team, by clients, and by AI agents that file and move cards alongside the humans.</p>
+      <p>Clients see their slice through their own portal: a live roadmap, real progress, no status meetings.</p>
+      <p>That's Eight Edges. Strategy at the top, execution at the bottom, and nothing lost in between. This month we're posting a short demo every day, one feature at a time. Follow along.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open: Company Dashboard, slow scroll through goals and metric tiles</li>
+      <li>Goals: expand company goal to team to personal</li>
+      <li>Metrics: open one metric, show trend history</li>
+      <li>Sync: run through the weekly agenda, flag an item, watch it become an issue</li>
+      <li>CRM: deal list, open a deal, jump to its live proposal page</li>
+      <li>Talent: ATS pipeline grid, open a scorecard, then a coaching profile</li>
+      <li>Boards: drag a card, show an agent-filed card</li>
+      <li>Client Portal: roadmap view as the client sees it</li>
+      <li>End card: series title plus playlist CTA</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E01 · OPERATING SYSTEM</span>
+    <h4>Company Dashboard</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>If you asked five people in your company how the business is doing, you'd get five answers. This screen exists so there's only one.</p>
+      <p>This is the Company Dashboard in Eight Edges. One screen, the whole company: the goals you committed to, the metrics that prove progress, and the issues standing in the way.</p>
+      <p>First: nothing on this page is typed in for show. Every number rolls up from live metrics. Every goal reflects real check-ins. If the dashboard looks bad, the business is actually off track, and that's the point.</p>
+      <p>Second: it's opinionated. Green means on pace, amber means drifting, red means someone owns a fix. You don't debate what the colors mean in the meeting.</p>
+      <p>Third: everything drills down. Click a goal, you see whose work feeds it. Click a metric, you get the history, not just this week's number.</p>
+      <p>One screen, one version of the truth. Tomorrow: how goals cascade from the company to every single person.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open mid-scroll on the dashboard</li>
+      <li>Hold on the goal summary row, then the metric tiles with status colors</li>
+      <li>Click a goal, land on its detail, show the contributing team goals</li>
+      <li>Back, click a metric tile, show the trend chart</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E02 · OPERATING SYSTEM</span>
+    <h4>Goals</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Annual planning usually produces a document. Documents don't cascade. This does.</p>
+      <p>These are Goals in Eight Edges. The company goal sits at the top, and it breaks down: into team goals, then into personal goals, so everyone can trace a straight line from their week to the mission.</p>
+      <p>First, the cascade is live. When a team goal moves, the company goal moves with it. No quarterly reconciliation exercise.</p>
+      <p>Second, every goal has an owner and a check-in rhythm. Owners update progress in the flow of the weekly sync, so goals never rot between quarters.</p>
+      <p>Third, goals connect to evidence. Each one is wired to the metrics that prove it, which means "how's it going" is a number, not a vibe.</p>
+      <p>Strategy that cascades, checks in, and proves itself. Tomorrow: the metrics layer underneath it all.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the goals board, company goal visible</li>
+      <li>Expand company goal into team goals, then one personal goal</li>
+      <li>Open a goal: owner, check-in history, progress</li>
+      <li>Show the linked metric on the goal detail</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E03 · OPERATING SYSTEM</span>
+    <h4>Metrics</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Every company has a scorecard somewhere. Usually it's a spreadsheet, updated the night before the meeting, by one heroic person.</p>
+      <p>This is Metrics in Eight Edges. Every number the company runs on, with an owner, a target, and its full history.</p>
+      <p>First: each metric has one owner. Not a department, a person. When a number is stale or red, everyone knows whose it is.</p>
+      <p>Second: history is built in. Click any metric and you see the trend across weeks and months, so one good week can't hide a bad quarter.</p>
+      <p>Third: metrics feed everything upstream. They light up the goals they prove and the dashboard the leadership team reads. Update a number once, it's correct everywhere.</p>
+      <p>Numbers with owners, targets, and memory. Tomorrow: the weekly sync where the team actually reads them.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the metrics table, status colors visible</li>
+      <li>Hover a row: owner, target, current value</li>
+      <li>Open a metric, show the trend history</li>
+      <li>Jump to the goal that metric feeds</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E04 · OPERATING SYSTEM</span>
+    <h4>Weekly Sync</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Most leadership meetings are ninety minutes of status theater. This one runs itself.</p>
+      <p>This is the Weekly Sync in Eight Edges. Same agenda every week, inside the system, next to the data.</p>
+      <p>First: the scorecard review. The metrics are already live on screen, so there's no "let me pull that up." Green scrolls past, red stops the room.</p>
+      <p>Second: goals. Each owner confirms on track or off track in seconds, because the check-in happens right here, not in a side doc.</p>
+      <p>Third, and this is the important one: anything off track becomes an issue on the spot, with an owner and a date. The meeting doesn't end with vibes, it ends with a list.</p>
+      <p>Thirty minutes, zero slides, every problem caught and assigned. Tomorrow: the issues list, where those problems go to die, in a good way.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the sync agenda</li>
+      <li>Step through scorecard section, pause on a red metric</li>
+      <li>Goal check-ins: mark one on track, one off track</li>
+      <li>Create an issue from the off-track item, assign owner and date</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E05 · OPERATING SYSTEM</span>
+    <h4>Issues</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Every company has the same recurring meeting: the one where you discuss the same problem for the third week in a row. This list ends that.</p>
+      <p>These are Issues in Eight Edges. Every problem the business has surfaced, each with an owner and a deadline, none of them allowed to quietly disappear.</p>
+      <p>First: issues come from everywhere. The weekly sync files them, the dashboard flags them, and anyone on the team can raise one the moment they see something off.</p>
+      <p>Second: every issue has exactly one owner. Shared ownership is how problems survive for months.</p>
+      <p>Third: issues stay visible until they're actually resolved, and the history shows how long each one took. Slow-moving problems become impossible to ignore.</p>
+      <p>Problems with names, dates, and no place to hide. Tomorrow: client roadmaps, the same discipline pointed outward.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the issues board</li>
+      <li>Show an issue raised from the sync, with owner and date</li>
+      <li>Open an issue: discussion, status trail</li>
+      <li>Resolve one, watch it clear the board</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E06 · OPERATING SYSTEM</span>
+    <h4>Client Roadmaps</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Client status meetings exist because clients can't see the work. Make the work visible and the meeting mostly disappears.</p>
+      <p>These are Client Roadmaps in Eight Edges. Every client engagement gets a living roadmap: what's shipped, what's in motion, what's next.</p>
+      <p>First: the roadmap is structured per client, not from a template. Each engagement gets the sections that match how that work actually runs.</p>
+      <p>Second: it updates from real work. When the delivery team moves, the roadmap moves. Nobody writes a Friday status email from memory.</p>
+      <p>Third: the client sees it live in their portal. Same data we see, framed for them, current at any hour they check.</p>
+      <p>Delivery you don't have to narrate. Tomorrow we cross into the Four Offices, starting with Revenue: the CRM.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on a client roadmap, admin side</li>
+      <li>Scroll the groups: shipped, in motion, next</li>
+      <li>Update an item's status</li>
+      <li>Switch to the client portal view, same roadmap as the client sees it</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E07 · FOUR OFFICES</span>
+    <h4>CRM and Deals</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Most CRMs are where salespeople do data entry so managers can build charts. This one works the other way around.</p>
+      <p>This is the Revenue office in Eight Edges: companies, people, and deals on one shared spine, the same people records the whole system uses.</p>
+      <p>First: deals reflect reality. A deal exists because there's a real transaction forming, with a type, a value split by category, and a renewal chain year over year.</p>
+      <p>Second: the timeline writes itself. Calls, emails, and meetings attach to the company record automatically, so the story of the relationship is already there when you open it.</p>
+      <p>Third: revenue rolls up. Deal movement feeds the company metrics and the dashboard, so sales performance is part of the operating system, not a separate report.</p>
+      <p>A CRM that's part of the machine. Tomorrow: the best trick in the Revenue office, turning a sales call into a live proposal in minutes.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the deals pipeline</li>
+      <li>Open a company 360: people, timeline of interactions</li>
+      <li>Open a deal: value, category split, renewal chain</li>
+      <li>Jump to the dashboard metric revenue feeds</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E08 · FOUR OFFICES</span>
+    <h4>Call to Proposal in minutes</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>The most expensive delay in sales is the one you control: the days between the call and the proposal. We got it down to minutes.</p>
+      <p>Here's the flow in Eight Edges. A sales call ends, and the transcript comes in.</p>
+      <p>First: the AI reads the transcript and updates the CRM. The company, the contacts, the deal, the notes from the call, all filed without anyone typing.</p>
+      <p>Second: it drafts the proposal from what was actually discussed. Scope, pricing structure, the client's own words reflected back, on a live web page, on our domain, styled like us.</p>
+      <p>Third: a human reviews and sends. The client gets a link while the conversation is still warm, sometimes the same hour.</p>
+      <p>Speed is a sales strategy, and this is what it looks like. Tomorrow we move to the Talent office: the hiring pipeline.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on a call transcript</li>
+      <li>Show the CRM record after processing: deal, notes, contacts</li>
+      <li>Open the generated proposal page, scroll it</li>
+      <li>Show the proposals index with statuses</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E09 · FOUR OFFICES</span>
+    <h4>Talent pipeline (ATS)</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Hiring tools love stages. Candidates sit in them for weeks while everyone assumes someone else is moving things. This pipeline is built to keep moving.</p>
+      <p>This is the Talent office in Eight Edges: every open role, every candidate, every stage, on the same people spine as the rest of the company.</p>
+      <p>First: the pipeline shows time, not just position. Every candidate carries days-in-stage, so stalls are visible before they become ghosting.</p>
+      <p>Second: the application detail is built for a decision. One workspace: advance, reject, or dig in, with the full story on one screen.</p>
+      <p>Third: when someone's hired, there's no re-entry. The candidate record becomes the team member record, onboarding, coaching, reviews, all on the same spine.</p>
+      <p>A pipeline that keeps its own pace. Tomorrow: what the hiring manager sees.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the applications pipeline</li>
+      <li>Highlight days-in-stage on a stalled candidate</li>
+      <li>Open the application detail: header actions, pipeline strip, rail</li>
+      <li>Advance a candidate a stage</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E10 · FOUR OFFICES</span>
+    <h4>Hiring Manager view</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Recruiters live in the ATS. Hiring managers visit it, get lost, and go back to email. So we built them their own front door.</p>
+      <p>This is the Hiring Manager view in Eight Edges, a single page answering one question: what do you need to do today to keep your hires moving?</p>
+      <p>First: your day at a glance. Today's interviews across your open roles, in one strip.</p>
+      <p>Second: the grid. Candidates by interview round, so you see exactly where each person is in the loop and what's scheduled next.</p>
+      <p>Third: feedback is blind-first. You score your interview before you can see anyone else's scores, so the loop measures independent judgment, not groupthink.</p>
+      <p>Hiring managers who never have to ask "where are we with that candidate." Tomorrow: the scorecards themselves.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the day strip with interviews</li>
+      <li>Pan the candidate by round grid</li>
+      <li>Open the interview kit for an upcoming round</li>
+      <li>Show the blind scorecard state (others' scores hidden)</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E11 · FOUR OFFICES</span>
+    <h4>Interview scorecards</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Ask an interviewer for feedback two days later and you get adjectives. Scorecards exist to catch judgment while it's fresh, and keep it honest.</p>
+      <p>This is interview feedback in Eight Edges.</p>
+      <p>First: structure. Each round scores the dimensions that matter for the role, with a clear recommendation at the end. No blank-page feedback.</p>
+      <p>Second: blind until you commit. You can't see the other interviewers' scores before submitting your own, so the third interviewer's opinion is worth the same as the first's.</p>
+      <p>Third: the loop rolls up. The debrief view lays every round side by side, so the hire decision is a reading of evidence, not a memory contest.</p>
+      <p>Fewer adjectives, more signal. Tomorrow: what happens after the hire, coaching.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on an empty scorecard for a completed interview</li>
+      <li>Fill dimensions, add a note, submit</li>
+      <li>Reveal: other interviewers' scores now visible</li>
+      <li>Debrief view across rounds</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E12 · FOUR OFFICES</span>
+    <h4>Coaching</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>One-on-ones fail the same way everywhere: great conversation, zero memory. Next week starts from scratch.</p>
+      <p>This is Coaching in Eight Edges, and it rests on a distinction most tools blur. Goals are what you're measured on. Priorities are what you're growing. Commitments are what you promised between this one-on-one and the next.</p>
+      <p>First: every one-on-one lands in the same profile, so the thread never resets. What you discussed, what was promised, what happened.</p>
+      <p>Second: commitments carry over automatically. Kept ones build a track record, missed ones come back to the top of the next session.</p>
+      <p>Third: growth priorities live separately from performance goals, so development doesn't get crowded out by this quarter's numbers.</p>
+      <p>Management with a memory. Tomorrow: the least glamorous, most satisfying feature in the system, Fleet Fitness.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on a coach's team view</li>
+      <li>Open a member profile: goals, priorities, commitments as distinct sections</li>
+      <li>Check off a kept commitment, add a new one</li>
+      <li>Scroll the session history thread</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E13 · FOUR OFFICES</span>
+    <h4>Fleet Fitness</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Somewhere on your team, an engineer is losing an hour a day to a laptop that should have been retired last year. Nobody knows which engineer, because nobody's looking.</p>
+      <p>This is Fleet Fitness in Eight Edges. Every machine on the team, graded against a floor: does this hardware meet the bar for the work we do?</p>
+      <p>First: the grade is automatic. Specs come in, each machine gets scored against the minimum, no manual audit.</p>
+      <p>Second: the failures are ranked. You see exactly which machines are below the floor and whose they are, so the upgrade budget goes where it hurts most.</p>
+      <p>Third: it reruns quarterly. Fleet health is a recurring metric, not a one-time cleanup.</p>
+      <p>Small feature, real hours back. Tomorrow, the last arc: task boards, where all the work actually happens.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the fitness grid, grades visible</li>
+      <li>Sort to worst first, highlight a failing machine</li>
+      <li>Open its detail: specs vs the floor</li>
+      <li>Show the summary stats</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E14 · PORTALS</span>
+    <h4>Task Boards</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Every team has boards. Here's what's different about these: the AI is on the team.</p>
+      <p>These are Task Boards in Eight Edges. Columns, cards, sprints, the shape you know. Three things set them apart.</p>
+      <p>First: boards are wired into the operating system. Cards link to client roadmap items and coaching commitments, so moving a card moves the truth everywhere it's reflected.</p>
+      <p>Second: agents file cards. When an automation finishes a job or finds a problem, it opens a card on the right board, with its name on it, and the team reviews it like any other work.</p>
+      <p>Third: everyone works the same surface. Admins, team members in their portal, even clients on shared boards, one board, scoped views.</p>
+      <p>Boards where humans and agents ship together. Tomorrow: the Team Portal.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open dragging a card between columns</li>
+      <li>Open a card linked to a roadmap item</li>
+      <li>Highlight an agent-filed card with the agent's identity</li>
+      <li>Show a sprint view with progress</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E15 · PORTALS</span>
+    <h4>Team Portal</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>All the discipline you've seen this month, the goals, the metrics, the syncs, only works if it reaches every person, not just the leadership team. This is where it does.</p>
+      <p>This is the Team Portal in Eight Edges, every team member's own view. Sign in with a magic link, no password to manage.</p>
+      <p>First: your own dashboard. Your goals, your commitments from coaching, your boards, one page.</p>
+      <p>Second: your interviews. If you're on a hiring loop, your scorecards are here, ready when the interview ends.</p>
+      <p>Third: your voice. Check-ins, surveys, and time-off requests flow from here into the same system leadership runs on. It's one machine, top to bottom.</p>
+      <p>The operating system, at eye level. Tomorrow, the finale: the Client Portal.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the team home dashboard</li>
+      <li>Show personal goals and commitments</li>
+      <li>Open the hiring tab with a pending scorecard</li>
+      <li>File a time-off request</li>
+      <li>End card</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <span class="epTag">E16 · PORTALS</span>
+    <h4>Client Portal</h4>
+    <div class="epLen">60 to 90 seconds</div>
+    <div class="lbl">Voiceover</div>
+    <div class="vo">
+      <p>Here's a test of any services firm: could your client check on their project at midnight without emailing you? For our clients, yes.</p>
+      <p>This is the Client Portal in Eight Edges, each client's own window into their engagement.</p>
+      <p>First: the live roadmap. What's shipped, what's in motion, what's next, the same data our delivery team works from, updated as the work moves.</p>
+      <p>Second: shared boards. Clients see the cards that concern them and can raise their own, so requests enter the same flow as everything else, not a side inbox.</p>
+      <p>Third: their team. The people on their account, and the work agents are doing for them, visible and attributed.</p>
+      <p>That's the series: one system from strategy to the client's screen. The full playlist is linked below, and if you want this operating system inside your company, that's what we do. Talk to Edge8.</p>
+    </div>
+    <div class="lbl">On-screen flow</div>
+    <ul>
+      <li>Cold open on the client portal home</li>
+      <li>Scroll the live roadmap</li>
+      <li>Open a shared board, client raises a card</li>
+      <li>Show the account team view</li>
+      <li>End card with series recap and CTA</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>06 · Production and posting</h2>
+  <h3>Cadence and checklist</h3>
+  <h4>Build order</h4>
+  <ol>
+    <li>Seed the demo tenant and demo login → verify every episode's flow has real-looking data</li>
+    <li>Build the recording rig (Playwright config, ffmpeg assembly, ElevenLabs voice pick) → render a test episode end to end</li>
+    <li>Batch-record the first arc (E01 to E06) → your QC pass on all six</li>
+    <li>Record E00 Overview last, once the episode style is settled → optional avatar intro</li>
+    <li>Launch: post E00, then one episode per weekday</li>
+  </ol>
+  <h4>Posting conventions</h4>
+  <ul>
+    <li><strong>YouTube:</strong> one playlist ("Eight Edges, daily"), numbered titles ("Eight Edges E04: The Weekly Sync"), consistent thumbnail template, chapters on E00.</li>
+    <li><strong>LinkedIn:</strong> native upload (not a YouTube link) for reach, 2 to 3 line post in Dave's voice, first line is the hook from the script.</li>
+    <li><strong>Captions:</strong> burned-in, since LinkedIn autoplays muted.</li>
+    <li><strong>Per-episode QC:</strong> no client data on screen, brand casing correct, no em dashes in captions or titles, VO and screen in sync at each beat.</li>
+  </ul>
+  <div class="callout">
+    <p><strong>Effort estimate:</strong> the demo tenant and recording rig are the real work, roughly a few focused sessions. After that, each episode is: approve script, run pipeline, QC 90 seconds of video. The daily cadence costs minutes per day, not hours.</p>
+  </div>
+</section>
+
+<footer>
+  <span class="b">Eight Edges · Demo Video Series</span> · Draft for approval · Prepared Aug 15, 2026 · Private planning document, not indexed.
+</footer>
+
+</div>
+</body>
+</html>
