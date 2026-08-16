@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setting Up the Stack</title>
+<style>
+  :root{
+    --navy:#04102D; --panel:#0A1A42; --white:#FFFFFF; --blue:#287BE8;
+    --blue-soft:#5B9CF0; --mint:#6FF2C1; --pink:#E85B8A;
+    --ink:rgba(255,255,255,.86); --muted:rgba(255,255,255,.55);
+    --line:rgba(255,255,255,.14); --card:rgba(255,255,255,.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:var(--navy);overflow:hidden}
+  .brand{position:fixed;top:26px;left:36px;font-size:14px;font-weight:700;color:var(--white);letter-spacing:.01em;z-index:5}
+  .brand span{color:var(--blue-soft)}
+  .slide{display:none;height:100vh;padding:0 36px;flex-direction:column;justify-content:center;align-items:center}
+  .slide.on{display:flex;animation:rise .5s cubic-bezier(.22,1,.36,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .inner{max-width:900px;width:100%}
+  .label{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--blue-soft);margin-bottom:22px}
+  h1{font-size:64px;font-weight:800;color:var(--white);line-height:1.08;margin-bottom:30px}
+  h2{font-size:54px;font-weight:800;color:var(--white);line-height:1.1;margin-bottom:26px}
+  h2 .dim{color:var(--muted)}
+  h2 .hi{color:var(--mint)}
+  p.line{font-size:28px;line-height:1.45;color:var(--ink);margin-bottom:14px;max-width:820px}
+  p.line strong{color:var(--white)}
+  p.sub{font-size:20px;color:var(--muted);margin-top:22px}
+
+  /* equation cards */
+  .eqrow{display:flex;gap:14px;align-items:stretch;margin:36px 0 0;flex-wrap:wrap}
+  .eqcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 24px;flex:1;min-width:180px}
+  .eqcard .cn{font-size:24px;font-weight:800;color:var(--white);margin-bottom:8px}
+  .eqcard p{font-size:17px;color:var(--muted);line-height:1.4}
+  .eqcard.result{background:var(--blue);border-color:var(--blue)}
+  .eqcard.result p{color:rgba(255,255,255,.85)}
+  .eqsign{display:flex;align-items:center;font-size:38px;font-weight:800;color:var(--mint);padding:0 4px}
+
+  /* time bars (the 4x slide) */
+  .split{display:flex;gap:34px;align-items:stretch;margin-top:14px}
+  .split .left{flex:1.7;min-width:0}
+  .chip{display:inline-block;background:var(--blue);color:var(--white);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:7px 18px;margin-right:12px}
+  .hours{font-size:22px;font-weight:800;color:var(--white)}
+  .barrow{display:flex;gap:10px;margin:16px 0 34px;max-width:640px}
+  .bar{border-radius:9px;padding:14px 16px;font-size:16px;font-weight:700;color:var(--white);white-space:nowrap;border:1.5px solid}
+  .bar.plan{border-color:var(--blue-soft);flex:0 0 132px;text-align:center}
+  .bar.exec{border-color:var(--pink);flex:1;text-align:center}
+  .bar.tiny{border-color:var(--mint);flex:0 0 auto;padding:14px 12px}
+  .barnote{font-size:16px;color:var(--muted);align-self:center;white-space:nowrap}
+  .split .right{flex:1;background:var(--blue);border-radius:16px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:34px 20px;text-align:center}
+  .split .right .x{font-size:104px;font-weight:800;color:var(--white);line-height:1}
+  .split .right .xl{font-size:23px;font-weight:700;color:var(--white);margin-top:10px}
+
+  /* component grid */
+  .parts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:36px 0 0;max-width:860px}
+  .part{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 20px;text-align:center}
+  .part .pn{font-size:21px;font-weight:800;color:var(--white)}
+  .part .pt{font-size:15.5px;color:var(--muted);margin-top:6px}
+  .part .pt em{font-style:normal;color:var(--blue-soft)}
+
+  .nav{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;gap:16px;align-items:center;z-index:5}
+  .nav button{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:9px 20px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--white);cursor:pointer}
+  .nav button#next{background:var(--blue);border-color:var(--blue)}
+  .nav button:hover{opacity:.85}
+  .dots{display:flex;gap:7px;align-items:center;padding:0 6px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .2s,transform .2s;cursor:pointer}
+  .dots i.on{background:var(--mint);transform:scale(1.25)}
+
+  @media(max-width:760px){
+    h1{font-size:36px} h2{font-size:30px}
+    p.line{font-size:20px} p.sub{font-size:16px}
+    .slide{overflow-y:auto;justify-content:flex-start;padding-top:64px;padding-bottom:96px}
+    .brand{top:18px;left:20px}
+    .split{flex-direction:column;gap:20px}
+    .split .right{padding:24px}
+    .split .right .x{font-size:60px}
+    .bar.plan{flex:0 0 96px;font-size:13.5px}
+    .bar{font-size:13.5px;padding:11px 10px}
+    .barnote{white-space:normal;font-size:13.5px}
+    .parts{grid-template-columns:1fr 1fr}
+    .eqcard .cn{font-size:19px}
+  }
+</style>
+</head>
+<body>
+
+<div class="brand">Infinite <span>Leverage</span></div>
+
+<!-- SLIDE 1 · Title -->
+<section class="slide on"><div class="inner">
+  <div class="label">Block 0 · Online · Mon Aug 17</div>
+  <h1>Setting up the stack.</h1>
+  <p class="line">Two prompts. Two hours.</p>
+  <p class="line">You walk into Sydney already running.</p>
+</div></section>
+
+<!-- SLIDE 2 · What is Infinite Leverage -->
+<section class="slide"><div class="inner">
+  <div class="label">Infinite Leverage</div>
+  <h2>One equation runs everything.</h2>
+  <div class="eqrow">
+    <div class="eqcard"><div class="cn">Human Tokens</div><p>Your hours. Scarce.</p></div>
+    <div class="eqsign">+</div>
+    <div class="eqcard"><div class="cn">AI Tokens</div><p>AI's hours. Nearly infinite.</p></div>
+    <div class="eqsign">=</div>
+    <div class="eqcard result"><div class="cn">Pull Requests</div><p>Finished work, shipped.</p></div>
+  </div>
+  <p class="sub">Leverage is the gap between how many people you have and how much you ship.</p>
+</div></section>
+
+<!-- SLIDE 3 · The 4x picture -->
+<section class="slide"><div class="inner">
+  <div class="label">Infinite Leverage</div>
+  <h2>Same plan. A quarter of the time.</h2>
+  <div class="split">
+    <div class="left">
+      <div style="margin-bottom:6px"><span class="chip">The old way</span><span class="hours">100 hours</span></div>
+      <div class="barrow"><div class="bar plan">Plan 20h</div><div class="bar exec">Execute 80h</div></div>
+      <div style="margin-bottom:6px"><span class="chip" style="background:transparent;border:1.5px solid var(--blue-soft)">With AI</span><span class="hours">25 hours</span></div>
+      <div class="barrow"><div class="bar plan">Plan 20h</div><div class="bar tiny">5h</div><div class="barnote">Execute: AI does it</div></div>
+    </div>
+    <div class="right"><div class="x">4x</div><div class="xl">Output per hour</div></div>
+  </div>
+  <p class="sub">Notice what didn't shrink: the plan.</p>
+</div></section>
+
+<!-- SLIDE 4 · The Other 50% -->
+<section class="slide"><div class="inner">
+  <div class="label">The Other 50%</div>
+  <h2>Leading people is half the job.<br>Directing AI is <span class="hi">the other 50%</span>.</h2>
+  <p class="line">Nobody taught you the second half.</p>
+  <p class="line">That's why 95% of AI spend returns nothing.</p>
+</div></section>
+
+<!-- SLIDE 5 · Three skills -->
+<section class="slide"><div class="inner">
+  <div class="label">The Other 50%</div>
+  <h2>Three skills. None of them technical.</h2>
+  <div class="eqrow">
+    <div class="eqcard"><div class="cn">Catalogue</div><p>If AI can't find it, it doesn't exist.</p></div>
+    <div class="eqcard"><div class="cn">Design workflows</div><p>Who does what. Where humans stay in the loop.</p></div>
+    <div class="eqcard"><div class="cn">Code</div><p>Prompts are code. You direct, AI writes.</p></div>
+  </div>
+  <p class="sub">The stack we install today is where you practise all three.</p>
+</div></section>
+
+<!-- SLIDE 6 · How setup works -->
+<section class="slide"><div class="inner">
+  <div class="label">Today</div>
+  <h2>Two prompts. Two places.</h2>
+  <p class="line"><strong>Prompt 1, in Chat:</strong> your accounts.</p>
+  <p class="line"><strong>Prompt 2, in Claude Code:</strong> your site and your eight agents.</p>
+  <p class="sub">You never type a command. Paste, answer, click when asked.</p>
+</div></section>
+
+<!-- SLIDE 7 · Components on your machine -->
+<section class="slide"><div class="inner">
+  <div class="label">On your machine</div>
+  <h2>What gets installed.</h2>
+  <div class="parts">
+    <div class="part"><div class="pn">Homebrew</div><div class="pt">the hardware store <em>· Mac</em></div></div>
+    <div class="part"><div class="pn">Ubuntu</div><div class="pt">the adapter <em>· Windows</em></div></div>
+    <div class="part"><div class="pn">Git</div><div class="pt">the history keeper</div></div>
+    <div class="part"><div class="pn">Node.js</div><div class="pt">the engine</div></div>
+    <div class="part"><div class="pn">GitHub CLI</div><div class="pt">the courier</div></div>
+    <div class="part"><div class="pn">Claude Code</div><div class="pt">mission control</div></div>
+  </div>
+  <p class="sub">Claude installs these and runs them. You never touch them.</p>
+</div></section>
+
+<!-- SLIDE 8 · Components in the cloud -->
+<section class="slide"><div class="inner">
+  <div class="label">On the internet</div>
+  <h2>Three accounts. You hold the keys.</h2>
+  <div class="eqrow">
+    <div class="eqcard"><div class="cn">GitHub</div><p>the filing cabinet</p></div>
+    <div class="eqcard"><div class="cn">Vercel</div><p>the publisher</p></div>
+    <div class="eqcard"><div class="cn">Supabase</div><p>the memory</p></div>
+  </div>
+  <p class="sub">Yours, not ours. The AI never sees a password, and can't spend your money.</p>
+</div></section>
+
+<!-- SLIDE 9 · Close -->
+<section class="slide"><div class="inner">
+  <div class="label">Where this lands</div>
+  <h2>Live site. Eight agents.<br>Zero setup left.</h2>
+  <p class="line">Every hour in Sydney goes into your real project.</p>
+  <p class="sub">Human tokens in. AI tokens multiplied. Pull requests out.</p>
+</div></section>
+
+<div class="nav">
+  <button id="prev">Back</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">Next</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dotsBox=document.getElementById('dots');
+  slides.forEach(()=>dotsBox.appendChild(document.createElement('i')));
+  const dots=[...dotsBox.children];
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('on',k===i));
+    dots.forEach((d,k)=>d.classList.toggle('on',k===i));
+  }
+  show(0);
+  document.getElementById('next').addEventListener('click',()=>show(i+1));
+  document.getElementById('prev').addEventListener('click',()=>show(i-1));
+  dots.forEach((d,k)=>d.addEventListener('click',()=>show(k)));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(i+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp') show(i-1);
+    if(e.key==='Home') show(0);
+    if(e.key==='End') show(slides.length-1);
+  });
+</script>
+</body>
+</html>
