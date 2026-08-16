@@ -9,35 +9,6 @@ import { getBoardBySlug, type BoardDetail } from "@/lib/boards/data";
 import { type TaskPriority } from "@/lib/boards/types";
 import { OPEN_COMMITMENT_STATUSES, type CommitmentStatus } from "@/lib/coaching/data";
 
-export type ActorBoard = { id: string; slug: string; name: string };
-
-// Boards this actor may open: their memberships, or all active boards for admins.
-export async function getActorBoards(actor: TeamActor): Promise<ActorBoard[]> {
-  if (actor.isAdmin) {
-    const { data } = await companyOs
-      .from("boards")
-      .select("id, slug, name")
-      .eq("status", "active")
-      .is("archived_at", null)
-      .order("sort_order");
-    return (data ?? []) as ActorBoard[];
-  }
-  const { data: mem } = await companyOs
-    .from("board_members")
-    .select("board_id")
-    .eq("person_id", actor.personId);
-  const ids = ((mem ?? []) as { board_id: string }[]).map((m) => m.board_id);
-  if (ids.length === 0) return [];
-  const { data } = await companyOs
-    .from("boards")
-    .select("id, slug, name")
-    .in("id", ids)
-    .eq("status", "active")
-    .is("archived_at", null)
-    .order("sort_order");
-  return (data ?? []) as ActorBoard[];
-}
-
 export type MyBoardSummary = {
   id: string;
   slug: string;

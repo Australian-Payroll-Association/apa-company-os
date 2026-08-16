@@ -3,7 +3,6 @@ import { requireTeamMember } from "@/lib/team-auth";
 import { isCoach, isCoached } from "@/lib/coaching/data";
 import { hasClientAssignments } from "@/lib/team/clients";
 import { isHiringManager } from "@/lib/team/hiring";
-import { getActorBoards } from "@/lib/team/boards";
 import { TeamSidebar } from "@/components/team/TeamSidebar";
 import { TeamChatWidget } from "@/components/team/TeamChatWidget";
 import "../../admin/admin.css";
@@ -20,12 +19,11 @@ export default async function TeamDashboardLayout({
   children: React.ReactNode;
 }) {
   const actor = await requireTeamMember();
-  const [coaches, coached, hasClients, hiringManager, boards] = await Promise.all([
+  const [coaches, coached, hasClients, hiringManager] = await Promise.all([
     isCoach(actor),
     isCoached(actor),
     hasClientAssignments(actor),
     isHiringManager(actor),
-    getActorBoards(actor),
   ]);
 
   return (
@@ -38,7 +36,6 @@ export default async function TeamDashboardLayout({
         isCoached={coached}
         hasClients={hasClients}
         isHiringManager={hiringManager}
-        boards={boards}
       />
       <main className="admin-main">{children}</main>
       <TeamChatWidget />
