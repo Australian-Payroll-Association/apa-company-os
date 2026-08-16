@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listCalls, scorecardAverage, type CallRow, type CallType } from "@/lib/admin/calls";
+import { listCalls, scorecardAverage, type CallRow } from "@/lib/admin/calls";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
-import { FilterBar } from "@/components/admin/FilterBar";
 import { formatDate } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 
@@ -15,14 +14,6 @@ export const metadata = {
 };
 
 const PAGE_SIZES = [25, 50, 100];
-const TYPES: CallType[] = ["sales", "client", "internal", "other"];
-
-const TYPE_BADGE: Record<CallType, string> = {
-  sales: "admin-badge admin-badge--ok",
-  client: "admin-badge admin-badge--info",
-  internal: "admin-badge",
-  other: "admin-badge",
-};
 
 function fmtDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -34,8 +25,10 @@ function fmtRatio(r: number | null): string {
   return r == null ? "—" : `${Math.round(r * 100)}%`;
 }
 
-// List page: the call library. Search is full-text over transcript content, so
-// "cash flow" finds the calls where the words were said, not just titled.
+// List page: the sales call library. Only call_type 'sales' shows here; the
+// full corpus (client syncs, 1-1s) stays queryable in the database. Search is
+// full-text over transcript content, so "cash flow" finds the calls where the
+// words were said, not just titled.
 export default async function SalesIntelligencePage({ searchParams }: { searchParams: SearchParamsObj }) {
   await requireAdmin();
 
@@ -43,10 +36,8 @@ export default async function SalesIntelligencePage({ searchParams }: { searchPa
   const sizeParam = Number(firstParam(searchParams.size));
   const pageSize = PAGE_SIZES.includes(sizeParam) ? sizeParam : 25;
   const q = firstParam(searchParams.q) ?? "";
-  const typeParam = firstParam(searchParams.type) as CallType | undefined;
-  const type = typeParam && TYPES.includes(typeParam) ? typeParam : undefined;
 
-  const { rows, total, error } = await listCalls({ page, pageSize, search: q, type });
+  const { rows, total, error } = await listCalls({ page, pageSize, search: q, type: "sales" });
 
   const columns: Column<CallRow>[] = [
     {
@@ -62,11 +53,6 @@ export default async function SalesIntelligencePage({ searchParams }: { searchPa
           {c.title}
         </Link>
       ),
-    },
-    {
-      key: "call_type",
-      header: "Type",
-      cell: (c) => <span className={TYPE_BADGE[c.callType]}>{c.callType}</span>,
     },
     {
       key: "duration",
@@ -95,7 +81,7 @@ export default async function SalesIntelligencePage({ searchParams }: { searchPa
       <PageHead
         eyebrow="Revenue"
         title="Sales Intelligence"
-        sub={`${total.toLocaleString()} call${total === 1 ? "" : "s"} on record, searchable by what was said`}
+        sub={`${total.toLocaleString()} sales call${total === 1 ? "" : "s"} on record, searchable by what was said`}
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
       <DataTable
@@ -108,20 +94,7 @@ export default async function SalesIntelligencePage({ searchParams }: { searchPa
         basePath="/admin/revenue/sales-intelligence"
         searchParams={searchParams}
         searchPlaceholder="Search what was said, e.g. cash flow…"
-        emptyText="No calls match."
-        filterBar={
-          <FilterBar
-            basePath="/admin/revenue/sales-intelligence"
-            searchParams={searchParams}
-            filters={[
-              {
-                key: "type",
-                label: "Type",
-                options: TYPES.map((t) => ({ value: t, label: t[0].toUpperCase() + t.slice(1) })),
-              },
-            ]}
-          />
-        }
+        emptyText="No sales calls match."
       />
     </>
   );
