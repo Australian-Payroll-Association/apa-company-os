@@ -53,6 +53,14 @@
   .split .right .x{font-size:104px;font-weight:800;color:var(--white);line-height:1}
   .split .right .xl{font-size:23px;font-weight:700;color:var(--white);margin-top:10px}
 
+  /* numbered do-list */
+  .dolist{margin:32px 0 0;max-width:820px}
+  .do{display:flex;gap:20px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line)}
+  .do:last-child{border-bottom:none}
+  .do .n{font-size:19px;font-weight:800;color:var(--mint);flex:0 0 30px}
+  .do .t{font-size:22px;font-weight:700;color:var(--white)}
+  .do .t span{color:var(--muted);font-weight:400}
+
   /* component grid */
   .parts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:36px 0 0;max-width:860px}
   .part{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 20px;text-align:center}
@@ -162,6 +170,19 @@
   <p class="line"><strong>Prompt 1, in Chat:</strong> your accounts.</p>
   <p class="line"><strong>Prompt 2, in Claude Code:</strong> your site and your eight agents.</p>
   <p class="sub">We demonstrate every step live on screen. Watch us, then do it.</p>
+</div></section>
+
+<!-- SLIDE · What we'll actually do -->
+<section class="slide"><div class="inner">
+  <div class="label">Today</div>
+  <h2>What we'll actually do.</h2>
+  <div class="dolist">
+    <div class="do"><div class="n">1</div><div class="t">Connect <span>· GitHub, Vercel, Supabase: the three accounts Claude works through</span></div></div>
+    <div class="do"><div class="n">2</div><div class="t">Answer <span>· a few questions about you and your business</span></div></div>
+    <div class="do"><div class="n">3</div><div class="t">Install <span>· skills and your eight agents onto your computer</span></div></div>
+    <div class="do"><div class="n">4</div><div class="t">Run <span>· one skill that puts it all together</span></div></div>
+    <div class="do"><div class="n">5</div><div class="t">Ship <span>· a hello world website, live, proving everything is synced</span></div></div>
+  </div>
 </div></section>
 
 <!-- SLIDE · Everything you'll do -->
