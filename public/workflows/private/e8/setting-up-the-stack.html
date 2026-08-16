@@ -16,6 +16,10 @@
   body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:var(--navy);overflow:hidden}
   .brand{position:fixed;top:26px;left:36px;font-size:14px;font-weight:700;color:var(--white);letter-spacing:.01em;z-index:5}
   .brand span{color:var(--blue-soft)}
+  .crumbs{position:fixed;top:28px;right:36px;z-index:5;display:flex;gap:10px;align-items:center;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .crumbs a{color:var(--muted);text-decoration:none;transition:color .15s}
+  .crumbs a:hover{color:var(--white)}
+  .crumbs .sep{color:var(--line)}
   .slide{display:none;height:100vh;padding:0 36px;flex-direction:column;justify-content:center;align-items:center}
   .slide.on{display:flex;animation:rise .5s cubic-bezier(.22,1,.36,1)}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -95,6 +99,14 @@
 <body>
 
 <div class="brand">Infinite <span>Leverage</span></div>
+
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="https://infiniteleverage-8.com/workshop">Workshop</a>
+  <span class="sep">/</span>
+  <a href="https://infiniteleverage-8.com/workshop/sydney-2026/build-prompts.html">Build prompts</a>
+  <span class="sep">/</span>
+  <a href="https://infiniteleverage-8.com/workshop/sydney-2026/block-0.html">Block 0</a>
+</nav>
 
 <!-- SLIDE 1 · Title -->
 <section class="slide on"><div class="inner">
