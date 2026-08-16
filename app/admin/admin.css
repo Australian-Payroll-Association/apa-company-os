@@ -1,4 +1,4 @@
-/* Edge8 OS admin styles. Scoped under .admin-shell / .admin-auth / .admin-* / .sap-* / .mp-*
+/* 8 Edges admin styles. Scoped under .admin-shell / .admin-auth / .admin-* / .sap-* / .mp-*
    so nothing collides with the marketing site (globals.css). Loaded after
    globals.css by both admin route-group layouts.
 
@@ -3371,7 +3371,7 @@ a.ideas-share-card:hover {
 .team-eq-req-date { font-size: 12px; color: var(--admin-muted); margin: 4px 0 0; }
 .team-eq-req-note { font-size: 12px; color: var(--admin-muted); margin: 4px 0 0; font-style: italic; }
 
-/* ── Eight Edges ─────────────────────────────────────────────────────────
+/* ── 8 Edges ─────────────────────────────────────────────────────────
    Sidebar section labels + the Edges pages (Goals cascade, casting chips,
    progress bars). Tokens only; hovers stay subtle per the house rule. */
 

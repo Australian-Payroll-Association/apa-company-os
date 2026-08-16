@@ -1,6 +1,6 @@
 "use client";
 
-// The Eight Edges ladder picker: which company objective, key result, or
+// The 8 Edges ladder picker: which company objective, key result, or
 // metric a goal hangs off. Shared by the coach page (CoachProfileView) and the
 // member's own page (/team/goals) so both offer the same company goals, in the
 // same shape, and write the same three columns.
@@ -33,7 +33,7 @@ export function LadderSelect({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      aria-label="Ladders to (Eight Edges)"
+      aria-label="Ladders to (8 Edges)"
     >
       <option value="">{emptyLabel}</option>
       {edges.objectives.map((o, i) => (

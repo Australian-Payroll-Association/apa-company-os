@@ -1,4 +1,4 @@
-// Shared types + constants for the Eight Edges pages (/admin/edges/*).
+// Shared types + constants for the 8 Edges pages (/admin/edges/*).
 // See docs/product/eight-edges/eight-edges-engineering-plan.md.
 
 export const DAVE_PERSON_ID = "a8bf026f-8c20-49c5-8a55-6fc5c580af64";

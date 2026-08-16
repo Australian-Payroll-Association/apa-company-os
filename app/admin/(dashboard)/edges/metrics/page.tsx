@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Metrics",
-  description: "Eight Edges: the weekly numbers behind the goals, agent-pulled where a source exists.",
+  description: "8 Edges: the weekly numbers behind the goals, agent-pulled where a source exists.",
 };
 
 export default async function MetricsPage() {
@@ -60,7 +60,7 @@ export default async function MetricsPage() {
   return (
     <>
       <PageHead
-        eyebrow="Eight Edges"
+        eyebrow="8 Edges"
         title="Metrics"
         sub="The weekly numbers behind the goals. Every metric has one owner; agent-sourced numbers arrive Monday 06:00, manual ones are typed here and labeled honestly."
       />

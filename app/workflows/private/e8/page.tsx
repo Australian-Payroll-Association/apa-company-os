@@ -32,16 +32,16 @@ const ITEMS: LibraryItem[] = [
   {
     category: 'plan',
     href: '/workflows/private/e8/eight-edges-product-doc.html',
-    title: 'Eight Edges: Product Doc',
+    title: '8 Edges: Product Doc',
     description:
       'The Edge8 operating system for strategy to execution, 50% human and 50% AI: eight layers, the Company to Office to Executor cascade, casting, and the research it is built on.',
   },
   {
     category: 'prototype',
     href: '/workflows/private/e8/eight-edges-prototype.html',
-    title: 'Eight Edges: Edge8 OS Prototype',
+    title: '8 Edges: Prototype',
     description:
-      'Interactive mock of the Eight Edges screen: goal cascade for both business lines, casting mix, agent-pulled metrics, auto-filed issues, sync packet, and reviews.',
+      'Interactive mock of the 8 Edges screen: goal cascade for both business lines, casting mix, agent-pulled metrics, auto-filed issues, sync packet, and reviews.',
   },
   {
     category: 'plan',

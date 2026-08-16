@@ -6,7 +6,7 @@ export default function PortalLoginPage() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          Edge8 Client Portal
+          8 Edges Client Portal
         </div>
         <p className="admin-auth-sub">Sign in to your Edge8 client portal.</p>
         <Suspense>

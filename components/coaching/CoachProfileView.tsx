@@ -1223,7 +1223,7 @@ function CheckinsCard({ detail, html }: { detail: CoachProfileDetail; html: Rend
 }
 
 // ---- company goals ----------------------------------------------------------
-// The company tree comes straight from Eight Edges (objectives and their KRs),
+// The company tree comes straight from 8 Edges (objectives and their KRs),
 // so this card always matches /admin/edges/goals. There is no personal
 // company-goal layer: the person-level system is FAST goals, full stop.
 
@@ -1238,7 +1238,7 @@ function CompanyGoalsCard({ detail }: { detail: CoachProfileDetail }) {
     <section className="admin-card coach-section">
       <div className="admin-card-title">Company goals</div>
       <div className="admin-hint">
-        The Eight Edges tree their goals ladder into. Highlighted rows are where {detail.member.name} plugs in.
+        The 8 Edges tree their goals ladder into. Highlighted rows are where {detail.member.name} plugs in.
       </div>
       <div className="coach-okr-tree">
         {detail.edges.objectives.map((o, i) => (

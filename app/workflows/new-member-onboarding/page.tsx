@@ -48,7 +48,7 @@ const NODES: LaneNode[] = [
     actor: 'human',
     actorLabel: 'Recruiter',
     title: 'Set up the Lark email',
-    desc: 'In parallel, the recruiter creates the @edge8.ai Lark account by hand and records it in Edge8 OS. It runs alongside and never holds up the portal invite.',
+    desc: 'In parallel, the recruiter creates the @edge8.ai Lark account by hand and records it in 8 Edges. It runs alongside and never holds up the portal invite.',
   },
   {
     num: '3',
@@ -371,7 +371,7 @@ export default function NewMemberOnboardingWorkflowPage() {
             <h3>Recruiter, by hand</h3>
             <p>Run alongside the automated flow, per new hire.</p>
             <ul>
-              <li>Create the Lark @edge8.ai account and record it in Edge8 OS</li>
+              <li>Create the Lark @edge8.ai account and record it in 8 Edges</li>
               <li>Send the Day 0 welcome, the onboarding email personalized under their name</li>
               <li>Confirm the onboarding form is submitted; chase it personally if the drip goes quiet</li>
               <li>Verify portal access and tools work before Day 1</li>

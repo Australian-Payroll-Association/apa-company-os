@@ -8,7 +8,7 @@ import { TeamChatWidget } from "@/components/team/TeamChatWidget";
 import "../../admin/admin.css";
 
 export const metadata: Metadata = {
-  title: { template: "%s · Edge8 AI Workspace", default: "Edge8 AI Workspace" },
+  title: { template: "%s · 8 Edges Team", default: "8 Edges Team" },
   description: "Your Edge8 team workspace.",
   robots: { index: false, follow: false },
 };

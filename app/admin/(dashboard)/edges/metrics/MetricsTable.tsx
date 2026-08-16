@@ -230,7 +230,7 @@ export function MetricsTable({
       <DetailDrawer
         open={drawer !== null}
         onClose={() => setDrawer(null)}
-        eyebrow="Eight Edges"
+        eyebrow="8 Edges"
         title={drawer?.metric ? "Edit metric" : "New metric"}
       >
         {drawer && (

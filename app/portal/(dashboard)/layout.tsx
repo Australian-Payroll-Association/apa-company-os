@@ -13,7 +13,7 @@ import { AssumeBanner } from "@/components/portal/AssumeBanner";
 import "../../admin/admin.css";
 
 export const metadata: Metadata = {
-  title: { template: "%s · Edge8 Client Portal", default: "Edge8 Client Portal" },
+  title: { template: "%s · 8 Edges Client Portal", default: "8 Edges Client Portal" },
   description: "Your Edge8 client portal.",
   robots: { index: false, follow: false },
 };

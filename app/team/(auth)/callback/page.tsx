@@ -52,7 +52,7 @@ export default function TeamAuthCallback() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          Edge8 AI Workspace
+          8 Edges Team
         </div>
         <p className="admin-auth-sub">
           {failed ? "That link was invalid or expired. Redirecting…" : "Signing you in…"}
