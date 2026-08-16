@@ -8,7 +8,7 @@ import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Add Meeting Notes",
+  title: "Add Client Meeting",
   description: "Upload a meeting transcript and let AI summarize it.",
 };
 
@@ -29,8 +29,8 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: S
       </div>
 
       <PageHead
-        eyebrow="Revenue · Meeting Notes"
-        title="Add meeting notes"
+        eyebrow="Revenue · Client Meetings"
+        title="Add client meeting"
         sub="Paste a transcript or upload a file. AI writes the summary, then you publish it to the client."
       />
 
