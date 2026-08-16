@@ -19,6 +19,7 @@
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
+import { saveCoachingTranscript } from "@/lib/coaching/transcript";
 import { listActiveBoards } from "@/lib/boards/data";
 import { SUBJECT_COMMITMENT } from "@/lib/boards/types";
 
@@ -691,7 +692,26 @@ export type OneOnOne = {
 const MEETING_SELECT =
   "id, coaching_profile_id, held_on, status, prep_markdown, prep_generated_at, transcript, " +
   "summary_markdown, shared_summary_markdown, shared_published_at, " +
-  "mode_coach_pct, mode_mentor_pct, mode_direct_pct, minutes_token, transcript_source, ai_model, ai_error";
+  "mode_coach_pct, mode_mentor_pct, mode_direct_pct, minutes_token, transcript_source, ai_model, ai_error, " +
+  "meeting_id, linked_meeting:meetings!meeting_id(call_transcripts(transcript))";
+
+// The transcript now lives in call_transcripts on the linked meeting; the
+// coaching_one_on_ones.transcript column is a legacy mirror kept as a fallback
+// for any row not yet migrated.
+function transcriptFrom(r: Record<string, unknown>): string | null {
+  const lm = r.linked_meeting as
+    | { call_transcripts?: { transcript: string | null }[] | { transcript: string | null } | null }
+    | { call_transcripts?: unknown }[]
+    | null;
+  const meeting = Array.isArray(lm) ? lm[0] : lm;
+  const ct = meeting?.call_transcripts as
+    | { transcript: string | null }[]
+    | { transcript: string | null }
+    | null
+    | undefined;
+  const fromMeeting = (Array.isArray(ct) ? ct[0]?.transcript : ct?.transcript) ?? null;
+  return fromMeeting ?? (r.transcript as string | null) ?? null;
+}
 
 function toOneOnOne(r: Record<string, unknown>): OneOnOne {
   return {
@@ -700,7 +720,7 @@ function toOneOnOne(r: Record<string, unknown>): OneOnOne {
     status: r.status as OneOnOneStatus,
     prepMarkdown: (r.prep_markdown as string | null) ?? null,
     prepGeneratedAt: (r.prep_generated_at as string | null) ?? null,
-    transcript: (r.transcript as string | null) ?? null,
+    transcript: transcriptFrom(r),
     summaryMarkdown: (r.summary_markdown as string | null) ?? null,
     sharedSummaryMarkdown: (r.shared_summary_markdown as string | null) ?? null,
     sharedPublishedAt: (r.shared_published_at as string | null) ?? null,
@@ -1269,7 +1289,11 @@ export async function coachSaveTranscript(
   const text = transcript.trim();
   if (!text) return { ok: false, error: "Paste the transcript first." };
   if (text.length > 400_000) return { ok: false, error: "Transcript is too long." };
-  return patchMeeting(meetingId, { transcript: text, status: "held" });
+  // Transcript is stored on the linked meeting (call_transcripts), not on the
+  // coaching row.
+  const saved = await saveCoachingTranscript(meetingId, text);
+  if (!saved.ok) return saved;
+  return patchMeeting(meetingId, { status: "held" });
 }
 
 // Coach edits of the two summary tiers. Editing the shared recap does NOT

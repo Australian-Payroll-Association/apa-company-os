@@ -1,12 +1,20 @@
 // Client-visible meeting notes. A dedicated, reviewed helper — same discipline
 // as lib/portal/invoices.ts.
 //
-// PRIVACY HARD LINE: the raw `transcript` is NEVER selected here (it is admin-
-// only), and only PUBLISHED rows (published_at is not null) within the actor's
-// companyScope are returned. The client sees date / attendees / title / summary.
+// These rows live in the central company_os.meetings table (source='notes');
+// the meeting date is stored in started_at and the client-facing summary in
+// `summary`.
+//
+// PRIVACY HARD LINE: the raw transcript (call_transcripts) is NEVER joined here
+// (it is admin-only), and only PUBLISHED rows (published_at is not null) within
+// the actor's companyScope are returned. The client sees date / attendees /
+// title / summary.
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+
+const NOTES_SOURCE = "notes";
+const NOTES_SELECT = "id, started_at, title, attendees, summary";
 
 export type PortalMeeting = {
   id: string;
@@ -18,17 +26,26 @@ export type PortalMeeting = {
 
 type Row = {
   id: string;
-  meeting_date: string | null;
+  started_at: string | null;
   title: string | null;
   attendees: string[] | null;
-  ai_summary: string | null;
+  summary: string | null;
 };
+
+const toMeeting = (r: Row): PortalMeeting => ({
+  id: r.id,
+  meetingDate: r.started_at ? r.started_at.slice(0, 10) : null,
+  title: r.title,
+  attendees: r.attendees ?? [],
+  summary: r.summary,
+});
 
 export async function hasMeetings(actor: PortalActor): Promise<boolean> {
   if (actor.companyScope.length === 0) return false;
   const { data } = await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .select("id")
+    .eq("source", NOTES_SOURCE)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
     .not("published_at", "is", null)
@@ -47,8 +64,9 @@ export async function getMeetingForActor(
   if (actor.companyScope.length === 0) return null;
 
   const { data } = await companyOs
-    .from("meeting_notes")
-    .select("id, meeting_date, title, attendees, ai_summary")
+    .from("meetings")
+    .select(NOTES_SELECT)
+    .eq("source", NOTES_SOURCE)
     .eq("id", id)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
@@ -56,33 +74,21 @@ export async function getMeetingForActor(
     .maybeSingle();
 
   if (!data) return null;
-  const r = data as Row;
-  return {
-    id: r.id,
-    meetingDate: r.meeting_date,
-    title: r.title,
-    attendees: r.attendees ?? [],
-    summary: r.ai_summary,
-  };
+  return toMeeting(data as Row);
 }
 
 export async function getMeetingsForActor(actor: PortalActor): Promise<PortalMeeting[]> {
   if (actor.companyScope.length === 0) return [];
 
   const { data } = await companyOs
-    .from("meeting_notes")
-    .select("id, meeting_date, title, attendees, ai_summary")
+    .from("meetings")
+    .select(NOTES_SELECT)
+    .eq("source", NOTES_SOURCE)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
     .not("published_at", "is", null)
-    .order("meeting_date", { ascending: false, nullsFirst: false })
+    .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
-  return ((data ?? []) as Row[]).map((r) => ({
-    id: r.id,
-    meetingDate: r.meeting_date,
-    title: r.title,
-    attendees: r.attendees ?? [],
-    summary: r.ai_summary,
-  }));
+  return ((data ?? []) as Row[]).map(toMeeting);
 }

@@ -459,18 +459,35 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
 
     const { data: meeting } = await companyOs
       .from("coaching_one_on_ones")
-      .select("id, coaching_profile_id, held_on, transcript, prep_markdown")
+      .select(
+        "id, coaching_profile_id, held_on, transcript, prep_markdown, " +
+          "linked_meeting:meetings!meeting_id(call_transcripts(transcript))",
+      )
       .eq("id", meetingId)
       .is("archived_at", null)
       .maybeSingle();
     if (!meeting) return { ok: false, error: "Meeting not found." };
-    const m = meeting as {
+    const m = meeting as unknown as {
       coaching_profile_id: string;
       held_on: string;
       transcript: string | null;
       prep_markdown: string | null;
+      linked_meeting?:
+        | { call_transcripts?: { transcript: string | null }[] | { transcript: string | null } | null }
+        | { call_transcripts?: unknown }[]
+        | null;
     };
-    if (!m.transcript?.trim()) return { ok: false, error: "No transcript on this meeting yet." };
+    // Transcript lives on the linked meeting (call_transcripts); the coaching
+    // column is a legacy fallback for any not-yet-migrated row.
+    const lm = Array.isArray(m.linked_meeting) ? m.linked_meeting[0] : m.linked_meeting;
+    const lmCt = lm?.call_transcripts as
+      | { transcript: string | null }[]
+      | { transcript: string | null }
+      | null
+      | undefined;
+    const transcript =
+      (Array.isArray(lmCt) ? lmCt[0]?.transcript : lmCt?.transcript) ?? m.transcript ?? null;
+    if (!transcript?.trim()) return { ok: false, error: "No transcript on this meeting yet." };
 
     const profile = await loadProfileContext(m.coaching_profile_id);
     if (!profile) return { ok: false, error: "Profile not found." };
@@ -488,7 +505,7 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
       messages: [
         {
           role: "user",
-          content: `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals\n${goals}\n\n# Open commitments going into this meeting\n${commitments}\n\n# The prep for this meeting\n${m.prep_markdown ? clip(m.prep_markdown, MAX_DOC_CHARS) : "(none)"}\n\n# Transcript of the 1-1 on ${m.held_on}\n${clip(m.transcript, MAX_TRANSCRIPT_CHARS)}\n\nWrite the private summary, the shared recap, the mode split estimate, and extract every commitment.`,
+          content: `# Coaching context documents\n${docs}\n\n# The person\n${personBlock(profile)}\n\n# FAST goals\n${goals}\n\n# Open commitments going into this meeting\n${commitments}\n\n# The prep for this meeting\n${m.prep_markdown ? clip(m.prep_markdown, MAX_DOC_CHARS) : "(none)"}\n\n# Transcript of the 1-1 on ${m.held_on}\n${clip(transcript, MAX_TRANSCRIPT_CHARS)}\n\nWrite the private summary, the shared recap, the mode split estimate, and extract every commitment.`,
         },
       ],
     });

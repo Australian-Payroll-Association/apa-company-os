@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 
-// Summarize a client meeting transcript. Reads meeting_notes.transcript and asks
-// Claude for a title, a concise summary, the attendee list, and the meeting date.
+// Summarize a client meeting transcript. Reads the transcript from
+// call_transcripts (for the source='notes' meetings row) and asks Claude for a
+// title, a concise summary, the attendee list, and the meeting date.
 // Same never-throws contract as lib/ai/idea-plan.ts and lib/resume-screen.ts:
 // called fire-and-forget (waitUntil) from the meeting actions and from admin
 // retry, it always resolves and records failures on ai_error.
@@ -61,7 +62,7 @@ type Err = { ok: false; error: string };
 
 async function markFailed(id: string, error: string): Promise<Err> {
   await companyOs
-    .from("meeting_notes")
+    .from("meetings")
     .update({ ai_status: "failed", ai_error: error.slice(0, 500), updated_at: new Date().toISOString() })
     .eq("id", id);
   return { ok: false, error };
@@ -83,13 +84,19 @@ async function run(meetingId: string): Promise<Ok | Err> {
   }
 
   const { data: meeting, error } = await companyOs
-    .from("meeting_notes")
-    .select("id, title, attendees, meeting_date, transcript")
+    .from("meetings")
+    .select("id, title, attendees, started_at, call_transcripts(transcript)")
     .eq("id", meetingId)
+    .eq("source", "notes")
     .maybeSingle();
   if (error || !meeting) return markFailed(meetingId, error?.message ?? "Meeting not found.");
 
-  const transcript = (meeting.transcript ?? "").slice(0, MAX_TRANSCRIPT_CHARS);
+  const ct = meeting.call_transcripts as
+    | { transcript: string | null }[]
+    | { transcript: string | null }
+    | null;
+  const rawTranscript = (Array.isArray(ct) ? ct[0]?.transcript : ct?.transcript) ?? "";
+  const transcript = rawTranscript.slice(0, MAX_TRANSCRIPT_CHARS);
   if (!transcript.trim()) return markFailed(meetingId, "Transcript is empty.");
 
   const anthropic = new Anthropic();
@@ -117,9 +124,11 @@ async function run(meetingId: string): Promise<Ok | Err> {
     return markFailed(meetingId, "Model output was missing the summary.");
   }
 
-  // Coalesce: never overwrite an admin-supplied title/attendees/date.
+  // Coalesce: never overwrite an admin-supplied title/attendees/date. The
+  // client-facing summary lives in `summary`; the date in `started_at`.
   const update: Record<string, unknown> = {
-    ai_summary: parsed.summary_markdown.trim(),
+    summary: parsed.summary_markdown.trim(),
+    summary_encrypted: false,
     ai_model: MODEL,
     ai_status: "ready",
     ai_error: null,
@@ -130,11 +139,11 @@ async function run(meetingId: string): Promise<Ok | Err> {
     const cleaned = parsed.attendees.map((a) => a.trim()).filter(Boolean);
     if (cleaned.length > 0) update.attendees = cleaned;
   }
-  if (!meeting.meeting_date && parsed.meeting_date && ISO_DATE.test(parsed.meeting_date)) {
-    update.meeting_date = parsed.meeting_date;
+  if (!meeting.started_at && parsed.meeting_date && ISO_DATE.test(parsed.meeting_date)) {
+    update.started_at = parsed.meeting_date;
   }
 
-  const { error: upErr } = await companyOs.from("meeting_notes").update(update).eq("id", meetingId);
+  const { error: upErr } = await companyOs.from("meetings").update(update).eq("id", meetingId);
   if (upErr) return markFailed(meetingId, upErr.message);
 
   return { ok: true };
