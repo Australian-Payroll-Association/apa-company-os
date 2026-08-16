@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Goals",
-  description: "Eight Edges: the goal cascade from company objectives to every executor, human or agent.",
+  description: "8 Edges: the goal cascade from company objectives to every executor, human or agent.",
 };
 
 function buildTree(objectives: ObjectiveRow[], krs: KrRow[]): ObjectiveNode[] {
@@ -168,7 +168,7 @@ export default async function GoalsPage() {
   return (
     <>
       <PageHead
-        eyebrow="Eight Edges"
+        eyebrow="8 Edges"
         title="Goals"
         sub={`${q.label.slice(0, 4)} Q${q.label.slice(5)} · Week ${q.week} of ${q.totalWeeks} · the cascade from company strategy to every executor, human or agent.`}
       />

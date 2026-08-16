@@ -17,7 +17,7 @@ type NavSection = { section: string | null; groups: NavGroup[] };
 const isSubsection = (e: NavEntry): e is NavSubsection => "subheading" in e;
 
 // Three labeled sections (agreed 2026-08-09, see
-// docs/product/eight-edges/eight-edges-engineering-plan.md): EIGHT EDGES points
+// docs/product/eight-edges/eight-edges-engineering-plan.md): 8 EDGES points
 // the company (Company Dashboard = the unchanged /admin home, plus the Edges
 // pages), FOUR OFFICES runs it (the nested-by-office IA: every feature lives
 // under a System inside an Office, see
@@ -300,7 +300,7 @@ export function AdminSidebar({
         >
           ☰
         </button>
-        <strong>Eight Edges</strong>
+        <strong>8 Edges</strong>
       </div>
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
@@ -308,7 +308,7 @@ export function AdminSidebar({
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Admin">
         <div className="admin-brand">
           <span className="admin-brand-lead">
-            Eight Edges
+            8 Edges
           </span>
           <span className="admin-brand-actions">
             <button

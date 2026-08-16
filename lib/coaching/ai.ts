@@ -76,7 +76,7 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
   };
 }
 
-// FAST goals with their Eight Edges ladder, live metric readings included.
+// FAST goals with their 8 Edges ladder, live metric readings included.
 async function loadGoalsBlock(profileId: string): Promise<string> {
   const [{ data }, edges] = await Promise.all([
     companyOs

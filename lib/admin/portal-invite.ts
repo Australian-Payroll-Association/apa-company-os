@@ -183,10 +183,10 @@ export async function invitePortalMemberCore(
       const verifyUrl = `${siteOrigin()}/portal/verify?token_hash=${encodeURIComponent(tokenHash)}&type=invite`;
       const sent = await sendTransactionalEmail({
         to: t.email,
-        subject: "Your Edge8 Client Portal access",
+        subject: "Your 8 Edges Client Portal access",
         html: `
           <p>Hi,</p>
-          <p>You've been given access to the <strong>Edge8 Client Portal</strong>.</p>
+          <p>You've been given access to the <strong>8 Edges Client Portal</strong>.</p>
           <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Open the Client Portal</a></p>
           <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, request a fresh one at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a> or reply to this email.</p>
           <p>Dave and the Edge8 team</p>
@@ -247,9 +247,9 @@ export async function resendPortalLinkCore(
 
   const sent = await sendTransactionalEmail({
     to: t.email,
-    subject: "Your Edge8 Client Portal sign-in link",
+    subject: "Your 8 Edges Client Portal sign-in link",
     html: `
-      <p>Here is your sign-in link for the Edge8 Client Portal:</p>
+      <p>Here is your sign-in link for the 8 Edges Client Portal:</p>
       <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Sign in to the Client Portal</a></p>
       <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, you can request a fresh one any time at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a>.</p>
     `,
@@ -340,9 +340,9 @@ export async function setTempPasswordCore(
   const loginUrl = `${siteOrigin()}/portal/login`;
   const sent = await sendTransactionalEmail({
     to: t.email,
-    from: `Edge8 Client Portal <${actor}>`,
+    from: `8 Edges Client Portal <${actor}>`,
     replyTo: actor,
-    subject: "Your Edge8 Client Portal access",
+    subject: "Your 8 Edges Client Portal access",
     html: `
       <p>Hi,</p>
       <p>Sorry for the sign-in trouble. The emailed links have not been reaching you reliably, so here is a temporary password instead. It works right away:</p>
@@ -485,9 +485,9 @@ export async function sendSelfServeSignInLink(rawEmail: string): Promise<void> {
 
   const sent = await sendTransactionalEmail({
     to: email,
-    subject: "Your Edge8 Client Portal sign-in link",
+    subject: "Your 8 Edges Client Portal sign-in link",
     html: `
-      <p>Here is your sign-in link for the Edge8 Client Portal:</p>
+      <p>Here is your sign-in link for the 8 Edges Client Portal:</p>
       <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Sign in to the Client Portal</a></p>
       <p style="font-size:13px;color:#64748b;">The button takes you to a sign-in page — press "Sign in" there and you're in. If the link expires, you can request a fresh one any time at <a href="${siteOrigin()}/portal/login">${siteOrigin()}/portal/login</a>.</p>
     `,
@@ -524,9 +524,9 @@ export async function sendSelfServePasswordReset(rawEmail: string): Promise<void
 
   const sent = await sendTransactionalEmail({
     to: email,
-    subject: "Reset your Edge8 Client Portal password",
+    subject: "Reset your 8 Edges Client Portal password",
     html: `
-      <p>We received a request to set a new password for your Edge8 Client Portal account.</p>
+      <p>We received a request to set a new password for your 8 Edges Client Portal account.</p>
       <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Set a new password</a></p>
       <p style="font-size:13px;color:#64748b;">The button takes you to a confirmation page — press "Sign in" there, then choose your new password. If you didn't request this, you can ignore this email.</p>
     `,

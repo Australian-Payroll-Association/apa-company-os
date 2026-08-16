@@ -304,7 +304,7 @@ export function GoalsBoard({
       <DetailDrawer
         open={drawer !== null}
         onClose={() => setDrawer(null)}
-        eyebrow="Eight Edges"
+        eyebrow="8 Edges"
         title={
           drawer?.kind === "strategy"
             ? "Edit strategy"

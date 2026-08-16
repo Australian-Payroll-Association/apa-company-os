@@ -186,7 +186,7 @@ export async function sendBankChangeAlert(opts: {
     <p>Heads up — the bank details on ${opts.employeeName}'s Edge8 profile were just changed.</p>
     <p style="color:#64748b;font-size:13px;">${when} (Saigon time)</p>
     <p>If this wasn't expected, review it in the admin People area and confirm with ${opts.employeeName} directly before the next payroll run.</p>
-    <p>Edge8 OS</p>
+    <p>8 Edges</p>
   `.trim();
 
   // De-duped recipient list: employee always, plus HR (unless they're the same).
