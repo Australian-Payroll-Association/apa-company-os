@@ -180,7 +180,19 @@
       <div class="cell"><b>Integrations</b><span>email, calendar, meetings, accounting</span></div>
     </div>
   </div>
-  <p>The stack is deliberately boring: <strong>Next.js on Vercel, Postgres on Supabase, Resend for email, Claude for the agents</strong>. Static marketing pages and proposals are plain HTML in the same repo. Everything deploys through git push and CI. There is no queue, no microservices, no Kubernetes. A two-person team can operate it.</p>
+  <p>The core is deliberately boring: <strong>Next.js on Vercel, Postgres on Supabase, Claude for the agents</strong>. Static marketing pages and proposals are plain HTML in the same repo. Everything deploys through git push and CI. There is no queue, no microservices, no Kubernetes. A two-person team can operate it.</p>
+  <h4>The full stack</h4>
+  <table>
+    <tr><th>Layer</th><th>Service</th><th>Role</th></tr>
+    <tr><td>App</td><td>Next.js on Vercel</td><td>All three surfaces, the crons, and analytics. Deploys on git push through GitHub CI.</td></tr>
+    <tr><td>Data</td><td>Supabase (Postgres)</td><td>The Company OS schema, auth, and file storage.</td></tr>
+    <tr><td>AI</td><td>Claude (Anthropic API)</td><td>Every agent: CRM updates, proposals, extraction, chat assistants, resume screening.</td></tr>
+    <tr><td>Email</td><td>Resend + Brevo</td><td>Resend sends transactional mail (invites, sign-in links, notifications); Brevo runs marketing and nurture.</td></tr>
+    <tr><td>Messaging</td><td>Lark + Telegram</td><td>Lark is the team's home: chat webhooks for ops and coaching alerts, calendar, docs, and meeting transcripts that feed the CRM agents. Telegram carries a notification bot.</td></tr>
+    <tr><td>Money</td><td>Stripe + QuickBooks</td><td>Stripe takes payments; QuickBooks invoices sync in weekly so revenue metrics are never hand-typed.</td></tr>
+    <tr><td>Media</td><td>Gemini + ElevenLabs</td><td>Image generation for content, and voiceover for the demo video pipeline.</td></tr>
+  </table>
+  <p>Every integration is optional except the first three rows. Unconfigured ones degrade to "the humans do it manually," never to a broken page.</p>
 </section>
 
 <section id="data">
