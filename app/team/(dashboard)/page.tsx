@@ -1,6 +1,11 @@
 import { requireTeamMember } from "@/lib/team-auth";
 import { getOwnProfile, getOpenRoles, teamRead } from "@/lib/team/data";
 import { getClientRoadmapSnippets } from "@/lib/team/clients";
+import { getMyRecentTasks } from "@/lib/team/boards";
+import {
+  PRIORITY_LABEL as TASK_PRIORITY_LABEL,
+  PRIORITY_TONE as TASK_PRIORITY_TONE,
+} from "@/lib/boards/types";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { PRIORITY_LABEL, type BacklogPriority } from "@/lib/client-backlog";
@@ -108,6 +113,7 @@ export default async function TeamHome() {
   const actor = await requireTeamMember();
   const profile = await getOwnProfile(actor);
   const clientSnippets = await getClientRoadmapSnippets(actor, 3);
+  const recentTasks = await getMyRecentTasks(actor, 3);
   // Reqs this person is the hiring manager for. Nothing renders unless they
   // own one, so the section is invisible to everyone who is not hiring.
   const myOpenRoles = (await getOpenRoles()).filter((r) => r.hiringManagerPersonId === actor.personId);
@@ -199,45 +205,88 @@ export default async function TeamHome() {
         </div>
       </div>
 
-      {clientSnippets.length > 0 && (
-        <>
-          <h2 className="admin-section-label">Your clients</h2>
-          {clientSnippets.map((s) => (
-            <div key={s.company.id} className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-                <h3 className="admin-card-title" style={{ margin: 0 }}>
-                  {s.company.name}
-                  <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
-                    roadmap · next up
-                  </span>
-                </h3>
-                <Link href={`/team/clients/${s.company.id}`} className="admin-cell-muted" style={{ fontSize: 12 }}>
-                  View all {s.total} →
-                </Link>
-              </div>
-              <div className="admin-list">
-                {s.items.map((it) => (
-                  <Link
-                    key={it.id}
-                    href={`/team/clients/${s.company.id}`}
-                    className="admin-list-row"
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
-                    <div className="admin-list-main">
-                      <div className="admin-list-title">
-                        {it.ref ? `${it.ref} · ` : ""}
-                        {it.title}
-                      </div>
-                    </div>
-                    <div className="admin-list-aside">
-                      <Badge tone={PRIORITY_TONE[it.priority]}>{PRIORITY_LABEL[it.priority]}</Badge>
-                    </div>
+      {(clientSnippets.length > 0 || recentTasks.length > 0) && (
+        <div className="team-home-cols">
+          {clientSnippets.length > 0 && (
+            <div>
+              <h2 className="admin-section-label">Your clients</h2>
+              {clientSnippets.map((s) => (
+                <div key={s.company.id} className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+                    <h3 className="admin-card-title" style={{ margin: 0 }}>
+                      {s.company.name}
+                      <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                        roadmap · next up
+                      </span>
+                    </h3>
+                    <Link href={`/team/clients/${s.company.id}`} className="admin-cell-muted" style={{ fontSize: 12 }}>
+                      View all {s.total} →
+                    </Link>
+                  </div>
+                  <div className="admin-list">
+                    {s.items.map((it) => (
+                      <Link
+                        key={it.id}
+                        href={`/team/clients/${s.company.id}`}
+                        className="admin-list-row"
+                        style={{ textDecoration: "none", color: "inherit" }}
+                      >
+                        <div className="admin-list-main">
+                          <div className="admin-list-title">
+                            {it.ref ? `${it.ref} · ` : ""}
+                            {it.title}
+                          </div>
+                        </div>
+                        <div className="admin-list-aside">
+                          <Badge tone={PRIORITY_TONE[it.priority]}>{PRIORITY_LABEL[it.priority]}</Badge>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {recentTasks.length > 0 && (
+            <div>
+              <h2 className="admin-section-label">Recent tasks</h2>
+              <div className="admin-card admin-section-card" style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+                  <h3 className="admin-card-title" style={{ margin: 0 }}>
+                    Assigned to you
+                    <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                      newest first
+                    </span>
+                  </h3>
+                  <Link href="/team/my-tasks" className="admin-cell-muted" style={{ fontSize: 12 }}>
+                    All my tasks →
                   </Link>
-                ))}
+                </div>
+                <div className="admin-list">
+                  {recentTasks.map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/team/boards/${t.boardSlug}`}
+                      className="admin-list-row"
+                      style={{ textDecoration: "none", color: "inherit" }}
+                    >
+                      <div className="admin-list-main">
+                        <div className="admin-list-title">{t.title}</div>
+                        <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                          {t.boardName}
+                          {t.dueDate ? ` · due ${formatDate(t.dueDate)}` : ""}
+                        </div>
+                      </div>
+                      <div className="admin-list-aside">
+                        <Badge tone={TASK_PRIORITY_TONE[t.priority]}>{TASK_PRIORITY_LABEL[t.priority]}</Badge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-        </>
+          )}
+        </div>
       )}
 
       {myOpenRoles.length > 0 && (

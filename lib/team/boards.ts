@@ -102,6 +102,55 @@ export type MyTask = {
   doneColumnId: string | null;
 };
 
+export type RecentTask = {
+  id: string;
+  title: string;
+  priority: TaskPriority;
+  dueDate: string | null;
+  boardSlug: string;
+  boardName: string;
+};
+
+// The actor's most recently created open tasks, for the /team home glance.
+export async function getMyRecentTasks(actor: TeamActor, limit: number): Promise<RecentTask[]> {
+  const { data: taskData } = await companyOs
+    .from("tasks")
+    .select("id, title, priority, due_date, board_id, created_at")
+    .eq("assignee_id", actor.personId)
+    .neq("status", "done")
+    .is("parent_task_id", null)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const rows = (taskData ?? []) as {
+    id: string;
+    title: string;
+    priority: TaskPriority;
+    due_date: string | null;
+    board_id: string | null;
+  }[];
+  if (!rows.length) return [];
+
+  const boardIds = [...new Set(rows.map((r) => r.board_id).filter(Boolean) as string[])];
+  const { data: boardRows } = await companyOs.from("boards").select("id, slug, name").in("id", boardIds);
+  const bmap = new Map(
+    (boardRows ?? []).map((b) => [b.id, b as { id: string; slug: string; name: string }]),
+  );
+  return rows
+    .filter((r) => r.board_id && bmap.has(r.board_id))
+    .map((r) => {
+      const b = bmap.get(r.board_id as string)!;
+      return {
+        id: r.id,
+        title: r.title,
+        priority: r.priority,
+        dueDate: r.due_date,
+        boardSlug: b.slug,
+        boardName: b.name,
+      };
+    });
+}
+
 export type MyCommitmentLine = {
   id: string;
   title: string;
