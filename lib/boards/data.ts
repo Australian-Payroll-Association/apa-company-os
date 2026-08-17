@@ -28,12 +28,14 @@ export type BoardPerson = { id: string; name: string };
 export type BacklogRef = { id: string; title: string };
 
 export type Subtask = { id: string; title: string; done: boolean };
+export type TaskComment = { id: string; author: string; body: string; createdAt: string };
 
 export type BoardCard = TaskRow & {
   assignee_name: string | null;
   subject_label: string | null; // commitment title or roadmap item title
   agent: boolean; // filed by a scheduled routine (metadata.source === 'agent')
   subtasks: Subtask[];
+  comments: TaskComment[];
   last_moved_at: string; // latest column-move, else created_at (drives aging)
 };
 
@@ -241,12 +243,34 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     }
   }
 
+  // Comments per card (oldest first).
+  const commentsByTask = new Map<string, TaskComment[]>();
+  if (taskIds.length) {
+    const { data: cmts } = await companyOs
+      .from("task_comments")
+      .select("id, task_id, author_label, body, created_at")
+      .in("task_id", taskIds)
+      .order("created_at", { ascending: true });
+    for (const c of (cmts ?? []) as {
+      id: string;
+      task_id: string;
+      author_label: string;
+      body: string;
+      created_at: string;
+    }[]) {
+      const list = commentsByTask.get(c.task_id) ?? [];
+      list.push({ id: c.id, author: c.author_label, body: c.body, createdAt: c.created_at });
+      commentsByTask.set(c.task_id, list);
+    }
+  }
+
   const cards: BoardCard[] = parents.map((t) => ({
     ...t,
     assignee_name: t.assignee_id ? nameById.get(t.assignee_id) ?? null : null,
     subject_label: t.subject_id ? subjectLabel.get(t.subject_id) ?? null : null,
     agent: (t.metadata as { source?: string } | null)?.source === SOURCE_AGENT,
     subtasks: subtasksByParent.get(t.id) ?? [],
+    comments: commentsByTask.get(t.id) ?? [],
     last_moved_at: lastMove.get(t.id) ?? t.created_at,
   }));
 

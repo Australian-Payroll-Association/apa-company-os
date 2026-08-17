@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { Badge } from "@/components/admin/Badge";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
-import { formatDate } from "@/lib/admin/format";
+import { formatDate, timeAgo } from "@/lib/admin/format";
 import {
   STAGE_WON,
   STAGE_LEAD,
@@ -41,6 +41,7 @@ import {
   archiveBoard,
   addSubtask,
   toggleSubtask,
+  addComment,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -99,9 +100,21 @@ export function BoardView({
   const [boardClientId, setBoardClientId] = useState(board.client_company_id ?? "");
   const [newMemberId, setNewMemberId] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
+  const [newComment, setNewComment] = useState("");
   const [saving, startSaving] = useTransition();
 
   const activeCard = form?.id ? sourceCards.find((c) => c.id === form.id) ?? null : null;
+
+  function addCmt() {
+    if (!form?.id || !newComment.trim()) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await addComment(form.id!, newComment, slug);
+      if (!r.ok) return setBanner(r.error);
+      setNewComment("");
+      router.refresh();
+    });
+  }
 
   function addSub() {
     if (!form?.id || !newSubtask.trim()) return;
@@ -473,9 +486,14 @@ export function BoardView({
                   </span>
                 )}
               </div>
-              {c.subtasks.length > 0 && (
-                <div className="sap-card-sub" style={{ marginTop: 4 }}>
-                  ☑ {c.subtasks.filter((s) => s.done).length}/{c.subtasks.length} subtasks
+              {(c.subtasks.length > 0 || c.comments.length > 0) && (
+                <div className="sap-card-sub" style={{ marginTop: 4, display: "flex", gap: 12 }}>
+                  {c.subtasks.length > 0 && (
+                    <span>
+                      ☑ {c.subtasks.filter((s) => s.done).length}/{c.subtasks.length}
+                    </span>
+                  )}
+                  {c.comments.length > 0 && <span>💬 {c.comments.length}</span>}
                 </div>
               )}
               {aging && (
@@ -676,6 +694,45 @@ export function BoardView({
                   />
                   <button className="admin-btn" onClick={addSub} disabled={saving || !newSubtask.trim()}>
                     Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {form.id && (
+              <div className="admin-field">
+                <label className="admin-label">
+                  Comments{activeCard && activeCard.comments.length > 0 ? ` (${activeCard.comments.length})` : ""}
+                </label>
+                {activeCard?.comments.map((c) => (
+                  <div key={c.id} style={{ padding: "8px 0", borderTop: "1px solid var(--admin-line)" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                      <span className="admin-cell-strong" style={{ fontSize: 12 }}>
+                        {c.author}
+                      </span>
+                      <span className="admin-cell-muted" style={{ fontSize: 11 }}>
+                        {timeAgo(c.createdAt)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, whiteSpace: "pre-wrap", marginTop: 2 }}>{c.body}</div>
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <textarea
+                    className="admin-textarea"
+                    rows={2}
+                    placeholder="Add a comment…"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    className="admin-btn"
+                    onClick={addCmt}
+                    disabled={saving || !newComment.trim()}
+                    style={{ alignSelf: "flex-end" }}
+                  >
+                    Comment
                   </button>
                 </div>
               </div>
