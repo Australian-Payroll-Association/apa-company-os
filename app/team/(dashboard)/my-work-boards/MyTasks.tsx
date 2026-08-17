@@ -67,28 +67,43 @@ export function MyTasks({ work, boards }: { work: MyWork; boards: MyBoardSummary
           <span className="admin-cell-muted">You are not on any boards yet.</span>
         ) : boardsView === "card" ? (
           <div className="mp-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
-            {boards.map((b) => (
-              <Link
-                key={b.id}
-                href={`/team/boards/${b.slug}`}
-                className="admin-card admin-section-card is-clickable"
-                style={{ display: "block", textDecoration: "none" }}
-              >
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                  <span className="admin-cell-strong">{b.name}</span>
-                  {b.clientName && <Badge tone="info">Client</Badge>}
-                </div>
-                {b.clientName && (
-                  <div className="admin-cell-muted" style={{ marginTop: 4 }}>
-                    {b.clientName}
+            {boards.map((b) => {
+              const total = b.openCount + b.doneCount;
+              const pct = total > 0 ? Math.round((b.doneCount / total) * 100) : 0;
+              return (
+                <Link
+                  key={b.id}
+                  href={`/team/boards/${b.slug}`}
+                  className="admin-card admin-section-card is-clickable"
+                  style={{ display: "flex", flexDirection: "column", gap: 0, textDecoration: "none" }}
+                >
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                    <span className="admin-cell-strong">{b.name}</span>
+                    {b.clientName && <Badge tone="info">Client</Badge>}
                   </div>
-                )}
-                <div className="admin-cell-muted" style={{ marginTop: 12, display: "flex", gap: 14 }}>
-                  <span>{b.openCount} open</span>
-                  <span>{b.assignedToMe} mine</span>
-                </div>
-              </Link>
-            ))}
+                  <div className="admin-cell-muted" style={{ marginTop: 4, minHeight: 18 }}>
+                    {b.clientName ?? "Internal"}
+                  </div>
+                  <div style={{ marginTop: 14 }}>
+                    <div
+                      className="admin-cell-muted"
+                      style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}
+                    >
+                      <span>
+                        {total === 0 ? "No cards yet" : b.openCount === 0 ? "All done" : `${b.openCount} open`}
+                      </span>
+                      {total > 0 && <span>{pct}% done</span>}
+                    </div>
+                    <div className="board-progress">
+                      <div className="board-progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                  <div className="admin-cell-muted" style={{ marginTop: 12, fontSize: 12 }}>
+                    {b.assignedToMe} assigned to you
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="admin-table-wrap">
@@ -105,7 +120,7 @@ export function MyTasks({ work, boards }: { work: MyWork; boards: MyBoardSummary
                 {boards.map((b) => (
                   <tr key={b.id} className="is-clickable" onClick={() => router.push(`/team/boards/${b.slug}`)}>
                     <td className="admin-cell-strong">{b.name}</td>
-                    <td className="admin-cell-muted">{b.clientName ?? "—"}</td>
+                    <td className="admin-cell-muted">{b.clientName ?? "Internal"}</td>
                     <td style={{ textAlign: "right" }}>{b.openCount}</td>
                     <td style={{ textAlign: "right" }}>{b.assignedToMe}</td>
                   </tr>

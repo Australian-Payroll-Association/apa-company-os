@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { initials } from "@/lib/boards/types";
 import type { BoardListItem } from "@/lib/boards/data";
+import { NewBoardForm } from "./NewBoardForm";
 
 const VIEW_KEY = "boards:view";
 type View = "cards" | "list";
 
-export function BoardsIndex({ boards, newBoard }: { boards: BoardListItem[]; newBoard: ReactNode }) {
+export function BoardsIndex({
+  boards,
+  clients,
+}: {
+  boards: BoardListItem[];
+  clients: { id: string; name: string }[];
+}) {
   const router = useRouter();
+  const [creating, setCreating] = useState(false);
   // Cards on first paint (SSR-safe); the stored preference applies after mount.
   const [view, setView] = useState<View>("cards");
   useEffect(() => {
@@ -24,8 +32,14 @@ export function BoardsIndex({ boards, newBoard }: { boards: BoardListItem[]; new
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>{newBoard}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+        <button
+          className="admin-btn admin-btn--primary admin-btn--sm"
+          onClick={() => setCreating(true)}
+          disabled={creating}
+        >
+          New board
+        </button>
         <div className="admin-viewtoggle" role="group" aria-label="Boards view">
           <button className={view === "cards" ? "is-active" : ""} onClick={() => pick("cards")}>
             Cards
@@ -35,6 +49,8 @@ export function BoardsIndex({ boards, newBoard }: { boards: BoardListItem[]; new
           </button>
         </div>
       </div>
+
+      {creating && <NewBoardForm clients={clients} onClose={() => setCreating(false)} />}
 
       {boards.length === 0 ? (
         <div className="admin-card admin-section-card">

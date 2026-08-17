@@ -15,6 +15,7 @@ export type MyBoardSummary = {
   name: string;
   clientName: string | null;
   openCount: number;
+  doneCount: number;
   assignedToMe: number;
 };
 
@@ -60,9 +61,13 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
   ]);
   const companyName = new Map(((companiesRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
   const open = new Map<string, number>();
+  const done = new Map<string, number>();
   const mine = new Map<string, number>();
   for (const t of (tasksRes.data ?? []) as { board_id: string; status: string; assignee_id: string | null }[]) {
-    if (t.status === "done") continue;
+    if (t.status === "done") {
+      done.set(t.board_id, (done.get(t.board_id) ?? 0) + 1);
+      continue;
+    }
     open.set(t.board_id, (open.get(t.board_id) ?? 0) + 1);
     if (t.assignee_id === actor.personId) mine.set(t.board_id, (mine.get(t.board_id) ?? 0) + 1);
   }
@@ -73,6 +78,7 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
     name: b.name,
     clientName: b.client_company_id ? companyName.get(b.client_company_id) ?? null : null,
     openCount: open.get(b.id) ?? 0,
+    doneCount: done.get(b.id) ?? 0,
     assignedToMe: mine.get(b.id) ?? 0,
   }));
 }

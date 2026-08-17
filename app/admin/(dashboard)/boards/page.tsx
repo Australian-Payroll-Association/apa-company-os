@@ -1,7 +1,6 @@
 import { PageHead } from "@/components/admin/PageHead";
 import { listBoards, listBoardManageOptions } from "@/lib/boards/data";
 import { BoardsIndex } from "./BoardsIndex";
-import { NewBoardForm } from "./NewBoardForm";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -19,9 +18,9 @@ export default async function BoardsPage() {
       <PageHead
         eyebrow="Workspace"
         title="Boards"
-        sub="Trello-style boards for client projects, our own products, and day-to-day work."
+        sub="Kanban boards for client projects, our own products, and day-to-day work."
       />
-      <BoardsIndex boards={boards} newBoard={<NewBoardForm clients={options.clients} />} />
+      <BoardsIndex boards={boards} clients={options.clients} />
     </>
   );
 }
