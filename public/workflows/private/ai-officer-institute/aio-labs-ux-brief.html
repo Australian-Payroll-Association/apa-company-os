@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Officer — UX Questions</title>
 <style>
-  :root{--ink:#0d1526;--ink3:#6b7890;--line:#e2e6ee}
+  :root{--ink:#0d1526;--ink2:#3d4a63;--ink3:#6b7890;--line:#e2e6ee;--bg2:#f7f9fc}
   *{box-sizing:border-box}
   body{margin:0;background:#fff;color:var(--ink);
     font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased}
-  .page{max-width:620px;margin:0 auto;padding:44px 28px 52px}
-  header{border-bottom:2px solid var(--ink);padding-bottom:9px;margin-bottom:20px}
+  .page{max-width:640px;margin:0 auto;padding:42px 28px 52px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:9px;margin-bottom:18px}
   .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700}
   h1{font-size:23px;line-height:1.15;letter-spacing:-.02em;margin:6px 0 5px;font-weight:800}
   .meta{font-size:11.5px;color:var(--ink3)}
+  h2{font-size:16px;font-weight:800;letter-spacing:-.01em;margin:26px 0 3px}
+  .sub{font-size:12.5px;color:var(--ink3);margin:0 0 11px}
   ul{margin:0;padding-left:20px;color:var(--ink)}
-  li{margin:0 0 11px}
+  li{margin:0 0 10px}
+  .note{font-size:12.5px;color:var(--ink2);background:var(--bg2);border:1px solid var(--line);
+        border-radius:6px;padding:10px 14px;margin-top:24px}
+  .note p{margin:0}
   @media(max-width:600px){.page{padding:26px 16px 38px}h1{font-size:19px}}
 </style>
 </head>
@@ -29,23 +34,31 @@
   <div class="meta">14 Aug 2026 · from a live walkthrough of aiolabz.com</div>
 </header>
 
+<h2>Student view</h2>
+<p class="sub">What the learner sees, gets and does.</p>
 <ul>
-  <li>What does the headline progress % measure — one program, or all enrolled programs blended?</li>
-  <li>What exactly is required to certify — missions, capstone, how many electives?</li>
-  <li>What counts as "attended" for a micro session — minutes watched, or presence at the live call?</li>
-  <li>When should "You're all caught up" appear — per active track, or only at zero outstanding?</li>
-  <li>Is buying seats self-serve, or an invoice request handled by Edge8?</li>
-  <li>Can every program count be read from curriculum data instead of hand-written copy?</li>
-  <li>Can one status field drive every badge, everywhere?</li>
-  <li>Which service owns progress, and does the admin read the same one as the learner?</li>
-  <li>What should a program-level catalogue show when nothing exists yet?</li>
-  <li>What does a disabled control say about why it is disabled?</li>
-  <li>What should the app do when a session expires?</li>
-  <li>What does "content not ready yet" look like, and what does it promise?</li>
-  <li>In onboarding, is "Choose your certification" meant to be a real choice?</li>
-  <li>Which blog category field is authoritative, and who validates it at publish?</li>
-  <li>Should generation-pipeline status ever be visible to the learner?</li>
+  <li>How many missions and how many electives does certification actually take? The page says "missions, micro sessions and challenges" but never a number.</li>
+  <li>What do I receive when I finish — a PDF, an image, or a web page?</li>
+  <li>Whose name goes on it, when the product currently lets me exist without one?</li>
+  <li>Can I prove to an employer that it is real?</li>
+  <li>Where can I share it, and can I edit the text before it posts?</li>
+  <li>Does one minute of video count as "attended" for a micro session?</li>
+  <li>What does my progress percentage include — this track, or everything I'm enrolled in?</li>
+  <li>When am I told "you're all caught up", and is it true?</li>
+  <li>When a button is greyed out, what am I told about why?</li>
+  <li>What happens when my session expires in the middle of a task?</li>
+  <li>What do I see when a recording isn't published yet?</li>
+  <li>On the onboarding screen, can I actually choose my track?</li>
 </ul>
+
+<h2>Build view</h2>
+<p class="sub">Never seen directly, but decides everything above.</p>
+<ul>
+  <li>Where does the certificate template live, and who owns it?</li>
+  <li>Which platforms can we actually auto-post to, and which are download-and-post-yourself?</li>
+</ul>
+
+<div class="note"><p>Verification appears in both views — the learner asks "can I prove it", the build asks "what is the URL". One decision, two ends. Settle the download format and the verification URL first; every sharing question depends on them.</p></div>
 
 </div>
 </body>
