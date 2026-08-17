@@ -1461,7 +1461,7 @@ export async function coachPushCommitmentToBoard(
   actor: TeamActor,
   commitmentId: string,
   boardId: string,
-): Promise<Result> {
+): Promise<Result & { created?: { assigneeId: string | null; title: string } }> {
   const row = await assertCoachOwnsCommitment(actor, commitmentId);
   if (!row) return { ok: false, error: "Not found." };
   if (!boardId) return { ok: false, error: "Pick a board." };
@@ -1534,7 +1534,8 @@ export async function coachPushCommitmentToBoard(
     subject_id: commitmentId,
     position,
   });
-  return error ? { ok: false, error: "Could not add the card." } : { ok: true };
+  if (error) return { ok: false, error: "Could not add the card." };
+  return { ok: true, created: { assigneeId, title: row.title as string } };
 }
 
 // ---- member tier ------------------------------------------------------------

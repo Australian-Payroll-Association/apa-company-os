@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
+import { notifyBoardAssignee } from "@/lib/boards/notify";
 import {
   assertCoachOwnsMeeting,
   assertCoachOwnsProfile,
@@ -316,7 +317,12 @@ export async function pushCommitmentToBoard(
 ): Promise<Result> {
   const actor = await requireTeamMember();
   const res = await coachPushCommitmentToBoard(actor, commitmentId, boardId);
-  if (res.ok) refresh(profileId);
+  if (res.ok) {
+    if (res.created) {
+      await notifyBoardAssignee(boardId, res.created.assigneeId, res.created.title, actor.personId);
+    }
+    refresh(profileId);
+  }
   return res;
 }
 
