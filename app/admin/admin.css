@@ -2091,20 +2091,22 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   flex: 1 1 268px;
   min-width: 252px;
   max-width: 332px;
-  background: #f1f3f7;
-  border: 1px solid var(--admin-line);
+  /* The well must read darker than the page canvas or the board dissolves
+     into it; derived from tokens so it tracks any future re-theme. */
+  background: color-mix(in srgb, var(--admin-line-strong) 40%, var(--admin-bg));
+  border: 1px solid var(--admin-line-strong);
   border-radius: var(--admin-radius);
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 210px);
 }
-.sap-col.is-over { background: #e7edf9; border-color: var(--admin-accent); }
+.sap-col.is-over { background: var(--admin-accent-soft); border-color: var(--admin-accent); }
 .sap-col-head {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  border-bottom: 1px solid var(--admin-line);
+  border-bottom: 1px solid var(--admin-line-strong);
 }
 .sap-col-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-muted); flex-shrink: 0; }
 .sap-col-label { font-weight: 600; font-size: 13px; }
@@ -2193,7 +2195,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   padding: 18px 12px;
   text-align: center;
   font-size: 12px;
-  color: var(--admin-faint);
+  color: var(--admin-muted);
 }
 /* Ghost add-card control at the foot of a board column. */
 .sap-add-card {
@@ -2209,7 +2211,37 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
-.sap-add-card:hover { background: #e7edf9; color: var(--admin-accent); }
+.sap-add-card:hover { background: var(--admin-accent-soft); color: var(--admin-accent); }
+/* Read-only card (client portal): no click affordance, no hover lift. */
+.sap-card--static { cursor: default; }
+.sap-card--static:hover {
+  border-color: var(--admin-line);
+  box-shadow: var(--admin-shadow);
+  transform: none;
+}
+/* Overlapping member initials on the boards index. */
+.board-avatar-stack { display: flex; align-items: center; }
+.board-avatar-stack .sap-avatar {
+  box-shadow: 0 0 0 2px var(--admin-surface);
+}
+.board-avatar-stack .sap-avatar + .sap-avatar { margin-left: -6px; }
+.board-avatar-more {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--admin-muted);
+}
+/* Thin done-vs-open progress track on a board card. */
+.board-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--admin-line-soft);
+  overflow: hidden;
+}
+.board-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--admin-accent);
+}
 /* Role tag on cross-req boards, color + tint arrive inline per req. */
 .sap-role-tag {
   font-size: 11px;

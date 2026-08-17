@@ -22,6 +22,8 @@ export type BoardListItem = BoardRow & {
   client_name: string | null;
   member_count: number;
   open_count: number;
+  done_count: number;
+  member_names: string[];
 };
 
 export type BoardPerson = { id: string; name: string };
@@ -87,20 +89,40 @@ export async function listBoards(): Promise<BoardListItem[]> {
   ]);
 
   const companyName = new Map((companiesRes.data ?? []).map((c) => [c.id, c.name]));
-  const memberCount = new Map<string, number>();
-  for (const m of (membersRes.data ?? []) as { board_id: string }[]) {
-    memberCount.set(m.board_id, (memberCount.get(m.board_id) ?? 0) + 1);
+  const memberRows = (membersRes.data ?? []) as { board_id: string; person_id: string }[];
+
+  // Member names feed the avatar stack on the index cards.
+  const memberPersonIds = [...new Set(memberRows.map((m) => m.person_id))];
+  const { data: memberPeople } = memberPersonIds.length
+    ? await companyOs.from("people").select("id, display_name, full_name, email").in("id", memberPersonIds)
+    : { data: [] };
+  const memberName = new Map(
+    ((memberPeople ?? []) as { id: string; display_name: string | null; full_name: string | null; email: string }[]).map(
+      (p) => [p.id, personName(p)],
+    ),
+  );
+  const membersByBoard = new Map<string, string[]>();
+  for (const m of memberRows) {
+    const list = membersByBoard.get(m.board_id) ?? [];
+    const name = memberName.get(m.person_id);
+    if (name) list.push(name);
+    membersByBoard.set(m.board_id, list);
   }
+
   const openCount = new Map<string, number>();
+  const doneCount = new Map<string, number>();
   for (const t of (tasksRes.data ?? []) as { board_id: string; status: string }[]) {
-    if (t.status !== "done") openCount.set(t.board_id, (openCount.get(t.board_id) ?? 0) + 1);
+    const target = t.status === "done" ? doneCount : openCount;
+    target.set(t.board_id, (target.get(t.board_id) ?? 0) + 1);
   }
 
   return rows.map((b) => ({
     ...b,
     client_name: b.client_company_id ? companyName.get(b.client_company_id) ?? null : null,
-    member_count: memberCount.get(b.id) ?? 0,
+    member_count: membersByBoard.get(b.id)?.length ?? 0,
     open_count: openCount.get(b.id) ?? 0,
+    done_count: doneCount.get(b.id) ?? 0,
+    member_names: membersByBoard.get(b.id) ?? [],
   }));
 }
 

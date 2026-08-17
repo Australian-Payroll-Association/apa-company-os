@@ -24,6 +24,7 @@ import {
   SUBJECT_BACKLOG_ITEM,
   assignedAt,
   daysInColumn,
+  initials,
   type TaskPriority,
 } from "@/lib/boards/types";
 import type { BoardDetail, BoardCard, BoardPerson } from "@/lib/boards/data";
@@ -68,13 +69,6 @@ type Form = {
   internal: boolean;
   origInternal: boolean;
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  return (first + last).toUpperCase();
-}
 
 export function BoardView({
   detail,

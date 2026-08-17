@@ -17,6 +17,7 @@ export type PortalBoardCard = {
   done: boolean;
   assigneeName: string | null;
   sprintName: string | null;
+  createdAt: string;
 };
 export type PortalBoardData = {
   boardName: string;
@@ -54,7 +55,7 @@ export async function getBoardForClient(actor: PortalActor): Promise<PortalBoard
     companyOs.from("board_columns").select("id, name, is_done").eq("board_id", board.id).order("position"),
     companyOs
       .from("tasks")
-      .select("id, title, priority, due_date, status, board_column_id, assignee_id, sprint_id")
+      .select("id, title, priority, due_date, status, board_column_id, assignee_id, sprint_id, created_at")
       .eq("board_id", board.id)
       .eq("internal", false)
       .is("parent_task_id", null)
@@ -76,6 +77,7 @@ export async function getBoardForClient(actor: PortalActor): Promise<PortalBoard
     board_column_id: string | null;
     assignee_id: string | null;
     sprint_id: string | null;
+    created_at: string;
   }[];
 
   const personIds = [...new Set(tasks.map((t) => t.assignee_id).filter(Boolean) as string[])];
@@ -102,6 +104,7 @@ export async function getBoardForClient(actor: PortalActor): Promise<PortalBoard
     done: t.status === "done",
     assigneeName: t.assignee_id ? nameById.get(t.assignee_id) ?? null : null,
     sprintName: t.sprint_id ? sprintById.get(t.sprint_id) ?? null : null,
+    createdAt: t.created_at,
   }));
 
   return { boardName: board.name, columns, cards };

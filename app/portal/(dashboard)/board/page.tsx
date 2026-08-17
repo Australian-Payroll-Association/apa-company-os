@@ -4,7 +4,7 @@ import { getBoardForClient } from "@/lib/portal/boards";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
-import { PRIORITY_LABEL, PRIORITY_TONE } from "@/lib/boards/types";
+import { NEW_ASSIGNMENT_DAYS, PRIORITY_LABEL, PRIORITY_TONE, initials } from "@/lib/boards/types";
 import {
   STAGE_WON,
   STAGE_LEAD,
@@ -50,24 +50,34 @@ export default async function PortalBoardPage() {
                 <span className="sap-col-count">{colCards.length}</span>
               </div>
               <div className="sap-col-body">
-                {colCards.map((c) => (
-                  <div className="sap-card" key={c.id}>
-                    <div className="sap-card-title">{c.title}</div>
-                    <div className="sap-card-meta">
-                      <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
-                      {c.sprintName && <Badge tone="info">{c.sprintName}</Badge>}
-                    </div>
-                    <div className="sap-card-meta">
-                      <span className="sap-card-sub">{c.assigneeName ?? "Edge8"}</span>
-                      {c.dueDate && (
-                        <span className="sap-card-sub" style={{ marginLeft: "auto" }}>
-                          {formatDate(c.dueDate)}
+                {colCards.map((c) => {
+                  const isNew =
+                    !c.done &&
+                    Date.now() - new Date(c.createdAt).getTime() < NEW_ASSIGNMENT_DAYS * 86400000;
+                  const who = c.assigneeName ?? "Edge8";
+                  return (
+                    <div className="sap-card sap-card--static" key={c.id}>
+                      <div className="sap-card-title">{c.title}</div>
+                      <div className="sap-card-meta">
+                        {isNew && <Badge tone="info">New</Badge>}
+                        <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
+                        {c.sprintName && <Badge tone="info">{c.sprintName}</Badge>}
+                      </div>
+                      <div className="sap-card-meta">
+                        <span className="sap-card-assignee">
+                          <span className="sap-avatar">{initials(who)}</span>
+                          {who}
                         </span>
-                      )}
+                        {c.dueDate && (
+                          <span className="sap-card-sub" style={{ marginLeft: "auto" }}>
+                            {formatDate(c.dueDate)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {colCards.length === 0 && <div className="admin-cell-muted" style={{ padding: "4px 2px" }}>—</div>}
+                  );
+                })}
+                {colCards.length === 0 && <div className="sap-col-empty">No cards</div>}
               </div>
             </div>
           );
