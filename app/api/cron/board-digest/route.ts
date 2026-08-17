@@ -109,7 +109,7 @@ export async function GET(req: Request) {
       <p style="font-size:16px">Morning ${esc(person.name)},</p>
       <p style="font-size:15px;color:#5a6480">You have ${n} open task${n === 1 ? "" : "s"} across your boards:</p>
       <ul style="padding-left:18px;font-size:15px">${items}</ul>
-      <p style="font-size:14px"><a href="${origin}/team/my-tasks" style="color:#287BE8">Open My Tasks →</a></p>
+      <p style="font-size:14px"><a href="${origin}/team/my-work-boards" style="color:#287BE8">Open My Work Boards →</a></p>
     </div>`;
     const ok = await sendTransactionalEmail({
       to: person.email,
