@@ -529,7 +529,7 @@ export function DealsBoard({
                 <div className="sap-card-handoff" style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
                   {rejecting === c.id ? (
                     <>
-                      <select className="admin-input" style={{ maxWidth: 150, fontSize: 12 }} value={reason} onChange={(e) => setReason(e.target.value)}>
+                      <select className="admin-input" style={{ maxWidth: 150 }} value={reason} onChange={(e) => setReason(e.target.value)}>
                         <option value="">Reason…</option>
                         {REJECT_REASONS.map(([v, l]) => (
                           <option key={v} value={v}>

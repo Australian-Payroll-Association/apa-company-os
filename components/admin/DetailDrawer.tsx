@@ -26,7 +26,15 @@ export function DetailDrawer({
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // Lock the page behind the drawer so a swipe that reaches the drawer's scroll
+    // end does not scroll the list underneath (paired with overscroll-behavior on
+    // .admin-drawer-body). Restored on close.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [open, onClose]);
 
   if (!open) return null;

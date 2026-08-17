@@ -117,11 +117,13 @@
   width: 248px;
   flex-shrink: 0;
   height: 100vh;
+  height: 100dvh; /* dvh tracks mobile browser chrome, so the last nav items are not hidden behind Safari's bottom bar */
   background: var(--admin-sidebar-bg);
   color: var(--admin-sidebar-ink);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling the nav to its end must not chain to the page behind it */
 }
 .admin-brand {
   display: flex;
@@ -1519,6 +1521,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 /* ─── Pagination ──────────────────────────────────── */
 .admin-pagination {
   display: flex;
+  flex-wrap: wrap; /* on a phone the count + page-size chips + Prev/Next must drop to a second line, not clip Next off-screen */
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -1582,7 +1585,7 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-drawer-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--admin-muted); }
 .admin-drawer-close { background: transparent; border: 0; font-size: 20px; line-height: 1; color: var(--admin-muted); cursor: pointer; padding: 2px 6px; }
 .admin-drawer-close:hover { color: var(--admin-ink); }
-.admin-drawer-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.admin-drawer-body { padding: 18px 20px; overflow-y: auto; overscroll-behavior: contain; flex: 1; }
 @keyframes admin-slide { from { transform: translateX(20px); opacity: 0.6; } to { transform: translateX(0); opacity: 1; } }
 @keyframes admin-fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -1606,8 +1609,25 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   border-color: var(--admin-accent);
   box-shadow: var(--admin-focus-ring);
 }
+/* globals.css strips the native <select> arrow (appearance:none) and the combined
+   rule above then wipes any replacement via its `background` shorthand, so every
+   admin select rendered with no dropdown indicator. Redraw a caret from two
+   token-coloured gradients (same no-data-URI approach as the checkbox tick) and
+   reserve room for it. This rule follows the combined block, so background-image
+   wins by source order while background-color stays --admin-surface. */
+.admin-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--admin-muted) 50%),
+    linear-gradient(135deg, var(--admin-muted) 50%, transparent 50%);
+  background-position: right 15px center, right 10px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat, no-repeat;
+}
 .admin-textarea { min-height: 96px; resize: vertical; }
-.admin-form-actions { display: flex; gap: 8px; padding-top: 4px; }
+.admin-form-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
 
 /* searchable person picker (components/admin/PersonSelect) */
 .admin-personsel { position: relative; width: 100%; }
@@ -2378,6 +2398,19 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 
 /* ─── Responsive ──────────────────────────────────── */
 @media (max-width: 880px) {
+  /* The shell is a flex ROW on desktop (sidebar | main). Below 880px the sidebar
+     becomes a fixed slide-in drawer, so the row must stack to a column: the
+     mobile bar then sits ON TOP of the content instead of beside it. Without
+     this every /admin, /team, and /portal page rendered the mobile bar as a
+     broken full-height strip down the left edge. */
+  .admin-shell { flex-direction: column; }
+  /* 16px stops iOS Safari from auto-zooming the page whenever a control is
+     focused. Desktop keeps the denser 13-14px scale. */
+  .admin-input, .admin-select, .admin-textarea,
+  .admin-search input, .chatw-composer input,
+  .lead-field .admin-input, .admin-kv--editable .admin-input {
+    font-size: 16px;
+  }
   .admin-sidebar {
     position: fixed;
     z-index: 50;
@@ -2401,7 +2434,10 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
     background: var(--admin-surface);
     border-bottom: 1px solid var(--admin-line);
     padding: 12px 16px;
-    margin: -28px -32px 20px;
+    /* Full-bleed sticky bar at the top of the now-stacked shell. It previously
+       carried a negative margin tuned to .admin-main's desktop padding, which
+       hung the bar off both screen edges once the shell became a column. */
+    margin: 0 0 20px;
   }
   .admin-mobile-toggle {
     background: transparent;
