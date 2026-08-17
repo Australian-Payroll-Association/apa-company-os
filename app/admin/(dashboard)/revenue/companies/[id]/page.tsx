@@ -221,7 +221,7 @@ export default async function CompanyDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      <div className="admin-360" style={{ gridTemplateColumns: "340px minmax(0, 1fr)" }}>
+      <div className="admin-360 admin-360--wide">
         <div>
           <CompanyDetailsCard
             company={{

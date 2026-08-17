@@ -107,7 +107,7 @@ function ConfigInputs({
   if (type === "rating") {
     return (
       <>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           <div className="admin-field">
             <label className="admin-label">Min</label>
             <input
@@ -133,7 +133,7 @@ function ConfigInputs({
             />
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           <div className="admin-field">
             <label className="admin-label">Min label (optional)</label>
             <input

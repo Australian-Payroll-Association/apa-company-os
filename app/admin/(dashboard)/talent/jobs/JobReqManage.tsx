@@ -213,7 +213,7 @@ export function JobReqManage({
             onBlur={(e) => commit("title", e.target.value)}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
           <div className="admin-field">
             <label className="admin-label">Type</label>
             <select

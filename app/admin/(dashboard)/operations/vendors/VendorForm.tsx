@@ -171,7 +171,7 @@ function VendorFields({
       </div>
       <div className="admin-field">
         <label className="admin-label">Primary contact</label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
           <input
             className="admin-input"
             value={form.primary_contact_name}
@@ -198,7 +198,7 @@ function VendorFields({
       </div>
       <div className="admin-field">
         <label className="admin-label">Secondary contact</label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
           <input
             className="admin-input"
             value={form.secondary_contact_name}
