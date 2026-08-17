@@ -16,11 +16,13 @@ import {
 } from "@/lib/admin/stageColors";
 import {
   AGING_DAYS,
+  NEW_ASSIGNMENT_DAYS,
   PRIORITY_LABEL,
   PRIORITY_TONE,
   TASK_PRIORITIES,
   SUBJECT_COMMITMENT,
   SUBJECT_BACKLOG_ITEM,
+  assignedAt,
   daysInColumn,
   type TaskPriority,
 } from "@/lib/boards/types";
@@ -67,16 +69,25 @@ type Form = {
   origInternal: boolean;
 };
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
 export function BoardView({
   detail,
   canManage = false,
   teamOptions = [],
   clientOptions = [],
+  viewerPersonId = null,
 }: {
   detail: BoardDetail;
   canManage?: boolean;
   teamOptions?: BoardPerson[];
   clientOptions?: { id: string; name: string }[];
+  viewerPersonId?: string | null;
 }) {
   const router = useRouter();
   const { board, columns, members, cards: sourceCards, sprints, backlogItems, archivedCards } = detail;
@@ -377,6 +388,18 @@ export function BoardView({
 
   const columnName = (id: string) => columns.find((c) => c.id === id)?.name ?? "—";
 
+  const filtersActive = assigneeFilter !== "" || priorityFilter !== "" || sprintFilter !== "all";
+  function clearFilters() {
+    setAssigneeFilter("");
+    setPriorityFilter("");
+    setSprintFilter("all");
+  }
+
+  function isNewForViewer(c: Card): boolean {
+    if (!viewerPersonId || c.assignee_id !== viewerPersonId || c.status === "done") return false;
+    return Date.now() - new Date(assignedAt(c)).getTime() < NEW_ASSIGNMENT_DAYS * 86400000;
+  }
+
   return (
     <>
       <div className="admin-toolbar" style={{ gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
@@ -385,7 +408,7 @@ export function BoardView({
         </button>
         {sprints.length > 0 && (
           <select
-            className="admin-select"
+            className={`admin-select${sprintFilter !== "all" ? " is-filtering" : ""}`}
             style={{ maxWidth: 220 }}
             value={sprintFilter}
             onChange={(e) => setSprintFilter(e.target.value)}
@@ -408,7 +431,7 @@ export function BoardView({
           </select>
         )}
         <select
-          className="admin-select"
+          className={`admin-select${assigneeFilter ? " is-filtering" : ""}`}
           style={{ maxWidth: 200 }}
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
@@ -422,7 +445,7 @@ export function BoardView({
           ))}
         </select>
         <select
-          className="admin-select"
+          className={`admin-select${priorityFilter ? " is-filtering" : ""}`}
           style={{ maxWidth: 140 }}
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
@@ -435,6 +458,16 @@ export function BoardView({
             </option>
           ))}
         </select>
+        {filtersActive && (
+          <>
+            <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+              {cards.length} of {sourceCards.length} cards
+            </span>
+            <button className="admin-btn admin-btn--sm" onClick={clearFilters}>
+              ✕ Clear filters
+            </button>
+          </>
+        )}
         <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
           Sprints
         </button>
@@ -443,8 +476,12 @@ export function BoardView({
             Archived ({archivedCards.length})
           </button>
         )}
-        <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
-          Amber clock = in column &gt; {AGING_DAYS} days
+        <span
+          className="admin-cell-muted"
+          style={{ marginLeft: "auto", fontSize: 12, cursor: "help" }}
+          title={`Amber clock = in column more than ${AGING_DAYS} days`}
+        >
+          ◷ &gt;{AGING_DAYS}d
         </span>
         {canManage && (
           <button className="admin-btn admin-btn--sm" onClick={() => setSettingsOpen(true)}>
@@ -465,14 +502,11 @@ export function BoardView({
         onMove={move}
         onCardClick={openCard}
         columnFooter={(col) => (
-          <button
-            className="admin-btn admin-btn--sm"
-            style={{ margin: "0 8px 8px", width: "calc(100% - 16px)" }}
-            onClick={() => openCreate(col.id)}
-          >
+          <button className="sap-add-card" onClick={() => openCreate(col.id)}>
             + Add a card
           </button>
         )}
+        cardClassName={(c) => (isNewForViewer(c) ? "is-new" : undefined)}
         renderCard={(c) => {
           const days = daysInColumn(c.last_moved_at);
           const aging = days >= AGING_DAYS && c.status !== "done";
@@ -482,17 +516,25 @@ export function BoardView({
             <>
               <div className="sap-card-title">{c.title}</div>
               <div className="sap-card-meta">
+                {isNewForViewer(c) && <Badge tone="info">New</Badge>}
                 <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>
                 {c.subject_type === SUBJECT_COMMITMENT && <Badge tone="ok">Commitment</Badge>}
                 {c.subject_type === SUBJECT_BACKLOG_ITEM && <Badge tone="info">Roadmap</Badge>}
                 {c.agent && <Badge tone="neutral">Agent</Badge>}
-                {c.sprint_id && sprintName.get(c.sprint_id) && (
+                {c.sprint_id && c.sprint_id !== sprintFilter && sprintName.get(c.sprint_id) && (
                   <Badge tone="info">{sprintName.get(c.sprint_id)}</Badge>
                 )}
                 {c.internal && <Badge tone="neutral">Internal</Badge>}
               </div>
               <div className="sap-card-meta">
-                <span className="sap-card-sub">{c.assignee_name ?? "Unassigned"}</span>
+                {c.assignee_name ? (
+                  <span className="sap-card-assignee">
+                    <span className="sap-avatar">{initials(c.assignee_name)}</span>
+                    {c.assignee_name}
+                  </span>
+                ) : (
+                  <span className="sap-card-sub">Unassigned</span>
+                )}
                 {c.due_date && (
                   <span
                     className="sap-card-sub"

@@ -32,6 +32,7 @@ export default async function TeamBoardPage({ params }: { params: { slug: string
         canManage={actor.isAdmin}
         teamOptions={options.team}
         clientOptions={options.clients}
+        viewerPersonId={actor.personId}
       />
     </>
   );

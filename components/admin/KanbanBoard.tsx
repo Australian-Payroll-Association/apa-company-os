@@ -16,6 +16,7 @@ export function KanbanBoard<T extends KanbanCardBase>({
   onCardClick,
   renderCard,
   columnFooter,
+  cardClassName,
 }: {
   columns: KanbanColumn[];
   cards: T[];
@@ -26,6 +27,7 @@ export function KanbanBoard<T extends KanbanCardBase>({
   onCardClick?: (card: T) => void;
   renderCard: (card: T) => ReactNode;
   columnFooter?: (column: KanbanColumn, cards: T[]) => ReactNode;
+  cardClassName?: (card: T) => string | undefined;
 }) {
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
@@ -59,6 +61,9 @@ export function KanbanBoard<T extends KanbanCardBase>({
                       so the placeholder sizes it — this keeps an empty column a
                       full-height drop target instead of collapsing to nothing. */}
                   <div className="sap-col-body" ref={provided.innerRef} {...provided.droppableProps}>
+                    {colCards.length === 0 && !snapshot.isDraggingOver && (
+                      <div className="sap-col-empty">No cards</div>
+                    )}
                     {colCards.map((card, i) => (
                       <Draggable draggableId={card.id} index={i} key={card.id}>
                         {(dp, ds) => (
@@ -66,7 +71,7 @@ export function KanbanBoard<T extends KanbanCardBase>({
                             ref={dp.innerRef}
                             {...dp.draggableProps}
                             {...dp.dragHandleProps}
-                            className={`sap-card${ds.isDragging ? " is-dragging" : ""}`}
+                            className={`sap-card${ds.isDragging ? " is-dragging" : ""}${cardClassName?.(card) ? ` ${cardClassName(card)}` : ""}`}
                             onClick={() => onCardClick?.(card)}
                           >
                             {renderCard(card)}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHead } from "@/components/admin/PageHead";
+import { getAdminUser } from "@/lib/admin-auth";
+import { companyOs } from "@/lib/supabase";
 import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { BoardView } from "./BoardView";
 
@@ -17,6 +19,20 @@ export default async function BoardDetailPage({ params }: { params: { slug: stri
   if (!detail) notFound();
   const options = await listBoardManageOptions();
 
+  // The admin's own person row, so cards freshly assigned to them wear "New".
+  const admin = await getAdminUser();
+  let viewerPersonId: string | null = null;
+  if (admin) {
+    const { data: viewer } = await companyOs
+      .from("people")
+      .select("id")
+      .eq("email", admin.email)
+      .is("archived_at", null)
+      .limit(1)
+      .maybeSingle();
+    viewerPersonId = (viewer as { id: string } | null)?.id ?? null;
+  }
+
   const { board } = detail;
   return (
     <>
@@ -29,7 +45,13 @@ export default async function BoardDetailPage({ params }: { params: { slug: stri
             : "Cards move, promises get kept."
         }
       />
-      <BoardView detail={detail} canManage teamOptions={options.team} clientOptions={options.clients} />
+      <BoardView
+        detail={detail}
+        canManage
+        teamOptions={options.team}
+        clientOptions={options.clients}
+        viewerPersonId={viewerPersonId}
+      />
     </>
   );
 }

@@ -40,6 +40,15 @@ export const SOURCE_AGENT = "agent";
 // A card sitting in one column longer than this shows an amber "aging" clock.
 export const AGING_DAYS = 7;
 
+// A card assigned to the viewer within this window wears a "New" chip.
+// metadata.assigned_at is stamped on (re)assignment; older cards predate the
+// stamp, so created_at is the fallback.
+export const NEW_ASSIGNMENT_DAYS = 3;
+export function assignedAt(card: { metadata: Record<string, unknown>; created_at: string }): string {
+  const stamped = card.metadata?.["assigned_at"];
+  return typeof stamped === "string" ? stamped : card.created_at;
+}
+
 // Every board seeds with these four columns; they can be renamed/reordered later.
 export const DEFAULT_COLUMNS: Array<{ name: string; is_done: boolean }> = [
   { name: "To do", is_done: false },

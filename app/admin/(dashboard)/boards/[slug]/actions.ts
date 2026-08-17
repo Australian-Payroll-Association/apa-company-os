@@ -90,6 +90,8 @@ export async function createCard(input: {
     status: isDone ? "done" : "open",
     completed_at: isDone ? new Date().toISOString() : null,
     position: await endPosition(input.boardId, input.columnId),
+    // assigned_at drives the "New" chip the assignee sees on the board.
+    metadata: input.assigneeId ? { assigned_at: new Date().toISOString() } : {},
   };
   const { data, error } = await companyOs.from("tasks").insert(row).select("id").single();
   if (error) return { ok: false, error: error.message };
@@ -222,11 +224,11 @@ export async function updateCard(
 ): Promise<Result> {
   const { data: current } = await companyOs
     .from("tasks")
-    .select("board_id, assignee_id, title")
+    .select("board_id, assignee_id, title, metadata")
     .eq("id", taskId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Card not found." };
-  const c = current as { board_id: string; assignee_id: string | null; title: string };
+  const c = current as { board_id: string; assignee_id: string | null; title: string; metadata: Record<string, unknown> };
   const boardId = c.board_id;
   const actor = await boardActorFor(boardId);
   if (!actor) return { ok: false, error: DENIED };
@@ -240,6 +242,10 @@ export async function updateCard(
   if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
   if (patch.priority !== undefined) updates.priority = cleanPriority(patch.priority);
   if (patch.assigneeId !== undefined) updates.assignee_id = patch.assigneeId || null;
+  if (patch.assigneeId && patch.assigneeId !== c.assignee_id) {
+    // Restart the "New" window for the incoming assignee.
+    updates.metadata = { ...(c.metadata ?? {}), assigned_at: new Date().toISOString() };
+  }
   if (patch.dueDate !== undefined) updates.due_date = patch.dueDate || null;
   if (Object.keys(updates).length === 0) return { ok: true };
 
