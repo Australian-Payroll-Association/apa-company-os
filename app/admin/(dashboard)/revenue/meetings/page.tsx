@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listMeetings, type AdminMeetingRow } from "@/lib/admin/meetings";
+import { listMeetings, listClientCompanies, type AdminMeetingRow } from "@/lib/admin/meetings";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
@@ -28,8 +28,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Sea
   const q = firstParam(searchParams.q) ?? "";
   const statusParam = firstParam(searchParams.status);
   const status = statusParam === "published" || statusParam === "draft" ? statusParam : undefined;
+  const company = firstParam(searchParams.company) || undefined;
 
-  const { rows, total, error } = await listMeetings({ page, pageSize, search: q, status });
+  const [{ rows, total, error }, companies] = await Promise.all([
+    listMeetings({ page, pageSize, search: q, status, company }),
+    listClientCompanies(),
+  ]);
 
   const columns: Column<AdminMeetingRow>[] = [
     {
@@ -98,6 +102,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Sea
             basePath="/admin/revenue/meetings"
             searchParams={searchParams}
             filters={[
+              {
+                key: "company",
+                label: "Client",
+                options: companies.map((c) => ({ value: c.id, label: c.name })),
+              },
               {
                 key: "status",
                 label: "Status",

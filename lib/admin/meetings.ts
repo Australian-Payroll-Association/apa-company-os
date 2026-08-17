@@ -113,6 +113,7 @@ export type MeetingListParams = {
   pageSize?: number;
   search?: string;
   status?: "published" | "draft";
+  company?: string;
 };
 
 export type MeetingListResult = {
@@ -141,6 +142,7 @@ export async function listMeetings(params: MeetingListParams = {}): Promise<Meet
     .order("created_at", { ascending: false });
 
   q = q.not("company_id", "is", null); // client meetings only
+  if (params.company) q = q.eq("company_id", params.company);
   if (params.status === "published") q = q.not("published_at", "is", null);
   if (params.status === "draft") q = q.is("published_at", null);
 
@@ -167,6 +169,24 @@ export async function listMeetings(params: MeetingListParams = {}): Promise<Meet
 }
 
 export type CompanyOption = { id: string; name: string };
+
+// Companies that have at least one client meeting, for the list-page filter.
+// Deduped in JS (the client-meeting set is small); alphabetical.
+export async function listClientCompanies(): Promise<CompanyOption[]> {
+  const { data } = await companyOs
+    .from("meetings")
+    .select("company_id, company:companies!company_id(name)")
+    .not("company_id", "is", null)
+    .is("archived_at", null);
+  const seen = new Map<string, string>();
+  for (const r of (data ?? []) as Row[]) {
+    const name = one(r.company)?.name;
+    if (r.company_id && name && !seen.has(r.company_id)) seen.set(r.company_id, name);
+  }
+  return [...seen.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 // Companies for the global upload picker. Active companies only, alphabetical.
 export async function listCompanyOptions(): Promise<CompanyOption[]> {
