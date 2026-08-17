@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Human Token Tracking — Set Up a Computer &amp; Backfill 30 Days</title>
+<meta name="description" content="Internal runbook: add Human Token Tracking to any machine, and catch up the last 30 days of Claude Code work with one script.">
+<style>
+  :root{
+    --navy:#04102D; --mist:#EAEEF2; --white:#FFFFFF; --blue:#287BE8;
+    --pink:#D1458B; --mint:#6FF2C1; --mintink:#1a9e74; --amber:#E9A23B;
+    --ink:#1a2340; --muted:#5a6480;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--mist);line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .page{max-width:900px;margin:0 auto;background:var(--white);}
+  header{background:var(--navy);color:var(--white);padding:60px 60px 52px;}
+  .eyebrow{font-size:13px;letter-spacing:.18em;color:var(--mint);font-weight:600;margin-bottom:16px;}
+  header h1{font-size:38px;line-height:1.14;font-weight:700;margin-bottom:14px;}
+  header p.sub{font-size:18px;color:var(--mist);max-width:720px;}
+  .meta{margin-top:30px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;color:var(--mist);}
+  .meta div span{display:block;color:var(--mint);font-size:11px;letter-spacing:.12em;margin-bottom:3px;}
+  nav.toc{background:#F7F9FC;padding:22px 60px;border-bottom:1px solid var(--mist);font-size:14px;}
+  nav.toc a{color:var(--blue);text-decoration:none;margin-right:18px;white-space:nowrap;line-height:2;}
+  nav.toc a:hover{text-decoration:underline;}
+  section{padding:44px 60px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px;}
+  h3{font-size:26px;font-weight:700;margin-bottom:16px;color:var(--navy);}
+  h4{font-size:17px;font-weight:700;margin:26px 0 8px;color:var(--navy);}
+  p{margin-bottom:15px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  a{color:var(--blue);}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;background:#F1F4F9;
+    padding:1px 6px;border-radius:5px;color:var(--navy);}
+  ul,ol{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li,ol li{position:relative;padding-left:24px;margin-bottom:10px;font-size:16px;}
+  ul li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;background:var(--mint);border-radius:50%;}
+  ol{counter-reset:num;}
+  ol li{counter-increment:num;padding-left:34px;margin-bottom:14px;}
+  ol li::before{content:counter(num);position:absolute;left:0;top:0;width:24px;height:24px;background:var(--navy);
+    color:var(--mint);border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;}
+  th{background:var(--navy);color:var(--white);text-align:left;padding:10px 12px;font-weight:650;font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid var(--mist);vertical-align:top;}
+  tr:nth-child(even) td{background:#F7F9FC;}
+  td code{white-space:nowrap;}
+  .callout{background:#F0F7FF;border-left:4px solid var(--blue);padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;}
+  .callout.mint{background:#EFFCF7;border-left-color:var(--mint);}
+  .callout.amber{background:#FDF6EC;border-left-color:var(--amber);}
+  .callout.pink{background:#FDF1F7;border-left-color:var(--pink);}
+  .callout p{font-size:15px;}
+  pre{background:var(--navy);color:#e7ecf5;border-radius:12px;padding:20px 22px;margin:16px 0;overflow-x:auto;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.55;}
+  pre.sh{background:#0f1830;}
+  pre code{background:none;padding:0;color:inherit;font-size:13px;white-space:pre;}
+  .lbl{display:inline-block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+    color:var(--muted);margin:18px 0 4px;}
+  .flowRow{display:flex;gap:10px;margin:20px 0;flex-wrap:wrap;}
+  .flowBox{flex:1;min-width:120px;border:1px solid var(--mist);border-radius:12px;padding:14px 16px;text-align:center;}
+  .flowBox .fTitle{font-weight:700;font-size:14px;color:var(--navy);margin-bottom:3px;}
+  .flowBox .fSub{font-size:12.5px;color:var(--muted);}
+  .flowArrow{align-self:center;color:var(--blue);font-weight:700;font-size:18px;}
+  footer{background:var(--navy);color:var(--mist);padding:32px 60px;font-size:13px;}
+  footer .b{color:var(--mint);font-weight:700;}
+  @media (max-width:720px){ header,section,footer,nav.toc{padding-left:24px;padding-right:24px;} header h1{font-size:30px;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">INTERNAL RUNBOOK · HUMAN TOKEN TRACKER</div>
+  <h1>Track your work &amp; backfill the last 30 days</h1>
+  <p class="sub">Two jobs, one page. Turn on Human Token Tracking on any machine you code from, then catch up the work you did before it was on — in a single script that reads your own Claude Code history.</p>
+  <div class="meta">
+    <div><span>AUDIENCE</span>Edge8 engineers &amp; contributors</div>
+    <div><span>TIME</span>~5 min setup · ~1 min backfill</div>
+    <div><span>NEEDS</span>Python ≥ 3.10, git, gh</div>
+    <div><span>UPDATED</span>Aug 2026</div>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#why">01 What this does</a>
+  <a href="#flow">02 How it flows</a>
+  <a href="#setup">03 Add tracking to a computer</a>
+  <a href="#backfill">04 Backfill the last 30 days</a>
+  <a href="#script">05 The script</a>
+  <a href="#trouble">06 Troubleshooting</a>
+</nav>
+
+<section id="why">
+  <h2>01 · What this does</h2>
+  <h3>Two moving parts, both invisible once they work</h3>
+  <p>The Human Token Tracker measures two things per repo: <strong>AI tokens</strong> (your Claude usage) and <strong>human tokens</strong> (your active hours). Both are read from the transcripts Claude Code already writes on your machine — nothing new to log by hand.</p>
+  <ul>
+    <li><strong>Setup</strong> turns on the live capture: a <code>SessionEnd</code> hook that delivers each session to the tracker automatically, forever, through your own <code>gh</code> login. Do it once per computer.</li>
+    <li><strong>Backfill</strong> is a one-time catch-up for the work you did <em>before</em> setup. It reads the last 30 days of local transcripts and delivers them the same way. Safe to re-run — the server de-duplicates every record.</li>
+  </ul>
+  <div class="callout mint">
+    <p><strong>No secrets, ever.</strong> Neither job needs a database key, an ingest secret, or a token from an admin. Everything is delivered to a Git branch using the GitHub access you already have. If you can push to a repo, you can deliver telemetry.</p>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>02 · How it flows</h2>
+  <h3>Your transcripts &rarr; a Git branch &rarr; the dashboard</h3>
+  <div class="flowRow">
+    <div class="flowBox"><div class="fTitle">Claude Code</div><div class="fSub">writes session transcripts to <code>~/.claude/projects</code></div></div>
+    <div class="flowArrow">&rarr;</div>
+    <div class="flowBox"><div class="fTitle">Hook / backfill</div><div class="fSub">turns them into telemetry records</div></div>
+    <div class="flowArrow">&rarr;</div>
+    <div class="flowBox"><div class="fTitle">telemetry branch</div><div class="fSub">pushed with your <code>gh</code> to the tracker repo</div></div>
+    <div class="flowArrow">&rarr;</div>
+    <div class="flowBox"><div class="fTitle">Dashboard</div><div class="fSub">server ingests &amp; attributes to you</div></div>
+  </div>
+  <p>Records are keyed by <code>telemetry/&lt;owner&gt;/&lt;repo&gt;/&lt;your-login&gt;/</code>, so the setup hook and the backfill land in the same place and are attributed to the same person. Attribution is by your GitHub login and git email — so those must match your team-member record (the setup checklist verifies this).</p>
+  <div class="callout amber">
+    <p><strong>Your repo must be registered first.</strong> The dashboard only ingests telemetry for repos it knows. Edge8's active repos already are. If yours is brand new and shows nothing after a backfill, ask an admin to register it (or add a <code>registrations/&lt;owner&gt;__&lt;repo&gt;.json</code> entry) — then re-run the backfill.</p>
+  </div>
+</section>
+
+<section id="setup">
+  <h2>03 · Add tracking to a computer</h2>
+  <h3>Five checks, one fix, done once per machine</h3>
+  <p>The tracker ships a <strong>doctor</strong> that inspects every gate and prints ✓ / ⚠ / ✗ with the fix for each. Run it from inside any repo you work in — it is read-only and touches nothing:</p>
+  <div class="lbl">Run the doctor</div>
+  <pre class="sh"><code>bash scripts/telemetry-doctor.sh</code></pre>
+  <p>It verifies the six things capture needs. Here is what each one is and how to satisfy it:</p>
+  <table>
+    <tr><th>Gate</th><th>What it means</th><th>How to fix</th></tr>
+    <tr><td><strong>Python ≥ 3.10</strong></td><td>The capture hook can't load on macOS's default 3.9.</td><td><code>brew install python@3.12</code></td></tr>
+    <tr><td><strong>Hooks installed</strong></td><td><code>~/.claude/hooks/il_telemetry</code> present.</td><td>Run onboarding: <code>/infiniteleverage-onboard</code> (laptop) or <code>/infiniteleverage-patch</code>. <em>Not</em> the marketplace plugin — it doesn't ship them.</td></tr>
+    <tr><td><strong>Hooks wired</strong></td><td><code>SessionEnd</code> + <code>Stop</code> hooks present in <code>~/.claude/settings.json</code>.</td><td>Same onboarding step writes them.</td></tr>
+    <tr><td><strong>Repo gated</strong></td><td>A <code>.claude/project.json</code> in the repo opts it into capture.</td><td>Onboarding adds it; commit it to the repo.</td></tr>
+    <tr><td><strong>gh authenticated</strong></td><td>Delivery uses your own GitHub login.</td><td><code>gh auth login</code></td></tr>
+    <tr><td><strong>gh readable by the hook</strong></td><td>The background hook can't read a token in the OS keychain.</td><td>The one real fix — see below.</td></tr>
+  </table>
+
+  <h4>The one fix almost everyone needs: make <code>gh</code>'s token readable</h4>
+  <p>The <code>SessionEnd</code> hook runs in a background context that <strong>can't read the OS credential store</strong> (macOS Keychain / Windows Wincred), so deliveries silently pile up in an outbox and never arrive. Re-login telling <code>gh</code> to use file storage:</p>
+  <pre class="sh"><code>gh auth logout --hostname github.com
+gh auth login --hostname github.com --git-protocol https --insecure-storage
+# choose: GitHub.com  →  HTTPS  →  "Login with a web browser"  (paste the code)</code></pre>
+  <div class="callout">
+    <p><code>--insecure-storage</code> writes <em>your own</em> repo-scoped token to <code>~/.config/gh/hosts.yml</code> (file perms 600 — only you can read it). It's the trade-off that lets the background hook deliver hands-free. Revoke or rotate anytime with <code>gh auth logout</code>. Prefer the keychain? Then run the flush yourself periodically instead — see Troubleshooting.</p>
+  </div>
+
+  <h4>Confirm your identity will attribute correctly</h4>
+  <p>Work is credited by your GitHub login and git email. Make the email match your team-member record (the doctor flags a mismatch):</p>
+  <pre class="sh"><code>git config --global user.email "you@edge8.co"   # the address on your team-member record</code></pre>
+
+  <h4>Flush anything already captured, then verify</h4>
+  <pre class="sh"><code># send sessions that were captured but stuck (redirect stdin or it waits for input)
+bash ~/.claude/hooks/session-telemetry-end &lt; /dev/null
+
+# should trend toward 0 — an empty outbox means delivery is working
+ls -1 ~/.claude/.il-telemetry/outbox/ | wc -l</code></pre>
+  <p>From here, every session you run is delivered automatically. You never touch this again on this machine.</p>
+</section>
+
+<section id="backfill">
+  <h2>04 · Backfill the last 30 days</h2>
+  <h3>One script, run once, from inside the repo</h3>
+  <p>Setup only captures work from now on. To recover the last month, run the backfill from inside the repo you want to catch up. It reads your local transcripts, computes AI tokens and active hours, and delivers them to the same telemetry branch — <strong>dry-run by default</strong>, so you always see the numbers before anything is written.</p>
+  <div class="lbl">Save the script (§05) somewhere handy, then:</div>
+  <pre class="sh"><code>cd ~/code-projects/edge8-web            # the repo you want to backfill
+
+python3 backfill-human-tokens.py                    # DRY RUN — prints the totals, writes nothing
+python3 backfill-human-tokens.py --commit           # deliver: last 30 days
+python3 backfill-human-tokens.py --days 14 --commit  # a shorter window
+python3 backfill-human-tokens.py --tz +07:00 --commit  # bucket days in your timezone</code></pre>
+  <p>A dry run prints exactly what it found before you commit to anything:</p>
+  <pre class="sh"><code>repo:     talentedgeai/edge8-web
+you:      dhajdu &lt;dave@edge8.co&gt;
+window:   last 30 days   hours rule: active + 30min/block
+found:    86 sessions, 154,870,143 Claude tokens, 96.6 human hours over 17 days
+DRY RUN — would add to talentedgeai/human-token-tracker#telemetry:
+    telemetry/talentedgeai/edge8-web/dhajdu/2026-07.backfill.jsonl
+    telemetry/talentedgeai/edge8-web/dhajdu/2026-08.backfill.jsonl</code></pre>
+
+  <h4>How hours are counted — and the one machine where it matters</h4>
+  <p>Human hours come from your transcript timestamps, pooled per day and split into activity blocks wherever there's a gap over 5 minutes. The default adds a 30-minute credit per block (the canonical <code>team-hours</code> rule — it matches ongoing live capture, so the 30-day seam is smooth).</p>
+  <div class="callout amber">
+    <p><strong>On a machine that runs autonomous agents 24/7</strong> (e.g. the Mac Mini), every unattended agent burst mints its own block and pockets 30 free minutes, inflating the hours. On those machines only, add <code>--active-only</code> to count measured active time with no per-block credit. On a normal laptop, keep the default.</p>
+  </div>
+
+  <h4>Re-running is safe</h4>
+  <p>The backfill writes to a distinct <code>*.backfill.jsonl</code> filename that can never overwrite the live hook's files, and the server de-duplicates every record by session id (AI) and by member-day-hour (human). Run it twice, run it after setup — nothing double-counts.</p>
+</section>
+
+<section id="script">
+  <h2>05 · The script</h2>
+  <h3><code>backfill-human-tokens.py</code></h3>
+  <p>Self-contained, standard library only. Copy it into the repo (or anywhere on your <code>PATH</code>) and run it as shown above. It needs <code>git</code> and <code>gh</code> on your <code>PATH</code> and delivers only through your own GitHub access — no secrets.</p>
+  <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;
+backfill-human-tokens.py — one-time catch-up of recent Claude Code work into the
+Human Token Tracker.
+
+It reads your LOCAL Claude Code transcripts (~/.claude/projects), turns them into
+telemetry records, and writes them onto this repo&#x27;s `telemetry` branch — which the
+tracker ingests server-side. No secrets, no database access: it delivers through
+your own `gh`, exactly like the live SessionEnd hook does. Re-running is safe; the
+server de-duplicates every record.
+
+Run it from INSIDE the repo you want to backfill:
+
+    python3 backfill-human-tokens.py                 # last 30 days, DRY RUN (writes nothing)
+    python3 backfill-human-tokens.py --commit        # write + push to the telemetry branch
+    python3 backfill-human-tokens.py --days 14 --commit
+    python3 backfill-human-tokens.py --active-only --commit   # agent-heavy machine (see the post)
+&quot;&quot;&quot;
+import argparse, glob, json, os, subprocess, sys, tempfile
+from collections import defaultdict
+from datetime import datetime, timezone, timedelta
+
+GAP_S = 5 * 60          # activity blocks split on a 5-minute gap (team-hours.py §2.3)
+SESSION_CREDIT_S = 1800 # 30 min credited per block, unless --active-only
+
+# All contributor telemetry is collected on ONE branch of the tracker repo, keyed by
+# telemetry/&lt;owner&gt;/&lt;repo&gt;/&lt;login&gt;/. The server ingests from there. Override with the
+# HTT_REPO env var if your org forks the tracker.
+TRACKER_REPO = os.environ.get(&quot;HTT_REPO&quot;, &quot;talentedgeai/human-token-tracker&quot;)
+TELEMETRY_BRANCH = &quot;telemetry&quot;
+
+
+def sh(cmd, cwd=None):
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def repo_identity():
+    root = sh([&quot;git&quot;, &quot;rev-parse&quot;, &quot;--show-toplevel&quot;])
+    url = sh([&quot;git&quot;, &quot;remote&quot;, &quot;get-url&quot;, &quot;origin&quot;])
+    # git@github.com:owner/repo.git  or  https://github.com/owner/repo(.git)
+    tail = url.split(&quot;github.com&quot;, 1)[1].lstrip(&quot;:/&quot;).removesuffix(&quot;.git&quot;)
+    owner, repo = tail.split(&quot;/&quot;)[:2]
+    login = sh([&quot;gh&quot;, &quot;api&quot;, &quot;user&quot;, &quot;--jq&quot;, &quot;.login&quot;])
+    email = sh([&quot;git&quot;, &quot;config&quot;, &quot;user.email&quot;])
+    return root, owner, repo, login, email
+
+
+def transcript_dirs(repo):
+    base = os.path.expanduser(&quot;~/.claude/projects&quot;)
+    out = []
+    for d in glob.glob(os.path.join(base, &quot;*&quot;)):
+        if not os.path.isdir(d):
+            continue
+        core = os.path.basename(d).split(&quot;--claude-worktrees-&quot;)[0]  # keep worktrees, drop suffix
+        if core.endswith(&quot;-&quot; + repo):                              # excludes &lt;repo&gt;-demo etc.
+            out.append(d)
+    return out
+
+
+def parse_ts(t):
+    try:
+        return datetime.fromisoformat(t.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    except Exception:
+        return None
+
+
+def active_seconds(stamps):
+    stamps.sort()
+    active, run_start, prev = 0.0, stamps[0], stamps[0]
+    for ts in stamps[1:]:
+        if (ts - prev).total_seconds() &gt; GAP_S:
+            active += (prev - run_start).total_seconds()
+            run_start = ts
+        prev = ts
+    active += (prev - run_start).total_seconds()
+    return active, stamps  # active time only; caller adds block credit if wanted
+
+
+def blocks_and_active(stamps):
+    stamps.sort()
+    blocks, active, run_start, prev = 1, 0.0, stamps[0], stamps[0]
+    for ts in stamps[1:]:
+        if (ts - prev).total_seconds() &gt; GAP_S:
+            active += (prev - run_start).total_seconds()
+            blocks += 1
+            run_start = ts
+        prev = ts
+    active += (prev - run_start).total_seconds()
+    return blocks, active
+
+
+def build_records(repo, owner, login, email, days, active_only, tz):
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    by_month = defaultdict(list)
+    day_stamps = defaultdict(list)
+    seen = set()
+    n_sessions = tok_total = 0
+
+    for d in sorted(transcript_dirs(repo)):
+        for f in sorted(glob.glob(os.path.join(d, &quot;*.jsonl&quot;))):
+            sid = os.path.splitext(os.path.basename(f))[0]
+            if sid in seen:
+                continue
+            seen.add(sid)
+            tokens, first, last, branch, stamps = 0, None, None, None, []
+            for line in open(f, encoding=&quot;utf-8&quot;, errors=&quot;replace&quot;):
+                try:
+                    o = json.loads(line)
+                except Exception:
+                    continue
+                ts = parse_ts(o.get(&quot;timestamp&quot;) or &quot;&quot;)
+                if ts and ts &gt;= since:
+                    stamps.append(ts)
+                    day_stamps[ts.astimezone(tz).strftime(&quot;%Y-%m-%d&quot;)].append(ts)
+                    first = ts if first is None or ts &lt; first else first
+                    last = ts if last is None or ts &gt; last else last
+                if o.get(&quot;gitBranch&quot;):
+                    branch = o[&quot;gitBranch&quot;]
+                u = (o.get(&quot;message&quot;) or {}).get(&quot;usage&quot;)
+                if u and ts and ts &gt;= since:
+                    tokens += ((u.get(&quot;input_tokens&quot;) or 0)
+                               + (u.get(&quot;output_tokens&quot;) or 0)
+                               + (u.get(&quot;cache_creation_input_tokens&quot;) or 0))
+            if tokens &lt;= 0 or first is None:
+                continue
+            n_sessions += 1
+            tok_total += tokens
+            _, mins = blocks_and_active(stamps)
+            by_month[first.astimezone(tz).strftime(&quot;%Y-%m&quot;)].append({
+                &quot;record_type&quot;: &quot;claude&quot;, &quot;session_id&quot;: sid, &quot;claude_tokens&quot;: tokens,
+                &quot;active_minutes&quot;: max(1, round(mins / 60)),
+                &quot;started_at&quot;: first.isoformat(), &quot;ended_at&quot;: last.isoformat(),
+                &quot;repo_full_name&quot;: f&quot;{owner}/{repo}&quot;, &quot;session_branch&quot;: branch,
+                &quot;author_email&quot;: email, &quot;github_login&quot;: login,
+                &quot;client_slug&quot;: owner, &quot;project_slug&quot;: repo,
+            })
+
+    hours_total = 0.0
+    for day, lst in sorted(day_stamps.items()):
+        blocks, active = blocks_and_active(lst)
+        secs = active if active_only else active + blocks * SESSION_CREDIT_S
+        hours = round(secs / 3600, 2)
+        if hours &lt; 0.05:
+            continue
+        hours_total += hours
+        by_month[day[:7]].append({
+            &quot;record_type&quot;: &quot;human&quot;, &quot;occurred_on&quot;: day, &quot;resolved_hours&quot;: hours,
+            &quot;source&quot;: &quot;claude-jsonl-backfill&quot;, &quot;commit_hours&quot;: [],
+            &quot;author_email&quot;: email, &quot;github_login&quot;: login,
+            &quot;repo_full_name&quot;: f&quot;{owner}/{repo}&quot;, &quot;started_at&quot;: f&quot;{day}T00:00:00+00:00&quot;,
+            &quot;client_slug&quot;: owner, &quot;project_slug&quot;: repo,
+        })
+    return by_month, n_sessions, tok_total, round(hours_total, 1), len(day_stamps)
+
+
+def write_files(base, owner, repo, login, by_month):
+    rel = []
+    for month, recs in sorted(by_month.items()):
+        p = os.path.join(base, &quot;telemetry&quot;, owner, repo, login, f&quot;{month}.backfill.jsonl&quot;)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, &quot;w&quot;) as fh:
+            for r in recs:
+                fh.write(json.dumps(r) + &quot;\n&quot;)
+        rel.append(os.path.relpath(p, base))
+    return rel
+
+
+def write_and_push(owner, repo, login, by_month, commit):
+    &quot;&quot;&quot;Shallow-clone the tracker&#x27;s telemetry branch with your own gh, add the
+    backfill files, and push. A separate &#x27;*.backfill.jsonl&#x27; filename can never clobber
+    the live hook&#x27;s files, and the server de-duplicates every record on ingest.&quot;&quot;&quot;
+    if not commit:
+        rel = write_files(tempfile.mkdtemp(prefix=&quot;htt-dry-&quot;), owner, repo, login, by_month)
+        print(&quot;DRY RUN — would add to&quot;, f&quot;{TRACKER_REPO}#{TELEMETRY_BRANCH}:&quot;)
+        for r in rel:
+            print(&quot;   &quot;, r)
+        return
+    tmp = tempfile.mkdtemp(prefix=&quot;htt-telemetry-&quot;)
+    clone = os.path.join(tmp, &quot;tracker&quot;)
+    try:
+        sh([&quot;gh&quot;, &quot;repo&quot;, &quot;clone&quot;, TRACKER_REPO, clone, &quot;--&quot;,
+            &quot;--branch&quot;, TELEMETRY_BRANCH, &quot;--single-branch&quot;, &quot;--depth&quot;, &quot;1&quot;])
+        rel = write_files(clone, owner, repo, login, by_month)
+        for r in rel:
+            sh([&quot;git&quot;, &quot;add&quot;, r], cwd=clone)
+        sh([&quot;git&quot;, &quot;commit&quot;, &quot;-m&quot;,
+            f&quot;telemetry: backfill {login} on {owner}/{repo} from local transcripts&quot;], cwd=clone)
+        sh([&quot;git&quot;, &quot;push&quot;, &quot;origin&quot;, TELEMETRY_BRANCH], cwd=clone)
+        print(f&quot;Pushed to {TRACKER_REPO}#{TELEMETRY_BRANCH}. Your tokens appear after the next ingest.&quot;)
+    finally:
+        subprocess.run([&quot;rm&quot;, &quot;-rf&quot;, tmp])
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument(&quot;--days&quot;, type=int, default=30)
+    ap.add_argument(&quot;--active-only&quot;, action=&quot;store_true&quot;,
+                    help=&quot;active time only, no 30-min block credit (agent-heavy machines)&quot;)
+    ap.add_argument(&quot;--tz&quot;, default=&quot;+00:00&quot;, help=&quot;local day offset, e.g. +07:00&quot;)
+    ap.add_argument(&quot;--commit&quot;, action=&quot;store_true&quot;, help=&quot;actually write + push (default: dry run)&quot;)
+    a = ap.parse_args()
+
+    sign = -1 if a.tz.startswith(&quot;-&quot;) else 1
+    hh, mm = (a.tz.lstrip(&quot;+-&quot;).split(&quot;:&quot;) + [&quot;0&quot;])[:2]
+    tz = timezone(timedelta(hours=sign * int(hh), minutes=sign * int(mm)))
+
+    _root, owner, repo, login, email = repo_identity()
+    by_month, n_sessions, tokens, hours, days_covered = build_records(
+        repo, owner, login, email, a.days, a.active_only, tz)
+
+    print(f&quot;repo:     {owner}/{repo}&quot;)
+    print(f&quot;you:      {login} &lt;{email}&gt;&quot;)
+    print(f&quot;window:   last {a.days} days   hours rule: &quot;
+          f&quot;{&#x27;active-only&#x27; if a.active_only else &#x27;active + 30min/block&#x27;}&quot;)
+    print(f&quot;found:    {n_sessions} sessions, {tokens:,} Claude tokens, &quot;
+          f&quot;{hours} human hours over {days_covered} days&quot;)
+    if not by_month:
+        print(&quot;Nothing to backfill (no sessions for this repo in the window).&quot;)
+        return
+    write_and_push(owner, repo, login, by_month, a.commit)
+    if not a.commit:
+        print(&quot;\nThis was a DRY RUN. Re-run with --commit to write and push.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+</section>
+
+<section id="trouble">
+  <h2>06 · Troubleshooting</h2>
+  <table>
+    <tr><th>Symptom</th><th>Cause &amp; fix</th></tr>
+    <tr><td>Dashboard shows <strong>0 / "—"</strong> for your work</td><td>Captured but not delivered. Run the doctor; almost always the <code>gh</code> keychain fix in §03.</td></tr>
+    <tr><td>Backfill says <strong>"Nothing to backfill"</strong></td><td>No sessions for <em>this</em> repo in the window. Check you're inside the right repo, and that transcripts exist: <code>ls ~/.claude/projects | grep &lt;repo&gt;</code>.</td></tr>
+    <tr><td>Older than ~30 days is <strong>missing</strong></td><td>Claude Code auto-deletes transcripts after ~30 days (<code>cleanupPeriodDays</code>). Purged history can't be recovered from transcripts — raise that setting to keep more going forward.</td></tr>
+    <tr><td>Numbers land but aren't <strong>attributed to you</strong></td><td>Your git email or GitHub login doesn't match your team-member record. Fix the email (§03) and ask an admin to confirm your record.</td></tr>
+    <tr><td><code>gh repo clone</code> <strong>fails</strong> in the backfill</td><td><code>gh</code> isn't authenticated, or you lack access to the tracker repo. Run <code>gh auth status</code>; ask an admin for read/write on the tracker repo.</td></tr>
+    <tr><td>Prefer <strong>not</strong> to use <code>--insecure-storage</code></td><td>Keep the keychain and flush manually now and then: <code>PYTHONPATH="$HOME/.claude/hooks" python3.12 -m il_telemetry.flush</code>.</td></tr>
+  </table>
+  <div class="callout mint">
+    <p><strong>Delivered ≠ visible instantly.</strong> Your records appear on the dashboard after the next server ingest (runs on a schedule). If you need it now, ask an admin to trigger the ingest.</p>
+  </div>
+</section>
+
+<footer>
+  <span class="b">Human Token Tracker</span> · internal runbook · delivered through your own GitHub access, no secrets · questions → the tracker maintainers.
+</footer>
+
+</div>
+</body>
+</html>
