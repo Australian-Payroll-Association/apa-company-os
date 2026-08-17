@@ -120,12 +120,15 @@ export async function createMeeting(formData: FormData): Promise<CreateResult> {
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
+// Edit / publish / retry operate on any client meeting (company_id set), whether
+// it was uploaded here or imported. Hard delete (below) stays scoped to manual
+// notes only.
 async function loadMeeting(id: string) {
   const { data } = await companyOs
     .from("meetings")
     .select("id, company_id, published_at")
     .eq("id", id)
-    .eq("source", NOTES_SOURCE)
+    .not("company_id", "is", null)
     .maybeSingle();
   return data as { id: string; company_id: string; published_at: string | null } | null;
 }

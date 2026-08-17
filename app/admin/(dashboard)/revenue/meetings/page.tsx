@@ -11,7 +11,7 @@ import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Meeting Notes",
+  title: "Client Meetings",
   description: "Every client meeting on record, across all clients.",
 };
 
@@ -73,8 +73,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Sea
     <>
       <PageHead
         eyebrow="Revenue"
-        title="Meeting Notes"
-        sub={`${total.toLocaleString()} meeting${total === 1 ? "" : "s"} on record`}
+        title="Client Meetings"
+        sub={`${total.toLocaleString()} client meeting${total === 1 ? "" : "s"} on record`}
         action={
           <Link className="admin-btn admin-btn--primary" href="/admin/revenue/meetings/new">
             Add meeting

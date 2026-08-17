@@ -1,19 +1,19 @@
 // Client-visible meeting notes. A dedicated, reviewed helper — same discipline
 // as lib/portal/invoices.ts.
 //
-// These rows live in the central company_os.meetings table (source='notes');
-// the meeting date is stored in started_at and the client-facing summary in
-// `summary`.
+// These are client meetings in the central company_os.meetings table, scoped to
+// the actor's company. The meeting date is stored in started_at and the
+// client-facing summary in `summary`.
 //
 // PRIVACY HARD LINE: the raw transcript (call_transcripts) is NEVER joined here
 // (it is admin-only), and only PUBLISHED rows (published_at is not null) within
 // the actor's companyScope are returned. The client sees date / attendees /
-// title / summary.
+// title / summary. Publishing is a deliberate per-meeting admin action, so an
+// imported client call only reaches the portal once an admin publishes it.
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
 
-const NOTES_SOURCE = "notes";
 const NOTES_SELECT = "id, started_at, title, attendees, summary";
 
 export type PortalMeeting = {
@@ -45,7 +45,6 @@ export async function hasMeetings(actor: PortalActor): Promise<boolean> {
   const { data } = await companyOs
     .from("meetings")
     .select("id")
-    .eq("source", NOTES_SOURCE)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
     .not("published_at", "is", null)
@@ -66,7 +65,6 @@ export async function getMeetingForActor(
   const { data } = await companyOs
     .from("meetings")
     .select(NOTES_SELECT)
-    .eq("source", NOTES_SOURCE)
     .eq("id", id)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
@@ -83,7 +81,6 @@ export async function getMeetingsForActor(actor: PortalActor): Promise<PortalMee
   const { data } = await companyOs
     .from("meetings")
     .select(NOTES_SELECT)
-    .eq("source", NOTES_SOURCE)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
     .not("published_at", "is", null)

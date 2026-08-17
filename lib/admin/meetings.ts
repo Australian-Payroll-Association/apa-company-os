@@ -1,10 +1,11 @@
 import { companyOs } from "@/lib/supabase";
 
-// Reads for the client meeting-notes surface. These rows live in the central
-// company_os.meetings table, marked source='notes' (uploaded client
-// transcripts, AI-summarized, publishable to the portal) as distinct from the
-// imported ThoughtFlow call log. The transcript text lives in call_transcripts,
-// keyed by meeting_id. Two shapes, because the surface is split across pages:
+// Reads for the Client Meetings surface. A meeting is a client meeting when it
+// is linked to a client company (company_id is not null), whatever its source
+// (a manual notes upload or a ThoughtFlow-imported client call). Internal
+// meetings (company_id null) never appear here. The transcript text, when there
+// is one, lives in call_transcripts keyed by meeting_id. Two shapes, because the
+// surface is split across pages:
 //   - AdminMeetingRow: the List page and the company 360 tab. No transcript and
 //     no summary, so the table never drags full transcripts through.
 //   - AdminMeeting: the Details page. Everything, transcript included.
@@ -13,7 +14,6 @@ import { companyOs } from "@/lib/supabase";
 
 export type AiStatus = "pending" | "ready" | "failed";
 
-export const NOTES_SOURCE = "notes";
 
 export type AdminMeetingRow = {
   id: string;
@@ -82,7 +82,6 @@ export async function getMeetingsForCompany(companyId: string): Promise<AdminMee
   const { data } = await companyOs
     .from("meetings")
     .select(ROW_SELECT)
-    .eq("source", NOTES_SOURCE)
     .is("archived_at", null)
     .eq("company_id", companyId)
     .order("started_at", { ascending: false, nullsFirst: false })
@@ -94,7 +93,7 @@ export async function getMeeting(id: string): Promise<AdminMeeting | null> {
   const { data } = await companyOs
     .from("meetings")
     .select(FULL_SELECT)
-    .eq("source", NOTES_SOURCE)
+    .not("company_id", "is", null)
     .is("archived_at", null)
     .eq("id", id)
     .maybeSingle();
@@ -136,12 +135,12 @@ export async function listMeetings(params: MeetingListParams = {}): Promise<Meet
   let q = companyOs
     .from("meetings")
     .select(ROW_SELECT, { count: "exact" })
-    .eq("source", NOTES_SOURCE)
     .is("archived_at", null)
     .range(from, from + pageSize - 1)
     .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
+  q = q.not("company_id", "is", null); // client meetings only
   if (params.status === "published") q = q.not("published_at", "is", null);
   if (params.status === "draft") q = q.is("published_at", null);
 

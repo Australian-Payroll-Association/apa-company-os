@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/admin/format";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Meeting Notes",
+  title: "Client Meetings",
 };
 
 // Details page: everything for one meeting. The AI summary, the raw transcript
@@ -27,12 +27,12 @@ export default async function MeetingDetailPage({ params }: { params: { id: stri
     <div className="admin-content">
       <div style={{ marginBottom: 10 }}>
         <Link className="admin-cell-muted" href="/admin/revenue/meetings">
-          ← All meeting notes
+          ← All client meetings
         </Link>
       </div>
 
       <PageHead
-        eyebrow="Revenue · Meeting Notes"
+        eyebrow="Revenue · Client Meetings"
         title={meeting.title || "Untitled meeting"}
         sub={meeting.meetingDate ? formatDate(meeting.meetingDate) : "Date not set"}
         action={<MeetingStatusBadges meeting={meeting} />}
