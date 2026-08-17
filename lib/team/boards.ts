@@ -19,7 +19,7 @@ export type MyBoardSummary = {
 };
 
 // The actor's boards enriched with client name, open-card count, and how many
-// of those cards are assigned to the actor. Powers the My Tasks boards views.
+// of those cards are assigned to the actor. Powers the Work Boards views.
 export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSummary[]> {
   let boardRows: { id: string; slug: string; name: string; client_company_id: string | null }[];
   if (actor.isAdmin) {

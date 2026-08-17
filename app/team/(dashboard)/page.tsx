@@ -258,7 +258,7 @@ export default async function TeamHome() {
                       newest first
                     </span>
                   </h3>
-                  <Link href="/team/my-tasks" className="admin-cell-muted" style={{ fontSize: 12 }}>
+                  <Link href="/team/my-work-boards" className="admin-cell-muted" style={{ fontSize: 12 }}>
                     All my tasks →
                   </Link>
                 </div>
