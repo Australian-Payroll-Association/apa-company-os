@@ -42,6 +42,7 @@ import {
   addSubtask,
   toggleSubtask,
   addComment,
+  restoreCard,
 } from "./actions";
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
@@ -78,7 +79,7 @@ export function BoardView({
   clientOptions?: { id: string; name: string }[];
 }) {
   const router = useRouter();
-  const { board, columns, members, cards: sourceCards, sprints, backlogItems } = detail;
+  const { board, columns, members, cards: sourceCards, sprints, backlogItems, archivedCards } = detail;
   const slug = board.slug;
   const isClientBoard = board.client_company_id != null;
 
@@ -101,7 +102,17 @@ export function BoardView({
   const [newMemberId, setNewMemberId] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
+  const [archivedOpen, setArchivedOpen] = useState(false);
   const [saving, startSaving] = useTransition();
+
+  function restore(taskId: string) {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await restoreCard(taskId, slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
 
   const activeCard = form?.id ? sourceCards.find((c) => c.id === form.id) ?? null : null;
 
@@ -427,6 +438,11 @@ export function BoardView({
         <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
           Sprints
         </button>
+        {archivedCards.length > 0 && (
+          <button className="admin-btn admin-btn--sm" onClick={() => setArchivedOpen(true)}>
+            Archived ({archivedCards.length})
+          </button>
+        )}
         <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
           Amber clock = in column &gt; {AGING_DAYS} days
         </span>
@@ -929,6 +945,38 @@ export function BoardView({
               Archive board
             </button>
           </div>
+        </div>
+      </DetailDrawer>
+
+      <DetailDrawer open={archivedOpen} onClose={() => setArchivedOpen(false)} eyebrow="Board" title="Archived cards">
+        <div className="admin-form">
+          {archivedCards.length === 0 ? (
+            <span className="admin-cell-muted">Nothing archived.</span>
+          ) : (
+            archivedCards.map((a) => (
+              <div
+                key={a.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 0",
+                  borderTop: "1px solid var(--admin-line)",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="admin-cell-strong">{a.title}</div>
+                  <div className="admin-cell-muted" style={{ fontSize: 11 }}>
+                    {a.columnName ? `${a.columnName} · ` : ""}archived {timeAgo(a.archivedAt)}
+                    {a.archivedBy ? ` by ${a.archivedBy}` : ""}
+                  </div>
+                </div>
+                <button className="admin-btn admin-btn--sm" onClick={() => restore(a.id)} disabled={saving}>
+                  Restore
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </DetailDrawer>
     </>

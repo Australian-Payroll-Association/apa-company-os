@@ -29,6 +29,13 @@ export type BacklogRef = { id: string; title: string };
 
 export type Subtask = { id: string; title: string; done: boolean };
 export type TaskComment = { id: string; author: string; body: string; createdAt: string };
+export type ArchivedCard = {
+  id: string;
+  title: string;
+  columnName: string;
+  archivedAt: string;
+  archivedBy: string | null;
+};
 
 export type BoardCard = TaskRow & {
   assignee_name: string | null;
@@ -46,6 +53,7 @@ export type BoardDetail = {
   sprints: SprintRow[];
   cards: BoardCard[];
   backlogItems: BacklogRef[]; // client board's roadmap items, for the link picker
+  archivedCards: ArchivedCard[]; // for the "Archived" view + restore
 };
 
 function personName(p: { display_name: string | null; full_name: string | null; email: string }): string {
@@ -278,5 +286,31 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     .map((m) => ({ id: m.person_id, name: nameById.get(m.person_id) ?? "Unknown" }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems };
+  // Archived top-level cards, for the "Archived" view + restore.
+  const columnName = new Map(columns.map((c) => [c.id, c.name]));
+  const { data: arch } = await companyOs
+    .from("tasks")
+    .select("id, title, board_column_id, archived_at, archived_by")
+    .eq("board_id", board.id)
+    .is("parent_task_id", null)
+    .not("archived_at", "is", null)
+    .order("archived_at", { ascending: false })
+    .limit(200);
+  const archivedCards: ArchivedCard[] = (
+    (arch ?? []) as {
+      id: string;
+      title: string;
+      board_column_id: string | null;
+      archived_at: string;
+      archived_by: string | null;
+    }[]
+  ).map((a) => ({
+    id: a.id,
+    title: a.title,
+    columnName: a.board_column_id ? columnName.get(a.board_column_id) ?? "" : "",
+    archivedAt: a.archived_at,
+    archivedBy: a.archived_by,
+  }));
+
+  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems, archivedCards };
 }
