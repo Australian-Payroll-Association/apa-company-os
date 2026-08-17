@@ -600,12 +600,20 @@ export function BoardView({
             {form.id && (
               <div className="admin-field">
                 <label className="admin-label">Column</label>
-                <div className="admin-cell-strong">
-                  {columnName(placement[form.id] ?? form.columnId)}
-                  <span className="admin-cell-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
-                    (drag the card to move)
-                  </span>
-                </div>
+                {/* A tap path to move a card, so touch users are not forced to drag
+                    across a horizontally scrolling board. Drag stays the desktop
+                    fast path. */}
+                <select
+                  className="admin-select"
+                  value={placement[form.id] ?? form.columnId}
+                  onChange={(e) => move(form.id!, e.target.value)}
+                >
+                  {columns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

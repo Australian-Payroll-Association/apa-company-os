@@ -59,6 +59,16 @@ const STYLES = `
 .cbp .cbp-btn.ghost { background:#fff; color:#287BE8; }
 .cbp .cbp-link { font-size:12px; font-weight:600; color:#287BE8; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
 .cbp .cbp-err { color:#c0392b; font-size:12px; margin-top:6px; }
+/* Touch: the reorder handle and the four priority pills are the whole point of
+   this page for account admins, and both were ~20-25px targets. Grow them, and
+   lift the propose-form fields to 16px so iOS does not zoom on focus. Desktop
+   keeps its denser sizing. */
+@media (pointer: coarse) {
+  .cbp .cbp-handle { padding:11px 12px; font-size:20px; }
+  .cbp .cbp-pills { gap:8px; }
+  .cbp .cbp-pill { padding:9px 14px; }
+  .cbp .cbp-propose input, .cbp .cbp-propose textarea, .cbp .cbp-propose select { font-size:16px; }
+}
 `;
 
 // Rebuild the flat item list from a single group's reordered array, preserving

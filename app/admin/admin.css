@@ -2463,6 +2463,51 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   .admin-main { padding: 28px 16px 64px; }
 }
 
+/* ─── Touch pointers (WCAG 2.5.5 target size) ─────────
+   Fine-pointer (mouse) UIs reveal affordances on :hover and pack controls
+   tighter than a fingertip. On coarse pointers there is no hover and taps need
+   a ~44px target. Reveal the hover-only controls, and grow the touch area of the
+   daily-driver controls, mostly without changing their visual size (an invisible
+   ::after overlay expands the hit area for the small icon buttons). This mirrors
+   the one place the codebase already did this: .sap-card-handoff .admin-btn. */
+@media (pointer: coarse) {
+  /* Hover-revealed controls are unreachable on touch: always show them. */
+  .admin-editable-pencil,
+  .chatw-history-actions,
+  .team-avatar.is-editable .team-avatar-edit { opacity: 1; }
+  .admin-editable-pencil { padding: 8px; }
+
+  /* Buttons carrying the most-tapped actions → 44px tall. */
+  .admin-btn--sm { min-height: 44px; }
+  .admin-pagebtn { min-height: 44px; min-width: 44px; }
+  .admin-mobile-toggle { min-height: 44px; min-width: 44px; }
+  .admin-drawer-close {
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center; padding: 0;
+  }
+
+  /* Small icon controls: keep the visual size, expand the hit area to 44px with a
+     transparent centered ::after. .admin-input-eye is already position:absolute
+     (it contains its own ::after), the rest need a positioning context. */
+  .admin-search-clear,
+  .admin-avatarbtn,
+  .lead-pin-btn,
+  .team-chip-x,
+  .phototag-x { position: relative; }
+  .admin-search-clear::after,
+  .admin-input-eye::after,
+  .admin-avatarbtn::after,
+  .lead-pin-btn::after,
+  .team-chip-x::after,
+  .phototag-x::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
+  }
+}
+
 /* ─── Time Off ────────────────────────────────────── */
 .admin-timeoff .admin-card { padding: 18px 20px; }
 .admin-card-title { font-size: 15px; font-weight: 600; color: var(--admin-ink); margin: 0 0 14px; }

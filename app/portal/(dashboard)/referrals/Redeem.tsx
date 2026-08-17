@@ -40,10 +40,10 @@ export function Redeem({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" disabled={pending} onClick={() => pick("work_credit")}>
+          <button type="button" className="admin-btn admin-btn--primary" disabled={pending} onClick={() => pick("work_credit")}>
             Take {formatCents(workCreditCents, "usd")} work credit
           </button>
-          <button type="button" className="admin-btn admin-btn--sm" disabled={pending} onClick={() => pick("cash")}>
+          <button type="button" className="admin-btn" disabled={pending} onClick={() => pick("cash")}>
             Take {formatCents(cashCents, "usd")} cash
           </button>
         </div>
