@@ -2220,11 +2220,9 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   transform: none;
 }
 /* Overlapping member initials on the boards index. */
-.board-avatar-stack { display: flex; align-items: center; }
-.board-avatar-stack .sap-avatar {
-  box-shadow: 0 0 0 2px var(--admin-surface);
-}
-.board-avatar-stack .sap-avatar + .sap-avatar { margin-left: -6px; }
+/* Initials are text, so the chips sit side by side; an overlapped stack
+   would clip the second letter. */
+.board-avatar-stack { display: flex; align-items: center; gap: 4px; }
 .board-avatar-more {
   margin-left: 6px;
   font-size: 11px;

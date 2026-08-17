@@ -27,8 +27,13 @@ export function NewBoardForm({ clients }: { clients: { id: string; name: string 
   }
 
   if (!open) {
+    // Same 18px bottom rhythm as the expanded form card below.
     return (
-      <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setOpen(true)}>
+      <button
+        className="admin-btn admin-btn--primary admin-btn--sm"
+        style={{ marginBottom: 18 }}
+        onClick={() => setOpen(true)}
+      >
         New board
       </button>
     );
