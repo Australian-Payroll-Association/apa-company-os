@@ -101,7 +101,10 @@
     <li><strong>Backfill</strong> is a one-time catch-up for the work you did <em>before</em> setup. It reads the last 30 days of local transcripts and delivers them the same way. Safe to re-run — the server de-duplicates every record.</li>
   </ul>
   <div class="callout mint">
-    <p><strong>No secrets, ever.</strong> Neither job needs a database key, an ingest secret, or a token from an admin. Everything is delivered to a Git branch using the GitHub access you already have. If you can push to a repo, you can deliver telemetry.</p>
+    <p><strong>No secrets, ever.</strong> Neither job needs a database key, an ingest secret, or a token from an admin. Everything is delivered to a Git branch using the GitHub access you already have. As an Edge8 engineer you already have access to the Human Token Tracker repo, so nothing needs to be granted.</p>
+  </div>
+  <div class="callout pink">
+    <p><strong>Do this on every computer you code from.</strong> Transcripts live on the machine that produced them and never sync between your machines. So both jobs are <em>per-computer</em>: add tracking on each laptop/desktop you use, and run the backfill on each one. A session on a machine that was never set up (and never backfilled) is simply never counted.</p>
   </div>
 </section>
 
@@ -190,6 +193,9 @@ DRY RUN — would add to talentedgeai/human-token-tracker#telemetry:
 
   <h4>Re-running is safe</h4>
   <p>The backfill writes to a distinct <code>*.backfill.jsonl</code> filename that can never overwrite the live hook's files, and the server de-duplicates every record by session id (AI) and by member-day-hour (human). Run it twice, run it after setup — nothing double-counts.</p>
+  <div class="callout pink">
+    <p><strong>Once per computer.</strong> The backfill only sees the transcripts on the machine you run it from. If you code from a laptop <em>and</em> a desktop, run it on each — otherwise the other machine's month goes uncounted.</p>
+  </div>
 </section>
 
 <section id="script">
@@ -433,7 +439,7 @@ if __name__ == &quot;__main__&quot;:
     <tr><td>Backfill says <strong>"Nothing to backfill"</strong></td><td>No sessions for <em>this</em> repo in the window. Check you're inside the right repo, and that transcripts exist: <code>ls ~/.claude/projects | grep &lt;repo&gt;</code>.</td></tr>
     <tr><td>Older than ~30 days is <strong>missing</strong></td><td>Claude Code auto-deletes transcripts after ~30 days (<code>cleanupPeriodDays</code>). Purged history can't be recovered from transcripts — raise that setting to keep more going forward.</td></tr>
     <tr><td>Numbers land but aren't <strong>attributed to you</strong></td><td>Your git email or GitHub login doesn't match your team-member record. Fix the email (§03) and ask an admin to confirm your record.</td></tr>
-    <tr><td><code>gh repo clone</code> <strong>fails</strong> in the backfill</td><td><code>gh</code> isn't authenticated, or you lack access to the tracker repo. Run <code>gh auth status</code>; ask an admin for read/write on the tracker repo.</td></tr>
+    <tr><td><code>gh repo clone</code> <strong>fails</strong> in the backfill</td><td><code>gh</code> isn't authenticated on this machine. Run <code>gh auth status</code>, then <code>gh auth login</code>. Tracker-repo access itself is a given for Edge8 engineers.</td></tr>
     <tr><td>Prefer <strong>not</strong> to use <code>--insecure-storage</code></td><td>Keep the keychain and flush manually now and then: <code>PYTHONPATH="$HOME/.claude/hooks" python3.12 -m il_telemetry.flush</code>.</td></tr>
   </table>
   <div class="callout mint">
