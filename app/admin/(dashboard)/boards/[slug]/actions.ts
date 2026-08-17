@@ -6,9 +6,36 @@ import { recordAudit } from "@/lib/admin/audit";
 import { requireAdmin } from "@/lib/admin-auth";
 import { type Result } from "@/lib/admin/mutations";
 import { boardActorFor } from "@/lib/boards/access";
+import { sendLarkDirectMessage } from "@/lib/lark";
+import { getSiteOrigin } from "@/lib/site-origin";
 import { TASK_PRIORITIES, SUBJECT_COMMITMENT, SUBJECT_BACKLOG_ITEM, type TaskPriority } from "@/lib/boards/types";
 
 const DENIED = "You do not have access to this board.";
+
+// Lark DM the assignee when a card is assigned to them (best-effort; no-ops
+// until the Lark app is configured). Never notifies self-assignment.
+async function notifyAssignee(
+  boardId: string,
+  assigneeId: string,
+  cardTitle: string,
+  byPersonId: string | null,
+): Promise<void> {
+  if (!assigneeId || assigneeId === byPersonId) return;
+  try {
+    const [{ data: board }, { data: person }] = await Promise.all([
+      companyOs.from("boards").select("slug, name").eq("id", boardId).maybeSingle(),
+      companyOs.from("people").select("email").eq("id", assigneeId).maybeSingle(),
+    ]);
+    const email = (person as { email: string } | null)?.email;
+    const slug = (board as { slug: string } | null)?.slug;
+    const name = (board as { name: string } | null)?.name ?? "a board";
+    if (!email || !slug) return;
+    const url = `${getSiteOrigin()}/team/boards/${slug}`;
+    await sendLarkDirectMessage(email, `You were assigned "${cardTitle}" on the ${name} board.\n${url}`);
+  } catch (err) {
+    console.error("[boards] assignee notify failed", err);
+  }
+}
 
 // These actions serve both /admin/boards and /team/boards, so refresh both.
 function refresh(slug?: string) {
@@ -92,7 +119,10 @@ export async function createCard(input: {
   };
   const { data, error } = await companyOs.from("tasks").insert(row).select("id").single();
   if (error) return { ok: false, error: error.message };
-  if (input.assigneeId) await ensureMember(input.boardId, input.assigneeId);
+  if (input.assigneeId) {
+    await ensureMember(input.boardId, input.assigneeId);
+    await notifyAssignee(input.boardId, input.assigneeId, title, actor.personId);
+  }
   await recordAudit({ table: "tasks", recordId: data.id, operation: "insert", actor: actor.label, newData: row });
   refresh();
   return { ok: true, id: data.id };
@@ -216,8 +246,14 @@ export async function updateCard(
   },
   boardSlug: string,
 ): Promise<Result> {
-  const boardId = await boardIdForTask(taskId);
-  if (!boardId) return { ok: false, error: "Card not found." };
+  const { data: current } = await companyOs
+    .from("tasks")
+    .select("board_id, assignee_id, title")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!current) return { ok: false, error: "Card not found." };
+  const c = current as { board_id: string; assignee_id: string | null; title: string };
+  const boardId = c.board_id;
   const actor = await boardActorFor(boardId);
   if (!actor) return { ok: false, error: DENIED };
 
@@ -235,7 +271,12 @@ export async function updateCard(
 
   const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId);
   if (error) return { ok: false, error: error.message };
-  if (patch.assigneeId) await ensureMember(boardId, patch.assigneeId);
+  if (patch.assigneeId) {
+    await ensureMember(boardId, patch.assigneeId);
+    if (patch.assigneeId !== c.assignee_id) {
+      await notifyAssignee(boardId, patch.assigneeId, (updates.title as string) ?? c.title, actor.personId);
+    }
+  }
   await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: updates });
   refresh(boardSlug);
   return { ok: true };
