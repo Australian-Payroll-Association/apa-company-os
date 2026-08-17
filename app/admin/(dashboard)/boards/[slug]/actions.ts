@@ -525,3 +525,16 @@ export async function addComment(taskId: string, body: string, boardSlug: string
   refresh(boardSlug);
   return { ok: true };
 }
+
+// Restore an archived card (bring it back to its board/column).
+export async function restoreCard(taskId: string, boardSlug: string): Promise<Result> {
+  const boardId = await boardIdForTask(taskId);
+  if (!boardId) return { ok: false, error: "Card not found." };
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+  const { error } = await companyOs.from("tasks").update({ archived_at: null, archived_by: null }).eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "restore", actor: actor.label });
+  refresh(boardSlug);
+  return { ok: true };
+}
