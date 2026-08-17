@@ -468,3 +468,19 @@ export async function toggleSubtask(subtaskId: string, done: boolean, boardSlug:
   refresh(boardSlug);
   return { ok: true };
 }
+
+// ── Comments ──────────────────────────────────────────────────────────────
+export async function addComment(taskId: string, body: string, boardSlug: string): Promise<Result> {
+  const boardId = await boardIdForTask(taskId);
+  if (!boardId) return { ok: false, error: "Card not found." };
+  const actor = await boardActorFor(boardId);
+  if (!actor) return { ok: false, error: DENIED };
+  const text = body?.trim();
+  if (!text) return { ok: false, error: "Write a comment first." };
+  const { error } = await companyOs
+    .from("task_comments")
+    .insert({ task_id: taskId, author_person_id: actor.personId, author_label: actor.label, body: text });
+  if (error) return { ok: false, error: error.message };
+  refresh(boardSlug);
+  return { ok: true };
+}
