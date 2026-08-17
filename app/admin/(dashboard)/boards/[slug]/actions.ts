@@ -19,7 +19,7 @@ function refresh(slug?: string) {
     revalidatePath("/admin/boards", "layout");
     revalidatePath("/team/boards", "layout");
   }
-  revalidatePath("/team/my-tasks");
+  revalidatePath("/team/my-work-boards");
 }
 
 async function boardIdForTask(taskId: string): Promise<string | null> {

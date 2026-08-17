@@ -19,6 +19,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // My Tasks was renamed to Work Boards.
+      { source: '/team/my-tasks', destination: '/team/my-work-boards', permanent: true },
       // The talent Rank page was renamed to Candidate Pool.
       { source: '/admin/talent/rank', destination: '/admin/talent/candidate-pool', permanent: true },
       // OKRs were renamed to Company Goals (FAST Goals stay the individual layer).

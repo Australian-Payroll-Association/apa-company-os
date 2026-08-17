@@ -50,7 +50,7 @@ function meGroup(isCoached: boolean, hasClients: boolean): NavGroup {
   return {
     label: "Me",
     items: [
-      { label: "My Tasks", href: "/team/my-tasks", ico: "☑", enabled: true },
+      { label: "Work Boards", href: "/team/my-work-boards", ico: "☑", enabled: true },
       ...(isCoached
         ? [{ label: "My Coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
         : []),

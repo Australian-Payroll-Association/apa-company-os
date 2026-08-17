@@ -6,7 +6,7 @@ import { MyTasks } from "./MyTasks";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-export const metadata = { title: "My Tasks" };
+export const metadata = { title: "Work Boards" };
 
 export default async function MyTasksPage() {
   const actor = await requireTeamMember();
@@ -16,7 +16,7 @@ export default async function MyTasksPage() {
     <>
       <PageHead
         eyebrow="Me"
-        title="My Tasks"
+        title="Work Boards"
         sub="Your boards, everything assigned to you across them, and your open commitments."
       />
       <MyTasks work={work} boards={boards} />
