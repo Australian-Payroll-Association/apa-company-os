@@ -400,7 +400,7 @@ export async function removeBoardMember(boardId: string, personId: string, board
 
 export async function updateBoard(
   boardId: string,
-  patch: { name?: string; clientCompanyId?: string | null },
+  patch: { name?: string; description?: string | null; clientCompanyId?: string | null },
   boardSlug: string,
 ): Promise<Result> {
   const admin = await requireAdmin();
@@ -410,6 +410,7 @@ export async function updateBoard(
     if (!n) return { ok: false, error: "The board needs a name." };
     updates.name = n;
   }
+  if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
   if (patch.clientCompanyId !== undefined) updates.client_company_id = patch.clientCompanyId || null;
   if (Object.keys(updates).length === 0) return { ok: true };
   const { error } = await companyOs.from("boards").update(updates).eq("id", boardId);

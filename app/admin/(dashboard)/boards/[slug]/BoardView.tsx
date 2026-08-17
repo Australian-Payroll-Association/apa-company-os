@@ -95,6 +95,7 @@ export function BoardView({
   const [rollTarget, setRollTarget] = useState<Record<string, string>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardName, setBoardName] = useState(board.name);
+  const [boardDescription, setBoardDescription] = useState(board.description ?? "");
   const [boardClientId, setBoardClientId] = useState(board.client_company_id ?? "");
   const [newMemberId, setNewMemberId] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
@@ -127,7 +128,11 @@ export function BoardView({
   function saveSettings() {
     setBanner(null);
     startSaving(async () => {
-      const r = await updateBoard(board.id, { name: boardName, clientCompanyId: boardClientId || null }, slug);
+      const r = await updateBoard(
+        board.id,
+        { name: boardName, description: boardDescription, clientCompanyId: boardClientId || null },
+        slug,
+      );
       if (!r.ok) return setBanner(r.error);
       router.refresh();
     });
@@ -409,14 +414,14 @@ export function BoardView({
         <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
           Sprints
         </button>
-        {canManage && (
-          <button className="admin-btn admin-btn--sm" onClick={() => setSettingsOpen(true)}>
-            Board settings
-          </button>
-        )}
         <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
           Amber clock = in column &gt; {AGING_DAYS} days
         </span>
+        {canManage && (
+          <button className="admin-btn admin-btn--sm" onClick={() => setSettingsOpen(true)}>
+            ⚙ Board settings
+          </button>
+        )}
       </div>
 
       {banner && (
@@ -787,6 +792,16 @@ export function BoardView({
           <div className="admin-field">
             <label className="admin-label">Name</label>
             <input className="admin-input" value={boardName} onChange={(e) => setBoardName(e.target.value)} />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Description</label>
+            <textarea
+              className="admin-textarea"
+              rows={2}
+              value={boardDescription}
+              onChange={(e) => setBoardDescription(e.target.value)}
+              placeholder="What this board is for"
+            />
           </div>
           <div className="admin-field">
             <label className="admin-label">Client</label>
