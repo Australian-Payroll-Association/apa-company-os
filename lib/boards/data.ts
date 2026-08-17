@@ -219,79 +219,86 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
       ...(parents.map((t) => t.assignee_id).filter(Boolean) as string[]),
     ]),
   ];
-  const peopleRes = personIds.length
-    ? await companyOs.from("people").select("id, display_name, full_name, email").in("id", personIds)
-    : { data: [] as { id: string; display_name: string | null; full_name: string | null; email: string }[] };
-  const nameById = new Map((peopleRes.data ?? []).map((p) => [p.id, personName(p)]));
-
-  // Subject labels: coaching commitments and client roadmap items linked to cards.
+  // Subject label ids (coaching commitments / client roadmap items linked to cards).
   const commitmentIds = parents
     .filter((t) => t.subject_type === SUBJECT_COMMITMENT && t.subject_id)
     .map((t) => t.subject_id as string);
   const backlogIds = parents
     .filter((t) => t.subject_type === SUBJECT_BACKLOG_ITEM && t.subject_id)
     .map((t) => t.subject_id as string);
-  const subjectLabel = new Map<string, string>();
-  if (commitmentIds.length) {
-    const { data } = await companyOs.from("coaching_commitments").select("id, title").in("id", commitmentIds);
-    for (const r of (data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
-  }
-  if (backlogIds.length) {
-    const { data } = await companyOs.from("client_backlog_items").select("id, title").in("id", backlogIds);
-    for (const r of (data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
-  }
+  const taskIds = parents.map((t) => t.id);
 
-  // Client name + roadmap items (for the link picker) on a client-linked board.
-  let client_name: string | null = null;
-  let backlogItems: BacklogRef[] = [];
-  if (board.client_company_id) {
-    const [{ data: co }, { data: bl }] = await Promise.all([
-      companyOs.from("companies").select("name").eq("id", board.client_company_id).maybeSingle(),
-      companyOs
-        .from("client_backlog_items")
-        .select("id, title")
-        .eq("company_id", board.client_company_id)
-        .is("archived_at", null)
-        .order("sort_order"),
+  // Everything below depends only on the already-resolved tasks/members and the
+  // board, not on each other, so run them in ONE round. Previously these ran as
+  // ~5 serial round trips, so a phone opening its daily board (this function is
+  // reused by /admin, /team, and /portal) paid that latency stacked on a
+  // force-dynamic page. Empty-id cases resolve to an empty result without a query.
+  const [peopleRes, commitmentsRes, backlogLabelRes, clientCoRes, clientBacklogRes, logsRes, commentsRes] =
+    await Promise.all([
+      personIds.length
+        ? companyOs.from("people").select("id, display_name, full_name, email").in("id", personIds)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null; full_name: string | null; email: string }[] }),
+      commitmentIds.length
+        ? companyOs.from("coaching_commitments").select("id, title").in("id", commitmentIds)
+        : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+      backlogIds.length
+        ? companyOs.from("client_backlog_items").select("id, title").in("id", backlogIds)
+        : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+      board.client_company_id
+        ? companyOs.from("companies").select("name").eq("id", board.client_company_id).maybeSingle()
+        : Promise.resolve({ data: null as { name: string } | null }),
+      board.client_company_id
+        ? companyOs
+            .from("client_backlog_items")
+            .select("id, title")
+            .eq("company_id", board.client_company_id)
+            .is("archived_at", null)
+            .order("sort_order")
+        : Promise.resolve({ data: [] as BacklogRef[] }),
+      taskIds.length
+        ? companyOs
+            .from("task_stage_log")
+            .select("task_id, moved_at, kind")
+            .in("task_id", taskIds)
+            .eq("kind", "move")
+            .order("moved_at", { ascending: false })
+        : Promise.resolve({ data: [] as { task_id: string; moved_at: string }[] }),
+      taskIds.length
+        ? companyOs
+            .from("task_comments")
+            .select("id, task_id, author_label, body, created_at")
+            .in("task_id", taskIds)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [] as { id: string; task_id: string; author_label: string; body: string; created_at: string }[] }),
     ]);
-    client_name = (co as { name: string } | null)?.name ?? null;
-    backlogItems = (bl ?? []) as BacklogRef[];
-  }
+
+  const nameById = new Map((peopleRes.data ?? []).map((p) => [p.id, personName(p)]));
+
+  const subjectLabel = new Map<string, string>();
+  for (const r of (commitmentsRes.data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
+  for (const r of (backlogLabelRes.data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
+
+  const client_name = (clientCoRes.data as { name: string } | null)?.name ?? null;
+  const backlogItems = (clientBacklogRes.data ?? []) as BacklogRef[];
 
   // Latest column-move per card, for the days-in-column clock.
-  const taskIds = parents.map((t) => t.id);
   const lastMove = new Map<string, string>();
-  if (taskIds.length) {
-    const { data: logs } = await companyOs
-      .from("task_stage_log")
-      .select("task_id, moved_at, kind")
-      .in("task_id", taskIds)
-      .eq("kind", "move")
-      .order("moved_at", { ascending: false });
-    for (const l of (logs ?? []) as { task_id: string; moved_at: string }[]) {
-      if (!lastMove.has(l.task_id)) lastMove.set(l.task_id, l.moved_at);
-    }
+  for (const l of (logsRes.data ?? []) as { task_id: string; moved_at: string }[]) {
+    if (!lastMove.has(l.task_id)) lastMove.set(l.task_id, l.moved_at);
   }
 
   // Comments per card (oldest first).
   const commentsByTask = new Map<string, TaskComment[]>();
-  if (taskIds.length) {
-    const { data: cmts } = await companyOs
-      .from("task_comments")
-      .select("id, task_id, author_label, body, created_at")
-      .in("task_id", taskIds)
-      .order("created_at", { ascending: true });
-    for (const c of (cmts ?? []) as {
-      id: string;
-      task_id: string;
-      author_label: string;
-      body: string;
-      created_at: string;
-    }[]) {
-      const list = commentsByTask.get(c.task_id) ?? [];
-      list.push({ id: c.id, author: c.author_label, body: c.body, createdAt: c.created_at });
-      commentsByTask.set(c.task_id, list);
-    }
+  for (const c of (commentsRes.data ?? []) as {
+    id: string;
+    task_id: string;
+    author_label: string;
+    body: string;
+    created_at: string;
+  }[]) {
+    const list = commentsByTask.get(c.task_id) ?? [];
+    list.push({ id: c.id, author: c.author_label, body: c.body, createdAt: c.created_at });
+    commentsByTask.set(c.task_id, list);
   }
 
   const cards: BoardCard[] = parents.map((t) => ({

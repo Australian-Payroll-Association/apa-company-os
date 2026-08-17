@@ -23,7 +23,7 @@ export function TeamCollage({ photos, avatars }: { photos: GalleryPhoto[]; avata
       tiles.push(
         <Link key={`p${p.id}`} className="team-collage-photo" href="/team/gallery" title={p.caption || "Open the gallery"}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.image_url} alt={p.caption || "Team photo"} />
+          <img src={p.image_url} alt={p.caption || "Team photo"} loading="lazy" decoding="async" />
           {p.caption && <span className="team-collage-cap">{p.caption}</span>}
         </Link>,
       );
@@ -34,7 +34,7 @@ export function TeamCollage({ photos, avatars }: { photos: GalleryPhoto[]; avata
         <Link key={`a${a.id}`} className="team-collage-avatar" href={`/team/directory/${a.id}`} title={a.name}>
           {a.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.avatarUrl} alt={a.name} />
+            <img src={a.avatarUrl} alt={a.name} loading="lazy" decoding="async" />
           ) : (
             <span>{initials(a.name)}</span>
           )}

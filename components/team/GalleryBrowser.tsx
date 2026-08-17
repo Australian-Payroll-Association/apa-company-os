@@ -43,7 +43,7 @@ export function GalleryBrowser({
           <div key={p.id} className="gallery-tile">
             <a className="gallery-tile-media" href={p.image_url} target="_blank" rel="noreferrer">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.image_url} alt={p.caption || "Team photo"} />
+              <img src={p.image_url} alt={p.caption || "Team photo"} loading="lazy" decoding="async" />
               {(p.caption || p.taken_on) && (
                 <span className="gallery-tile-cap">
                   {p.caption}

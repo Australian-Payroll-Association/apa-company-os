@@ -146,7 +146,7 @@ export function DirectoryTable({ entries }: { entries: DirectoryEntry[] }) {
                         <span className="dir-avatar" aria-hidden>
                           {e.avatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={e.avatarUrl} alt="" />
+                            <img src={e.avatarUrl} alt="" loading="lazy" decoding="async" />
                           ) : (
                             <span>{initials(e.name)}</span>
                           )}

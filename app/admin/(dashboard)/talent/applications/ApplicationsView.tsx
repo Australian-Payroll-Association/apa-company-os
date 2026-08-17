@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 import { ApplicationsTable, type AppRow } from "./ApplicationsTable";
-import { ApplicationsBoard, type StageMap } from "./ApplicationsBoard";
+import type { StageMap } from "./ApplicationsBoard";
+
+// The board pulls in @hello-pangea/dnd. The view defaults to list and only swaps
+// to board after a localStorage check, so load the board lazily to keep the DnD
+// library out of first-load JS for the (common) list-only user. Mirrors the
+// CockpitDeals precedent.
+const ApplicationsBoard = dynamic(() => import("./ApplicationsBoard").then((m) => m.ApplicationsBoard), {
+  loading: () => <div className="admin-empty">Loading…</div>,
+});
 
 const VIEW_KEY = "edge8-admin-applications-view";
 

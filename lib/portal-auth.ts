@@ -23,6 +23,7 @@
 // lib/admin/portal-assume.ts (start) and app/portal/(dashboard)/actions.ts
 // (end). Every start/end is audit-logged.
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createSessionClient } from "@/lib/supabase/server";
@@ -138,7 +139,10 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
 //   - an admin, no active Assume session -> /admin  (admins have no /portal identity)
 //   - an active team member            -> /team   (employees use /team, never /portal)
 //   - no active portal_members row     -> /portal/login
-export async function getPortalActor(): Promise<GetActorResult> {
+// Wrapped in React cache() so the /portal layout and the page (which both call
+// requirePortalMember) resolve the identity chain ONCE per request instead of
+// running the whole thing twice. Mirrors getAdminUser().
+export const getPortalActor = cache(async (): Promise<GetActorResult> => {
   const supabase = createSessionClient();
   // Local session read (no network hop). middleware.ts revalidates the JWT via
   // auth.getUser() on every matched /portal request before this gate runs, so a
@@ -152,36 +156,45 @@ export async function getPortalActor(): Promise<GetActorResult> {
   const email = user?.email?.toLowerCase();
   if (!user || !email) return { actor: null, redirectTo: "/portal/login" };
 
-  if (await isAdminEmail(email)) {
+  // The admin check and the person lookup are independent, so start them together
+  // rather than serially; the admin branch simply drops the (rare) person read.
+  const adminP = isAdminEmail(email);
+  const personP = companyOs
+    .from("people")
+    .select("id, full_name, first_name, preferred_name, email")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (await adminP) {
     const assumed = await getActiveAssumeActor(email, user.id);
     if (assumed) return { actor: assumed };
     return { actor: null, redirectTo: "/admin" };
   }
 
   // Identity by auth_user_id, never by email.
-  const { data: person } = await companyOs
-    .from("people")
-    .select("id, full_name, first_name, preferred_name, email")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  const { data: person } = await personP;
   if (!person) return { actor: null, redirectTo: "/portal/login" };
 
   // Employees belong in /team. Provisioning refuses to invite active team
   // members, so hitting this means the person became staff after the invite —
   // route them to their real surface rather than double-scoping them.
-  const { data: employment } = await companyOs
-    .from("team_members")
-    .select("id")
-    .eq("person_id", person.id)
-    .in("status", PORTAL_STATUSES)
-    .limit(1);
+  // Employment check and membership read both depend only on person.id and are
+  // independent of each other, so run them together.
+  const [{ data: employment }, { data: memberRows }] = await Promise.all([
+    companyOs
+      .from("team_members")
+      .select("id")
+      .eq("person_id", person.id)
+      .in("status", PORTAL_STATUSES)
+      .limit(1),
+    companyOs
+      .from("portal_members")
+      .select("id, company_id, role, companies:companies!company_id(name)")
+      .eq("person_id", person.id)
+      .eq("status", "active"),
+  ]);
   if ((employment ?? []).length > 0) return { actor: null, redirectTo: "/team" };
 
-  const { data: memberRows } = await companyOs
-    .from("portal_members")
-    .select("id, company_id, role, companies:companies!company_id(name)")
-    .eq("person_id", person.id)
-    .eq("status", "active");
   const rows = (memberRows ?? []) as MembershipRow[];
   if (rows.length === 0) return { actor: null, redirectTo: "/portal/login" };
 
@@ -207,7 +220,7 @@ export async function getPortalActor(): Promise<GetActorResult> {
       mustChangePassword: user.user_metadata?.must_change_password === true,
     },
   };
-}
+});
 
 // Gate for /portal pages and server actions. Redirects when the caller has no
 // portal identity. Call at the top of the /portal layout and EVERY /portal action.

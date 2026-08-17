@@ -111,31 +111,29 @@ function HubCard({ item }: { item: HubItem }) {
 
 export default async function TeamHome() {
   const actor = await requireTeamMember();
-  const profile = await getOwnProfile(actor);
-  const clientSnippets = await getClientRoadmapSnippets(actor, 3);
-  const recentTasks = await getMyRecentTasks(actor, 3);
+  const today = new Date().toISOString().slice(0, 10);
+  // These six reads are all independent (they depend only on `actor`), so fire
+  // them together instead of stacking ~8 serial round trips on the one page
+  // staff open every morning on a phone. Exactly four photos and four faces are
+  // drawn fresh on every load, a fixed composition with rotating content.
+  const [profile, clientSnippets, recentTasks, openRoles, [collagePhotos, collagePeople], leaveRes] =
+    await Promise.all([
+      getOwnProfile(actor),
+      getClientRoadmapSnippets(actor, 3),
+      getMyRecentTasks(actor, 3),
+      getOpenRoles(),
+      Promise.all([randomGalleryPhotos(4), collageAvatars(4)]),
+      teamRead(actor, "time_off", "start_date, end_date, leave_type, status")
+        .eq("team_member_id", actor.teamMemberId)
+        .gte("end_date", today)
+        .in("status", ["requested", "approved"])
+        .order("start_date", { ascending: true })
+        .limit(1),
+    ]);
   // Reqs this person is the hiring manager for. Nothing renders unless they
   // own one, so the section is invisible to everyone who is not hiring.
-  const myOpenRoles = (await getOpenRoles()).filter((r) => r.hiringManagerPersonId === actor.personId);
-  // Exactly four photos and four faces, drawn fresh on every load — a fixed
-  // composition with rotating content, not a wall of everything.
-  const [collagePhotos, collagePeople] = await Promise.all([
-    randomGalleryPhotos(4),
-    collageAvatars(4),
-  ]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: leaveRows } = await teamRead(
-    actor,
-    "time_off",
-    "start_date, end_date, leave_type, status",
-  )
-    .eq("team_member_id", actor.teamMemberId)
-    .gte("end_date", today)
-    .in("status", ["requested", "approved"])
-    .order("start_date", { ascending: true })
-    .limit(1);
-  const nextLeave = ((leaveRows ?? []) as unknown as NextLeave[])[0] ?? null;
+  const myOpenRoles = openRoles.filter((r) => r.hiringManagerPersonId === actor.personId);
+  const nextLeave = ((leaveRes.data ?? []) as unknown as NextLeave[])[0] ?? null;
 
   // The company runs on Saigon time; server renders in UTC, so pin the zone
   // rather than showing the wrong day to everyone at 6am.

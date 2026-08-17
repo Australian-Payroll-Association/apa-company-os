@@ -251,7 +251,7 @@ function PhotoCard({
   return (
     <div className="gallery-admin-card">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.image_url} alt={caption || "Team photo"} className="gallery-admin-img" />
+      <img src={photo.image_url} alt={caption || "Team photo"} className="gallery-admin-img" loading="lazy" decoding="async" />
       <input
         className="admin-input gallery-admin-cap"
         value={caption}
