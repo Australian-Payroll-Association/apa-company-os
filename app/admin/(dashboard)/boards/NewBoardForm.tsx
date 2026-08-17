@@ -27,20 +27,16 @@ export function NewBoardForm({ clients }: { clients: { id: string; name: string 
   }
 
   if (!open) {
-    // Same 18px bottom rhythm as the expanded form card below.
+    // Vertical rhythm comes from the toolbar row in BoardsIndex.
     return (
-      <button
-        className="admin-btn admin-btn--primary admin-btn--sm"
-        style={{ marginBottom: 18 }}
-        onClick={() => setOpen(true)}
-      >
+      <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setOpen(true)}>
         New board
       </button>
     );
   }
 
   return (
-    <div className="admin-card admin-section-card" style={{ marginBottom: 18 }}>
+    <div className="admin-card admin-section-card">
       <div className="admin-form">
         <div className="admin-field">
           <label className="admin-label">Board name</label>
