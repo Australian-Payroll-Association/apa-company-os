@@ -42,18 +42,7 @@ function leaveTypeLabel(type: string): string {
   return LEAVE_TYPE_LABEL[type as LeaveType] ?? type;
 }
 
-export function TimeOffCalendar({
-  entries,
-  minMonth,
-  maxMonth,
-}: {
-  entries: CalendarEntry[];
-  // Optional "YYYY-MM" navigation bounds, so a surface whose data helper only
-  // fetches a fixed window (the portal's ±90 days) can't page into months that
-  // would render as falsely empty.
-  minMonth?: string;
-  maxMonth?: string;
-}) {
+export function TimeOffCalendar({ entries }: { entries: CalendarEntry[] }) {
   const now = new Date();
   const [month, setMonth] = useState<Month>({ y: now.getFullYear(), m: now.getMonth() });
 
@@ -63,9 +52,6 @@ export function TimeOffCalendar({
   const daysInMonth = new Date(month.y, month.m + 1, 0).getDate();
   // Monday-first grid offset for the 1st of the month.
   const leading = (new Date(month.y, month.m, 1).getDay() + 6) % 7;
-
-  const canPrev = !minMonth || monthKey(shift(month, -1)) >= minMonth;
-  const canNext = !maxMonth || monthKey(shift(month, 1)) <= maxMonth;
 
   const cells: (string | null)[] = [
     ...Array.from({ length: leading }, () => null),
@@ -82,7 +68,6 @@ export function TimeOffCalendar({
             type="button"
             className="admin-btn admin-btn--sm"
             aria-label="Previous month"
-            disabled={!canPrev}
             onClick={() => setMonth((v) => shift(v, -1))}
           >
             ←
@@ -98,7 +83,6 @@ export function TimeOffCalendar({
             type="button"
             className="admin-btn admin-btn--sm"
             aria-label="Next month"
-            disabled={!canNext}
             onClick={() => setMonth((v) => shift(v, 1))}
           >
             →

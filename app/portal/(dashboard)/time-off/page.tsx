@@ -35,14 +35,6 @@ function dateRange(e: PortalTimeOffEntry): string {
   return `${formatDate(e.startDate)} → ${formatDate(e.endDate)}`;
 }
 
-// The data helper fetches a fixed ±90-day window (a deliberate scope choice);
-// clamp calendar navigation to the months that window can actually populate.
-function monthOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 7);
-}
-
 export default async function PortalTimeOffPage() {
   const actor = await requirePortalMember();
   const entries = await getAssignedTimeOff(actor);
@@ -67,7 +59,7 @@ export default async function PortalTimeOffPage() {
   const calendarView = (
     <div className="admin-card admin-section-card">
       <h2 className="admin-card-title">Team calendar</h2>
-      <TimeOffCalendar entries={calendarEntries} minMonth={monthOffset(-90)} maxMonth={monthOffset(90)} />
+      <TimeOffCalendar entries={calendarEntries} />
     </div>
   );
 
@@ -124,7 +116,7 @@ export default async function PortalTimeOffPage() {
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">History ({history.length})</h2>
         {history.length === 0 ? (
-          <div className="admin-empty">No time-off history in the last 90 days.</div>
+          <div className="admin-empty">No time-off history yet.</div>
         ) : (
           <div className="admin-table-wrap">
             <table className="admin-table">

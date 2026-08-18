@@ -39,19 +39,11 @@ type Row = {
 
 type NameRow = { id: string; full_name: string | null };
 
-// A client only ever needs to see currently-open leave: what's happened
-// recently, what's happening now, and what's coming up. Older history has no
-// client-facing use case yet, so the window (not just the column list) keeps
-// this deliberately narrow.
-const LOOKBACK_DAYS = 90;
-const LOOKAHEAD_DAYS = 90;
+// No date window: clients can page the calendar back through history and
+// forward through booked leave (per Dave, 2026-08-18 — planning visibility
+// beats a narrow horizon; volume is small). The privacy line is the restricted
+// column list above, not the date range.
 const VISIBLE_STATUSES = ["requested", "approved", "taken"] as const;
-
-function isoDaysFromNow(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
-}
 
 export async function getAssignedTimeOff(actor: PortalActor): Promise<PortalTimeOffEntry[]> {
   const memberIds = await getAssignedTeamMemberIds(actor);
@@ -62,8 +54,6 @@ export async function getAssignedTimeOff(actor: PortalActor): Promise<PortalTime
     .select("id, team_member_id, leave_type, status, start_date, end_date, is_half_day")
     .in("team_member_id", memberIds)
     .in("status", VISIBLE_STATUSES)
-    .gte("end_date", isoDaysFromNow(-LOOKBACK_DAYS))
-    .lte("start_date", isoDaysFromNow(LOOKAHEAD_DAYS))
     .order("start_date", { ascending: true });
 
   const rows = (data ?? []) as Row[];
