@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
-import { getClientRoadmapForActor, getClientDocumentsForActor } from "@/lib/team/clients";
+import { getClientRoadmapForActor, getClientDocumentsForActor, getActorEmail } from "@/lib/team/clients";
 import { ClientDocumentsList } from "./ClientDocumentsList";
 import { PageHead } from "@/components/admin/PageHead";
 import { BotText } from "@/components/assistant/BotText";
@@ -49,9 +49,10 @@ function priClass(p: BacklogPriority): string {
 
 export default async function TeamClientRoadmapPage({ params }: { params: { companyId: string } }) {
   const actor = await requireTeamMember();
-  const [roadmap, documents] = await Promise.all([
+  const [roadmap, documents, actorEmail] = await Promise.all([
     getClientRoadmapForActor(actor, params.companyId),
     getClientDocumentsForActor(actor, params.companyId),
+    getActorEmail(actor),
   ]);
   if (!roadmap) notFound();
 
@@ -123,12 +124,10 @@ export default async function TeamClientRoadmapPage({ params }: { params: { comp
         })
       )}
 
-      {(documents ?? []).length > 0 && (
-        <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
-          <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Documents</h2>
-          <ClientDocumentsList documents={documents ?? []} />
-        </section>
-      )}
+      <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Documents</h2>
+        <ClientDocumentsList documents={documents ?? []} companyId={company.id} actorEmail={actorEmail} />
+      </section>
     </div>
   );
 }

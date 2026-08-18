@@ -178,7 +178,11 @@ export async function recordDocument(input: {
     uploaded_by: input.uploadedBy,
   });
   if (error) {
-    await supabase.storage.from(DOCUMENTS_BUCKET).remove([input.path]);
+    // Unique violation means another row already owns this object — do NOT
+    // remove it, or a re-claimed path would delete the original row's file.
+    if (error.code !== "23505") {
+      await supabase.storage.from(DOCUMENTS_BUCKET).remove([input.path]);
+    }
     return { ok: false, error: "Could not save the document." };
   }
   return { ok: true };

@@ -10,7 +10,11 @@ import {
   listDocumentsForCompanies,
   getDocumentRow,
   signedDownloadForPath,
+  createSignedDocumentUpload,
+  recordDocument,
+  deleteDocumentRow,
   type ClientDocument,
+  type DocResult,
 } from "@/lib/client-documents";
 import {
   BACKLOG_SELECT,
@@ -180,6 +184,58 @@ export async function getClientDocumentsForActor(
   const companies = await actorCompanyIds(actor);
   if (!companies.has(companyId)) return null;
   return listDocumentsForCompanies([companyId]);
+}
+
+// The actor's email, from their own person row. uploaded_by on
+// program_documents is an email everywhere; TeamActor doesn't carry one.
+export async function getActorEmail(actor: TeamActor): Promise<string | null> {
+  const { data } = await companyOs
+    .from("people")
+    .select("email")
+    .eq("id", actor.personId)
+    .maybeSingle();
+  return (data as { email: string | null } | null)?.email ?? null;
+}
+
+// Team members may add documents to an assigned client's vault. Same
+// authorization rule as reads: the company must be in the actor's active
+// assignment set, resolved server-side; the ids in the input are never trusted.
+
+export async function signedClientDocumentUploadForActor(
+  actor: TeamActor,
+  input: { companyId: string; filename: string },
+): Promise<DocResult<{ signedUrl: string; path: string }>> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(input.companyId)) return { ok: false, error: "Not found." };
+  return createSignedDocumentUpload({ companyId: input.companyId, filename: input.filename });
+}
+
+export async function recordClientDocumentForActor(
+  actor: TeamActor,
+  input: { companyId: string; path: string; filename: string; sizeBytes: number | null },
+): Promise<DocResult> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(input.companyId)) return { ok: false, error: "Not found." };
+  const email = await getActorEmail(actor);
+  if (!email) return { ok: false, error: "Could not resolve your account email." };
+  return recordDocument({ ...input, uploadedBy: email });
+}
+
+// Uploader-only delete, same rule as the client portal: the document must be
+// in the actor's assignment scope AND carry their email as uploader.
+export async function deleteOwnClientDocumentForActor(
+  actor: TeamActor,
+  documentId: string,
+): Promise<DocResult> {
+  const row = await getDocumentRow(documentId);
+  if (!row) return { ok: false, error: "Not found." };
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(row.companyId)) return { ok: false, error: "Not found." };
+  const email = await getActorEmail(actor);
+  if (!email || (row.uploadedBy ?? "").toLowerCase() !== email.toLowerCase()) {
+    return { ok: false, error: "You can only delete documents you uploaded." };
+  }
+  return deleteDocumentRow(row);
 }
 
 // Signed download for a document of an assigned company, IDOR-guarded on the
