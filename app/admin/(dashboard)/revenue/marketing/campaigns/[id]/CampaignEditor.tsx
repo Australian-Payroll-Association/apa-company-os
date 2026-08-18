@@ -1,0 +1,319 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { CampaignRow } from "@/lib/admin/campaigns";
+import {
+  approveCampaign,
+  buildRecipients,
+  cancelCampaign,
+  clearRecipients,
+  sendTest,
+  startSending,
+  updateCampaign,
+} from "../actions";
+
+const PERSONA_CHOICES = [
+  { value: "prospect", label: "Prospects" },
+  { value: "client", label: "Clients" },
+];
+
+type Note = { tone: "ok" | "err"; text: string } | null;
+
+export function CampaignEditor({
+  campaign,
+  pendingCount,
+}: {
+  campaign: CampaignRow;
+  pendingCount: number;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [note, setNote] = useState<Note>(null);
+
+  const [name, setName] = useState(campaign.name);
+  const [subject, setSubject] = useState(campaign.subject);
+  const [preheader, setPreheader] = useState(campaign.preheader ?? "");
+  const [bodyMd, setBodyMd] = useState(campaign.bodyMd);
+  const [replyTo, setReplyTo] = useState(campaign.replyTo ?? "");
+  const [batchSize, setBatchSize] = useState(String(campaign.batchSize));
+  const [personas, setPersonas] = useState<string[]>(campaign.segment.personas ?? []);
+
+  const isDraft = campaign.status === "draft";
+
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>, success: string) {
+    setNote(null);
+    startTransition(async () => {
+      const result = await fn();
+      if (result.ok) {
+        setNote({ tone: "ok", text: success });
+        router.refresh();
+      } else {
+        setNote({ tone: "err", text: result.error ?? "Something went wrong." });
+      }
+    });
+  }
+
+  function togglePersona(value: string) {
+    setPersonas((prev) => (prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value]));
+  }
+
+  return (
+    <>
+      {note && (
+        <div className={`admin-alert admin-alert--${note.tone}`} style={{ marginBottom: 14 }}>
+          {note.text}
+        </div>
+      )}
+
+      <section className="admin-card admin-section-card">
+        <div className="admin-card-title">Content</div>
+        {!isDraft && (
+          <div className="admin-hint" style={{ marginTop: 6 }}>
+            The content is frozen because this campaign is {campaign.status}. Editing it mid-send
+            would change what later recipients receive. Cancel the campaign to edit it.
+          </div>
+        )}
+        <div className="admin-form" style={{ marginTop: 12 }}>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="name">
+              Internal name
+            </label>
+            <input
+              id="name"
+              className="admin-input"
+              value={name}
+              disabled={!isDraft}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="subject">
+              Subject line
+            </label>
+            <input
+              id="subject"
+              className="admin-input"
+              value={subject}
+              disabled={!isDraft}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="preheader">
+              Preheader
+            </label>
+            <input
+              id="preheader"
+              className="admin-input"
+              value={preheader}
+              disabled={!isDraft}
+              onChange={(e) => setPreheader(e.target.value)}
+            />
+            <div className="admin-hint">
+              The grey line the inbox shows after the subject. Hidden inside the email itself.
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="body">
+              Body
+            </label>
+            <textarea
+              id="body"
+              className="admin-textarea"
+              rows={16}
+              value={bodyMd}
+              disabled={!isDraft}
+              onChange={(e) => setBodyMd(e.target.value)}
+            />
+            <div className="admin-hint">
+              Markdown: # headings, **bold**, *italic*, [links](https://…), and - lists. The Edge8
+              wrapper, footer, and unsubscribe link are added automatically.
+            </div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="replyTo">
+              Reply-to
+            </label>
+            <input
+              id="replyTo"
+              className="admin-input"
+              value={replyTo}
+              disabled={!isDraft}
+              placeholder="dave@edge8.ai"
+              onChange={(e) => setReplyTo(e.target.value)}
+            />
+          </div>
+          <div className="admin-form-actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={!isDraft || pending}
+              onClick={() =>
+                run(
+                  () =>
+                    updateCampaign(campaign.id, {
+                      name,
+                      subject,
+                      preheader,
+                      bodyMd,
+                      replyTo,
+                    }),
+                  "Content saved.",
+                )
+              }
+            >
+              {pending ? "Saving…" : "Save content"}
+            </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={pending}
+              onClick={() => run(() => sendTest(campaign.id), "Test sent to your address.")}
+            >
+              Send test to me
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-card admin-section-card">
+        <div className="admin-card-title">Audience</div>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          Only contacts who are marked subscribed can be reached. Job seekers, team members, and
+          anyone flagged do-not-contact are excluded no matter what you pick here.
+        </p>
+        <div className="admin-form" style={{ marginTop: 12 }}>
+          <div className="admin-field">
+            <span className="admin-label">Personas</span>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 6 }}>
+              {PERSONA_CHOICES.map((choice) => (
+                <label key={choice.value} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    type="checkbox"
+                    checked={personas.includes(choice.value)}
+                    disabled={!isDraft}
+                    onChange={() => togglePersona(choice.value)}
+                  />
+                  {choice.label}
+                </label>
+              ))}
+            </div>
+            <div className="admin-hint">Leave both unticked to reach every subscribed contact.</div>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="batch">
+              Batch size
+            </label>
+            <input
+              id="batch"
+              className="admin-input"
+              type="number"
+              min={1}
+              max={1000}
+              value={batchSize}
+              disabled={!isDraft}
+              onChange={(e) => setBatchSize(e.target.value)}
+            />
+            <div className="admin-hint">
+              Emails per 15-minute tick. Keep this low for the first sends so bounces surface before
+              the whole list has gone out.
+            </div>
+          </div>
+          <div className="admin-form-actions">
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={!isDraft || pending}
+              onClick={() =>
+                run(
+                  () => updateCampaign(campaign.id, { segment: { personas }, batchSize: Number(batchSize) }),
+                  "Audience settings saved.",
+                )
+              }
+            >
+              Save audience
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={!isDraft || pending}
+              onClick={() =>
+                startTransition(async () => {
+                  setNote(null);
+                  const result = await buildRecipients(campaign.id);
+                  if (result.ok) {
+                    setNote({ tone: "ok", text: `Added ${result.added} recipient(s).` });
+                    router.refresh();
+                  } else {
+                    setNote({ tone: "err", text: result.error });
+                  }
+                })
+              }
+            >
+              Build recipient list
+            </button>
+            {pendingCount > 0 && isDraft && (
+              <button
+                type="button"
+                className="admin-btn admin-btn--danger"
+                disabled={pending}
+                onClick={() => run(() => clearRecipients(campaign.id), "Recipient list cleared.")}
+              >
+                Clear list
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-card admin-section-card">
+        <div className="admin-card-title">Send</div>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          {campaign.status === "draft" &&
+            `${pendingCount} recipient(s) queued. Approving does not send: you start the send separately.`}
+          {campaign.status === "approved" &&
+            `Approved by ${campaign.approvedBy ?? "an admin"}. Nothing has been sent yet.`}
+          {campaign.status === "sending" &&
+            `Sending in batches of ${campaign.batchSize} every 15 minutes. ${pendingCount} left.`}
+          {campaign.status === "sent" && "This campaign has finished sending."}
+          {campaign.status === "cancelled" && "This campaign was cancelled."}
+        </p>
+        <div className="admin-form-actions" style={{ marginTop: 12 }}>
+          {campaign.status === "draft" && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={pending || pendingCount === 0}
+              onClick={() => run(() => approveCampaign(campaign.id), "Campaign approved.")}
+            >
+              Approve
+            </button>
+          )}
+          {campaign.status === "approved" && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={pending}
+              onClick={() =>
+                run(() => startSending(campaign.id), "Sending started. The first batch goes out within 15 minutes.")
+              }
+            >
+              Start sending
+            </button>
+          )}
+          {campaign.status !== "sent" && campaign.status !== "cancelled" && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--danger"
+              disabled={pending}
+              onClick={() => run(() => cancelCampaign(campaign.id), "Campaign cancelled.")}
+            >
+              Cancel campaign
+            </button>
+          )}
+        </div>
+      </section>
+    </>
+  );
+}

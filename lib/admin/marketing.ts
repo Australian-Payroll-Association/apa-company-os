@@ -1,0 +1,350 @@
+import { companyOs } from "@/lib/supabase";
+
+// Reads for the Revenue → Marketing hub. Two sources, both already populated:
+// company_os.interactions (every email lib/email.ts has ever accepted) and
+// company_os.people (the audience). Vercel traffic comes from
+// lib/admin/vercel-analytics.ts, which this module deliberately does not wrap —
+// the page composes the two so a slow Vercel call can't gate the CRM reads.
+
+export type MarketingRange = "7d" | "30d" | "90d" | "all";
+
+const RANGE_DAYS: Record<Exclude<MarketingRange, "all">, number> = { "7d": 7, "30d": 30, "90d": 90 };
+
+export function rangeSince(range: MarketingRange): string | null {
+  if (range === "all") return null;
+  return new Date(Date.now() - RANGE_DAYS[range] * 24 * 60 * 60 * 1000).toISOString();
+}
+
+// ---------------------------------------------------------------- email sends
+
+export type EmailSendRow = {
+  id: string;
+  subject: string | null;
+  to: string;
+  source: string;
+  occurredAt: string;
+  personId: string | null;
+  personName: string | null;
+};
+
+export type EmailActivity = {
+  total: number;
+  // True when the source breakdown was sampled rather than counted whole. The
+  // headline total stays exact either way, so the UI can say which is which.
+  breakdownTruncated?: boolean;
+  bySource: { label: string; value: number }[];
+  recent: EmailSendRow[];
+  error?: string;
+};
+
+type InteractionRow = {
+  id: string;
+  subject: string | null;
+  occurred_at: string;
+  person_id: string | null;
+  metadata: Record<string, unknown> | null;
+  people: { full_name: string | null; preferred_name: string | null } | null;
+};
+
+const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
+
+// metadata.source is set by every lib/email.ts caller (defaulting to "system").
+// Unlabelled rows predate the convention rather than being a real source.
+function sourceOf(meta: Record<string, unknown> | null): string {
+  const raw = meta?.source;
+  return typeof raw === "string" && raw.trim() ? raw : "unlabelled";
+}
+
+function recipientOf(meta: Record<string, unknown> | null): string {
+  const raw = meta?.to;
+  return typeof raw === "string" ? raw : "";
+}
+
+const RECENT_LIMIT = 12;
+// Ceiling on the rows pulled for the source breakdown. Each campaign send logs
+// one interaction per recipient, so this table grows by hundreds per newsletter
+// and counting rows client-side would eventually be both slow and wrong (once it
+// passes PostgREST's row cap the fetch truncates silently). The headline total
+// comes from an exact count instead, and only the breakdown is sampled.
+const BREAKDOWN_LIMIT = 2000;
+
+export async function getEmailActivity(range: MarketingRange): Promise<EmailActivity> {
+  const since = rangeSince(range);
+
+  const countQuery = companyOs
+    .from("interactions")
+    .select("id", { count: "exact", head: true })
+    .eq("kind", "email");
+  if (since) countQuery.gte("occurred_at", since);
+
+  let rowQuery = companyOs
+    .from("interactions")
+    .select("id, subject, occurred_at, person_id, metadata, people:people!person_id(full_name, preferred_name)")
+    .eq("kind", "email")
+    .order("occurred_at", { ascending: false })
+    .limit(BREAKDOWN_LIMIT);
+  if (since) rowQuery = rowQuery.gte("occurred_at", since);
+
+  const [{ count, error: countError }, { data, error }] = await Promise.all([countQuery, rowQuery]);
+  if (countError) return { total: 0, bySource: [], recent: [], error: countError.message };
+  if (error) return { total: 0, bySource: [], recent: [], error: error.message };
+
+  const rows = (data ?? []) as unknown as InteractionRow[];
+
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const key = sourceOf(row.metadata);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const recent: EmailSendRow[] = rows.slice(0, RECENT_LIMIT).map((row) => {
+    const person = one(row.people);
+    return {
+      id: row.id,
+      subject: row.subject,
+      to: recipientOf(row.metadata),
+      source: sourceOf(row.metadata),
+      occurredAt: row.occurred_at,
+      personId: row.person_id,
+      personName: person?.preferred_name || person?.full_name || null,
+    };
+  });
+
+  return {
+    total: count ?? rows.length,
+    breakdownTruncated: rows.length >= BREAKDOWN_LIMIT,
+    bySource: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value })),
+    recent,
+  };
+}
+
+// ------------------------------------------------------------- deliverability
+
+// Delivery feedback from Resend webhooks (company_os.email_events). Rates are
+// expressed against DELIVERED rather than sent, which is the convention every
+// ESP reports on and the only denominator that makes an open rate meaningful.
+
+export type Deliverability = {
+  hasData: boolean;
+  sent: number;
+  delivered: number;
+  bounced: number;
+  complained: number;
+  opened: number;
+  clicked: number;
+  deliveryRate: number | null;
+  bounceRate: number | null;
+  complaintRate: number | null;
+  openRate: number | null;
+  clickRate: number | null;
+  problems: { recipient: string; eventType: string; occurredAt: string; personId: string | null }[];
+  error?: string;
+};
+
+type EventRow = {
+  event_type: string;
+  recipient: string;
+  occurred_at: string;
+  person_id: string | null;
+  resend_email_id: string;
+};
+
+const PROBLEM_LIMIT = 15;
+// The problem list is a worklist, not a count: the headline numbers come from
+// the SQL aggregate, so scanning a bounded recent window here is safe.
+const PROBLEM_SCAN_LIMIT = 500;
+
+function rate(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) return null;
+  return (numerator / denominator) * 100;
+}
+
+export async function getDeliverability(range: MarketingRange): Promise<Deliverability> {
+  const since = rangeSince(range);
+  let query = companyOs
+    .from("email_events")
+    .select("event_type, recipient, occurred_at, person_id, resend_email_id")
+    .in("event_type", ["bounced", "complained"])
+    .order("occurred_at", { ascending: false });
+  if (since) query = query.gte("occurred_at", since);
+
+  const empty: Deliverability = {
+    hasData: false,
+    sent: 0,
+    delivered: 0,
+    bounced: 0,
+    complained: 0,
+    opened: 0,
+    clicked: 0,
+    deliveryRate: null,
+    bounceRate: null,
+    complaintRate: null,
+    openRate: null,
+    clickRate: null,
+    problems: [],
+  };
+
+  // Totals come from a SQL aggregate that counts DISTINCT emails (one email
+  // fires 'opened' every time it is reopened, so counting rows would push the
+  // rate past 100%). Doing it in SQL also sidesteps PostgREST's row cap, which
+  // would otherwise start understating bounces after about two campaigns.
+  const [{ data: agg, error: aggError }, { data, error }] = await Promise.all([
+    companyOs.rpc("email_delivery_stats", { p_since: since, p_campaign_id: null }),
+    query.limit(PROBLEM_SCAN_LIMIT),
+  ]);
+
+  if (aggError) return { ...empty, error: aggError.message };
+  if (error) return { ...empty, error: error.message };
+
+  const byType = new Map(
+    ((agg ?? []) as { event_type: string; unique_emails: number }[]).map((e) => [
+      e.event_type,
+      Number(e.unique_emails),
+    ]),
+  );
+
+  const sent = byType.get("sent") ?? 0;
+  const delivered = byType.get("delivered") ?? 0;
+  const bounced = byType.get("bounced") ?? 0;
+  const complained = byType.get("complained") ?? 0;
+  const opened = byType.get("opened") ?? 0;
+  const clicked = byType.get("clicked") ?? 0;
+
+  if (sent + delivered + bounced + complained + opened + clicked === 0) return empty;
+
+  const rows = (data ?? []) as EventRow[];
+
+  // Denominator for delivery/bounce is everything Resend attempted; for
+  // engagement it's what actually landed.
+  const attempted = sent > 0 ? sent : delivered + bounced;
+
+  const problems = rows
+    .slice(0, PROBLEM_LIMIT)
+    .map((r) => ({
+      recipient: r.recipient,
+      eventType: r.event_type,
+      occurredAt: r.occurred_at,
+      personId: r.person_id,
+    }));
+
+  return {
+    hasData: true,
+    sent,
+    delivered,
+    bounced,
+    complained,
+    opened,
+    clicked,
+    deliveryRate: rate(delivered, attempted),
+    bounceRate: rate(bounced, attempted),
+    complaintRate: rate(complained, attempted),
+    openRate: rate(opened, delivered),
+    clickRate: rate(clicked, delivered),
+    problems,
+  };
+}
+
+// -------------------------------------------------------------------- audience
+
+// Personas that never receive marketing email, whatever their consent state.
+// job_seeker gave us their address to be considered for a job; employees are
+// internal. Both are excluded structurally rather than by remembering to filter.
+export const NON_MARKETING_PERSONAS = ["job_seeker", "employee"] as const;
+
+export type AudienceBreakdown = {
+  total: number;
+  contactable: number;
+  eligible: number;
+  doNotContact: number;
+  teamMembers: number;
+  subscribed: number;
+  unsubscribed: number;
+  neverAsked: number;
+  byPersona: { label: string; value: number }[];
+  error?: string;
+};
+
+type PersonRow = {
+  persona: string | null;
+  do_not_contact: boolean;
+  is_team_member: boolean;
+  marketing_consent: string;
+};
+
+const PERSONA_LABELS: Record<string, string> = {
+  job_seeker: "Job seeker",
+  prospect: "Prospect",
+  client: "Client",
+  employee: "Employee",
+  vendor: "Vendor",
+  student: "Student",
+};
+
+export function personaLabel(persona: string | null): string {
+  if (!persona) return "Unset";
+  return PERSONA_LABELS[persona] ?? persona;
+}
+
+// Eligibility is now stored (people.marketing_consent), not derived. This
+// mirrors lib/admin/campaigns.ts passesSuppression() so the number on the hub
+// and the number the sender actually reaches cannot drift apart.
+export function isEligible(row: PersonRow): boolean {
+  if (row.marketing_consent !== "subscribed") return false;
+  if (row.do_not_contact) return false;
+  if (row.is_team_member) return false;
+  return !NON_MARKETING_PERSONAS.includes(row.persona as (typeof NON_MARKETING_PERSONAS)[number]);
+}
+
+export async function getAudienceBreakdown(): Promise<AudienceBreakdown> {
+  const { data, error } = await companyOs
+    .from("people")
+    .select("persona, do_not_contact, is_team_member, marketing_consent")
+    .is("archived_at", null);
+
+  if (error) {
+    return {
+      total: 0,
+      contactable: 0,
+      eligible: 0,
+      doNotContact: 0,
+      teamMembers: 0,
+      subscribed: 0,
+      unsubscribed: 0,
+      neverAsked: 0,
+      byPersona: [],
+      error: error.message,
+    };
+  }
+
+  const rows = (data ?? []) as PersonRow[];
+  const counts = new Map<string, number>();
+  let eligible = 0;
+  let doNotContact = 0;
+  let teamMembers = 0;
+  let subscribed = 0;
+  let unsubscribed = 0;
+  let neverAsked = 0;
+
+  for (const row of rows) {
+    const key = personaLabel(row.persona);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (row.do_not_contact) doNotContact += 1;
+    if (row.is_team_member) teamMembers += 1;
+    if (row.marketing_consent === "subscribed") subscribed += 1;
+    else if (row.marketing_consent === "unsubscribed") unsubscribed += 1;
+    else neverAsked += 1;
+    if (isEligible(row)) eligible += 1;
+  }
+
+  return {
+    total: rows.length,
+    contactable: rows.length - doNotContact,
+    eligible,
+    doNotContact,
+    teamMembers,
+    subscribed,
+    unsubscribed,
+    neverAsked,
+    byPersona: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value })),
+  };
+}

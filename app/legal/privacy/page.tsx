@@ -48,8 +48,16 @@ export default function PrivacyPolicyPage() {
             <p>
               We use the information we collect to respond to inquiries, deliver the services you
               request, process payments, manage event and workshop registrations, operate client
-              and team portal accounts, send you updates you've asked for, and improve our site
-              and services. We do not sell your personal information.
+              and team portal accounts, and improve our site and services. We do not sell your
+              personal information.
+            </p>
+            <p>
+              <strong>Marketing email.</strong> If you are a client of Edge8, or you gave us your
+              details as a business contact, we may send you occasional email about our work, such
+              as a newsletter. Every marketing email includes a one-click unsubscribe link, and
+              opting out takes effect immediately. We do not send marketing email to people who
+              applied for a job with us; the address you give us in an application is used only for
+              recruiting.
             </p>
           </Block>
 
@@ -61,7 +69,7 @@ export default function PrivacyPolicyPage() {
             <ul>
               <li>Supabase — database hosting and account authentication</li>
               <li>Stripe — payment processing for workshops and events</li>
-              <li>Resend — transactional email delivery</li>
+              <li>Resend — transactional and marketing email delivery</li>
               <li>Intuit QuickBooks — invoicing and billing for client engagements</li>
               <li>Vercel — website hosting and infrastructure</li>
             </ul>
@@ -105,6 +113,13 @@ export default function PrivacyPolicyPage() {
               <a href="mailto:hello@edge8.ai">hello@edge8.ai</a>. Depending on where you live, you
               may have additional rights under local law; we'll honor requests to the extent
               required.
+            </p>
+            <p>
+              <strong>Email preferences.</strong> You can stop receiving marketing email at any time
+              using the unsubscribe link at the bottom of any such message, or by emailing{' '}
+              <a href="mailto:hello@edge8.ai">hello@edge8.ai</a>. Unsubscribing from marketing does
+              not stop essential messages about services you use, such as event tickets, invoices,
+              or account and security notices.
             </p>
           </Block>
 

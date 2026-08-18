@@ -75,6 +75,13 @@ const NAV: NavSection[] = [
           { label: "Affiliates", href: "/admin/revenue/affiliates", ico: "%", enabled: true },
         ],
       },
+      {
+        subheading: "Marketing",
+        items: [
+          { label: "Overview", href: "/admin/revenue/marketing", ico: "◑", enabled: true },
+          { label: "Campaigns", href: "/admin/revenue/marketing/campaigns", ico: "✉", enabled: true },
+        ],
+      },
     ],
   },
   {

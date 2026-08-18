@@ -1,0 +1,347 @@
+import { companyOs } from "@/lib/supabase";
+
+// Campaign reads and audience resolution.
+//
+// The single most important function here is resolveAudience(). Every path that
+// sends mail goes through it, and it is the only place that decides who is
+// allowed to receive marketing email.
+
+export type CampaignStatus = "draft" | "approved" | "sending" | "sent" | "cancelled";
+
+export type CampaignSegment = {
+  personas?: string[];
+};
+
+export type CampaignRow = {
+  id: string;
+  name: string;
+  subject: string;
+  preheader: string | null;
+  bodyMd: string;
+  status: CampaignStatus;
+  segment: CampaignSegment;
+  fromEmail: string | null;
+  replyTo: string | null;
+  batchSize: number;
+  scheduledAt: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  sentAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+type DbCampaign = {
+  id: string;
+  name: string;
+  subject: string;
+  preheader: string | null;
+  body_md: string;
+  status: string;
+  segment: CampaignSegment | null;
+  from_email: string | null;
+  reply_to: string | null;
+  batch_size: number;
+  scheduled_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  sent_at: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+const CAMPAIGN_SELECT =
+  "id, name, subject, preheader, body_md, status, segment, from_email, reply_to, batch_size, scheduled_at, approved_at, approved_by, sent_at, created_by, created_at";
+
+function mapCampaign(row: DbCampaign): CampaignRow {
+  return {
+    id: row.id,
+    name: row.name,
+    subject: row.subject,
+    preheader: row.preheader,
+    bodyMd: row.body_md,
+    status: row.status as CampaignStatus,
+    segment: row.segment ?? {},
+    fromEmail: row.from_email,
+    replyTo: row.reply_to,
+    batchSize: row.batch_size,
+    scheduledAt: row.scheduled_at,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
+    sentAt: row.sent_at,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
+}
+
+export async function listCampaigns(): Promise<{ rows: CampaignRow[]; error?: string }> {
+  const { data, error } = await companyOs
+    .from("email_campaigns")
+    .select(CAMPAIGN_SELECT)
+    .order("created_at", { ascending: false });
+  if (error) return { rows: [], error: error.message };
+  return { rows: ((data ?? []) as DbCampaign[]).map(mapCampaign) };
+}
+
+export async function getCampaign(id: string): Promise<CampaignRow | null> {
+  const { data, error } = await companyOs
+    .from("email_campaigns")
+    .select(CAMPAIGN_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapCampaign(data as DbCampaign);
+}
+
+// ------------------------------------------------------------------- audience
+
+export type AudienceMember = { personId: string; email: string; name: string | null };
+
+// Personas that never receive marketing email regardless of consent state.
+// Enforced here rather than by remembering to filter at each call site.
+const BLOCKED_PERSONAS = new Set(["job_seeker", "employee"]);
+
+type CandidateRow = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  preferred_name: string | null;
+  persona: string | null;
+  do_not_contact: boolean;
+  is_team_member: boolean;
+  marketing_consent: string;
+};
+
+// The four gates every recipient passes, in order of how badly it would go if
+// we got them wrong: consent, the CRM-wide contact ban, internal staff, and the
+// personas that were never a marketing audience in the first place.
+function passesSuppression(row: CandidateRow): boolean {
+  if (row.marketing_consent !== "subscribed") return false;
+  if (row.do_not_contact) return false;
+  if (row.is_team_member) return false;
+  if (row.persona && BLOCKED_PERSONAS.has(row.persona)) return false;
+  return true;
+}
+
+// Paged explicitly. PostgREST caps an unbounded select at its row limit and
+// truncates silently, which here would quietly shrink the audience with no
+// error shown, so the size of the list would depend on how big the CRM had
+// grown. Paging until a short page arrives is the only way to know it is whole.
+const AUDIENCE_PAGE = 500;
+
+export async function resolveAudience(
+  segment: CampaignSegment,
+): Promise<{ members: AudienceMember[]; error?: string }> {
+  const personas = (segment.personas ?? []).filter((p) => !BLOCKED_PERSONAS.has(p));
+  const members: AudienceMember[] = [];
+
+  for (let offset = 0; ; offset += AUDIENCE_PAGE) {
+    let query = companyOs
+      .from("people")
+      .select("id, email, full_name, preferred_name, persona, do_not_contact, is_team_member, marketing_consent")
+      .is("archived_at", null)
+      .eq("marketing_consent", "subscribed")
+      .order("id", { ascending: true })
+      .range(offset, offset + AUDIENCE_PAGE - 1);
+
+    if (personas.length > 0) query = query.in("persona", personas);
+
+    const { data, error } = await query;
+    if (error) return { members: [], error: error.message };
+
+    const page = (data ?? []) as CandidateRow[];
+    for (const row of page) {
+      if (!passesSuppression(row)) continue;
+      members.push({
+        personId: row.id,
+        email: row.email,
+        name: row.preferred_name || row.full_name || null,
+      });
+    }
+
+    if (page.length < AUDIENCE_PAGE) break;
+  }
+
+  return { members };
+}
+
+// Re-check one person at send time. The audience is resolved when recipients are
+// built, which can be hours or days before the last batch goes out; somebody can
+// unsubscribe in between.
+//
+// The three outcomes are deliberately distinct. A failed lookup is NOT a
+// suppression: treating it as one would permanently mark the recipient
+// "skipped" over a transient database timeout and they would never be mailed.
+// The caller leaves those pending so the next tick retries.
+export type SendGate =
+  | { verdict: "send" }
+  | { verdict: "suppress"; reason: string }
+  | { verdict: "error"; message: string };
+
+export async function checkSendGate(personId: string, email: string): Promise<SendGate> {
+  const { data, error } = await companyOs
+    .from("people")
+    .select("id, email, full_name, preferred_name, persona, do_not_contact, is_team_member, marketing_consent, archived_at")
+    .eq("id", personId)
+    .maybeSingle();
+
+  if (error) return { verdict: "error", message: error.message };
+  if (!data) return { verdict: "suppress", reason: "person no longer exists" };
+
+  const row = data as CandidateRow & { archived_at: string | null };
+  if (row.archived_at) return { verdict: "suppress", reason: "contact archived" };
+  if (row.marketing_consent === "unsubscribed") return { verdict: "suppress", reason: "unsubscribed" };
+  if (row.marketing_consent !== "subscribed") return { verdict: "suppress", reason: "no marketing consent" };
+  if (row.do_not_contact) return { verdict: "suppress", reason: "do not contact" };
+  if (row.is_team_member) return { verdict: "suppress", reason: "team member" };
+  if (row.persona && BLOCKED_PERSONAS.has(row.persona)) {
+    return { verdict: "suppress", reason: `persona ${row.persona}` };
+  }
+
+  const failure = await hardFailureReason(email);
+  if (failure.verdict === "error") return failure;
+  if (failure.verdict === "suppress") return failure;
+
+  return { verdict: "send" };
+}
+
+// A complaint is permanent: that person pressed "report spam" and must never be
+// mailed again. A bounce is only permanent when the provider says it is; Resend
+// also emits email.bounced for transient conditions such as a full mailbox, and
+// treating those as permanent would silently drop a real client from every
+// future campaign with no way to undo it.
+function isPermanentBounce(metadata: unknown): boolean {
+  const bounce = (metadata as { data?: { bounce?: { type?: string; subType?: string } } })?.data?.bounce;
+  const type = `${bounce?.type ?? ""}`.toLowerCase();
+  if (type === "transient") return false;
+  if (type === "permanent") return true;
+  // Unlabelled: treat as permanent. Sending again to an address that already
+  // bounced is what turns a reputation problem into a blocklisting.
+  return true;
+}
+
+export async function hardFailureReason(email: string): Promise<SendGate> {
+  const { data, error } = await companyOs
+    .from("email_events")
+    .select("event_type, metadata")
+    .eq("recipient", email.toLowerCase())
+    .in("event_type", ["bounced", "complained"])
+    .limit(50);
+
+  if (error) return { verdict: "error", message: error.message };
+
+  for (const row of (data ?? []) as { event_type: string; metadata: unknown }[]) {
+    if (row.event_type === "complained") {
+      return { verdict: "suppress", reason: "previously marked this as spam" };
+    }
+    if (row.event_type === "bounced" && isPermanentBounce(row.metadata)) {
+      return { verdict: "suppress", reason: "previous hard bounce" };
+    }
+  }
+  return { verdict: "send" };
+}
+
+// -------------------------------------------------------------------- results
+
+export type CampaignStats = {
+  total: number;
+  pending: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  delivered: number;
+  bounced: number;
+  opened: number;
+  clicked: number;
+};
+
+export async function getCampaignStats(campaignId: string): Promise<CampaignStats> {
+  const empty: CampaignStats = {
+    total: 0,
+    pending: 0,
+    sent: 0,
+    skipped: 0,
+    failed: 0,
+    delivered: 0,
+    bounced: 0,
+    opened: 0,
+    clicked: 0,
+  };
+
+  // Both aggregate in SQL. Counting fetched rows in JS was silently capped by
+  // PostgREST: one 185-person campaign emits roughly five events per email, so
+  // two campaigns would have taken this past the cap and understated bounces.
+  const [{ data: recips }, { data: events }] = await Promise.all([
+    companyOs.rpc("campaign_recipient_stats", { p_campaign_id: campaignId }),
+    companyOs.rpc("email_delivery_stats", { p_since: null, p_campaign_id: campaignId }),
+  ]);
+
+  const stats = { ...empty };
+  for (const row of (recips ?? []) as { status: string; n: number }[]) {
+    const n = Number(row.n);
+    stats.total += n;
+    // 'claimed' is a row the sender has taken but not yet finished. It reads as
+    // pending to an operator: it has not gone out.
+    if (row.status === "pending" || row.status === "claimed") stats.pending += n;
+    else if (row.status === "sent") stats.sent += n;
+    else if (row.status === "skipped") stats.skipped += n;
+    else if (row.status === "failed") stats.failed += n;
+  }
+
+  const byType = new Map(
+    ((events ?? []) as { event_type: string; unique_emails: number }[]).map((e) => [
+      e.event_type,
+      Number(e.unique_emails),
+    ]),
+  );
+  stats.delivered = byType.get("delivered") ?? 0;
+  stats.bounced = byType.get("bounced") ?? 0;
+  stats.opened = byType.get("opened") ?? 0;
+  stats.clicked = byType.get("clicked") ?? 0;
+  return stats;
+}
+
+export type RecipientRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  personId: string;
+  status: string;
+  skipReason: string | null;
+  error: string | null;
+  sentAt: string | null;
+};
+
+export async function listRecipients(campaignId: string, limit = 200): Promise<RecipientRow[]> {
+  const { data } = await companyOs
+    .from("email_campaign_recipients")
+    .select("id, email, person_id, status, skip_reason, error, sent_at, people:people!person_id(full_name, preferred_name)")
+    .eq("campaign_id", campaignId)
+    .order("status", { ascending: true })
+    .limit(limit);
+
+  type Row = {
+    id: string;
+    email: string;
+    person_id: string;
+    status: string;
+    skip_reason: string | null;
+    error: string | null;
+    sent_at: string | null;
+    people: { full_name: string | null; preferred_name: string | null } | null;
+  };
+
+  return ((data ?? []) as unknown as Row[]).map((row) => {
+    const person = Array.isArray(row.people) ? row.people[0] ?? null : row.people;
+    return {
+      id: row.id,
+      email: row.email,
+      name: person?.preferred_name || person?.full_name || null,
+      personId: row.person_id,
+      status: row.status,
+      skipReason: row.skip_reason,
+      error: row.error,
+      sentAt: row.sent_at,
+    };
+  });
+}
