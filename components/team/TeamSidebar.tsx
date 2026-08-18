@@ -7,7 +7,7 @@ import { signOut } from "@/app/team/(dashboard)/actions";
 import type { TeamRole } from "@/lib/team-auth";
 
 // Lighter sibling of AdminSidebar: reuses the admin shell CSS but drops the brand
-// switcher and collapsible offices. Flat nav grouped Me / My Team / Company. Items
+// switcher and collapsible offices. Flat nav grouped My Work / Me / My Team / Company. Items
 // without `enabled` render as muted "soon" placeholders (their slice has not shipped
 // yet), mirroring the admin nav so the shell always looks complete without dead links.
 type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
@@ -43,21 +43,30 @@ function myTeamGroup(isCoach: boolean, isHiringManager: boolean): NavGroup {
   };
 }
 
-// Ordered by how often a member acts on it, not alphabetically. "My Coaching"
-// appears only for members in a coaching cycle (an active coaching_profiles row
-// of their own); "Clients" only for members assigned to a client company.
-function meGroup(isCoached: boolean, hasClients: boolean): NavGroup {
+// Day-to-day execution: the things a member acts on for the company. "Clients"
+// only shows for members assigned to a client company.
+function myWorkGroup(hasClients: boolean): NavGroup {
+  return {
+    label: "My Work",
+    items: [
+      { label: "Work Boards", href: "/team/my-work-boards", ico: "☑", enabled: true },
+      ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
+      { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
+    ],
+  };
+}
+
+// Personal growth and profile. "My Coaching" appears only for members in a
+// coaching cycle (an active coaching_profiles row of their own).
+function meGroup(isCoached: boolean): NavGroup {
   return {
     label: "Me",
     items: [
-      { label: "Work Boards", href: "/team/my-work-boards", ico: "☑", enabled: true },
       ...(isCoached
         ? [{ label: "My Coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
         : []),
-      ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
       { label: "My FAST Goals", href: "/team/goals", ico: "◉", enabled: true },
       { label: "Reviews", href: "/team/reviews", ico: "★", enabled: true },
-      { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
       { label: "Profile", href: "/team/profile", ico: "☺", enabled: true },
       { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
@@ -118,8 +127,9 @@ export function TeamSidebar({
 
   const groups: NavGroup[] = [
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
-    // Widening scope: me, then my team, then the company.
-    meGroup(isCoached, hasClients),
+    // Widening scope: my work, then me, then my team, then the company.
+    myWorkGroup(hasClients),
+    meGroup(isCoached),
     ...(role === "manager" || isCoach || isHiringManager
       ? [myTeamGroup(isCoach, isHiringManager)]
       : []),
