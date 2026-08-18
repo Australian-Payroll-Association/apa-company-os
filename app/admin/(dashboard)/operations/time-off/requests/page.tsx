@@ -4,6 +4,8 @@ import { byFirstName, personName } from "@/lib/people-name";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { countWorkingDays, formatLeaveBalance } from "@/lib/admin/time-off";
+import { ViewToggle } from "@/components/admin/ViewToggle";
+import { TimeOffCalendar, type CalendarEntry } from "@/components/admin/TimeOffCalendar";
 import { TimeOffBoard, type MemberOption, type RequestRow, type LeaderRow } from "./TimeOffBoard";
 
 export const dynamic = "force-dynamic";
@@ -150,12 +152,44 @@ export default async function TimeOffPage() {
         <MetricCard label="Days off in 2026" value={formatLeaveBalance(total2026)} />
       </div>
 
-      <TimeOffBoard
-        members={members}
-        upcoming={upcoming}
-        all={rows}
-        topFive={topFive}
-        bottomFive={bottomFive}
+      <ViewToggle
+        views={[
+          {
+            key: "board",
+            label: "Board",
+            content: (
+              <TimeOffBoard
+                members={members}
+                upcoming={upcoming}
+                all={rows}
+                topFive={topFive}
+                bottomFive={bottomFive}
+              />
+            ),
+          },
+          {
+            key: "calendar",
+            label: "Calendar",
+            content: (
+              <div className="admin-card admin-section-card">
+                <h2 className="admin-card-title">Team calendar</h2>
+                <TimeOffCalendar
+                  entries={rows.map(
+                    (r): CalendarEntry => ({
+                      id: r.id,
+                      name: r.memberName,
+                      leaveType: r.leaveType,
+                      status: r.status,
+                      startDate: r.startDate,
+                      endDate: r.endDate,
+                      isHalfDay: r.isHalfDay,
+                    }),
+                  )}
+                />
+              </div>
+            ),
+          },
+        ]}
       />
     </>
   );

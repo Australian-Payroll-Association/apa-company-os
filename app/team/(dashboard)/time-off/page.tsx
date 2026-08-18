@@ -3,6 +3,8 @@ import { teamRead, getOwnLeaveSummary, getOwnApprovalPolicy } from "@/lib/team/d
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { countWorkingDays, formatLeaveBalance } from "@/lib/admin/time-off";
+import { ViewToggle } from "@/components/admin/ViewToggle";
+import { TimeOffCalendar, type CalendarEntry } from "@/components/admin/TimeOffCalendar";
 import { TimeOffPanel, type OwnRequestRow } from "./TimeOffPanel";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +92,39 @@ export default async function TeamTimeOffPage() {
         </div>
       )}
 
-      <TimeOffPanel rows={rows} autoApprove={approvalPolicy.autoApprove} />
+      <ViewToggle
+        views={[
+          {
+            key: "list",
+            label: "List",
+            content: <TimeOffPanel rows={rows} autoApprove={approvalPolicy.autoApprove} />,
+          },
+          {
+            key: "calendar",
+            label: "Calendar",
+            content: (
+              <div className="admin-card admin-section-card">
+                <h2 className="admin-card-title">Your leave</h2>
+                <TimeOffCalendar
+                  entries={rows.map(
+                    (r): CalendarEntry => ({
+                      id: r.id,
+                      // Own leave only on this page, so the chip labels the
+                      // leave type instead of repeating the actor's name.
+                      name: null,
+                      leaveType: r.leaveType,
+                      status: r.status,
+                      startDate: r.startDate,
+                      endDate: r.endDate,
+                      isHalfDay: r.isHalfDay,
+                    }),
+                  )}
+                />
+              </div>
+            ),
+          },
+        ]}
+      />
     </>
   );
 }

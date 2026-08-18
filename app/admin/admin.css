@@ -4146,3 +4146,57 @@ a.ideas-share-card:hover {
 }
 .appdet-expand-toggle:hover { color: var(--admin-accent-strong); }
 .appdet-expand-toggle:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); border-radius: var(--admin-radius-xs); }
+
+/* ─── Time-off calendar ───────────────────────────── */
+.admin-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.admin-cal-month { font-size: 15px; font-weight: 700; color: var(--admin-ink); }
+.admin-cal-nav { display: flex; gap: 6px; }
+/* 7 columns don't fit a phone; scroll the grid inside its own container. */
+.admin-cal-scroll { overflow-x: auto; }
+.admin-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  min-width: 640px;
+  background: var(--admin-line);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+}
+.admin-cal-dow {
+  background: var(--admin-surface-2);
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+}
+.admin-cal-day {
+  background: var(--admin-surface);
+  min-height: 88px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.admin-cal-day.is-weekend,
+.admin-cal-day.is-blank { background: var(--admin-surface-2); }
+.admin-cal-date { font-size: 11px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.admin-cal-day.is-today .admin-cal-date { color: var(--admin-accent); font-weight: 700; }
+.admin-cal-chip {
+  display: block;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 1px 6px;
+  border-radius: var(--admin-radius-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-cal-chip.is-ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+/* Pending: outlined rather than solid, so an unapproved request reads as tentative. */
+.admin-cal-chip.is-warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); box-shadow: inset 0 0 0 1px currentColor; }
+.admin-cal-legend { display: flex; gap: 8px; margin-top: 10px; }
+.admin-cal-legend .admin-cal-chip { display: inline-block; }

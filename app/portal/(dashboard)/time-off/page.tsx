@@ -2,6 +2,8 @@ import { requirePortalMember } from "@/lib/portal-auth";
 import { getAssignedTimeOff, type PortalTimeOffEntry } from "@/lib/portal/time-off";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { ViewToggle } from "@/components/admin/ViewToggle";
+import { TimeOffCalendar, type CalendarEntry } from "@/components/admin/TimeOffCalendar";
 import { formatDate } from "@/lib/admin/format";
 import { LEAVE_TYPE_LABEL, type LeaveType } from "@/lib/admin/time-off";
 
@@ -33,6 +35,14 @@ function dateRange(e: PortalTimeOffEntry): string {
   return `${formatDate(e.startDate)} → ${formatDate(e.endDate)}`;
 }
 
+// The data helper fetches a fixed ±90-day window (a deliberate scope choice);
+// clamp calendar navigation to the months that window can actually populate.
+function monthOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 7);
+}
+
 export default async function PortalTimeOffPage() {
   const actor = await requirePortalMember();
   const entries = await getAssignedTimeOff(actor);
@@ -44,10 +54,25 @@ export default async function PortalTimeOffPage() {
   const upcoming = entries.filter((e) => e.startDate > today);
   const history = [...entries].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
-  return (
-    <>
-      <PageHead eyebrow="Client Portal" title="Time Off" sub="Who's out, and when, on your team." />
+  const calendarEntries: CalendarEntry[] = entries.map((e) => ({
+    id: e.id,
+    name: e.fullName || "Team member",
+    leaveType: e.leaveType,
+    status: e.status,
+    startDate: e.startDate,
+    endDate: e.endDate,
+    isHalfDay: e.isHalfDay,
+  }));
 
+  const calendarView = (
+    <div className="admin-card admin-section-card">
+      <h2 className="admin-card-title">Team calendar</h2>
+      <TimeOffCalendar entries={calendarEntries} minMonth={monthOffset(-90)} maxMonth={monthOffset(90)} />
+    </div>
+  );
+
+  const listView = (
+    <>
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Out now ({outNow.length})</h2>
         {outNow.length === 0 ? (
@@ -130,6 +155,18 @@ export default async function PortalTimeOffPage() {
           </div>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <>
+      <PageHead eyebrow="Client Portal" title="Time Off" sub="Who's out, and when, on your team." />
+      <ViewToggle
+        views={[
+          { key: "calendar", label: "Calendar", content: calendarView },
+          { key: "list", label: "List", content: listView },
+        ]}
+      />
     </>
   );
 }
