@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireTeamMember } from "@/lib/team-auth";
-import { isCoach, isCoached } from "@/lib/coaching/data";
+import { isCoach } from "@/lib/coaching/data";
 import { hasClientAssignments } from "@/lib/team/clients";
 import { isHiringManager } from "@/lib/team/hiring";
 import { TeamSidebar } from "@/components/team/TeamSidebar";
@@ -19,9 +19,8 @@ export default async function TeamDashboardLayout({
   children: React.ReactNode;
 }) {
   const actor = await requireTeamMember();
-  const [coaches, coached, hasClients, hiringManager] = await Promise.all([
+  const [coaches, hasClients, hiringManager] = await Promise.all([
     isCoach(actor),
-    isCoached(actor),
     hasClientAssignments(actor),
     isHiringManager(actor),
   ]);
@@ -34,7 +33,6 @@ export default async function TeamDashboardLayout({
         role={actor.role}
         isAdmin={actor.isAdmin}
         isCoach={coaches}
-        isCoached={coached}
         hasClients={hasClients}
         isHiringManager={hiringManager}
       />

@@ -56,15 +56,13 @@ function myWorkGroup(hasClients: boolean): NavGroup {
   };
 }
 
-// Personal growth and profile. "My Coaching" appears only for members in a
-// coaching cycle (an active coaching_profiles row of their own).
-function meGroup(isCoached: boolean): NavGroup {
+// Personal growth and profile. "My Coach" shows for everyone; members without
+// an active coaching cycle are redirected home by the page itself.
+function meGroup(): NavGroup {
   return {
     label: "Me",
     items: [
-      ...(isCoached
-        ? [{ label: "My Coaching", href: "/team/my-coaching", ico: "◎", enabled: true }]
-        : []),
+      { label: "My Coach", href: "/team/my-coaching", ico: "◎", enabled: true },
       { label: "My FAST Goals", href: "/team/goals", ico: "◉", enabled: true },
       { label: "Reviews", href: "/team/reviews", ico: "★", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
@@ -101,7 +99,6 @@ export function TeamSidebar({
   role,
   isAdmin,
   isCoach = false,
-  isCoached = false,
   hasClients = false,
   isHiringManager = false,
 }: {
@@ -110,7 +107,6 @@ export function TeamSidebar({
   role: TeamRole;
   isAdmin: boolean;
   isCoach?: boolean;
-  isCoached?: boolean;
   // Team members assigned to a client see a "Clients" link under Me.
   hasClients?: boolean;
   // Hiring managers (req owners, or admins) see the Hiring link.
@@ -129,7 +125,7 @@ export function TeamSidebar({
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
     // Widening scope: my work, then me, then my team, then the company.
     myWorkGroup(hasClients),
-    meGroup(isCoached),
+    meGroup(),
     ...(role === "manager" || isCoach || isHiringManager
       ? [myTeamGroup(isCoach, isHiringManager)]
       : []),
