@@ -47,7 +47,7 @@ const PROPOSALS: Proposal[] = [
       "A staged AI program: coach a lead who can run it, train the team to spot what AI should solve, and build the Company OS data foundation underneath.",
     date: "July 2026",
     href: "/proposals/westbridge-momentum-proposal.html",
-    status: "open",
+    status: "lost",
   },
   {
     client: "Bstore",
