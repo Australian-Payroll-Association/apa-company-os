@@ -9,31 +9,51 @@ import { ASSUME_COOKIE, ASSUME_SESSION_MINUTES } from "@/lib/portal-auth";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-// Starts an Assume session: view /portal scoped to one client company, as its
-// best-known contact, WITHOUT touching the admin's real Supabase session (see
-// lib/portal-auth.ts for how requirePortalMember() reads this back). The
+// Starts an Assume session: view /portal scoped to one client company, WITHOUT
+// touching the admin's real Supabase session (see lib/portal-auth.ts for how
+// requirePortalMember() reads this back). Pass personId to view as a specific
+// active portal member with that member's real role (the point: verifying what
+// a contributor/viewer actually sees); omit it for companies with no portal
+// users yet, which fall back to the primary CRM contact viewed as admin. The
 // cookie holds only an opaque session id — nothing forgeable, nothing to leak
 // beyond a reference to a row that expires in ASSUME_SESSION_MINUTES and can
 // be ended early from the /portal banner.
-export async function startAssumeSession(companyId: string): Promise<Result> {
+export async function startAssumeSession(companyId: string, personId?: string): Promise<Result> {
   const admin = await requireAdmin();
   if (!companyId) return { ok: false, error: "Missing company." };
 
-  const { data: link } = await companyOs
-    .from("person_companies")
-    .select("person_id")
-    .eq("company_id", companyId)
-    .order("is_primary", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!link) return { ok: false, error: "This company has no linked contact to view as." };
+  let assumePersonId: string;
+  if (personId) {
+    // Never trust the client pairing: the person must be an active portal
+    // member of THIS company, or the session (and its role lookup) would let a
+    // typo view one company's portal under another person's identity.
+    const { data: member } = await companyOs
+      .from("portal_members")
+      .select("person_id")
+      .eq("company_id", companyId)
+      .eq("person_id", personId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!member) return { ok: false, error: "That person is not an active portal member of this company." };
+    assumePersonId = personId;
+  } else {
+    const { data: link } = await companyOs
+      .from("person_companies")
+      .select("person_id")
+      .eq("company_id", companyId)
+      .order("is_primary", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!link) return { ok: false, error: "This company has no linked contact to view as." };
+    assumePersonId = link.person_id;
+  }
 
   const expiresAt = new Date(Date.now() + ASSUME_SESSION_MINUTES * 60 * 1000);
   const { data: session, error } = await companyOs
     .from("portal_assume_sessions")
     .insert({
       company_id: companyId,
-      person_id: link.person_id,
+      person_id: assumePersonId,
       started_by: admin.email,
       expires_at: expiresAt.toISOString(),
     })
@@ -54,7 +74,7 @@ export async function startAssumeSession(companyId: string): Promise<Result> {
     recordId: session.id,
     operation: "insert",
     actor: admin.email,
-    context: { action: "assume_start", company_id: companyId, person_id: link.person_id },
+    context: { action: "assume_start", company_id: companyId, person_id: assumePersonId },
   });
 
   redirect("/portal");

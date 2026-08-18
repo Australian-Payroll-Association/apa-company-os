@@ -7,16 +7,22 @@ import { startAssumeSession } from "./actions";
 // "View as" launches the client portal scoped to that company, in this same
 // browser tab — your admin session stays logged in underneath. A banner on
 // every /portal page shows who you're viewing as and lets you exit back here.
+// Companies with portal users get a member picker: the session carries that
+// member's real role, so a contributor pick shows the contributor view.
+// Companies without portal users fall back to the primary CRM contact (admin
+// view), matching the original behavior.
 export function AssumeManager({ clients }: { clients: AssumableClient[] }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // companyId -> selected personId; defaults to the first member per company.
+  const [selected, setSelected] = useState<Record<string, string>>({});
 
-  function handleView(companyId: string) {
+  function handleView(companyId: string, personId?: string) {
     setError(null);
     setPendingId(companyId);
     start(async () => {
-      const res = await startAssumeSession(companyId);
+      const res = await startAssumeSession(companyId, personId);
       // startAssumeSession redirects on success, so reaching here means it failed.
       if (res && !res.ok) setError(res.error);
       setPendingId(null);
@@ -31,27 +37,49 @@ export function AssumeManager({ clients }: { clients: AssumableClient[] }) {
         {clients.length === 0 ? (
           <div className="admin-empty">No active client-portal companies yet.</div>
         ) : (
-          clients.map((c) => (
-            <div className="admin-list-row" key={c.companyId}>
-              <div className="admin-list-main">
-                <div className="admin-list-title">{c.companyName}</div>
-                <div className="admin-list-sub">
-                  {c.contactName || c.contactEmail
-                    ? `Viewing as ${c.contactName || c.contactEmail}`
-                    : "No linked contact"}
+          clients.map((c) => {
+            const hasMembers = c.members.length > 0;
+            const selectedPersonId = selected[c.companyId] ?? c.members[0]?.personId;
+            return (
+              <div className="admin-list-row" key={c.companyId}>
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{c.companyName}</div>
+                  <div className="admin-list-sub">
+                    {hasMembers
+                      ? `${c.members.length} portal ${c.members.length === 1 ? "user" : "users"}`
+                      : c.contactName || c.contactEmail
+                        ? `No portal users — viewing as contact ${c.contactName || c.contactEmail}`
+                        : "No linked contact"}
+                  </div>
+                </div>
+                <div className="admin-list-aside" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {hasMembers && (
+                    <select
+                      className="admin-select"
+                      aria-label={`View ${c.companyName} as`}
+                      value={selectedPersonId}
+                      onChange={(e) =>
+                        setSelected((s) => ({ ...s, [c.companyId]: e.target.value }))
+                      }
+                    >
+                      {c.members.map((m) => (
+                        <option key={m.personId} value={m.personId}>
+                          {m.name} ({m.role})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    className="admin-btn admin-btn--sm admin-btn--primary"
+                    disabled={pending || (!hasMembers && !c.contactEmail)}
+                    onClick={() => handleView(c.companyId, hasMembers ? selectedPersonId : undefined)}
+                  >
+                    {pending && pendingId === c.companyId ? "Opening…" : "View as"}
+                  </button>
                 </div>
               </div>
-              <div className="admin-list-aside">
-                <button
-                  className="admin-btn admin-btn--sm admin-btn--primary"
-                  disabled={pending || !c.contactEmail}
-                  onClick={() => handleView(c.companyId)}
-                >
-                  {pending && pendingId === c.companyId ? "Opening…" : "View as"}
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </>

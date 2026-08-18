@@ -115,11 +115,25 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
   if (!session || session.ended_at || session.started_by !== adminEmail) return null;
   if (new Date(session.expires_at).getTime() <= Date.now()) return null;
 
-  const [{ data: company }, { data: person }] = await Promise.all([
+  const [{ data: company }, { data: person }, { data: member }] = await Promise.all([
     companyOs.from("companies").select("id, name").eq("id", session.company_id).maybeSingle(),
     companyOs.from("people").select("id, full_name, email").eq("id", session.person_id).maybeSingle(),
+    companyOs
+      .from("portal_members")
+      .select("role")
+      .eq("company_id", session.company_id)
+      .eq("person_id", session.person_id)
+      .eq("status", "active")
+      .maybeSingle(),
   ]);
   if (!company || !person) return null;
+
+  // Assume carries the assumed person's REAL portal role, looked up live, so an
+  // admin verifying a contributor's view sees the contributor gates (no
+  // invoices, no user management), not an admin's. Sessions for a person with
+  // no portal_members row (the primary-CRM-contact fallback for companies with
+  // no portal users yet) keep the historical admin view.
+  const assumedRole = (member as { role: string } | null)?.role ?? "admin";
 
   return {
     authUserId: adminAuthUserId,
@@ -127,7 +141,7 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
     displayName: person.full_name || person.email,
     email: person.email,
     companyScope: [company.id],
-    memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: "admin" }],
+    memberships: [{ id: session.id, companyId: company.id, companyName: company.name, role: assumedRole }],
     impersonation: { adminEmail, sessionId: session.id, expiresAt: session.expires_at },
     mustChangePassword: false,
   };
