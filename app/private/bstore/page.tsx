@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 const PASSWORD = "Bstore2026";
 
@@ -569,20 +570,18 @@ export default function BstoreScopePage() {
         <p style={{ margin: "0 0 18px", fontSize: "14px", color: "#797c82" }}>
           Enter the access code to view this document.
         </p>
-        <input
-          type="password"
+        <PasswordInput
           value={entered}
           onChange={(e) => setEntered(e.target.value)}
           placeholder="Access code"
           autoFocus
-          style={{
-            width: "100%",
+          wrapperStyle={{ marginBottom: error ? "8px" : "16px" }}
+          inputStyle={{
             padding: "11px 12px",
             fontSize: "15px",
             border: `1px solid ${error ? "#e0564f" : "#A8B2BD"}`,
             borderRadius: "10px",
             outline: "none",
-            marginBottom: error ? "8px" : "16px",
           }}
         />
         {error && (

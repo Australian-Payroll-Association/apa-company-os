@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { PasswordInput } from '@/components/PasswordInput'
 
 const COOKIE_NAME = 'edge8_private_ok'
 const ACCESS_CODE = 'Edge82026'
@@ -53,8 +54,7 @@ export default function PrivateGate({ children }: { children: React.ReactNode })
             Enter the access code to view this page.
           </p>
           <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="password"
+            <PasswordInput
               value={code}
               onChange={(e) => {
                 setCode(e.target.value)
@@ -62,8 +62,8 @@ export default function PrivateGate({ children }: { children: React.ReactNode })
               }}
               placeholder="Access code"
               autoFocus
-              style={{
-                flex: 1,
+              wrapperStyle={{ flex: 1 }}
+              inputStyle={{
                 padding: '10px 14px',
                 borderRadius: 6,
                 border: error ? '1px solid #e0554f' : '1px solid var(--border, #ccc)',
