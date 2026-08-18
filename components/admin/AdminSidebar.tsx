@@ -200,11 +200,27 @@ const VIEWS: View[] = [
   { key: "team", label: "Team", ico: "☷", href: "/team" },
 ];
 
+// Every href in NAV, so isActive can tell an index link from a leaf without a
+// hand-maintained list. This used to be `href === "/admin" || href ===
+// "/admin/revenue"`, which meant adding any route nested under an existing nav
+// item silently lit up both rows at once: the parent matched by prefix and the
+// child matched exactly. Deriving it from the nav data means the next nested
+// route just works.
+const NAV_HREFS: string[] = NAV.flatMap((section) =>
+  section.groups.flatMap((group) =>
+    group.items.flatMap((entry) => (isSubsection(entry) ? entry.items : [entry])).map((item) => item.href),
+  ),
+);
+
+// A link is an index when another nav item lives beneath it (/admin holds
+// /admin/revenue, /admin/revenue/marketing holds .../campaigns). Index links
+// match exactly so they do not light up on every child route.
+const INDEX_HREFS = new Set(
+  NAV_HREFS.filter((href) => NAV_HREFS.some((other) => other !== href && other.startsWith(`${href}/`))),
+);
+
 function isActive(pathname: string, href: string): boolean {
-  // Index links (Dashboard, Cockpit) match exactly so they don't light up on
-  // every child route nested beneath them.
-  if (href === "/admin" || href === "/admin/revenue")
-    return pathname === href || pathname === `${href}/`;
+  if (INDEX_HREFS.has(href)) return pathname === href || pathname === `${href}/`;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
