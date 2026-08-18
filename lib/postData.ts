@@ -851,6 +851,30 @@ export const allPosts: PostMeta[] = [
     mdFile: 'AI in Business/the-other-50-percent-of-leadership/index',
     excerpt: "AI-era leadership now needs a second skill set: workflow design, information architecture, and writing instructions for AI. Here is how to build it.",
   },
+  {
+    slug: 'your-prompts-are-expiring',
+    title: 'Your Prompts Are Expiring',
+    date: '2026-08-18',
+    category: 'Innovation',
+    categorySlug: 'innovation',
+    image: '/blog/images/your-prompts-are-expiring.webp',
+    readTime: '5 min read',
+    tags: ['AI Strategy', 'AI Talent', 'Prompt Engineering'],
+    mdFile: 'AI in Business/your-prompts-are-expiring/index',
+    excerpt: "AI prompt libraries quietly break every time models improve. Here's why your prompts stop working, what skills actually compound, and who to hire for the shift.",
+  },
+  {
+    slug: 'three-levels-of-model-usage',
+    title: 'The 3 Levels of AI Model Usage',
+    date: '2026-08-18',
+    category: 'Operations',
+    categorySlug: 'operations',
+    image: '/blog/images/three-levels-of-model-usage.webp',
+    readTime: '6 min read',
+    tags: ['AI Strategy', 'AI Governance', 'Open-Weight Models'],
+    mdFile: 'AI in Business/three-levels-of-model-usage/index',
+    excerpt: "How to choose an AI model setup for your business: apps only, API access to any model, or self-hosted open-weight models. The real tradeoffs at each level.",
+  },
 ]
 
 export const categories = [
