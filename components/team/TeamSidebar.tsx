@@ -88,6 +88,7 @@ function initials(name: string): string {
 
 export function TeamSidebar({
   name,
+  avatarUrl = null,
   role,
   isAdmin,
   isCoach = false,
@@ -96,6 +97,7 @@ export function TeamSidebar({
   isHiringManager = false,
 }: {
   name: string;
+  avatarUrl?: string | null;
   role: TeamRole;
   isAdmin: boolean;
   isCoach?: boolean;
@@ -161,7 +163,12 @@ export function TeamSidebar({
               aria-label="Switch view"
               onClick={() => setProfileMenuOpen((v) => !v)}
             >
-              {userInitials}
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" />
+              ) : (
+                userInitials
+              )}
             </button>
           </span>
         </div>
@@ -173,7 +180,12 @@ export function TeamSidebar({
           <div className="admin-profilemenu" role="menu" aria-label="Switch view">
             <div className="admin-profilemenu-head">
               <span className="admin-avatarbtn admin-avatarbtn--lg" aria-hidden>
-                {userInitials}
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  userInitials
+                )}
               </span>
               <span className="admin-profilemenu-email">{name}</span>
             </div>

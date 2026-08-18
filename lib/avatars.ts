@@ -16,6 +16,18 @@ const MIME_EXT: Record<string, string> = {
 
 export type AvatarResult = { ok: true; url: string } | { ok: false; error: string };
 
+// Photo for the signed-in user's shell avatar, matched on people.auth_user_id
+// (same identity rule as the /team gate). Admins without a people record — or
+// without a photo — get null and the sidebar falls back to initials.
+export async function avatarUrlForAuthUser(authUserId: string): Promise<string | null> {
+  const { data } = await companyOs
+    .from("people")
+    .select("avatar_url")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  return (data?.avatar_url as string | null) ?? null;
+}
+
 export async function setPersonAvatar(personId: string, file: File): Promise<AvatarResult> {
   const ext = MIME_EXT[file.type];
   if (!ext) return { ok: false, error: "Use a JPG, PNG, or WebP image." };

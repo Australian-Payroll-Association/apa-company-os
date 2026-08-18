@@ -24,6 +24,7 @@ export type TeamActor = {
   teamMemberId: string;
   role: TeamRole;
   displayName: string;
+  avatarUrl: string | null;
   // Scope sets, computed server-side from the JWT — never from client input.
   // Employees: just their own id. Managers: own id + active direct reports.
   teamMemberScope: string[]; // team_members.id values this actor may read
@@ -54,7 +55,7 @@ type GetActorResult =
   | { actor: null; redirectTo: "/admin" | "/team/login" };
 
 type TeamMembershipLookup = {
-  person: { id: string; full_name: string | null; first_name: string | null; preferred_name: string | null; email: string };
+  person: { id: string; full_name: string | null; first_name: string | null; preferred_name: string | null; email: string; avatar_url: string | null };
   membership: { id: string; status: string };
 };
 
@@ -64,7 +65,7 @@ type TeamMembershipLookup = {
 const findActiveTeamMembership = cache(async (authUserId: string): Promise<TeamMembershipLookup | null> => {
   const { data: person } = await companyOs
     .from("people")
-    .select("id, full_name, first_name, preferred_name, email")
+    .select("id, full_name, first_name, preferred_name, email, avatar_url")
     .eq("auth_user_id", authUserId)
     .maybeSingle();
   if (!person) return null;
@@ -139,6 +140,7 @@ export const getTeamActor = cache(async (): Promise<GetActorResult> => {
       teamMemberId: membership.id,
       role: isManager ? "manager" : "employee",
       displayName: displayNameOf(person),
+      avatarUrl: person.avatar_url,
       teamMemberScope,
       personScope,
       directReportIds,

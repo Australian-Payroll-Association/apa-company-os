@@ -30,6 +30,7 @@ export default async function TeamDashboardLayout({
     <div className="admin-shell">
       <TeamSidebar
         name={actor.displayName}
+        avatarUrl={actor.avatarUrl}
         role={actor.role}
         isAdmin={actor.isAdmin}
         isCoach={coaches}

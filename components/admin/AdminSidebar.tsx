@@ -212,9 +212,11 @@ function initials(email: string): string {
 
 export function AdminSidebar({
   user,
+  avatarUrl,
   canSwitchToTeam,
 }: {
   user: { email: string };
+  avatarUrl: string | null;
   canSwitchToTeam: boolean;
 }) {
   const pathname = usePathname() ?? "";
@@ -330,7 +332,12 @@ export function AdminSidebar({
                 setProfileMenuOpen((v) => !v);
               }}
             >
-              {userInitials}
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" />
+              ) : (
+                userInitials
+              )}
             </button>
           </span>
         </div>
@@ -342,7 +349,12 @@ export function AdminSidebar({
           <div className="admin-profilemenu" role="menu" aria-label="Profile and views">
             <div className="admin-profilemenu-head">
               <span className="admin-avatarbtn admin-avatarbtn--lg" aria-hidden>
-                {userInitials}
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  userInitials
+                )}
               </span>
               <span className="admin-profilemenu-email">{user.email}</span>
             </div>
