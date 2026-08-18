@@ -1,5 +1,7 @@
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getMyEvents, type PortalEventRegistration } from "@/lib/portal/events";
+import { getUpcomingPublicEvents } from "@/lib/events-server";
+import { formatEventDates, eventPath, type EventRecord } from "@/lib/events";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { formatDate, humanize } from "@/lib/admin/format";
@@ -9,6 +11,8 @@ export const dynamic = "force-dynamic";
 // My Events: self-scoped by construction (event_registrations.person_id =
 // actor.personId, enforced in lib/portal/events.ts). No company scoping
 // needed — this is the one module that follows the person, not the account.
+// The "Open for registration" list is public events only (same rows the
+// public /events/[slug] pages serve), so it needs no actor scoping.
 function dateRange(startsAt: string | null, endsAt: string | null): string {
   if (!startsAt) return "—";
   const start = formatDate(startsAt);
@@ -34,17 +38,46 @@ function EventCard({ reg }: { reg: PortalEventRegistration }) {
   );
 }
 
+function PublicEventCard({ event }: { event: EventRecord }) {
+  return (
+    <div className="admin-card admin-section-card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <h2 className="admin-card-title" style={{ marginBottom: 2 }}>{event.title}</h2>
+          <div className="admin-cell-muted">
+            {formatEventDates(event.starts_at, event.ends_at, event.timezone)}
+            {event.location ? ` · ${event.location}` : ""}
+          </div>
+          {event.blurb && (
+            <p className="admin-page-sub" style={{ margin: "6px 0 0" }}>{event.blurb}</p>
+          )}
+        </div>
+        <a className="admin-btn admin-btn--sm" href={event.landing_path || eventPath(event.slug)}>
+          View &amp; register
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default async function PortalEventsPage() {
   const actor = await requirePortalMember();
-  const registrations = await getMyEvents(actor);
+  const [registrations, publicEvents] = await Promise.all([
+    getMyEvents(actor),
+    getUpcomingPublicEvents(),
+  ]);
 
   const today = new Date().toISOString();
   const upcoming = registrations.filter((r) => r.startsAt && r.startsAt >= today);
   const past = registrations.filter((r) => !r.startsAt || r.startsAt < today);
 
+  // Don't advertise an event this person is already registered for.
+  const registeredEventIds = new Set(registrations.map((r) => r.eventId).filter(Boolean));
+  const openEvents = publicEvents.filter((e) => !registeredEventIds.has(e.id));
+
   return (
     <>
-      <PageHead eyebrow="Client Portal" title="My Events" sub="Retreats and workshops you're registered for." />
+      <PageHead eyebrow="Client Portal" title="My Events" sub="Your registrations, plus what's coming up at Edge8." />
 
       <div className="admin-card admin-section-card">
         <h2 className="admin-card-title">Upcoming ({upcoming.length})</h2>
@@ -55,6 +88,17 @@ export default async function PortalEventsPage() {
         </div>
       ) : (
         upcoming.map((r) => <EventCard reg={r} key={r.id} />)
+      )}
+
+      <div className="admin-card admin-section-card">
+        <h2 className="admin-card-title">Open for registration ({openEvents.length})</h2>
+      </div>
+      {openEvents.length === 0 ? (
+        <div className="admin-card admin-section-card">
+          <div className="admin-empty">No public events are open right now. New retreats and workshops land here first.</div>
+        </div>
+      ) : (
+        openEvents.map((e) => <PublicEventCard event={e} key={e.id} />)
       )}
 
       <div className="admin-card admin-section-card">

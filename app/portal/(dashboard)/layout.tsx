@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { hasAssignedStaff } from "@/lib/portal/team";
 import { hasInvoices } from "@/lib/portal/invoices";
-import { hasEventRegistrations } from "@/lib/portal/events";
-import { hasAffiliateCode } from "@/lib/portal/referrals";
 import { adminCompanyScope } from "@/lib/portal/roles";
 import { hasMeetings } from "@/lib/portal/meetings";
 import { hasBoard } from "@/lib/portal/boards";
@@ -33,12 +31,10 @@ export default async function PortalDashboardLayout({
       : actor.memberships.map((m) => m.companyName).filter(Boolean).join(" · ") || null;
   // Time Off is visible iff Team is (same scope source: an active staff
   // assignment) — one lookup covers both, per the design doc's entitlement rules.
-  const [hasStaff, hasInvoicesResult, hasEventsResult, hasReferrals, hasMeetingsResult, hasBoardResult] =
+  const [hasStaff, hasInvoicesResult, hasMeetingsResult, hasBoardResult] =
     await Promise.all([
       hasAssignedStaff(actor),
       hasInvoices(actor),
-      hasEventRegistrations(actor),
-      hasAffiliateCode(actor),
       hasMeetings(actor),
       hasBoard(actor),
     ]);
@@ -46,8 +42,6 @@ export default async function PortalDashboardLayout({
     team: hasStaff,
     timeOff: hasStaff,
     invoices: hasInvoicesResult,
-    events: hasEventsResult,
-    referrals: hasReferrals,
     users: adminCompanyScope(actor).length > 0,
     // Company Profile edits the shared company record, so it follows the same
     // admin-only rule as Users.

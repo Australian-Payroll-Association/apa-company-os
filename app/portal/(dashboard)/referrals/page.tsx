@@ -11,10 +11,39 @@ export const dynamic = "force-dynamic";
 // Client-facing referral / commission ledger. The affiliate sees their code,
 // who they've referred, and each commission — with the choice to take it as
 // 20% work credit or 10% cash. Every figure is scoped to their own person id in
-// lib/portal/referrals.ts.
+// lib/portal/referrals.ts. Non-affiliates (no code, no history) get a pitch +
+// contact CTA instead of an empty ledger; codes are issued by Edge8 on request.
 export default async function PortalReferralsPage() {
   const actor = await requirePortalMember();
   const data = await getReferralsForActor(actor);
+
+  const isAffiliate =
+    data.code !== null || data.commissions.length > 0 || data.referredDeals.length > 0;
+
+  if (!isAffiliate) {
+    return (
+      <>
+        <PageHead eyebrow="Client Portal" title="Referrals" sub="Earn credit or cash for the people you send us." />
+
+        <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+          <h2 className="admin-card-title" style={{ marginBottom: 10 }}>How it works</h2>
+          <p className="admin-page-sub" style={{ margin: 0 }}>
+            Know a company that could use Edge8? Refer them, and when their first engagement pays, you choose
+            how to take your commission: <strong>20% as work credit</strong> toward your own Edge8 work, or{" "}
+            <strong>10% as cash</strong>. You'll get a personal referral code and track everything right here.
+          </p>
+          <div style={{ marginTop: 14 }}>
+            <a
+              className="admin-btn admin-btn--primary"
+              href="mailto:hello@edge8.ai?subject=Referral%20program%20sign-up"
+            >
+              Contact us to sign up
+            </a>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

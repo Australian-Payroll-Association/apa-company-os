@@ -15,8 +15,6 @@ export type PortalEntitlements = {
   team: boolean;
   timeOff: boolean;
   invoices: boolean;
-  events: boolean;
-  referrals: boolean;
   meetings: boolean;
   board: boolean;
   users: boolean;
@@ -71,8 +69,11 @@ const NAV: NavGroup[] = [
       { label: "Invoices", href: "/portal/invoices", ico: "\u25a4", built: true, entitlementKey: "invoices" },
       // Users: portal admins manage their own company's users (PR 3).
       { label: "Users", href: "/portal/users", ico: "\u265f", built: true, entitlementKey: "users" },
-      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true, entitlementKey: "events" },
-      { label: "Referrals", href: "/portal/referrals", ico: "%", built: true, entitlementKey: "referrals" },
+      // My Events lists upcoming public events too, so it's always worth
+      // opening; Referrals pitches the program to non-affiliates. Neither is
+      // entitlement-gated.
+      { label: "My Events", href: "/portal/events", ico: "\u25a6", built: true },
+      { label: "Referrals", href: "/portal/referrals", ico: "%", built: true },
     ],
   },
 ];

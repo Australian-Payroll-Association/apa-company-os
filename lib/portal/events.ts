@@ -9,6 +9,7 @@ import { portalRead } from "@/lib/portal/data";
 
 export type PortalEventRegistration = {
   id: string;
+  eventId: string | null;
   status: string;
   eventTitle: string | null;
   eventType: string | null;
@@ -23,23 +24,17 @@ const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null :
 
 type Row = {
   id: string;
+  event_id: string | null;
   status: string;
   events: Embedded<{ title: string | null; type: string | null; location: string | null; starts_at: string | null; ends_at: string | null }>;
   products: Embedded<{ title: string | null }>;
 };
 
-// Entitlement check for nav/module visibility (design doc: "shown when the
-// logged-in contact has registrations"). Cheap existence check.
-export async function hasEventRegistrations(actor: PortalActor): Promise<boolean> {
-  const { data } = await portalRead(actor, "event_registrations", "id").limit(1);
-  return (data ?? []).length > 0;
-}
-
 export async function getMyEvents(actor: PortalActor): Promise<PortalEventRegistration[]> {
   const { data } = await portalRead(
     actor,
     "event_registrations",
-    "id, status, events(title, type, location, starts_at, ends_at), products(title)",
+    "id, event_id, status, events(title, type, location, starts_at, ends_at), products(title)",
   ).order("id", { ascending: false });
 
   return ((data ?? []) as unknown as Row[]).map((r) => {
@@ -47,6 +42,7 @@ export async function getMyEvents(actor: PortalActor): Promise<PortalEventRegist
     const product = one(r.products);
     return {
       id: r.id,
+      eventId: r.event_id,
       status: r.status,
       eventTitle: event?.title ?? null,
       eventType: event?.type ?? null,

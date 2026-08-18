@@ -68,6 +68,26 @@ export async function getEventTiers(
   return (data as EventTier[]) ?? [];
 }
 
+// Publicly visible upcoming events ("published" = announced, "open" =
+// registration open): powers the portal's Upcoming events list. Public data
+// by definition, so no actor scoping.
+export async function getUpcomingPublicEvents(limit = 12): Promise<EventRecord[]> {
+  const { data, error } = await companyOs
+    .from("events")
+    .select("*")
+    .eq("visibility", "public")
+    .in("status", ["published", "open"])
+    .gte("starts_at", new Date().toISOString())
+    .is("archived_at", null)
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error("getUpcomingPublicEvents failed:", error.message);
+    return [];
+  }
+  return (data as EventRecord[]) ?? [];
+}
+
 export type RegisterForEventInput = {
   eventId: string;
   personId: string;

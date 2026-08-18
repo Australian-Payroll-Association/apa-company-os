@@ -6,7 +6,6 @@ import { getInvoicesForActor } from "@/lib/portal/invoices";
 import { listWorkRequestsForActor } from "@/lib/portal/work-requests";
 import { getMyEvents } from "@/lib/portal/events";
 import { getTokenBalance } from "@/lib/portal/tokens";
-import { hasAffiliateCode } from "@/lib/portal/referrals";
 import { getRoadmapPreviewForActor } from "@/lib/portal/backlog";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -52,14 +51,13 @@ function eventRange(startsAt: string | null, endsAt: string | null): string {
 export default async function PortalHome() {
   const actor = await requirePortalMember();
 
-  const [team, timeOff, invoices, requests, events, tokens, hasReferrals, roadmap] = await Promise.all([
+  const [team, timeOff, invoices, requests, events, tokens, roadmap] = await Promise.all([
     getAssignedTeam(actor),
     getAssignedTimeOff(actor),
     getInvoicesForActor(actor),
     listWorkRequestsForActor(actor),
     getMyEvents(actor),
     getTokenBalance(actor),
-    hasAffiliateCode(actor),
     getRoadmapPreviewForActor(actor, 3),
   ]);
 
@@ -364,11 +362,9 @@ export default async function PortalHome() {
           <Link href="/portal/tokens" className="admin-btn">
             Buy tokens
           </Link>
-          {hasReferrals && (
-            <Link href="/portal/referrals" className="admin-btn">
-              Refer &amp; earn
-            </Link>
-          )}
+          <Link href="/portal/referrals" className="admin-btn">
+            Refer &amp; earn
+          </Link>
         </div>
       </div>
     </>
