@@ -17,20 +17,54 @@ export function rangeSince(range: MarketingRange): string | null {
 
 // ---------------------------------------------------------------- email sends
 
+// Which side of the business an email came from.
+//
+// "outbound" is email a person meant to send to a customer or prospect: the
+// newsletter engine, and 1:1 sales correspondence logged to the CRM.
+// "transactional" is everything the system sends on its own: portal invites,
+// onboarding and coaching nudges, board digests, password links.
+//
+// The classifier is an allowlist of outbound sources, and everything unknown
+// falls to transactional. That direction is deliberate: adding a new cron must
+// never make its mail silently appear in a sales and marketing view.
+export type EmailAudience = "all" | "outbound" | "transactional";
+
+// Sent by lib/marketing-email.ts. Every campaign send uses one of these.
+const MARKETING_SOURCES = new Set(["marketing", "marketing_campaign", "marketing_test"]);
+
+// Human-written correspondence captured into the CRM timeline, rather than
+// anything a cron produced. These are real sales threads with prospects.
+const SALES_SOURCES = new Set(["lark_mail", "inbound_email", "manual_entry"]);
+
+export function classifyEmail(source: string): Exclude<EmailAudience, "all"> {
+  return MARKETING_SOURCES.has(source) || SALES_SOURCES.has(source) ? "outbound" : "transactional";
+}
+
+export function emailKindLabel(source: string): string {
+  if (MARKETING_SOURCES.has(source)) return "Marketing";
+  if (SALES_SOURCES.has(source)) return "Sales";
+  return "Transactional";
+}
+
 export type EmailSendRow = {
   id: string;
   subject: string | null;
   to: string;
   source: string;
+  kind: Exclude<EmailAudience, "all">;
+  kindLabel: string;
   occurredAt: string;
   personId: string | null;
   personName: string | null;
 };
 
 export type EmailActivity = {
+  // Exact count of every email in the window, whatever the filter.
   total: number;
-  // True when the source breakdown was sampled rather than counted whole. The
-  // headline total stays exact either way, so the UI can say which is which.
+  // Per-bucket counts, from the sampled window rather than an exact count.
+  counts: { all: number; outbound: number; transactional: number };
+  // True when the breakdown was sampled rather than counted whole. The headline
+  // total stays exact either way, so the UI can say which is which.
   breakdownTruncated?: boolean;
   bySource: { label: string; value: number }[];
   recent: EmailSendRow[];
@@ -68,7 +102,10 @@ const RECENT_LIMIT = 12;
 // comes from an exact count instead, and only the breakdown is sampled.
 const BREAKDOWN_LIMIT = 2000;
 
-export async function getEmailActivity(range: MarketingRange): Promise<EmailActivity> {
+export async function getEmailActivity(
+  range: MarketingRange,
+  audience: EmailAudience = "all",
+): Promise<EmailActivity> {
   const since = rangeSince(range);
 
   const countQuery = companyOs
@@ -85,33 +122,51 @@ export async function getEmailActivity(range: MarketingRange): Promise<EmailActi
     .limit(BREAKDOWN_LIMIT);
   if (since) rowQuery = rowQuery.gte("occurred_at", since);
 
+  const emptyCounts = { all: 0, outbound: 0, transactional: 0 };
+
   const [{ count, error: countError }, { data, error }] = await Promise.all([countQuery, rowQuery]);
-  if (countError) return { total: 0, bySource: [], recent: [], error: countError.message };
-  if (error) return { total: 0, bySource: [], recent: [], error: error.message };
+  if (countError) {
+    return { total: 0, counts: emptyCounts, bySource: [], recent: [], error: countError.message };
+  }
+  if (error) {
+    return { total: 0, counts: emptyCounts, bySource: [], recent: [], error: error.message };
+  }
 
   const rows = (data ?? []) as unknown as InteractionRow[];
 
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    const key = sourceOf(row.metadata);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-
-  const recent: EmailSendRow[] = rows.slice(0, RECENT_LIMIT).map((row) => {
+  // Classify once, then derive the bucket counts, the breakdown, and the recent
+  // list from the same pass so the number in the tab always matches the list.
+  const classified = rows.map((row) => {
+    const source = sourceOf(row.metadata);
     const person = one(row.people);
     return {
       id: row.id,
       subject: row.subject,
       to: recipientOf(row.metadata),
-      source: sourceOf(row.metadata),
+      source,
+      kind: classifyEmail(source),
+      kindLabel: emailKindLabel(source),
       occurredAt: row.occurred_at,
       personId: row.person_id,
       personName: person?.preferred_name || person?.full_name || null,
-    };
+    } satisfies EmailSendRow;
   });
+
+  const bucketCounts = { ...emptyCounts, all: classified.length };
+  for (const row of classified) bucketCounts[row.kind] += 1;
+
+  const selected = audience === "all" ? classified : classified.filter((row) => row.kind === audience);
+
+  const counts = new Map<string, number>();
+  for (const row of selected) {
+    counts.set(row.source, (counts.get(row.source) ?? 0) + 1);
+  }
+
+  const recent = selected.slice(0, RECENT_LIMIT);
 
   return {
     total: count ?? rows.length,
+    counts: bucketCounts,
     breakdownTruncated: rows.length >= BREAKDOWN_LIMIT,
     bySource: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value })),
     recent,

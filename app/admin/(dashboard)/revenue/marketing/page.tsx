@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { Badge } from "@/components/admin/Badge";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -10,9 +11,11 @@ import {
   getAudienceBreakdown,
   getDeliverability,
   getEmailActivity,
+  type EmailAudience,
   type MarketingRange,
 } from "@/lib/admin/marketing";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { EmailAudienceToggle } from "./EmailAudienceToggle";
 
 export const dynamic = "force-dynamic";
 // Supabase reads here get frozen by Next's data cache despite force-dynamic;
@@ -35,6 +38,25 @@ function parseRange(value: string | undefined): MarketingRange {
   return value === "7d" || value === "90d" || value === "all" ? value : "30d";
 }
 
+function parseAudience(value: string | undefined): EmailAudience {
+  return value === "outbound" || value === "transactional" ? value : "all";
+}
+
+// The by-source chart follows the same filter as the list, so it says which set
+// it is showing rather than implying it covers everything.
+const BY_SOURCE_LABEL: Record<EmailAudience, string> = {
+  all: "Emails sent by source",
+  outbound: "Sales & marketing by source",
+  transactional: "Transactional by source",
+};
+
+const AUDIENCE_EMPTY: Record<EmailAudience, string> = {
+  all: "No email sent in this window.",
+  outbound:
+    "No sales or marketing email in this window. Campaign sends and CRM correspondence land here.",
+  transactional: "No transactional email in this window.",
+};
+
 function formatRate(value: number | null): string {
   if (value === null) return "—";
   return `${value.toFixed(1)}%`;
@@ -47,11 +69,12 @@ function formatDate(iso: string): string {
 export default async function MarketingPage({ searchParams }: { searchParams: SearchParamsObj }) {
   await requireAdmin();
   const range = parseRange(firstParam(searchParams.range));
+  const emailAudience = parseAudience(firstParam(searchParams.email));
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
   const [traffic, email, audience, delivery] = await Promise.all([
     getAnalyticsOverview(range),
-    getEmailActivity(range),
+    getEmailActivity(range, emailAudience),
     getAudienceBreakdown(),
     getDeliverability(range),
   ]);
@@ -258,11 +281,11 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
             />
           </div>
           <div className="admin-card admin-chart-card">
-            <div className="mp-kpi-label">Emails sent by source</div>
+            <div className="mp-kpi-label">{BY_SOURCE_LABEL[emailAudience]}</div>
             <BarChart
               data={email.bySource}
-              ariaLabel="Emails sent by source"
-              emptyText="No email sent in this window."
+              ariaLabel={BY_SOURCE_LABEL[emailAudience]}
+              emptyText={AUDIENCE_EMPTY[emailAudience]}
               stacked
             />
             {email.breakdownTruncated && (
@@ -277,10 +300,25 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       </section>
 
       <section className="admin-card admin-section-card">
-        <div className="admin-card-title">Recent email</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div className="admin-card-title">Recent email</div>
+          <EmailAudienceToggle
+            active={emailAudience}
+            counts={email.counts}
+            searchParams={searchParams}
+          />
+        </div>
         <div className="admin-table-wrap" style={{ marginTop: 12 }}>
           {email.recent.length === 0 ? (
-            <div className="admin-empty">No email sent in this window.</div>
+            <div className="admin-empty">{AUDIENCE_EMPTY[emailAudience]}</div>
           ) : (
             <div className="admin-table-scroll">
               <table className="admin-table">
@@ -289,6 +327,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
                     <th>Sent</th>
                     <th>Subject</th>
                     <th>To</th>
+                    <th>Type</th>
                     <th>Source</th>
                   </tr>
                 </thead>
@@ -303,6 +342,9 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
                         ) : (
                           <span className="admin-cell-muted">{row.to || "—"}</span>
                         )}
+                      </td>
+                      <td>
+                        <Badge tone={row.kind === "outbound" ? "info" : "neutral"}>{row.kindLabel}</Badge>
                       </td>
                       <td className="admin-cell-muted">{row.source}</td>
                     </tr>
