@@ -87,3 +87,34 @@ export async function sendTeamSelfServeSignInLink(rawEmail: string): Promise<voi
     logMeta: { source: "team_self_serve_link" },
   });
 }
+
+// Self-serve "Forgot password". Team sign-in is magic-link first, but staff can
+// also set a password and sign in with it; this sends a recovery link through
+// the same scanner-proof /team/verify interstitial, and verifying lands the
+// person on /team/change-password to choose a new one. Always resolves; the
+// login page shows the same neutral notice whether or not an email went out.
+export async function sendTeamSelfServePasswordReset(rawEmail: string): Promise<void> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || throttled(`reset:${email}`)) return;
+  if (!(await activeTeamAuthUser(email))) return;
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${siteOrigin()}/team/change-password` },
+  });
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) return;
+  const verifyUrl = `${siteOrigin()}/team/verify?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Reset your 8 Edges Team password",
+    html: `
+      <p>We received a request to reset the password on your 8 Edges Team workspace account.</p>
+      <p style="margin:20px 0;"><a href="${verifyUrl}" style="display:inline-block;background:#04102D;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:10px;">Choose a new password</a></p>
+      <p style="font-size:13px;color:#64748b;">The button takes you to a page where you can set a new password. If you did not request this, you can safely ignore this email, and you can always sign in without a password at <a href="${siteOrigin()}/team/login">${siteOrigin()}/team/login</a>.</p>
+    `,
+    logMeta: { source: "team_self_serve_reset" },
+  });
+}

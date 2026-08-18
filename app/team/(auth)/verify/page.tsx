@@ -17,7 +17,7 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 // useSearchParams) so the page needs no Suspense boundary and stays out of
 // the static prerender, mirroring /team/callback.
 
-const OTP_TYPES = new Set(["invite", "magiclink", "email"]);
+const OTP_TYPES = new Set(["invite", "magiclink", "recovery", "email"]);
 
 export default function TeamVerify() {
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function TeamVerify() {
     setState("working");
     const supabase = createBrowserSupabase();
     const { error } = await supabase.auth.verifyOtp({
-      type: otpType as "invite" | "magiclink" | "email",
+      type: otpType as "invite" | "magiclink" | "recovery" | "email",
       token_hash: tokenHash,
     });
     if (error) {
@@ -50,7 +50,9 @@ export default function TeamVerify() {
       return;
     }
     window.history.replaceState(null, "", window.location.pathname);
-    router.replace("/team");
+    // A recovery link exists to set a new password, so land there, not the
+    // workspace home (the session is established either way).
+    router.replace(otpType === "recovery" ? "/team/change-password" : "/team");
   }
 
   return (
@@ -73,7 +75,9 @@ export default function TeamVerify() {
         ) : (
           <>
             <p className="admin-auth-sub">
-              You&rsquo;re one click away from your workspace.
+              {otpType === "recovery"
+                ? "You’re one click away from setting a new password."
+                : "You’re one click away from your workspace."}
             </p>
             <div className="admin-form-actions">
               <button

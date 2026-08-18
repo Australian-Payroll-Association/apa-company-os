@@ -1,6 +1,6 @@
 "use server";
 
-import { sendTeamSelfServeSignInLink } from "@/lib/team/signin-link";
+import { sendTeamSelfServeSignInLink, sendTeamSelfServePasswordReset } from "@/lib/team/signin-link";
 
 // Unauthenticated by design (this IS the login page). The action gates on a
 // portal-eligible team membership server-side and reveals nothing about whether
@@ -10,4 +10,8 @@ import { sendTeamSelfServeSignInLink } from "@/lib/team/signin-link";
 
 export async function requestSignInLink(email: string): Promise<void> {
   await sendTeamSelfServeSignInLink(email);
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await sendTeamSelfServePasswordReset(email);
 }
