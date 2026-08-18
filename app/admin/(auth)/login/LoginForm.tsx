@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { PasswordField } from "@/components/admin/PasswordField";
+import { requestSignInLink } from "./actions";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || "/admin";
-  const [mode, setMode] = useState<"signin" | "reset">("signin");
+  const [mode, setMode] = useState<"signin" | "reset" | "link">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
@@ -53,6 +54,63 @@ export function LoginForm() {
       return;
     }
     setNotice(`If an account exists for ${email.trim().toLowerCase()}, a password reset link is on its way.`);
+  }
+
+  async function handleLink(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await requestSignInLink(email);
+    } catch {
+      setError("Something went wrong sending your link. Please try again.");
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    // Neutral response regardless of whether an account exists.
+    setNotice(`If an account exists for ${email.trim().toLowerCase()}, a sign-in link is on its way. Check your email and press the button in it to sign in.`);
+  }
+
+  if (mode === "link") {
+    return (
+      <form className="admin-form" onSubmit={handleLink}>
+        {error && <div className="admin-alert admin-alert--err">{error}</div>}
+        {notice && <div className="admin-alert admin-alert--ok">{notice}</div>}
+        <p className="admin-auth-sub" style={{ marginTop: 0 }}>
+          Enter your email and we will send you a sign-in link. No password needed.
+        </p>
+        <div className="admin-field">
+          <label className="admin-label" htmlFor="link-email">Email</label>
+          <input
+            id="link-email"
+            className="admin-input"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="admin-form-actions">
+          <button type="submit" className="admin-btn admin-btn--primary" disabled={loading}>
+            {loading ? "Sending…" : "Send sign-in link"}
+          </button>
+        </div>
+        <button
+          type="button"
+          className="admin-auth-link"
+          onClick={() => {
+            setMode("signin");
+            setError(null);
+            setNotice(null);
+          }}
+        >
+          ← Back to password sign in
+        </button>
+      </form>
+    );
   }
 
   if (mode === "reset") {
@@ -131,6 +189,17 @@ export function LoginForm() {
       <div className="admin-form-actions">
         <button type="submit" className="admin-btn admin-btn--primary" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
+        </button>
+        <button
+          type="button"
+          className="admin-btn"
+          onClick={() => {
+            setMode("link");
+            setError(null);
+            setNotice(null);
+          }}
+        >
+          Email me a sign-in link
         </button>
       </div>
     </form>
