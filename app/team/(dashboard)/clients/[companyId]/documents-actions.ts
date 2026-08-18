@@ -1,14 +1,47 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
-import { signedClientDocumentDownloadForActor } from "@/lib/team/clients";
+import {
+  signedClientDocumentDownloadForActor,
+  signedClientDocumentUploadForActor,
+  recordClientDocumentForActor,
+  deleteOwnClientDocumentForActor,
+} from "@/lib/team/clients";
+import type { DocResult } from "@/lib/client-documents";
 
-// Team-side client documents are read-only: download is the only action, and it
-// re-checks that the document's company is in the actor's active assignments.
+// Team-side client documents: download, upload, and uploader-only delete.
+// Every action re-checks that the document's company is in the actor's active
+// staff assignments; the lib helpers own the scope rules.
 
 export async function teamDownloadClientDocument(
   documentId: string,
 ): Promise<{ ok: true; url: string; filename: string } | { ok: false; error: string }> {
   const actor = await requireTeamMember();
   return signedClientDocumentDownloadForActor(actor, documentId);
+}
+
+export async function teamSignedClientDocumentUpload(input: {
+  companyId: string;
+  filename: string;
+}): Promise<DocResult<{ signedUrl: string; path: string }>> {
+  const actor = await requireTeamMember();
+  return signedClientDocumentUploadForActor(actor, input);
+}
+
+export async function teamRecordClientDocument(input: {
+  companyId: string;
+  path: string;
+  filename: string;
+  sizeBytes: number | null;
+}): Promise<DocResult> {
+  const actor = await requireTeamMember();
+  const r = await recordClientDocumentForActor(actor, input);
+  if (r.ok) revalidatePath(`/team/clients/${input.companyId}`);
+  return r;
+}
+
+export async function teamDeleteOwnClientDocument(documentId: string): Promise<DocResult> {
+  const actor = await requireTeamMember();
+  return deleteOwnClientDocumentForActor(actor, documentId);
 }
