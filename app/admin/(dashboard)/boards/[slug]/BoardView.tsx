@@ -114,6 +114,9 @@ export function BoardView({
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
   const [archivedOpen, setArchivedOpen] = useState(false);
+  // Board page tabs: Stories = the kanban of cards, Sprints = the sprint list
+  // with plan-vs-actual counts linking into each sprint's detail page.
+  const [tab, setTab] = useState<"stories" | "sprints">("stories");
   const [saving, startSaving] = useTransition();
 
   function restore(taskId: string) {
@@ -418,6 +421,89 @@ export function BoardView({
 
   return (
     <>
+      <div className="admin-tabs" role="tablist" style={{ marginBottom: 12 }}>
+        <button
+          className={`admin-tab${tab === "stories" ? " is-active" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={tab === "stories"}
+          onClick={() => setTab("stories")}
+        >
+          Stories
+        </button>
+        <button
+          className={`admin-tab${tab === "sprints" ? " is-active" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={tab === "sprints"}
+          onClick={() => setTab("sprints")}
+        >
+          Sprints{sprints.length > 0 ? ` (${sprints.length})` : ""}
+        </button>
+      </div>
+
+      {banner && (
+        <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
+          {banner}
+        </div>
+      )}
+
+      {tab === "sprints" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {sprints.length === 0 && (
+            <div className="admin-cell-muted" style={{ fontSize: 13 }}>
+              No sprints yet. Create one with Manage sprints.
+            </div>
+          )}
+          {[...sprints]
+            .sort((a, b) => (a.status === b.status ? a.sort_order - b.sort_order : a.status === "active" ? -1 : 1))
+            .map((s) => {
+              const inSprint = sourceCards.filter((c) => c.sprint_id === s.id);
+              const doneCards = inSprint.filter((c) => c.status === "done");
+              const totalHT = inSprint.reduce((sum, c) => sum + (c.human_tokens ?? 0), 0);
+              const doneHT = doneCards.reduce((sum, c) => sum + (c.human_tokens ?? 0), 0);
+              const pct = inSprint.length ? Math.round((doneCards.length / inSprint.length) * 100) : 0;
+              return (
+                <Link
+                  key={s.id}
+                  href={`${boardBase}/sprints/${s.id}`}
+                  className="admin-card"
+                  style={{ padding: "12px 16px", display: "block", textDecoration: "none", color: "inherit" }}
+                >
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <span className="admin-cell-strong">{s.name}</span>
+                    <Badge tone={s.status === "active" ? "ok" : "neutral"}>{s.status}</Badge>
+                    {(s.starts_on || s.ends_on) && (
+                      <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+                        {s.starts_on ? formatDate(s.starts_on) : "?"} to {s.ends_on ? formatDate(s.ends_on) : "?"}
+                      </span>
+                    )}
+                    <span className="admin-cell-muted" style={{ marginLeft: "auto", fontSize: 12 }}>
+                      {doneCards.length}/{inSprint.length} cards
+                      {totalHT > 0 ? ` · ${doneHT}/${totalHT} HT` : ""}
+                    </span>
+                  </div>
+                  {s.goal && (
+                    <div className="admin-cell-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                      {s.goal}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 8, height: 5, borderRadius: 99, background: "var(--admin-line)", overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "var(--admin-accent)" }} />
+                  </div>
+                </Link>
+              );
+            })}
+          <div>
+            <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
+              Manage sprints
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "stories" && (
+      <>
       <div className="admin-toolbar" style={{ gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
         <button className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => openCreate(firstColumn)}>
           New card
@@ -511,12 +597,6 @@ export function BoardView({
         )}
       </div>
 
-      {banner && (
-        <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
-          {banner}
-        </div>
-      )}
-
       <KanbanBoard<Card>
         columns={kanbanColumns}
         cards={cards}
@@ -585,6 +665,8 @@ export function BoardView({
           );
         }}
       />
+      </>
+      )}
 
       <DetailDrawer
         open={form !== null}
