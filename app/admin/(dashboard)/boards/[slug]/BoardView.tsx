@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
 import { Badge } from "@/components/admin/Badge";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
@@ -86,8 +87,11 @@ export function BoardView({
   viewerPersonId?: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { board, columns, members, cards: sourceCards, sprints, backlogItems, backlogGroups, archivedCards } = detail;
   const slug = board.slug;
+  // This view renders under both /admin/boards and /team/boards; sprint links stay in-section.
+  const boardBase = pathname?.startsWith("/team/") ? `/team/boards/${slug}` : `/admin/boards/${slug}`;
   const isClientBoard = board.client_company_id != null;
 
   const activeSprints = useMemo(() => sprints.filter((s) => s.status === "active"), [sprints]);
@@ -441,6 +445,11 @@ export function BoardView({
                 </option>
               ))}
           </select>
+        )}
+        {sprintFilter !== "all" && sprintFilter !== "backlog" && (
+          <Link className="admin-btn admin-btn--sm" href={`${boardBase}/sprints/${sprintFilter}`}>
+            View sprint
+          </Link>
         )}
         <select
           className={`admin-select${assigneeFilter ? " is-filtering" : ""}`}
@@ -946,7 +955,9 @@ export function BoardView({
                     flexWrap: "wrap",
                   }}
                 >
-                  <span className="admin-cell-strong">{s.name}</span>
+                  <Link className="admin-cell-strong" href={`${boardBase}/sprints/${s.id}`}>
+                    {s.name}
+                  </Link>
                   <Badge tone={s.status === "active" ? "ok" : "neutral"}>{s.status}</Badge>
                   {s.status === "active" && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>

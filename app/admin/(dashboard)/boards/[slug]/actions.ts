@@ -501,6 +501,32 @@ export async function toggleSubtask(subtaskId: string, done: boolean, boardSlug:
   return { ok: true };
 }
 
+// Update a sprint's brief: goal, the retro takeaways, and the client-specific
+// meeting summary. Any board actor may edit (same gate as card writes).
+export async function updateSprintBrief(
+  sprintId: string,
+  patch: { goal?: string | null; focusImprovement?: string | null; goingWell?: string | null; meetingSummary?: string | null },
+  boardSlug: string,
+): Promise<Result> {
+  const { data: sp } = await companyOs.from("sprints").select("board_id").eq("id", sprintId).maybeSingle();
+  if (!sp) return { ok: false, error: "Sprint not found." };
+  const actor = await boardActorFor((sp as { board_id: string }).board_id);
+  if (!actor) return { ok: false, error: DENIED };
+
+  const updates: Record<string, unknown> = {};
+  if (patch.goal !== undefined) updates.goal = patch.goal?.trim() || null;
+  if (patch.focusImprovement !== undefined) updates.focus_improvement = patch.focusImprovement?.trim() || null;
+  if (patch.goingWell !== undefined) updates.going_well = patch.goingWell?.trim() || null;
+  if (patch.meetingSummary !== undefined) updates.meeting_summary = patch.meetingSummary?.trim() || null;
+  if (Object.keys(updates).length === 0) return { ok: true };
+
+  const { error } = await companyOs.from("sprints").update(updates).eq("id", sprintId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "sprints", recordId: sprintId, operation: "update", actor: actor.label, newData: updates });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
 // Set the Human Tokens estimate on any task row (card or subtask).
 export async function setTaskTokens(taskId: string, tokens: number | null, boardSlug: string): Promise<Result> {
   const { data: t } = await companyOs.from("tasks").select("board_id").eq("id", taskId).maybeSingle();

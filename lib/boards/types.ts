@@ -107,10 +107,14 @@ export type SprintRow = {
   ends_on: string | null;
   status: SprintStatus;
   sort_order: number;
+  meeting_id: string | null;
+  focus_improvement: string | null;
+  going_well: string | null;
+  meeting_summary: string | null;
 };
 
 export const SPRINT_SELECT =
-  "id, board_id, name, goal, starts_on, ends_on, status, sort_order";
+  "id, board_id, name, goal, starts_on, ends_on, status, sort_order, meeting_id, focus_improvement, going_well, meeting_summary";
 
 export type TaskRow = {
   id: string;
