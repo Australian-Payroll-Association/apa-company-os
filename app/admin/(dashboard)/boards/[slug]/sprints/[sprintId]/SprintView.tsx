@@ -12,10 +12,18 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { PRIORITY_LABEL, PRIORITY_TONE, initials } from "@/lib/boards/types";
-import type { BoardDetail, BoardCard } from "@/lib/boards/data";
-import { updateSprintBrief } from "../../actions";
+import type { BoardDetail, BoardCard, MeetingOption } from "@/lib/boards/data";
+import { updateSprintBrief, setSprintMeeting, pullSprintBriefFromMeeting } from "../../actions";
 
-export function SprintView({ detail, sprintId }: { detail: BoardDetail; sprintId: string }) {
+export function SprintView({
+  detail,
+  sprintId,
+  meetingOptions = [],
+}: {
+  detail: BoardDetail;
+  sprintId: string;
+  meetingOptions?: MeetingOption[];
+}) {
   const router = useRouter();
   const { board, columns, sprints } = detail;
   const sprint = sprints.find((s) => s.id === sprintId)!;
@@ -31,7 +39,40 @@ export function SprintView({ detail, sprintId }: { detail: BoardDetail; sprintId
     goingWell: sprint.going_well ?? "",
     meetingSummary: sprint.meeting_summary ?? "",
   });
+  const [meetingPick, setMeetingPick] = useState(sprint.meeting_id ?? "");
+  const [pulled, setPulled] = useState(false);
   const [saving, startSaving] = useTransition();
+
+  const attachedMeeting = sprint.meeting_id
+    ? meetingOptions.find((m) => m.id === sprint.meeting_id) ?? null
+    : null;
+
+  function attachMeeting() {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await setSprintMeeting(sprint.id, meetingPick || null, board.slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
+
+  // Pulls this client's slice of the attached meeting into the edit form as a
+  // draft. Nothing is saved until the user reviews and hits Save.
+  function pullFromMeeting() {
+    setBanner(null);
+    startSaving(async () => {
+      const r = await pullSprintBriefFromMeeting(sprint.id);
+      if (!r.ok) return setBanner(r.error);
+      setBrief((prev) => ({
+        goal: r.draft.goal ?? prev.goal,
+        focusImprovement: r.draft.focusImprovement ?? prev.focusImprovement,
+        goingWell: r.draft.goingWell ?? prev.goingWell,
+        meetingSummary: r.draft.meetingSummary ?? prev.meetingSummary,
+      }));
+      setPulled(true);
+      setEditing(true);
+    });
+  }
 
   function saveBrief() {
     setBanner(null);
@@ -39,6 +80,7 @@ export function SprintView({ detail, sprintId }: { detail: BoardDetail; sprintId
       const r = await updateSprintBrief(sprint.id, brief, board.slug);
       if (!r.ok) return setBanner(r.error);
       setEditing(false);
+      setPulled(false);
       router.refresh();
     });
   }
@@ -148,6 +190,44 @@ export function SprintView({ detail, sprintId }: { detail: BoardDetail; sprintId
             )}
           </span>
         </div>
+        <div className="admin-field">
+          <label className="admin-label">Planning meeting</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <select
+              className="admin-select"
+              value={meetingPick}
+              onChange={(e) => setMeetingPick(e.target.value)}
+              style={{ maxWidth: 340 }}
+            >
+              <option value="">No meeting attached</option>
+              {meetingOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title}
+                  {m.started_at ? ` (${formatDate(m.started_at)})` : ""}
+                </option>
+              ))}
+              {sprint.meeting_id && !attachedMeeting && (
+                <option value={sprint.meeting_id}>Currently attached meeting</option>
+              )}
+            </select>
+            {meetingPick !== (sprint.meeting_id ?? "") && (
+              <button className="admin-btn admin-btn--sm" onClick={attachMeeting} disabled={saving}>
+                {meetingPick ? "Attach" : "Detach"}
+              </button>
+            )}
+            {sprint.meeting_id && meetingPick === (sprint.meeting_id ?? "") && (
+              <button className="admin-btn admin-btn--sm admin-btn--primary" onClick={pullFromMeeting} disabled={saving}>
+                {saving ? "Reading transcript…" : "Pull notes for this client"}
+              </button>
+            )}
+          </div>
+          {pulled && (
+            <div className="admin-cell-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              Draft pulled from the meeting for {board.client_name ?? board.name}. Review the fields below, then Save.
+            </div>
+          )}
+        </div>
+
         {briefField("Goal", "goal", "What this sprint is for.", sprint.goal)}
         {briefField(
           "#1 thing we're improving",

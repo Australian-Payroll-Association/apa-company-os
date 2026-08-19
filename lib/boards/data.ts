@@ -161,6 +161,25 @@ export async function listBoardManageOptions(): Promise<ManageOptions> {
   return { team, clients };
 }
 
+// Recent meetings for the sprint "attach meeting" picker. One weekly meeting
+// covers multiple clients, so the same meeting may be attached to many sprints.
+export type MeetingOption = { id: string; title: string; started_at: string | null };
+
+export async function listRecentMeetings(limit = 40): Promise<MeetingOption[]> {
+  const { data } = await companyOs
+    .from("meetings")
+    .select("id, title, started_at")
+    .is("archived_at", null)
+    .not("started_at", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(limit);
+  return ((data ?? []) as { id: string; title: string | null; started_at: string | null }[]).map((m) => ({
+    id: m.id,
+    title: m.title || "Untitled meeting",
+    started_at: m.started_at,
+  }));
+}
+
 // Light list for pickers (e.g. push a commitment to a board).
 export async function listActiveBoards(): Promise<{ id: string; slug: string; name: string }[]> {
   const { data } = await companyOs

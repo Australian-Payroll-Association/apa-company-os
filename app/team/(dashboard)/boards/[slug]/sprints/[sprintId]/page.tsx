@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getBoardForActor } from "@/lib/team/boards";
+import { listRecentMeetings } from "@/lib/boards/data";
 import { PageHead } from "@/components/admin/PageHead";
 import { SprintView } from "@/app/admin/(dashboard)/boards/[slug]/sprints/[sprintId]/SprintView";
 
@@ -18,6 +19,7 @@ export default async function TeamSprintPage({ params }: { params: { slug: strin
   if (!detail) notFound();
   const sprint = detail.sprints.find((s) => s.id === params.sprintId);
   if (!sprint) notFound();
+  const meetings = await listRecentMeetings();
 
   return (
     <>
@@ -26,7 +28,7 @@ export default async function TeamSprintPage({ params }: { params: { slug: strin
         title={sprint.name}
         sub={detail.board.client_name ? `Sprint · ${detail.board.client_name}` : "Sprint"}
       />
-      <SprintView detail={detail} sprintId={sprint.id} />
+      <SprintView detail={detail} sprintId={sprint.id} meetingOptions={meetings} />
     </>
   );
 }

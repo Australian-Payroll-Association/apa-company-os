@@ -527,6 +527,67 @@ export async function updateSprintBrief(
   return { ok: true };
 }
 
+// Attach (or detach) the planning/retro meeting for a sprint. The meeting is a
+// company_os.meetings row; the same meeting may be attached to many sprints.
+export async function setSprintMeeting(sprintId: string, meetingId: string | null, boardSlug: string): Promise<Result> {
+  const { data: sp } = await companyOs.from("sprints").select("board_id").eq("id", sprintId).maybeSingle();
+  if (!sp) return { ok: false, error: "Sprint not found." };
+  const actor = await boardActorFor((sp as { board_id: string }).board_id);
+  if (!actor) return { ok: false, error: DENIED };
+  if (meetingId) {
+    const { data: m } = await companyOs.from("meetings").select("id").eq("id", meetingId).maybeSingle();
+    if (!m) return { ok: false, error: "Meeting not found." };
+  }
+  const { error } = await companyOs.from("sprints").update({ meeting_id: meetingId }).eq("id", sprintId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "sprints", recordId: sprintId, operation: "update", actor: actor.label, newData: { meeting_id: meetingId } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+// Extract this client's slice of the attached meeting into a DRAFT brief. Reads
+// the transcript, returns the draft for review; saving is a separate, explicit
+// updateSprintBrief call by the user.
+export async function pullSprintBriefFromMeeting(
+  sprintId: string,
+): Promise<{ ok: true; draft: { goal: string | null; focusImprovement: string | null; goingWell: string | null; meetingSummary: string | null } } | { ok: false; error: string }> {
+  const { data: sp } = await companyOs
+    .from("sprints")
+    .select("board_id, meeting_id")
+    .eq("id", sprintId)
+    .maybeSingle();
+  if (!sp) return { ok: false, error: "Sprint not found." };
+  const s = sp as { board_id: string; meeting_id: string | null };
+  const actor = await boardActorFor(s.board_id);
+  if (!actor) return { ok: false, error: DENIED };
+  if (!s.meeting_id) return { ok: false, error: "Attach a meeting first." };
+
+  const { data: board } = await companyOs
+    .from("boards")
+    .select("client_company_id, name")
+    .eq("id", s.board_id)
+    .maybeSingle();
+  const b = board as { client_company_id: string | null; name: string } | null;
+  let clientName = b?.name ?? "";
+  if (b?.client_company_id) {
+    const { data: co } = await companyOs.from("companies").select("name").eq("id", b.client_company_id).maybeSingle();
+    clientName = (co as { name: string } | null)?.name ?? clientName;
+  }
+
+  const { extractSprintBrief } = await import("@/lib/boards/sprint-extract");
+  const r = await extractSprintBrief(s.meeting_id, clientName);
+  if (!r.ok) return r;
+  return {
+    ok: true,
+    draft: {
+      goal: r.draft.goal,
+      focusImprovement: r.draft.focus_improvement,
+      goingWell: r.draft.going_well,
+      meetingSummary: r.draft.meeting_summary,
+    },
+  };
+}
+
 // Set the Human Tokens estimate on any task row (card or subtask).
 export async function setTaskTokens(taskId: string, tokens: number | null, boardSlug: string): Promise<Result> {
   const { data: t } = await companyOs.from("tasks").select("board_id").eq("id", taskId).maybeSingle();

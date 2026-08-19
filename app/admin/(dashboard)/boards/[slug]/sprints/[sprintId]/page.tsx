@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHead } from "@/components/admin/PageHead";
-import { getBoardBySlug } from "@/lib/boards/data";
+import { getBoardBySlug, listRecentMeetings } from "@/lib/boards/data";
 import { SprintView } from "./SprintView";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export default async function SprintDetailPage({ params }: { params: { slug: str
   if (!detail) notFound();
   const sprint = detail.sprints.find((s) => s.id === params.sprintId);
   if (!sprint) notFound();
+  const meetings = await listRecentMeetings();
 
   return (
     <>
@@ -25,7 +26,7 @@ export default async function SprintDetailPage({ params }: { params: { slug: str
         title={sprint.name}
         sub={detail.board.client_name ? `Sprint · ${detail.board.client_name}` : "Sprint"}
       />
-      <SprintView detail={detail} sprintId={sprint.id} />
+      <SprintView detail={detail} sprintId={sprint.id} meetingOptions={meetings} />
     </>
   );
 }
