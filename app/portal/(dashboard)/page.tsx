@@ -7,12 +7,16 @@ import { listWorkRequestsForActor } from "@/lib/portal/work-requests";
 import { getMyEvents } from "@/lib/portal/events";
 import { getTokenBalance } from "@/lib/portal/tokens";
 import { getRoadmapPreviewForActor } from "@/lib/portal/backlog";
+import { getBoardForClient } from "@/lib/portal/boards";
+import { listDocumentsForActor } from "@/lib/portal/documents";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { PRIORITY_LABEL, type BacklogPriority } from "@/lib/client-backlog";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { formatHours } from "@/lib/admin/contractors";
+
+import { PRIORITY_LABEL as TASK_LABEL, PRIORITY_TONE as TASK_TONE } from "@/lib/boards/types";
 
 const PRIORITY_TONE: Record<BacklogPriority, BadgeTone> = {
   now: "info",
@@ -51,7 +55,7 @@ function eventRange(startsAt: string | null, endsAt: string | null): string {
 export default async function PortalHome() {
   const actor = await requirePortalMember();
 
-  const [team, timeOff, invoices, requests, events, tokens, roadmap] = await Promise.all([
+  const [team, timeOff, invoices, requests, events, tokens, roadmap, board, documents] = await Promise.all([
     getAssignedTeam(actor),
     getAssignedTimeOff(actor),
     getInvoicesForActor(actor),
@@ -59,6 +63,8 @@ export default async function PortalHome() {
     getMyEvents(actor),
     getTokenBalance(actor),
     getRoadmapPreviewForActor(actor, 3),
+    getBoardForClient(actor),
+    listDocumentsForActor(actor),
   ]);
 
   const firstName = actor.displayName.split(/\s+/)[0] || actor.displayName;
@@ -96,6 +102,12 @@ export default async function PortalHome() {
 
   const hasAttention = openInvoices.length > 0 || needsDecision.length > 0;
 
+  // Delivery at a glance: the three views shared with the team client hub.
+  const openCards = (board?.cards ?? []).filter((c) => !c.done);
+  const columnName = new Map((board?.columns ?? []).map((c) => [c.id, c.name]));
+  const latestDocs = documents.slice(0, 3);
+  const hasGlance = roadmap.total > 0 || board !== null || documents.length > 0;
+
   return (
     <>
       <PageHead
@@ -103,6 +115,38 @@ export default async function PortalHome() {
         title={`Welcome, ${firstName}`}
         sub={companies.length > 0 ? companies.join(" · ") : undefined}
       />
+
+      {hasGlance && (
+        <div className="team-glance" style={{ marginBottom: 16 }}>
+          <div className="team-glance-cell">
+            <span className="team-glance-label">Roadmap</span>
+            <span className="team-glance-value">
+              {roadmap.total > 0 ? `${roadmap.total} item${roadmap.total === 1 ? "" : "s"}` : "None yet"}
+            </span>
+            <span className="team-glance-note">
+              {roadmap.total > 0 ? <Link href="/portal/roadmap">Open →</Link> : "Built with Edge8"}
+            </span>
+          </div>
+          <div className="team-glance-cell">
+            <span className="team-glance-label">Work Board</span>
+            <span className="team-glance-value">
+              {board ? `${openCards.length} open card${openCards.length === 1 ? "" : "s"}` : "No board yet"}
+            </span>
+            <span className="team-glance-note">
+              {board ? <Link href="/portal/board">Open →</Link> : "Set up by Edge8"}
+            </span>
+          </div>
+          <div className="team-glance-cell">
+            <span className="team-glance-label">Documents</span>
+            <span className="team-glance-value">
+              {documents.length === 0 ? "None yet" : `${documents.length} file${documents.length === 1 ? "" : "s"}`}
+            </span>
+            <span className="team-glance-note">
+              <Link href="/portal/documents">{documents.length > 0 ? "Open →" : "Upload →"}</Link>
+            </span>
+          </div>
+        </div>
+      )}
 
       {hasAttention && (
         <div
@@ -229,7 +273,7 @@ export default async function PortalHome() {
         )}
       </div>
 
-      {(roadmap.total > 0 || hasStaff || nextEvent) && (
+      {(roadmap.total > 0 || openCards.length > 0 || latestDocs.length > 0 || hasStaff || nextEvent) && (
         <h2 className="admin-section-label">Your engagement</h2>
       )}
 
@@ -273,6 +317,76 @@ export default async function PortalHome() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {board && openCards.length > 0 && (
+        <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+            <h2 className="admin-card-title" style={{ margin: 0 }}>
+              Work Board
+              <span className="admin-cell-muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                in motion
+              </span>
+            </h2>
+            <Link href="/portal/board" className="admin-cell-muted" style={{ fontSize: 12 }}>
+              View board →
+            </Link>
+          </div>
+          <div className="admin-list">
+            {openCards.slice(0, 3).map((c) => (
+              <Link
+                key={c.id}
+                href="/portal/board"
+                className="admin-list-row"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{c.title}</div>
+                  {c.columnId && columnName.get(c.columnId) && (
+                    <div className="admin-list-sub">{columnName.get(c.columnId)}</div>
+                  )}
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone={TASK_TONE[c.priority] ?? "neutral"}>{TASK_LABEL[c.priority] ?? c.priority}</Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {latestDocs.length > 0 && (
+        <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+            <h2 className="admin-card-title" style={{ margin: 0 }}>
+              Latest documents
+            </h2>
+            <Link href="/portal/documents" className="admin-cell-muted" style={{ fontSize: 12 }}>
+              All {documents.length} →
+            </Link>
+          </div>
+          <div className="admin-list">
+            {latestDocs.map((d) => {
+              const ext = d.filename.match(/\.([a-zA-Z0-9]{1,5})$/)?.[1]?.toUpperCase() ?? null;
+              return (
+                <div className="admin-list-row" key={d.id}>
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{d.filename}</div>
+                    <div className="admin-list-sub">
+                      {formatDate(d.createdAt)}
+                      {(d.uploaderName || d.uploadedBy) && ` · ${d.uploaderName ?? d.uploadedBy}`}
+                    </div>
+                  </div>
+                  {ext && (
+                    <div className="admin-list-aside">
+                      <Badge tone="info">{ext}</Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
