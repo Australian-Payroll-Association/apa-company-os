@@ -1,132 +1,141 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
-import { getClientRoadmapForActor, getClientDocumentsForActor, getActorEmail } from "@/lib/team/clients";
-import { ClientDocumentsList } from "./ClientDocumentsList";
-import { PageHead } from "@/components/admin/PageHead";
-import { BotText } from "@/components/assistant/BotText";
 import {
-  PRIORITY_LABEL,
-  effectivePriority,
-  tokenLabel,
-  type BacklogItem,
-  type BacklogPriority,
-} from "@/lib/client-backlog";
+  getClientRoadmapForActor,
+  getClientBoardViewForActor,
+  getClientDocumentsForActor,
+} from "@/lib/team/clients";
+import { PRIORITY_LABEL, effectivePriority, type BacklogPriority } from "@/lib/client-backlog";
+import { PRIORITY_LABEL as TASK_PRIORITY_LABEL } from "@/lib/boards/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Client Roadmap",
+  title: "Client Hub",
 };
 
-const STYLES = `
-.tcr { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 880px; }
-.tcr .tcr-group { margin-bottom: 22px; }
-.tcr .tcr-group-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 4px; }
-.tcr .tcr-step { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; background:rgba(40,123,232,.1); color:#287BE8; }
-.tcr .tcr-group-title { font-weight:700; font-size:15px; }
-.tcr .tcr-group-intro { color:#797c82; font-size:13px; margin:2px 0 12px; }
-.tcr .tcr-item { border:1px solid var(--admin-border,#E6E6E6); border-radius:12px; padding:13px 15px; margin-bottom:9px; background:#fff; }
-.tcr .tcr-item-top { display:flex; gap:9px; align-items:flex-start; flex-wrap:wrap; }
-.tcr .tcr-ref { flex:none; font-size:12px; font-weight:700; color:#287BE8; background:rgba(40,123,232,.1); border-radius:6px; padding:3px 7px; }
-.tcr .tcr-title { font-weight:650; font-size:14px; flex:1 1 220px; }
-.tcr .tcr-pri { flex:none; font-size:12px; font-weight:700; padding:4px 11px; border-radius:99px; }
-.tcr .tcr-pri.now { background:var(--pri-now); color:#fff; }
-.tcr .tcr-pri.next { background:rgba(11,143,99,.15); color:var(--pri-next); }
-.tcr .tcr-pri.later { background:#f2f4f7; color:var(--pri-later); }
-.tcr .tcr-pri.park { background:#fff4e5; color:var(--pri-park); }
-.tcr .tcr-body { font-size:13px; margin-top:8px; color:#333; }
-.tcr .tcr-body .k { color:#797c82; font-weight:600; }
-.tcr .tcr-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; }
-.tcr .tcr-chip { font-size:11px; font-weight:600; color:#797c82; border:1px solid #EAEEF2; border-radius:99px; padding:2px 9px; }
-.tcr .tcr-chip.tok { color:#287BE8; border-color:rgba(40,123,232,.15); background:rgba(40,123,232,.08); }
-.tcr .tcr-chip.client { color:#0b8f63; border-color:rgba(11,143,99,.25); background:rgba(11,143,99,.1); }
-`;
+// The Overview tab: a working summary of the client — top roadmap items, the
+// state of the board (and my share of it), and the latest documents. Each card
+// links into its tab. Every fetch is assignment-scoped in lib/team/clients.
 
-function priClass(p: BacklogPriority): string {
-  return p;
+const PRIORITY_RANK: Record<BacklogPriority, number> = { now: 0, next: 1, later: 2, park: 3 };
+
+function formatDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default async function TeamClientRoadmapPage({ params }: { params: { companyId: string } }) {
+export default async function TeamClientOverviewPage({ params }: { params: { companyId: string } }) {
   const actor = await requireTeamMember();
-  const [roadmap, documents, actorEmail] = await Promise.all([
+  const [roadmap, board, documents] = await Promise.all([
     getClientRoadmapForActor(actor, params.companyId),
+    getClientBoardViewForActor(actor, params.companyId),
     getClientDocumentsForActor(actor, params.companyId),
-    getActorEmail(actor),
   ]);
   if (!roadmap) notFound();
 
-  const { company, overview, groups, items } = roadmap;
+  const base = `/team/clients/${params.companyId}`;
 
-  function renderItem(it: BacklogItem) {
-    const eff = effectivePriority(it);
-    const tok = tokenLabel(it.token_low, it.token_high);
-    return (
-      <div key={it.id} className="tcr-item">
-        <div className="tcr-item-top">
-          {it.ref && <span className="tcr-ref">{it.ref}</span>}
-          <span className="tcr-title">{it.title}</span>
-          <span className={`tcr-pri ${priClass(eff)}`}>{PRIORITY_LABEL[eff]}</span>
-        </div>
-        <div className="tcr-body">
-          {it.who && <div><span className="k">Who: </span>{it.who}</div>}
-          {it.today_state && <div><span className="k">Today: </span>{it.today_state}</div>}
-          {it.build_desc && <div><span className="k">What we&apos;d build: </span>{it.build_desc}</div>}
-          <div className="tcr-chips">
-            {(it.needs ?? []).map((n) => <span key={n} className="tcr-chip">{n}</span>)}
-            {tok && <span className="tcr-chip tok">est. {tok} Human Tokens</span>}
-            {it.source === "client" && <span className="tcr-chip client">client proposed</span>}
-            {it.client_priority && it.client_priority !== it.edge8_priority && (
-              <span className="tcr-chip client">client set: {PRIORITY_LABEL[it.client_priority]}</span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const topItems = roadmap.items
+    .map((it) => ({ ...it, priority: effectivePriority(it) }))
+    .filter((it) => it.priority !== "park")
+    .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority])
+    .slice(0, 5);
+
+  const openCards = (board?.cards ?? []).filter((c) => !c.done);
+  const myOpenCards = openCards.filter((c) => c.assigneeId === actor.personId);
+  const latestDocs = (documents ?? []).slice(0, 3);
 
   return (
-    <div className="tcr">
-      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <PageHead
-        eyebrow={<Link href="/team/clients">← My Clients</Link>}
-        title={`${company.name} · Roadmap`}
-        sub={`${items.length} item${items.length === 1 ? "" : "s"}${company.roleTitle ? ` · you: ${company.roleTitle}` : ""}`}
-      />
-
-      {overview && (
-        <section className="admin-card admin-section-card" style={{ marginBottom: 18 }}>
-          <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Overview</h2>
-          <div style={{ fontSize: 14, lineHeight: 1.65 }}>
-            <BotText text={overview} />
-          </div>
-        </section>
-      )}
-
-      {items.length === 0 ? (
-        <div className="admin-card admin-section-card" style={{ padding: 22 }}>
-          <p className="admin-page-sub" style={{ margin: 0 }}>No roadmap items yet for this client.</p>
-        </div>
-      ) : (
-        groups.map((g) => {
-          const groupItems = items.filter((i) => i.group_key === g.key);
-          if (groupItems.length === 0) return null;
-          return (
-            <div key={g.key} className="tcr-group">
-              <div className="tcr-group-head">
-                {g.step_label && <span className="tcr-step">{g.step_label}</span>}
-                <span className="tcr-group-title">{g.title}</span>
+    <div className="admin-grid" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+      <section className="admin-card admin-section-card">
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
+          <Link href={`${base}/roadmap`}>Roadmap</Link>
+        </h2>
+        {topItems.length === 0 ? (
+          <div className="admin-empty">No roadmap items yet.</div>
+        ) : (
+          <div className="admin-list">
+            {topItems.map((it) => (
+              <div className="admin-list-row" key={it.id}>
+                <div className="admin-list-main">
+                  <div className="admin-list-title">
+                    {it.ref ? `${it.ref} · ` : ""}{it.title}
+                  </div>
+                  <div className="admin-list-sub">{PRIORITY_LABEL[it.priority]}{it.status !== "proposed" ? ` · ${it.status}` : ""}</div>
+                </div>
               </div>
-              {g.intro && <div className="tcr-group-intro">{g.intro}</div>}
-              {groupItems.map(renderItem)}
-            </div>
-          );
-        })
-      )}
+            ))}
+          </div>
+        )}
+        <p className="admin-page-sub" style={{ margin: "10px 0 0" }}>
+          <Link href={`${base}/roadmap`}>All {roadmap.items.length} item{roadmap.items.length === 1 ? "" : "s"} →</Link>
+        </p>
+      </section>
 
-      <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
-        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Documents</h2>
-        <ClientDocumentsList documents={documents ?? []} companyId={company.id} actorEmail={actorEmail} />
+      <section className="admin-card admin-section-card">
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
+          <Link href={`${base}/board`}>Board</Link>
+        </h2>
+        {!board ? (
+          <div className="admin-empty">No active work board for this client yet.</div>
+        ) : (
+          <>
+            <p className="admin-page-sub" style={{ margin: "0 0 10px" }}>
+              {board.boardName}: {openCards.length} open card{openCards.length === 1 ? "" : "s"}, {myOpenCards.length} assigned to you.
+            </p>
+            {myOpenCards.length > 0 && (
+              <div className="admin-list">
+                {myOpenCards.slice(0, 4).map((c) => (
+                  <div className="admin-list-row" key={c.id}>
+                    <div className="admin-list-main">
+                      <div className="admin-list-title">{c.title}</div>
+                      <div className="admin-list-sub">
+                        {TASK_PRIORITY_LABEL[c.priority] ?? c.priority}
+                        {c.dueDate && ` · due ${formatDay(c.dueDate)}`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="admin-page-sub" style={{ margin: "10px 0 0" }}>
+              <Link href={`${base}/board`}>Client view →</Link>
+              {" · "}
+              <Link href={`/team/boards/${board.boardSlug}`}>Full board →</Link>
+            </p>
+          </>
+        )}
+      </section>
+
+      <section className="admin-card admin-section-card">
+        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
+          <Link href={`${base}/documents`}>Documents</Link>
+        </h2>
+        {latestDocs.length === 0 ? (
+          <div className="admin-empty">No documents yet.</div>
+        ) : (
+          <div className="admin-list">
+            {latestDocs.map((d) => (
+              <div className="admin-list-row" key={d.id}>
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{d.filename}</div>
+                  <div className="admin-list-sub">
+                    {formatDay(d.createdAt)}
+                    {(d.uploaderName || d.uploadedBy) && ` · ${d.uploaderName ?? d.uploadedBy}`}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="admin-page-sub" style={{ margin: "10px 0 0" }}>
+          <Link href={`${base}/documents`}>
+            {documents && documents.length > 0
+              ? `All ${documents.length} document${documents.length === 1 ? "" : "s"} →`
+              : "Upload the first document →"}
+          </Link>
+        </p>
       </section>
     </div>
   );

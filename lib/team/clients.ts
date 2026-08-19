@@ -16,6 +16,7 @@ import {
   type ClientDocument,
   type DocResult,
 } from "@/lib/client-documents";
+import { getClientBoardView, type ClientBoardView } from "@/lib/boards/client-view";
 import {
   BACKLOG_SELECT,
   ROADMAP_GROUPS_SELECT,
@@ -172,6 +173,18 @@ export async function getClientRoadmapSnippets(
     });
   }
   return snippets;
+}
+
+// The client-visible board for an assigned company: exactly what the client
+// sees on /portal/board (shared view in lib/boards/client-view.ts). Null when
+// unassigned (authorization) or when the client has no active board.
+export async function getClientBoardViewForActor(
+  actor: TeamActor,
+  companyId: string,
+): Promise<ClientBoardView | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+  return getClientBoardView([companyId]);
 }
 
 // Read-only client documents for an assigned company (title, date, uploader,
