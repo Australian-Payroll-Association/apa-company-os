@@ -180,7 +180,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   if (!boardData) return null;
   const board = boardData as BoardRow;
 
-  const [columnsRes, membersRes, sprintsRes, tasksRes] = await Promise.all([
+  const [columnsRes, membersRes, sprintsRes, tasksRes, assignedRes] = await Promise.all([
     companyOs.from("board_columns").select(BOARD_COLUMN_SELECT).eq("board_id", board.id).order("position"),
     companyOs.from("board_members").select("person_id, role").eq("board_id", board.id),
     companyOs
@@ -195,10 +195,27 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
       .eq("board_id", board.id)
       .is("archived_at", null)
       .order("position"),
+    board.client_company_id
+      ? companyOs
+          .from("staff_assignments")
+          .select("team_members!team_member_id(person_id)")
+          .eq("company_id", board.client_company_id)
+          .eq("status", "active")
+      : Promise.resolve({ data: [] as unknown[] }),
   ]);
 
   const columns = (columnsRes.data ?? []) as BoardColumnRow[];
   const memberRows = (membersRes.data ?? []) as { person_id: string; role: string }[];
+  // Staff assigned to the board's client company are implicit members (see
+  // lib/boards/access.ts): union them in so they appear in the member list and
+  // assignee picker without a manual board_members row.
+  const assignedPersonIds = ((assignedRes.data ?? []) as unknown[])
+    .map((row) => {
+      const tm = (row as { team_members: { person_id: string } | { person_id: string }[] | null }).team_members;
+      return Array.isArray(tm) ? tm[0]?.person_id : tm?.person_id;
+    })
+    .filter(Boolean) as string[];
+  const memberIds = [...new Set([...memberRows.map((m) => m.person_id), ...assignedPersonIds])];
   const sprints = (sprintsRes.data ?? []) as SprintRow[];
   const tasks = (tasksRes.data ?? []) as TaskRow[];
 
@@ -214,10 +231,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
 
   // People: board members plus any assignee (an assignee might not be a member yet).
   const personIds = [
-    ...new Set([
-      ...memberRows.map((m) => m.person_id),
-      ...(parents.map((t) => t.assignee_id).filter(Boolean) as string[]),
-    ]),
+    ...new Set([...memberIds, ...(parents.map((t) => t.assignee_id).filter(Boolean) as string[])]),
   ];
   // Subject label ids (coaching commitments / client roadmap items linked to cards).
   const commitmentIds = parents
@@ -311,8 +325,8 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     last_moved_at: lastMove.get(t.id) ?? t.created_at,
   }));
 
-  const members: BoardPerson[] = memberRows
-    .map((m) => ({ id: m.person_id, name: nameById.get(m.person_id) ?? "Unknown" }))
+  const members: BoardPerson[] = memberIds
+    .map((id) => ({ id, name: nameById.get(id) ?? "Unknown" }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Archived top-level cards, for the "Archived" view + restore.
