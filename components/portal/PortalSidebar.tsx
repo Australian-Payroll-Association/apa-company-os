@@ -17,6 +17,7 @@ export type PortalEntitlements = {
   invoices: boolean;
   meetings: boolean;
   board: boolean;
+  roadmap: boolean;
   users: boolean;
   companyProfile: boolean;
 };
@@ -33,11 +34,16 @@ type NavGroup = { label: string | null; items: NavItem[] };
 const NAV: NavGroup[] = [
   {
     label: null,
-    items: [{ label: "Home", href: "/portal", ico: "\u25c8", built: true }],
+    items: [{ label: "Overview", href: "/portal", ico: "\u25c8", built: true }],
   },
   {
     label: "Delivery",
     items: [
+      // The working views lead: what Edge8 is doing (Work Board), what's
+      // planned (Roadmap), then the reference modules.
+      { label: "Work Board", href: "/portal/board", ico: "\u25a6", built: true, entitlementKey: "board" },
+      // Roadmap appears once the company has one (hasBacklog).
+      { label: "Roadmap", href: "/portal/roadmap", ico: "\u21c9", built: true, entitlementKey: "roadmap" },
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
       { label: "AI Programs", href: "/portal/programs", ico: "\u21c9", built: true },
@@ -47,7 +53,6 @@ const NAV: NavGroup[] = [
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
-      { label: "Board", href: "/portal/board", ico: "\u25a6", built: true, entitlementKey: "board" },
       { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
     ],
   },
