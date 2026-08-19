@@ -30,13 +30,19 @@ import {
 
 const STYLES = `
 .cbe { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; }
-.cbe .cbe-group { margin-bottom: 20px; }
+.cbe .cbe-group { margin-bottom:16px; border:1px solid rgba(40,123,232,.22); border-radius:14px; background:#fff; overflow:hidden; }
 .cbe .cbe-group.archived { opacity:.55; }
-.cbe .cbe-group-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 4px; }
-.cbe .cbe-step { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; background:rgba(40,123,232,.1); color:#287BE8; }
+.cbe .cbe-group.neutral { border-color:var(--admin-border,#E6E6E6); }
+.cbe .cbe-group-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0; padding:11px 16px; background:rgba(40,123,232,.07); cursor:pointer; }
+.cbe .cbe-group.neutral .cbe-group-head { background:#f5f6f8; cursor:default; }
+.cbe .cbe-step { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; background:#287BE8; color:#fff; }
 .cbe .cbe-group-title { font-weight:700; font-size:15px; }
+.cbe .cbe-count { font-size:12px; font-weight:600; color:#287BE8; background:rgba(40,123,232,.1); border-radius:99px; padding:2px 9px; }
+.cbe .cbe-caret { border:none; background:none; cursor:pointer; padding:0 2px; font-size:12px; color:#287BE8; font-family:inherit; transition:transform .15s ease; }
+.cbe .cbe-caret.closed { transform:rotate(-90deg); }
 .cbe .cbe-group-tools { display:flex; gap:8px; align-items:center; margin-left:auto; }
-.cbe .cbe-group-intro { color:#797c82; font-size:13px; margin:2px 0 12px; }
+.cbe .cbe-group-body { padding:12px 16px 14px; }
+.cbe .cbe-group-intro { color:#797c82; font-size:13px; margin:0 0 12px; }
 .cbe .cbe-item { border:1px solid var(--admin-border,#E6E6E6); border-radius:12px; padding:13px 15px; margin-bottom:9px; background:#fff; }
 .cbe .cbe-item.archived { opacity:.55; }
 .cbe .cbe-item-top { display:flex; gap:9px; align-items:flex-start; flex-wrap:wrap; }
@@ -135,6 +141,7 @@ export function BacklogAdminEditor({
   const [groupDrafts, setGroupDrafts] = useState<Record<string, GroupDraft>>({});
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [newGroup, setNewGroup] = useState<GroupDraft>({ step_label: "", title: "", intro: "" });
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
@@ -297,16 +304,24 @@ export function BacklogAdminEditor({
   function renderGroup(g: RoadmapGroup, index: number) {
     const groupItems = items.filter((i) => i.group_key === g.key);
     const isEditingGroup = editingGroup === g.id;
+    // Editing forces the group open so the form can't hide behind a collapse.
+    const isCollapsed = !!collapsedGroups[g.id] && !isEditingGroup;
+    const openCount = groupItems.filter((i) => !i.archived_at).length;
     const gd = groupDrafts[g.id] ?? { step_label: g.step_label ?? "", title: g.title, intro: g.intro ?? "" };
     const setG = (patch: Partial<GroupDraft>) => setGroupDrafts((prev) => ({ ...prev, [g.id]: { ...gd, ...patch } }));
+    const toggle = () => setCollapsedGroups((p) => ({ ...p, [g.id]: !p[g.id] }));
 
     return (
       <div key={g.id} className={`cbe-group${g.archived_at ? " archived" : ""}`}>
-        <div className="cbe-group-head">
+        <div className="cbe-group-head" onClick={toggle}>
+          <button type="button" className={`cbe-caret${isCollapsed ? " closed" : ""}`} aria-expanded={!isCollapsed} title={isCollapsed ? "Expand milestone" : "Collapse milestone"}>
+            ▼
+          </button>
           {g.step_label && <span className="cbe-step">{g.step_label}</span>}
           <span className="cbe-group-title">{g.title}</span>
+          <span className="cbe-count">{openCount} item{openCount === 1 ? "" : "s"}</span>
           {!g.archived_at ? (
-            <span className="cbe-group-tools">
+            <span className="cbe-group-tools" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="cbe-link muted" disabled={pending || index === 0} onClick={() => run(() => moveRoadmapGroup(g.id, "up"))} title="Move group up">↑</button>
               <button type="button" className="cbe-link muted" disabled={pending || index === activeGroups.length - 1} onClick={() => run(() => moveRoadmapGroup(g.id, "down"))} title="Move group down">↓</button>
               <button type="button" className="cbe-link muted" onClick={() => { setGroupDrafts((p) => ({ ...p, [g.id]: { step_label: g.step_label ?? "", title: g.title, intro: g.intro ?? "" } })); setEditingGroup(isEditingGroup ? null : g.id); }}>
@@ -317,11 +332,13 @@ export function BacklogAdminEditor({
               )}
             </span>
           ) : (
-            <span className="cbe-group-tools">
+            <span className="cbe-group-tools" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="cbe-link" disabled={pending} onClick={() => run(() => restoreRoadmapGroup(g.id))}>Restore group</button>
             </span>
           )}
         </div>
+        {!isCollapsed && (
+        <div className="cbe-group-body">
         {g.intro && <div className="cbe-group-intro">{g.intro}</div>}
 
         {isEditingGroup && (
@@ -372,6 +389,8 @@ export function BacklogAdminEditor({
             + Add item to {g.step_label || g.title}
           </button>
         ))}
+        </div>
+        )}
       </div>
     );
   }
@@ -431,14 +450,16 @@ export function BacklogAdminEditor({
           {showArchived && groups.filter((g) => g.archived_at).map((g) => renderGroup(g, -1))}
 
           {orphans.length > 0 && (
-            <div className="cbe-group">
+            <div className="cbe-group neutral">
               <div className="cbe-group-head">
                 <span className="cbe-group-title">Ungrouped</span>
               </div>
-              <div className="cbe-group-intro">
-                These items point at a group that no longer exists here. Edit each one to move it into a current group.
+              <div className="cbe-group-body">
+                <div className="cbe-group-intro">
+                  These items point at a group that no longer exists here. Edit each one to move it into a current group.
+                </div>
+                {orphans.map(renderItem)}
               </div>
-              {orphans.map(renderItem)}
             </div>
           )}
 
