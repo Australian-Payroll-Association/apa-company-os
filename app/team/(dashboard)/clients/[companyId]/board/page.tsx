@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getClientBoardViewForActor, getActorClientCompanies } from "@/lib/team/clients";
+import { isBoardMemberForActor } from "@/lib/team/boards";
+import { MyCardsStrip, type MyStripCard } from "./MyCardsStrip";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { NEW_ASSIGNMENT_DAYS, PRIORITY_LABEL, PRIORITY_TONE, initials } from "@/lib/boards/types";
@@ -49,12 +51,27 @@ export default async function TeamClientBoardTab({ params }: { params: { company
     c.isDone ? STAGE_WON : NONDONE_ACCENTS[nd++ % NONDONE_ACCENTS.length],
   );
 
+  // Board members get quick move controls on their own open cards; everyone
+  // else keeps the client's read-only view. moveCard re-checks membership
+  // server-side, so this gate is UI only.
+  const isMember = await isBoardMemberForActor(actor, board.boardId);
+  const myCards: MyStripCard[] = isMember
+    ? board.cards
+        .filter((c) => !c.done && c.assigneeId === actor.personId)
+        .map((c) => ({ id: c.id, title: c.title, priority: c.priority, dueDate: c.dueDate, columnId: c.columnId }))
+    : [];
+
   return (
     <>
       <p className="admin-page-sub" style={{ margin: "0 0 14px" }}>
-        {board.boardName}: what the client sees on their portal. Work the full board at{" "}
-        <Link href={`/team/boards/${board.boardSlug}`}>Work Boards</Link>.
+        {board.boardName}: what the client sees on their portal.{" "}
+        {isMember ? (
+          <>Work the full board at <Link href={`/team/boards/${board.boardSlug}`}>Work Boards</Link>.</>
+        ) : (
+          <>You are not a member of this board, so the view is read-only.</>
+        )}
       </p>
+      {isMember && <MyCardsStrip cards={myCards} columns={board.columns} boardSlug={board.boardSlug} />}
       <div className="sap-kanban">
         {board.columns.map((col, i) => {
           const colCards = board.cards.filter((c) => c.columnId === col.id);
