@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
@@ -11,6 +11,17 @@ import { NewBoardForm } from "./NewBoardForm";
 const VIEW_KEY = "boards:view";
 type View = "cards" | "list";
 
+type SortKey = "name" | "client" | "sprint" | "open" | "done" | "members";
+
+const LIST_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Board" },
+  { key: "client", label: "Client" },
+  { key: "sprint", label: "Current sprint" },
+  { key: "open", label: "Open" },
+  { key: "done", label: "Done" },
+  { key: "members", label: "Members" },
+];
+
 export function BoardsIndex({
   boards,
   clients,
@@ -20,15 +31,54 @@ export function BoardsIndex({
 }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
-  // Cards on first paint (SSR-safe); the stored preference applies after mount.
-  const [view, setView] = useState<View>("cards");
+  // List on first paint (SSR-safe); the stored preference applies after mount.
+  const [view, setView] = useState<View>("list");
   useEffect(() => {
-    if (localStorage.getItem(VIEW_KEY) === "list") setView("list");
+    if (localStorage.getItem(VIEW_KEY) === "cards") setView("cards");
   }, []);
   function pick(v: View) {
     setView(v);
     localStorage.setItem(VIEW_KEY, v);
   }
+
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  function toggleSort(k: SortKey) {
+    if (sortKey === k) setSortAsc((a) => !a);
+    else {
+      setSortKey(k);
+      setSortAsc(true);
+    }
+  }
+  // null sortKey = the boards' own sort_order, as the server returned them.
+  const sorted = useMemo(() => {
+    if (!sortKey) return boards;
+    const val = (b: BoardListItem): string | number => {
+      switch (sortKey) {
+        case "name":
+          return b.name.toLowerCase();
+        case "client":
+          return (b.client_name ?? "").toLowerCase();
+        case "sprint":
+          return (b.current_sprint?.name ?? "").toLowerCase();
+        case "open":
+          return b.open_count;
+        case "done": {
+          const total = b.open_count + b.done_count;
+          return total ? b.done_count / total : -1;
+        }
+        case "members":
+          return b.member_names.length;
+      }
+    };
+    return [...boards].sort((a, b) => {
+      const va = val(a);
+      const vb = val(b);
+      const cmp =
+        typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [boards, sortKey, sortAsc]);
 
   return (
     <>
@@ -118,15 +168,25 @@ export function BoardsIndex({
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Board</th>
-                  <th>Client</th>
-                  <th>Open</th>
-                  <th>Done</th>
-                  <th>Members</th>
+                  {LIST_COLUMNS.map((c) => (
+                    <th key={c.key}>
+                      <button
+                        type="button"
+                        className="admin-th-sort"
+                        onClick={() => toggleSort(c.key)}
+                        aria-label={`Sort by ${c.label}`}
+                      >
+                        {c.label}
+                        <span className="team-dir-caret" aria-hidden>
+                          {sortKey === c.key ? (sortAsc ? "▲" : "▼") : "↕"}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {boards.map((b) => {
+                {sorted.map((b) => {
                   const total = b.open_count + b.done_count;
                   const pct = total > 0 ? Math.round((b.done_count / total) * 100) : 0;
                   const shown = b.member_names.slice(0, 5);
@@ -149,6 +209,20 @@ export function BoardsIndex({
                           </span>
                         ) : (
                           <span className="admin-cell-muted">Internal</span>
+                        )}
+                      </td>
+                      <td>
+                        {b.current_sprint ? (
+                          <Link
+                            href={`/admin/boards/${b.slug}/sprints/${b.current_sprint.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ color: "var(--admin-accent)", textDecoration: "none", fontWeight: 600 }}
+                            title={b.current_sprint.ends_on ? `Ends ${b.current_sprint.ends_on}` : undefined}
+                          >
+                            {b.current_sprint.name}
+                          </Link>
+                        ) : (
+                          <span className="admin-cell-muted">—</span>
                         )}
                       </td>
                       <td className="admin-cell-mono">{b.open_count}</td>

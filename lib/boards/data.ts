@@ -24,6 +24,7 @@ export type BoardListItem = BoardRow & {
   open_count: number;
   done_count: number;
   member_names: string[];
+  current_sprint: { id: string; name: string; ends_on: string | null } | null;
 };
 
 export type BoardPerson = { id: string; name: string };
@@ -78,7 +79,7 @@ export async function listBoards(): Promise<BoardListItem[]> {
   const companyIds = [...new Set(rows.map((b) => b.client_company_id).filter(Boolean))] as string[];
   const boardIds = rows.map((b) => b.id);
 
-  const [companiesRes, membersRes, tasksRes] = await Promise.all([
+  const [companiesRes, membersRes, tasksRes, sprintsRes] = await Promise.all([
     companyIds.length
       ? companyOs.from("companies").select("id, name").in("id", companyIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
@@ -89,6 +90,12 @@ export async function listBoards(): Promise<BoardListItem[]> {
       .in("board_id", boardIds)
       .is("archived_at", null)
       .is("parent_task_id", null),
+    companyOs
+      .from("sprints")
+      .select("id, board_id, name, ends_on")
+      .in("board_id", boardIds)
+      .eq("status", "active")
+      .order("sort_order"),
   ]);
 
   const companyName = new Map((companiesRes.data ?? []).map((c) => [c.id, c.name]));
@@ -119,6 +126,12 @@ export async function listBoards(): Promise<BoardListItem[]> {
     target.set(t.board_id, (target.get(t.board_id) ?? 0) + 1);
   }
 
+  // First active sprint per board (sprints came back in sort_order).
+  const sprintByBoard = new Map<string, { id: string; name: string; ends_on: string | null }>();
+  for (const s of (sprintsRes.data ?? []) as { id: string; board_id: string; name: string; ends_on: string | null }[]) {
+    if (!sprintByBoard.has(s.board_id)) sprintByBoard.set(s.board_id, { id: s.id, name: s.name, ends_on: s.ends_on });
+  }
+
   return rows.map((b) => ({
     ...b,
     client_name: b.client_company_id ? companyName.get(b.client_company_id) ?? null : null,
@@ -126,6 +139,7 @@ export async function listBoards(): Promise<BoardListItem[]> {
     open_count: openCount.get(b.id) ?? 0,
     done_count: doneCount.get(b.id) ?? 0,
     member_names: membersByBoard.get(b.id) ?? [],
+    current_sprint: sprintByBoard.get(b.id) ?? null,
   }));
 }
 
