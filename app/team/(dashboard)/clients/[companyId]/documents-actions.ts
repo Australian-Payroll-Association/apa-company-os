@@ -37,7 +37,10 @@ export async function teamRecordClientDocument(input: {
 }): Promise<DocResult> {
   const actor = await requireTeamMember();
   const r = await recordClientDocumentForActor(actor, input);
-  if (r.ok) revalidatePath(`/team/clients/${input.companyId}`);
+  if (r.ok) {
+    revalidatePath(`/team/clients/${input.companyId}`);
+    revalidatePath(`/team/clients/${input.companyId}/documents`);
+  }
   return r;
 }
 
