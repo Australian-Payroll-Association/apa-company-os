@@ -83,6 +83,19 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
   }));
 }
 
+// Whether the actor may write to a board (member or admin). Read-side helper
+// for UI gating; the write actions re-check via boardActorFor.
+export async function isBoardMemberForActor(actor: TeamActor, boardId: string): Promise<boolean> {
+  if (actor.isAdmin) return true;
+  const { data } = await companyOs
+    .from("board_members")
+    .select("id")
+    .eq("board_id", boardId)
+    .eq("person_id", actor.personId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 // Full board detail iff the actor is a member (or admin). Null otherwise.
 export async function getBoardForActor(actor: TeamActor, slug: string): Promise<BoardDetail | null> {
   const detail = await getBoardBySlug(slug);
