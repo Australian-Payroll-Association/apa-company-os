@@ -11,6 +11,13 @@ import { startAssumeSession } from "./actions";
 // member's real role, so a contributor pick shows the contributor view.
 // Companies without portal users fall back to the primary CRM contact (admin
 // view), matching the original behavior.
+
+function companyInitials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  const letters = words.slice(0, 2).map((w) => w[0] ?? "");
+  return letters.join("").toUpperCase() || "?";
+}
+
 export function AssumeManager({ clients }: { clients: AssumableClient[] }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,23 +46,30 @@ export function AssumeManager({ clients }: { clients: AssumableClient[] }) {
         ) : (
           clients.map((c) => {
             const hasMembers = c.members.length > 0;
+            const contactLabel = c.contactName || c.contactEmail;
+            const canAssume = hasMembers || Boolean(c.contactEmail);
             const selectedPersonId = selected[c.companyId] ?? c.members[0]?.personId;
             return (
-              <div className="admin-list-row" key={c.companyId}>
-                <div className="admin-list-main">
-                  <div className="admin-list-title">{c.companyName}</div>
-                  <div className="admin-list-sub">
-                    {hasMembers
-                      ? `${c.members.length} portal ${c.members.length === 1 ? "user" : "users"}`
-                      : c.contactName || c.contactEmail
-                        ? `No portal users — viewing as contact ${c.contactName || c.contactEmail}`
-                        : "No linked contact"}
+              <div className="admin-list-row assume-row" key={c.companyId}>
+                <div className="admin-list-main assume-main">
+                  <span className="assume-logo" aria-hidden>
+                    {companyInitials(c.companyName)}
+                  </span>
+                  <div className="assume-main-text">
+                    <div className="admin-list-title">{c.companyName}</div>
+                    <div className="admin-list-sub">
+                      {hasMembers
+                        ? `${c.members.length} portal ${c.members.length === 1 ? "user" : "users"}`
+                        : contactLabel
+                          ? `No portal users yet · opens as primary contact ${contactLabel}`
+                          : "Link a contact in the CRM to view this portal"}
+                    </div>
                   </div>
                 </div>
-                <div className="admin-list-aside" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="assume-controls">
                   {hasMembers && (
                     <select
-                      className="admin-select"
+                      className="admin-select assume-select"
                       aria-label={`View ${c.companyName} as`}
                       value={selectedPersonId}
                       onChange={(e) =>
@@ -69,13 +83,17 @@ export function AssumeManager({ clients }: { clients: AssumableClient[] }) {
                       ))}
                     </select>
                   )}
-                  <button
-                    className="admin-btn admin-btn--sm admin-btn--primary"
-                    disabled={pending || (!hasMembers && !c.contactEmail)}
-                    onClick={() => handleView(c.companyId, hasMembers ? selectedPersonId : undefined)}
-                  >
-                    {pending && pendingId === c.companyId ? "Opening…" : "View as"}
-                  </button>
+                  {canAssume ? (
+                    <button
+                      className="admin-btn admin-btn--sm admin-btn--primary"
+                      disabled={pending}
+                      onClick={() => handleView(c.companyId, hasMembers ? selectedPersonId : undefined)}
+                    >
+                      {pending && pendingId === c.companyId ? "Opening…" : "View as"}
+                    </button>
+                  ) : (
+                    <span className="admin-badge">No linked contact</span>
+                  )}
                 </div>
               </div>
             );
