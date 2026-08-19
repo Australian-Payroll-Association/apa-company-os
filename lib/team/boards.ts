@@ -1,10 +1,13 @@
 // A team member's boards and cross-board task list. Scope source:
-// company_os.board_members for THIS actor's person id. Admins see every board.
+// company_os.board_members for THIS actor's person id, plus active
+// staff_assignments (an assignment to a board's client company is implicit
+// membership — see lib/boards/access.ts). Admins see every board.
 // Every read is filtered to the actor server-side, never from a passed id —
 // getBoardForActor returning null IS the authorization for /team/boards/[slug].
 
 import { companyOs } from "@/lib/supabase";
 import type { TeamActor } from "@/lib/team-auth";
+import { isBoardMember } from "@/lib/boards/access";
 import { getBoardBySlug, type BoardDetail } from "@/lib/boards/data";
 import { type TaskPriority } from "@/lib/boards/types";
 import { OPEN_COMMITMENT_STATUSES, type CommitmentStatus } from "@/lib/coaching/data";
@@ -32,13 +35,25 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
       .order("sort_order");
     boardRows = (data ?? []) as typeof boardRows;
   } else {
-    const { data: mem } = await companyOs.from("board_members").select("board_id").eq("person_id", actor.personId);
-    const ids = ((mem ?? []) as { board_id: string }[]).map((m) => m.board_id);
-    if (ids.length === 0) return [];
+    const [memRes, assignRes] = await Promise.all([
+      companyOs.from("board_members").select("board_id").eq("person_id", actor.personId),
+      companyOs
+        .from("staff_assignments")
+        .select("company_id")
+        .eq("team_member_id", actor.teamMemberId)
+        .eq("status", "active"),
+    ]);
+    const ids = ((memRes.data ?? []) as { board_id: string }[]).map((m) => m.board_id);
+    const companyIds = ((assignRes.data ?? []) as { company_id: string }[]).map((a) => a.company_id);
+    if (ids.length === 0 && companyIds.length === 0) return [];
+    const ors = [
+      ...(ids.length ? [`id.in.(${ids.join(",")})`] : []),
+      ...(companyIds.length ? [`client_company_id.in.(${companyIds.join(",")})`] : []),
+    ];
     const { data } = await companyOs
       .from("boards")
       .select("id, slug, name, client_company_id")
-      .in("id", ids)
+      .or(ors.join(","))
       .eq("status", "active")
       .is("archived_at", null)
       .order("sort_order");
@@ -87,13 +102,7 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
 // for UI gating; the write actions re-check via boardActorFor.
 export async function isBoardMemberForActor(actor: TeamActor, boardId: string): Promise<boolean> {
   if (actor.isAdmin) return true;
-  const { data } = await companyOs
-    .from("board_members")
-    .select("id")
-    .eq("board_id", boardId)
-    .eq("person_id", actor.personId)
-    .maybeSingle();
-  return Boolean(data);
+  return isBoardMember(boardId, actor.personId, actor.teamMemberId);
 }
 
 // Full board detail iff the actor is a member (or admin). Null otherwise.
@@ -101,13 +110,8 @@ export async function getBoardForActor(actor: TeamActor, slug: string): Promise<
   const detail = await getBoardBySlug(slug);
   if (!detail) return null;
   if (actor.isAdmin) return detail;
-  const { data } = await companyOs
-    .from("board_members")
-    .select("id")
-    .eq("board_id", detail.board.id)
-    .eq("person_id", actor.personId)
-    .maybeSingle();
-  return data ? detail : null;
+  const member = await isBoardMember(detail.board.id, actor.personId, actor.teamMemberId);
+  return member ? detail : null;
 }
 
 export type MyTask = {
