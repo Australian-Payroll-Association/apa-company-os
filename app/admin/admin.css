@@ -2050,6 +2050,29 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-list-aside { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 @media (max-width: 880px) { .admin-360 { grid-template-columns: 1fr; } }
 
+/* ─── Settings → Assume ───────────────────────────── */
+/* One aligned control cluster per row: the member picker and the button sit on
+   a single line (admin-list-aside stacks children, which is wrong here), and
+   the picker gets a fixed width so buttons line up down the whole list. */
+.assume-main { display: flex; align-items: center; gap: 12px; }
+.assume-main-text { min-width: 0; }
+.assume-logo {
+  width: 32px; height: 32px; flex: 0 0 auto;
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.assume-controls { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.assume-select { width: 230px; }
+@media (max-width: 640px) {
+  .assume-row { flex-wrap: wrap; }
+  /* Controls drop below the name, aligned with the text column (logo 32 + gap 12). */
+  .assume-controls { width: 100%; justify-content: flex-start; padding-left: 44px; }
+  .assume-select { flex: 1; min-width: 0; width: auto; }
+}
+
 /* ─── Shelf (drawer) sections ─────────────────────── */
 .admin-shelf-sections { display: flex; flex-direction: column; gap: 22px; }
 .admin-shelf-heading {
