@@ -44,6 +44,7 @@ import {
   archiveBoard,
   addSubtask,
   toggleSubtask,
+  setTaskTokens,
   addComment,
   restoreCard,
 } from "./actions";
@@ -59,6 +60,7 @@ type Form = {
   priority: TaskPriority;
   assigneeId: string;
   dueDate: string;
+  humanTokens: string; // "" = not estimated
   description: string;
   sprintId: string; // "" = no sprint
   origSprintId: string;
@@ -146,6 +148,18 @@ export function BoardView({
     setBanner(null);
     startSaving(async () => {
       const r = await toggleSubtask(id, done, slug);
+      if (!r.ok) return setBanner(r.error);
+      router.refresh();
+    });
+  }
+  // Saves a subtask's Human Tokens on blur; "" clears the estimate.
+  function saveSubTokens(id: string, raw: string, current: number | null) {
+    const next = raw.trim() === "" ? null : Number(raw);
+    if (next !== null && !Number.isFinite(next)) return;
+    if (next === current) return;
+    setBanner(null);
+    startSaving(async () => {
+      const r = await setTaskTokens(id, next, slug);
       if (!r.ok) return setBanner(r.error);
       router.refresh();
     });
@@ -249,6 +263,7 @@ export function BoardView({
       priority: c.priority,
       assigneeId: c.assignee_id ?? "",
       dueDate: c.due_date ?? "",
+      humanTokens: c.human_tokens == null ? "" : String(c.human_tokens),
       description: c.description ?? "",
       sprintId: c.sprint_id ?? "",
       origSprintId: c.sprint_id ?? "",
@@ -270,6 +285,7 @@ export function BoardView({
       priority: "p3",
       assigneeId: "",
       dueDate: "",
+      humanTokens: "",
       description: "",
       sprintId: preset,
       origSprintId: "",
@@ -296,6 +312,7 @@ export function BoardView({
             priority: form.priority,
             assigneeId: form.assigneeId || null,
             dueDate: form.dueDate || null,
+            humanTokens: form.humanTokens === "" ? null : Number(form.humanTokens),
           },
           slug,
         );
@@ -312,6 +329,7 @@ export function BoardView({
           priority: form.priority,
           assigneeId: form.assigneeId || undefined,
           dueDate: form.dueDate || undefined,
+          humanTokens: form.humanTokens === "" ? undefined : Number(form.humanTokens),
           description: form.description || undefined,
           internal: isClientBoard ? form.internal : undefined,
         });
@@ -538,7 +556,7 @@ export function BoardView({
                   </span>
                 )}
               </div>
-              {(c.subtasks.length > 0 || c.comments.length > 0) && (
+              {(c.subtasks.length > 0 || c.comments.length > 0 || c.human_tokens != null) && (
                 <div className="sap-card-sub" style={{ marginTop: 4, display: "flex", gap: 12 }}>
                   {c.subtasks.length > 0 && (
                     <span>
@@ -546,6 +564,7 @@ export function BoardView({
                     </span>
                   )}
                   {c.comments.length > 0 && <span>💬 {c.comments.length}</span>}
+                  {c.human_tokens != null && <span title="Human Tokens">⚡ {c.human_tokens} HT</span>}
                 </div>
               )}
               {aging && (
@@ -731,6 +750,19 @@ export function BoardView({
             </div>
 
             <div className="admin-field">
+              <label className="admin-label">Human Tokens</label>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Not estimated"
+                value={form.humanTokens}
+                onChange={(e) => setForm({ ...form, humanTokens: e.target.value })}
+              />
+            </div>
+
+            <div className="admin-field">
               <label className="admin-label">Description</label>
               <textarea
                 className="admin-textarea"
@@ -749,17 +781,36 @@ export function BoardView({
                     : ""}
                 </label>
                 {activeCard?.subtasks.map((s) => (
-                  <label key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
+                  <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
                     <input
                       type="checkbox"
                       checked={s.done}
                       onChange={(e) => toggleSub(s.id, e.target.checked)}
                       disabled={saving}
                     />
-                    <span style={{ textDecoration: s.done ? "line-through" : undefined, color: s.done ? "var(--admin-muted)" : undefined }}>
+                    <span style={{ flex: 1, textDecoration: s.done ? "line-through" : undefined, color: s.done ? "var(--admin-muted)" : undefined }}>
                       {s.title}
                     </span>
-                  </label>
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="HT"
+                      title="Human Tokens"
+                      key={`${s.id}-${s.human_tokens ?? ""}`}
+                      defaultValue={s.human_tokens ?? ""}
+                      onBlur={(e) => saveSubTokens(s.id, e.target.value, s.human_tokens)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      disabled={saving}
+                      style={{ width: 64, flex: "none" }}
+                    />
+                  </div>
                 ))}
                 <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                   <input

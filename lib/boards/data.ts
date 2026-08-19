@@ -31,7 +31,7 @@ export type BacklogRef = { id: string; title: string; group_key: string | null }
 // Roadmap milestones (client_roadmap_groups) for grouping the link picker.
 export type BacklogGroupRef = { key: string; label: string };
 
-export type Subtask = { id: string; title: string; done: boolean };
+export type Subtask = { id: string; title: string; done: boolean; human_tokens: number | null };
 export type TaskComment = { id: string; author: string; body: string; createdAt: string };
 export type ArchivedCard = {
   id: string;
@@ -228,7 +228,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   for (const c of tasks) {
     if (!c.parent_task_id) continue;
     const list = subtasksByParent.get(c.parent_task_id) ?? [];
-    list.push({ id: c.id, title: c.title, done: c.status === "done" });
+    list.push({ id: c.id, title: c.title, done: c.status === "done", human_tokens: c.human_tokens });
     subtasksByParent.set(c.parent_task_id, list);
   }
 

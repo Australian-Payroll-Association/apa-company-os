@@ -125,6 +125,7 @@ export type TaskRow = {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  human_tokens: number | null;
   completed_at: string | null;
   internal: boolean;
   subject_type: string | null;
@@ -137,7 +138,7 @@ export type TaskRow = {
 };
 
 export const TASK_SELECT =
-  "id, title, description, board_id, board_column_id, sprint_id, position, assignee_id, created_by, status, priority, due_date, completed_at, internal, subject_type, subject_id, parent_task_id, metadata, archived_at, created_at, updated_at";
+  "id, title, description, board_id, board_column_id, sprint_id, position, assignee_id, created_by, status, priority, due_date, human_tokens, completed_at, internal, subject_type, subject_id, parent_task_id, metadata, archived_at, created_at, updated_at";
 
 // Whole days a card has sat in its current column, given the last move time.
 export function daysInColumn(since: string | null | undefined, now: Date = new Date()): number {

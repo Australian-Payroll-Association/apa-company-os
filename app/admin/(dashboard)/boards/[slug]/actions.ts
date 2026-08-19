@@ -53,6 +53,13 @@ function cleanPriority(p: string | undefined): TaskPriority {
   return TASK_PRIORITIES.includes(p as TaskPriority) ? (p as TaskPriority) : "p3";
 }
 
+// Human Tokens are whole non-negative hours; anything else stores as null.
+function cleanTokens(v: number | null | undefined): number | null {
+  if (v === null || v === undefined || !Number.isFinite(v)) return null;
+  const n = Math.round(v);
+  return n >= 0 ? n : null;
+}
+
 export async function createCard(input: {
   boardId: string;
   columnId: string;
@@ -62,6 +69,7 @@ export async function createCard(input: {
   dueDate?: string;
   description?: string;
   internal?: boolean;
+  humanTokens?: number | null;
 }): Promise<Result & { id?: string }> {
   const actor = await boardActorFor(input.boardId);
   if (!actor) return { ok: false, error: DENIED };
@@ -86,6 +94,7 @@ export async function createCard(input: {
     assignee_id: input.assigneeId || null,
     created_by: actor.personId,
     due_date: input.dueDate || null,
+    human_tokens: cleanTokens(input.humanTokens),
     internal: input.internal ?? false,
     status: isDone ? "done" : "open",
     completed_at: isDone ? new Date().toISOString() : null,
@@ -219,6 +228,7 @@ export async function updateCard(
     priority?: string;
     assigneeId?: string | null;
     dueDate?: string | null;
+    humanTokens?: number | null;
   },
   boardSlug: string,
 ): Promise<Result> {
@@ -247,6 +257,7 @@ export async function updateCard(
     updates.metadata = { ...(c.metadata ?? {}), assigned_at: new Date().toISOString() };
   }
   if (patch.dueDate !== undefined) updates.due_date = patch.dueDate || null;
+  if (patch.humanTokens !== undefined) updates.human_tokens = cleanTokens(patch.humanTokens);
   if (Object.keys(updates).length === 0) return { ok: true };
 
   const { error } = await companyOs.from("tasks").update(updates).eq("id", taskId);
@@ -486,6 +497,20 @@ export async function toggleSubtask(subtaskId: string, done: boolean, boardSlug:
     .eq("id", subtaskId);
   if (error) return { ok: false, error: error.message };
   await recordAudit({ table: "tasks", recordId: subtaskId, operation: "update", actor: actor.label, newData: { status: done ? "done" : "open" } });
+  refresh(boardSlug);
+  return { ok: true };
+}
+
+// Set the Human Tokens estimate on any task row (card or subtask).
+export async function setTaskTokens(taskId: string, tokens: number | null, boardSlug: string): Promise<Result> {
+  const { data: t } = await companyOs.from("tasks").select("board_id").eq("id", taskId).maybeSingle();
+  if (!t) return { ok: false, error: "Task not found." };
+  const actor = await boardActorFor((t as { board_id: string }).board_id);
+  if (!actor) return { ok: false, error: DENIED };
+  const human_tokens = cleanTokens(tokens);
+  const { error } = await companyOs.from("tasks").update({ human_tokens }).eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+  await recordAudit({ table: "tasks", recordId: taskId, operation: "update", actor: actor.label, newData: { human_tokens } });
   refresh(boardSlug);
   return { ok: true };
 }
