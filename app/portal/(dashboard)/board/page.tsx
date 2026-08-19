@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-export const metadata = { title: "Board" };
+export const metadata = { title: "Work Board" };
 
 const NONDONE_ACCENTS = [STAGE_NEUTRAL, STAGE_LEAD, STAGE_PROPOSAL, STAGE_DISCOVERY, STAGE_CONTRACT];
 
@@ -36,7 +36,7 @@ export default async function PortalBoardPage() {
     <>
       <PageHead
         eyebrow="Delivery"
-        title="Board"
+        title="Work Board"
         sub={`${board.boardName}: what we're working on for you, and how far along it is.`}
       />
       <div className="sap-kanban">
