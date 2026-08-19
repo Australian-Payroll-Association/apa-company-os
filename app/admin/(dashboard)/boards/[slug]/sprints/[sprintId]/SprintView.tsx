@@ -41,6 +41,7 @@ export function SprintView({
   });
   const [meetingPick, setMeetingPick] = useState(sprint.meeting_id ?? "");
   const [pulled, setPulled] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [saving, startSaving] = useTransition();
 
   const attachedMeeting = sprint.meeting_id
@@ -118,24 +119,41 @@ export function SprintView({
     </div>
   );
 
-  const briefField = (label: string, key: keyof typeof brief, placeholder: string, display: string | null) => (
-    <div className="admin-field">
-      <label className="admin-label">{label}</label>
-      {editing ? (
-        <textarea
-          className="admin-textarea"
-          rows={2}
-          value={brief[key]}
-          placeholder={placeholder}
-          onChange={(e) => setBrief({ ...brief, [key]: e.target.value })}
-        />
-      ) : display ? (
-        <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{display}</div>
-      ) : (
-        <div className="admin-cell-muted" style={{ fontSize: 13 }}>{placeholder}</div>
-      )}
+  // Polished sub-headers for the brief sections: an uppercase accent eyebrow
+  // over readable body text, sections separated by hairlines.
+  const eyebrow = (text: string) => (
+    <div
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: ".07em",
+        textTransform: "uppercase",
+        color: "var(--admin-accent)",
+        marginBottom: 6,
+      }}
+    >
+      {text}
     </div>
   );
+
+  const bodyText = (display: string | null, placeholder: string) =>
+    display ? (
+      <div style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{display}</div>
+    ) : (
+      <div className="admin-cell-muted" style={{ fontSize: 13 }}>{placeholder}</div>
+    );
+
+  const briefInput = (key: keyof typeof brief, placeholder: string, rows = 2) => (
+    <textarea
+      className="admin-textarea"
+      rows={rows}
+      value={brief[key]}
+      placeholder={placeholder}
+      onChange={(e) => setBrief({ ...brief, [key]: e.target.value })}
+    />
+  );
+
+  const sectionStyle = { borderTop: "1px solid var(--admin-line)", paddingTop: 14, marginTop: 14 };
 
   const cardRow = (c: BoardCard) => (
     <div
@@ -228,20 +246,56 @@ export function SprintView({
           )}
         </div>
 
-        {briefField("Goal", "goal", "What this sprint is for.", sprint.goal)}
-        {briefField(
-          "#1 thing we're improving",
-          "focusImprovement",
-          "The one improvement this sprint, from the retrospective.",
-          sprint.focus_improvement,
-        )}
-        {briefField("What's going well", "goingWell", "Wins worth keeping, from the retrospective.", sprint.going_well)}
-        {briefField(
-          "Meeting summary",
-          "meetingSummary",
-          "Client-specific notes from the planning meeting.",
-          sprint.meeting_summary,
-        )}
+        <div style={sectionStyle}>
+          {eyebrow("Goal")}
+          {editing ? briefInput("goal", "What this sprint is for.") : bodyText(sprint.goal, "What this sprint is for.")}
+        </div>
+
+        <div style={sectionStyle}>
+          {eyebrow("Going well")}
+          {editing
+            ? briefInput("goingWell", "Wins worth keeping, from the retrospective.", 3)
+            : bodyText(sprint.going_well, "Wins worth keeping, from the retrospective.")}
+        </div>
+
+        <div style={sectionStyle}>
+          <div style={{ background: "var(--admin-accent-soft)", borderRadius: 10, padding: "12px 14px" }}>
+            {eyebrow("#1 improvement")}
+            {editing ? (
+              <>
+                {briefInput("focusImprovement", "The one improvement this sprint, from the retrospective.")}
+                <div className="admin-cell-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                  Keep it short. One sentence is ideal.
+                </div>
+              </>
+            ) : (
+              bodyText(sprint.focus_improvement, "The one improvement this sprint, from the retrospective.")
+            )}
+          </div>
+        </div>
+
+        <div style={sectionStyle}>
+          <button
+            type="button"
+            onClick={() => setSummaryOpen((o) => !o)}
+            aria-expanded={summaryOpen || editing}
+            style={{ display: "flex", gap: 8, alignItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }}
+          >
+            {eyebrow("Meeting summary")}
+            <span aria-hidden style={{ fontSize: 10, color: "var(--admin-accent)", marginBottom: 6 }}>
+              {summaryOpen || editing ? "▲" : "▼"}
+            </span>
+            {!(summaryOpen || editing) && sprint.meeting_summary && (
+              <span className="admin-cell-muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                {sprint.meeting_summary.slice(0, 80)}…
+              </span>
+            )}
+          </button>
+          {(summaryOpen || editing) &&
+            (editing
+              ? briefInput("meetingSummary", "Client-specific notes from the planning meeting.", 5)
+              : bodyText(sprint.meeting_summary, "Client-specific notes from the planning meeting."))}
+        </div>
       </section>
 
       <section className="admin-card" style={{ padding: 16 }}>
