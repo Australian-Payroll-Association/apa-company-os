@@ -2,12 +2,8 @@ import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
 import { getClientRoadmapForActor } from "@/lib/team/clients";
 import { BotText } from "@/components/assistant/BotText";
-import {
-  PRIORITY_LABEL,
-  effectivePriority,
-  tokenLabel,
-  type BacklogItem,
-} from "@/lib/client-backlog";
+import { RoadmapItemCard } from "./RoadmapItemCard";
+import { AddItemForm } from "./AddItemForm";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +13,8 @@ export const metadata = {
 
 // The Roadmap tab: the same groups, ordering, and client-set priorities the
 // client sees on /portal/roadmap, so the team view and the client view always
-// agree. Read-only for now.
+// agree. Assigned team members can add items and edit content/status; Edge8
+// priority and client priority stay admin/client-only.
 
 const STYLES = `
 .tcr { --pri-now:#287BE8; --pri-next:#0b8f63; --pri-later:#4a505a; --pri-park:#b06508; max-width: 880px; }
@@ -50,33 +47,6 @@ export default async function TeamClientRoadmapTab({ params }: { params: { compa
 
   const { overview, groups, items } = roadmap;
 
-  function renderItem(it: BacklogItem) {
-    const eff = effectivePriority(it);
-    const tok = tokenLabel(it.token_low, it.token_high);
-    return (
-      <div key={it.id} className="tcr-item">
-        <div className="tcr-item-top">
-          {it.ref && <span className="tcr-ref">{it.ref}</span>}
-          <span className="tcr-title">{it.title}</span>
-          <span className={`tcr-pri ${eff}`}>{PRIORITY_LABEL[eff]}</span>
-        </div>
-        <div className="tcr-body">
-          {it.who && <div><span className="k">Who: </span>{it.who}</div>}
-          {it.today_state && <div><span className="k">Today: </span>{it.today_state}</div>}
-          {it.build_desc && <div><span className="k">What we&apos;d build: </span>{it.build_desc}</div>}
-          <div className="tcr-chips">
-            {(it.needs ?? []).map((n) => <span key={n} className="tcr-chip">{n}</span>)}
-            {tok && <span className="tcr-chip tok">est. {tok} Human Tokens</span>}
-            {it.source === "client" && <span className="tcr-chip client">client proposed</span>}
-            {it.client_priority && it.client_priority !== it.edge8_priority && (
-              <span className="tcr-chip client">client set: {PRIORITY_LABEL[it.client_priority]}</span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="tcr">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
@@ -89,6 +59,8 @@ export default async function TeamClientRoadmapTab({ params }: { params: { compa
           </div>
         </section>
       )}
+
+      <AddItemForm companyId={params.companyId} groups={groups} />
 
       {items.length === 0 ? (
         <div className="admin-card admin-section-card" style={{ padding: 22 }}>
@@ -105,7 +77,9 @@ export default async function TeamClientRoadmapTab({ params }: { params: { compa
                 <span className="tcr-group-title">{g.title}</span>
               </div>
               {g.intro && <div className="tcr-group-intro">{g.intro}</div>}
-              {groupItems.map(renderItem)}
+              {groupItems.map((it) => (
+                <RoadmapItemCard key={it.id} item={it} companyId={params.companyId} />
+              ))}
             </div>
           );
         })
