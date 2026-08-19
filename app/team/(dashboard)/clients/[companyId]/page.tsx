@@ -6,8 +6,9 @@ import {
   getClientBoardViewForActor,
   getClientDocumentsForActor,
 } from "@/lib/team/clients";
-import { PRIORITY_LABEL, effectivePriority, type BacklogPriority } from "@/lib/client-backlog";
-import { PRIORITY_LABEL as TASK_PRIORITY_LABEL } from "@/lib/boards/types";
+import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { PRIORITY_LABEL, effectivePriority, type BacklogPriority, type BacklogStatus } from "@/lib/client-backlog";
+import { PRIORITY_LABEL as TASK_PRIORITY_LABEL, PRIORITY_TONE as TASK_PRIORITY_TONE } from "@/lib/boards/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,36 @@ export const metadata = {
 };
 
 // The Overview tab: a glance strip (roadmap / board / documents at a glance)
-// over stacked section cards, the same composition as the /team home. Sections
-// only render when they have content — no empty placeholder cards. Every fetch
-// is assignment-scoped in lib/team/clients.
+// over stacked section cards, the same composition as the /team home. My tasks
+// lead (the actionable thing), then the roadmap, then documents; sections only
+// render when they have content. Every fetch is assignment-scoped in
+// lib/team/clients. Color comes from the Badge pill system, nothing bespoke.
 
 const PRIORITY_RANK: Record<BacklogPriority, number> = { now: 0, next: 1, later: 2, park: 3 };
 
+// Backlog priority as a Badge tone: Now is the accent (it's the commitment),
+// Next reads as on-track green, Later fades to neutral, Park warns.
+const BACKLOG_PRIORITY_TONE: Record<BacklogPriority, BadgeTone> = {
+  now: "info",
+  next: "ok",
+  later: "neutral",
+  park: "warn",
+};
+
+// Status only earns a pill when it says something the priority doesn't.
+const STATUS_TONE: Partial<Record<BacklogStatus, BadgeTone>> = {
+  shipped: "ok",
+  active: "info",
+  proposed: "pink",
+};
+
 function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function fileExt(filename: string): string | null {
+  const m = filename.match(/\.([a-zA-Z0-9]{1,5})$/);
+  return m ? m[1].toUpperCase() : null;
 }
 
 export default async function TeamClientOverviewPage({ params }: { params: { companyId: string } }) {
@@ -90,35 +113,6 @@ export default async function TeamClientOverviewPage({ params }: { params: { com
         </div>
       </div>
 
-      {topItems.length > 0 && (
-        <section className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-            <h2 className="admin-card-title" style={{ margin: 0 }}>Next on the roadmap</h2>
-            <Link href={`${base}/roadmap`} className="admin-cell-muted" style={{ fontSize: 12 }}>
-              View all {roadmap.items.length} →
-            </Link>
-          </div>
-          <div className="admin-list">
-            {topItems.map((it) => (
-              <Link
-                key={it.id}
-                href={`${base}/roadmap`}
-                className="admin-list-row"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div className="admin-list-main">
-                  <div className="admin-list-title">{it.ref ? `${it.ref} · ` : ""}{it.title}</div>
-                  <div className="admin-list-sub">
-                    {PRIORITY_LABEL[it.priority]}
-                    {it.status !== "proposed" ? ` · ${it.status}` : " · proposed"}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       {myOpenCards.length > 0 && board && (
         <section className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
@@ -137,13 +131,45 @@ export default async function TeamClientOverviewPage({ params }: { params: { com
               >
                 <div className="admin-list-main">
                   <div className="admin-list-title">{c.title}</div>
-                  <div className="admin-list-sub">
-                    {TASK_PRIORITY_LABEL[c.priority] ?? c.priority}
-                    {c.dueDate && ` · due ${formatDay(c.dueDate)}`}
-                  </div>
+                  {c.dueDate && <div className="admin-list-sub">Due {formatDay(c.dueDate)}</div>}
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone={TASK_PRIORITY_TONE[c.priority]}>{TASK_PRIORITY_LABEL[c.priority] ?? c.priority}</Badge>
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+      )}
+
+      {topItems.length > 0 && (
+        <section className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+            <h2 className="admin-card-title" style={{ margin: 0 }}>Next on the roadmap</h2>
+            <Link href={`${base}/roadmap`} className="admin-cell-muted" style={{ fontSize: 12 }}>
+              View all {roadmap.items.length} →
+            </Link>
+          </div>
+          <div className="admin-list">
+            {topItems.map((it) => {
+              const statusTone = STATUS_TONE[it.status];
+              return (
+                <Link
+                  key={it.id}
+                  href={`${base}/roadmap`}
+                  className="admin-list-row"
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{it.ref ? `${it.ref} · ` : ""}{it.title}</div>
+                  </div>
+                  <div className="admin-list-aside" style={{ flexDirection: "row", alignItems: "center" }}>
+                    {statusTone && <Badge tone={statusTone}>{it.status}</Badge>}
+                    <Badge tone={BACKLOG_PRIORITY_TONE[it.priority]}>{PRIORITY_LABEL[it.priority]}</Badge>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
@@ -157,17 +183,25 @@ export default async function TeamClientOverviewPage({ params }: { params: { com
             </Link>
           </div>
           <div className="admin-list">
-            {latestDocs.map((d) => (
-              <div className="admin-list-row" key={d.id}>
-                <div className="admin-list-main">
-                  <div className="admin-list-title">{d.filename}</div>
-                  <div className="admin-list-sub">
-                    {formatDay(d.createdAt)}
-                    {(d.uploaderName || d.uploadedBy) && ` · ${d.uploaderName ?? d.uploadedBy}`}
+            {latestDocs.map((d) => {
+              const ext = fileExt(d.filename);
+              return (
+                <div className="admin-list-row" key={d.id}>
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{d.filename}</div>
+                    <div className="admin-list-sub">
+                      {formatDay(d.createdAt)}
+                      {(d.uploaderName || d.uploadedBy) && ` · ${d.uploaderName ?? d.uploadedBy}`}
+                    </div>
                   </div>
+                  {ext && (
+                    <div className="admin-list-aside">
+                      <Badge tone="info">{ext}</Badge>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
