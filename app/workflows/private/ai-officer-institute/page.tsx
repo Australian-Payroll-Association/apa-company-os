@@ -12,6 +12,13 @@ export const metadata: Metadata = {
 
 const ITEMS: LibraryItem[] = [
   {
+    category: 'data',
+    href: '/workflows/private/ai-officer-institute/aio-acceptance-reports-2026.html',
+    title: 'AIO: Monthly Acceptance Reports 2026',
+    description:
+      'Month-by-month acceptance of work items for AI Officer Institute LLC, January to July 2026: AIO Labz platform development with amounts accepted per item.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/ai-officer-institute/aio-labs-ux-audit.html',
     title: 'UX Audit — Workflow Documentation',
