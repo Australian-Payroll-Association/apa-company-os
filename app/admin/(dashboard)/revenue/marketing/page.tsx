@@ -6,7 +6,7 @@ import { Badge } from "@/components/admin/Badge";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
+import { getAnalyticsOverview, toBars } from "@/lib/admin/vercel-analytics";
 import {
   getAudienceBreakdown,
   getDeliverability,
@@ -73,7 +73,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
   const [traffic, email, audience, delivery] = await Promise.all([
-    getAnalyticsOverview(range),
+    getAnalyticsOverview(range, "public"),
     getEmailActivity(range, emailAudience),
     getAudienceBreakdown(),
     getDeliverability(range),
@@ -114,12 +114,12 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
         <MetricCard
           label="Visitors"
           value={totals ? totals.visitors.toLocaleString() : "—"}
-          sub={trafficError ? "Vercel Analytics unavailable" : "unique site visitors"}
+          sub={trafficError ? "Vercel Analytics unavailable" : "unique, public site only"}
         />
         <MetricCard
           label="Page views"
           value={totals ? totals.pageviews.toLocaleString() : "—"}
-          sub={trafficError ? "Vercel Analytics unavailable" : "across the site"}
+          sub={trafficError ? "Vercel Analytics unavailable" : "public site only"}
         />
         <MetricCard
           label="Emails sent"
@@ -150,7 +150,21 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       )}
 
       <section className="admin-card admin-section-card">
-        <div className="admin-card-title">Site traffic</div>
+        <div className="admin-card-title">Public site traffic</div>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          The marketing site only. Company OS (admin, team, and client portal) is excluded, since
+          the team using the internal app is not audience reach.{" "}
+          {!("error" in traffic) && traffic.coverage.totalPageviews > 0 && (
+            <>
+              These pages cover{" "}
+              {Math.round(
+                (traffic.coverage.shownPageviews / traffic.coverage.totalPageviews) * 100,
+              )}
+              % of {traffic.coverage.totalPageviews.toLocaleString()} public page views.{" "}
+            </>
+          )}
+          <Link href="/admin/operations/analytics?segment=internal">See Company OS usage</Link>.
+        </p>
         <div
           className="admin-summary-grid"
           style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", marginTop: 12 }}
@@ -158,7 +172,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           <div className="admin-card admin-chart-card">
             <div className="mp-kpi-label">Top pages</div>
             <BarChart
-              data={"error" in traffic ? [] : traffic.topPages}
+              data={"error" in traffic ? [] : toBars(traffic.topPages)}
               ariaLabel="Top pages by page views"
               emptyText="No traffic data."
               stacked
@@ -167,7 +181,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           <div className="admin-card admin-chart-card">
             <div className="mp-kpi-label">Top referrers</div>
             <BarChart
-              data={"error" in traffic ? [] : traffic.topReferrers}
+              data={"error" in traffic ? [] : toBars(traffic.topReferrers)}
               ariaLabel="Top referrers by page views"
               emptyText="No referrer data."
               stacked

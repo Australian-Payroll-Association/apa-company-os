@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { PageHead } from "@/components/admin/PageHead";
 import { BarChart } from "@/components/admin/charts/BarChart";
-import { getAnalyticsOverview, type AnalyticsRange } from "@/lib/admin/vercel-analytics";
-import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import {
+  getAnalyticsOverview,
+  isInternalPath,
+  toBars,
+  type AnalyticsRange,
+  type AnalyticsSegment,
+} from "@/lib/admin/vercel-analytics";
+import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 
 export const dynamic = "force-dynamic";
 
@@ -15,46 +21,92 @@ const RANGES: { key: AnalyticsRange; label: string; sub: string }[] = [
   { key: "all", label: "All time", sub: "since Jul 11, 2026" },
 ];
 
+// Public is the marketing site; internal is Company OS behind a login. They
+// answer different questions, so the page reports one at a time rather than
+// blending them into a single misleading "site traffic" number.
+const SEGMENTS: { key: AnalyticsSegment; label: string; blurb: string }[] = [
+  { key: "all", label: "Everything", blurb: "the marketing site and Company OS combined" },
+  { key: "public", label: "Public site", blurb: "the marketing site only, excluding Company OS" },
+  { key: "internal", label: "Company OS", blurb: "admin, team, and client portal usage" },
+];
+
 function parseRange(value: string | undefined): AnalyticsRange {
   return value === "7d" || value === "30d" || value === "90d" ? value : "all";
 }
 
+function parseSegment(value: string | undefined): AnalyticsSegment {
+  return value === "public" || value === "internal" ? value : "all";
+}
+
+// Company OS paths are deep and repetitive, so the raw path is a poor label.
+// "/admin/talent/applications" reads better as "Talent · Applications", which
+// is also how the nav names it.
+function prettyPath(path: string): string {
+  if (path === "/") return "Home";
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length === 0) return path;
+  return parts
+    .map((part) =>
+      part
+        .replace(/^\[.*\]$/, "detail")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+    )
+    .join(" · ");
+}
+
 export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const range = parseRange(firstParam(searchParams.range));
-  const active = RANGES.find((r) => r.key === range) ?? RANGES[0];
-  const overview = await getAnalyticsOverview(range);
+  const segment = parseSegment(firstParam(searchParams.segment));
+  const activeRange = RANGES.find((r) => r.key === range) ?? RANGES[0];
+  const activeSegment = SEGMENTS.find((s) => s.key === segment) ?? SEGMENTS[0];
+  const overview = await getAnalyticsOverview(range, segment);
+
+  const isInternal = segment === "internal";
+  // Adoption is a people question, so Company OS ranks pages by unique users.
+  // The public site is a reach question, so it ranks by page views.
+  const pageMetric = isInternal ? "visitors" : "pageviews";
 
   return (
     <div>
       <PageHead
         eyebrow="Operations"
         title="Analytics"
-        sub={`Site traffic from Vercel Web Analytics, ${active.sub}, production only.`}
+        sub={`${activeSegment.blurb}, ${activeRange.sub}.`}
         action={
-          <a
-            href={VERCEL_ANALYTICS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="admin-btn"
-          >
+          <a href={VERCEL_ANALYTICS_URL} target="_blank" rel="noopener noreferrer" className="admin-btn">
             Open in Vercel ↗
           </a>
         }
       />
 
-      <div className="admin-tabs" role="tablist" style={{ marginBottom: 14 }}>
-        {RANGES.map((r) => (
-          <Link
-            key={r.key}
-            href={r.key === "all" ? "/admin/operations/analytics" : `/admin/operations/analytics?range=${r.key}`}
-            role="tab"
-            aria-selected={r.key === range}
-            className={`admin-tab${r.key === range ? " is-active" : ""}`}
-            style={{ textDecoration: "none" }}
-          >
-            {r.label}
-          </Link>
-        ))}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+        <div className="admin-viewtoggle" role="group" aria-label="Traffic segment">
+          {SEGMENTS.map((s) => (
+            <Link
+              key={s.key}
+              href={`/admin/operations/analytics${mergeQuery(searchParams, { segment: s.key === "all" ? null : s.key })}`}
+              className={s.key === segment ? "is-active" : ""}
+              aria-current={s.key === segment ? "page" : undefined}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
+        <div className="admin-tabs" role="tablist" style={{ marginBottom: 0 }}>
+          {RANGES.map((r) => (
+            <Link
+              key={r.key}
+              href={`/admin/operations/analytics${mergeQuery(searchParams, { range: r.key === "all" ? null : r.key })}`}
+              role="tab"
+              aria-selected={r.key === range}
+              className={`admin-tab${r.key === range ? " is-active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {"error" in overview ? (
@@ -63,18 +115,32 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
         <div className="admin-summary">
           <div className="admin-summary-pills">
             <div className="admin-pill">
+              <span className="admin-pill-label">{isInternal ? "Unique users" : "Visitors"}</span>
+              <span className="admin-pill-val">{overview.totals.visitors.toLocaleString()}</span>
+            </div>
+            <div className="admin-pill">
               <span className="admin-pill-label">Page views</span>
               <span className="admin-pill-val">{overview.totals.pageviews.toLocaleString()}</span>
             </div>
             <div className="admin-pill">
-              <span className="admin-pill-label">Visitors</span>
-              <span className="admin-pill-val">{overview.totals.visitors.toLocaleString()}</span>
+              <span className="admin-pill-label">Views per user</span>
+              <span className="admin-pill-val">
+                {overview.totals.visitors > 0
+                  ? (overview.totals.pageviews / overview.totals.visitors).toFixed(1)
+                  : "—"}
+              </span>
             </div>
           </div>
-          <div
-            className="admin-summary-grid"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-          >
+
+          {isInternal && (
+            <p className="admin-hint" style={{ marginTop: -4 }}>
+              Vercel counts browsers, not verified logins: the same person on a phone and a laptop,
+              or across a long window, can count more than once. Read these as usage of each screen
+              rather than a headcount.
+            </p>
+          )}
+
+          <div className="admin-summary-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
             <div className="admin-card admin-chart-card">
               <div className="mp-kpi-label">Daily page views</div>
               <BarChart data={overview.daily} ariaLabel="Daily page views" />
@@ -82,15 +148,86 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             <div className="admin-card admin-chart-card">
               <div className="mp-kpi-label">Top referrers</div>
               <BarChart
-                data={overview.topReferrers}
+                data={toBars(overview.topReferrers)}
                 ariaLabel="Top referrers by page views"
-                emptyText="No referrer data yet."
+                emptyText={isInternal ? "Company OS is reached directly." : "No referrer data yet."}
               />
             </div>
           </div>
+
+          <div className="admin-card admin-section-card">
+            <div className="admin-card-title">
+              {isInternal ? "Most used screens" : "Top pages"}
+            </div>
+            <p className="admin-page-sub" style={{ marginTop: 4 }}>
+              {isInternal
+                ? "Ranked by how many people opened each screen, not how often. Adoption is a people question."
+                : "Ranked by page views."}{" "}
+              These {overview.topPages.length} rows cover{" "}
+              {overview.coverage.totalPageviews > 0
+                ? Math.round((overview.coverage.shownPageviews / overview.coverage.totalPageviews) * 100)
+                : 0}
+              % of {overview.coverage.totalPageviews.toLocaleString()} page views in this window.
+            </p>
+            <div className="admin-table-wrap" style={{ marginTop: 12 }}>
+              {overview.topPages.length === 0 ? (
+                <div className="admin-empty">No page data in this window.</div>
+              ) : (
+                <div className="admin-table-scroll">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>{isInternal ? "Screen" : "Page"}</th>
+                        <th style={{ textAlign: "right" }}>Unique users</th>
+                        <th style={{ textAlign: "right" }}>Page views</th>
+                        <th style={{ textAlign: "right" }}>Views each</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...overview.topPages]
+                        .sort((a, b) => b[pageMetric] - a[pageMetric])
+                        .map((row) => (
+                          <tr key={row.label}>
+                            <td className="admin-cell-strong">
+                              {isInternal ? prettyPath(row.label) : row.label}
+                              {isInternal && (
+                                <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+                                  {row.label}
+                                </div>
+                              )}
+                            </td>
+                            <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                              {row.visitors.toLocaleString()}
+                            </td>
+                            <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                              {row.pageviews.toLocaleString()}
+                            </td>
+                            <td className="admin-cell-mono" style={{ textAlign: "right" }}>
+                              {row.visitors > 0 ? (row.pageviews / row.visitors).toFixed(1) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="admin-card admin-chart-card">
-            <div className="mp-kpi-label">Top pages</div>
-            <BarChart data={overview.topPages} ariaLabel="Top pages by page views" stacked />
+            <div className="mp-kpi-label">
+              {isInternal ? "Screens by unique users" : "Pages by page views"}
+            </div>
+            <BarChart
+              data={toBars(
+                isInternal
+                  ? overview.topPages.map((row) => ({ ...row, label: prettyPath(row.label) }))
+                  : overview.topPages,
+                pageMetric,
+              )}
+              ariaLabel={isInternal ? "Screens by unique users" : "Pages by page views"}
+              stacked
+            />
           </div>
         </div>
       )}

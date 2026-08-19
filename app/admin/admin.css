@@ -1982,7 +1982,13 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   overflow: hidden;
   background: var(--admin-surface);
 }
-.admin-viewtoggle button {
+/* Anchors are styled alongside buttons so a URL-driven segmented control can be
+   a plain <Link> in a server component, instead of needing a client component
+   purely to get the right look. Same control, same rules, no JS. */
+.admin-viewtoggle button,
+.admin-viewtoggle a {
+  display: inline-flex;
+  align-items: center;
   min-height: 40px;
   padding: 8px 16px;
   font: inherit;
@@ -1992,11 +1998,16 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   background: transparent;
   border: 0;
   cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
   transition: background var(--transition), color var(--transition);
 }
-.admin-viewtoggle button + button { border-left: 1px solid var(--admin-line); }
-.admin-viewtoggle button:hover { color: var(--admin-ink); }
-.admin-viewtoggle button.is-active { background: var(--admin-accent); color: #fff; }
+.admin-viewtoggle button + button,
+.admin-viewtoggle a + a { border-left: 1px solid var(--admin-line); }
+.admin-viewtoggle button:hover,
+.admin-viewtoggle a:hover { color: var(--admin-ink); }
+.admin-viewtoggle button.is-active,
+.admin-viewtoggle a.is-active { background: var(--admin-accent); color: #fff; }
 
 /* ─── 360 detail layout + record lists ────────────── */
 /* Columns stretch to equal height rather than each stopping at its own

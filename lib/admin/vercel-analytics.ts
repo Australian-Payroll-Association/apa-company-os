@@ -4,6 +4,11 @@ const API_BASE = "https://api.vercel.com/v1/query/web-analytics";
 // Web Analytics was enabled on 2026-07-11 — there's no data before this date.
 const TRACKING_START = "2026-07-11T00:00:00.000Z";
 const TOP_N = 8;
+// Vercel ranks the top-N by VISITORS, but these charts plot pageviews. Asking
+// for a wider slice and re-ranking locally means the rows shown are actually the
+// top rows by the number printed next to them. Before this, /team (221 views)
+// rendered below /workflows (156) because /workflows had more visitors.
+const TOP_FETCH = 40;
 // Hard ceiling on any single Vercel Analytics call so a slow/hung upstream can
 // never gate a page render. The dashboard streams these tiles behind Suspense,
 // so on timeout the tile just shows "—" while the rest of the page is unaffected.
@@ -15,9 +20,27 @@ type AggregateResponse = { data: AggregateRow[] };
 
 export type AnalyticsBar = { label: string; value: number };
 
+// A path or referrer with both metrics kept, so a view can rank by pageviews
+// (volume) or by visitors (reach) without a second API call. Internal app usage
+// cares about visitors: "how many people opened this page" is the adoption
+// question, and one person refreshing a board all day is not ten people.
+export type AnalyticsRow = { label: string; pageviews: number; visitors: number };
+
 // Time windows offered on the Analytics page. "all" reaches back to when Web
 // Analytics was enabled; the rolling windows count back from now.
 export type AnalyticsRange = "all" | "7d" | "30d" | "90d";
+
+// Which half of the site to report on.
+//
+// "internal" is Company OS: the admin, the team portal, and the client portal,
+// all of which sit behind a login. "public" is everything else, which is the
+// marketing site. Splitting them matters because they answer different
+// questions and mixing them flatters one and buries the other: internal was
+// 51% of pageviews in the last 30 days, so counting it as "site traffic" on a
+// marketing page overstated audience by half.
+export type AnalyticsSegment = "all" | "public" | "internal";
+
+const INTERNAL_PREFIXES = ["/admin", "/team", "/portal"] as const;
 
 const ROLLING_DAYS: Record<Exclude<AnalyticsRange, "all">, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
@@ -30,8 +53,13 @@ const MAX_DAILY_DAYS = 61;
 export type AnalyticsOverview = {
   totals: { pageviews: number; visitors: number };
   daily: AnalyticsBar[];
-  topPages: AnalyticsBar[];
-  topReferrers: AnalyticsBar[];
+  topPages: AnalyticsRow[];
+  topReferrers: AnalyticsRow[];
+  // Pageviews represented by the rows above, against the segment total. The
+  // API's "Others" remainder is dropped rather than charted (it was 76% of the
+  // bar chart and squashed every real page), so this is how the page can still
+  // say honestly how much of the traffic the list covers.
+  coverage: { shownPageviews: number; totalPageviews: number };
 };
 
 export type AnalyticsResult = AnalyticsOverview | { error: string };
@@ -42,6 +70,22 @@ function sinceFor(range: AnalyticsRange): string {
   if (range === "all") return TRACKING_START;
   const rollingStart = Date.now() - ROLLING_DAYS[range] * 24 * 60 * 60 * 1000;
   return new Date(Math.max(rollingStart, Date.parse(TRACKING_START))).toISOString();
+}
+
+// The API takes an OData filter. startswith() is supported, which is what makes
+// a real split possible: unique visitors CANNOT be summed across per-path rows
+// (one person visiting /admin and /team is one visitor, two rows), so the only
+// correct way to count people in a segment is to ask the API with the segment
+// as a filter.
+export function segmentFilter(segment: AnalyticsSegment): string {
+  const base = "environment eq 'production'";
+  if (segment === "all") return base;
+  const paths = INTERNAL_PREFIXES.map((p) => `startswith(requestPath,'${p}')`).join(" or ");
+  return segment === "internal" ? `${base} and (${paths})` : `${base} and not (${paths})`;
+}
+
+export function isInternalPath(path: string): boolean {
+  return INTERNAL_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
 function buildUrl(path: string, params: Record<string, string>) {
@@ -69,20 +113,41 @@ function formatDay(timestamp?: string) {
   return new Date(timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// "Others" is not a page. It is the remainder bucket the API appends when a
+// limit is applied, holding every row outside the top-N, and it is routinely
+// larger than every real row combined. Charting it tells you nothing and hides
+// everything else, so it is dropped and accounted for via `coverage` instead.
+const REMAINDER_LABEL = "Others";
+
+function toRows(rows: AggregateRow[], key: string, fallbackLabel: string): AnalyticsRow[] {
+  return rows
+    .filter((row) => row[key] !== REMAINDER_LABEL)
+    .map((row) => ({
+      label: (row[key] as string) || fallbackLabel,
+      pageviews: row.pageviews,
+      visitors: row.visitors,
+    }))
+    .sort((a, b) => b.pageviews - a.pageviews)
+    .slice(0, TOP_N);
+}
+
+export function toBars(rows: AnalyticsRow[], metric: "pageviews" | "visitors" = "pageviews"): AnalyticsBar[] {
+  return rows.map((row) => ({ label: row.label, value: row[metric] }));
+}
+
 // Totals only — one API call, for the dashboard's two traffic tiles. The full
 // getAnalyticsOverview() (4 calls) is for the dedicated /operations/analytics page.
-export async function getAnalyticsTotals(): Promise<
-  { totals: { pageviews: number; visitors: number } } | { error: string }
-> {
+export async function getAnalyticsTotals(
+  segment: AnalyticsSegment = "all",
+): Promise<{ totals: { pageviews: number; visitors: number } } | { error: string }> {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
   if (!token) {
     return { error: "VERCEL_ANALYTICS_TOKEN is not set. Add it as a project environment variable to enable this page." };
   }
-  const filter = "environment eq 'production'";
   try {
     const count = await query<CountResponse>(
       "visits/count",
-      { since: TRACKING_START, until: new Date().toISOString(), filter },
+      { since: TRACKING_START, until: new Date().toISOString(), filter: segmentFilter(segment) },
       token,
     );
     return { totals: count.data };
@@ -91,7 +156,10 @@ export async function getAnalyticsTotals(): Promise<
   }
 }
 
-export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promise<AnalyticsResult> {
+export async function getAnalyticsOverview(
+  range: AnalyticsRange = "all",
+  segment: AnalyticsSegment = "all",
+): Promise<AnalyticsResult> {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
   if (!token) {
     return { error: "VERCEL_ANALYTICS_TOKEN is not set. Add it as a project environment variable to enable this page." };
@@ -104,7 +172,7 @@ export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promi
     Math.max(Date.parse(sinceStr), Date.now() - MAX_DAILY_DAYS * 24 * 60 * 60 * 1000),
   ).toISOString();
   const untilStr = new Date().toISOString();
-  const filter = "environment eq 'production'";
+  const filter = segmentFilter(segment);
 
   try {
     const [count, daily, pages, referrers] = await Promise.all([
@@ -116,27 +184,28 @@ export async function getAnalyticsOverview(range: AnalyticsRange = "all"): Promi
       ),
       query<AggregateResponse>(
         "visits/aggregate",
-        { since: sinceStr, until: untilStr, by: "requestPath", limit: String(TOP_N), filter },
+        { since: sinceStr, until: untilStr, by: "requestPath", limit: String(TOP_FETCH), filter },
         token,
       ),
       query<AggregateResponse>(
         "visits/aggregate",
-        { since: sinceStr, until: untilStr, by: "referrerHostname", limit: String(TOP_N), filter },
+        { since: sinceStr, until: untilStr, by: "referrerHostname", limit: String(TOP_FETCH), filter },
         token,
       ),
     ]);
 
+    const topPages = toRows(pages.data, "requestPath", "(unknown)");
+    const topReferrers = toRows(referrers.data, "referrerHostname", "Direct");
+
     return {
       totals: count.data,
       daily: daily.data.map((row) => ({ label: formatDay(row.timestamp), value: row.pageviews })),
-      topPages: pages.data.map((row) => ({
-        label: (row.requestPath as string) || "/",
-        value: row.pageviews,
-      })),
-      topReferrers: referrers.data.map((row) => ({
-        label: (row.referrerHostname as string) || "Direct",
-        value: row.pageviews,
-      })),
+      topPages,
+      topReferrers,
+      coverage: {
+        shownPageviews: topPages.reduce((sum, row) => sum + row.pageviews, 0),
+        totalPageviews: count.data.pageviews,
+      },
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to load Vercel Analytics data." };
