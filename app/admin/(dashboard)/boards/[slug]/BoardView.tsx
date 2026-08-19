@@ -84,7 +84,7 @@ export function BoardView({
   viewerPersonId?: string | null;
 }) {
   const router = useRouter();
-  const { board, columns, members, cards: sourceCards, sprints, backlogItems, archivedCards } = detail;
+  const { board, columns, members, cards: sourceCards, sprints, backlogItems, backlogGroups, archivedCards } = detail;
   const slug = board.slug;
   const isClientBoard = board.client_company_id != null;
 
@@ -675,11 +675,34 @@ export function BoardView({
                   onChange={(e) => setForm({ ...form, roadmapItemId: e.target.value })}
                 >
                   <option value="">Not linked</option>
-                  {backlogItems.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.title}
-                    </option>
-                  ))}
+                  {backlogGroups.map((g) => {
+                    const items = backlogItems.filter((b) => b.group_key === g.key);
+                    if (!items.length) return null;
+                    return (
+                      <optgroup key={g.key} label={g.label}>
+                        {items.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                  {(() => {
+                    // Items whose group is archived or missing still need to be linkable.
+                    const known = new Set(backlogGroups.map((g) => g.key));
+                    const rest = backlogItems.filter((b) => !b.group_key || !known.has(b.group_key));
+                    if (!rest.length) return null;
+                    return (
+                      <optgroup label="Other">
+                        {rest.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })()}
                 </select>
               </div>
             )}

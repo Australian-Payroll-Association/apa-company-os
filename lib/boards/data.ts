@@ -27,7 +27,9 @@ export type BoardListItem = BoardRow & {
 };
 
 export type BoardPerson = { id: string; name: string };
-export type BacklogRef = { id: string; title: string };
+export type BacklogRef = { id: string; title: string; group_key: string | null };
+// Roadmap milestones (client_roadmap_groups) for grouping the link picker.
+export type BacklogGroupRef = { key: string; label: string };
 
 export type Subtask = { id: string; title: string; done: boolean };
 export type TaskComment = { id: string; author: string; body: string; createdAt: string };
@@ -55,6 +57,7 @@ export type BoardDetail = {
   sprints: SprintRow[];
   cards: BoardCard[];
   backlogItems: BacklogRef[]; // client board's roadmap items, for the link picker
+  backlogGroups: BacklogGroupRef[]; // the client's milestones, in roadmap order
   archivedCards: ArchivedCard[]; // for the "Archived" view + restore
 };
 
@@ -247,7 +250,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   // ~5 serial round trips, so a phone opening its daily board (this function is
   // reused by /admin, /team, and /portal) paid that latency stacked on a
   // force-dynamic page. Empty-id cases resolve to an empty result without a query.
-  const [peopleRes, commitmentsRes, backlogLabelRes, clientCoRes, clientBacklogRes, logsRes, commentsRes] =
+  const [peopleRes, commitmentsRes, backlogLabelRes, clientCoRes, clientBacklogRes, roadmapGroupsRes, logsRes, commentsRes] =
     await Promise.all([
       personIds.length
         ? companyOs.from("people").select("id, display_name, full_name, email").in("id", personIds)
@@ -264,11 +267,19 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
       board.client_company_id
         ? companyOs
             .from("client_backlog_items")
-            .select("id, title")
+            .select("id, title, group_key")
             .eq("company_id", board.client_company_id)
             .is("archived_at", null)
             .order("sort_order")
         : Promise.resolve({ data: [] as BacklogRef[] }),
+      board.client_company_id
+        ? companyOs
+            .from("client_roadmap_groups")
+            .select("key, step_label, title, sort_order")
+            .eq("company_id", board.client_company_id)
+            .is("archived_at", null)
+            .order("sort_order")
+        : Promise.resolve({ data: [] as { key: string; step_label: string | null; title: string }[] }),
       taskIds.length
         ? companyOs
             .from("task_stage_log")
@@ -294,6 +305,9 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
 
   const client_name = (clientCoRes.data as { name: string } | null)?.name ?? null;
   const backlogItems = (clientBacklogRes.data ?? []) as BacklogRef[];
+  const backlogGroups: BacklogGroupRef[] = (
+    (roadmapGroupsRes.data ?? []) as { key: string; step_label: string | null; title: string }[]
+  ).map((g) => ({ key: g.key, label: g.step_label ? `${g.step_label} · ${g.title}` : g.title }));
 
   // Latest column-move per card, for the days-in-column clock.
   const lastMove = new Map<string, string>();
@@ -355,5 +369,5 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     archivedBy: a.archived_by,
   }));
 
-  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems, archivedCards };
+  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems, backlogGroups, archivedCards };
 }

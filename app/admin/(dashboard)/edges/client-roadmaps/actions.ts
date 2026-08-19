@@ -335,7 +335,7 @@ export async function restoreRoadmapGroup(id: string): Promise<Result> {
   return { ok: true };
 }
 
-// Seed the classic Edge8 5-step layout for a client. Skips any key the company
+// Seed the classic Edge8 5-milestone layout for a client. Skips any key the company
 // already has (including archived ones), so it is safe to run on a partly
 // built roadmap.
 export async function seedTemplateGroups(companyId: string): Promise<Result> {

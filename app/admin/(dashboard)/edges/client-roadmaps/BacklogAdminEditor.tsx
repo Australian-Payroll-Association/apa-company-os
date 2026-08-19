@@ -283,7 +283,7 @@ export function BacklogAdminEditor({
           <input autoFocus value={d.title} onChange={(e) => setG({ title: e.target.value })} placeholder="e.g. Chatbot on payrolliq" />
         </div>
         <div>
-          <label>Step label (optional chip, e.g. Step 1, Anytime)</label>
+          <label>Milestone label (optional chip, e.g. Milestone 1, Anytime)</label>
           <input value={d.step_label} onChange={(e) => setG({ step_label: e.target.value })} />
         </div>
         <div className="full">
@@ -410,8 +410,8 @@ export function BacklogAdminEditor({
       {groups.length === 0 ? (
         <div className="cbe-empty">
           <p>
-            No roadmap yet. A roadmap is a set of groups you define for this client:
-            start from a blank group, or seed the standard Edge8 5-step layout and
+            No roadmap yet. A roadmap is a set of milestones you define for this client:
+            start from a blank one, or seed the standard Edge8 5-milestone layout and
             shape it from there.
           </p>
           {newGroupOpen ? (

@@ -4,9 +4,10 @@
 // admin edits it via Edges > Client Roadmaps, the client re-prioritises and
 // proposes items in the portal.
 //
-// Groups are per-company rows in company_os.client_roadmap_groups: every client
-// roadmap defines its own sections (step label, title, intro, order). The old
-// hardcoded 5-step layout survives only as ROADMAP_TEMPLATE, an optional seed.
+// Groups (milestones in the UI) are per-company rows in
+// company_os.client_roadmap_groups: every client roadmap defines its own
+// sections (milestone label, title, intro, order). The old hardcoded 5-milestone
+// layout survives only as ROADMAP_TEMPLATE, an optional seed.
 
 export const BACKLOG_PRIORITIES = ["now", "next", "later", "park"] as const;
 export type BacklogPriority = (typeof BACKLOG_PRIORITIES)[number];
@@ -38,7 +39,7 @@ export type RoadmapGroup = {
 export const ROADMAP_GROUPS_SELECT =
   "id, company_id, key, step_label, title, intro, sort_order, archived_at";
 
-// The classic Edge8 5-step roadmap, offered as a one-click starting point for a
+// The classic Edge8 5-milestone roadmap, offered as a one-click starting point for a
 // new client. Not a constraint: any group can be renamed or archived after
 // seeding, and roadmaps can be built from scratch without it.
 export const ROADMAP_TEMPLATE: Array<
@@ -46,14 +47,14 @@ export const ROADMAP_TEMPLATE: Array<
 > = [
   {
     key: "foundation",
-    step_label: "Step 1",
+    step_label: "Milestone 1",
     title: "Data Foundation: one-way syncs into the central database",
     intro:
       "Read-only, masked-in-transit syncs from each source system into the central database. Every report and automation depends on one or more of these.",
   },
   {
     key: "reports",
-    step_label: "Step 1",
+    step_label: "Milestone 1",
     title: "Reports on demand: built once, refreshed from the database",
     intro:
       "Each replaces a manual compile-and-email routine with a report that refreshes itself from the central database, plus AI-written commentary.",
@@ -67,10 +68,10 @@ export const ROADMAP_TEMPLATE: Array<
   },
   {
     key: "automation",
-    step_label: "Step 2",
+    step_label: "Milestone 2",
     title: "Cross-system automation: needs two-way sync",
     intro:
-      "These write back into source systems, so they follow Step 1 and per-system API research. Chosen together once the foundation is live.",
+      "These write back into source systems, so they follow Milestone 1 and per-system API research. Chosen together once the foundation is live.",
   },
   {
     key: "north",
