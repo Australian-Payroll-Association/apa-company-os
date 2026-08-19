@@ -25,7 +25,7 @@ export default async function MyCoachingPage({ searchParams }: { searchParams?: 
     Promise.all(my.checkins.map((c) => coachingMarkdownToHtml(c.messageMarkdown))),
   ]);
 
-  const recaps = my.recaps.map((r, i) => ({ id: r.id, heldOn: r.heldOn, html: recapsHtml[i] }));
+  const recaps = my.recaps.map((r, i) => ({ id: r.id, heldOn: r.heldOn, html: recapsHtml[i], agenda: r.agenda }));
   const checkins = my.checkins.map((c, i) => ({
     id: c.id,
     sentAt: c.sentAt,

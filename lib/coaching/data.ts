@@ -1547,6 +1547,11 @@ export type MemberRecap = {
   heldOn: string;
   sharedSummaryMarkdown: string;
   sharedPublishedAt: string;
+  // The member's agenda going into THIS 1-1: talking points that existed and
+  // were still open when the meeting was held. Reconstructed from
+  // created_at/addressed_at, so a point carried across meetings appears under
+  // each meeting it was open for.
+  agenda: string[];
 };
 
 export type MyCoaching = {
@@ -1609,11 +1614,12 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       .eq("coaching_profile_id", profileId)
       .order("sort_order")
       .order("created_at", { ascending: false }),
+    // All points, addressed included: the open ones are the live agenda, and
+    // the full set reconstructs each past meeting's agenda for the History tab.
     companyOs
       .from("coaching_talking_points")
       .select(TALKING_POINT_SELECT)
       .eq("coaching_profile_id", profileId)
-      .is("addressed_at", null)
       .order("created_at", { ascending: true }),
     companyOs
       .from("coaching_checkins")
@@ -1646,6 +1652,23 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
   const myGoalRows = ((goals.data ?? []) as unknown as Record<string, unknown>[]).map((g) => toGoal(g, edges));
   const myGoalComments = await getGoalComments(myGoalRows.map((g) => g.id));
 
+  const allPoints = ((talkingPoints.data ?? []) as unknown as Record<string, unknown>[]).map(toTalkingPoint);
+  // The agenda going into a meeting held on day D (Saigon dates, UTC+7): points
+  // raised before D ended and still open when D started. A point carried across
+  // meetings was on each of those agendas, so it repeats; addressed_at is only
+  // ever set around the meeting that covered it.
+  const agendaFor = (heldOn: string): string[] => {
+    const dayStart = Date.parse(`${heldOn}T00:00:00+07:00`);
+    const dayEnd = Date.parse(`${heldOn}T23:59:59+07:00`);
+    return allPoints
+      .filter(
+        (t) =>
+          Date.parse(t.createdAt) <= dayEnd &&
+          (t.addressedAt === null || Date.parse(t.addressedAt) >= dayStart),
+      )
+      .map((t) => t.body);
+  };
+
   return {
     profileId,
     coachName: coachPerson ? displayName(coachPerson) : null,
@@ -1655,7 +1678,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
     cadenceDays: (p.cadence_days as number) ?? 14,
     nextOneOnOneOn: (p.next_one_on_one_on as string | null) ?? null,
     commitments: ((commitments.data ?? []) as unknown as Record<string, unknown>[]).map(toCommitment),
-    talkingPoints: ((talkingPoints.data ?? []) as unknown as Record<string, unknown>[]).map(toTalkingPoint),
+    talkingPoints: allPoints.filter((t) => t.addressedAt === null),
     recaps: ((recaps.data ?? []) as unknown as Record<string, unknown>[])
       .filter((r) => (r.shared_summary_markdown as string | null)?.trim())
       .map((r) => ({
@@ -1663,6 +1686,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
         heldOn: r.held_on as string,
         sharedSummaryMarkdown: r.shared_summary_markdown as string,
         sharedPublishedAt: r.shared_published_at as string,
+        agenda: agendaFor(r.held_on as string),
       })),
     checkins: ((checkins.data ?? []) as unknown as Record<string, unknown>[]).map((c) => ({
       id: c.id as string,

@@ -12,7 +12,7 @@ import { GoalComments } from "./GoalComments";
 // section (personal growth, not a scorecard), and Goals are framed as the path
 // to promotion.
 
-type RecapView = { id: string; heldOn: string; html: string };
+type RecapView = { id: string; heldOn: string; html: string; agenda: string[] };
 type CheckinView = { id: string; sentAt: string; respondedAt: string | null; html: string };
 
 const MY_TABS = [
@@ -236,6 +236,16 @@ export function MyCoachingView({
                   <summary>
                     <strong>{fmt(r.heldOn)}</strong>
                   </summary>
+                  {r.agenda.length > 0 && (
+                    <div className="coach-block">
+                      <span className="admin-eyebrow">Your agenda for this 1-1</span>
+                      <ul className="mycoach-priorities">
+                        {r.agenda.map((body, j) => (
+                          <li key={j}>{body}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <div className="idea-plan" dangerouslySetInnerHTML={{ __html: r.html }} />
                 </details>
               ))}
