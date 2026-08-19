@@ -17,6 +17,13 @@ export const metadata: Metadata = {
 const ITEMS: LibraryItem[] = [
   {
     category: 'data',
+    href: '/workflows/private/e8/talent-edge-acceptance-reports-2026.html',
+    title: 'Talent Edge: Monthly Acceptance Reports 2026',
+    description:
+      'Month-by-month acceptance of work items for Talent Edge LLC, January to August 2026: ThoughtFlow, Travel Buddy, and Edge8 website engineering, with amounts accepted per item.',
+  },
+  {
+    category: 'data',
     href: '/workflows/private/e8/company-os-schema.html',
     title: 'Company OS: Database Schema',
     description:
