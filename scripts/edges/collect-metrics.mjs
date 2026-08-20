@@ -5,6 +5,7 @@
 // Numbers without an exact source are left alone (they stay manual on the
 // Metrics page, labeled honestly).
 // Run from the repo root: node scripts/edges/collect-metrics.mjs
+import { readFileSync } from 'node:fs';
 import { sql } from '../crm/db.mjs';
 
 const now = new Date();
@@ -13,6 +14,32 @@ const monday = new Date(now);
 monday.setDate(now.getDate() - day);
 const WEEK = monday.toISOString().slice(0, 10);
 const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+
+const DAVE_PERSON_ID = 'a8bf026f-8c20-49c5-8a55-6fc5c580af64';
+
+// ── Year-goal metrics this collector owns. Cumulative year-to-date numbers
+// measured against an annual target, so the two-week issue watcher skips them
+// (being under an annual target mid-year is the expected shape, not a miss).
+const YEAR_GOALS = [
+  {
+    name: 'Keynote attendees',
+    office: 'revenue',
+    formula: 'Year-to-date attendees across live events (company_os.workshop_attendees_total, same number as the edge8.ai homepage)',
+    target: 1000,
+  },
+  {
+    name: 'Documented workflows',
+    office: 'innovation',
+    formula: 'Count of published workflows in lib/workflowsData.ts (the edge8.ai/workflows directory)',
+    target: 100,
+  },
+];
+const YEAR_GOAL_NAMES = new Set(YEAR_GOALS.map((g) => g.name));
+for (const g of YEAR_GOALS) {
+  await sql`insert into company_os.metrics (name, office, formula, target, direction, source, source_detail, owner_person_id, owner_agent)
+    values (${g.name}, ${g.office}, ${g.formula}, ${g.target}, 'up', 'agent', 'edges Monday collector (collect-metrics.mjs)', ${DAVE_PERSON_ID}, 'devops-agent')
+    on conflict (name) do update set updated_at = now()`;
+}
 
 // ── Collectors, keyed by metrics.name. Each returns a number or null (skip). ──
 const collectors = {
@@ -27,6 +54,14 @@ const collectors = {
     const weeksElapsed = Math.max(1, Math.ceil(((now - quarterStart) / 86400000 + 1) / 7));
     if (r.n === 0) return null; // packet generation not live yet; skip rather than report 0
     return Math.round((r.n / weeksElapsed) * 100);
+  },
+  'Keynote attendees': async () => {
+    const [r] = await sql`select company_os.workshop_attendees_total(${now.getFullYear()}) as n`;
+    return r.n;
+  },
+  'Documented workflows': async () => {
+    const src = readFileSync(new URL('../../lib/workflowsData.ts', import.meta.url), 'utf8');
+    return (src.match(/slug: '/g) || []).length;
   },
   // Published pieces has no reliable source yet: blog frontmatter dates are
   // year-only strings. It stays manual until the site exposes real dates.
@@ -57,6 +92,7 @@ for (const m of metrics) {
 const filed = [];
 for (const m of metrics) {
   if (m.target == null) continue;
+  if (YEAR_GOAL_NAMES.has(m.name)) continue; // annual targets: under mid-year is not a miss
   const readings = await sql`select value from company_os.metric_readings
     where metric_id = ${m.id} order by week_start desc limit 2`;
   if (readings.length < 2) continue;

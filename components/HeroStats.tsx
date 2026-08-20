@@ -10,7 +10,7 @@ const STATS = [
   {
     target: allWorkflows.length,
     label: 'Documented Workflows',
-    sub: 'live AI workflows running our business, step by step',
+    sub: 'live AI workflows running our business, on the road to 100 in 2026',
     href: '/workflows',
   },
   {
