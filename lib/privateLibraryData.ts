@@ -180,6 +180,13 @@ export const aioPrivateItems: LibraryItem[] = [
       'Bring a challenge, get coached. The weekly live-coaching experience: an Upcoming view, submitted-challenge voting (max 8 topics per session), and a recorded-session archive with attendees, key learnings, video, and resources. Mirrors caiocoach.com/coaching.',
   },
   {
+    category: 'prototype',
+    href: '/workflows/private/ai-officer-institute/coaching-redesign.html',
+    title: 'Coaching Redesign',
+    description:
+      'A redesign of the Open Coaching prototype: the weekly live session (Thursdays, 11:00 GMT+7). Sign up, optionally submit a coaching topic for the group to vote on, and browse the recorded-session archive.',
+  },
+  {
     category: 'data',
     href: '/workflows/private/ai-officer-institute/aiolabz-db-schema.html',
     title: 'AIO Labz: Database Schema',
