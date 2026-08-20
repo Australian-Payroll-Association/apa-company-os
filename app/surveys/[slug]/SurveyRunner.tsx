@@ -114,17 +114,31 @@ export function SurveyRunner({
     setError(null);
     setUploads((u) => ({ ...u, [f.id]: { status: "uploading", name: file.name } }));
     try {
-      const fd = new FormData();
-      fd.append("field_id", f.id);
-      fd.append("file", file);
-      const res = await fetch(`/api/surveys/${slug}/upload`, { method: "POST", body: fd });
+      // Ask the API for a signed upload URL, then PUT the file straight to
+      // Supabase Storage. Posting the file through the API dies on Vercel's
+      // ~4.5 MB request body cap (a 413 before our code runs), which is well
+      // under the 10 MB this form promises.
+      const res = await fetch(`/api/surveys/${slug}/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field_id: f.id, file_type: file.type, file_size: file.size }),
+      });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.path) {
+      if (!res.ok || !body.url || !body.path) {
         setUploads((u) => ({ ...u, [f.id]: { status: "error", error: body.error ?? "Upload failed." } }));
         return;
       }
+      const put = await fetch(body.url as string, {
+        method: "PUT",
+        headers: { "Content-Type": file.type, "x-upsert": "false" },
+        body: file,
+      });
+      if (!put.ok) {
+        setUploads((u) => ({ ...u, [f.id]: { status: "error", error: "Upload failed. Try again." } }));
+        return;
+      }
       setAnswers((a) => ({ ...a, [f.id]: body.path as string }));
-      setUploads((u) => ({ ...u, [f.id]: { status: "done", name: (body.name as string) ?? file.name } }));
+      setUploads((u) => ({ ...u, [f.id]: { status: "done", name: file.name } }));
     } catch {
       setUploads((u) => ({ ...u, [f.id]: { status: "error", error: "Upload failed. Try again." } }));
     }
