@@ -5,7 +5,6 @@
 // Numbers without an exact source are left alone (they stay manual on the
 // Metrics page, labeled honestly).
 // Run from the repo root: node scripts/edges/collect-metrics.mjs
-import { readFileSync } from 'node:fs';
 import { sql } from '../crm/db.mjs';
 
 const now = new Date();
@@ -30,7 +29,7 @@ const YEAR_GOALS = [
   {
     name: 'Documented workflows',
     office: 'innovation',
-    formula: 'Count of published workflows in lib/workflowsData.ts (the edge8.ai/workflows directory)',
+    formula: 'Public /workflows directory + private library workflow entries (all brands) + docs published to Storage, as computed by edge8.ai/api/stats',
     target: 100,
   },
 ];
@@ -38,7 +37,7 @@ const YEAR_GOAL_NAMES = new Set(YEAR_GOALS.map((g) => g.name));
 for (const g of YEAR_GOALS) {
   await sql`insert into company_os.metrics (name, office, formula, target, direction, source, source_detail, owner_person_id, owner_agent)
     values (${g.name}, ${g.office}, ${g.formula}, ${g.target}, 'up', 'agent', 'edges Monday collector (collect-metrics.mjs)', ${DAVE_PERSON_ID}, 'devops-agent')
-    on conflict (name) do update set updated_at = now()`;
+    on conflict (name) do update set formula = excluded.formula, target = excluded.target, updated_at = now()`;
 }
 
 // ── Collectors, keyed by metrics.name. Each returns a number or null (skip). ──
@@ -60,8 +59,14 @@ const collectors = {
     return r.n;
   },
   'Documented workflows': async () => {
-    const src = readFileSync(new URL('../../lib/workflowsData.ts', import.meta.url), 'utf8');
-    return (src.match(/slug: '/g) || []).length;
+    // The site computes this (public directory + private library + Storage
+    // docs); asking it keeps one source of truth. Null on failure = skip week.
+    const res = await fetch('https://www.edge8.ai/api/stats').catch(() => null);
+    if (!res?.ok) return null;
+    const d = await res.json();
+    return typeof d.documentedWorkflows === 'number' && d.documentedWorkflows > 0
+      ? d.documentedWorkflows
+      : null;
   },
   // Published pieces has no reliable source yet: blog frontmatter dates are
   // year-only strings. It stays manual until the site exposes real dates.

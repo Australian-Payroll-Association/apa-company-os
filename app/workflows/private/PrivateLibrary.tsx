@@ -3,14 +3,9 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
-export type LibraryCategory = 'plan' | 'workflow' | 'prototype' | 'data'
+import type { LibraryCategory, LibraryItem } from '@/lib/privateLibraryData'
 
-export type LibraryItem = {
-  href: string
-  title: string
-  description: string
-  category: LibraryCategory
-}
+export type { LibraryCategory, LibraryItem }
 
 const TABS: { key: LibraryCategory; label: string }[] = [
   { key: 'plan', label: 'Plans' },

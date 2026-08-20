@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import PrivateGate from '../PrivateGate'
 import PrivateLibrary, { type LibraryItem } from '../PrivateLibrary'
+import { e8PrivateItems } from '@/lib/privateLibraryData'
 import { listDocs } from '@/lib/docs'
 
 // Published documents are read from Storage at request time, so adding one
@@ -14,102 +15,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-const ITEMS: LibraryItem[] = [
-  {
-    category: 'data',
-    href: '/workflows/private/e8/talent-edge-acceptance-reports-2026.html',
-    title: 'Talent Edge: Monthly Acceptance Reports 2026',
-    description:
-      'Month-by-month acceptance of work items for Talent Edge LLC, January to August 2026: ThoughtFlow, Travel Buddy, and Edge8 website engineering, with amounts accepted per item.',
-  },
-  {
-    category: 'data',
-    href: '/workflows/private/e8/company-os-schema.html',
-    title: 'Company OS: Database Schema',
-    description:
-      'Indexed, zoomable map of the Company OS database: 115 tables across the people spine and the Four Offices, with every column, key, and relationship.',
-  },
-  {
-    category: 'data',
-    href: '/workflows/private/e8/eo-vietnam-regional-vs-global.html',
-    title: 'EO Vietnam: Regional vs Global',
-    description:
-      'Feature-by-feature comparison of the EO Vietnam Regional and Global HubSpot portals: deal and ticket pipelines, dashboards, and workflows, with expandable detail for each.',
-  },
-  {
-    category: 'plan',
-    href: '/workflows/private/e8/eight-edges-product-doc.html',
-    title: '8 Edges: Product Doc',
-    description:
-      'The Edge8 operating system for strategy to execution, 50% human and 50% AI: eight layers, the Company to Office to Executor cascade, casting, and the research it is built on.',
-  },
-  {
-    category: 'prototype',
-    href: '/workflows/private/e8/eight-edges-prototype.html',
-    title: '8 Edges: Prototype',
-    description:
-      'Interactive mock of the 8 Edges screen: goal cascade for both business lines, casting mix, agent-pulled metrics, auto-filed issues, sync packet, and reviews.',
-  },
-  {
-    category: 'plan',
-    href: '/workflows/private/e8/equipment-register',
-    title: 'Equipment Register: 5Ds Brief',
-    description:
-      'Problem, data, workflow, ROI, and the deployment and training plan for tracking company laptops, monitors and accessories in the Company OS.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/team-onboarding',
-    title: 'Team Onboarding',
-    description: 'Onboarding deck for new Edge8 AI team members.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/private-retreats',
-    title: 'Private Retreats Training Guide',
-    description: 'Internal training guide for hosting a private retreat guest end to end.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/staffing-contract-renewal',
-    title: 'Staffing Contract Renewal',
-    description:
-      'How a staffing contract renews: the renewal calendar, the CRM deal conventions (type, categories, renewal chain), the agreement draft, and the close-out.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/accounting-training',
-    title: 'Accounting Training Guide',
-    description: 'Internal training guide for the Edge8 monthly accounting close.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/ai-retreat-work-healthy',
-    title: 'AI Retreat Week Brief: Work Healthy Australia',
-    description:
-      'Week brief for Dr James Murray: goal, survey results, and the OccuSpan workflows for the 4-day AI Retreat.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/ai-retreat-austpayroll',
-    title: 'AI Retreat Week Brief: Australian Payroll Association',
-    description:
-      'Week brief for Tracy Angwin: goal, survey results, and the adaptive payroll training workflows for the 4-day AI Retreat.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/infinite-leverage-stack-governance.html',
-    title: 'Infinite Leverage Stack: Management and Testing',
-    description:
-      'How the setup skill and prompt are owned, versioned, and released: the one product repo, the release train, and the two testing channels (engineer onboardings and the crash rig) that feed one improvement loop.',
-  },
-  {
-    category: 'workflow',
-    href: '/workflows/private/e8/vung-tau-leg.html',
-    title: 'Bánh Mì Ballers: Saigon + Vung Tau Leg',
-    description: 'Itinerary for the Saigon and Vung Tau leg.',
-  },
-]
 
 export default async function E8PrivateWorkflowsIndexPage() {
   // Documents published via scripts/docs/publish.mjs, listed alongside the
@@ -122,7 +27,7 @@ export default async function E8PrivateWorkflowsIndexPage() {
       ? `Published document, updated ${new Date(doc.publishedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.`
       : 'Published document.',
   }))
-  const items = [...published, ...ITEMS]
+  const items = [...published, ...e8PrivateItems]
 
   return (
     <PrivateGate>

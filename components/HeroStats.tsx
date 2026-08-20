@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { allWorkflows } from '@/lib/workflowsData'
 
 const ATTENDEES_FALLBACK = 645
+const WORKFLOWS_FALLBACK = allWorkflows.length
 
 const STATS = [
   {
-    target: allWorkflows.length,
+    target: WORKFLOWS_FALLBACK,
     label: 'Documented Workflows',
-    sub: 'live AI workflows running our business, on the road to 100 in 2026',
+    sub: 'AI workflows documented for our business and our clients, on the road to 100 in 2026',
     href: '/workflows',
   },
   {
@@ -36,6 +37,7 @@ export default function HeroStats() {
   const [counts, setCounts] = useState(STATS.map(() => 0))
   const [visible, setVisible] = useState(false)
   const [attendees, setAttendees] = useState(ATTENDEES_FALLBACK)
+  const [workflows, setWorkflows] = useState(WORKFLOWS_FALLBACK)
   const countsRef = useRef(counts)
   countsRef.current = counts
   const ref = useRef<HTMLDivElement>(null)
@@ -46,6 +48,9 @@ export default function HeroStats() {
       .then(d => {
         if (typeof d?.workshopAttendees === 'number' && d.workshopAttendees > 0) {
           setAttendees(d.workshopAttendees)
+        }
+        if (typeof d?.documentedWorkflows === 'number' && d.documentedWorkflows > 0) {
+          setWorkflows(d.documentedWorkflows)
         }
       })
       .catch(() => {})
@@ -62,7 +67,7 @@ export default function HeroStats() {
 
   useEffect(() => {
     if (!visible) return
-    const targets = STATS.map((s, i) => (i === 3 ? attendees : s.target))
+    const targets = STATS.map((s, i) => (i === 0 ? workflows : i === 3 ? attendees : s.target))
     const from = countsRef.current
     const duration = 1800
     const start = Date.now()
@@ -75,7 +80,7 @@ export default function HeroStats() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [visible, attendees])
+  }, [visible, attendees, workflows])
 
   return (
     <section className="hero-stats" aria-label="Edge8 program results to date" ref={ref}>
