@@ -49,6 +49,13 @@ export const e8PrivateItems: LibraryItem[] = [
       'Interactive mock of the 8 Edges screen: goal cascade for both business lines, casting mix, agent-pulled metrics, auto-filed issues, sync packet, and reviews.',
   },
   {
+    category: 'prototype',
+    href: '/workflows/private/e8/edge8-video-brand-kit.html',
+    title: '8 Edges: Video Brand Kit',
+    description:
+      'Brand kit for the 8 Edges demo video series: interactive previews of the title card, end card, caption style, and thumbnail across all 17 episodes, with specs, brand rules, and ffmpeg handoff. Tokens pulled from the live edge8.ai site.',
+  },
+  {
     category: 'plan',
     href: '/workflows/private/e8/equipment-register',
     title: 'Equipment Register: 5Ds Brief',

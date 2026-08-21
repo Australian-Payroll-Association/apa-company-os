@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8 Edges Demo Video Series · Brand Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* extracted from live edge8.ai CSS */
+  --dark:#101014;
+  --dark-card:#1a1a1f;
+  --blue:#287be8;
+  --blue-bright:#3b8cf5;
+  --mint:#6ff2c1;
+  --white:#ffffff;
+  --tint:#eaeef2;
+  --tint-deep:#d4dae4;
+  --body-text:#797c82;
+  --card-border:#e6e6e6;
+  --grey-mid:#6b7280;
+
+  --font-display:"Manrope","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--tint);color:var(--dark);
+  font-family:var(--font-display);font-size:15px;line-height:1.55;
+  padding:0 0 96px;
+}
+a{color:var(--blue)}
+
+/* ---------- page chrome ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+header.doc{background:var(--dark);color:var(--white);padding:56px 0 48px;margin-bottom:40px}
+.eyebrow{
+  font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--mint);margin:0 0 14px
+}
+header.doc h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
+header.doc p{color:rgba(234,238,242,.72);max-width:62ch;margin:0;font-size:16px}
+.meta{display:flex;flex-wrap:wrap;gap:32px;margin-top:32px}
+.meta div{font-size:13px}
+.meta dt{color:var(--mint);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px}
+.meta dd{margin:0;color:rgba(234,238,242,.85)}
+
+section.block{background:var(--white);border:1px solid var(--card-border);border-radius:10px;padding:32px;margin-bottom:28px}
+section.block > .num{
+  font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--blue);margin:0 0 10px
+}
+section.block h2{font-size:26px;font-weight:800;letter-spacing:-.015em;margin:0 0 8px}
+section.block > p.lede{color:var(--body-text);margin:0 0 24px;max-width:70ch}
+
+/* ---------- controls ---------- */
+.controls{
+  position:sticky;top:0;z-index:50;background:var(--dark);
+  border-bottom:1px solid rgba(234,238,242,.12);
+  padding:12px 0;margin-bottom:32px
+}
+.controls .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.controls label{
+  color:var(--mint);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase
+}
+select{
+  font-family:var(--font-display);font-size:14px;font-weight:600;
+  background:var(--dark-card);color:var(--white);
+  border:1px solid rgba(234,238,242,.25);border-radius:6px;
+  padding:8px 12px;min-width:280px;cursor:pointer
+}
+select:focus-visible,button:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.zoomrow{display:flex;align-items:center;gap:8px;margin-left:auto}
+.zoomrow button{
+  font-family:var(--font-display);font-size:13px;font-weight:700;
+  background:transparent;color:var(--white);
+  border:1px solid rgba(234,238,242,.25);border-radius:6px;
+  padding:7px 12px;cursor:pointer
+}
+.zoomrow button[aria-pressed="true"]{background:var(--mint);color:var(--dark);border-color:var(--mint)}
+
+/* ---------- canvas stage ---------- */
+.stage{
+  background:var(--tint-deep);border-radius:8px;padding:20px;
+  overflow:auto;display:flex;justify-content:center
+}
+.canvas{transform-origin:top left;flex:0 0 auto}
+.dims{
+  font-family:var(--font-mono);font-size:11px;color:var(--grey-mid);
+  margin:10px 0 0;text-align:center
+}
+
+/* ================================================================
+   TITLE CARD  1920 x 1080
+   ================================================================ */
+.card16{
+  width:1920px;height:1080px;background:var(--dark);
+  position:relative;overflow:hidden;
+  font-family:var(--font-display);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 160px
+}
+.card16 .arc{
+  font-size:26px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--mint);margin:0 0 36px
+}
+.card16 .epno{
+  font-size:88px;font-weight:800;letter-spacing:-.01em;color:var(--mint);
+  line-height:1;margin:0 0 18px
+}
+.card16 .eptitle{
+  font-size:112px;font-weight:800;letter-spacing:-.025em;color:var(--white);
+  line-height:1.02;margin:0;max-width:1400px
+}
+.card16 .brandmark{
+  position:absolute;left:160px;bottom:132px;
+  display:flex;align-items:center;gap:14px;
+  font-size:30px;font-weight:700;color:rgba(255,255,255,.62)
+}
+.card16 .brandmark .dot{width:13px;height:13px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+
+/* 17-segment series rail: encodes position in the run */
+.rail{
+  position:absolute;left:160px;right:160px;bottom:80px;
+  display:flex;gap:6px;height:5px
+}
+.rail i{flex:1;background:rgba(255,255,255,.16);border-radius:3px}
+.rail i.on{background:var(--mint)}
+.rail i.done{background:rgba(111,242,193,.42)}
+
+/* ---------- END CARD ---------- */
+.endcard{justify-content:center}
+.endcard .line{
+  font-size:104px;font-weight:800;letter-spacing:-.025em;color:var(--white);
+  line-height:1.04;margin:0 0 32px;max-width:1360px
+}
+.endcard .cta{
+  font-size:42px;font-weight:700;color:var(--mint);margin:0 0 12px
+}
+.endcard .sub{
+  font-size:34px;font-weight:500;color:rgba(255,255,255,.55);margin:0
+}
+
+/* ---------- CAPTION FRAME ---------- */
+.capframe{
+  width:1920px;height:1080px;position:relative;overflow:hidden;
+  background:var(--tint);font-family:var(--font-display)
+}
+/* stand-in for the recorded product frame */
+.capframe .uimock{position:absolute;inset:0;background:var(--tint);padding:64px 80px}
+.uimock .bar{height:56px;background:var(--dark);border-radius:8px;margin-bottom:28px;opacity:.9}
+.uimock .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-bottom:28px}
+.uimock .tile{height:150px;background:var(--white);border:1px solid var(--card-border);border-radius:10px}
+.uimock .tile.mint{border-color:var(--mint);border-width:3px}
+.uimock .rows{background:var(--white);border:1px solid var(--card-border);border-radius:10px;height:420px}
+
+/* safe-area guides (toggleable) */
+.guides{position:absolute;inset:0;pointer-events:none;display:none}
+.guides.show{display:block}
+.guides .titlesafe{
+  position:absolute;inset:96px;border:2px dashed rgba(40,123,232,.75);border-radius:2px
+}
+.guides .tag{
+  position:absolute;font-family:var(--font-mono);font-size:20px;font-weight:600;
+  background:var(--blue);color:#fff;padding:5px 10px;border-radius:4px
+}
+.guides .tag.ts{top:100px;left:100px}
+.guides .tag.cz{bottom:264px;left:100px;background:var(--dark)}
+.guides .capzone{
+  position:absolute;left:96px;right:96px;bottom:160px;height:96px;
+  border:2px dashed rgba(16,16,20,.55)
+}
+
+/* the caption itself */
+.caption{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:160px;max-width:1500px;
+  display:flex;flex-direction:column;align-items:center;gap:6px
+}
+.caption span{
+  display:block;background:rgba(16,16,20,.86);color:var(--white);
+  font-size:52px;font-weight:600;line-height:1.24;letter-spacing:-.005em;
+  padding:8px 22px;border-radius:6px;white-space:nowrap
+}
+
+/* ---------- THUMBNAIL 1280 x 720 ---------- */
+.thumb{
+  width:1280px;height:720px;background:var(--dark);
+  position:relative;overflow:hidden;font-family:var(--font-display);
+  display:flex;align-items:center;padding:0 84px;gap:56px
+}
+.thumb .big{
+  font-size:250px;font-weight:800;letter-spacing:-.04em;color:var(--mint);
+  line-height:.86;flex:0 0 auto
+}
+.thumb .stack{flex:1;min-width:0}
+.thumb .stack .arc{
+  font-size:22px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(255,255,255,.5);margin:0 0 16px
+}
+.thumb .stack .t{
+  font-size:76px;font-weight:800;letter-spacing:-.03em;color:var(--white);
+  line-height:1.04;margin:0
+}
+.thumb .footbar{position:absolute;left:0;right:0;bottom:0;height:12px;background:var(--mint)}
+.thumb .mark{
+  position:absolute;top:44px;right:84px;
+  font-size:24px;font-weight:700;color:rgba(255,255,255,.55)
+}
+
+/* thumbnail legibility proof */
+.thumbproof{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;margin-top:22px}
+.thumbproof figure{margin:0}
+.thumbproof figcaption{
+  font-family:var(--font-mono);font-size:11px;color:var(--grey-mid);margin-top:8px;text-align:center
+}
+.mini{transform-origin:top left;overflow:hidden}
+
+/* ---------- spec tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--card-border);vertical-align:top}
+th{background:var(--dark);color:var(--white);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+tbody tr:nth-child(even){background:#f7f9fb}
+td code,code.inline{font-family:var(--font-mono);font-size:12.5px;background:var(--tint);padding:2px 6px;border-radius:4px}
+
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;margin-top:6px}
+.sw{border:1px solid var(--card-border);border-radius:8px;overflow:hidden}
+.sw .chip{height:76px}
+.sw .info{padding:10px 12px}
+.sw .info b{display:block;font-size:13px;font-weight:700}
+.sw .info code{font-family:var(--font-mono);font-size:11.5px;color:var(--grey-mid)}
+
+.rules{background:#fff8f0;border-left:4px solid #e8a33d;padding:18px 22px;border-radius:0 8px 8px 0;margin-top:8px}
+.rules p{margin:0 0 8px;font-size:14px}
+.rules p:last-child{margin:0}
+.rules b{font-weight:800}
+.note{background:#f0fdf7;border-left:4px solid var(--mint);padding:18px 22px;border-radius:0 8px 8px 0;margin-top:20px;font-size:14px}
+.note p{margin:0 0 8px}.note p:last-child{margin:0}
+
+ol.steps{padding-left:0;list-style:none;counter-reset:s;margin:8px 0 0}
+ol.steps li{counter-increment:s;position:relative;padding-left:44px;margin-bottom:14px;font-size:14.5px}
+ol.steps li::before{
+  content:counter(s);position:absolute;left:0;top:-1px;
+  width:28px;height:28px;border-radius:50%;background:var(--dark);color:var(--mint);
+  font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center
+}
+
+footer.doc{background:var(--dark);color:rgba(234,238,242,.6);padding:28px 0;font-size:13px;margin-top:44px}
+footer.doc b{color:var(--mint)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:720px){
+  section.block{padding:22px 18px}
+  .controls .wrap{gap:10px}
+  select{min-width:100%}
+  .zoomrow{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="wrap">
+    <p class="eyebrow">8 Edges · Demo Video Series</p>
+    <h1>Brand kit for 17 episodes</h1>
+    <p>Title card, end card, caption style, and thumbnail template. Every value is derived from the live tokens on edge8.ai, so the videos match the site rather than approximating it. Pick an episode above to preview all four assets for that episode.</p>
+    <div class="meta">
+      <div><dt>Format</dt><dd>16:9 · 1920 x 1080 · 1080p</dd></div>
+      <div><dt>Typeface</dt><dd>Manrope 700 / 800</dd></div>
+      <div><dt>Channels</dt><dd>YouTube · LinkedIn</dd></div>
+      <div><dt>Status</dt><dd>Draft one, for review</dd></div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <label for="ep">Episode</label>
+    <select id="ep" aria-label="Choose episode to preview"></select>
+    <div class="zoomrow">
+      <button id="guideBtn" aria-pressed="false">Safe-area guides</button>
+      <button id="zoomBtn" aria-pressed="false">Zoom to 100%</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+<!-- 1 TOKENS -->
+<section class="block">
+  <p class="num">01 · Tokens</p>
+  <h2>Pulled from the live site, not re-picked</h2>
+  <p class="lede">These are the CSS custom properties running on edge8.ai today. Using them directly means a future site restyle propagates to the video assets, and nothing drifts.</p>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#101014"></div><div class="info"><b>Dark</b><code>--color-primary-dark · #101014</code></div></div>
+    <div class="sw"><div class="chip" style="background:#1a1a1f"></div><div class="info"><b>Dark card</b><code>--dark-card · #1a1a1f</code></div></div>
+    <div class="sw"><div class="chip" style="background:#6ff2c1"></div><div class="info"><b>Mint</b><code>--color-accent-mint · #6ff2c1</code></div></div>
+    <div class="sw"><div class="chip" style="background:#287be8"></div><div class="info"><b>Blue</b><code>--color-primary-blue · #287be8</code></div></div>
+    <div class="sw"><div class="chip" style="background:#eaeef2"></div><div class="info"><b>Tint</b><code>--color-bg-secondary · #eaeef2</code></div></div>
+    <div class="sw"><div class="chip" style="background:#797c82"></div><div class="info"><b>Body text</b><code>--color-text-body · #797c82</code></div></div>
+  </div>
+
+  <div class="rules">
+    <p><b>Brand rules, enforced on screen and in copy.</b></p>
+    <p>"Edge8" is never written in all caps. Not in titles, not in captions, not in descriptions, not in the thumbnail.</p>
+    <p>No em dashes anywhere. Use a comma, a colon, or a middle dot. This applies to burned-in captions, video titles, and post copy.</p>
+  </div>
+
+  <div class="note">
+    <p><b>Why mint carries the episode number.</b> Mint is the only saturated colour in the palette, and on a near-black field it is the first thing the eye lands on. In a feed, a viewer sees the thumbnail for well under a second, so the number gets the mint and everything else stays quiet. This is also the one place boldness is spent, the rest of the frame is deliberately plain.</p>
+  </div>
+</section>
+
+<!-- 2 TITLE CARD -->
+<section class="block">
+  <p class="num">02 · Title card</p>
+  <h2>Three seconds, read in one</h2>
+  <p class="lede">Held for 3 seconds after the cold open, never before it. The doc is explicit that episodes open on the UI mid-action with no logo intro, so this card sits at the first beat boundary instead of at 0:00.</p>
+  <div class="stage">
+    <div class="canvas" id="cvTitle">
+      <div class="card16">
+        <p class="arc" id="tcArc">Operating System</p>
+        <p class="epno" id="tcNo">E01</p>
+        <p class="eptitle" id="tcTitle">Company Dashboard</p>
+        <div class="brandmark"><span class="dot"></span><span>8 Edges</span></div>
+        <div class="rail" id="tcRail"></div>
+      </div>
+    </div>
+  </div>
+  <p class="dims">1920 x 1080 · shown scaled to fit</p>
+
+  <table>
+    <thead><tr><th style="width:26%">Element</th><th style="width:37%">Spec</th><th>Position</th></tr></thead>
+    <tbody>
+      <tr><td>Background</td><td><code>#101014</code> flat, no gradient</td><td>Full frame</td></tr>
+      <tr><td>Arc eyebrow</td><td>Manrope 800 · 26px · tracking .24em · uppercase · <code>#6ff2c1</code></td><td>x 160 · above the number</td></tr>
+      <tr><td>Episode number</td><td>Manrope 800 · 88px · <code>#6ff2c1</code></td><td>x 160 · optically centred block</td></tr>
+      <tr><td>Episode title</td><td>Manrope 800 · 112px · tracking -.025em · <code>#ffffff</code> · max width 1400px</td><td>x 160 · below the number</td></tr>
+      <tr><td>Brandmark</td><td>Manrope 700 · 30px · white at 62% · 13px mint dot</td><td>x 160 · y 948 from top</td></tr>
+      <tr><td>Series rail</td><td>17 segments · 5px tall · 6px gap · current mint, past mint at 42%, future white at 16%</td><td>x 160 to 1760 · y 995</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <p><b>The rail is the one non-obvious element, and it earns its place.</b> This is a daily series, so most viewers arrive mid-run rather than at E00. The rail answers "where am I and how much is there" without a word of voiceover, and it makes the three arcs legible as a shape. If the episode count changes, the rail changes with it, so it stays honest.</p>
+    <p><b>Trade-off:</b> it costs 5px of frame and one more thing for the eye to parse. If review finds it noisy, cut it. The card still works without it.</p>
+  </div>
+</section>
+
+<!-- 3 END CARD -->
+<section class="block">
+  <p class="num">03 · End card</p>
+  <h2>Five to ten seconds, one action</h2>
+  <p class="lede">Follows the close line in the voiceover. One takeaway, one soft call to action, nothing competing. The doc calls for a series title plus playlist CTA, so that is all this card carries.</p>
+  <div class="stage">
+    <div class="canvas" id="cvEnd">
+      <div class="card16 endcard">
+        <p class="line">One system,<br>one edge a day.</p>
+        <p class="cta">Full series in the playlist</p>
+        <p class="sub">Built by Edge8.</p>
+        <div class="rail" id="ecRail"></div>
+      </div>
+    </div>
+  </div>
+  <p class="dims">1920 x 1080 · shown scaled to fit</p>
+  <table>
+    <thead><tr><th style="width:26%">Element</th><th style="width:37%">Spec</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Series line</td><td>Manrope 800 · 104px · tracking -.025em · white</td><td>Two lines, break after the comma</td></tr>
+      <tr><td>Playlist CTA</td><td>Manrope 700 · 42px · <code>#6ff2c1</code></td><td>Text only. No URL burned in, links live in the description</td></tr>
+      <tr><td>Signature</td><td>Manrope 500 · 34px · white at 55%</td><td>Sentence case. Never "EDGE8"</td></tr>
+      <tr><td>E16 variant</td><td>Swap CTA to "Talk to Edge8."</td><td>Final episode is the only one that asks for the meeting</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 4 CAPTIONS -->
+<section class="block">
+  <p class="num">04 · Caption style</p>
+  <h2>Built for a muted autoplay on a phone</h2>
+  <p class="lede">LinkedIn autoplays muted, so captions are burned in, not a sidecar file. This is the asset most likely to fail in the field, because a dashboard recorded at 1080p and watched at 380px wide is unreadable if the caption competes with the UI.</p>
+  <div class="stage">
+    <div class="canvas" id="cvCap">
+      <div class="capframe">
+        <div class="uimock" aria-hidden="true">
+          <div class="bar"></div>
+          <div class="grid"><div class="tile"></div><div class="tile mint"></div><div class="tile"></div><div class="tile"></div></div>
+          <div class="rows"></div>
+        </div>
+        <div class="caption" id="capLines"></div>
+        <div class="guides" id="capGuides">
+          <div class="titlesafe"></div>
+          <span class="tag ts">title safe · 96px inset</span>
+          <div class="capzone"></div>
+          <span class="tag cz">caption zone · 160px from base</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dims">1920 x 1080 · toggle the guides above · caption text is the real E01 voiceover</p>
+
+  <table>
+    <thead><tr><th style="width:26%">Rule</th><th style="width:30%">Value</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Type</td><td>Manrope 600 · 52px · line-height 1.24</td><td>52px at 1920 wide is roughly 10px on a 380px phone, which is the floor for comfortable reading</td></tr>
+      <tr><td>Scrim</td><td><code>#101014</code> at 86% · 8px / 22px padding · 6px radius</td><td>The product UI is light, so white text needs a plate. A scrim survives whatever is underneath, a drop shadow does not</td></tr>
+      <tr><td>Position</td><td>Centred · 160px above the base</td><td>Clears the YouTube progress bar and the LinkedIn overlay, both of which sit in the bottom 10%</td></tr>
+      <tr><td>Line limit</td><td>Max 2 lines · about 42 characters per line</td><td>Three lines cover the UI, which is the thing the episode exists to show</td></tr>
+      <tr><td>Chunking</td><td>Break on clause, never mid-phrase</td><td>Captions are read in glances, so each line should stand alone</td></tr>
+      <tr><td>Safe area</td><td>96px inset on all sides, 5%</td><td>Nothing meaningful outside it, in case a platform crops</td></tr>
+      <tr><td>Punctuation</td><td>No em dashes. Comma, colon, or middle dot</td><td>Brand rule, applies to burned-in text as much as to copy</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <p><b>The real risk here is not the caption, it is the UI behind it.</b> Recording a dense dashboard at native zoom produces text nobody can read in a feed. Recommend the recording rig runs browser zoom at 140% with a deliberate zoom on each payoff frame, and that this gets settled on the pilot episode before any arc is batch recorded. Getting it wrong means re-recording six episodes, not one.</p>
+  </div>
+</section>
+
+<!-- 5 THUMBNAIL -->
+<section class="block">
+  <p class="num">05 · Thumbnail</p>
+  <h2>Seventeen thumbnails that read as one series</h2>
+  <p class="lede">A YouTube grid thumbnail renders around 168px wide. At that size only two things survive: the episode number and roughly three words. Everything in this template is sized backwards from that constraint.</p>
+  <div class="stage">
+    <div class="canvas" id="cvThumb">
+      <div class="thumb">
+        <p class="big" id="thNo">01</p>
+        <div class="stack">
+          <p class="arc" id="thArc">Operating System</p>
+          <p class="t" id="thTitle">Company Dashboard</p>
+        </div>
+        <span class="mark">8 Edges</span>
+        <div class="footbar"></div>
+      </div>
+    </div>
+  </div>
+  <p class="dims">1280 x 720 · shown scaled to fit</p>
+
+  <h2 style="font-size:18px;margin-top:28px">Legibility check at real display sizes</h2>
+  <p class="lede" style="margin-bottom:8px">Same template, rendered at the three sizes it will actually appear in. If the number is not instantly readable in the smallest one, the template has failed.</p>
+  <div class="thumbproof" id="thumbProof"></div>
+
+  <table style="margin-top:26px">
+    <thead><tr><th style="width:26%">Element</th><th style="width:37%">Spec</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Number</td><td>Manrope 800 · 250px · tracking -.04em · <code>#6ff2c1</code></td><td>Two digits only, no "E" prefix. Survives to 168px wide</td></tr>
+      <tr><td>Arc label</td><td>Manrope 800 · 22px · tracking .2em · white at 50%</td><td>Disappears at grid size by design, it is for the watch page</td></tr>
+      <tr><td>Title</td><td>Manrope 800 · 76px · tracking -.03em · white · max 2 lines</td><td>Shorten aggressively. "Call to Proposal in minutes" becomes "Call to Proposal"</td></tr>
+      <tr><td>Foot bar</td><td>12px · <code>#6ff2c1</code> · full bleed</td><td>The one element that makes the set recognisable as a series in a mixed feed</td></tr>
+      <tr><td>No faces, no arrows, no shock</td><td></td><td>The audience is buyers evaluating an operating system. Restraint reads as credible here</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 6 EXPORT -->
+<section class="block">
+  <p class="num">06 · Handoff</p>
+  <h2>How this becomes files the pipeline can use</h2>
+  <p class="lede">The rig assembles with ffmpeg, so it needs PNGs and a caption format, not a web page. This section is what a developer or an agent needs to generate the set.</p>
+  <ol class="steps">
+    <li><b>Approve the direction first.</b> One episode reviewed and signed off is worth more than 17 exported cards that then get redone.</li>
+    <li><b>Generate 17 title cards and 17 thumbnails</b> by driving this page from a script, one screenshot per episode at the exact frame size. Same rig that records the episodes can render the cards.</li>
+    <li><b>Export two end cards:</b> the standard one, and the E16 variant that closes with "Talk to Edge8."</li>
+    <li><b>Captions ship as ASS, not SRT.</b> SRT carries no styling, so the 86% scrim and the position would be lost. The ffmpeg <code class="inline">subtitles</code> filter reads ASS styling directly and burns it in.</li>
+    <li><b>Add the four brand checks to per-episode QC:</b> no client data on screen, "Edge8" casing correct, no em dashes anywhere in captions or titles, voiceover and screen in sync at each beat.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer class="doc">
+  <div class="wrap"><b>8 Edges · Demo Video Series</b> · Brand kit draft one · Tokens extracted from edge8.ai · Internal</div>
+</footer>
+
+<script>
+const EPISODES = [
+  {no:"00", arc:"Launch",           title:"Overview: the whole system in four minutes", short:"Overview", cap:["Most companies run on two disconnected things:","a strategy deck, and tools nobody reconciles."]},
+  {no:"01", arc:"Operating System", title:"Company Dashboard",            short:"Company Dashboard", cap:["Ask five people how the business is doing,","you get five answers. This screen exists so there's one."]},
+  {no:"02", arc:"Operating System", title:"Goals",                        short:"Goals", cap:["The company goal breaks into team goals,","team goals into personal ones."]},
+  {no:"03", arc:"Operating System", title:"Metrics",                      short:"Metrics", cap:["Every number has one owner,","a target, and its full history."]},
+  {no:"04", arc:"Operating System", title:"Weekly Sync",                  short:"Weekly Sync", cap:["Most leadership meetings are status theater.","This one runs itself."]},
+  {no:"05", arc:"Operating System", title:"Issues",                       short:"Issues", cap:["Every problem the business surfaced,","each with an owner and a deadline."]},
+  {no:"06", arc:"Operating System", title:"Client Roadmaps",              short:"Client Roadmaps", cap:["Make the work visible and the status meeting","mostly disappears."]},
+  {no:"07", arc:"Four Offices",     title:"CRM and Deals",                short:"CRM and Deals", cap:["Most CRMs are where salespeople do data entry.","This one works the other way around."]},
+  {no:"08", arc:"Four Offices",     title:"Call to Proposal in minutes",  short:"Call to Proposal", cap:["The most expensive delay in sales is the one","between the call and the proposal."]},
+  {no:"09", arc:"Four Offices",     title:"Talent pipeline (ATS)",        short:"Talent pipeline", cap:["Every candidate carries days-in-stage,","so stalls are visible before they become ghosting."]},
+  {no:"10", arc:"Four Offices",     title:"Hiring Manager view",          short:"Hiring Manager", cap:["A single page answering one question:","what do you need to do today?"]},
+  {no:"11", arc:"Four Offices",     title:"Interview scorecards",         short:"Scorecards", cap:["Blind until you commit. You can't see other","scores before submitting your own."]},
+  {no:"12", arc:"Four Offices",     title:"Coaching",                     short:"Coaching", cap:["One-on-ones fail the same way everywhere:","great conversation, zero memory."]},
+  {no:"13", arc:"Four Offices",     title:"Fleet Fitness",                short:"Fleet Fitness", cap:["Every machine on the team, graded against a floor:","does this hardware meet the bar?"]},
+  {no:"14", arc:"Portals",          title:"Task Boards",                  short:"Task Boards", cap:["Every team has boards. Here's what's different","about these: the AI is on the team."]},
+  {no:"15", arc:"Portals",          title:"Team Portal",                  short:"Team Portal", cap:["The discipline only works if it reaches","every person, not just the leadership team."]},
+  {no:"16", arc:"Portals",          title:"Client Portal",                short:"Client Portal", cap:["Could your client check on their project","at midnight without emailing you?"]}
+];
+
+const sel = document.getElementById('ep');
+EPISODES.forEach((e,i)=>{
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = `E${e.no} · ${e.title}`;
+  sel.appendChild(o);
+});
+sel.value = 1;
+
+function buildRail(el, idx){
+  el.innerHTML = '';
+  EPISODES.forEach((_,i)=>{
+    const seg = document.createElement('i');
+    if(i === idx) seg.className = 'on';
+    else if(i < idx) seg.className = 'done';
+    el.appendChild(seg);
+  });
+}
+
+function render(){
+  const e = EPISODES[sel.value];
+  const idx = Number(sel.value);
+
+  document.getElementById('tcArc').textContent   = e.arc;
+  document.getElementById('tcNo').textContent    = 'E' + e.no;
+  document.getElementById('tcTitle').textContent = e.title;
+  buildRail(document.getElementById('tcRail'), idx);
+  buildRail(document.getElementById('ecRail'), idx);
+
+  const cap = document.getElementById('capLines');
+  cap.innerHTML = '';
+  e.cap.forEach(line=>{
+    const s = document.createElement('span');
+    s.textContent = line;
+    cap.appendChild(s);
+  });
+
+  document.getElementById('thNo').textContent    = e.no;
+  document.getElementById('thArc').textContent   = e.arc;
+  document.getElementById('thTitle').textContent = e.short;
+
+  buildProof(e);
+  fit();
+}
+
+function buildProof(e){
+  const host = document.getElementById('thumbProof');
+  host.innerHTML = '';
+  [[420,'Watch page · 420px'],[246,'Sidebar · 246px'],[168,'Grid · 168px']].forEach(([w,label])=>{
+    const s = w/1280;
+    const fig = document.createElement('figure');
+    const box = document.createElement('div');
+    box.className = 'mini';
+    box.style.width = w+'px';
+    box.style.height = Math.round(720*s)+'px';
+    const inner = document.createElement('div');
+    inner.style.transform = `scale(${s})`;
+    inner.style.transformOrigin = 'top left';
+    inner.innerHTML = `<div class="thumb">
+        <p class="big">${e.no}</p>
+        <div class="stack"><p class="arc">${e.arc}</p><p class="t">${e.short}</p></div>
+        <span class="mark">8 Edges</span><div class="footbar"></div></div>`;
+    box.appendChild(inner);
+    const cap = document.createElement('figcaption');
+    cap.textContent = label;
+    fig.appendChild(box); fig.appendChild(cap);
+    host.appendChild(fig);
+  });
+}
+
+let full = false;
+function fit(){
+  document.querySelectorAll('.stage').forEach(stage=>{
+    const canvas = stage.querySelector('.canvas');
+    if(!canvas) return;
+    const frame = canvas.firstElementChild;
+    const w = frame.classList.contains('thumb') ? 1280 : 1920;
+    const h = frame.classList.contains('thumb') ? 720 : 1080;
+    const s = full ? 1 : Math.min(1,(stage.clientWidth - 40)/w);
+    canvas.style.transform = `scale(${s})`;
+    canvas.style.width  = (w*s)+'px';
+    canvas.style.height = (h*s)+'px';
+  });
+}
+
+sel.addEventListener('change', render);
+window.addEventListener('resize', fit);
+
+document.getElementById('guideBtn').addEventListener('click', ev=>{
+  const on = document.getElementById('capGuides').classList.toggle('show');
+  ev.currentTarget.setAttribute('aria-pressed', String(on));
+});
+document.getElementById('zoomBtn').addEventListener('click', ev=>{
+  full = !full;
+  ev.currentTarget.setAttribute('aria-pressed', String(full));
+  ev.currentTarget.textContent = full ? 'Fit to width' : 'Zoom to 100%';
+  fit();
+});
+
+document.fonts.ready.then(fit);
+render();
+</script>
+</body>
+</html>
