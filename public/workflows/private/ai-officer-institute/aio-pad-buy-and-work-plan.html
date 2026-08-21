@@ -1,0 +1,295 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>AIO Pad · Buy and work plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Be+Vietnam+Pro:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pap:#FAF8F4; --card:#FFFFFF; --ink:#1B2233; --ink2:#3D4657; --mut:#6B7386;
+  --navy:#02081C; --ce:#3F7D68; --ce-bg:#EAF2EE; --am:#A9631F; --am-bg:#FCF2E6;
+  --ln:#E2DED6; --ln2:#CFCAC0;
+  --d:"Newsreader",Georgia,serif; --b:"Be Vietnam Pro",system-ui,sans-serif; --m:"IBM Plex Mono",monospace;
+  --g:clamp(18px,4vw,52px);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--pap);color:var(--ink);font-family:var(--b);font-weight:400;font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.w{max-width:1180px;margin:0 auto;padding:0 var(--g)}
+section{padding:clamp(34px,4.5vw,58px) 0;border-top:1px solid var(--ln)}
+section:first-of-type{border-top:0}
+h1{font-family:var(--d);font-weight:400;font-size:clamp(30px,5vw,50px);line-height:1.06;margin:0;letter-spacing:-.015em;color:var(--navy)}
+h2{font-family:var(--d);font-weight:400;font-size:22px;margin:0 0 12px;color:var(--navy)}
+.eb{font-family:var(--m);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ce);margin-bottom:10px}
+.sub{color:var(--ink2);font-size:15px;margin:0 0 22px;max-width:62em}
+strong{font-weight:600;color:var(--navy)}
+
+/* header band */
+.hero{background:var(--navy);color:#fff;padding:clamp(28px,4vw,46px) 0 0;margin-bottom:0;border:0}
+.hero h1{color:#fff}
+.hero .eb{color:#8FAFA3}
+.hero .sub{color:rgba(255,255,255,.82)}
+.meta{display:flex;flex-wrap:wrap;margin-top:24px;border-top:1px solid rgba(255,255,255,.22)}
+.meta div{flex:1 1 130px;padding:16px 20px 18px 0;border-right:1px solid rgba(255,255,255,.14)}
+.meta div:last-child{border-right:0}
+.meta dt{font-family:var(--m);font-size:10px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:#8FAFA3;margin-bottom:5px}
+.meta dd{margin:0;font-size:18px;font-weight:500;color:#fff}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--ln);background:var(--card);border-radius:2px}
+table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:700px}
+thead th{position:sticky;top:0;z-index:2;background:var(--navy);color:#fff;font-family:var(--m);font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:11px 12px;white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--ln);vertical-align:top;color:var(--ink)}
+tbody tr:nth-child(even) td{background:#FCFBF9}
+tbody tr:hover td{background:var(--ce-bg)}
+td.n,th.n{text-align:right;font-family:var(--m);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13.5px}
+td.c,th.c{text-align:center;font-family:var(--m);white-space:nowrap;font-size:13px;color:var(--ink2)}
+td.ck{width:26px;color:var(--ln2);font-size:16px;text-align:center;padding-right:0}
+tr.grp td{background:var(--navy)!important;color:#fff;padding:11px 12px}
+tr.grp .gt{font-weight:600;font-size:14.5px}
+tr.grp .gs{font-family:var(--m);font-size:11.5px;color:#8FAFA3;margin-left:8px}
+tr.grp .wh{display:block;font-size:12.5px;color:rgba(255,255,255,.7);margin-top:3px;font-weight:400}
+td.rm i{font-family:var(--m);font-style:normal;font-size:10.5px;font-weight:500;letter-spacing:.04em;background:#EFECE5;color:var(--ink2);padding:2px 6px;margin-right:3px;border-radius:2px;white-space:nowrap}
+td.who{font-family:var(--m);font-weight:500;text-align:center;font-size:13px}
+td.oA{color:var(--ce)} td.oV{color:var(--am)}
+tr.tot td{background:#EFECE5!important;font-weight:600;font-size:16px;color:var(--navy);border-top:2px solid var(--navy);border-bottom:0;padding:14px 12px}
+td.sq{font-family:var(--m);font-size:13px;color:var(--ink2)}
+
+/* blocks */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2.4vw,30px);align-items:start}
+@media(max-width:840px){.cols{grid-template-columns:1fr}}
+.cols>div{min-width:0}
+.card{background:var(--card);border:1px solid var(--ln);padding:22px 24px 24px;border-radius:2px}
+.card.am{background:var(--am-bg);border-color:#E8CFA9}
+h4{font-family:var(--m);font-size:10.5px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--ce);margin:0 0 12px}
+h4.am{color:var(--am)}
+.lst{list-style:none;margin:0;padding:0}
+.lst li{position:relative;padding:9px 0 9px 18px;border-bottom:1px solid var(--ln);font-size:14.5px;line-height:1.55;color:var(--ink2)}
+.lst li:last-child{border-bottom:0}
+.lst li::before{content:"";position:absolute;left:0;top:19px;width:8px;height:1px;background:var(--ce)}
+.lst.am li{border-bottom-color:#E8CFA9}
+.lst.am li::before{background:var(--am)}
+
+/* timeline */
+.tl{background:var(--card);border:1px solid var(--ln)}
+.day{display:grid;grid-template-columns:96px 1fr 62px;gap:16px;padding:12px 20px;border-bottom:1px solid var(--ln);align-items:baseline}
+.day:last-child{border-bottom:0}
+.day:nth-child(even){background:#FCFBF9}
+.day .d{font-family:var(--m);font-size:12px;font-weight:500;color:var(--ce)}
+.day .o{font-family:var(--m);font-size:12px;color:var(--mut);text-align:right}
+.day b{display:block;font-weight:500;font-size:15px;color:var(--ink)}
+.day span{font-size:13.5px;color:var(--mut);display:block;margin-top:2px}
+.day.key{background:var(--ce-bg)}
+.day.key .d{color:var(--navy)}
+@media(max-width:620px){.day{grid-template-columns:1fr;gap:3px}.day .o{text-align:left}}
+
+footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-size:13px}
+@media print{
+  body{background:#fff}
+  .hero{background:#fff;color:#000}.hero h1,.hero .sub,.meta dd{color:#000}
+  .meta dt,.hero .eb{color:#444}.meta div{border-color:#ccc}
+  thead th{background:#eee;color:#000;position:static}
+  tr.grp td{background:#e6e6e6!important;color:#000}
+  tr.grp .gs,tr.grp .wh{color:#333}
+}
+</style></head><body>
+
+<div class="hero">
+ <div class="w">
+  <div class="eb">AIO Pad · Lumiere Riverside, Thảo Điền</div>
+  <h1>Buy and work plan</h1>
+  <p class="sub" style="margin-top:14px;max-width:44em">57 items, 11 sources. <strong style="color:#8FAFA3">Guest-ready on day 12; original artwork completes it on day 30.</strong> Admin executes on site, managed remotely through five photo approvals.</p>
+  <dl class="meta">
+    <div><dt>Budget</dt><dd>100,570,000 ₫</dd></div>
+    <div><dt>USD</dt><dd>≈ $3,870</dd></div>
+    <div><dt>Items</dt><dd>57</dd></div>
+    <div><dt>Guest-ready</dt><dd>Day 12</dd></div>
+    <div><dt>Complete</dt><dd>Day 30</dd></div>
+  </dl>
+ </div>
+</div>
+
+<div class="w">
+
+<section>
+  <div class="eb">Who does what</div>
+  <div class="cols">
+    <div class="card">
+      <h4>Roles</h4>
+      <ul class="lst">
+        <li><strong>V — Viha, remote.</strong> Design decisions, artist brief, the five approvals, final sign-off. <em>8 items.</em></li>
+        <li><strong>A — Admin, on site.</strong> Places orders, pays deposits, receives deliveries, supervises trades, positions everything, sends approval photos. <em>49 items.</em></li>
+        <li><strong>T — Trades.</strong> Painter 2 days. Installer 2 visits. Booked and supervised by Admin.</li>
+      </ul>
+    </div>
+    <div class="card am">
+      <h4 class="am">Specs Admin must not change</h4>
+      <ul class="lst am">
+        <li><strong>Bedding</strong> — T400 cotton, plain white, no logo. Not 600TC</li>
+        <li><strong>Balcony chairs</strong> — aluminium or 304 stainless. Not painted steel</li>
+        <li><strong>Bulbs</strong> — every lamp 2700K dimmable</li>
+        <li><strong>Rugs</strong> — flatweave, washable. No jute under the dining table</li>
+        <li><strong>Fixings</strong> — painted plasterboard only. Never stone, tile, marble or joinery</li>
+        <li><strong>Artwork</strong> — one artist, five pieces, one batch. No originals in the bathrooms</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eb">Approvals</div>
+  <p class="sub">Admin sends a photo and waits for a yes. These five cannot be undone if skipped.</p>
+  <div class="tw"><table style="min-width:480px">
+    <thead><tr><th class="c" style="width:80px">Day</th><th>Approve before proceeding</th></tr></thead>
+    <tbody>
+      <tr><td class="c">2</td><td>Navy paint sample on the wall</td></tr>
+      <tr><td class="c">4</td><td>Artist sketches — before the commission is paid</td></tr>
+      <tr><td class="c">10</td><td>TV and mirror positions, taped on the wall, before drilling</td></tr>
+      <tr><td class="c">21</td><td>Finished paintings, flat, before framing</td></tr>
+      <tr><td class="c">29</td><td>Frame positions, taped, before drilling</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="eb">Buy list</div>
+  <p class="sub">Rooms: <strong>EN</strong> entry · <strong>LV</strong> living · <strong>DN</strong> dining · <strong>BB</strong> big bedroom · <strong>SB</strong> small bedroom · <strong>BA</strong> bathrooms · <strong>BC</strong> balcony. Prices are estimates at ±15%. Sources are suppliers, not product pages.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:26px"></th><th>Item</th><th class="c">Qty</th><th class="n">Unit ₫</th><th class="n">Total ₫</th><th>Room</th><th class="c">Who</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="7"><span class="gt">Local artist</span><span class="gs">16,300,000 ₫ · lead 2–3 weeks</span><span class="wh">Commission one artist for all five. Quotes from 2–3 first.</span></td></tr>
+      <tr><td class="ck">☐</td><td>Original ink-wash painting 90×60, commissioned</td><td class="c">3</td><td class="n">3,800,000</td><td class="n">11,400,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Original ink-wash painting 60×40, commissioned</td><td class="c">2</td><td class="n">2,200,000</td><td class="n">4,400,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Concept sketches — 3 options before commission</td><td class="c">1</td><td class="n">500,000</td><td class="n">500,000</td><td class="rm"><i>ALL</i></td><td class="who oV">V</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Mia Home</span><span class="gs">8,520,000 ₫ · lead 5–7 days after artwork</span><span class="wh">280F8 Lương Định Của, An Phú, District 2</span></td></tr>
+      <tr><td class="ck">☐</td><td>Frame 90×60 — acid-free mount, UV glass</td><td class="c">3</td><td class="n">1,600,000</td><td class="n">4,800,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Frame 60×40 — acid-free mount, UV glass</td><td class="c">2</td><td class="n">1,100,000</td><td class="n">2,200,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Print + frame 40×30 — entry</td><td class="c">1</td><td class="n">480,000</td><td class="n">480,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Print + frame 40×30, glazed — bathrooms</td><td class="c">2</td><td class="n">520,000</td><td class="n">1,040,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Sagatex</span><span class="gs">10,780,000 ₫ · lead 3–5 days</span><span class="wh">sagatexvietnam.com.vn · Zalo 0905609176 (Mr Quang)</span></td></tr>
+      <tr><td class="ck">☐</td><td>Hotel bed set — T400 cotton, white, no logo</td><td class="c">2</td><td class="n">3,200,000</td><td class="n">6,400,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Bath towel 70×140</td><td class="c">8</td><td class="n">190,000</td><td class="n">1,520,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Hand towel</td><td class="c">8</td><td class="n">90,000</td><td class="n">720,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Face towel</td><td class="c">4</td><td class="n">55,000</td><td class="n">220,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Bath mat, charcoal</td><td class="c">4</td><td class="n">180,000</td><td class="n">720,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Waffle robe, white</td><td class="c">2</td><td class="n">600,000</td><td class="n">1,200,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Điện Máy Xanh</span><span class="gs">18,500,000 ₫ · lead 2–4 days</span><span class="wh">dienmayxanh.com or in store</span></td></tr>
+      <tr><td class="ck">☐</td><td>43″ 4K smart TV</td><td class="c">2</td><td class="n">8,000,000</td><td class="n">16,000,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Slim tilting wall bracket</td><td class="c">2</td><td class="n">450,000</td><td class="n">900,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>TV install + cable trunking</td><td class="c">2</td><td class="n">800,000</td><td class="n">1,600,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Nhà Xinh / UMA</span><span class="gs">8,350,000 ₫ · lead 7–14 days</span><span class="wh">In store — Estella Place or Vincom Thảo Điền</span></td></tr>
+      <tr><td class="ck">☐</td><td>Armchair + ottoman, oatmeal linen</td><td class="c">1</td><td class="n">7,500,000</td><td class="n">7,500,000</td><td class="rm"><i>LV</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Bedside table, black</td><td class="c">1</td><td class="n">850,000</td><td class="n">850,000</td><td class="rm"><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Minh Thy Furniture</span><span class="gs">4,450,000 ₫ · lead 3–7 days</span><span class="wh">Search "Minh Thy ghế rope ban công"</span></td></tr>
+      <tr><td class="ck">☐</td><td>Lounge chair — rope, aluminium or 304 stainless frame</td><td class="c">2</td><td class="n">1,600,000</td><td class="n">3,200,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Outdoor side table</td><td class="c">1</td><td class="n">750,000</td><td class="n">750,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Outdoor cushion, oatmeal, quick-dry</td><td class="c">2</td><td class="n">250,000</td><td class="n">500,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Sihoo Vietnam</span><span class="gs">2,400,000 ₫ · lead 2–5 days</span><span class="wh">shopee.vn — search "ghế công thái học Sihoo lưới"</span></td></tr>
+      <tr><td class="ck">☐</td><td>Ergonomic mesh desk chair</td><td class="c">1</td><td class="n">2,400,000</td><td class="n">2,400,000</td><td class="rm"><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Shopee / Lazada</span><span class="gs">5,370,000 ₫ · lead 2–5 days</span><span class="wh">shopee.vn · search terms in the legend</span></td></tr>
+      <tr><td class="ck">☐</td><td>Full-length mirror 50×160, slim black frame</td><td class="c">1</td><td class="n">2,200,000</td><td class="n">2,200,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Black wall hook</td><td class="c">4</td><td class="n">80,000</td><td class="n">320,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Frosted static-cling film, laundry door</td><td class="c">1</td><td class="n">250,000</td><td class="n">250,000</td><td class="rm"><i>DN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Fabric storage bin, charcoal</td><td class="c">2</td><td class="n">150,000</td><td class="n">300,000</td><td class="rm"><i>DN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Monitor screen light bar</td><td class="c">1</td><td class="n">750,000</td><td class="n">750,000</td><td class="rm"><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Under-desk cable tray + ties</td><td class="c">1</td><td class="n">200,000</td><td class="n">200,000</td><td class="rm"><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Folding luggage rack</td><td class="c">1</td><td class="n">450,000</td><td class="n">450,000</td><td class="rm"><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Amber glass pump dispenser, refillable</td><td class="c">4</td><td class="n">130,000</td><td class="n">520,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Rechargeable LED lantern, IP44, warm</td><td class="c">1</td><td class="n">380,000</td><td class="n">380,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Thảo Điền stores</span><span class="gs">17,250,000 ₫ · lead Buy day 3–4</span><span class="wh">UMA, Baya — Vincom Mega Mall then Estella Place. Books: Fahasa. Coffee set: Là Việt</span></td></tr>
+      <tr><td class="ck">☐</td><td>Linen cushion cover + inner, living</td><td class="c">4</td><td class="n">260,000</td><td class="n">1,040,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Decorative cushion, bedrooms</td><td class="c">4</td><td class="n">260,000</td><td class="n">1,040,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Waffle throw, oatmeal</td><td class="c">1</td><td class="n">420,000</td><td class="n">420,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Linen throw, oatmeal, entry bench</td><td class="c">1</td><td class="n">420,000</td><td class="n">420,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Bed runner, charcoal linen</td><td class="c">2</td><td class="n">650,000</td><td class="n">1,300,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Ceramic table lamp, warm, linen shade</td><td class="c">1</td><td class="n">780,000</td><td class="n">780,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Bedside lamp, 2700K dimmable</td><td class="c">3</td><td class="n">780,000</td><td class="n">2,340,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Flatweave rug 200×300, charcoal/oatmeal</td><td class="c">1</td><td class="n">1,900,000</td><td class="n">1,900,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Rug 160×230, plain oatmeal</td><td class="c">2</td><td class="n">900,000</td><td class="n">1,800,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Wood tray, console</td><td class="c">1</td><td class="n">240,000</td><td class="n">240,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Wood tray + 3 matt ceramic canisters</td><td class="c">1 set</td><td class="n">780,000</td><td class="n">780,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Ceramic key tray + catch-all bowl</td><td class="c">1 set</td><td class="n">290,000</td><td class="n">290,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Ceramic bowl, off-white</td><td class="c">1</td><td class="n">260,000</td><td class="n">260,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Ceramic bowl, muted teal</td><td class="c">1</td><td class="n">420,000</td><td class="n">420,000</td><td class="rm"><i>DN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Linen placemat, oatmeal</td><td class="c">4</td><td class="n">90,000</td><td class="n">360,000</td><td class="rm"><i>DN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Stone coaster</td><td class="c">4</td><td class="n">50,000</td><td class="n">200,000</td><td class="rm"><i>DN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Glass carafe + glass + tray</td><td class="c">2 sets</td><td class="n">380,000</td><td class="n">760,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Stone tray + ceramic soap dish</td><td class="c">2 sets</td><td class="n">240,000</td><td class="n">480,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Woven basket</td><td class="c">2</td><td class="n">190,000</td><td class="n">380,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Monochrome hardback book</td><td class="c">4</td><td class="n">160,000</td><td class="n">640,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Niche kit — teal vessel, phin coffee set, 2 books, throw</td><td class="c">1 set</td><td class="n">1,400,000</td><td class="n">1,400,000</td><td class="rm"><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Plant market</span><span class="gs">2,050,000 ₫ · lead Buy day 7</span><span class="wh">Chợ hoa Hồ Thị Kỷ (D10) or a Thảo Điền nursery</span></td></tr>
+      <tr><td class="ck">☐</td><td>Ficus lyrata 1.6m + matte charcoal pot</td><td class="c">1</td><td class="n">1,150,000</td><td class="n">1,150,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Outdoor planter + hardy plant</td><td class="c">1</td><td class="n">900,000</td><td class="n">900,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Local trades</span><span class="gs">6,600,000 ₫ · lead Book by day 2</span><span class="wh">Painter 2 days, installer 1 day</span></td></tr>
+      <tr><td class="ck">☐</td><td>Navy feature paint, ~28m², incl. painter and 2 coats</td><td class="c">1</td><td class="n">4,300,000</td><td class="n">4,300,000</td><td class="rm"><i>EN</i><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Installer — TVs, prints, mirror, film, hooks</td><td class="c">1</td><td class="n">1,500,000</td><td class="n">1,500,000</td><td class="rm"><i>ALL</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Delivery consolidation and packaging disposal</td><td class="c">1</td><td class="n">800,000</td><td class="n">800,000</td><td class="rm"><i>ALL</i></td><td class="who oA">A</td></tr>
+      <tr class="tot"><td></td><td>Total</td><td class="c"></td><td class="n"></td><td class="n">100,570,000</td><td></td><td class="c"></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="eb">Shopee search terms</div>
+  <div class="tw"><table style="min-width:460px">
+    <thead><tr><th style="width:190px">Item</th><th>Search in Vietnamese</th></tr></thead>
+    <tbody><tr><td>Mirror</td><td class="sq">gương toàn thân khung sắt đen 50x160</td></tr><tr><td>Hooks</td><td class="sq">móc treo tường đen tối giản</td></tr><tr><td>Frosted film</td><td class="sq">phim dán kính mờ tĩnh điện không keo</td></tr><tr><td>Storage bin</td><td class="sq">thùng vải đựng đồ xám than</td></tr><tr><td>Screen light bar</td><td class="sq">đèn treo màn hình screen light bar</td></tr><tr><td>Cable tray</td><td class="sq">khay luồn dây dưới bàn làm việc</td></tr><tr><td>Luggage rack</td><td class="sq">giá để vali gấp khách sạn</td></tr><tr><td>Dispenser</td><td class="sq">chai chiết thủy tinh hổ phách có vòi</td></tr><tr><td>Lantern</td><td class="sq">đèn lồng sạc ngoài trời IP44 ánh sáng vàng</td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="eb">Timeline</div>
+  <p class="sub">Artwork runs on its own track and blocks nothing on site.</p>
+  <div class="tl">
+  <div class="day"><span class="d">Day 1</span><div><b>All orders placed. Three artists briefed. Landlord email sent.</b></div><span class="o">A·V</span></div>
+  <div class="day"><span class="d">Day 2</span><div><b>Paint colour approved. Painter and installer booked.</b></div><span class="o">A·V</span></div>
+  <div class="day"><span class="d">Day 3</span><div><b>Artist chosen, sketch fee paid.</b><span>One artist for all five pieces, one batch.</span></div><span class="o">V</span></div>
+  <div class="day"><span class="d">Day 3–4</span><div><b>Thảo Điền shopping run — 21 lines.</b></div><span class="o">A</span></div>
+  <div class="day"><span class="d">Day 4</span><div><b>Sketches approved, commission paid.</b></div><span class="o">V</span></div>
+  <div class="day key"><span class="d">Day 5–6</span><div><b>Paint. Apartment empty.</b></div><span class="o">T·A</span></div>
+  <div class="day"><span class="d">Day 7</span><div><b>Deliveries checked. Plants bought. Bedding and towels washed once.</b></div><span class="o">A</span></div>
+  <div class="day"><span class="d">Day 8</span><div><b>Workstations assembled.</b><span>Window to the side of the seat, never behind the monitor.</span></div><span class="o">A</span></div>
+  <div class="day"><span class="d">Day 9</span><div><b>Three printed pieces collected.</b></div><span class="o">A</span></div>
+  <div class="day key"><span class="d">Day 10</span><div><b>Installer visit 1 — TVs, mirror, hooks, 3 frames, frosted glass.</b></div><span class="o">T·A</span></div>
+  <div class="day"><span class="d">Day 11</span><div><b>Styling, room by room. Old rugs and vinyl bench out.</b></div><span class="o">A·V</span></div>
+  <div class="day key"><span class="d">Day 12</span><div><b>Guest-ready. Can take bookings from here.</b></div><span class="o">V·A</span></div>
+  <div class="day"><span class="d">Day 6–20</span><div><b>Artist paints — parallel, nothing on site waits.</b></div><span class="o">V</span></div>
+  <div class="day"><span class="d">Day 21</span><div><b>Paintings approved, sent to the framer.</b></div><span class="o">V·A</span></div>
+  <div class="day"><span class="d">Day 22–28</span><div><b>Framing — acid-free mount, UV glass. Collected and checked.</b></div><span class="o">A</span></div>
+  <div class="day key"><span class="d">Day 29</span><div><b>Installer visit 2 — five originals hung, centres 150cm.</b></div><span class="o">T·A</span></div>
+  <div class="day key"><span class="d">Day 30</span><div><b>Final styling, full shoot, reset sheet.</b></div><span class="o">V·A</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="eb">Payments and handover</div>
+  <div class="cols">
+    <div class="card">
+      <h4>Payments</h4>
+      <ul class="lst">
+        <li>Day 1 — deposits 30–50%: Sagatex, armchair, Minh Thy, TVs</li>
+        <li>Day 3 — artist sketch fee, then commission deposit on day 4</li>
+        <li>Day 4 — shopping run paid on the day, every receipt kept</li>
+        <li>Day 6 — painter, after inspection in daylight</li>
+        <li>Day 9 — Mia Home, three printed pieces</li>
+        <li>Day 10 — installer, first visit</li>
+        <li>Day 21 — artist balance on approval of the paintings</li>
+        <li>Day 28 — framer on collection · Day 29 — installer, second visit</li>
+        <li><strong>Hold 10% of the trades bill</strong> until after day 30</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Handover check · day 30</h4>
+      <ul class="lst">
+        <li>Frames level, centres 150cm, no visible fixings</li>
+        <li>TV cabling concealed</li>
+        <li>Every lamp 2700K and working</li>
+        <li>Both beds identical, fold straight</li>
+        <li>Dispensers filled, towels rolled, robes hung</li>
+        <li>Reset sheet in a cupboard in each room</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>AIO Pad · Lumiere Riverside, Thảo Điền · Buy and work plan · 100,570,000 ₫ · navy feature walls only, no off-white repaint</footer>
+</div></body></html>
