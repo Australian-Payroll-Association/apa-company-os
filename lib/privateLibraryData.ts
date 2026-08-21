@@ -138,6 +138,13 @@ export const aioPrivateItems: LibraryItem[] = [
       'Before and after styling plan for the AIO Pad (Lumiere Riverside, Thao Dien): nine paired angles, room by room, with the exact items and prices behind each, plus the budget and a 12-day sequence.',
   },
   {
+    category: 'plan',
+    href: '/workflows/private/ai-officer-institute/aio-pad-buy-and-work-plan.html',
+    title: 'AIO Pad Buy and Work Plan',
+    description:
+      'Execution plan for the AIO Pad (Lumiere Riverside, Thao Dien): 57 items across 11 sources, who does what, five photo approvals, the full buy list with prices, a 30-day timeline, and payments and handover. Guest-ready on day 12.',
+  },
+  {
     category: 'prototype',
     href: '/workflows/private/ai-officer-institute/hub.html',
     title: 'Learning Hub (unified prototype)',
