@@ -56,6 +56,16 @@ export default async function CompanyDetailPage({
   const viewParam = firstParam(searchParams.view);
   const view = viewParam === "hub" ? "hub" : viewParam === "internal" ? "internal" : isClient ? "hub" : "internal";
 
+  // Context-aware back-link: reflect where the user came from (Client Hubs,
+  // Clients, or the Companies list) rather than always "Companies".
+  const from = firstParam(searchParams.from);
+  const back =
+    from === "client-hubs"
+      ? { href: "/admin/client-hubs", label: "← Client Hubs" }
+      : from === "clients"
+        ? { href: "/admin/revenue/clients", label: "← Clients" }
+        : { href: "/admin/revenue/companies", label: "← Companies" };
+
   const dealValueCents = deals.reduce((s, d) => s + (d.amount_usd_cents ?? d.amount_cents ?? 0), 0);
   const affiliateContacts = people.filter((p) => p.affiliateActive);
   const showAffiliateCard = !!companyAffiliate?.active || affiliateContacts.length > 0;
@@ -300,7 +310,7 @@ export default async function CompanyDetailPage({
   return (
     <div>
       <PageHead
-        eyebrow={<Link href="/admin/revenue/companies">← Companies</Link>}
+        eyebrow={<Link href={back.href}>{back.label}</Link>}
         title={name}
         sub={company.website_url || undefined}
         action={

@@ -26,13 +26,17 @@ export function CompanyLinkRow({
   row,
   children,
   detailBasePath = "/admin/revenue/companies",
+  hrefQuery,
 }: {
   row: CompanyRow;
   children: ReactNode;
   detailBasePath?: string;
+  // Optional query (e.g. "?from=clients") so the detail page can show a
+  // context-aware back-link.
+  hrefQuery?: string;
 }) {
   const router = useRouter();
-  const href = `${detailBasePath}/${row.id}`;
+  const href = `${detailBasePath}/${row.id}${hrefQuery ?? ""}`;
 
   // closest() matches the row itself too, so exclude currentTarget — otherwise
   // the guard swallows every click and the row never navigates.
