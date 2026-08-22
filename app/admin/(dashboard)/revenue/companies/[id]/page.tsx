@@ -220,22 +220,43 @@ export default async function CompanyDetailPage({
       {
         key: "board",
         label: "Work Board",
-        content: board ? <ClientBoardView board={board} /> : <Empty text="This client has no active work board yet." />,
+        content: (
+          <section className="admin-card admin-section-card">
+            {board ? <ClientBoardView board={board} /> : <Empty text="This client has no active work board yet." />}
+          </section>
+        ),
       },
       { key: "roadmap", label: "Roadmap", count: roadmap.items.length, content: <RoadmapView roadmap={roadmap} /> },
       {
         key: "documents",
         label: "Documents",
         count: documents.length,
-        content: <CompanyDocuments companyId={company.id} documents={documents} programs={programOptions} />,
+        content: (
+          <section className="admin-card admin-section-card">
+            <CompanyDocuments companyId={company.id} documents={documents} programs={programOptions} />
+          </section>
+        ),
       },
       {
         key: "meetings",
         label: "Meetings",
         count: meetings.length,
-        content: <MeetingsPanel meetings={meetings} publishAction={setMeetingPublished} />,
+        content: (
+          <section className="admin-card admin-section-card">
+            <MeetingsPanel meetings={meetings} publishAction={setMeetingPublished} />
+          </section>
+        ),
       },
-      { key: "invoices", label: "Invoices", count: hubInvoices.length, content: <InvoicesPanel invoices={hubInvoices} /> },
+      {
+        key: "invoices",
+        label: "Invoices",
+        count: hubInvoices.length,
+        content: (
+          <section className="admin-card admin-section-card">
+            <InvoicesPanel invoices={hubInvoices} />
+          </section>
+        ),
+      },
       { key: "team", label: "Team", content: <HubTeamPanel team={team} /> },
     ];
   }
