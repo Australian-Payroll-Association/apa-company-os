@@ -6,7 +6,8 @@ import { FilterBar } from "@/components/admin/FilterBar";
 import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { CompaniesShelfProvider, CompanyShelfRow, type CompanyRow } from "../companies/CompaniesShelf";
+import { CompanyLinkRow, type CompanyRow } from "../companies/CompanyRow";
+import { ClientCards } from "@/components/admin/ClientCards";
 import { ClientsActiveToggle } from "./ClientsActiveToggle";
 import { ClientRowActions } from "./ClientRowActions";
 
@@ -43,6 +44,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "created_at";
   const dir = firstParam(searchParams.dir) === "asc" ? "asc" : "desc";
   const showInactive = firstParam(searchParams.inactive) === "1";
+  const view = firstParam(searchParams.view) === "cards" ? "cards" : "list";
   const priorityParam = firstParam(searchParams.priority);
   const industryParam = firstParam(searchParams.industry);
   const bandParam = firstParam(searchParams.size_band);
@@ -117,34 +119,44 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
         action={<ClientsActiveToggle basePath={BASE_PATH} searchParams={searchParams} showInactive={showInactive} />}
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <CompaniesShelfProvider>
-        <DataTable
-          columns={columns}
-          rows={rows}
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZES}
-          sort={sort}
-          dir={dir}
-          basePath={BASE_PATH}
-          searchParams={searchParams}
-          searchPlaceholder="Search name or website…"
-          emptyText={showInactive ? "No companies match." : "No active clients match."}
-          filterBar={
-            <FilterBar
-              basePath={BASE_PATH}
-              searchParams={searchParams}
-              filters={[
-                { key: "industry", label: "Industry", options: INDUSTRY_CATEGORIES.map((c) => ({ value: c, label: c })) },
-                { key: "size_band", label: "Size", options: SIZE_BANDS.map((b) => ({ value: b, label: b })) },
-                { key: "priority", label: "Priority", options: PRIORITY_OPTIONS },
-              ]}
-            />
-          }
-          renderRow={(row, cells) => <CompanyShelfRow row={row}>{cells}</CompanyShelfRow>}
-        />
-      </CompaniesShelfProvider>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        pageSizeOptions={PAGE_SIZES}
+        sort={sort}
+        dir={dir}
+        basePath={BASE_PATH}
+        searchParams={searchParams}
+        searchPlaceholder="Search name or website…"
+        emptyText={showInactive ? "No companies match." : "No active clients match."}
+        filterBar={
+          <FilterBar
+            basePath={BASE_PATH}
+            searchParams={searchParams}
+            filters={[
+              { key: "industry", label: "Industry", options: INDUSTRY_CATEGORIES.map((c) => ({ value: c, label: c })) },
+              { key: "size_band", label: "Size", options: SIZE_BANDS.map((b) => ({ value: b, label: b })) },
+              { key: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+            ]}
+          />
+        }
+        view={view}
+        renderCards={(cardRows) => (
+          <ClientCards
+            rows={cardRows}
+            detailBasePath="/admin/revenue/companies"
+            subText={(r) =>
+              [r.industry_normalized || r.industry, r.priority ? humanize(r.priority) : null]
+                .filter(Boolean)
+                .join(" · ")
+            }
+          />
+        )}
+        renderRow={(row, cells) => <CompanyLinkRow row={row}>{cells}</CompanyLinkRow>}
+      />
     </>
   );
 }

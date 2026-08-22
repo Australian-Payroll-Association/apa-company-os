@@ -11,7 +11,7 @@ import { getCompaniesSummary } from "@/lib/admin/company-summary";
 import { INDUSTRY_CATEGORIES, SIZE_BANDS } from "@/lib/admin/company-enums";
 import { formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
-import { CompaniesShelfProvider, CompanyShelfRow, type CompanyRow } from "./CompaniesShelf";
+import { CompanyLinkRow, type CompanyRow } from "./CompanyRow";
 
 export const dynamic = "force-dynamic";
 
@@ -161,34 +161,32 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Se
         </div>
       )}
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <CompaniesShelfProvider>
-        <DataTable
-          columns={columns}
-          rows={rows}
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZES}
-          sort={sort}
-          dir={dir}
-          basePath="/admin/revenue/companies"
-          searchParams={searchParams}
-          searchPlaceholder="Search name or website…"
-          emptyText="No companies match."
-          filterBar={
-            <FilterBar
-              basePath="/admin/revenue/companies"
-              searchParams={searchParams}
-              filters={[
-                { key: "industry", label: "Industry", options: INDUSTRY_CATEGORIES.map((c) => ({ value: c, label: c })) },
-                { key: "size_band", label: "Size", options: SIZE_BANDS.map((b) => ({ value: b, label: b })) },
-                { key: "priority", label: "Priority", options: PRIORITY_OPTIONS },
-              ]}
-            />
-          }
-          renderRow={(row, cells) => <CompanyShelfRow row={row}>{cells}</CompanyShelfRow>}
-        />
-      </CompaniesShelfProvider>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        pageSizeOptions={PAGE_SIZES}
+        sort={sort}
+        dir={dir}
+        basePath="/admin/revenue/companies"
+        searchParams={searchParams}
+        searchPlaceholder="Search name or website…"
+        emptyText="No companies match."
+        filterBar={
+          <FilterBar
+            basePath="/admin/revenue/companies"
+            searchParams={searchParams}
+            filters={[
+              { key: "industry", label: "Industry", options: INDUSTRY_CATEGORIES.map((c) => ({ value: c, label: c })) },
+              { key: "size_band", label: "Size", options: SIZE_BANDS.map((b) => ({ value: b, label: b })) },
+              { key: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+            ]}
+          />
+        }
+        renderRow={(row, cells) => <CompanyLinkRow row={row}>{cells}</CompanyLinkRow>}
+      />
     </>
   );
 }
