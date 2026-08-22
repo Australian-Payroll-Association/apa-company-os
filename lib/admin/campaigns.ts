@@ -135,40 +135,103 @@ function passesSuppression(row: CandidateRow): boolean {
 // grown. Paging until a short page arrives is the only way to know it is whole.
 const AUDIENCE_PAGE = 500;
 
+// Edge8 owns this CRM, so an Edge8-branded (or brand-less) campaign draws from
+// the whole house list. Any other brand is a guest and is scoped strictly to
+// its brand_contacts membership, so a guest send can never reach the house list.
+const HOME_BRAND_SLUG = "edge8";
+
+// Returns the person_ids a guest brand is allowed to mail, or null when the
+// brand is the home brand (no scoping). An empty array means the guest brand
+// has no audience yet — the caller must treat that as "nobody", never a leak.
+async function brandMemberIds(brandId: string): Promise<{ ids: string[] | null; error?: string }> {
+  const { data: brand, error: brandError } = await companyOs
+    .from("brands")
+    .select("slug")
+    .eq("id", brandId)
+    .maybeSingle();
+  if (brandError) return { ids: null, error: brandError.message };
+  if (!brand || (brand as { slug: string }).slug === HOME_BRAND_SLUG) return { ids: null };
+
+  const ids: string[] = [];
+  for (let offset = 0; ; offset += AUDIENCE_PAGE) {
+    const { data, error } = await companyOs
+      .from("brand_contacts")
+      .select("person_id")
+      .eq("brand_id", brandId)
+      .order("person_id", { ascending: true })
+      .range(offset, offset + AUDIENCE_PAGE - 1);
+    if (error) return { ids: null, error: error.message };
+    const page = (data ?? []) as { person_id: string }[];
+    for (const r of page) ids.push(r.person_id);
+    if (page.length < AUDIENCE_PAGE) break;
+  }
+  return { ids };
+}
+
 export async function resolveAudience(
   segment: CampaignSegment,
+  brandId?: string | null,
 ): Promise<{ members: AudienceMember[]; error?: string }> {
   const personas = (segment.personas ?? []).filter((p) => !BLOCKED_PERSONAS.has(p));
   const members: AudienceMember[] = [];
 
-  for (let offset = 0; ; offset += AUDIENCE_PAGE) {
-    let query = companyOs
-      .from("people")
-      .select("id, email, full_name, preferred_name, persona, do_not_contact, is_team_member, marketing_consent")
-      .is("archived_at", null)
-      .eq("marketing_consent", "subscribed")
-      .order("id", { ascending: true })
-      .range(offset, offset + AUDIENCE_PAGE - 1);
-
-    if (personas.length > 0) query = query.in("persona", personas);
-
-    const { data, error } = await query;
-    if (error) return { members: [], error: error.message };
-
-    const page = (data ?? []) as CandidateRow[];
-    for (const row of page) {
-      if (!passesSuppression(row)) continue;
-      members.push({
-        personId: row.id,
-        email: row.email,
-        name: row.preferred_name || row.full_name || null,
-      });
+  // Guest-brand scoping. null = home brand (or no brand): no restriction.
+  let restrictIds: string[] | null = null;
+  if (brandId) {
+    const { ids, error } = await brandMemberIds(brandId);
+    if (error) return { members: [], error };
+    if (ids !== null) {
+      // Guest brand. Empty membership must yield nobody, not the house list.
+      if (ids.length === 0) return { members: [] };
+      restrictIds = ids;
     }
+  }
 
-    if (page.length < AUDIENCE_PAGE) break;
+  // A guest brand's candidate set is its membership; page over those ids so the
+  // same consent/suppression gates still apply. The home brand pages the whole
+  // subscribed list as before.
+  const idChunks: (string[] | null)[] = restrictIds
+    ? chunk(restrictIds, AUDIENCE_PAGE)
+    : [null];
+
+  for (const idChunk of idChunks) {
+    for (let offset = 0; ; offset += AUDIENCE_PAGE) {
+      let query = companyOs
+        .from("people")
+        .select("id, email, full_name, preferred_name, persona, do_not_contact, is_team_member, marketing_consent")
+        .is("archived_at", null)
+        .eq("marketing_consent", "subscribed")
+        .order("id", { ascending: true })
+        .range(offset, offset + AUDIENCE_PAGE - 1);
+
+      if (personas.length > 0) query = query.in("persona", personas);
+      if (idChunk) query = query.in("id", idChunk);
+
+      const { data, error } = await query;
+      if (error) return { members: [], error: error.message };
+
+      const page = (data ?? []) as CandidateRow[];
+      for (const row of page) {
+        if (!passesSuppression(row)) continue;
+        members.push({
+          personId: row.id,
+          email: row.email,
+          name: row.preferred_name || row.full_name || null,
+        });
+      }
+
+      // A restricted chunk is at most AUDIENCE_PAGE ids, so one page drains it.
+      if (page.length < AUDIENCE_PAGE) break;
+    }
   }
 
   return { members };
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
 // Re-check one person at send time. The audience is resolved when recipients are

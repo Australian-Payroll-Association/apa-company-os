@@ -114,9 +114,16 @@ export async function buildRecipients(id: string): Promise<{ ok: true; added: nu
     return { ok: false, error: "Recipients can only be built while the campaign is a draft." };
   }
 
-  const { members, error } = await resolveAudience(campaign.segment);
+  const { members, error } = await resolveAudience(campaign.segment, campaign.brandId);
   if (error) return { ok: false, error };
-  if (members.length === 0) return { ok: false, error: "That segment matches nobody." };
+  if (members.length === 0) {
+    return {
+      ok: false,
+      error: campaign.brandId
+        ? "That segment matches nobody. A branded campaign only reaches that brand's audience — add contacts to the brand first."
+        : "That segment matches nobody.",
+    };
+  }
 
   // Paged: an unbounded select is capped by PostgREST and truncates silently.
   // A partial "already" set would let an existing person through, and Postgres

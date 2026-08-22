@@ -216,6 +216,11 @@ export function CampaignEditor({
           Only contacts who are marked subscribed can be reached. Job seekers, team members, and
           anyone flagged do-not-contact are excluded no matter what you pick here.
         </p>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          {campaign.brandName && campaign.brandName !== "Edge8"
+            ? `This is a ${campaign.brandName} campaign, so it reaches only ${campaign.brandName}'s brand audience.`
+            : "With no brand (or the Edge8 brand) set, this reaches the full house list. Pick a guest brand to scope the send to that brand's audience only."}
+        </p>
         <div className="admin-form" style={{ marginTop: 12 }}>
           <div className="admin-field">
             <span className="admin-label">Personas</span>
