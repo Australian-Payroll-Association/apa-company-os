@@ -68,6 +68,7 @@ export type CalendarEntryRow = {
   campaignStatus: string | null;
   copyMd: string | null;
   assetUrl: string | null;
+  postedUrl: string | null;
   notes: string | null;
   sortOrder: number;
   createdAt: string;
@@ -85,6 +86,7 @@ type DbEntry = {
   campaign_id: string | null;
   copy_md: string | null;
   asset_url: string | null;
+  posted_url: string | null;
   notes: string | null;
   sort_order: number;
   created_at: string;
@@ -94,7 +96,7 @@ type DbEntry = {
 };
 
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, notes, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, posted_url, notes, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -119,6 +121,7 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
     campaignStatus: campaign?.status ?? null,
     copyMd: row.copy_md,
     assetUrl: row.asset_url,
+    postedUrl: row.posted_url,
     notes: row.notes,
     sortOrder: row.sort_order,
     createdAt: row.created_at,

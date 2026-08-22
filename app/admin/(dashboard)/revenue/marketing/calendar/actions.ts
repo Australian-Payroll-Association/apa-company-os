@@ -169,6 +169,27 @@ export async function moveEntry(
   return { ok: true };
 }
 
+// Manual social path: record where a blog/LinkedIn/Facebook entry went live and
+// move it to 'published'. URL is optional (a post may have no shareable link).
+export async function markPosted(id: string, url: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const { error } = await companyOs
+    .from("marketing_calendar")
+    .update({ status: "published", posted_url: url.trim() || null })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "marketing_calendar",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { status: "published", posted: true },
+  });
+  refresh();
+  return { ok: true };
+}
+
 export async function deleteEntry(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const { error } = await companyOs.from("marketing_calendar").delete().eq("id", id);

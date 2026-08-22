@@ -11,7 +11,7 @@ import {
   type CalendarEntryRow,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
-import { updateEntry, deleteEntry, createCampaignFromEntry, repurposeEntry } from "./actions";
+import { updateEntry, deleteEntry, createCampaignFromEntry, repurposeEntry, markPosted } from "./actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
 
@@ -47,6 +47,7 @@ export function EntryDrawer({
   const [assetUrl, setAssetUrl] = useState(entry.assetUrl ?? "");
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [parentId, setParentId] = useState(entry.parentId ?? "");
+  const [postedUrl, setPostedUrl] = useState(entry.postedUrl ?? "");
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
@@ -98,6 +99,19 @@ export function EntryDrawer({
       }
       onRepurposed(r.entries);
       setNote({ tone: "ok", text: "Derivatives added to the board." });
+    });
+  }
+
+  function post() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await markPosted(entry.id, postedUrl);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      onPatched(entry.id, { status: "published", postedUrl: postedUrl.trim() || null });
+      setNote({ tone: "ok", text: "Marked as posted." });
     });
   }
 
@@ -230,6 +244,39 @@ export function EntryDrawer({
           />
         </div>
       </div>
+
+      {entry.channel !== "email" && (
+        <div className="admin-card" style={{ padding: "12px 14px" }}>
+          <div className="admin-label" style={{ marginBottom: 8 }}>Publish</div>
+          <div className="admin-form">
+            <input
+              className="admin-input"
+              value={postedUrl}
+              onChange={(e) => setPostedUrl(e.target.value)}
+              placeholder="Live post URL (optional)"
+            />
+            <div className="admin-form-actions" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                disabled={pending || entry.status === "published"}
+                onClick={post}
+              >
+                {entry.status === "published" ? "Posted" : "Mark posted"}
+              </button>
+              {entry.postedUrl && (
+                <a className="admin-btn admin-btn--sm" href={entry.postedUrl} target="_blank" rel="noreferrer">
+                  View live
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="admin-hint" style={{ marginTop: 8 }}>
+            You post {CHANNELS.find((c) => c.id === entry.channel)?.label ?? "this"} by hand; recording it
+            here moves the entry to Published and clears it from the daily reminder.
+          </div>
+        </div>
+      )}
 
       {entry.channel === "email" && (
         <div className="admin-card" style={{ padding: "12px 14px" }}>

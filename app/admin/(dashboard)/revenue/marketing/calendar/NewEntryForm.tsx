@@ -58,6 +58,7 @@ export function NewEntryForm({
         campaignStatus: null,
         copyMd: null,
         assetUrl: null,
+        postedUrl: null,
         notes: null,
         sortOrder: 0,
         createdAt: new Date().toISOString(),
