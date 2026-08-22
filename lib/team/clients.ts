@@ -17,6 +17,9 @@ import {
   type DocResult,
 } from "@/lib/client-documents";
 import { getClientBoardView, type ClientBoardView } from "@/lib/boards/client-view";
+import { getMeetingsForCompany, type AdminMeetingRow } from "@/lib/admin/meetings";
+import { getInvoicesForCompany } from "@/lib/admin/invoices";
+import { getAssignmentsForCompany } from "@/lib/admin/staff-assignments";
 import {
   BACKLOG_SELECT,
   ROADMAP_GROUPS_SELECT,
@@ -197,6 +200,92 @@ export async function getClientDocumentsForActor(
   const companies = await actorCompanyIds(actor);
   if (!companies.has(companyId)) return null;
   return listDocumentsForCompanies([companyId]);
+}
+
+// Meetings for an assigned client. Team members are internal Edge8 staff, so
+// they see every meeting for the company (draft and published alike) plus the
+// publish state; the client-facing /portal filters to published only. Null when
+// the company is not in the actor's active assignment set.
+export async function getClientMeetingsForActor(
+  actor: TeamActor,
+  companyId: string,
+): Promise<AdminMeetingRow[] | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+  return getMeetingsForCompany(companyId);
+}
+
+// A client-safe invoice row for the hub (no `memo`, mirroring lib/portal/invoices).
+export type HubInvoice = {
+  id: string;
+  docNumber: string | null;
+  txnDate: string;
+  dueDate: string | null;
+  currency: string;
+  amountCents: number;
+  balanceCents: number;
+  status: string;
+};
+
+// Invoices for an assigned client. Same authorization rule as the other reads;
+// `memo` is dropped so the shape is safe to reuse on client-facing surfaces.
+export async function getClientInvoicesForActor(
+  actor: TeamActor,
+  companyId: string,
+): Promise<HubInvoice[] | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+  const rows = await getInvoicesForCompany(companyId);
+  return rows.map((r) => ({
+    id: r.id,
+    docNumber: r.doc_number,
+    txnDate: r.txn_date,
+    dueDate: r.due_date,
+    currency: r.currency,
+    amountCents: r.amount_cents,
+    balanceCents: r.balance_cents,
+    status: r.status,
+  }));
+}
+
+export type HubTeam = {
+  edge8: { name: string; roleTitle: string | null }[];
+  client: { name: string; title: string | null }[];
+};
+
+// The people on both sides of an assigned client: Edge8 assigned staff (only
+// the client-visible assignments) and the client's own contacts. Null when the
+// company is not in the actor's active assignment set.
+export async function getClientTeamForActor(actor: TeamActor, companyId: string): Promise<HubTeam | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+
+  const [assignments, { data: peopleRows }] = await Promise.all([
+    getAssignmentsForCompany(companyId),
+    companyOs
+      .from("person_companies")
+      .select("role, is_primary, people:people!person_id(full_name, email)")
+      .eq("company_id", companyId),
+  ]);
+
+  const edge8 = assignments
+    .filter((a) => a.client_visible)
+    .map((a) => ({ name: a.full_name || a.email || "Edge8", roleTitle: a.role_title || a.position_title }));
+
+  const rows = (peopleRows ?? []) as Array<{
+    role: string | null;
+    is_primary: boolean | null;
+    people: { full_name: string | null; email: string | null } | { full_name: string | null; email: string | null }[] | null;
+  }>;
+  const client = rows
+    .map((r) => {
+      const p = Array.isArray(r.people) ? r.people[0] : r.people;
+      return { name: p?.full_name || p?.email || "Unknown", title: r.role, isPrimary: !!r.is_primary };
+    })
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name))
+    .map(({ name, title }) => ({ name, title }));
+
+  return { edge8, client };
 }
 
 // The actor's email, from their own person row. uploaded_by on

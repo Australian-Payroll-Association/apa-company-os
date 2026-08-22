@@ -11,6 +11,9 @@ const TABS = [
   { href: "/roadmap", label: "Roadmap" },
   { href: "/board", label: "Board" },
   { href: "/documents", label: "Documents" },
+  { href: "/meetings", label: "Meetings" },
+  { href: "/invoices", label: "Invoices" },
+  { href: "/team", label: "Team" },
 ];
 
 export function HubTabs({ base }: { base: string }) {
