@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listEntries, listBrands } from "@/lib/admin/marketing-calendar";
+import { listEntries, listBrands, listPillars } from "@/lib/admin/marketing-calendar";
 import { CalendarClient } from "./CalendarClient";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,11 @@ export const metadata: Metadata = {
 
 export default async function MarketingCalendarPage() {
   await requireAdmin();
-  const [{ rows, error }, brands] = await Promise.all([listEntries(), listBrands()]);
+  const [{ rows, error }, brands, pillars] = await Promise.all([
+    listEntries(),
+    listBrands(),
+    listPillars(),
+  ]);
 
   return (
     <div>
@@ -36,7 +40,7 @@ export default async function MarketingCalendarPage() {
         </div>
       )}
 
-      <CalendarClient initialEntries={rows} brands={brands} />
+      <CalendarClient initialEntries={rows} brands={brands} initialPillars={pillars} />
     </div>
   );
 }

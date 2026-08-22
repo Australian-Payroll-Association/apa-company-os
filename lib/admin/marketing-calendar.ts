@@ -51,13 +51,15 @@ export const CHANNEL_ACCENT: Record<CalendarChannel, string> = Object.fromEntrie
 ) as Record<CalendarChannel, string>;
 
 export type BrandOption = { id: string; name: string; slug: string };
+export type PillarOption = { id: string; brandId: string; name: string };
 
 export type CalendarEntryRow = {
   id: string;
   title: string;
   brandId: string | null;
   brandName: string | null;
-  pillar: string | null;
+  pillarId: string | null;
+  pillarName: string | null;
   channel: CalendarChannel;
   status: CalendarStatus;
   publishDate: string | null; // YYYY-MM-DD
@@ -75,7 +77,7 @@ type DbEntry = {
   id: string;
   title: string;
   brand_id: string | null;
-  pillar: string | null;
+  pillar_id: string | null;
   channel: string;
   status: string;
   publish_date: string | null;
@@ -87,11 +89,12 @@ type DbEntry = {
   sort_order: number;
   created_at: string;
   brands: { name: string } | { name: string }[] | null;
+  marketing_pillars: { name: string } | { name: string }[] | null;
   email_campaigns: { status: string } | { status: string }[] | null;
 };
 
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, notes, sort_order, created_at, brands(name), email_campaigns(status)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, notes, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -99,13 +102,15 @@ function one<T>(v: T | T[] | null): T | null {
 
 function mapEntry(row: DbEntry): CalendarEntryRow {
   const brand = one(row.brands);
+  const pillar = one(row.marketing_pillars);
   const campaign = one(row.email_campaigns);
   return {
     id: row.id,
     title: row.title,
     brandId: row.brand_id,
     brandName: brand?.name ?? null,
-    pillar: row.pillar,
+    pillarId: row.pillar_id,
+    pillarName: pillar?.name ?? null,
     channel: row.channel as CalendarChannel,
     status: row.status as CalendarStatus,
     publishDate: row.publish_date,
@@ -137,4 +142,17 @@ export async function listBrands(): Promise<BrandOption[]> {
     .eq("active", true)
     .order("name", { ascending: true });
   return (data ?? []) as BrandOption[];
+}
+
+export async function listPillars(): Promise<PillarOption[]> {
+  const { data } = await companyOs
+    .from("marketing_pillars")
+    .select("id, brand_id, name")
+    .eq("active", true)
+    .order("name", { ascending: true });
+  return ((data ?? []) as { id: string; brand_id: string; name: string }[]).map((p) => ({
+    id: p.id,
+    brandId: p.brand_id,
+    name: p.name,
+  }));
 }

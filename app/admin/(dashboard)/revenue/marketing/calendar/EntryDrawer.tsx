@@ -9,6 +9,7 @@ import {
   CHANNELS,
   type BrandOption,
   type CalendarEntryRow,
+  type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import { updateEntry, deleteEntry, createCampaignFromEntry, repurposeEntry } from "./actions";
 
@@ -17,6 +18,7 @@ type Note = { tone: "ok" | "err"; text: string } | null;
 export function EntryDrawer({
   entry,
   brands,
+  pillars,
   allEntries,
   onPatched,
   onDeleted,
@@ -25,6 +27,7 @@ export function EntryDrawer({
 }: {
   entry: CalendarEntryRow;
   brands: BrandOption[];
+  pillars: PillarOption[];
   allEntries: CalendarEntryRow[];
   onPatched: (id: string, partial: Partial<CalendarEntryRow>) => void;
   onDeleted: (id: string) => void;
@@ -39,13 +42,14 @@ export function EntryDrawer({
   const [brandId, setBrandId] = useState(entry.brandId ?? "");
   const [channel, setChannel] = useState(entry.channel);
   const [publishDate, setPublishDate] = useState(entry.publishDate ?? "");
-  const [pillar, setPillar] = useState(entry.pillar ?? "");
+  const [pillarId, setPillarId] = useState(entry.pillarId ?? "");
   const [copyMd, setCopyMd] = useState(entry.copyMd ?? "");
   const [assetUrl, setAssetUrl] = useState(entry.assetUrl ?? "");
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [parentId, setParentId] = useState(entry.parentId ?? "");
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
+  const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
   const parentEntry = entry.parentId ? allEntries.find((e) => e.id === entry.parentId) ?? null : null;
   const childCount = allEntries.filter((e) => e.parentId === entry.id).length;
 
@@ -57,7 +61,7 @@ export function EntryDrawer({
         brandId: brandId || null,
         channel,
         publishDate: publishDate || null,
-        pillar: pillar || null,
+        pillarId: pillarId || null,
         copyMd: copyMd || null,
         assetUrl: assetUrl || null,
         notes: notes || null,
@@ -74,7 +78,8 @@ export function EntryDrawer({
         brandName: brands.find((b) => b.id === brandId)?.name ?? null,
         channel,
         publishDate: publishDate || null,
-        pillar: pillar || null,
+        pillarId: pillarId || null,
+        pillarName: pillars.find((p) => p.id === pillarId)?.name ?? null,
         copyMd: copyMd || null,
         assetUrl: assetUrl || null,
         notes: notes || null,
@@ -137,7 +142,15 @@ export function EntryDrawer({
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="e-brand">Brand</label>
-          <select id="e-brand" className="admin-input" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+          <select
+            id="e-brand"
+            className="admin-input"
+            value={brandId}
+            onChange={(e) => {
+              setBrandId(e.target.value);
+              setPillarId("");
+            }}
+          >
             <option value="">— No brand —</option>
             {brands.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
@@ -161,7 +174,19 @@ export function EntryDrawer({
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="e-pillar">Pillar</label>
-          <input id="e-pillar" className="admin-input" value={pillar} onChange={(e) => setPillar(e.target.value)} placeholder="Content theme" />
+          <select
+            id="e-pillar"
+            className="admin-input"
+            value={pillarId}
+            disabled={!brandId || brandPillars.length === 0}
+            onChange={(e) => setPillarId(e.target.value)}
+          >
+            <option value="">{brandId ? "— None —" : "Pick a brand first"}</option>
+            {brandPillars.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <div className="admin-hint">Manage pillars from the Pillars card on the calendar page.</div>
         </div>
 
         <div className="admin-field">

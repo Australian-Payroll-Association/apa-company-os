@@ -46,6 +46,7 @@ export function CalendarBoard({
               {CHANNEL_LABEL[c.channel]}
             </span>
             {c.brandName && <Badge>{c.brandName}</Badge>}
+            {c.pillarName && <Badge tone="info">{c.pillarName}</Badge>}
             {c.campaignStatus && <Badge tone={statusTone(c.campaignStatus)}>{c.campaignStatus}</Badge>}
             <span className="sap-card-sub" style={{ marginLeft: "auto" }}>
               {c.publishDate ? formatDate(c.publishDate) : "no date"}

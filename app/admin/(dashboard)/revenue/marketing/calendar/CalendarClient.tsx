@@ -7,8 +7,10 @@ import {
   CHANNEL_LABEL,
   type BrandOption,
   type CalendarEntryRow,
+  type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import { NewEntryForm } from "./NewEntryForm";
+import { PillarManager } from "./PillarManager";
 import { CalendarBoard } from "./CalendarBoard";
 import { CalendarMonth } from "./CalendarMonth";
 import { EntryDrawer } from "./EntryDrawer";
@@ -17,15 +19,20 @@ import { moveEntry } from "./actions";
 export function CalendarClient({
   initialEntries,
   brands,
+  initialPillars,
 }: {
   initialEntries: CalendarEntryRow[];
   brands: BrandOption[];
+  initialPillars: PillarOption[];
 }) {
   const [entries, setEntries] = useState<CalendarEntryRow[]>(initialEntries);
+  const [pillars, setPillars] = useState<PillarOption[]>(initialPillars);
+  const [pillarFilter, setPillarFilter] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ ok: boolean; text: string } | null>(null);
 
   const selected = entries.find((e) => e.id === selectedId) ?? null;
+  const visible = pillarFilter ? entries.filter((e) => e.pillarId === pillarFilter) : entries;
 
   function move(id: string, status: string) {
     const prev = entries;
@@ -60,6 +67,15 @@ export function CalendarClient({
     setEntries(next);
   }
 
+  function addPillar(p: PillarOption) {
+    setPillars((ps) => [...ps, p]);
+  }
+
+  function removePillar(id: string) {
+    setPillars((ps) => ps.filter((p) => p.id !== id));
+    if (pillarFilter === id) setPillarFilter(null);
+  }
+
   return (
     <>
       {banner && (
@@ -70,15 +86,42 @@ export function CalendarClient({
 
       <section className="admin-card admin-section-card">
         <div className="admin-card-title">New entry</div>
-        <NewEntryForm brands={brands} onCreated={add} />
+        <NewEntryForm brands={brands} pillars={pillars} onCreated={add} />
       </section>
+
+      <section className="admin-card admin-section-card">
+        <div className="admin-card-title">Pillars</div>
+        <PillarManager brands={brands} pillars={pillars} onCreated={addPillar} onRemoved={removePillar} />
+      </section>
+
+      {pillars.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 14px" }}>
+          <button
+            type="button"
+            className={`admin-btn admin-btn--sm${pillarFilter === null ? " admin-btn--primary" : ""}`}
+            onClick={() => setPillarFilter(null)}
+          >
+            All pillars
+          </button>
+          {pillars.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`admin-btn admin-btn--sm${pillarFilter === p.id ? " admin-btn--primary" : ""}`}
+              onClick={() => setPillarFilter(p.id)}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <ViewToggle
         views={[
           {
             key: "board",
             label: "Board",
-            content: <CalendarBoard entries={entries} onMove={move} onCardClick={setSelectedId} />,
+            content: <CalendarBoard entries={visible} onMove={move} onCardClick={setSelectedId} />,
           },
           {
             key: "calendar",
@@ -86,7 +129,7 @@ export function CalendarClient({
             content: (
               <div className="admin-card admin-section-card">
                 <h2 className="admin-card-title">Publish calendar</h2>
-                <CalendarMonth entries={entries} onSelect={setSelectedId} />
+                <CalendarMonth entries={visible} onSelect={setSelectedId} />
               </div>
             ),
           },
@@ -103,6 +146,7 @@ export function CalendarClient({
           <EntryDrawer
             entry={selected}
             brands={brands}
+            pillars={pillars}
             allEntries={entries}
             onPatched={patch}
             onDeleted={remove}

@@ -6,27 +6,39 @@ import {
   type BrandOption,
   type CalendarChannel,
   type CalendarEntryRow,
+  type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import { createEntry } from "./actions";
 
 export function NewEntryForm({
   brands,
+  pillars,
   onCreated,
 }: {
   brands: BrandOption[];
+  pillars: PillarOption[];
   onCreated: (entry: CalendarEntryRow) => void;
 }) {
   const [title, setTitle] = useState("");
   const [channel, setChannel] = useState<CalendarChannel>("blog");
   const [brandId, setBrandId] = useState("");
+  const [pillarId, setPillarId] = useState("");
   const [publishDate, setPublishDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
+
   function submit() {
     setError(null);
     startTransition(async () => {
-      const r = await createEntry({ title, channel, brandId: brandId || null, publishDate: publishDate || null });
+      const r = await createEntry({
+        title,
+        channel,
+        brandId: brandId || null,
+        pillarId: pillarId || null,
+        publishDate: publishDate || null,
+      });
       if (!r.ok) {
         setError(r.error);
         return;
@@ -36,7 +48,8 @@ export function NewEntryForm({
         title: title.trim(),
         brandId: brandId || null,
         brandName: brands.find((b) => b.id === brandId)?.name ?? null,
-        pillar: null,
+        pillarId: pillarId || null,
+        pillarName: pillars.find((p) => p.id === pillarId)?.name ?? null,
         channel,
         status: "idea",
         publishDate: publishDate || null,
@@ -51,6 +64,7 @@ export function NewEntryForm({
       });
       setTitle("");
       setPublishDate("");
+      setPillarId("");
     });
   }
 
@@ -71,10 +85,33 @@ export function NewEntryForm({
         </div>
         <div className="admin-field" style={{ flex: "1 1 130px" }}>
           <label className="admin-label" htmlFor="ne-brand">Brand</label>
-          <select id="ne-brand" className="admin-input" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+          <select
+            id="ne-brand"
+            className="admin-input"
+            value={brandId}
+            onChange={(e) => {
+              setBrandId(e.target.value);
+              setPillarId("");
+            }}
+          >
             <option value="">— None —</option>
             {brands.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field" style={{ flex: "1 1 150px" }}>
+          <label className="admin-label" htmlFor="ne-pillar">Pillar</label>
+          <select
+            id="ne-pillar"
+            className="admin-input"
+            value={pillarId}
+            disabled={!brandId || brandPillars.length === 0}
+            onChange={(e) => setPillarId(e.target.value)}
+          >
+            <option value="">{brandId ? "— None —" : "Pick a brand first"}</option>
+            {brandPillars.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>

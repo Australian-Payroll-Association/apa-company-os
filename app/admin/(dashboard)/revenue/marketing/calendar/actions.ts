@@ -9,12 +9,14 @@ import {
   type CalendarChannel,
   type CalendarEntryRow,
   type CalendarStatus,
+  type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 type CampaignResult = { ok: true; campaignId: string } | { ok: false; error: string };
 type RepurposeResult = { ok: true; entries: CalendarEntryRow[] } | { ok: false; error: string };
+type PillarResult = { ok: true; pillar: PillarOption } | { ok: false; error: string };
 
 // The repurposing waterfall: a core asset (usually blog) becomes social + email
 // derivatives, staggered over the following days.
@@ -49,7 +51,7 @@ export async function createEntry(input: {
   channel: string;
   brandId?: string | null;
   publishDate?: string | null;
-  pillar?: string | null;
+  pillarId?: string | null;
 }): Promise<CreateResult> {
   const admin = await requireAdmin();
   const title = input.title.trim();
@@ -65,7 +67,7 @@ export async function createEntry(input: {
       channel: input.channel,
       brand_id: input.brandId || null,
       publish_date: input.publishDate || null,
-      pillar: input.pillar?.trim() || null,
+      pillar_id: input.pillarId || null,
       created_by: admin.email,
     })
     .select("id")
@@ -91,7 +93,7 @@ export async function updateEntry(
   patch: {
     title?: string;
     brandId?: string | null;
-    pillar?: string | null;
+    pillarId?: string | null;
     channel?: string;
     publishDate?: string | null;
     copyMd?: string | null;
@@ -109,7 +111,7 @@ export async function updateEntry(
     update.title = t;
   }
   if (patch.brandId !== undefined) update.brand_id = patch.brandId || null;
-  if (patch.pillar !== undefined) update.pillar = patch.pillar?.trim() || null;
+  if (patch.pillarId !== undefined) update.pillar_id = patch.pillarId || null;
   if (patch.channel !== undefined) {
     if (!CHANNELS.has(patch.channel as CalendarChannel)) {
       return { ok: false, error: "Unknown channel." };
@@ -182,6 +184,56 @@ export async function deleteEntry(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function createPillar(brandId: string, name: string): Promise<PillarResult> {
+  const admin = await requireAdmin();
+  const trimmed = name.trim();
+  if (!brandId) return { ok: false, error: "Pick a brand for the pillar." };
+  if (!trimmed) return { ok: false, error: "Give the pillar a name." };
+
+  const { data, error } = await companyOs
+    .from("marketing_pillars")
+    .insert({ brand_id: brandId, name: trimmed, created_by: admin.email })
+    .select("id, brand_id, name")
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "23505") return { ok: false, error: "That pillar already exists for this brand." };
+    return { ok: false, error: error.message };
+  }
+  if (!data) return { ok: false, error: "Pillar was not created." };
+
+  const row = data as { id: string; brand_id: string; name: string };
+  await recordAudit({
+    table: "marketing_pillars",
+    recordId: row.id,
+    operation: "insert",
+    actor: admin.email,
+    context: { name: trimmed },
+  });
+  refresh();
+  return { ok: true, pillar: { id: row.id, brandId: row.brand_id, name: row.name } };
+}
+
+export async function deactivatePillar(id: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  // Soft-remove: entries already tagged with it keep their pillar_id.
+  const { error } = await companyOs
+    .from("marketing_pillars")
+    .update({ active: false })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "marketing_pillars",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { active: false },
+  });
+  refresh();
+  return { ok: true };
+}
+
 // Spawns channel derivatives from a core asset, each linked back via parent_id
 // and dated a few days after the parent (the repurposing waterfall). Skips the
 // parent's own channel. Returns the full entry list so the client re-syncs.
@@ -190,7 +242,7 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
 
   const { data, error } = await companyOs
     .from("marketing_calendar")
-    .select("id, title, brand_id, channel, pillar, publish_date")
+    .select("id, title, brand_id, channel, pillar_id, publish_date")
     .eq("id", id)
     .maybeSingle();
 
@@ -202,7 +254,7 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
     title: string;
     brand_id: string | null;
     channel: string;
-    pillar: string | null;
+    pillar_id: string | null;
     publish_date: string | null;
   };
 
@@ -210,7 +262,7 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
   const children = DERIVATIVES.filter((d) => d.channel !== parent.channel).map((d) => ({
     title: parent.title,
     brand_id: parent.brand_id,
-    pillar: parent.pillar,
+    pillar_id: parent.pillar_id,
     channel: d.channel,
     status: "idea",
     publish_date: addDays(baseDate, d.offsetDays),
