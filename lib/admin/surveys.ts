@@ -352,3 +352,54 @@ export async function getPersonSurveyResponses(personId: string): Promise<Person
     };
   });
 }
+
+export type CompanySurveyResponse = {
+  id: string;
+  surveyName: string;
+  respondentName: string;
+  submittedAt: string;
+};
+
+// Survey responses from a company's linked people, for the company profile.
+// People resolve via company_os.person_companies (surveys have no company_id).
+// A summary list only (survey, respondent, date); the full answers, with the
+// sensitive-field redaction, stay on the contact profile via
+// getPersonSurveyResponses.
+export async function getSurveyResponsesForCompany(companyId: string): Promise<CompanySurveyResponse[]> {
+  const { data: links } = await companyOs
+    .from("person_companies")
+    .select("people:people!person_id(id, full_name, email)")
+    .eq("company_id", companyId);
+
+  const nameById = new Map<string, string>();
+  for (const l of (links ?? []) as Array<{
+    people: { id: string; full_name: string | null; email: string | null } | { id: string; full_name: string | null; email: string | null }[] | null;
+  }>) {
+    const p = Array.isArray(l.people) ? l.people[0] : l.people;
+    if (p?.id) nameById.set(p.id, p.full_name || p.email || "Unknown");
+  }
+  const personIds = [...nameById.keys()];
+  if (personIds.length === 0) return [];
+
+  const { data } = await companyOs
+    .from("survey_responses")
+    .select("id, person_id, submitted_at, created_at, surveys!survey_id(name)")
+    .in("person_id", personIds)
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+
+  return ((data ?? []) as Array<{
+    id: string;
+    person_id: string | null;
+    submitted_at: string | null;
+    created_at: string;
+    surveys: { name: string } | { name: string }[] | null;
+  }>).map((r) => {
+    const survey = Array.isArray(r.surveys) ? r.surveys[0] : r.surveys;
+    return {
+      id: r.id,
+      surveyName: survey?.name ?? "Survey",
+      respondentName: (r.person_id && nameById.get(r.person_id)) || "Unknown",
+      submittedAt: r.submitted_at ?? r.created_at,
+    };
+  });
+}
