@@ -7,9 +7,8 @@ import { usePathname } from "next/navigation";
 // Overview, prefix match for the subroutes.
 
 const TABS = [
-  { href: "", label: "Overview" },
+  { href: "/board", label: "Work Board" },
   { href: "/roadmap", label: "Roadmap" },
-  { href: "/board", label: "Board" },
   { href: "/documents", label: "Documents" },
   { href: "/meetings", label: "Meetings" },
   { href: "/invoices", label: "Invoices" },
