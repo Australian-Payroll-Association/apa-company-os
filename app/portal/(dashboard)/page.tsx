@@ -124,7 +124,7 @@ export default async function PortalHome() {
               {roadmap.total > 0 ? `${roadmap.total} item${roadmap.total === 1 ? "" : "s"}` : "None yet"}
             </span>
             <span className="team-glance-note">
-              {roadmap.total > 0 ? <Link href="/portal/roadmap">Open →</Link> : "Built with Edge8"}
+              {roadmap.total > 0 ? <Link href="/portal/hub">Open →</Link> : "Built with Edge8"}
             </span>
           </div>
           <div className="team-glance-cell">
@@ -133,7 +133,7 @@ export default async function PortalHome() {
               {board ? `${openCards.length} open card${openCards.length === 1 ? "" : "s"}` : "No board yet"}
             </span>
             <span className="team-glance-note">
-              {board ? <Link href="/portal/board">Open →</Link> : "Set up by Edge8"}
+              {board ? <Link href="/portal/hub">Open →</Link> : "Set up by Edge8"}
             </span>
           </div>
           <div className="team-glance-cell">
@@ -142,7 +142,7 @@ export default async function PortalHome() {
               {documents.length === 0 ? "None yet" : `${documents.length} file${documents.length === 1 ? "" : "s"}`}
             </span>
             <span className="team-glance-note">
-              <Link href="/portal/documents">{documents.length > 0 ? "Open →" : "Upload →"}</Link>
+              <Link href="/portal/hub">{documents.length > 0 ? "Open →" : "Upload →"}</Link>
             </span>
           </div>
         </div>
@@ -294,7 +294,7 @@ export default async function PortalHome() {
                 next up
               </span>
             </h2>
-            <Link href="/portal/roadmap" className="admin-cell-muted" style={{ fontSize: 12 }}>
+            <Link href="/portal/hub" className="admin-cell-muted" style={{ fontSize: 12 }}>
               View all {roadmap.total} →
             </Link>
           </div>
@@ -302,7 +302,7 @@ export default async function PortalHome() {
             {roadmap.items.map((it) => (
               <Link
                 key={it.id}
-                href="/portal/roadmap"
+                href="/portal/hub"
                 className="admin-list-row"
                 style={{ textDecoration: "none", color: "inherit" }}
               >
@@ -330,7 +330,7 @@ export default async function PortalHome() {
                 in motion
               </span>
             </h2>
-            <Link href="/portal/board" className="admin-cell-muted" style={{ fontSize: 12 }}>
+            <Link href="/portal/hub" className="admin-cell-muted" style={{ fontSize: 12 }}>
               View board →
             </Link>
           </div>
@@ -338,7 +338,7 @@ export default async function PortalHome() {
             {openCards.slice(0, 3).map((c) => (
               <Link
                 key={c.id}
-                href="/portal/board"
+                href="/portal/hub"
                 className="admin-list-row"
                 style={{ textDecoration: "none", color: "inherit" }}
               >
@@ -363,7 +363,7 @@ export default async function PortalHome() {
             <h2 className="admin-card-title" style={{ margin: 0 }}>
               Latest documents
             </h2>
-            <Link href="/portal/documents" className="admin-cell-muted" style={{ fontSize: 12 }}>
+            <Link href="/portal/hub" className="admin-cell-muted" style={{ fontSize: 12 }}>
               All {documents.length} →
             </Link>
           </div>

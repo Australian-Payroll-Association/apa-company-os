@@ -9,7 +9,7 @@ import {
   reorderGroupForActor,
 } from "@/lib/portal/backlog";
 
-const BASE = "/portal/roadmap";
+const BASE = "/portal/hub";
 
 export async function reorderMyGroup(groupKey: string, orderedIds: string[]) {
   const actor = await requirePortalMember();

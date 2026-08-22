@@ -15,7 +15,7 @@ import type { DocResult } from "@/lib/client-documents";
 // uploadership) before touching anything.
 
 function refresh() {
-  revalidatePath("/portal/documents");
+  revalidatePath("/portal/hub");
   revalidatePath("/portal/programs");
 }
 
