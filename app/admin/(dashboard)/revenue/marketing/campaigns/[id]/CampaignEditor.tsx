@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CampaignRow } from "@/lib/admin/campaigns";
+import type { BrandOption } from "@/lib/admin/marketing-calendar";
 import {
   approveCampaign,
   buildRecipients,
@@ -20,12 +21,23 @@ const PERSONA_CHOICES = [
 
 type Note = { tone: "ok" | "err"; text: string } | null;
 
+// ISO (stored UTC) -> the "YYYY-MM-DDTHH:mm" a datetime-local input expects, in
+// the operator's local time.
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function CampaignEditor({
   campaign,
   pendingCount,
+  brands,
 }: {
   campaign: CampaignRow;
   pendingCount: number;
+  brands: BrandOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -38,6 +50,8 @@ export function CampaignEditor({
   const [replyTo, setReplyTo] = useState(campaign.replyTo ?? "");
   const [batchSize, setBatchSize] = useState(String(campaign.batchSize));
   const [personas, setPersonas] = useState<string[]>(campaign.segment.personas ?? []);
+  const [brandId, setBrandId] = useState(campaign.brandId ?? "");
+  const [scheduledAt, setScheduledAt] = useState(toLocalInput(campaign.scheduledAt));
 
   const isDraft = campaign.status === "draft";
 
@@ -75,6 +89,24 @@ export function CampaignEditor({
           </div>
         )}
         <div className="admin-form" style={{ marginTop: 12 }}>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="brand">
+              Brand
+            </label>
+            <select
+              id="brand"
+              className="admin-input"
+              value={brandId}
+              disabled={!isDraft}
+              onChange={(e) => setBrandId(e.target.value)}
+            >
+              <option value="">— No brand —</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <div className="admin-hint">Which identity this send goes out as (Edge8, AI Officer, …).</div>
+          </div>
           <div className="admin-field">
             <label className="admin-label" htmlFor="name">
               Internal name
@@ -158,6 +190,7 @@ export function CampaignEditor({
                       preheader,
                       bodyMd,
                       replyTo,
+                      brandId: brandId || null,
                     }),
                   "Content saved.",
                 )
@@ -279,6 +312,45 @@ export function CampaignEditor({
           {campaign.status === "sent" && "This campaign has finished sending."}
           {campaign.status === "cancelled" && "This campaign was cancelled."}
         </p>
+
+        <div className="admin-form" style={{ marginTop: 12 }}>
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="schedule">
+              Schedule
+            </label>
+            <input
+              id="schedule"
+              className="admin-input"
+              type="datetime-local"
+              value={scheduledAt}
+              disabled={!isDraft}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+            <div className="admin-hint">
+              {scheduledAt
+                ? "Once started, the first batch waits until this time. Leave blank to send as soon as you start."
+                : "No schedule: sending starts immediately when you press Start sending."}
+            </div>
+            {isDraft && (
+              <div className="admin-form-actions" style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="admin-btn"
+                  disabled={pending}
+                  onClick={() =>
+                    run(
+                      () => updateCampaign(campaign.id, { scheduledAt: scheduledAt || null }),
+                      scheduledAt ? "Schedule saved." : "Schedule cleared.",
+                    )
+                  }
+                >
+                  Save schedule
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="admin-form-actions" style={{ marginTop: 12 }}>
           {campaign.status === "draft" && (
             <button

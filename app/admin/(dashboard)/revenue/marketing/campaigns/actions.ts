@@ -54,6 +54,8 @@ export async function updateCampaign(
     segment?: CampaignSegment;
     replyTo?: string;
     batchSize?: number;
+    brandId?: string | null;
+    scheduledAt?: string | null;
   },
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
@@ -78,6 +80,11 @@ export async function updateCampaign(
       return { ok: false, error: "Batch size must be between 1 and 1000." };
     }
     update.batch_size = Math.floor(patch.batchSize);
+  }
+  if (patch.brandId !== undefined) update.brand_id = patch.brandId || null;
+  if (patch.scheduledAt !== undefined) {
+    // datetime-local sends a wall-clock string with no zone; normalise to ISO.
+    update.scheduled_at = patch.scheduledAt ? new Date(patch.scheduledAt).toISOString() : null;
   }
   if (update.name === "") return { ok: false, error: "Name cannot be empty." };
   if (update.subject === "") return { ok: false, error: "Subject cannot be empty." };

@@ -23,6 +23,8 @@ export type CampaignRow = {
   fromEmail: string | null;
   replyTo: string | null;
   batchSize: number;
+  brandId: string | null;
+  brandName: string | null;
   scheduledAt: string | null;
   approvedAt: string | null;
   approvedBy: string | null;
@@ -42,16 +44,18 @@ type DbCampaign = {
   from_email: string | null;
   reply_to: string | null;
   batch_size: number;
+  brand_id: string | null;
   scheduled_at: string | null;
   approved_at: string | null;
   approved_by: string | null;
   sent_at: string | null;
   created_by: string | null;
   created_at: string;
+  brands: { name: string } | { name: string }[] | null;
 };
 
 const CAMPAIGN_SELECT =
-  "id, name, subject, preheader, body_md, status, segment, from_email, reply_to, batch_size, scheduled_at, approved_at, approved_by, sent_at, created_by, created_at";
+  "id, name, subject, preheader, body_md, status, segment, from_email, reply_to, batch_size, brand_id, scheduled_at, approved_at, approved_by, sent_at, created_by, created_at, brands(name)";
 
 function mapCampaign(row: DbCampaign): CampaignRow {
   return {
@@ -65,6 +69,8 @@ function mapCampaign(row: DbCampaign): CampaignRow {
     fromEmail: row.from_email,
     replyTo: row.reply_to,
     batchSize: row.batch_size,
+    brandId: row.brand_id,
+    brandName: (Array.isArray(row.brands) ? row.brands[0] : row.brands)?.name ?? null,
     scheduledAt: row.scheduled_at,
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,

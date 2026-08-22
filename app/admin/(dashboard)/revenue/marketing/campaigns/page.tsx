@@ -72,6 +72,7 @@ export default async function CampaignsPage() {
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Brand</th>
                   <th>Subject</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -84,6 +85,7 @@ export default async function CampaignsPage() {
                     <td className="admin-cell-strong">
                       <Link href={`/admin/revenue/marketing/campaigns/${row.id}`}>{row.name}</Link>
                     </td>
+                    <td className="admin-cell-muted">{row.brandName ?? "—"}</td>
                     <td className="admin-cell-muted">{row.subject}</td>
                     <td>
                       <Badge tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Badge>
