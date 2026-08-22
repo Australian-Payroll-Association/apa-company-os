@@ -220,9 +220,11 @@ export default async function CompanyDetailPage({
       {
         key: "board",
         label: "Work Board",
-        content: (
+        content: board ? (
+          <ClientBoardView board={board} />
+        ) : (
           <section className="admin-card admin-section-card">
-            {board ? <ClientBoardView board={board} /> : <Empty text="This client has no active work board yet." />}
+            <Empty text="This client has no active work board yet." />
           </section>
         ),
       },

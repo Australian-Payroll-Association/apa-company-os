@@ -52,13 +52,11 @@ export default async function PortalHubPage() {
     {
       key: "board",
       label: "Work Board",
-      content: (
+      content: board ? (
+        <ClientBoardView board={board} viewerPersonId={actor.personId} />
+      ) : (
         <section className="admin-card admin-section-card">
-          {board ? (
-            <ClientBoardView board={board} viewerPersonId={actor.personId} />
-          ) : (
-            <div className="admin-empty">No active work board yet.</div>
-          )}
+          <div className="admin-empty">No active work board yet.</div>
         </section>
       ),
     },

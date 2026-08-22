@@ -72,7 +72,6 @@ export default async function TeamClientBoardTab({ params }: { params: { company
         )}
       </p>
       {isMember && <MyCardsStrip cards={myCards} columns={board.columns} boardSlug={board.boardSlug} />}
-      <section className="admin-card admin-section-card">
       <div className="sap-kanban">
         {board.columns.map((col, i) => {
           const colCards = board.cards.filter((c) => c.columnId === col.id);
@@ -119,7 +118,6 @@ export default async function TeamClientBoardTab({ params }: { params: { company
           );
         })}
       </div>
-      </section>
     </>
   );
 }
