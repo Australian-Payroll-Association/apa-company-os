@@ -32,8 +32,9 @@ const NAV: NavSection[] = [
         collapsible: true,
         items: [
           { label: "Company Dashboard", href: "/admin", ico: "◈", enabled: true },
-          { label: "Work Boards", href: "/admin/boards", ico: "▦", enabled: true },
-          { label: "Client Roadmaps", href: "/admin/edges/client-roadmaps", ico: "◔", enabled: true },
+          // Client Hubs replaces the standalone Work Boards + Client Roadmaps:
+          // pick a client, land on their hub (board + roadmap now editable there).
+          { label: "Client Hubs", href: "/admin/client-hubs", ico: "▦", enabled: true },
           { label: "Goals", href: "/admin/edges/goals", ico: "◆", enabled: true },
           { label: "Metrics", href: "/admin/edges/metrics", ico: "▲", enabled: true },
           { label: "Sync", href: "/admin/edges/sync", ico: "☰", enabled: true },
