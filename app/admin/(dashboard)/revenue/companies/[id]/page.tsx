@@ -6,9 +6,11 @@ import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/sta
 import { getInvoicesForCompany } from "@/lib/admin/invoices";
 import { getMeetingsForCompany } from "@/lib/admin/meetings";
 import { getSurveyResponsesForCompany } from "@/lib/admin/surveys";
-import { getClientBoardView } from "@/lib/boards/client-view";
+import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
-import { getCompanyRoadmap, getCompanyHubTeam } from "@/lib/admin/company-hub";
+import { getCompanyHubTeam, getCompanyBoardSlug, getLiveCardItemIds } from "@/lib/admin/company-hub";
+import { BACKLOG_SELECT, ROADMAP_GROUPS_SELECT, type BacklogItem, type RoadmapGroup } from "@/lib/client-backlog";
+import { getAdminUser } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
@@ -20,8 +22,9 @@ import { CompanyDocuments, type ProgramOption } from "@/components/admin/Company
 import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
 import { InvoicesPanel } from "@/components/hub/InvoicesPanel";
 import { HubTeamPanel } from "@/components/hub/HubTeamPanel";
-import { RoadmapView } from "@/components/hub/RoadmapView";
-import { ClientBoardView } from "@/components/hub/ClientBoardView";
+import { BoardView } from "@/app/admin/(dashboard)/boards/[slug]/BoardView";
+import { BacklogAdminEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/BacklogAdminEditor";
+import { OverviewEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/OverviewEditor";
 import { setMeetingPublished } from "@/app/admin/(dashboard)/revenue/meetings/actions";
 import { companyOs } from "@/lib/supabase";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
@@ -195,15 +198,34 @@ export default async function CompanyDetailPage({
 
   // ── Client Hub tabs ──────────────────────────────────────────────
   async function hubTabs(): Promise<TabDef[]> {
-    const [roadmap, board, meetings, invoices, team, documents, programRows] = await Promise.all([
-      getCompanyRoadmap(company.id),
-      getClientBoardView([company.id]),
-      getMeetingsForCompany(company.id),
-      getInvoicesForCompany(company.id),
-      getCompanyHubTeam(company.id),
-      listDocumentsForCompanies([company.id]),
-      companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
-    ]);
+    const boardSlug = await getCompanyBoardSlug(company.id);
+    const [boardDetail, boardOptions, admin, itemRows, groupRows, overviewRow, meetings, invoices, team, documents, programRows] =
+      await Promise.all([
+        boardSlug ? getBoardBySlug(boardSlug) : Promise.resolve(null),
+        listBoardManageOptions(),
+        getAdminUser(),
+        companyOs.from("client_backlog_items").select(BACKLOG_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
+        companyOs.from("client_roadmap_groups").select(ROADMAP_GROUPS_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
+        companyOs.from("client_roadmap_overview").select("body").eq("company_id", company.id).maybeSingle(),
+        getMeetingsForCompany(company.id),
+        getInvoicesForCompany(company.id),
+        getCompanyHubTeam(company.id),
+        listDocumentsForCompanies([company.id]),
+        companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
+      ]);
+
+    const roadmapItems = (itemRows.data ?? []) as unknown as BacklogItem[];
+    const roadmapGroups = (groupRows.data ?? []) as unknown as RoadmapGroup[];
+    const overviewBody = (overviewRow.data as { body: string } | null)?.body ?? "";
+    const liveCardItemIds = await getLiveCardItemIds(roadmapItems.map((i) => i.id));
+
+    // The admin's own person row, so cards freshly assigned to them wear "New".
+    let viewerPersonId: string | null = null;
+    if (admin) {
+      const { data: viewer } = await companyOs.from("people").select("id").eq("email", admin.email).is("archived_at", null).limit(1).maybeSingle();
+      viewerPersonId = (viewer as { id: string } | null)?.id ?? null;
+    }
+
     const programOptions = (programRows.data ?? []) as ProgramOption[];
     const hubInvoices = invoices.map((r) => ({
       id: r.id,
@@ -220,15 +242,25 @@ export default async function CompanyDetailPage({
       {
         key: "board",
         label: "Work Board",
-        content: board ? (
-          <ClientBoardView board={board} />
+        content: boardDetail ? (
+          <BoardView detail={boardDetail} canManage teamOptions={boardOptions.team} clientOptions={boardOptions.clients} viewerPersonId={viewerPersonId} />
         ) : (
           <section className="admin-card admin-section-card">
-            <Empty text="This client has no active work board yet." />
+            <Empty text="This client has no active work board yet. Create one from Work Boards." />
           </section>
         ),
       },
-      { key: "roadmap", label: "Roadmap", count: roadmap.items.length, content: <RoadmapView roadmap={roadmap} /> },
+      {
+        key: "roadmap",
+        label: "Roadmap",
+        count: roadmapItems.length,
+        content: (
+          <>
+            <OverviewEditor companyId={company.id} initialBody={overviewBody} />
+            <BacklogAdminEditor companyId={company.id} groups={roadmapGroups} items={roadmapItems} showArchived={false} liveCardItemIds={liveCardItemIds} />
+          </>
+        ),
+      },
       {
         key: "documents",
         label: "Documents",
