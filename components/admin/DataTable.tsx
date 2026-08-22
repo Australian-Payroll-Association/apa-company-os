@@ -36,6 +36,8 @@ export function DataTable<T extends { id?: string | number }>({
   getRowPreview,
   renderRow,
   pageSizeOptions,
+  view = "list",
+  renderCards,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -55,6 +57,12 @@ export function DataTable<T extends { id?: string | number }>({
   renderRow?: (row: T, cells: ReactNode) => ReactNode;
   // When set, renders a page-size switcher (URL-driven, resets to page 1).
   pageSizeOptions?: number[];
+  // When renderCards is set, the toolbar shows a URL-driven list/cards toggle
+  // (?view=), and `view` selects which body to render. Search, filters, and
+  // pagination stay shared across both. Backward-compatible: without
+  // renderCards the toggle never appears and the table renders as before.
+  view?: "list" | "cards";
+  renderCards?: (rows: T[]) => ReactNode;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -78,9 +86,30 @@ export function DataTable<T extends { id?: string | number }>({
       <div className="admin-toolbar">
         <TableSearch basePath={basePath} searchParams={searchParams} placeholder={searchPlaceholder} />
         {filterBar}
+        {renderCards && (
+          <div className="admin-viewtoggle" style={{ marginLeft: "auto" }}>
+            <Link
+              href={basePath + mergeQuery(searchParams, { view: null })}
+              className={view === "list" ? "is-active" : ""}
+              aria-current={view === "list" ? "true" : undefined}
+            >
+              List
+            </Link>
+            <Link
+              href={basePath + mergeQuery(searchParams, { view: "cards" })}
+              className={view === "cards" ? "is-active" : ""}
+              aria-current={view === "cards" ? "true" : undefined}
+            >
+              Cards
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="admin-table-wrap">
+        {view === "cards" && renderCards ? (
+          rows.length === 0 ? <div className="admin-empty">{emptyText}</div> : renderCards(rows)
+        ) : (
         <div className="admin-table-scroll">
         <table className="admin-table">
           <thead>
@@ -127,6 +156,7 @@ export function DataTable<T extends { id?: string | number }>({
           </tbody>
         </table>
         </div>
+        )}
 
         {total > 0 && (
           <div className="admin-pagination">
