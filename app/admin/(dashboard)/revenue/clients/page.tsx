@@ -155,7 +155,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
             }
           />
         )}
-        renderRow={(row, cells) => <CompanyLinkRow row={row}>{cells}</CompanyLinkRow>}
+        renderRow={(row, cells) => <CompanyLinkRow row={row} hrefQuery="?from=clients">{cells}</CompanyLinkRow>}
       />
     </>
   );

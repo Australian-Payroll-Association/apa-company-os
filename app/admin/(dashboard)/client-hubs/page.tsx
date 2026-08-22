@@ -48,6 +48,7 @@ export default async function ClientHubsPage() {
         <ClientCards
           rows={rows}
           detailBasePath="/admin/revenue/companies"
+          hrefQuery="?from=client-hubs"
           subText={(r) => [r.industry_normalized || r.industry, r.priority ? humanize(r.priority) : null].filter(Boolean).join(" · ")}
         />
       )}
