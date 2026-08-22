@@ -52,10 +52,14 @@ export default async function PortalHubPage() {
     {
       key: "board",
       label: "Work Board",
-      content: board ? (
-        <ClientBoardView board={board} viewerPersonId={actor.personId} />
-      ) : (
-        <div className="admin-empty">No active work board yet.</div>
+      content: (
+        <section className="admin-card admin-section-card">
+          {board ? (
+            <ClientBoardView board={board} viewerPersonId={actor.personId} />
+          ) : (
+            <div className="admin-empty">No active work board yet.</div>
+          )}
+        </section>
       ),
     },
     {
@@ -65,14 +69,16 @@ export default async function PortalHubPage() {
       content: (
         <>
           {overview && (
-            <section className="admin-card admin-section-card admin-content" style={{ marginBottom: 18 }}>
+            <section className="admin-card admin-section-card admin-content" style={{ marginBottom: 16 }}>
               <h2 className="admin-card-title" style={{ marginBottom: 8 }}>Overview</h2>
               <div className="portal-roadmap-overview" style={{ fontSize: 14, lineHeight: 1.65 }}>
                 <BotText text={overview} />
               </div>
             </section>
           )}
-          <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
+          <section className="admin-card admin-section-card">
+            <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
+          </section>
         </>
       ),
     },
@@ -88,7 +94,11 @@ export default async function PortalHubPage() {
             key: "meetings",
             label: "Meetings",
             count: meetings.length,
-            content: <MeetingsPanel meetings={meetings} detailBasePath="/portal/meetings" />,
+            content: (
+              <section className="admin-card admin-section-card">
+                <MeetingsPanel meetings={meetings} detailBasePath="/portal/meetings" />
+              </section>
+            ),
           } as TabDef,
         ]
       : []),
