@@ -8,6 +8,25 @@ _Written in the spec-first, simplicity-first style: every phase is one shippable
 
 ---
 
+## Status: SHIPPED (2026-08-22)
+
+All phases merged to `main`:
+
+| Phase | What | PR |
+|---|---|---|
+| 0 | Calendar (Board + Month), brand, campaign scheduling | #801 |
+| 1 | Repurposing waterfall | #802 |
+| 2 | Content pillars (per-brand list) | #804 |
+| 3 | Social posting spike → no-go (`docs/spikes/2026-08-22-social-posting-feasibility.md`) | — |
+| 4a | Manual social posting + daily due digest | #805 |
+| 4b | Social API posting | **deferred** — reopen per the spike's revisit criteria |
+| 5 | Brand-scoped audience + `brand_contacts` (`docs/spikes/2026-08-22-cross-brand-audience.md`) | #806 |
+| 6 | Metrics rollup (drawer stats + pillar performance) | #807 |
+
+**Open decision for Dave (blocks nothing):** populate AI Officer's audience — replicate the 40 AIO contacts into `brand_contacts`, or federate against the AIO Supabase project. Until then AIO campaigns safely resolve to zero recipients, never the Edge8 house list.
+
+---
+
 ## The one-sentence goal
 
 One planning surface where a single core asset becomes dated, brand-tagged content across blog, email, LinkedIn, and Facebook — and email actually sends itself on schedule.
