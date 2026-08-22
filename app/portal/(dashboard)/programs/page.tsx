@@ -20,7 +20,7 @@ export const metadata = {
 function RoadmapCard() {
   return (
     <Link
-      href="/portal/roadmap"
+      href="/portal/hub"
       className="admin-card admin-section-card"
       style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: "inherit", marginBottom: 16 }}
     >
