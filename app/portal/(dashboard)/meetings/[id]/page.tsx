@@ -20,8 +20,8 @@ export default async function PortalMeetingDetailPage({ params }: { params: { id
   return (
     <>
       <div style={{ marginBottom: 10 }}>
-        <Link className="admin-cell-muted" href="/portal/meetings">
-          ← All meetings
+        <Link className="admin-cell-muted" href="/portal/hub">
+          ← Client Hub
         </Link>
       </div>
 
