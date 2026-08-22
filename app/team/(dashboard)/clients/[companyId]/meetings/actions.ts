@@ -42,6 +42,6 @@ export async function publishMeeting(id: string, published: boolean): Promise<Re
   });
 
   revalidatePath(`/team/clients/${companyId}/meetings`);
-  revalidatePath("/portal/meetings");
+  revalidatePath("/portal/hub");
   return { ok: true };
 }

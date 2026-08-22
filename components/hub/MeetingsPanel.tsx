@@ -1,12 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
-import type { AdminMeetingRow } from "@/lib/admin/meetings";
 
 type PublishResult = { ok: boolean; error?: string };
+
+// Only these fields are rendered, so any meeting row shape works (the admin
+// AdminMeetingRow, or the portal's PortalMeeting).
+type MeetingRowLike = {
+  id: string;
+  title: string | null;
+  meetingDate: string | null;
+  publishedAt: string | null;
+};
 
 // Client Hub meetings tab. Read-only list of meetings with their publish state.
 // When `publishAction` is supplied (Edge8 surfaces), each row gets a Publish /
@@ -15,9 +24,12 @@ type PublishResult = { ok: boolean; error?: string };
 export function MeetingsPanel({
   meetings,
   publishAction,
+  detailBasePath,
 }: {
-  meetings: AdminMeetingRow[];
+  meetings: MeetingRowLike[];
   publishAction?: (id: string, published: boolean) => Promise<PublishResult>;
+  // When set, the meeting title links to `${detailBasePath}/${id}`.
+  detailBasePath?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -49,7 +61,13 @@ export function MeetingsPanel({
           return (
             <div className="admin-list-row" key={m.id}>
               <div className="admin-list-main">
-                <div className="admin-list-title">{m.title || "Untitled meeting"}</div>
+                <div className="admin-list-title">
+                  {detailBasePath ? (
+                    <Link href={`${detailBasePath}/${m.id}`}>{m.title || "Untitled meeting"}</Link>
+                  ) : (
+                    m.title || "Untitled meeting"
+                  )}
+                </div>
                 {m.meetingDate && <div className="admin-list-sub">{formatDate(m.meetingDate)}</div>}
               </div>
               <div className="admin-list-aside" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

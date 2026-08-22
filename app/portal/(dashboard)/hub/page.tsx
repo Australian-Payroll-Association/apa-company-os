@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { requirePortalMember } from "@/lib/portal-auth";
-import { isPortalAdmin, canContribute, contributorCompanyScope } from "@/lib/portal/roles";
+import { isPortalAdmin, canContribute, contributorCompanyScope, adminCompanyScope } from "@/lib/portal/roles";
 import { getBacklogForActor, getGroupsForActor, getOverviewForActor } from "@/lib/portal/backlog";
 import { getBoardForClient } from "@/lib/portal/boards";
 import { listDocumentsForActor } from "@/lib/portal/documents";
+import { getMeetingsForActor } from "@/lib/portal/meetings";
 import { PageHead } from "@/components/admin/PageHead";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { BotText } from "@/components/assistant/BotText";
 import { ClientBoardView } from "@/components/hub/ClientBoardView";
+import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
 import { BacklogPortalView } from "../roadmap/BacklogPortalView";
 import { DocumentsView } from "../documents/DocumentsView";
 
@@ -22,13 +24,18 @@ export const metadata: Metadata = { title: "Client Hub" };
 // propose/prioritise and upload; every write re-checks role server-side.
 export default async function PortalHubPage() {
   const actor = await requirePortalMember();
-  const [items, groups, overview, board, documents] = await Promise.all([
+  const [items, groups, overview, board, documents, meetings] = await Promise.all([
     getBacklogForActor(actor),
     getGroupsForActor(actor),
     getOverviewForActor(actor),
     getBoardForClient(actor),
     listDocumentsForActor(actor),
+    getMeetingsForActor(actor),
   ]);
+  // Managers (portal admins) always get the Meetings tab; other members only
+  // when a published meeting exists.
+  const isManager = adminCompanyScope(actor).length > 0;
+  const showMeetings = isManager || meetings.length > 0;
 
   // v1: single company in scope for writes (multi-company members are rare and
   // collapse to the first, matching the pages this replaces).
@@ -101,6 +108,16 @@ export default async function PortalHubPage() {
       count: documents.length,
       content: <DocumentsView documents={documents} companies={companies} actorEmail={actor.email} />,
     },
+    ...(showMeetings
+      ? [
+          {
+            key: "meetings",
+            label: "Meetings",
+            count: meetings.length,
+            content: <MeetingsPanel meetings={meetings} detailBasePath="/portal/meetings" />,
+          } as TabDef,
+        ]
+      : []),
   ];
 
   return (

@@ -49,13 +49,14 @@ const NAV: NavGroup[] = [
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
-      { label: "Meetings", href: "/portal/meetings", ico: "\u2630", built: true, entitlementKey: "meetings" },
     ],
   },
   {
     label: "People",
     items: [
-      { label: "Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
+      // "Edge8 Team" not "Team": this is the Edge8 staff assigned to the client,
+      // not the client's own portal users (that's Account \u2192 Users).
+      { label: "Edge8 Team", href: "/portal/team", ico: "\u2637", built: true, entitlementKey: "team" },
       { label: "Time Off", href: "/portal/time-off", ico: "\u263c", built: true, entitlementKey: "timeOff" },
     ],
   },

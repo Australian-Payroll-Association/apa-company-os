@@ -5,16 +5,19 @@
 // the actor's company. The meeting date is stored in started_at and the
 // client-facing summary in `summary`.
 //
+// VISIBILITY: meetings are for client managers. A portal ADMIN (manager) sees
+// all of their company's meetings (draft and published); a non-admin member
+// sees only PUBLISHED ones (published_at not null), so publishing is how a
+// meeting reaches the rest of the client team.
+//
 // PRIVACY HARD LINE: the raw transcript (call_transcripts) is NEVER joined here
-// (it is admin-only), and only PUBLISHED rows (published_at is not null) within
-// the actor's companyScope are returned. The client sees date / attendees /
-// title / summary. Publishing is a deliberate per-meeting admin action, so an
-// imported client call only reaches the portal once an admin publishes it.
+// (it is admin-only). The client sees date / attendees / title / summary only.
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
+import { adminCompanyScope } from "@/lib/portal/roles";
 
-const NOTES_SELECT = "id, started_at, title, attendees, summary";
+const NOTES_SELECT = "id, company_id, started_at, title, attendees, summary, published_at";
 
 export type PortalMeeting = {
   id: string;
@@ -22,14 +25,17 @@ export type PortalMeeting = {
   title: string | null;
   attendees: string[];
   summary: string | null;
+  publishedAt: string | null;
 };
 
 type Row = {
   id: string;
+  company_id: string;
   started_at: string | null;
   title: string | null;
   attendees: string[] | null;
   summary: string | null;
+  published_at: string | null;
 };
 
 const toMeeting = (r: Row): PortalMeeting => ({
@@ -38,29 +44,34 @@ const toMeeting = (r: Row): PortalMeeting => ({
   title: r.title,
   attendees: r.attendees ?? [],
   summary: r.summary,
+  publishedAt: r.published_at,
 });
 
 export async function hasMeetings(actor: PortalActor): Promise<boolean> {
   if (actor.companyScope.length === 0) return false;
-  const { data } = await companyOs
-    .from("meetings")
-    .select("id")
-    .in("company_id", actor.companyScope)
-    .is("archived_at", null)
-    .not("published_at", "is", null)
-    .limit(1);
+  const managerScope = adminCompanyScope(actor);
+  // Managers get the meetings surface whenever any meeting exists for their
+  // company; other members only when a published one does.
+  let q = companyOs.from("meetings").select("id").is("archived_at", null);
+  if (managerScope.length > 0) {
+    const { data } = await companyOs
+      .from("meetings")
+      .select("id")
+      .in("company_id", managerScope)
+      .is("archived_at", null)
+      .limit(1);
+    if ((data ?? []).length > 0) return true;
+  }
+  const { data } = await q.in("company_id", actor.companyScope).not("published_at", "is", null).limit(1);
   return (data ?? []).length > 0;
 }
 
-// One meeting for the portal Details page. Same hard line as the list: no
-// transcript in the select, published only, and the companyScope filter is part
-// of the query rather than a check afterwards, so an id from another client
-// simply does not resolve.
-export async function getMeetingForActor(
-  actor: PortalActor,
-  id: string,
-): Promise<PortalMeeting | null> {
+// One meeting for the portal detail page. A manager may open any of their
+// company's meetings; a non-manager only a published one. companyScope is part
+// of the query, so an id from another client never resolves.
+export async function getMeetingForActor(actor: PortalActor, id: string): Promise<PortalMeeting | null> {
   if (actor.companyScope.length === 0) return null;
+  const managerScope = new Set(adminCompanyScope(actor));
 
   const { data } = await companyOs
     .from("meetings")
@@ -68,24 +79,27 @@ export async function getMeetingForActor(
     .eq("id", id)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
-    .not("published_at", "is", null)
     .maybeSingle();
 
   if (!data) return null;
-  return toMeeting(data as Row);
+  const r = data as Row;
+  if (r.published_at === null && !managerScope.has(r.company_id)) return null;
+  return toMeeting(r);
 }
 
 export async function getMeetingsForActor(actor: PortalActor): Promise<PortalMeeting[]> {
   if (actor.companyScope.length === 0) return [];
+  const managerScope = new Set(adminCompanyScope(actor));
 
   const { data } = await companyOs
     .from("meetings")
     .select(NOTES_SELECT)
     .in("company_id", actor.companyScope)
     .is("archived_at", null)
-    .not("published_at", "is", null)
     .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
-  return ((data ?? []) as Row[]).map(toMeeting);
+  return ((data ?? []) as Row[])
+    .filter((r) => r.published_at !== null || managerScope.has(r.company_id))
+    .map(toMeeting);
 }
