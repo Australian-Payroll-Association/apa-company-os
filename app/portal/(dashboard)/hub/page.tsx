@@ -74,9 +74,7 @@ export default async function PortalHubPage() {
               </div>
             </section>
           )}
-          <section className="admin-card admin-section-card">
-            <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
-          </section>
+          <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
         </>
       ),
     },
@@ -84,7 +82,11 @@ export default async function PortalHubPage() {
       key: "documents",
       label: "Documents",
       count: documents.length,
-      content: <DocumentsView documents={documents} companies={companies} actorEmail={actor.email} />,
+      content: (
+        <div style={{ maxWidth: 900 }}>
+          <DocumentsView documents={documents} companies={companies} actorEmail={actor.email} />
+        </div>
+      ),
     },
     ...(showMeetings
       ? [
@@ -93,7 +95,7 @@ export default async function PortalHubPage() {
             label: "Meetings",
             count: meetings.length,
             content: (
-              <section className="admin-card admin-section-card">
+              <section className="admin-card admin-section-card" style={{ maxWidth: 900 }}>
                 <MeetingsPanel meetings={meetings} detailBasePath="/portal/meetings" />
               </section>
             ),
@@ -103,7 +105,7 @@ export default async function PortalHubPage() {
   ];
 
   return (
-    <div className="admin-content">
+    <div>
       <PageHead
         eyebrow="Delivery"
         title="Client Hub"
