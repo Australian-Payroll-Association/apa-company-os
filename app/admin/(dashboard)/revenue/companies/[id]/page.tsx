@@ -10,7 +10,6 @@ import { getClientBoardView } from "@/lib/boards/client-view";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { getCompanyRoadmap, getCompanyHubTeam } from "@/lib/admin/company-hub";
 import { PageHead } from "@/components/admin/PageHead";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
@@ -216,27 +215,14 @@ export default async function CompanyDetailPage({
       balanceCents: r.balance_cents,
       status: r.status,
     }));
-    const openCards = (board?.cards ?? []).filter((c) => !c.done);
 
     return [
       {
-        key: "overview",
-        label: "Overview",
-        content: (
-          <div className="mp-kpi-grid">
-            <MetricCard label="Roadmap" value={roadmap.items.length} sub={roadmap.items.length === 1 ? "item" : "items"} />
-            <MetricCard label="Board" value={board ? openCards.length : "—"} sub={board ? "open cards" : "no board yet"} />
-            <MetricCard label="Documents" value={documents.length} sub={documents.length === 1 ? "file" : "files"} />
-            <MetricCard label="Meetings" value={meetings.length} sub={`${meetings.filter((m) => m.publishedAt).length} published`} />
-          </div>
-        ),
-      },
-      { key: "roadmap", label: "Roadmap", count: roadmap.items.length, content: <RoadmapView roadmap={roadmap} /> },
-      {
         key: "board",
-        label: "Board",
+        label: "Work Board",
         content: board ? <ClientBoardView board={board} /> : <Empty text="This client has no active work board yet." />,
       },
+      { key: "roadmap", label: "Roadmap", count: roadmap.items.length, content: <RoadmapView roadmap={roadmap} /> },
       {
         key: "documents",
         label: "Documents",

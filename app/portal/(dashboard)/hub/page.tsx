@@ -48,31 +48,14 @@ export default async function PortalHubPage() {
     .filter((m) => m.companyId && uploadScope.has(m.companyId))
     .map((m) => ({ companyId: m.companyId as string, companyName: m.companyName ?? "Your company" }));
 
-  const openCards = (board?.cards ?? []).filter((c) => !c.done);
-
   const tabs: TabDef[] = [
     {
-      key: "overview",
-      label: "Overview",
-      content: (
-        <div className="team-glance">
-          <div className="team-glance-cell">
-            <span className="team-glance-label">Roadmap</span>
-            <span className="team-glance-value">{items.length} item{items.length === 1 ? "" : "s"}</span>
-          </div>
-          <div className="team-glance-cell">
-            <span className="team-glance-label">Work Board</span>
-            <span className="team-glance-value">
-              {board ? `${openCards.length} open card${openCards.length === 1 ? "" : "s"}` : "No board yet"}
-            </span>
-          </div>
-          <div className="team-glance-cell">
-            <span className="team-glance-label">Documents</span>
-            <span className="team-glance-value">
-              {documents.length === 0 ? "None yet" : `${documents.length} file${documents.length === 1 ? "" : "s"}`}
-            </span>
-          </div>
-        </div>
+      key: "board",
+      label: "Work Board",
+      content: board ? (
+        <ClientBoardView board={board} viewerPersonId={actor.personId} />
+      ) : (
+        <div className="admin-empty">No active work board yet.</div>
       ),
     },
     {
@@ -91,15 +74,6 @@ export default async function PortalHubPage() {
           )}
           <BacklogPortalView items={items} groups={groups} companyId={companyId} canPrioritize={canPrioritize} canPropose={canPropose} />
         </>
-      ),
-    },
-    {
-      key: "board",
-      label: "Board",
-      content: board ? (
-        <ClientBoardView board={board} viewerPersonId={actor.personId} />
-      ) : (
-        <div className="admin-empty">No active work board yet.</div>
       ),
     },
     {
