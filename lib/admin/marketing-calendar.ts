@@ -1,4 +1,5 @@
 import { companyOs } from "@/lib/supabase";
+import { getCampaignStats } from "@/lib/admin/campaigns";
 import {
   STAGE_LEAD,
   STAGE_NEUTRAL,
@@ -145,6 +146,55 @@ export async function listBrands(): Promise<BrandOption[]> {
     .eq("active", true)
     .order("name", { ascending: true });
   return (data ?? []) as BrandOption[];
+}
+
+export type PillarPerformance = {
+  pillar: string;
+  campaigns: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+};
+
+// Rolls the linked email campaigns' delivery stats up by pillar. Loops one
+// stats read per linked campaign — fine at this volume (a handful of sends);
+// revisit with a single aggregate RPC if campaign counts grow large.
+export async function getPillarPerformance(): Promise<PillarPerformance[]> {
+  const { data } = await companyOs
+    .from("marketing_calendar")
+    .select("campaign_id, marketing_pillars(name)")
+    .eq("channel", "email")
+    .not("campaign_id", "is", null);
+
+  const rows = (data ?? []) as unknown as {
+    campaign_id: string;
+    marketing_pillars: { name: string } | { name: string }[] | null;
+  }[];
+
+  const byPillar = new Map<string, PillarPerformance>();
+  for (const row of rows) {
+    const stats = await getCampaignStats(row.campaign_id);
+    if (stats.sent === 0) continue;
+    const p = one(row.marketing_pillars);
+    const key = p?.name ?? "Unassigned";
+    const acc = byPillar.get(key) ?? {
+      pillar: key,
+      campaigns: 0,
+      sent: 0,
+      delivered: 0,
+      opened: 0,
+      clicked: 0,
+    };
+    acc.campaigns += 1;
+    acc.sent += stats.sent;
+    acc.delivered += stats.delivered;
+    acc.opened += stats.opened;
+    acc.clicked += stats.clicked;
+    byPillar.set(key, acc);
+  }
+
+  return [...byPillar.values()].sort((a, b) => b.clicked - a.clicked);
 }
 
 export async function listPillars(): Promise<PillarOption[]> {

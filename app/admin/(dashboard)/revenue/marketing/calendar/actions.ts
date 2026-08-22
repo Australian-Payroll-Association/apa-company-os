@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { getCampaignStats } from "@/lib/admin/campaigns";
 import {
   listEntries,
   type CalendarChannel,
@@ -188,6 +189,21 @@ export async function markPosted(id: string, url: string): Promise<ActionResult>
   });
   refresh();
   return { ok: true };
+}
+
+// Delivery numbers for an entry's linked campaign, fetched lazily when the
+// drawer opens (so the board list doesn't pay for stats it isn't showing).
+export type EntryPerformance = {
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+};
+
+export async function getEntryPerformance(campaignId: string): Promise<EntryPerformance> {
+  await requireAdmin();
+  const s = await getCampaignStats(campaignId);
+  return { sent: s.sent, delivered: s.delivered, opened: s.opened, clicked: s.clicked };
 }
 
 export async function deleteEntry(id: string): Promise<ActionResult> {

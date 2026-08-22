@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge, statusTone } from "@/components/admin/Badge";
@@ -11,7 +11,15 @@ import {
   type CalendarEntryRow,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
-import { updateEntry, deleteEntry, createCampaignFromEntry, repurposeEntry, markPosted } from "./actions";
+import {
+  updateEntry,
+  deleteEntry,
+  createCampaignFromEntry,
+  repurposeEntry,
+  markPosted,
+  getEntryPerformance,
+  type EntryPerformance,
+} from "./actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
 
@@ -48,6 +56,21 @@ export function EntryDrawer({
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [parentId, setParentId] = useState(entry.parentId ?? "");
   const [postedUrl, setPostedUrl] = useState(entry.postedUrl ?? "");
+  const [perf, setPerf] = useState<EntryPerformance | null>(null);
+
+  // Delivery numbers for a linked email campaign, loaded once the drawer opens.
+  useEffect(() => {
+    let live = true;
+    setPerf(null);
+    if (entry.campaignId) {
+      getEntryPerformance(entry.campaignId).then((p) => {
+        if (live) setPerf(p);
+      });
+    }
+    return () => {
+      live = false;
+    };
+  }, [entry.campaignId]);
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
@@ -295,11 +318,28 @@ export function EntryDrawer({
               Create campaign
             </button>
           )}
+          {perf && perf.sent > 0 && (
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 12 }}>
+              <PerfStat label="Sent" value={perf.sent} />
+              <PerfStat label="Delivered" value={perf.delivered} />
+              <PerfStat label="Opened" value={perf.opened} />
+              <PerfStat label="Clicked" value={perf.clicked} />
+            </div>
+          )}
           <div className="admin-hint" style={{ marginTop: 8 }}>
             Spawns a draft campaign in the send engine, prefilled with this entry&apos;s title, brand, and date.
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PerfStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 600 }}>{value.toLocaleString()}</div>
+      <div className="admin-hint">{label}</div>
     </div>
   );
 }
