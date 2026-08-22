@@ -4,11 +4,31 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import type { CalendarChannel, CalendarStatus } from "@/lib/admin/marketing-calendar";
+import {
+  listEntries,
+  type CalendarChannel,
+  type CalendarEntryRow,
+  type CalendarStatus,
+} from "@/lib/admin/marketing-calendar";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 type CampaignResult = { ok: true; campaignId: string } | { ok: false; error: string };
+type RepurposeResult = { ok: true; entries: CalendarEntryRow[] } | { ok: false; error: string };
+
+// The repurposing waterfall: a core asset (usually blog) becomes social + email
+// derivatives, staggered over the following days.
+const DERIVATIVES: { channel: CalendarChannel; offsetDays: number }[] = [
+  { channel: "linkedin", offsetDays: 1 },
+  { channel: "facebook", offsetDays: 2 },
+  { channel: "email", offsetDays: 4 },
+];
+
+function addDays(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 const CHANNELS = new Set<CalendarChannel>(["blog", "email", "linkedin", "facebook"]);
 const STATUSES = new Set<CalendarStatus>([
@@ -160,6 +180,61 @@ export async function deleteEntry(id: string): Promise<ActionResult> {
   });
   refresh();
   return { ok: true };
+}
+
+// Spawns channel derivatives from a core asset, each linked back via parent_id
+// and dated a few days after the parent (the repurposing waterfall). Skips the
+// parent's own channel. Returns the full entry list so the client re-syncs.
+export async function repurposeEntry(id: string): Promise<RepurposeResult> {
+  const admin = await requireAdmin();
+
+  const { data, error } = await companyOs
+    .from("marketing_calendar")
+    .select("id, title, brand_id, channel, pillar, publish_date")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Entry not found." };
+
+  const parent = data as {
+    id: string;
+    title: string;
+    brand_id: string | null;
+    channel: string;
+    pillar: string | null;
+    publish_date: string | null;
+  };
+
+  const baseDate = parent.publish_date ?? new Date().toISOString().slice(0, 10);
+  const children = DERIVATIVES.filter((d) => d.channel !== parent.channel).map((d) => ({
+    title: parent.title,
+    brand_id: parent.brand_id,
+    pillar: parent.pillar,
+    channel: d.channel,
+    status: "idea",
+    publish_date: addDays(baseDate, d.offsetDays),
+    parent_id: parent.id,
+    created_by: admin.email,
+  }));
+
+  if (children.length === 0) return { ok: false, error: "Nothing to repurpose." };
+
+  const { error: insertError } = await companyOs.from("marketing_calendar").insert(children);
+  if (insertError) return { ok: false, error: insertError.message };
+
+  await recordAudit({
+    table: "marketing_calendar",
+    recordId: id,
+    operation: "bulk_update",
+    actor: admin.email,
+    context: { repurposed_into: children.map((c) => c.channel) },
+  });
+  refresh();
+
+  const { rows, error: listError } = await listEntries();
+  if (listError) return { ok: false, error: listError };
+  return { ok: true, entries: rows };
 }
 
 // Spawns a draft email campaign from an email-channel entry and links them, so

@@ -103,7 +103,7 @@ export function CalendarMonth({
                     title={`${e.title} · ${CHANNEL_LABEL[e.channel]}${e.brandName ? ` · ${e.brandName}` : ""} · ${STATUS_LABEL[e.status]}`}
                     onClick={() => onSelect(e.id)}
                   >
-                    {e.title}
+                    {e.parentId ? "↳ " : ""}{e.title}
                   </button>
                 ))}
               </div>

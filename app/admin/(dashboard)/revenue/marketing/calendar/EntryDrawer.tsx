@@ -10,7 +10,7 @@ import {
   type BrandOption,
   type CalendarEntryRow,
 } from "@/lib/admin/marketing-calendar";
-import { updateEntry, deleteEntry, createCampaignFromEntry } from "./actions";
+import { updateEntry, deleteEntry, createCampaignFromEntry, repurposeEntry } from "./actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
 
@@ -21,6 +21,7 @@ export function EntryDrawer({
   onPatched,
   onDeleted,
   onLinkedCampaign,
+  onRepurposed,
 }: {
   entry: CalendarEntryRow;
   brands: BrandOption[];
@@ -28,6 +29,7 @@ export function EntryDrawer({
   onPatched: (id: string, partial: Partial<CalendarEntryRow>) => void;
   onDeleted: (id: string) => void;
   onLinkedCampaign: (id: string, campaignId: string) => void;
+  onRepurposed: (entries: CalendarEntryRow[]) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -44,6 +46,8 @@ export function EntryDrawer({
   const [parentId, setParentId] = useState(entry.parentId ?? "");
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
+  const parentEntry = entry.parentId ? allEntries.find((e) => e.id === entry.parentId) ?? null : null;
+  const childCount = allEntries.filter((e) => e.parentId === entry.id).length;
 
   function save() {
     setNote(null);
@@ -79,6 +83,19 @@ export function EntryDrawer({
     });
   }
 
+  function repurpose() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await repurposeEntry(entry.id);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      onRepurposed(r.entries);
+      setNote({ tone: "ok", text: "Derivatives added to the board." });
+    });
+  }
+
   function spawnCampaign() {
     setNote(null);
     startTransition(async () => {
@@ -95,6 +112,22 @@ export function EntryDrawer({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {note && <div className={`admin-alert admin-alert--${note.tone}`}>{note.text}</div>}
+
+      <div className="admin-card" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+          <div className="admin-label">Repurposing waterfall</div>
+          <div className="admin-hint" style={{ marginTop: 2 }}>
+            {parentEntry
+              ? `Derived from "${parentEntry.title}".`
+              : childCount > 0
+                ? `${childCount} derivative${childCount === 1 ? "" : "s"} on the board.`
+                : "Spin off dated LinkedIn, Facebook, and email versions of this asset."}
+          </div>
+        </div>
+        <button type="button" className="admin-btn" disabled={pending} onClick={repurpose}>
+          Repurpose →
+        </button>
+      </div>
 
       <div className="admin-form">
         <div className="admin-field">

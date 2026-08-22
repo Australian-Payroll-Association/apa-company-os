@@ -24,6 +24,7 @@ export function CalendarBoard({
   onCardClick: (id: string) => void;
 }) {
   const cards: Card[] = entries.map((e) => ({ ...e, columnId: e.status }));
+  const titleById = new Map(entries.map((e) => [e.id, e.title]));
 
   return (
     <KanbanBoard<Card>
@@ -34,6 +35,9 @@ export function CalendarBoard({
       renderCard={(c) => (
         <>
           <div className="sap-card-title">{c.title}</div>
+          {c.parentId && titleById.has(c.parentId) && (
+            <div className="sap-card-sub">↳ from {titleById.get(c.parentId)}</div>
+          )}
           <div className="sap-card-meta" style={{ marginTop: 6 }}>
             <span
               className="admin-cal-chip"

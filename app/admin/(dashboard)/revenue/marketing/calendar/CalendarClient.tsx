@@ -56,6 +56,10 @@ export function CalendarClient({
     setEntries((es) => [...es, entry]);
   }
 
+  function replaceAll(next: CalendarEntryRow[]) {
+    setEntries(next);
+  }
+
   return (
     <>
       {banner && (
@@ -103,6 +107,7 @@ export function CalendarClient({
             onPatched={patch}
             onDeleted={remove}
             onLinkedCampaign={linkCampaign}
+            onRepurposed={replaceAll}
           />
         )}
       </DetailDrawer>
