@@ -18,7 +18,7 @@ type Result = { ok: true } | { ok: false; error: string };
 function refresh(companyId: string) {
   revalidatePath(`/team/clients/${companyId}`);
   revalidatePath(`/team/clients/${companyId}/roadmap`);
-  revalidatePath("/portal/roadmap");
+  revalidatePath("/portal/hub");
 }
 
 export async function teamCreateRoadmapItem(

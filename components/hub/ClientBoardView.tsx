@@ -9,7 +9,11 @@ import {
   STAGE_DISCOVERY,
   STAGE_CONTRACT,
 } from "@/lib/admin/stageColors";
-import type { ClientBoardView as ClientBoardViewData } from "@/lib/boards/client-view";
+import type { ClientBoardColumn, ClientBoardCard } from "@/lib/boards/client-view";
+
+// Only the columns + cards are rendered here, so accept any board shape that
+// carries them (the full ClientBoardView, or the portal's narrower board data).
+type BoardData = { columns: ClientBoardColumn[]; cards: ClientBoardCard[] };
 
 // Read-only client-view kanban, exactly what the client sees on /portal/board.
 // Shared by the team hub and the admin 360 hub. `viewerPersonId` marks the
@@ -20,7 +24,7 @@ export function ClientBoardView({
   board,
   viewerPersonId,
 }: {
-  board: ClientBoardViewData;
+  board: BoardData;
   viewerPersonId?: string | null;
 }) {
   let nd = 0;

@@ -39,17 +39,13 @@ const NAV: NavGroup[] = [
   {
     label: "Delivery",
     items: [
-      // The working views lead: what Edge8 is doing (Work Board), what's
-      // planned (Roadmap), then the reference modules.
-      { label: "Work Board", href: "/portal/board", ico: "\u25a6", built: true, entitlementKey: "board" },
-      // Roadmap appears once the company has one (hasBacklog).
-      { label: "Roadmap", href: "/portal/roadmap", ico: "\u21c9", built: true, entitlementKey: "roadmap" },
+      // Client Hub leads: one tabbed page for the collaborative delivery
+      // surfaces (Overview, Roadmap, Board, Documents), replacing the separate
+      // Work Board / Roadmap / Documents links. Membership is the entitlement.
+      { label: "Client Hub", href: "/portal/hub", ico: "\u25a6", built: true },
       // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
       // token/staff-based gating is refined later with the Human Token Tracker.
       { label: "AI Programs", href: "/portal/programs", ico: "\u21c9", built: true },
-      // Documents: company-level files shared with Edge8; membership is the
-      // entitlement, same as Requests and AI Programs.
-      { label: "Documents", href: "/portal/documents", ico: "\u25a3", built: true },
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },
