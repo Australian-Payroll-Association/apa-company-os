@@ -1,5 +1,6 @@
 import { supabase, companyOs } from "@/lib/supabase";
 import { getBrandProfile } from "@/lib/admin/brand-profiles";
+import { recordAssetImage } from "@/lib/admin/marketing-images";
 import { imageStyleLabel } from "@/lib/marketing/style-catalogues";
 
 // Generates one image for a calendar entry from its image brief + chosen image
@@ -30,7 +31,7 @@ ${brief || "(none provided; work from the title and style)"}
 Produce one high-quality image, no borders. Use only the brand's palette and typeface. Set any headline in normal sentence case. Do not add logos, watermarks, or stock-photo captions.`;
 }
 
-export async function generateEntryImage(entryId: string): Promise<Result> {
+export async function generateEntryImage(entryId: string, createdBy?: string | null): Promise<Result> {
   try {
     const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!key) return { ok: false, error: "GEMINI_API_KEY is not configured." };
@@ -89,11 +90,17 @@ export async function generateEntryImage(entryId: string): Promise<Result> {
     if (upErr) return { ok: false, error: upErr.message };
 
     const { data: pub } = supabase.storage.from("marketing").getPublicUrl(path);
-    const { error: dbErr } = await companyOs
-      .from("marketing_calendar")
-      .update({ image_url: pub.publicUrl })
-      .eq("id", entryId);
-    if (dbErr) return { ok: false, error: dbErr.message };
+
+    // Keep the version, don't overwrite: record a selected image row (with the
+    // exact prompt that made it) which also mirrors image_url on the entry.
+    const rec = await recordAssetImage({
+      entryId,
+      url: pub.publicUrl,
+      promptUsed: prompt,
+      model: MODEL,
+      createdBy: createdBy ?? null,
+    });
+    if (!rec.ok) return { ok: false, error: rec.error };
 
     return { ok: true, url: pub.publicUrl };
   } catch (err) {

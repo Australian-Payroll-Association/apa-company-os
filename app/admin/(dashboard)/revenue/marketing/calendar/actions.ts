@@ -224,7 +224,7 @@ export async function getEntryPerformance(campaignId: string): Promise<EntryPerf
 // stores it, and points image_url at it. Returns the URL for an optimistic patch.
 export async function generateImage(id: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const admin = await requireAdmin();
-  const r = await generateEntryImage(id);
+  const r = await generateEntryImage(id, admin.email);
   if (!r.ok) return r;
   await recordAudit({
     table: "marketing_calendar",
@@ -367,7 +367,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
 
   const { data: entryData, error: entryError } = await companyOs
     .from("marketing_calendar")
-    .select("id, title, brand_id, channel, publish_date, asset_url, posted_url, campaign_id")
+    .select("id, title, brand_id, channel, publish_date, asset_url, posted_url, broadcast_id")
     .eq("id", id)
     .maybeSingle();
   if (entryError) return { ok: false, error: entryError.message };
@@ -381,7 +381,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
     publish_date: string | null;
     asset_url: string | null;
     posted_url: string | null;
-    campaign_id: string | null;
+    broadcast_id: string | null;
   };
   if (!entry.brand_id) return { ok: false, error: "Set a brand on this entry first, so the writer knows the voice." };
 
@@ -399,10 +399,10 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
   // Existing children keyed by channel, so re-running updates in place.
   const { data: childData } = await companyOs
     .from("marketing_calendar")
-    .select("id, channel, campaign_id")
+    .select("id, channel, broadcast_id")
     .eq("parent_id", id);
   const childByChannel = new Map(
-    ((childData ?? []) as { id: string; channel: string; campaign_id: string | null }[]).map((c) => [c.channel, c]),
+    ((childData ?? []) as { id: string; channel: string; broadcast_id: string | null }[]).map((c) => [c.channel, c]),
   );
 
   const baseDate = entry.publish_date ?? new Date().toISOString().slice(0, 10);
@@ -426,13 +426,13 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
     if (out.channel === entry.channel) {
       await companyOs.from("marketing_calendar").update(fields).eq("id", entry.id);
       targetId = entry.id;
-      targetCampaignId = entry.campaign_id;
+      targetCampaignId = entry.broadcast_id;
     } else {
       const existing = childByChannel.get(out.channel);
       if (existing) {
         await companyOs.from("marketing_calendar").update(fields).eq("id", existing.id);
         targetId = existing.id;
-        targetCampaignId = existing.campaign_id;
+        targetCampaignId = existing.broadcast_id;
       } else {
         const offset = DERIVATIVES.find((d) => d.channel === out.channel)?.offsetDays ?? 1;
         const { data: created } = await companyOs
@@ -480,7 +480,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
           .select("id")
           .maybeSingle();
         const campId = (camp as { id: string } | null)?.id ?? null;
-        if (campId) await companyOs.from("marketing_calendar").update({ campaign_id: campId }).eq("id", targetId);
+        if (campId) await companyOs.from("marketing_calendar").update({ broadcast_id: campId }).eq("id", targetId);
       }
     }
   }
@@ -508,7 +508,7 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
 
   const { data: entryData, error: entryError } = await companyOs
     .from("marketing_calendar")
-    .select("id, title, channel, brand_id, campaign_id, publish_date")
+    .select("id, title, channel, brand_id, broadcast_id, publish_date")
     .eq("id", id)
     .maybeSingle();
 
@@ -520,14 +520,14 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
     title: string;
     channel: string;
     brand_id: string | null;
-    campaign_id: string | null;
+    broadcast_id: string | null;
     publish_date: string | null;
   };
 
   if (entry.channel !== "email") {
     return { ok: false, error: "Only email entries can spawn a campaign." };
   }
-  if (entry.campaign_id) {
+  if (entry.broadcast_id) {
     return { ok: false, error: "This entry already has a campaign." };
   }
 
@@ -551,7 +551,7 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
 
   const { error: linkError } = await companyOs
     .from("marketing_calendar")
-    .update({ campaign_id: campaignId })
+    .update({ broadcast_id: campaignId })
     .eq("id", id);
   if (linkError) return { ok: false, error: linkError.message };
 

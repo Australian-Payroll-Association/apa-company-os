@@ -91,7 +91,7 @@ type DbEntry = {
   status: string;
   publish_date: string | null;
   parent_id: string | null;
-  campaign_id: string | null;
+  broadcast_id: string | null;
   copy_md: string | null;
   asset_url: string | null;
   posted_url: string | null;
@@ -110,8 +110,10 @@ type DbEntry = {
   email_campaigns: { status: string } | { status: string }[] | null;
 };
 
+// broadcast_id is the email-send link (was campaign_id). The embed is pinned to
+// that FK explicitly so it stays unambiguous through the column transition.
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, broadcast_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns!broadcast_id(status)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -132,7 +134,7 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
     status: row.status as CalendarStatus,
     publishDate: row.publish_date,
     parentId: row.parent_id,
-    campaignId: row.campaign_id,
+    campaignId: row.broadcast_id,
     campaignStatus: campaign?.status ?? null,
     copyMd: row.copy_md,
     assetUrl: row.asset_url,
@@ -184,18 +186,18 @@ export type PillarPerformance = {
 export async function getPillarPerformance(): Promise<PillarPerformance[]> {
   const { data } = await companyOs
     .from("marketing_calendar")
-    .select("campaign_id, marketing_pillars(name)")
+    .select("broadcast_id, marketing_pillars(name)")
     .eq("channel", "email")
-    .not("campaign_id", "is", null);
+    .not("broadcast_id", "is", null);
 
   const rows = (data ?? []) as unknown as {
-    campaign_id: string;
+    broadcast_id: string;
     marketing_pillars: { name: string } | { name: string }[] | null;
   }[];
 
   const byPillar = new Map<string, PillarPerformance>();
   for (const row of rows) {
-    const stats = await getCampaignStats(row.campaign_id);
+    const stats = await getCampaignStats(row.broadcast_id);
     if (stats.sent === 0) continue;
     const p = one(row.marketing_pillars);
     const key = p?.name ?? "Unassigned";
