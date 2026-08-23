@@ -1974,6 +1974,53 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-tab:hover { color: var(--admin-ink); }
 .admin-tab.is-active { color: var(--admin-accent); border-bottom-color: var(--admin-accent); font-weight: 600; }
 
+/* ─── Chip ────────────────────────────────────────── */
+/* Compact label chip: channel tags and small labels in the marketing campaign
+   views. Token-only so it themes with the shell. */
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-surface);
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+.admin-chip--accent {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+}
+
+/* ─── Marketing campaign hub: assets-by-channel lanes ─ */
+.mcr-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) { .mcr-lanes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .mcr-lanes { grid-template-columns: 1fr; } }
+.mcr-lane { padding: 12px; }
+.mcr-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mcr-asset {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface);
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.mcr-asset:last-child { margin-bottom: 0; }
+.mcr-asset-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
 /* ─── View toggle (segmented) ─────────────────────── */
 .admin-viewtoggle {
   display: inline-flex;

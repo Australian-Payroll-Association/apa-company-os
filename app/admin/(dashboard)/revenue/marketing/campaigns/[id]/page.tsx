@@ -1,0 +1,48 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { PageHead } from "@/components/admin/PageHead";
+import { requireAdmin } from "@/lib/admin-auth";
+import { getCampaign, listCampaignAssets } from "@/lib/admin/marketing-campaigns";
+import { listBrands, listPillars } from "@/lib/admin/marketing-calendar";
+import { CampaignHub } from "./CampaignHub";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+export const metadata: Metadata = {
+  title: "Campaign",
+  description: "One campaign: the idea, its assets across every channel, and the plan.",
+};
+
+export default async function CampaignDetailPage({ params }: { params: { id: string } }) {
+  await requireAdmin();
+  const campaign = await getCampaign(params.id);
+  if (!campaign) notFound();
+
+  const [assets, brands, pillars] = await Promise.all([
+    listCampaignAssets(campaign.id),
+    listBrands(),
+    listPillars(),
+  ]);
+
+  return (
+    <div>
+      <PageHead
+        eyebrow={
+          <>
+            <Link href="/admin/revenue/marketing/campaigns">Campaigns</Link> ·{" "}
+            {campaign.brandName ?? "No brand"}
+          </>
+        }
+        title={campaign.name}
+        action={
+          <Link className="admin-btn" href="/admin/revenue/marketing/campaigns">
+            All campaigns
+          </Link>
+        }
+      />
+      <CampaignHub campaign={campaign} assets={assets} brands={brands} pillars={pillars} />
+    </div>
+  );
+}
