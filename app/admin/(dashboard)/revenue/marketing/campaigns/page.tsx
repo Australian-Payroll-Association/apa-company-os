@@ -71,7 +71,7 @@ export default async function CampaignsPage() {
 
       <div className="admin-table-wrap">
         {rows.length === 0 ? (
-          <div className="admin-empty">No campaigns yet. Start one from an idea above.</div>
+          <div className="admin-empty">No campaigns yet. Start one with “+ New campaign”.</div>
         ) : (
           <div className="admin-table-scroll">
             <table className="admin-table">

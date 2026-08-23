@@ -195,7 +195,7 @@ export function ContentDetail({
       {modal === "text" && (
         <RegenerateModal
           title="Regenerate text"
-          footnote="This replaces the current copy. Your last saved version stays until you save the new one."
+          footnote="This regenerates and saves the copy immediately, replacing the current text. Text has no version history (only images keep versions)."
           builtFrom="The brand voice profile (fixed), plus this asset's title, current draft, chosen style, and notes. Edit the instruction directly, or change those on the entry first."
           loadPrompt={() => getCopyPrompt(entry.id)}
           onSubmit={async (prompt) => {

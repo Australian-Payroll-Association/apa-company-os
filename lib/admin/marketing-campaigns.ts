@@ -71,6 +71,10 @@ function aggregate(assets: { campaign_id: string | null; channel: string; status
   const byCampaign = new Map<string, AssetAgg>();
   for (const a of assets) {
     if (!a.campaign_id) continue;
+    // Skipped assets were abandoned, not built: excluding them from the
+    // denominator keeps progress honest (otherwise a campaign with any skipped
+    // asset could never reach 100%).
+    if (a.status === "skipped") continue;
     const acc = byCampaign.get(a.campaign_id) ?? { count: 0, built: 0, channels: new Set<string>() };
     acc.count += 1;
     if (BUILT_STATUSES.has(a.status as CalendarStatus)) acc.built += 1;
