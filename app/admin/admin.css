@@ -2022,6 +2022,18 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
+/* The founder's idea, shown prominently on the campaign hub header. */
+.mcr-campaign-idea {
+  margin: 14px 0 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--admin-accent);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--admin-ink);
+  white-space: pre-wrap;
+  max-width: 70ch;
+}
+
 /* Campaign report: two-column split of email vs content. */
 .mcr-report-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 700px) { .mcr-report-split { grid-template-columns: 1fr; } }

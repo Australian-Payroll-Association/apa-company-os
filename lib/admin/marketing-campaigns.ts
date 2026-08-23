@@ -26,6 +26,7 @@ const CHANNEL_ORDER: CalendarChannel[] = ["blog", "email", "linkedin", "facebook
 export type MarketingCampaignRow = {
   id: string;
   name: string;
+  idea: string | null;
   objective: string | null;
   seoGeoMd: string | null;
   status: MarketingCampaignStatus;
@@ -44,6 +45,7 @@ export type MarketingCampaignRow = {
 type DbCampaign = {
   id: string;
   name: string;
+  idea: string | null;
   objective: string | null;
   seo_geo_md: string | null;
   status: string;
@@ -61,7 +63,7 @@ function one<T>(v: T | T[] | null): T | null {
 }
 
 const CAMPAIGN_SELECT =
-  "id, name, objective, seo_geo_md, status, brand_id, pillar_id, starts_on, ends_on, created_at, brands(name), marketing_pillars(name)";
+  "id, name, idea, objective, seo_geo_md, status, brand_id, pillar_id, starts_on, ends_on, created_at, brands(name), marketing_pillars(name)";
 
 type AssetAgg = { count: number; built: number; channels: Set<string> };
 
@@ -83,6 +85,7 @@ function mapCampaign(c: DbCampaign, agg: AssetAgg | undefined): MarketingCampaig
   return {
     id: c.id,
     name: c.name,
+    idea: c.idea,
     objective: c.objective,
     seoGeoMd: c.seo_geo_md,
     status: c.status as MarketingCampaignStatus,

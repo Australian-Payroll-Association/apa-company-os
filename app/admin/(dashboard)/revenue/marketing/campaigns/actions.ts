@@ -19,8 +19,17 @@ function refresh(id?: string) {
   revalidatePath("/admin/revenue/marketing/calendar");
 }
 
+// A short handle derived from the idea when the operator leaves the name blank:
+// the first line, trimmed to a title length. Used in lists, breadcrumbs, and the
+// hub header where the full idea would not fit.
+function deriveName(idea: string): string {
+  const firstLine = idea.split("\n")[0].trim();
+  return firstLine.length > 80 ? `${firstLine.slice(0, 79).trimEnd()}…` : firstLine;
+}
+
 export async function createCampaign(input: {
-  name: string;
+  idea: string;
+  name?: string | null;
   brandId?: string | null;
   objective?: string | null;
   pillarId?: string | null;
@@ -28,13 +37,15 @@ export async function createCampaign(input: {
   endsOn?: string | null;
 }): Promise<CreateResult> {
   const admin = await requireAdmin();
-  const name = input.name.trim();
-  if (!name) return { ok: false, error: "Give the campaign a name (the idea)." };
+  const idea = input.idea.trim();
+  if (!idea) return { ok: false, error: "Write the idea first." };
+  const name = input.name?.trim() || deriveName(idea);
 
   const { data, error } = await companyOs
     .from("marketing_campaigns")
     .insert({
       name,
+      idea,
       brand_id: input.brandId || null,
       objective: input.objective?.trim() || null,
       pillar_id: input.pillarId || null,
@@ -64,6 +75,7 @@ export async function updateCampaign(
   id: string,
   patch: {
     name?: string;
+    idea?: string;
     brandId?: string | null;
     objective?: string | null;
     pillarId?: string | null;
@@ -76,6 +88,11 @@ export async function updateCampaign(
   const admin = await requireAdmin();
 
   const update: Record<string, unknown> = {};
+  if (patch.idea !== undefined) {
+    const t = patch.idea.trim();
+    if (!t) return { ok: false, error: "The idea cannot be empty." };
+    update.idea = t;
+  }
   if (patch.name !== undefined) {
     const t = patch.name.trim();
     if (!t) return { ok: false, error: "Name cannot be empty." };

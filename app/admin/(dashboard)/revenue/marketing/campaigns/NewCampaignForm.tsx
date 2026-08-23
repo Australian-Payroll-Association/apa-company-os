@@ -7,6 +7,7 @@ import { createCampaign } from "./actions";
 
 export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pillars: PillarOption[] }) {
   const router = useRouter();
+  const [idea, setIdea] = useState("");
   const [name, setName] = useState("");
   const [brandId, setBrandId] = useState("");
   const [objective, setObjective] = useState("");
@@ -22,7 +23,8 @@ export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pi
     setError(null);
     startTransition(async () => {
       const result = await createCampaign({
-        name,
+        idea,
+        name: name || null,
         brandId: brandId || null,
         objective: objective || null,
         pillarId: pillarId || null,
@@ -40,8 +42,23 @@ export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pi
   return (
     <div className="admin-form" style={{ marginTop: 12 }}>
       <div className="admin-field">
-        <label className="admin-label" htmlFor="c-name">
+        <label className="admin-label" htmlFor="c-idea">
           The idea
+        </label>
+        <textarea
+          id="c-idea"
+          className="admin-textarea"
+          rows={5}
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          placeholder="Founders keep asking whether AI replaces their team. It doesn't, it makes a centaur. Let's own that answer across every channel for a month."
+        />
+        <div className="admin-hint">Pitch the idea in full, the way you would say it out loud. This is the heart of the campaign.</div>
+      </div>
+
+      <div className="admin-field">
+        <label className="admin-label" htmlFor="c-name">
+          Short name (optional)
         </label>
         <input
           id="c-name"
@@ -50,7 +67,7 @@ export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pi
           onChange={(e) => setName(e.target.value)}
           placeholder="The centaur hiring thesis"
         />
-        <div className="admin-hint">Name the campaign the way you would pitch the idea out loud.</div>
+        <div className="admin-hint">A handle for lists and headers. Leave blank to use the start of the idea.</div>
       </div>
 
       <div className="admin-field">
@@ -133,7 +150,7 @@ export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pi
           type="button"
           className="admin-btn admin-btn--primary"
           onClick={submit}
-          disabled={pending || !name.trim()}
+          disabled={pending || !idea.trim()}
         >
           {pending ? "Creating…" : "Create campaign"}
         </button>

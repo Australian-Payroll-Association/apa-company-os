@@ -51,6 +51,7 @@ export function CampaignHub({
   const [editing, setEditing] = useState(false);
 
   const [name, setName] = useState(campaign.name);
+  const [idea, setIdea] = useState(campaign.idea ?? "");
   const [objective, setObjective] = useState(campaign.objective ?? "");
   const [brandId, setBrandId] = useState(campaign.brandId ?? "");
   const [pillarId, setPillarId] = useState(campaign.pillarId ?? "");
@@ -88,6 +89,7 @@ export function CampaignHub({
     run(
       () =>
         updateCampaign(campaign.id, {
+          idea,
           name,
           objective: objective || null,
           brandId: brandId || null,
@@ -200,6 +202,8 @@ export function CampaignHub({
           </button>
         </div>
 
+        {!editing && idea.trim() && <p className="mcr-campaign-idea">{idea}</p>}
+
         {!editing ? (
           <div className="admin-summary-pills" style={{ marginTop: 14 }}>
             <span className="admin-pill">
@@ -222,8 +226,14 @@ export function CampaignHub({
         ) : (
           <div className="admin-form" style={{ marginTop: 14 }}>
             <div className="admin-field">
-              <label className="admin-label" htmlFor="h-name">The idea</label>
+              <label className="admin-label" htmlFor="h-idea">The idea</label>
+              <textarea id="h-idea" className="admin-textarea" rows={5} value={idea} onChange={(e) => setIdea(e.target.value)} />
+              <div className="admin-hint">The founder's pitch, in full. This is the heart of the campaign.</div>
+            </div>
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="h-name">Short name</label>
               <input id="h-name" className="admin-input" value={name} onChange={(e) => setName(e.target.value)} />
+              <div className="admin-hint">Used in lists, breadcrumbs, and this header.</div>
             </div>
             <div className="admin-field">
               <label className="admin-label" htmlFor="h-goal">Goal</label>
@@ -282,7 +292,7 @@ export function CampaignHub({
               </div>
             </div>
             <div className="admin-form-actions">
-              <button type="button" className="admin-btn admin-btn--primary" onClick={saveHeader} disabled={pending || !name.trim()}>
+              <button type="button" className="admin-btn admin-btn--primary" onClick={saveHeader} disabled={pending || !idea.trim()}>
                 {pending ? "Saving…" : "Save campaign"}
               </button>
             </div>
