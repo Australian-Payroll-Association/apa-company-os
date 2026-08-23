@@ -24,7 +24,7 @@ import { moveEntry } from "../../calendar/actions";
 import { addAssetToCampaign, updateCampaign } from "../actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
-type Tab = "assets" | "workboard" | "calendar" | "report" | "seo";
+type Tab = "idea" | "assets" | "workboard" | "calendar" | "report" | "seo";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -47,8 +47,9 @@ export function CampaignHub({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState<Note>(null);
-  const [tab, setTab] = useState<Tab>("assets");
+  const [tab, setTab] = useState<Tab>("idea");
   const [editing, setEditing] = useState(false);
+  const [ideaEditing, setIdeaEditing] = useState(false);
 
   const [name, setName] = useState(campaign.name);
   const [idea, setIdea] = useState(campaign.idea ?? "");
@@ -89,7 +90,6 @@ export function CampaignHub({
     run(
       () =>
         updateCampaign(campaign.id, {
-          idea,
           name,
           objective: objective || null,
           brandId: brandId || null,
@@ -101,6 +101,10 @@ export function CampaignHub({
       "Campaign saved.",
       () => setEditing(false),
     );
+  }
+
+  function saveIdea() {
+    run(() => updateCampaign(campaign.id, { idea }), "Idea saved.", () => setIdeaEditing(false));
   }
 
   function saveSeo() {
@@ -188,7 +192,7 @@ export function CampaignHub({
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {note && <div className={`admin-alert admin-alert--${note.tone}`}>{note.text}</div>}
 
-      {/* Header: the idea + goal/dates/pillar/brand */}
+      {/* Header: goal/dates/pillar/brand. The idea has its own tab. */}
       <section className="admin-card admin-section-card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -201,8 +205,6 @@ export function CampaignHub({
             {editing ? "Close" : "Edit"}
           </button>
         </div>
-
-        {!editing && idea.trim() && <p className="mcr-campaign-idea">{idea}</p>}
 
         {!editing ? (
           <div className="admin-summary-pills" style={{ marginTop: 14 }}>
@@ -226,14 +228,9 @@ export function CampaignHub({
         ) : (
           <div className="admin-form" style={{ marginTop: 14 }}>
             <div className="admin-field">
-              <label className="admin-label" htmlFor="h-idea">The idea</label>
-              <textarea id="h-idea" className="admin-textarea" rows={5} value={idea} onChange={(e) => setIdea(e.target.value)} />
-              <div className="admin-hint">The founder's pitch, in full. This is the heart of the campaign.</div>
-            </div>
-            <div className="admin-field">
-              <label className="admin-label" htmlFor="h-name">Short name</label>
+              <label className="admin-label" htmlFor="h-name">Name</label>
               <input id="h-name" className="admin-input" value={name} onChange={(e) => setName(e.target.value)} />
-              <div className="admin-hint">Used in lists, breadcrumbs, and this header.</div>
+              <div className="admin-hint">Used in lists, breadcrumbs, and this header. Edit the idea itself in the Idea tab.</div>
             </div>
             <div className="admin-field">
               <label className="admin-label" htmlFor="h-goal">Goal</label>
@@ -292,7 +289,7 @@ export function CampaignHub({
               </div>
             </div>
             <div className="admin-form-actions">
-              <button type="button" className="admin-btn admin-btn--primary" onClick={saveHeader} disabled={pending || !idea.trim()}>
+              <button type="button" className="admin-btn admin-btn--primary" onClick={saveHeader} disabled={pending || !name.trim()}>
                 {pending ? "Saving…" : "Save campaign"}
               </button>
             </div>
@@ -303,6 +300,9 @@ export function CampaignHub({
       {/* Tabs */}
       <div>
         <nav className="admin-tabs">
+          <button type="button" className={`admin-tab${tab === "idea" ? " is-active" : ""}`} onClick={() => setTab("idea")}>
+            Idea
+          </button>
           <button type="button" className={`admin-tab${tab === "assets" ? " is-active" : ""}`} onClick={() => setTab("assets")}>
             Assets by channel
           </button>
@@ -319,6 +319,48 @@ export function CampaignHub({
             SEO / GEO plan
           </button>
         </nav>
+
+        {tab === "idea" && (
+          <section className="admin-card admin-section-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div className="admin-card-title">The idea</div>
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm"
+                onClick={() => setIdeaEditing((v) => !v)}
+                disabled={pending}
+              >
+                {ideaEditing ? "Cancel" : "Edit"}
+              </button>
+            </div>
+            <p className="admin-page-sub" style={{ marginTop: 4 }}>
+              The founder's pitch, in full. This is the heart of the campaign; the writer and every
+              asset take their cue from it.
+            </p>
+            {ideaEditing ? (
+              <div className="admin-form" style={{ marginTop: 12 }}>
+                <textarea
+                  className="admin-textarea"
+                  rows={12}
+                  value={idea}
+                  onChange={(e) => setIdea(e.target.value)}
+                  placeholder="Founders keep asking whether AI replaces their team. It doesn't, it makes a centaur. Let's own that answer across every channel for a month."
+                />
+                <div className="admin-form-actions">
+                  <button type="button" className="admin-btn admin-btn--primary" onClick={saveIdea} disabled={pending || !idea.trim()}>
+                    {pending ? "Saving…" : "Save idea"}
+                  </button>
+                </div>
+              </div>
+            ) : idea.trim() ? (
+              <p className="mcr-campaign-idea" style={{ marginTop: 12 }}>{idea}</p>
+            ) : (
+              <div className="admin-empty" style={{ marginTop: 12 }}>
+                No idea written yet. Click Edit to pitch it.
+              </div>
+            )}
+          </section>
+        )}
 
         {tab === "assets" && (
           <AssetsByChannel
