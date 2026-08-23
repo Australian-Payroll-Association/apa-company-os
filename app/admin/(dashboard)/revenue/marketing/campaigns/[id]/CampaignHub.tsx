@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { MetricCard } from "@/components/admin/MetricCard";
 import {
@@ -102,6 +103,10 @@ export function CampaignHub({
 
   function saveSeo() {
     run(() => updateCampaign(campaign.id, { seoGeoMd: seoGeoMd || null }), "SEO / GEO plan saved.");
+  }
+
+  function openAsset(id: string) {
+    router.push(`/admin/revenue/marketing/campaigns/${campaign.id}/assets/${id}`);
   }
 
   // Optimistic status move for the workboard; revert on failure.
@@ -307,6 +312,7 @@ export function CampaignHub({
 
         {tab === "assets" && (
           <AssetsByChannel
+            campaignId={campaign.id}
             entries={entries}
             addOpen={addOpen}
             setAddOpen={setAddOpen}
@@ -325,12 +331,13 @@ export function CampaignHub({
           <div className="admin-card admin-section-card">
             <div className="admin-card-title">Workboard</div>
             <p className="admin-page-sub" style={{ marginTop: 4, marginBottom: 12 }}>
-              Where each asset sits in production. Drag a card to move its stage.
+              Where each asset sits in production. Drag a card to move its stage, or open one to edit
+              its copy and images.
             </p>
             {entries.length === 0 ? (
               <div className="admin-empty">No assets yet.</div>
             ) : (
-              <CalendarBoard entries={entries} onMove={move} onCardClick={() => {}} />
+              <CalendarBoard entries={entries} onMove={move} onCardClick={openAsset} />
             )}
           </div>
         )}
@@ -341,7 +348,7 @@ export function CampaignHub({
             {entries.length === 0 ? (
               <div className="admin-empty">No assets yet.</div>
             ) : (
-              <CalendarMonth entries={entries} onSelect={() => {}} />
+              <CalendarMonth entries={entries} onSelect={openAsset} />
             )}
           </div>
         )}
@@ -377,6 +384,7 @@ export function CampaignHub({
 }
 
 function AssetsByChannel({
+  campaignId,
   entries,
   addOpen,
   setAddOpen,
@@ -389,6 +397,7 @@ function AssetsByChannel({
   addAsset,
   pending,
 }: {
+  campaignId: string;
   entries: CalendarEntryRow[];
   addOpen: boolean;
   setAddOpen: (v: boolean) => void;
@@ -461,7 +470,9 @@ function AssetsByChannel({
                 ) : (
                   lane.map((a) => (
                     <div key={a.id} className="mcr-asset">
-                      <div className="mcr-asset-title">{a.title}</div>
+                      <Link className="mcr-asset-title" href={`/admin/revenue/marketing/campaigns/${campaignId}/assets/${a.id}`}>
+                        {a.title}
+                      </Link>
                       <div className="mcr-asset-foot">
                         {a.channel === "email" && a.broadcastId ? (
                           <span className="admin-chip admin-chip--accent">Broadcast</span>

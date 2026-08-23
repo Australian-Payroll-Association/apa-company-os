@@ -2018,7 +2018,8 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   margin-bottom: 8px;
 }
 .mcr-asset:last-child { margin-bottom: 0; }
-.mcr-asset-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.mcr-asset-title { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--admin-ink); text-decoration: none; }
+a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
 /* Campaign report: two-column split of email vs content. */
@@ -2032,6 +2033,42 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   border-bottom: 1px solid var(--admin-line-soft);
 }
 .mcr-report-row:last-child { border-bottom: none; }
+
+/* Asset content detail: text panel + image versions. */
+.mcr-detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 820px) { .mcr-detail-grid { grid-template-columns: 1fr; } }
+.mcr-panel { padding: 0; overflow: hidden; }
+.mcr-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--admin-line);
+}
+.mcr-panel-title { font-family: var(--font-display); font-weight: 600; font-size: 13px; }
+.mcr-imgbox {
+  display: block;
+  margin: 16px;
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--admin-line);
+  background: var(--admin-muted-bg);
+}
+.mcr-imgbox img { display: block; width: 100%; height: auto; }
+.mcr-thumbs { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 12px; }
+.mcr-thumb {
+  width: 56px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--admin-muted-bg);
+}
+.mcr-thumb.is-selected { border: 2px solid var(--admin-accent); }
+.mcr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ─── View toggle (segmented) ─────────────────────── */
 .admin-viewtoggle {

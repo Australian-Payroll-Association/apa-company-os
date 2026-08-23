@@ -171,6 +171,17 @@ export async function listEntries(): Promise<{ rows: CalendarEntryRow[]; error?:
   return { rows: ((data ?? []) as unknown as DbEntry[]).map(mapEntry) };
 }
 
+// A single calendar row (asset) with all its joined fields.
+export async function getEntry(id: string): Promise<CalendarEntryRow | null> {
+  const { data, error } = await companyOs
+    .from("marketing_calendar")
+    .select(ENTRY_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapEntry(data as unknown as DbEntry);
+}
+
 // The full calendar rows for one campaign's assets, so the campaign hub can
 // render the same board and month grid the global calendar uses.
 export async function listEntriesByCampaign(campaignId: string): Promise<CalendarEntryRow[]> {
