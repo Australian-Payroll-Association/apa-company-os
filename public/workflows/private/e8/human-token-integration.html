@@ -219,7 +219,57 @@
 </section>
 
 <section>
-  <h2>07 &middot; How we get there</h2>
+  <h2>07 &middot; GitHub identity</h2>
+  <h3>Three entities, three GitHub identities</h3>
+  <p>Attribution lives or dies on GitHub identity, and it sits at all three levels of the hierarchy. Each one answers a different question: which client owns the code, which AI Program a repo belongs to, and which person did the work.</p>
+
+  <div class="spine">
+    <div class="co">COMPANY &rarr; GitHub organization <small>github.com/austpayroll</small></div>
+    <div class="prog">
+      <div class="pname">AI PROGRAM &rarr; one Repo</div>
+      <div class="parts">
+        <span class="chip">austpayroll/<b>fair-pay</b></span>
+        <span class="chip">austpayroll/<b>payroll-iq</b></span>
+      </div>
+    </div>
+    <div class="prog">
+      <div class="pname">PERSON &rarr; GitHub account + commit emails</div>
+      <div class="parts">
+        <span class="chip">handle <b>@jsmith</b></span>
+        <span class="chip">commit emails <b>1..n</b></span>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Level</th><th>Stored as</th><th>Why</th></tr>
+    <tr>
+      <td><strong>Company</strong> &rarr; org</td>
+      <td>New <code>company_github_orgs</code> (company, <code>org_login</code>), 1..n per client</td>
+      <td>The GitHub App install target (needed to read private repos), repo grouping and discovery</td>
+    </tr>
+    <tr>
+      <td><strong>AI Program</strong> &rarr; repo</td>
+      <td>On <code>ai_programs</code>: <code>repo_url</code>, <code>github_repo</code> (canonical <code>org/name</code>, the join key), <code>github_repo_id</code> (numeric, rename-proof)</td>
+      <td>One repo per AI Program; telemetry and PR sync key on the canonical name</td>
+    </tr>
+    <tr>
+      <td><strong>Person</strong> &rarr; account</td>
+      <td><code>people.github_login</code> (1:1) + new <code>person_git_emails</code> (email, source), 1..n</td>
+      <td>PRs attribute by login; commits and hours attribute by email, and one person commits under several</td>
+    </tr>
+  </table>
+
+  <h4>Collected on intake</h4>
+  <p>The onboarding survey gains two optional questions: <strong>GitHub username</strong> (mapped to <code>people.github_login</code>, normalized) and <strong>git commit email</strong> (upserted into <code>person_git_emails</code> as the primary; a small handler is needed because that is a child table, not a single profile field). Both optional: only people who commit fill them in. Further commit emails are discovered automatically during ingestion.</p>
+
+  <div class="callout mint">
+    <p><strong>At ingest it resolves cleanly:</strong> repo &rarr; AI Program &rarr; company gives the scope; a PR's author login maps to a person via <code>github_login</code>; a commit email maps via <code>person_git_emails</code>; bot and service-account commits are excluded. Uniqueness rules keep it honest: one GitHub account per person, one commit email per person, one repo per AI Program.</p>
+  </div>
+</section>
+
+<section>
+  <h2>08 &middot; How we get there</h2>
   <h3>Phased, client-visible win first</h3>
   <div class="phase"><div class="pn">Phase 0</div><h4>Schema</h4><p>Add <code>is_ai_program</code> to companies. Extend <code>ai_programs</code> into the Project layer. Create the <code>htt</code> repo, tracking, and Group D tables with FKs to companies, people, and AI Program.</p></div>
   <div class="phase"><div class="pn">Phase 1</div><h4>Re-key roadmap and board to the AI Program</h4><p>Give every existing client a default AI Program and move their roadmap and board onto it. This touches live portal features, so it needs care and QA.</p></div>
@@ -230,17 +280,17 @@
 </section>
 
 <section>
-  <h2>08 &middot; Still to work out</h2>
+  <h2>09 &middot; Still to work out</h2>
   <h3>Technical reconciliation, not open decisions</h3>
   <ul>
-    <li><strong>Identity for attribution.</strong> The tracker attributes work by GitHub login and git email, which Edge8's people records do not store yet. We add a GitHub identity to people, and map contributor aliases (git email to person). Rates come from the existing compensation table.</li>
     <li><strong>Credits unification.</strong> One balance view over Stripe purchases and invoice/manual allocations: dedupe, currency, and whether the balance sits at the company or the AI Program.</li>
     <li><strong>Non-code work.</strong> Retreats and consulting are not repos and are not measured here. The client view should be explicit that tracked delivery is code, so the numbers are not mistaken for total effort.</li>
   </ul>
+  <p>GitHub identity (how people and repos attribute) is resolved: see section 07.</p>
 </section>
 
 <section>
-  <h2>09 &middot; Risks</h2>
+  <h2>10 &middot; Risks</h2>
   <ul>
     <li>Table-name collisions, mitigated by the dedicated <code>htt</code> schema.</li>
     <li>Two auth and RLS philosophies, plus migrating users across Supabase projects (Phase 4).</li>

@@ -135,20 +135,35 @@ the 42 migrations' `public.` prefixes and RPC/search_path references.
 Phases 0–3 give clients the visible win. Phase 4 is the riskier auth/pipeline cutover and comes
 last.
 
-## Resolved
+## GitHub identity model
 
-- **A. Project layer.** The Project = an **AI Program**; reuse/extend `ai_programs`.
-- **D. Non-code work.** Tracker scope is code only. Retreats/consulting are separate work, out
-  of scope; design is legacy. The client view states that tracked delivery is code, so numbers
-  are not read as total effort.
-- **E. Exposure.** Fully transparent: clients see Planned vs Delivered.
+GitHub identity sits at all three levels of the hierarchy (resolves old open item B):
+
+- **Company → GitHub org(s).** New `company_os.company_github_orgs` (`company_id`,
+  `org_login` citext unique), 1..n per client. Purpose: the GitHub App install target (needed
+  to read private repos), repo grouping, and discovery.
+- **AI Program → one repo.** Extend `company_os.ai_programs` with `repo_url` (admin-pasted,
+  display + parse), `github_repo` (canonical `org/name`, **unique**, the telemetry/PR-sync join
+  key), `github_repo_id` (bigint numeric id, survives repo renames).
+- **Person → account + commit emails.** `people.github_login` (citext, unique, nullable) is 1:1;
+  `company_os.person_git_emails` (`person_id`, `git_email` citext unique, `source`
+  intake|discovered|manual, `is_primary`) is 1..n. The emails table is the tracker's
+  `contributor_aliases`, re-pointed to `people`. Rates stay in the existing `compensation` table.
+
+**Intake (onboarding survey, `lib/onboarding.ts` + `lib/admin/surveys.ts`):** two optional
+questions. GitHub username → `maps_to people.github_login` (normalize: strip URL/`@`,
+lowercase). Git commit email → upsert into `person_git_emails` (`source='intake'`,
+`is_primary`); needs a small post-submit handler because `maps_to` only writes scalar `people`
+columns, not a child table. Both optional (only committers fill them). Further emails accrue via
+`source='discovered'` during ingestion.
+
+**Attribution at ingest:** repo (`ai_programs.github_repo`) → AI Program → company gives scope;
+PR `author_login` → person via `github_login`; commit email → person via `person_git_emails`;
+bots/service accounts excluded via `client_identities` re-scoped to the AI Program. Uniqueness:
+one account per person, one commit email per person, one repo per AI Program.
 
 ## Open items (technical reconciliation, not decisions)
 
-- **B. People / attribution reconciliation.** The tracker attributes by **`github_login`** and
-  **git email**, which edge8's `people` does not store today. Need `people.github_login` (or a
-  `people_git_identities` table for login + emails). `contributor_aliases` (git_email → person)
-  and `team_members.default_rate_cents` map to `people` + `compensation`.
 - **C. Credits unification.** Final shape of the one balance view over `token_purchases` +
   `token_allocations` (dedupe, currency, per-company vs per-AI-Program).
 
