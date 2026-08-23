@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { getCampaignStats } from "@/lib/admin/campaigns";
 import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
+import { generateEntryImage } from "@/lib/ai/brand-image";
 import {
   listEntries,
   type CalendarChannel,
@@ -217,6 +218,23 @@ export async function getEntryPerformance(campaignId: string): Promise<EntryPerf
   await requireAdmin();
   const s = await getCampaignStats(campaignId);
   return { sent: s.sent, delivered: s.delivered, opened: s.opened, clicked: s.clicked };
+}
+
+// Generates an image for the entry from its brief + style + the brand palette,
+// stores it, and points image_url at it. Returns the URL for an optimistic patch.
+export async function generateImage(id: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+  const r = await generateEntryImage(id);
+  if (!r.ok) return r;
+  await recordAudit({
+    table: "marketing_calendar",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { image_generated: true },
+  });
+  refresh();
+  return r;
 }
 
 export async function deleteEntry(id: string): Promise<ActionResult> {

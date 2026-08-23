@@ -19,6 +19,7 @@ import {
   createCampaignFromEntry,
   repurposeEntry,
   draftWithAI,
+  generateImage,
   markPosted,
   getEntryPerformance,
   type EntryPerformance,
@@ -67,6 +68,7 @@ export function EntryDrawer({
   const [imageType, setImageType] = useState(entry.imageType ?? "");
   const [seoMd, setSeoMd] = useState(entry.seoMd ?? "");
   const [imageBriefMd, setImageBriefMd] = useState(entry.imageBriefMd ?? "");
+  const [imageUrl, setImageUrl] = useState(entry.imageUrl ?? "");
   const [perf, setPerf] = useState<EntryPerformance | null>(null);
 
   // Delivery numbers for a linked email campaign, loaded once the drawer opens.
@@ -167,6 +169,20 @@ export function EntryDrawer({
       }
       onRepurposed(r.entries);
       setNote({ tone: "ok", text: "AI drafted the copy in this brand's voice. Review each entry." });
+    });
+  }
+
+  function genImage() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await generateImage(entry.id);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      setImageUrl(r.url);
+      onPatched(entry.id, { imageUrl: r.url });
+      setNote({ tone: "ok", text: "Image generated." });
     });
   }
 
@@ -359,6 +375,20 @@ export function EntryDrawer({
         <div className="admin-field">
           <label className="admin-label" htmlFor="e-imgbrief">Image brief</label>
           <textarea id="e-imgbrief" className="admin-textarea" rows={4} value={imageBriefMd} onChange={(e) => setImageBriefMd(e.target.value)} placeholder="Hero concept, palette, ratios…" />
+          <div className="admin-form-actions" style={{ marginTop: 8 }}>
+            <button type="button" className="admin-btn" disabled={pending} onClick={genImage}>
+              {pending ? "Generating…" : imageUrl ? "Regenerate image" : "Generate image"}
+            </button>
+          </div>
+          {imageUrl && (
+            <a href={imageUrl} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="Generated" style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid var(--admin-border, #e5e7eb)" }} />
+            </a>
+          )}
+          <div className="admin-hint" style={{ marginTop: 6 }}>
+            Uses the image brief, the chosen image style, and the brand palette. Save the brief first if you just edited it.
+          </div>
         </div>
 
         <div className="admin-field">

@@ -66,6 +66,7 @@ export function NewEntryForm({
         imageType: null,
         seoMd: null,
         imageBriefMd: null,
+        imageUrl: null,
         sortOrder: 0,
         createdAt: new Date().toISOString(),
       });
