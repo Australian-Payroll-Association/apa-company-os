@@ -1,0 +1,135 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { BrandProfile } from "@/lib/admin/brand-profiles";
+import { saveBrandProfile } from "../actions";
+
+type FieldKey =
+  | "positioning" | "audience" | "offer" | "primaryCta" | "authorMd"
+  | "voiceMd" | "rulesMd"
+  | "channelsMd"
+  | "processMd" | "blogStylesMd" | "editingLensMd" | "seoLensMd" | "imageStyleMd";
+
+const TABS: { key: string; label: string; fields: FieldKey[] }[] = [
+  { key: "basics", label: "Brand Basics", fields: ["positioning", "audience", "offer", "primaryCta", "authorMd"] },
+  { key: "voice", label: "Voice", fields: ["voiceMd", "rulesMd"] },
+  { key: "channels", label: "Channels", fields: ["channelsMd"] },
+  { key: "process", label: "Writing Process", fields: ["processMd", "blogStylesMd", "editingLensMd", "seoLensMd", "imageStyleMd"] },
+];
+
+const LABELS: Record<FieldKey, { label: string; hint?: string; rows: number; input?: boolean }> = {
+  positioning: { label: "Positioning", hint: "What the brand is and what it sells.", rows: 3 },
+  audience: { label: "Audience", hint: "Who we are writing to.", rows: 3 },
+  offer: { label: "Offer", hint: "What we sell.", rows: 2, input: true },
+  primaryCta: { label: "Primary CTA", hint: "The default call to action.", rows: 2, input: true },
+  authorMd: { label: "Author & credentials", hint: "Who is speaking, and the credentials to draw on.", rows: 6 },
+  voiceMd: { label: "Voice", hint: "Tone and how this brand sounds.", rows: 6 },
+  rulesMd: { label: "Hard rules", hint: "Non-negotiables: em dashes, name casing, do and don't.", rows: 6 },
+  channelsMd: { label: "Channel guidelines", hint: "Per-channel rules. Use ## Blog / ## LinkedIn / ## Facebook / ## Email sections.", rows: 18 },
+  processMd: { label: "Workflow", hint: "The steps a post moves through.", rows: 10 },
+  blogStylesMd: { label: "Blog styles", hint: "The catalogue and the styles this brand reaches for.", rows: 8 },
+  editingLensMd: { label: "Editing lens (Shipper)", hint: "The checklist a draft is run through before approval.", rows: 8 },
+  seoLensMd: { label: "SEO lens (Patel)", hint: "The checklist the SEO pass is run through.", rows: 10 },
+  imageStyleMd: { label: "Image style", hint: "Brand palette, fonts, and real-vs-AI guidance.", rows: 8 },
+};
+
+type Note = { tone: "ok" | "err"; text: string } | null;
+
+export function BrandProfileTabs({ profile }: { profile: BrandProfile }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [active, setActive] = useState(TABS[0].key);
+  const [note, setNote] = useState<Note>(null);
+
+  const [values, setValues] = useState<Record<FieldKey, string>>({
+    positioning: profile.positioning ?? "",
+    audience: profile.audience ?? "",
+    offer: profile.offer ?? "",
+    primaryCta: profile.primaryCta ?? "",
+    authorMd: profile.authorMd ?? "",
+    voiceMd: profile.voiceMd ?? "",
+    rulesMd: profile.rulesMd ?? "",
+    channelsMd: profile.channelsMd ?? "",
+    processMd: profile.processMd ?? "",
+    blogStylesMd: profile.blogStylesMd ?? "",
+    editingLensMd: profile.editingLensMd ?? "",
+    seoLensMd: profile.seoLensMd ?? "",
+    imageStyleMd: profile.imageStyleMd ?? "",
+  });
+
+  function set(key: FieldKey, v: string) {
+    setValues((prev) => ({ ...prev, [key]: v }));
+  }
+
+  function saveTab(fields: FieldKey[]) {
+    setNote(null);
+    const patch: Partial<Record<FieldKey, string>> = {};
+    for (const f of fields) patch[f] = values[f];
+    startTransition(async () => {
+      const r = await saveBrandProfile(profile.brandId, patch);
+      if (r.ok) {
+        setNote({ tone: "ok", text: "Saved." });
+        router.refresh();
+      } else {
+        setNote({ tone: "err", text: r.error });
+      }
+    });
+  }
+
+  const current = TABS.find((t) => t.key === active) ?? TABS[0];
+
+  return (
+    <div>
+      <div className="admin-tabs" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={t.key === active}
+            className={`admin-tab${t.key === active ? " is-active" : ""}`}
+            onClick={() => { setActive(t.key); setNote(null); }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-tab-panel">
+        <section className="admin-card admin-section-card">
+          {note && (
+            <div className={`admin-alert admin-alert--${note.tone}`} style={{ marginBottom: 12 }}>
+              {note.text}
+            </div>
+          )}
+          <div className="admin-form">
+            {current.fields.map((f) => {
+              const meta = LABELS[f];
+              return (
+                <div className="admin-field" key={f}>
+                  <label className="admin-label">{meta.label}</label>
+                  {meta.input ? (
+                    <input className="admin-input" value={values[f]} onChange={(e) => set(f, e.target.value)} />
+                  ) : (
+                    <textarea className="admin-textarea" rows={meta.rows} value={values[f]} onChange={(e) => set(f, e.target.value)} />
+                  )}
+                  {meta.hint && <div className="admin-hint">{meta.hint}</div>}
+                </div>
+              );
+            })}
+            <div className="admin-form-actions">
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                disabled={pending}
+                onClick={() => saveTab(current.fields)}
+              >
+                {pending ? "Saving…" : `Save ${current.label}`}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

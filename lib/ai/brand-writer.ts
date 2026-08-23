@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getBrandProfile } from "@/lib/admin/brand-profiles";
+import { getBrandProfile, type BrandProfile } from "@/lib/admin/brand-profiles";
 
 // The AI writer. Given a brand and a source (a blog post or a brief), it drafts
 // content by following the brand's own content_rules_md. Nothing about the
@@ -50,39 +50,53 @@ const OUTPUT_SCHEMA = {
   },
 } as const;
 
-function systemPrompt(profile: {
-  brandName: string;
-  positioning: string | null;
-  audience: string | null;
-  voiceMd: string | null;
-  offer: string | null;
-  primaryCta: string | null;
-  contentRulesMd: string | null;
-}): string {
-  return `You are the content writer for ${profile.brandName}. Write only in this brand's voice and follow its content rules exactly. These rules, not any default, decide which deliverables you produce and how each channel reads.
+function systemPrompt(profile: BrandProfile): string {
+  const s = (v: string | null) => v ?? "(not set)";
+  return `You are the content writer for ${profile.brandName}. Write only in this brand's voice and follow its channel rules and writing process exactly. The brand's own rules, not any default, decide which deliverables you produce and how each channel reads.
 
 # Brand: ${profile.brandName}
 
 ## Positioning
-${profile.positioning ?? "(not set)"}
+${s(profile.positioning)}
 
 ## Audience
-${profile.audience ?? "(not set)"}
-
-## Voice
-${profile.voiceMd ?? "(not set)"}
+${s(profile.audience)}
 
 ## What we sell
-${profile.offer ?? "(not set)"}
+${s(profile.offer)}
 
 ## Default call to action
-${profile.primaryCta ?? "(not set)"}
+${s(profile.primaryCta)}
 
-## Content rules (follow these to the letter)
-${profile.contentRulesMd ?? "(not set)"}
+## Author and credentials
+${s(profile.authorMd)}
+
+## Voice
+${s(profile.voiceMd)}
+
+## Hard rules (never break these)
+${s(profile.rulesMd)}
+
+## Channel guidelines (produce exactly these channels, each per its rules)
+${s(profile.channelsMd)}
+
+## Writing process
+${s(profile.processMd)}
+
+## Blog styles (choose the one that fits)
+${s(profile.blogStylesMd)}
+
+## Editing lens (apply before finalising every piece)
+${s(profile.editingLensMd)}
+
+## SEO lens (apply to any blog or headline work)
+${s(profile.seoLensMd)}
+
+## Image style (for any visual direction you suggest)
+${s(profile.imageStyleMd)}
 
 # Output
-Return one output per deliverable the content rules call for. Re-purpose the same core idea per channel; never repeat identical text across channels. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
+Produce one output per channel the Channel guidelines mark active for a write request (typically email, LinkedIn, Facebook). Re-purpose the same core idea per channel; never repeat identical text across channels. Run every piece through the editing lens before returning it. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
 }
 
 export async function writeForBrand(input: {
@@ -98,7 +112,7 @@ export async function writeForBrand(input: {
 
     const profile = await getBrandProfile(input.brandId);
     if (!profile) return { ok: false, error: "Brand not found." };
-    if (!profile.contentRulesMd && !profile.voiceMd) {
+    if (!profile.channelsMd && !profile.voiceMd) {
       return { ok: false, error: "This brand has no writing profile yet. Fill it in under Marketing > Brands." };
     }
 

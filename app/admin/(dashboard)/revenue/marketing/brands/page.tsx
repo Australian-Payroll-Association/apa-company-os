@@ -3,26 +3,25 @@ import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listBrandProfiles } from "@/lib/admin/brand-profiles";
-import { BrandProfileEditor } from "./BrandProfileEditor";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
   title: "Brands",
-  description: "Brand voice, positioning, and the content rules the writer follows.",
+  description: "Voice, channels, and the writing process each brand's content follows.",
 };
 
 export default async function BrandsPage() {
   await requireAdmin();
-  const profiles = await listBrandProfiles();
+  const brands = await listBrandProfiles();
 
   return (
     <div>
       <PageHead
         eyebrow="Revenue · Marketing"
         title="Brands"
-        sub="Voice, positioning, and the content rules each brand's copy follows. The campaign editor and the AI writer read from here."
+        sub="Each brand's voice, channels, and writing process. The campaign editor and the AI writer read from here."
         action={
           <Link className="admin-btn" href="/admin/revenue/marketing">
             Back to Marketing
@@ -30,10 +29,27 @@ export default async function BrandsPage() {
         }
       />
 
-      {profiles.length === 0 ? (
+      {brands.length === 0 ? (
         <div className="admin-empty">No active brands.</div>
       ) : (
-        profiles.map((p) => <BrandProfileEditor key={p.brandId} profile={p} />)
+        <div className="mp-kpi-grid">
+          {brands.map((b) => (
+            <Link
+              key={b.brandId}
+              href={`/admin/revenue/marketing/brands/${b.brandSlug}`}
+              className="admin-card admin-section-card"
+              style={{ textDecoration: "none", color: "inherit", display: "block" }}
+            >
+              <div className="admin-card-title">{b.brandName}</div>
+              <p className="admin-page-sub" style={{ marginTop: 6 }}>
+                {b.positioning ?? "No profile yet."}
+              </p>
+              <span className="admin-btn admin-btn--sm" style={{ marginTop: 12 }}>
+                Edit profile
+              </span>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );
