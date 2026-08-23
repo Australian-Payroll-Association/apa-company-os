@@ -25,6 +25,10 @@ export type BrandProfile = {
   editingLensMd: string | null;
   seoLensMd: string | null;
   imageStyleMd: string | null;
+  // Styles: preferred picks from the shared catalogues (slugs)
+  preferredBlogTypes: string[];
+  preferredImageStyles: string[];
+  preferredSocialStyles: string[];
 };
 
 type DbProfile = {
@@ -41,6 +45,9 @@ type DbProfile = {
   editing_lens_md: string | null;
   seo_lens_md: string | null;
   image_style_md: string | null;
+  preferred_blog_types: string[] | null;
+  preferred_image_styles: string[] | null;
+  preferred_social_styles: string[] | null;
 };
 
 type DbRow = {
@@ -69,11 +76,14 @@ function map(row: DbRow): BrandProfile {
     editingLensMd: p?.editing_lens_md ?? null,
     seoLensMd: p?.seo_lens_md ?? null,
     imageStyleMd: p?.image_style_md ?? null,
+    preferredBlogTypes: p?.preferred_blog_types ?? [],
+    preferredImageStyles: p?.preferred_image_styles ?? [],
+    preferredSocialStyles: p?.preferred_social_styles ?? [],
   };
 }
 
 const SELECT =
-  "id, slug, name, brand_profiles(positioning, audience, offer, primary_cta, author_md, voice_md, rules_md, channels_md, process_md, blog_styles_md, editing_lens_md, seo_lens_md, image_style_md)";
+  "id, slug, name, brand_profiles(positioning, audience, offer, primary_cta, author_md, voice_md, rules_md, channels_md, process_md, blog_styles_md, editing_lens_md, seo_lens_md, image_style_md, preferred_blog_types, preferred_image_styles, preferred_social_styles)";
 
 // All active brands, each with its profile (which may be empty until edited).
 export async function listBrandProfiles(): Promise<BrandProfile[]> {

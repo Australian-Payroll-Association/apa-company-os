@@ -11,6 +11,8 @@ import {
   type CalendarEntryRow,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
+import { BLOG_TYPES, IMAGE_STYLES, SOCIAL_STYLES, type StyleOption } from "@/lib/marketing/style-catalogues";
+import type { BrandStylePrefs } from "./CalendarClient";
 import {
   updateEntry,
   deleteEntry,
@@ -28,6 +30,7 @@ export function EntryDrawer({
   entry,
   brands,
   pillars,
+  stylePrefs,
   allEntries,
   onPatched,
   onDeleted,
@@ -37,6 +40,7 @@ export function EntryDrawer({
   entry: CalendarEntryRow;
   brands: BrandOption[];
   pillars: PillarOption[];
+  stylePrefs: BrandStylePrefs[];
   allEntries: CalendarEntryRow[];
   onPatched: (id: string, partial: Partial<CalendarEntryRow>) => void;
   onDeleted: (id: string) => void;
@@ -57,6 +61,12 @@ export function EntryDrawer({
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [parentId, setParentId] = useState(entry.parentId ?? "");
   const [postedUrl, setPostedUrl] = useState(entry.postedUrl ?? "");
+  const [blogStyle, setBlogStyle] = useState(entry.blogStyle ?? "");
+  const [socialStyle, setSocialStyle] = useState(entry.socialStyle ?? "");
+  const [imageStyle, setImageStyle] = useState(entry.imageStyle ?? "");
+  const [imageType, setImageType] = useState(entry.imageType ?? "");
+  const [seoMd, setSeoMd] = useState(entry.seoMd ?? "");
+  const [imageBriefMd, setImageBriefMd] = useState(entry.imageBriefMd ?? "");
   const [perf, setPerf] = useState<EntryPerformance | null>(null);
 
   // Delivery numbers for a linked email campaign, loaded once the drawer opens.
@@ -75,6 +85,15 @@ export function EntryDrawer({
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
+
+  // Style pickers show the brand's preferred styles; fall back to the full
+  // catalogue when the brand has no preferences set yet.
+  const prefs = stylePrefs.find((s) => s.brandId === brandId);
+  const narrow = (all: StyleOption[], preferred: string[] | undefined) =>
+    preferred && preferred.length > 0 ? all.filter((o) => preferred.includes(o.value)) : all;
+  const blogOptions = narrow(BLOG_TYPES, prefs?.blog);
+  const socialOptions = narrow(SOCIAL_STYLES, prefs?.social);
+  const imageOptions = narrow(IMAGE_STYLES, prefs?.image);
   const parentEntry = entry.parentId ? allEntries.find((e) => e.id === entry.parentId) ?? null : null;
   const childCount = allEntries.filter((e) => e.parentId === entry.id).length;
 
@@ -91,6 +110,12 @@ export function EntryDrawer({
         assetUrl: assetUrl || null,
         notes: notes || null,
         parentId: parentId || null,
+        blogStyle: blogStyle || null,
+        socialStyle: socialStyle || null,
+        imageStyle: imageStyle || null,
+        imageType: imageType || null,
+        seoMd: seoMd || null,
+        imageBriefMd: imageBriefMd || null,
       });
       if (!r.ok) {
         setNote({ tone: "err", text: r.error });
@@ -109,6 +134,12 @@ export function EntryDrawer({
         assetUrl: assetUrl || null,
         notes: notes || null,
         parentId: parentId || null,
+        blogStyle: blogStyle || null,
+        socialStyle: socialStyle || null,
+        imageStyle: imageStyle || null,
+        imageType: imageType || null,
+        seoMd: seoMd || null,
+        imageBriefMd: imageBriefMd || null,
       });
     });
   }
@@ -270,6 +301,64 @@ export function EntryDrawer({
         <div className="admin-field">
           <label className="admin-label" htmlFor="e-asset">Asset URL</label>
           <input id="e-asset" className="admin-input" value={assetUrl} onChange={(e) => setAssetUrl(e.target.value)} placeholder="Image, doc, or link" />
+        </div>
+
+        {entry.channel === "blog" && (
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="e-blogstyle">Blog type</label>
+            <select id="e-blogstyle" className="admin-input" value={blogStyle} onChange={(e) => setBlogStyle(e.target.value)}>
+              <option value="">— None —</option>
+              {blogOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {(entry.channel === "linkedin" || entry.channel === "facebook") && (
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="e-socialstyle">Post style</label>
+            <select id="e-socialstyle" className="admin-input" value={socialStyle} onChange={(e) => setSocialStyle(e.target.value)}>
+              <option value="">— None —</option>
+              {socialOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="admin-field" style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label className="admin-label" htmlFor="e-imagestyle">Image style</label>
+            <select id="e-imagestyle" className="admin-input" value={imageStyle} onChange={(e) => setImageStyle(e.target.value)}>
+              <option value="">— None —</option>
+              {imageOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="admin-label" htmlFor="e-imagetype">Image source</label>
+            <select id="e-imagetype" className="admin-input" value={imageType} onChange={(e) => setImageType(e.target.value)}>
+              <option value="">— None —</option>
+              <option value="real">Real photo</option>
+              <option value="ai">AI-generated</option>
+              <option value="mixed">Mixed</option>
+              <option value="none">No image</option>
+            </select>
+          </div>
+        </div>
+
+        {entry.channel === "blog" && (
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="e-seo">SEO (Patel)</label>
+            <textarea id="e-seo" className="admin-textarea" rows={6} value={seoMd} onChange={(e) => setSeoMd(e.target.value)} placeholder="Title tag, meta description, slug, keywords, links…" />
+          </div>
+        )}
+
+        <div className="admin-field">
+          <label className="admin-label" htmlFor="e-imgbrief">Image brief</label>
+          <textarea id="e-imgbrief" className="admin-textarea" rows={4} value={imageBriefMd} onChange={(e) => setImageBriefMd(e.target.value)} placeholder="Hero concept, palette, ratios…" />
         </div>
 
         <div className="admin-field">

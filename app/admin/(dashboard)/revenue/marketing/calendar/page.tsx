@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listEntries, listBrands, listPillars, getPillarPerformance } from "@/lib/admin/marketing-calendar";
+import { listBrandProfiles } from "@/lib/admin/brand-profiles";
 import { CalendarClient } from "./CalendarClient";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +16,19 @@ export const metadata: Metadata = {
 
 export default async function MarketingCalendarPage() {
   await requireAdmin();
-  const [{ rows, error }, brands, pillars, performance] = await Promise.all([
+  const [{ rows, error }, brands, pillars, performance, profiles] = await Promise.all([
     listEntries(),
     listBrands(),
     listPillars(),
     getPillarPerformance(),
+    listBrandProfiles(),
   ]);
+  const stylePrefs = profiles.map((p) => ({
+    brandId: p.brandId,
+    blog: p.preferredBlogTypes,
+    image: p.preferredImageStyles,
+    social: p.preferredSocialStyles,
+  }));
 
   return (
     <div>
@@ -79,7 +87,7 @@ export default async function MarketingCalendarPage() {
         </section>
       )}
 
-      <CalendarClient initialEntries={rows} brands={brands} initialPillars={pillars} />
+      <CalendarClient initialEntries={rows} brands={brands} initialPillars={pillars} stylePrefs={stylePrefs} />
     </div>
   );
 }

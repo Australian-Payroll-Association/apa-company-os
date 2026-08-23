@@ -71,6 +71,12 @@ export type CalendarEntryRow = {
   assetUrl: string | null;
   postedUrl: string | null;
   notes: string | null;
+  blogStyle: string | null;
+  socialStyle: string | null;
+  imageStyle: string | null;
+  imageType: string | null;
+  seoMd: string | null;
+  imageBriefMd: string | null;
   sortOrder: number;
   createdAt: string;
 };
@@ -89,6 +95,12 @@ type DbEntry = {
   asset_url: string | null;
   posted_url: string | null;
   notes: string | null;
+  blog_style: string | null;
+  social_style: string | null;
+  image_style: string | null;
+  image_type: string | null;
+  seo_md: string | null;
+  image_brief_md: string | null;
   sort_order: number;
   created_at: string;
   brands: { name: string } | { name: string }[] | null;
@@ -97,7 +109,7 @@ type DbEntry = {
 };
 
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, posted_url, notes, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, campaign_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns(status)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -124,6 +136,12 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
     assetUrl: row.asset_url,
     postedUrl: row.posted_url,
     notes: row.notes,
+    blogStyle: row.blog_style,
+    socialStyle: row.social_style,
+    imageStyle: row.image_style,
+    imageType: row.image_type,
+    seoMd: row.seo_md,
+    imageBriefMd: row.image_brief_md,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
   };

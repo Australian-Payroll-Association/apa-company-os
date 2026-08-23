@@ -16,14 +16,18 @@ import { CalendarMonth } from "./CalendarMonth";
 import { EntryDrawer } from "./EntryDrawer";
 import { moveEntry } from "./actions";
 
+export type BrandStylePrefs = { brandId: string; blog: string[]; image: string[]; social: string[] };
+
 export function CalendarClient({
   initialEntries,
   brands,
   initialPillars,
+  stylePrefs,
 }: {
   initialEntries: CalendarEntryRow[];
   brands: BrandOption[];
   initialPillars: PillarOption[];
+  stylePrefs: BrandStylePrefs[];
 }) {
   const [entries, setEntries] = useState<CalendarEntryRow[]>(initialEntries);
   const [pillars, setPillars] = useState<PillarOption[]>(initialPillars);
@@ -147,6 +151,7 @@ export function CalendarClient({
             entry={selected}
             brands={brands}
             pillars={pillars}
+            stylePrefs={stylePrefs}
             allEntries={entries}
             onPatched={patch}
             onDeleted={remove}

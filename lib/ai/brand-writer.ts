@@ -15,6 +15,11 @@ export type WriterOutput = {
   subject?: string; // email only
   preheader?: string; // email only
   bodyMd: string;
+  blogStyle?: string; // blog only, a slug from the brand's preferred blog types
+  socialStyle?: string; // linkedin/facebook only
+  imageStyle?: string; // a slug from the brand's preferred image styles
+  seoMd?: string; // blog only, the Patel SEO package
+  imageBriefMd?: string; // the design brief
 };
 
 export type WriterResult =
@@ -44,6 +49,11 @@ const OUTPUT_SCHEMA = {
             description:
               "The copy in Markdown (headings, bold, lists, links). For email, exclude the unsubscribe footer; it is added automatically.",
           },
+          blog_style: { type: "string", description: "Blog only: a slug from the brand's preferred blog types." },
+          social_style: { type: "string", description: "LinkedIn/Facebook only: a slug from the brand's preferred social styles." },
+          image_style: { type: "string", description: "A slug from the brand's preferred image styles that fits this piece." },
+          seo_md: { type: "string", description: "Blog only: the SEO package (title tag, meta description, slug, primary and secondary keywords, five link ideas) run through the SEO lens." },
+          image_brief_md: { type: "string", description: "A short image brief: hero concept, palette, and ratios, following the brand's image style." },
         },
       },
     },
@@ -95,8 +105,13 @@ ${s(profile.seoLensMd)}
 ## Image style (for any visual direction you suggest)
 ${s(profile.imageStyleMd)}
 
+## Preferred styles (choose only from these slugs)
+- Blog types: ${profile.preferredBlogTypes.join(", ") || "(none set)"}
+- Image styles: ${profile.preferredImageStyles.join(", ") || "(none set)"}
+- Social styles: ${profile.preferredSocialStyles.join(", ") || "(none set)"}
+
 # Output
-Produce one output per channel the Channel guidelines mark active for a write request (typically email, LinkedIn, Facebook). Re-purpose the same core idea per channel; never repeat identical text across channels. Run every piece through the editing lens before returning it. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
+Produce one output per channel the Channel guidelines mark active for a write request (typically email, LinkedIn, Facebook). Re-purpose the same core idea per channel; never repeat identical text across channels. Run every piece through the editing lens before returning it. Tag each output with an image_style slug from the preferred list; tag social outputs with a social_style slug; if you produce a blog output, tag its blog_style, and include seo_md run through the SEO lens plus an image_brief_md. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
 }
 
 export async function writeForBrand(input: {
@@ -138,7 +153,10 @@ Draft the deliverables the content rules specify, re-purposed to this brand's le
     if (!textBlock) return { ok: false, error: "Model returned no output." };
 
     const parsed = JSON.parse(textBlock.text) as {
-      outputs: { channel: string; title?: string; subject?: string; preheader?: string; body_md: string }[];
+      outputs: {
+        channel: string; title?: string; subject?: string; preheader?: string; body_md: string;
+        blog_style?: string; social_style?: string; image_style?: string; seo_md?: string; image_brief_md?: string;
+      }[];
     };
     const outputs: WriterOutput[] = (parsed.outputs ?? [])
       .filter((o) => o.body_md && o.channel)
@@ -148,6 +166,11 @@ Draft the deliverables the content rules specify, re-purposed to this brand's le
         subject: o.subject,
         preheader: o.preheader,
         bodyMd: o.body_md,
+        blogStyle: o.blog_style,
+        socialStyle: o.social_style,
+        imageStyle: o.image_style,
+        seoMd: o.seo_md,
+        imageBriefMd: o.image_brief_md,
       }));
 
     if (outputs.length === 0) return { ok: false, error: "The writer produced nothing usable." };

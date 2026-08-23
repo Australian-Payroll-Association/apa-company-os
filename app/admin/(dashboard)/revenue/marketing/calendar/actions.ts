@@ -102,6 +102,12 @@ export async function updateEntry(
     assetUrl?: string | null;
     notes?: string | null;
     parentId?: string | null;
+    blogStyle?: string | null;
+    socialStyle?: string | null;
+    imageStyle?: string | null;
+    imageType?: string | null;
+    seoMd?: string | null;
+    imageBriefMd?: string | null;
   },
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
@@ -128,6 +134,12 @@ export async function updateEntry(
     // An entry cannot be its own parent.
     update.parent_id = patch.parentId && patch.parentId !== id ? patch.parentId : null;
   }
+  if (patch.blogStyle !== undefined) update.blog_style = patch.blogStyle || null;
+  if (patch.socialStyle !== undefined) update.social_style = patch.socialStyle || null;
+  if (patch.imageStyle !== undefined) update.image_style = patch.imageStyle || null;
+  if (patch.imageType !== undefined) update.image_type = patch.imageType || null;
+  if (patch.seoMd !== undefined) update.seo_md = patch.seoMd || null;
+  if (patch.imageBriefMd !== undefined) update.image_brief_md = patch.imageBriefMd || null;
   if (Object.keys(update).length === 0) return { ok: true };
 
   const { error } = await companyOs.from("marketing_calendar").update(update).eq("id", id);
@@ -378,17 +390,29 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
   const baseDate = entry.publish_date ?? new Date().toISOString().slice(0, 10);
 
   for (const out of result.outputs) {
+    // The copy plus the style/SEO/image fields the writer chose for this piece.
+    const fields: Record<string, unknown> = { copy_md: out.bodyMd };
+    if (out.imageStyle) fields.image_style = out.imageStyle;
+    if (out.imageBriefMd) fields.image_brief_md = out.imageBriefMd;
+    if (out.channel === "blog") {
+      if (out.blogStyle) fields.blog_style = out.blogStyle;
+      if (out.seoMd) fields.seo_md = out.seoMd;
+    }
+    if (out.channel === "linkedin" || out.channel === "facebook") {
+      if (out.socialStyle) fields.social_style = out.socialStyle;
+    }
+
     // Where this channel's copy lands.
     let targetId: string;
     let targetCampaignId: string | null;
     if (out.channel === entry.channel) {
-      await companyOs.from("marketing_calendar").update({ copy_md: out.bodyMd }).eq("id", entry.id);
+      await companyOs.from("marketing_calendar").update(fields).eq("id", entry.id);
       targetId = entry.id;
       targetCampaignId = entry.campaign_id;
     } else {
       const existing = childByChannel.get(out.channel);
       if (existing) {
-        await companyOs.from("marketing_calendar").update({ copy_md: out.bodyMd }).eq("id", existing.id);
+        await companyOs.from("marketing_calendar").update(fields).eq("id", existing.id);
         targetId = existing.id;
         targetCampaignId = existing.campaign_id;
       } else {
@@ -402,8 +426,8 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
             status: "drafted",
             publish_date: addDays(baseDate, offset),
             parent_id: entry.id,
-            copy_md: out.bodyMd,
             created_by: admin.email,
+            ...fields,
           })
           .select("id")
           .maybeSingle();

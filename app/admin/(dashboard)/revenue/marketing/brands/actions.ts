@@ -25,9 +25,34 @@ const FIELD_MAP: Record<string, string> = {
   imageStyleMd: "image_style_md",
 };
 
+const ARRAY_MAP: Record<string, string> = {
+  preferredBlogTypes: "preferred_blog_types",
+  preferredImageStyles: "preferred_image_styles",
+  preferredSocialStyles: "preferred_social_styles",
+};
+
+type BrandProfilePatch = {
+  positioning?: string;
+  audience?: string;
+  offer?: string;
+  primaryCta?: string;
+  authorMd?: string;
+  voiceMd?: string;
+  rulesMd?: string;
+  channelsMd?: string;
+  processMd?: string;
+  blogStylesMd?: string;
+  editingLensMd?: string;
+  seoLensMd?: string;
+  imageStyleMd?: string;
+  preferredBlogTypes?: string[];
+  preferredImageStyles?: string[];
+  preferredSocialStyles?: string[];
+};
+
 export async function saveBrandProfile(
   brandId: string,
-  patch: Partial<Record<keyof typeof FIELD_MAP, string>>,
+  patch: BrandProfilePatch,
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   if (!brandId) return { ok: false, error: "Missing brand." };
@@ -37,9 +62,14 @@ export async function saveBrandProfile(
     updated_by: admin.email,
     updated_at: new Date().toISOString(),
   };
+  const p = patch as Record<string, string | string[] | undefined>;
   for (const [key, column] of Object.entries(FIELD_MAP)) {
-    const value = patch[key as keyof typeof FIELD_MAP];
-    if (value !== undefined) row[column] = value.trim() || null;
+    const value = p[key];
+    if (typeof value === "string") row[column] = value.trim() || null;
+  }
+  for (const [key, column] of Object.entries(ARRAY_MAP)) {
+    const value = p[key];
+    if (Array.isArray(value)) row[column] = value;
   }
 
   const { error } = await companyOs.from("brand_profiles").upsert(row, { onConflict: "brand_id" });

@@ -60,6 +60,12 @@ export function NewEntryForm({
         assetUrl: null,
         postedUrl: null,
         notes: null,
+        blogStyle: null,
+        socialStyle: null,
+        imageStyle: null,
+        imageType: null,
+        seoMd: null,
+        imageBriefMd: null,
         sortOrder: 0,
         createdAt: new Date().toISOString(),
       });

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BrandProfile } from "@/lib/admin/brand-profiles";
+import { BLOG_TYPES, IMAGE_STYLES, SOCIAL_STYLES, type StyleOption } from "@/lib/marketing/style-catalogues";
 import { saveBrandProfile } from "../actions";
 
 type FieldKey =
@@ -16,6 +17,7 @@ const TABS: { key: string; label: string; fields: FieldKey[] }[] = [
   { key: "voice", label: "Voice", fields: ["voiceMd", "rulesMd"] },
   { key: "channels", label: "Channels", fields: ["channelsMd"] },
   { key: "process", label: "Writing Process", fields: ["processMd", "blogStylesMd", "editingLensMd", "seoLensMd", "imageStyleMd"] },
+  { key: "styles", label: "Styles", fields: [] },
 ];
 
 const LABELS: Record<FieldKey, { label: string; hint?: string; rows: number; input?: boolean }> = {
@@ -58,8 +60,33 @@ export function BrandProfileTabs({ profile }: { profile: BrandProfile }) {
     imageStyleMd: profile.imageStyleMd ?? "",
   });
 
+  const [blogTypes, setBlogTypes] = useState<string[]>(profile.preferredBlogTypes);
+  const [imageStyles, setImageStyles] = useState<string[]>(profile.preferredImageStyles);
+  const [socialStyles, setSocialStyles] = useState<string[]>(profile.preferredSocialStyles);
+
   function set(key: FieldKey, v: string) {
     setValues((prev) => ({ ...prev, [key]: v }));
+  }
+
+  function toggle(list: string[], setList: (v: string[]) => void, value: string) {
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  }
+
+  function saveStyles() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await saveBrandProfile(profile.brandId, {
+        preferredBlogTypes: blogTypes,
+        preferredImageStyles: imageStyles,
+        preferredSocialStyles: socialStyles,
+      });
+      if (r.ok) {
+        setNote({ tone: "ok", text: "Saved." });
+        router.refresh();
+      } else {
+        setNote({ tone: "err", text: r.error });
+      }
+    });
   }
 
   function saveTab(fields: FieldKey[]) {
@@ -102,6 +129,19 @@ export function BrandProfileTabs({ profile }: { profile: BrandProfile }) {
               {note.text}
             </div>
           )}
+
+          {active === "styles" ? (
+            <div className="admin-form">
+              <StyleGroup title="Preferred blog types" options={BLOG_TYPES} selected={blogTypes} onToggle={(v) => toggle(blogTypes, setBlogTypes, v)} />
+              <StyleGroup title="Preferred image styles" options={IMAGE_STYLES} selected={imageStyles} onToggle={(v) => toggle(imageStyles, setImageStyles, v)} />
+              <StyleGroup title="Preferred social post styles" options={SOCIAL_STYLES} selected={socialStyles} onToggle={(v) => toggle(socialStyles, setSocialStyles, v)} />
+              <div className="admin-form-actions">
+                <button type="button" className="admin-btn admin-btn--primary" disabled={pending} onClick={saveStyles}>
+                  {pending ? "Saving…" : "Save Styles"}
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="admin-form">
             {current.fields.map((f) => {
               const meta = LABELS[f];
@@ -128,7 +168,37 @@ export function BrandProfileTabs({ profile }: { profile: BrandProfile }) {
               </button>
             </div>
           </div>
+          )}
         </section>
+      </div>
+    </div>
+  );
+}
+
+function StyleGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: StyleOption[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div className="admin-field">
+      <span className="admin-label">{title}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+        {options.map((o) => (
+          <label key={o.value} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <input type="checkbox" checked={selected.includes(o.value)} onChange={() => onToggle(o.value)} style={{ marginTop: 3 }} />
+            <span>
+              <strong style={{ fontWeight: 600 }}>{o.label}</strong>
+              <span className="admin-hint" style={{ display: "inline", marginLeft: 6 }}>{o.desc}</span>
+            </span>
+          </label>
+        ))}
       </div>
     </div>
   );
