@@ -7,6 +7,7 @@ import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getCampaign, getCampaignStats, listRecipients, type CampaignStatus } from "@/lib/admin/campaigns";
 import { listBrands } from "@/lib/admin/marketing-calendar";
+import { listBrandProfiles } from "@/lib/admin/brand-profiles";
 import { CampaignEditor } from "./CampaignEditor";
 
 export const dynamic = "force-dynamic";
@@ -37,10 +38,11 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
   const campaign = await getCampaign(params.id);
   if (!campaign) notFound();
 
-  const [stats, recipients, brands] = await Promise.all([
+  const [stats, recipients, brands, profiles] = await Promise.all([
     getCampaignStats(campaign.id),
     listRecipients(campaign.id),
     listBrands(),
+    listBrandProfiles(),
   ]);
 
   const hasSent = stats.sent > 0;
@@ -86,7 +88,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
         </section>
       )}
 
-      <CampaignEditor campaign={campaign} pendingCount={stats.pending} brands={brands} />
+      <CampaignEditor campaign={campaign} pendingCount={stats.pending} brands={brands} profiles={profiles} />
 
       <section className="admin-card admin-section-card">
         <div className="admin-card-title">Recipients</div>

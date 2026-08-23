@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CampaignRow } from "@/lib/admin/campaigns";
 import type { BrandOption } from "@/lib/admin/marketing-calendar";
+import type { BrandProfile } from "@/lib/admin/brand-profiles";
 import {
   approveCampaign,
   buildRecipients,
@@ -34,10 +35,12 @@ export function CampaignEditor({
   campaign,
   pendingCount,
   brands,
+  profiles,
 }: {
   campaign: CampaignRow;
   pendingCount: number;
   brands: BrandOption[];
+  profiles: BrandProfile[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -54,6 +57,7 @@ export function CampaignEditor({
   const [scheduledAt, setScheduledAt] = useState(toLocalInput(campaign.scheduledAt));
 
   const isDraft = campaign.status === "draft";
+  const activeProfile = profiles.find((p) => p.brandId === brandId) ?? null;
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, success: string) {
     setNote(null);
@@ -105,7 +109,26 @@ export function CampaignEditor({
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
-            <div className="admin-hint">Which identity this send goes out as (Edge8, AI Officer, …).</div>
+            <div className="admin-hint">Which identity this send goes out as (Edge8, AI Officer Institute).</div>
+            {activeProfile && (activeProfile.voiceMd || activeProfile.primaryCta || activeProfile.positioning) && (
+              <details className="admin-card" style={{ padding: "10px 12px", marginTop: 8 }}>
+                <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+                  {activeProfile.brandName} voice reference
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 13, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {activeProfile.positioning && (
+                    <div><span className="admin-label">Positioning</span><div>{activeProfile.positioning}</div></div>
+                  )}
+                  {activeProfile.voiceMd && (
+                    <div><span className="admin-label">Voice</span><div style={{ whiteSpace: "pre-wrap" }}>{activeProfile.voiceMd}</div></div>
+                  )}
+                  {activeProfile.primaryCta && (
+                    <div><span className="admin-label">Primary CTA</span><div>{activeProfile.primaryCta}</div></div>
+                  )}
+                  <a className="admin-btn admin-btn--sm" href="/admin/revenue/marketing/brands">Edit brand profile</a>
+                </div>
+              </details>
+            )}
           </div>
           <div className="admin-field">
             <label className="admin-label" htmlFor="name">
