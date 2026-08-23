@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Human Tokens in the Client Portal: Integration Plan</title>
+<style>
+  :root{
+    --navy:#04102D;
+    --mist:#EAEEF2;
+    --white:#FFFFFF;
+    --blue:#287BE8;
+    --pink:#D1458B;
+    --mint:#6FF2C1;
+    --ink:#1a2340;
+    --muted:#5a6480;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--mist);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px;margin:0 auto;background:var(--white);}
+  header{background:var(--navy);color:var(--white);padding:60px 60px 52px;}
+  .eyebrow{font-size:13px;letter-spacing:.18em;color:var(--mint);font-weight:600;margin-bottom:18px;}
+  header h1{font-size:38px;line-height:1.15;font-weight:700;margin-bottom:14px;}
+  header p.sub{font-size:18px;color:var(--mist);max-width:680px;}
+  .meta{margin-top:32px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;color:var(--mist);}
+  .meta div span{display:block;color:var(--mint);font-size:11px;letter-spacing:.12em;margin-bottom:3px;}
+  section{padding:46px 60px;}
+  section + section{border-top:1px solid var(--mist);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:8px;}
+  h3{font-size:25px;font-weight:700;margin-bottom:18px;color:var(--navy);}
+  h4{font-size:17px;font-weight:700;margin:26px 0 8px;color:var(--navy);}
+  p{margin-bottom:15px;font-size:16px;}
+  p:last-child{margin-bottom:0;}
+  strong{font-weight:650;}
+  ul,ol{margin:0 0 16px 0;padding-left:0;list-style:none;}
+  ul li,ol li{position:relative;padding-left:24px;margin-bottom:10px;font-size:16px;}
+  ul li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;background:var(--mint);border-radius:50%;}
+  ol{counter-reset:num;}
+  ol li{counter-increment:num;padding-left:32px;}
+  ol li::before{content:counter(num);position:absolute;left:0;top:1px;width:22px;height:22px;background:var(--navy);color:var(--mint);border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;}
+  th{background:var(--navy);color:var(--white);text-align:left;padding:10px 12px;font-weight:650;font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid var(--mist);vertical-align:top;}
+  tr:nth-child(even) td{background:#F7F9FC;}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#F0F2F7;color:var(--navy);padding:1px 6px;border-radius:5px;}
+  .callout{background:#F0F7FF;border-left:4px solid var(--blue);padding:18px 22px;border-radius:0 8px 8px 0;margin:20px 0;}
+  .callout.mint{background:#EFFCF7;border-left-color:var(--mint);}
+  .callout.pink{background:#FDF2F8;border-left-color:var(--pink);}
+  .callout p{font-size:15px;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:999px;vertical-align:middle;}
+  .tag.drop{background:#FDE7E7;color:#B4232B;}
+  .tag.keep{background:#E3FBF1;color:#0B7A55;}
+  .tag.repoint{background:#E7F1FE;color:var(--blue);}
+  .spine{background:var(--navy);border-radius:14px;padding:28px 30px;color:var(--mist);font-size:14.5px;margin:22px 0;}
+  .spine .co{color:var(--mint);font-weight:800;font-size:13px;letter-spacing:.1em;margin-bottom:4px;}
+  .spine .co small{display:block;color:var(--mist);font-weight:400;letter-spacing:0;font-size:12.5px;margin-top:2px;}
+  .spine .prog{border-left:2px solid #2a3a63;margin:14px 0 14px 8px;padding:2px 0 2px 20px;}
+  .spine .pname{color:var(--pink);font-weight:800;font-size:13px;letter-spacing:.04em;margin-bottom:6px;}
+  .spine .parts{display:flex;flex-wrap:wrap;gap:8px;}
+  .spine .chip{background:#0d1c40;border:1px solid #23335c;border-radius:8px;padding:4px 10px;font-size:12.5px;color:#cfe0ff;}
+  .spine .chip b{color:var(--mint);}
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0;}
+  .num-card{border:1px solid var(--mist);border-radius:12px;padding:18px 20px;}
+  .num-card .k{font-size:11px;font-weight:800;letter-spacing:.1em;margin-bottom:6px;display:block;text-transform:uppercase;}
+  .num-card.bought .k{color:var(--blue);}
+  .num-card.planned .k{color:var(--muted);}
+  .num-card.delivered .k{color:#0B7A55;}
+  .num-card p{font-size:14px;margin:0;}
+  .phase{border:1px solid var(--mist);border-left:4px solid var(--blue);border-radius:0 10px 10px 0;padding:16px 20px;margin-bottom:12px;}
+  .phase .pn{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase;margin-bottom:4px;}
+  .phase h4{margin:0 0 6px;font-size:17px;}
+  footer{background:var(--navy);color:var(--mist);padding:34px 60px;font-size:13px;}
+  footer .b{color:var(--mint);font-weight:700;}
+  @media (max-width:720px){
+    header,section,footer{padding-left:24px;padding-right:24px;}
+    .nums{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Edge8 AI &middot; Integration Plan &middot; Internal</div>
+  <h1>Human Tokens in the Client Portal</h1>
+  <p class="sub">Folding the Human Token Tracker into Edge8: one login, one platform, and every client seeing what they bought, what we planned, and what we actually delivered.</p>
+  <div class="meta">
+    <div><span>Status</span>Model agreed, not yet built</div>
+    <div><span>Owner</span>Dave Hajdu</div>
+    <div><span>Date</span>23 August 2026</div>
+    <div><span>Branch</span>human-token-integration</div>
+  </div>
+</header>
+
+<section>
+  <h2>01 &middot; Why</h2>
+  <h3>Two problems, one root cause</h3>
+  <p>A client (Australian Payroll Association) could not log into the Human Token Tracker. The reason is structural: the tracker is a <strong>separate app with its own Supabase login</strong>, a second account edge8 clients do not have. That is the symptom.</p>
+  <p>The goal underneath it: clients should see their human tokens <strong>inside the Edge8 client portal</strong>, not in a separate product with a separate password. So we resolve both at once: retire the second login, and surface the numbers where clients already are.</p>
+  <div class="callout">
+    <p><strong>One line:</strong> the Human Token Tracker stops being a separate product and becomes a feature of Edge8: same login, same portal, per AI Program.</p>
+  </div>
+</section>
+
+<section>
+  <h2>02 &middot; The two systems today</h2>
+  <h3>Same stack, two databases, two logins</h3>
+  <table>
+    <tr><th>&nbsp;</th><th>Edge8</th><th>Human Token Tracker</th></tr>
+    <tr><td><strong>Stack</strong></td><td>Next.js App Router + Supabase</td><td>Next.js 16 + Supabase (same stack)</td></tr>
+    <tr><td><strong>Database</strong></td><td>One project, <code>company_os</code> schema</td><td>A separate Supabase project</td></tr>
+    <tr><td><strong>Login</strong></td><td>Shared across /admin, /team, /portal</td><td>Its own, unrelated login</td></tr>
+    <tr><td><strong>What it holds</strong></td><td>Clients, people, roadmaps, boards, token purchases</td><td>Measured AI tokens + human hours per repo, from Claude Code telemetry</td></tr>
+  </table>
+  <p>Because the stacks are identical and the tracker's data is small (low thousands of rows), this is a code-and-data merge, not a re-platform. The effort is in three places: schema namespacing, reconciling identity, and re-homing the telemetry pipeline.</p>
+</section>
+
+<section>
+  <h2>03 &middot; The word "project" means two things</h2>
+  <h3>Split it before anything else</h3>
+  <p>This naming clash is the trap. Keep the two meanings apart:</p>
+  <ul>
+    <li>The tracker's <code>projects</code> table is really <strong>one GitHub repo</strong> (it enforces one repo per row).</li>
+    <li>What we call a <strong>Project</strong> is a delivery engagement, and we already have a name for it: an <strong>AI Program</strong>.</li>
+  </ul>
+  <div class="callout mint">
+    <p>An <strong>AI Program</strong> is the unit. Australian Payroll Association runs two: <strong>Fair Pay</strong> and <strong>PayrollIQ</strong>. They are completely separate, each with its own repo, its own board, its own roadmap. So one client can hold several AI Programs.</p>
+  </div>
+</section>
+
+<section>
+  <h2>04 &middot; The model</h2>
+  <h3>Client, then AI Program, then one clean spine</h3>
+  <p>A client is flagged as an AI Program client. Each of their AI Programs owns exactly one repo, one workboard, and one roadmap, and everything the tracker measures hangs off that repo.</p>
+
+  <div class="spine">
+    <div class="co">COMPANY &middot; Australian Payroll Association <small>flagged is_ai_program &rarr; tracker on, needs &ge;1 repo</small></div>
+
+    <div class="prog">
+      <div class="pname">AI PROGRAM &middot; Fair Pay</div>
+      <div class="parts">
+        <span class="chip"><b>1</b> repo</span>
+        <span class="chip"><b>1</b> workboard</span>
+        <span class="chip"><b>1</b> roadmap</span>
+        <span class="chip">tracking: <b>tokens + hours + PRs</b></span>
+        <span class="chip">Group D: <b>goals, ROI, summaries</b></span>
+      </div>
+    </div>
+
+    <div class="prog">
+      <div class="pname">AI PROGRAM &middot; PayrollIQ</div>
+      <div class="parts">
+        <span class="chip"><b>1</b> repo</span>
+        <span class="chip"><b>1</b> workboard</span>
+        <span class="chip"><b>1</b> roadmap</span>
+        <span class="chip">tracking: <b>tokens + hours + PRs</b></span>
+        <span class="chip">Group D: <b>goals, ROI, summaries</b></span>
+      </div>
+    </div>
+  </div>
+
+  <p>The spine is <strong>1 repo = 1 AI Program = 1 board = 1 roadmap</strong>. That is the decision that makes everything else fall into place, because in the tracker's schema every measurement table and every Group D table already points at the repo. Anchor the repo to the AI Program and the goals, ROI, and summaries come along for free and roll up the same way the tokens do.</p>
+
+  <h4>What "the AI Program layer" is, concretely</h4>
+  <p>Edge8 already has an <code>ai_programs</code> table (many per company). It becomes the Project layer. The roadmap (<code>client_roadmap_overview</code> + <code>client_backlog_items</code>) and the workboard (<code>boards</code>) move from being keyed to the <em>company</em> to being keyed to the <em>AI Program</em>. The tracker's repo, ROI config, and measurements attach to the same AI Program.</p>
+
+  <div class="callout pink">
+    <p><strong>Scope:</strong> the tracker is about code. A repo is code development. Retreats and consulting are separate work and are out of scope here; design work is legacy and ignored. Human-token tracking follows the code.</p>
+  </div>
+</section>
+
+<section>
+  <h2>05 &middot; What the client sees</h2>
+  <h3>Three numbers per AI Program, fully transparent</h3>
+  <p>Human tokens are the same unit on both sides: one token is one hour of skilled human work. Purchased tokens are credits; delivered hours are debits. Netted together, a client sees:</p>
+  <div class="nums">
+    <div class="num-card bought"><span class="k">Bought</span><p>Credits they paid for, from Stripe <em>and</em> invoice. Both sources kept.</p></div>
+    <div class="num-card planned"><span class="k">Planned</span><p>Our estimate: the roadmap range, refined into workboard card estimates.</p></div>
+    <div class="num-card delivered"><span class="k">Delivered</span><p>Actual measured hours, plus the AI leverage ratio, from telemetry.</p></div>
+  </div>
+  <p>Clients see planned against delivered, in full. When we are efficient it shows; when a job overran it shows too. Transparency is the point. Group D (goals, ROI, leverage, summaries) appears as a rolled-up engagement view with an optional per-repo drill-down.</p>
+</section>
+
+<section>
+  <h2>06 &middot; The tracker's tables, sorted</h2>
+  <h3>Drop what Edge8 already owns, keep the engine</h3>
+  <p>Twenty-three tracker tables, sorted by what happens to each when Edge8 becomes the source of truth for clients, people, and programs.</p>
+  <table>
+    <tr><th>Disposition</th><th>Tables</th><th>Becomes</th></tr>
+    <tr>
+      <td><span class="tag drop">DROP</span></td>
+      <td><code>clients</code>, <code>team_members</code>, <code>invitations</code>, <code>notifications</code>, <code>subscriptions</code>, <code>chat_sessions</code>, <code>chat_messages</code></td>
+      <td>Edge8 already has companies, people, portal roles, invites</td>
+    </tr>
+    <tr>
+      <td><span class="tag repoint">RE-POINT</span></td>
+      <td><code>projects</code> (the repo), <code>pull_requests</code>, <code>token_entries</code>, <code>man_hour_entries</code>, <code>work_sessions</code>, <code>client_identities</code>, <code>contributor_aliases</code>, <code>pr_attribution_overrides</code>, <code>sync_runs</code></td>
+      <td>FKs move to Edge8: company, person, AI Program</td>
+    </tr>
+    <tr>
+      <td><span class="tag keep">KEEP (Group D)</span></td>
+      <td><code>roi_actuals</code>, <code>scenarios</code>, <code>project_goals</code>, <code>goal_events</code>, <code>project_summaries</code>, <code>survey_invitations</code></td>
+      <td>Client-critical, kept in full, per repo, rolled up to the AI Program</td>
+    </tr>
+    <tr>
+      <td><span class="tag keep">CREDITS</span></td>
+      <td><code>token_allocations</code> (invoice/manual) + Edge8 <code>token_purchases</code> (Stripe)</td>
+      <td>One balance, two sources of credit</td>
+    </tr>
+  </table>
+  <p>Everything moves into a dedicated <code>htt</code> schema inside Edge8's Supabase project, not <code>public</code>. That sidesteps every table-name collision (the tracker has generic names like <code>clients</code>, <code>projects</code>, <code>notifications</code> that would clash).</p>
+</section>
+
+<section>
+  <h2>07 &middot; How we get there</h2>
+  <h3>Phased, client-visible win first</h3>
+  <div class="phase"><div class="pn">Phase 0</div><h4>Schema</h4><p>Add <code>is_ai_program</code> to companies. Extend <code>ai_programs</code> into the Project layer. Create the <code>htt</code> repo, tracking, and Group D tables with FKs to companies, people, and AI Program.</p></div>
+  <div class="phase"><div class="pn">Phase 1</div><h4>Re-key roadmap and board to the AI Program</h4><p>Give every existing client a default AI Program and move their roadmap and board onto it. This touches live portal features, so it needs care and QA.</p></div>
+  <div class="phase"><div class="pn">Phase 2</div><h4>Bring the tracker data in</h4><p>Copy the tracker rows into <code>htt</code>, re-pointing client to company, contributor to person, repo to AI Program.</p></div>
+  <div class="phase"><div class="pn">Phase 3</div><h4>Surface it in the portal</h4><p>The portal shows Bought / Planned / Delivered plus the leverage ratio per AI Program, rolled up with per-repo drill-down. Reads go through the existing portal auth and company scope. This is the visible client win.</p></div>
+  <div class="phase"><div class="pn">Phase 4</div><h4>Re-home ingestion, retire the second login</h4><p>Redeploy the telemetry edge functions to Edge8's Supabase, re-create the CI secrets, repoint the hardcoded URLs, migrate the tracker's users into Edge8 auth, and delete the standalone login. The riskier cutover, done last.</p></div>
+  <p>Phases 0 to 3 give clients the visible result. Phase 4 is the auth and pipeline cutover and comes last so the blast radius stays small.</p>
+</section>
+
+<section>
+  <h2>08 &middot; Still to work out</h2>
+  <h3>Technical reconciliation, not open decisions</h3>
+  <ul>
+    <li><strong>Identity for attribution.</strong> The tracker attributes work by GitHub login and git email, which Edge8's people records do not store yet. We add a GitHub identity to people, and map contributor aliases (git email to person). Rates come from the existing compensation table.</li>
+    <li><strong>Credits unification.</strong> One balance view over Stripe purchases and invoice/manual allocations: dedupe, currency, and whether the balance sits at the company or the AI Program.</li>
+    <li><strong>Non-code work.</strong> Retreats and consulting are not repos and are not measured here. The client view should be explicit that tracked delivery is code, so the numbers are not mistaken for total effort.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>09 &middot; Risks</h2>
+  <ul>
+    <li>Table-name collisions, mitigated by the dedicated <code>htt</code> schema.</li>
+    <li>Two auth and RLS philosophies, plus migrating users across Supabase projects (Phase 4).</li>
+    <li>Re-keying live roadmap and board features from company to AI Program (Phase 1).</li>
+    <li>Folding a telemetry pipeline into the production Edge8 deploy widens the blast radius.</li>
+  </ul>
+  <div class="callout">
+    <p><strong>Strategic note:</strong> full absorption means the Human Token Tracker can no longer run as a standalone product with its own customers. If that path still matters, we stop at shared login instead of a full merge. The plan above assumes it becomes a feature of Edge8.</p>
+  </div>
+</section>
+
+<footer>
+  <p><span class="b">Edge8 AI</span> &middot; Human Tokens in the Client Portal &middot; Internal planning document, 23 August 2026. Branch <span class="b">human-token-integration</span>.</p>
+</footer>
+
+</div>
+</body>
+</html>
