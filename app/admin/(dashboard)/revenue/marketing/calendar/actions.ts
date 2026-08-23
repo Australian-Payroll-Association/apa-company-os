@@ -5,6 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { getCampaignStats } from "@/lib/admin/campaigns";
+import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
 import {
   listEntries,
   type CalendarChannel,
@@ -318,6 +319,136 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
     operation: "bulk_update",
     actor: admin.email,
     context: { repurposed_into: children.map((c) => c.channel) },
+  });
+  refresh();
+
+  const { rows, error: listError } = await listEntries();
+  if (listError) return { ok: false, error: listError };
+  return { ok: true, entries: rows };
+}
+
+// AI draft: reads the brand's writing profile and drafts the deliverables its
+// content rules call for, from this entry's source (its linked URL, or its
+// title as a brief). Each output lands on a calendar entry (this one for its
+// own channel, a linked child for the others), and any email output gets a
+// linked draft campaign. Returns the refreshed list. Never sends anything.
+export async function draftWithAI(id: string): Promise<RepurposeResult> {
+  const admin = await requireAdmin();
+
+  const { data: entryData, error: entryError } = await companyOs
+    .from("marketing_calendar")
+    .select("id, title, brand_id, channel, publish_date, asset_url, posted_url, campaign_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (entryError) return { ok: false, error: entryError.message };
+  if (!entryData) return { ok: false, error: "Entry not found." };
+
+  const entry = entryData as {
+    id: string;
+    title: string;
+    brand_id: string | null;
+    channel: string;
+    publish_date: string | null;
+    asset_url: string | null;
+    posted_url: string | null;
+    campaign_id: string | null;
+  };
+  if (!entry.brand_id) return { ok: false, error: "Set a brand on this entry first, so the writer knows the voice." };
+
+  const sourceUrl = entry.posted_url || entry.asset_url || null;
+  const sourceText = sourceUrl ? await fetchSourceText(sourceUrl) : "";
+
+  const result = await writeForBrand({
+    brandId: entry.brand_id,
+    sourceText,
+    sourceUrl,
+    brief: entry.title,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  // Existing children keyed by channel, so re-running updates in place.
+  const { data: childData } = await companyOs
+    .from("marketing_calendar")
+    .select("id, channel, campaign_id")
+    .eq("parent_id", id);
+  const childByChannel = new Map(
+    ((childData ?? []) as { id: string; channel: string; campaign_id: string | null }[]).map((c) => [c.channel, c]),
+  );
+
+  const baseDate = entry.publish_date ?? new Date().toISOString().slice(0, 10);
+
+  for (const out of result.outputs) {
+    // Where this channel's copy lands.
+    let targetId: string;
+    let targetCampaignId: string | null;
+    if (out.channel === entry.channel) {
+      await companyOs.from("marketing_calendar").update({ copy_md: out.bodyMd }).eq("id", entry.id);
+      targetId = entry.id;
+      targetCampaignId = entry.campaign_id;
+    } else {
+      const existing = childByChannel.get(out.channel);
+      if (existing) {
+        await companyOs.from("marketing_calendar").update({ copy_md: out.bodyMd }).eq("id", existing.id);
+        targetId = existing.id;
+        targetCampaignId = existing.campaign_id;
+      } else {
+        const offset = DERIVATIVES.find((d) => d.channel === out.channel)?.offsetDays ?? 1;
+        const { data: created } = await companyOs
+          .from("marketing_calendar")
+          .insert({
+            title: entry.title,
+            brand_id: entry.brand_id,
+            channel: out.channel,
+            status: "drafted",
+            publish_date: addDays(baseDate, offset),
+            parent_id: entry.id,
+            copy_md: out.bodyMd,
+            created_by: admin.email,
+          })
+          .select("id")
+          .maybeSingle();
+        targetId = (created as { id: string } | null)?.id ?? entry.id;
+        targetCampaignId = null;
+      }
+    }
+
+    // Email deliverables also drive a draft campaign.
+    if (out.channel === "email") {
+      const subject = out.subject?.trim() || entry.title;
+      const preheader = out.preheader?.trim() || null;
+      if (targetCampaignId) {
+        // Only touch a campaign still in draft.
+        await companyOs
+          .from("email_campaigns")
+          .update({ subject, preheader, body_md: out.bodyMd, updated_at: new Date().toISOString() })
+          .eq("id", targetCampaignId)
+          .eq("status", "draft");
+      } else {
+        const { data: camp } = await companyOs
+          .from("email_campaigns")
+          .insert({
+            name: entry.title,
+            subject,
+            preheader,
+            body_md: out.bodyMd,
+            brand_id: entry.brand_id,
+            scheduled_at: entry.publish_date ? `${entry.publish_date}T09:00:00Z` : null,
+            created_by: admin.email,
+          })
+          .select("id")
+          .maybeSingle();
+        const campId = (camp as { id: string } | null)?.id ?? null;
+        if (campId) await companyOs.from("marketing_calendar").update({ campaign_id: campId }).eq("id", targetId);
+      }
+    }
+  }
+
+  await recordAudit({
+    table: "marketing_calendar",
+    recordId: id,
+    operation: "bulk_update",
+    actor: admin.email,
+    context: { ai_drafted: result.outputs.map((o) => o.channel) },
   });
   refresh();
 

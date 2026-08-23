@@ -16,6 +16,7 @@ import {
   deleteEntry,
   createCampaignFromEntry,
   repurposeEntry,
+  draftWithAI,
   markPosted,
   getEntryPerformance,
   type EntryPerformance,
@@ -125,6 +126,19 @@ export function EntryDrawer({
     });
   }
 
+  function aiDraft() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await draftWithAI(entry.id);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      onRepurposed(r.entries);
+      setNote({ tone: "ok", text: "AI drafted the copy in this brand's voice. Review each entry." });
+    });
+  }
+
   function post() {
     setNote(null);
     startTransition(async () => {
@@ -166,9 +180,20 @@ export function EntryDrawer({
                 : "Spin off dated LinkedIn, Facebook, and email versions of this asset."}
           </div>
         </div>
-        <button type="button" className="admin-btn" disabled={pending} onClick={repurpose}>
-          Repurpose →
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className="admin-btn admin-btn--primary"
+            disabled={pending || !brandId}
+            title={brandId ? "Draft copy in this brand's voice" : "Set a brand first"}
+            onClick={aiDraft}
+          >
+            {pending ? "Drafting…" : "Draft with AI"}
+          </button>
+          <button type="button" className="admin-btn" disabled={pending} onClick={repurpose}>
+            Repurpose →
+          </button>
+        </div>
       </div>
 
       <div className="admin-form">
