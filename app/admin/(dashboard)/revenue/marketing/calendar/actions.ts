@@ -259,7 +259,7 @@ export async function getEntryPerformance(campaignId: string): Promise<EntryPerf
 // stores it, and points image_url at it. Returns the URL for an optimistic patch.
 export async function generateImage(id: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const admin = await requireAdmin();
-  const r = await generateEntryImage(id, admin.email);
+  const r = await generateEntryImage(id, { createdBy: admin.email });
   if (!r.ok) return r;
   await recordAudit({
     table: "marketing_calendar",

@@ -60,7 +60,7 @@ const OUTPUT_SCHEMA = {
   },
 } as const;
 
-function systemPrompt(profile: BrandProfile): string {
+export function systemPrompt(profile: BrandProfile): string {
   const s = (v: string | null) => v ?? "(not set)";
   return `You are the content writer for ${profile.brandName}. Write only in this brand's voice and follow its channel rules and writing process exactly. The brand's own rules, not any default, decide which deliverables you produce and how each channel reads.
 

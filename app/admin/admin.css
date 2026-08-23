@@ -2070,6 +2070,34 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-thumb.is-selected { border: 2px solid var(--admin-accent); }
 .mcr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Regenerate dialog (shared by image + text). */
+.mcr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 18, 22, 0.45);
+}
+.mcr-modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow-lg, 0 16px 48px rgba(0, 0, 0, 0.25));
+}
+.mcr-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--admin-line); }
+.mcr-modal-title { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.mcr-modal-body { padding: 16px; overflow-y: auto; }
+.mcr-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--admin-line); }
+
 /* ─── View toggle (segmented) ─────────────────────── */
 .admin-viewtoggle {
   display: inline-flex;

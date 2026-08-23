@@ -5,8 +5,9 @@ import { imageStyleLabel } from "@/lib/marketing/style-catalogues";
 
 // Generates one image for a calendar entry from its image brief + chosen image
 // style + the brand's image guidance, using Google's Gemini image model, and
-// stores it in the public `marketing` bucket. Same contract as the writer: never
-// throws, no-ops without a key. Model is env-overridable because these names move.
+// stores it as a kept version in the public `marketing` bucket. Same contract as
+// the writer: never throws, no-ops without a key. Model is env-overridable
+// because these names move.
 
 const MODEL = process.env.IMAGE_MODEL || "gemini-2.5-flash-image";
 
@@ -31,30 +32,65 @@ ${brief || "(none provided; work from the title and style)"}
 Produce one high-quality image, no borders. Use only the brand's palette and typeface. Set any headline in normal sentence case. Do not add logos, watermarks, or stock-photo captions.`;
 }
 
-export async function generateEntryImage(entryId: string, createdBy?: string | null): Promise<Result> {
+type ImageInputs = { title: string; brief: string | null; styleLabel: string | null; brandGuidance: string | null };
+
+async function loadImageInputs(entryId: string): Promise<{ ok: true; inputs: ImageInputs } | { ok: false; error: string }> {
+  const { data, error } = await companyOs
+    .from("marketing_calendar")
+    .select("id, title, brand_id, image_brief_md, image_style")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Entry not found." };
+
+  const entry = data as {
+    id: string;
+    title: string;
+    brand_id: string | null;
+    image_brief_md: string | null;
+    image_style: string | null;
+  };
+  const profile = entry.brand_id ? await getBrandProfile(entry.brand_id) : null;
+  return {
+    ok: true,
+    inputs: {
+      title: entry.title,
+      brief: entry.image_brief_md,
+      styleLabel: imageStyleLabel(entry.image_style),
+      brandGuidance: profile?.imageStyleMd ?? null,
+    },
+  };
+}
+
+// The assembled prompt for an entry's image, so the UI can show and edit it
+// before generating. The exact string returned is what generateEntryImage sends
+// when passed back as opts.prompt.
+export async function buildEntryImagePrompt(
+  entryId: string,
+): Promise<{ ok: true; prompt: string } | { ok: false; error: string }> {
+  const r = await loadImageInputs(entryId);
+  if (!r.ok) return r;
+  const { title, brief, styleLabel, brandGuidance } = r.inputs;
+  return { ok: true, prompt: buildPrompt(title, brief, styleLabel, brandGuidance) };
+}
+
+export async function generateEntryImage(
+  entryId: string,
+  opts?: { createdBy?: string | null; prompt?: string },
+): Promise<Result> {
   try {
     const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!key) return { ok: false, error: "GEMINI_API_KEY is not configured." };
 
-    const { data, error } = await companyOs
-      .from("marketing_calendar")
-      .select("id, title, brand_id, image_brief_md, image_style")
-      .eq("id", entryId)
-      .maybeSingle();
-    if (error) return { ok: false, error: error.message };
-    if (!data) return { ok: false, error: "Entry not found." };
-
-    const entry = data as {
-      id: string;
-      title: string;
-      brand_id: string | null;
-      image_brief_md: string | null;
-      image_style: string | null;
-    };
-
-    const profile = entry.brand_id ? await getBrandProfile(entry.brand_id) : null;
-    const styleLabel = imageStyleLabel(entry.image_style);
-    const prompt = buildPrompt(entry.title, entry.image_brief_md, styleLabel, profile?.imageStyleMd ?? null);
+    // Use the caller's edited prompt verbatim when provided; otherwise assemble
+    // it from the entry.
+    let prompt = opts?.prompt?.trim() || "";
+    if (!prompt) {
+      const r = await loadImageInputs(entryId);
+      if (!r.ok) return { ok: false, error: r.error };
+      const { title, brief, styleLabel, brandGuidance } = r.inputs;
+      prompt = buildPrompt(title, brief, styleLabel, brandGuidance);
+    }
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
@@ -98,7 +134,7 @@ export async function generateEntryImage(entryId: string, createdBy?: string | n
       url: pub.publicUrl,
       promptUsed: prompt,
       model: MODEL,
-      createdBy: createdBy ?? null,
+      createdBy: opts?.createdBy ?? null,
     });
     if (!rec.ok) return { ok: false, error: rec.error };
 

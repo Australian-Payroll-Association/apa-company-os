@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { STATUS_LABEL, type CalendarEntryRow } from "@/lib/admin/marketing-calendar";
 import type { AssetImage } from "@/lib/admin/marketing-images";
-import { regenerateAssetImage, saveAssetCopy, selectAssetImage } from "./actions";
+import {
+  getCopyPrompt,
+  getImagePrompt,
+  regenerateAssetCopy,
+  regenerateAssetImage,
+  saveAssetCopy,
+  selectAssetImage,
+} from "./actions";
+import { RegenerateModal } from "./RegenerateModal";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
 
@@ -29,6 +37,8 @@ export function ContentDetail({
   const [images, setImages] = useState<AssetImage[]>(initialImages);
   const selected = images.find((i) => i.isSelected) ?? images[0] ?? null;
 
+  const [modal, setModal] = useState<"image" | "text" | null>(null);
+
   function saveCopy() {
     setNote(null);
     startTransition(async () => {
@@ -37,19 +47,6 @@ export function ContentDetail({
         setHtml(r.html);
         setEditing(false);
         setNote({ tone: "ok", text: "Copy saved." });
-      } else {
-        setNote({ tone: "err", text: r.error });
-      }
-    });
-  }
-
-  function regenImage() {
-    setNote(null);
-    startTransition(async () => {
-      const r = await regenerateAssetImage(campaignId, entry.id);
-      if (r.ok) {
-        setImages(r.images);
-        setNote({ tone: "ok", text: "New image version added." });
       } else {
         setNote({ tone: "err", text: r.error });
       }
@@ -86,14 +83,24 @@ export function ContentDetail({
         <section className="admin-card mcr-panel">
           <div className="mcr-panel-head">
             <span className="mcr-panel-title">Formatted text</span>
-            <button
-              type="button"
-              className="admin-btn admin-btn--sm"
-              onClick={() => setEditing((v) => !v)}
-              disabled={pending}
-            >
-              {editing ? "Preview" : "Edit markdown"}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm"
+                onClick={() => setEditing((v) => !v)}
+                disabled={pending}
+              >
+                {editing ? "Preview" : "Edit markdown"}
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm admin-btn--primary"
+                onClick={() => setModal("text")}
+                disabled={pending}
+              >
+                Regenerate text
+              </button>
+            </div>
           </div>
           {editing ? (
             <div className="admin-form" style={{ padding: 16 }}>
@@ -125,8 +132,8 @@ export function ContentDetail({
             <span className="mcr-panel-title">
               Images{images.length > 0 ? ` · ${images.length}` : ""}
             </span>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={regenImage} disabled={pending}>
-              {pending ? "Working…" : images.length > 0 ? "Regenerate image" : "Generate image"}
+            <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" onClick={() => setModal("image")} disabled={pending}>
+              {images.length > 0 ? "Regenerate image" : "Generate image"}
             </button>
           </div>
 
@@ -165,6 +172,46 @@ export function ContentDetail({
           )}
         </section>
       </div>
+
+      {modal === "image" && (
+        <RegenerateModal
+          title="Regenerate image"
+          footnote="Result is added as a new version. Nothing is overwritten."
+          builtFrom="Title, chosen image style, the brand's image guidance, and the image brief. Edit the prompt directly, or change those on the entry first."
+          loadPrompt={() => getImagePrompt(entry.id)}
+          onSubmit={async (prompt) => {
+            const r = await regenerateAssetImage(campaignId, entry.id, prompt);
+            if (r.ok) {
+              setImages(r.images);
+              setNote({ tone: "ok", text: "New image version added." });
+              return { ok: true };
+            }
+            return { ok: false, error: r.error };
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal === "text" && (
+        <RegenerateModal
+          title="Regenerate text"
+          footnote="This replaces the current copy. Your last saved version stays until you save the new one."
+          builtFrom="The brand voice profile (fixed), plus this asset's title, current draft, chosen style, and notes. Edit the instruction directly, or change those on the entry first."
+          loadPrompt={() => getCopyPrompt(entry.id)}
+          onSubmit={async (prompt) => {
+            const r = await regenerateAssetCopy(campaignId, entry.id, prompt);
+            if (r.ok) {
+              setHtml(r.html);
+              setCopyMd(r.bodyMd);
+              setEditing(false);
+              setNote({ tone: "ok", text: "Copy regenerated." });
+              return { ok: true };
+            }
+            return { ok: false, error: r.error };
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
