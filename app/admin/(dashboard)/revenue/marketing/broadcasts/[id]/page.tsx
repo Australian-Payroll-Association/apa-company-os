@@ -8,14 +8,14 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { getCampaign, getCampaignStats, listRecipients, type CampaignStatus } from "@/lib/admin/campaigns";
 import { listBrands } from "@/lib/admin/marketing-calendar";
 import { listBrandProfiles } from "@/lib/admin/brand-profiles";
-import { CampaignEditor } from "./CampaignEditor";
+import { BroadcastEditor } from "./BroadcastEditor";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "Campaign",
-  description: "Compose, approve, and send a marketing campaign.",
+  title: "Broadcast",
+  description: "Compose, approve, and send a marketing broadcast.",
 };
 
 const STATUS_TONE: Record<CampaignStatus, "ok" | "warn" | "err" | "info"> = {
@@ -33,7 +33,7 @@ const RECIPIENT_TONE: Record<string, "ok" | "warn" | "err" | "info"> = {
   failed: "err",
 };
 
-export default async function CampaignDetailPage({ params }: { params: { id: string } }) {
+export default async function BroadcastDetailPage({ params }: { params: { id: string } }) {
   await requireAdmin();
   const campaign = await getCampaign(params.id);
   if (!campaign) notFound();
@@ -52,7 +52,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
       <PageHead
         eyebrow={
           <>
-            <Link href="/admin/revenue/marketing/campaigns">Campaigns</Link> · {campaign.subject}
+            <Link href="/admin/revenue/marketing/broadcasts">Broadcasts</Link> · {campaign.subject}
           </>
         }
         title={campaign.name}
@@ -88,7 +88,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
         </section>
       )}
 
-      <CampaignEditor campaign={campaign} pendingCount={stats.pending} brands={brands} profiles={profiles} />
+      <BroadcastEditor campaign={campaign} pendingCount={stats.pending} brands={brands} profiles={profiles} />
 
       <section className="admin-card admin-section-card">
         <div className="admin-card-title">Recipients</div>

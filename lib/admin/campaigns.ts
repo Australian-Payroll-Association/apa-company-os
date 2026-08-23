@@ -104,8 +104,27 @@ export async function getCampaign(id: string): Promise<CampaignRow | null> {
 export type AudienceMember = { personId: string; email: string; name: string | null };
 
 // Personas that never receive marketing email regardless of consent state.
-// Enforced here rather than by remembering to filter at each call site.
-const BLOCKED_PERSONAS = new Set(["job_seeker", "employee"]);
+// Enforced here rather than by remembering to filter at each call site. Exported
+// so the marketing hub's audience breakdown counts against the exact same list
+// the sender uses, and the two cannot drift apart.
+export const BLOCKED_PERSONAS = new Set(["job_seeker", "employee"]);
+
+// The consent/suppression gate every marketing recipient must pass. This is the
+// single source of truth: the sender (passesSuppression, below) and the hub's
+// audience breakdown (lib/admin/marketing.ts) both call it, so the number shown
+// and the number reached are computed identically.
+export function isMarketingEligible(row: {
+  marketing_consent: string;
+  do_not_contact: boolean;
+  is_team_member: boolean;
+  persona: string | null;
+}): boolean {
+  if (row.marketing_consent !== "subscribed") return false;
+  if (row.do_not_contact) return false;
+  if (row.is_team_member) return false;
+  if (row.persona && BLOCKED_PERSONAS.has(row.persona)) return false;
+  return true;
+}
 
 type CandidateRow = {
   id: string;
@@ -120,13 +139,10 @@ type CandidateRow = {
 
 // The four gates every recipient passes, in order of how badly it would go if
 // we got them wrong: consent, the CRM-wide contact ban, internal staff, and the
-// personas that were never a marketing audience in the first place.
+// personas that were never a marketing audience in the first place. Delegates to
+// isMarketingEligible so the hub and the sender share one definition.
 function passesSuppression(row: CandidateRow): boolean {
-  if (row.marketing_consent !== "subscribed") return false;
-  if (row.do_not_contact) return false;
-  if (row.is_team_member) return false;
-  if (row.persona && BLOCKED_PERSONAS.has(row.persona)) return false;
-  return true;
+  return isMarketingEligible(row);
 }
 
 // Paged explicitly. PostgREST caps an unbounded select at its row limit and

@@ -35,6 +35,41 @@ function addDays(isoDate: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// The single place a calendar entry mints a draft broadcast (email_campaigns row)
+// and links it back via broadcast_id. Shared by createCampaignFromEntry (the
+// "Create broadcast" button) and the email branch of draftWithAI, so the row
+// shape and the link step cannot drift apart. Returns the new broadcast id, or
+// null if the insert produced no row.
+async function createDraftBroadcastForEntry(input: {
+  entryId: string;
+  name: string;
+  subject: string;
+  preheader?: string | null;
+  bodyMd?: string | null;
+  brandId: string | null;
+  publishDate: string | null;
+  createdBy: string;
+}): Promise<string | null> {
+  const row: Record<string, unknown> = {
+    name: input.name,
+    subject: input.subject,
+    brand_id: input.brandId,
+    // A date-only publish target becomes 09:00 UTC as a sane default; the
+    // operator refines it in the broadcast editor.
+    scheduled_at: input.publishDate ? `${input.publishDate}T09:00:00Z` : null,
+    created_by: input.createdBy,
+  };
+  if (input.preheader !== undefined) row.preheader = input.preheader;
+  if (input.bodyMd !== undefined) row.body_md = input.bodyMd;
+
+  const { data } = await companyOs.from("email_campaigns").insert(row).select("id").maybeSingle();
+  const id = (data as { id: string } | null)?.id ?? null;
+  if (id) {
+    await companyOs.from("marketing_calendar").update({ broadcast_id: id }).eq("id", input.entryId);
+  }
+  return id;
+}
+
 const CHANNELS = new Set<CalendarChannel>(["blog", "email", "linkedin", "facebook"]);
 const STATUSES = new Set<CalendarStatus>([
   "idea",
@@ -454,33 +489,28 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
       }
     }
 
-    // Email deliverables also drive a draft campaign.
+    // Email deliverables also drive a draft broadcast.
     if (out.channel === "email") {
       const subject = out.subject?.trim() || entry.title;
       const preheader = out.preheader?.trim() || null;
       if (targetCampaignId) {
-        // Only touch a campaign still in draft.
+        // Only touch a broadcast still in draft.
         await companyOs
           .from("email_campaigns")
           .update({ subject, preheader, body_md: out.bodyMd, updated_at: new Date().toISOString() })
           .eq("id", targetCampaignId)
           .eq("status", "draft");
       } else {
-        const { data: camp } = await companyOs
-          .from("email_campaigns")
-          .insert({
-            name: entry.title,
-            subject,
-            preheader,
-            body_md: out.bodyMd,
-            brand_id: entry.brand_id,
-            scheduled_at: entry.publish_date ? `${entry.publish_date}T09:00:00Z` : null,
-            created_by: admin.email,
-          })
-          .select("id")
-          .maybeSingle();
-        const campId = (camp as { id: string } | null)?.id ?? null;
-        if (campId) await companyOs.from("marketing_calendar").update({ broadcast_id: campId }).eq("id", targetId);
+        await createDraftBroadcastForEntry({
+          entryId: targetId,
+          name: entry.title,
+          subject,
+          preheader,
+          bodyMd: out.bodyMd,
+          brandId: entry.brand_id,
+          publishDate: entry.publish_date,
+          createdBy: admin.email,
+        });
       }
     }
   }
@@ -525,35 +555,21 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
   };
 
   if (entry.channel !== "email") {
-    return { ok: false, error: "Only email entries can spawn a campaign." };
+    return { ok: false, error: "Only email entries can spawn a broadcast." };
   }
   if (entry.broadcast_id) {
-    return { ok: false, error: "This entry already has a campaign." };
+    return { ok: false, error: "This entry already has a broadcast." };
   }
 
-  const { data: campaignData, error: campaignError } = await companyOs
-    .from("email_campaigns")
-    .insert({
-      name: entry.title,
-      subject: entry.title,
-      brand_id: entry.brand_id,
-      // A date-only publish target becomes 09:00 local-ish (UTC midnight is
-      // fine as a default; the operator refines it in the campaign editor).
-      scheduled_at: entry.publish_date ? `${entry.publish_date}T09:00:00Z` : null,
-      created_by: admin.email,
-    })
-    .select("id")
-    .maybeSingle();
-
-  if (campaignError) return { ok: false, error: campaignError.message };
-  if (!campaignData) return { ok: false, error: "Campaign was not created." };
-  const campaignId = (campaignData as { id: string }).id;
-
-  const { error: linkError } = await companyOs
-    .from("marketing_calendar")
-    .update({ broadcast_id: campaignId })
-    .eq("id", id);
-  if (linkError) return { ok: false, error: linkError.message };
+  const campaignId = await createDraftBroadcastForEntry({
+    entryId: id,
+    name: entry.title,
+    subject: entry.title,
+    brandId: entry.brand_id,
+    publishDate: entry.publish_date,
+    createdBy: admin.email,
+  });
+  if (!campaignId) return { ok: false, error: "Broadcast was not created." };
 
   await recordAudit({
     table: "email_campaigns",

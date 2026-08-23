@@ -12,16 +12,16 @@ type CreateResult = { ok: true; id: string } | { ok: false; error: string };
 
 function refresh(id?: string) {
   revalidatePath("/admin/revenue/marketing");
-  revalidatePath("/admin/revenue/marketing/campaigns");
-  if (id) revalidatePath(`/admin/revenue/marketing/campaigns/${id}`);
+  revalidatePath("/admin/revenue/marketing/broadcasts");
+  if (id) revalidatePath(`/admin/revenue/marketing/broadcasts/${id}`);
 }
 
 export async function createCampaign(input: { name: string; subject: string }): Promise<CreateResult> {
   const admin = await requireAdmin();
   const name = input.name.trim();
   const subject = input.subject.trim();
-  if (!name) return { ok: false, error: "Give the campaign a name." };
-  if (!subject) return { ok: false, error: "Give the campaign a subject line." };
+  if (!name) return { ok: false, error: "Give the broadcast a name." };
+  if (!subject) return { ok: false, error: "Give the broadcast a subject line." };
 
   const { data, error } = await companyOs
     .from("email_campaigns")
@@ -30,7 +30,7 @@ export async function createCampaign(input: { name: string; subject: string }): 
     .maybeSingle();
 
   if (error) return { ok: false, error: error.message };
-  if (!data) return { ok: false, error: "Campaign was not created." };
+  if (!data) return { ok: false, error: "Broadcast was not created." };
 
   const id = (data as { id: string }).id;
   await recordAudit({
@@ -60,12 +60,12 @@ export async function updateCampaign(
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
 
   // Editing an approved or sent campaign would change what recipients receive
   // partway through a send, so the body is frozen once it leaves draft.
   if (campaign.status !== "draft") {
-    return { ok: false, error: `A ${campaign.status} campaign cannot be edited. Cancel it first.` };
+    return { ok: false, error: `A ${campaign.status} broadcast cannot be edited. Cancel it first.` };
   }
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -109,9 +109,9 @@ export async function updateCampaign(
 export async function buildRecipients(id: string): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
-    return { ok: false, error: "Recipients can only be built while the campaign is a draft." };
+    return { ok: false, error: "Recipients can only be built while the broadcast is a draft." };
   }
 
   const { members, error } = await resolveAudience(campaign.segment, campaign.brandId);
@@ -120,7 +120,7 @@ export async function buildRecipients(id: string): Promise<{ ok: true; added: nu
     return {
       ok: false,
       error: campaign.brandId
-        ? "That segment matches nobody. A branded campaign only reaches that brand's audience — add contacts to the brand first."
+        ? "That segment matches nobody. A branded broadcast only reaches that brand's audience — add contacts to the brand first."
         : "That segment matches nobody.",
     };
   }
@@ -175,9 +175,9 @@ export async function buildRecipients(id: string): Promise<{ ok: true; added: nu
 export async function clearRecipients(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
-    return { ok: false, error: "Recipients can only be cleared while the campaign is a draft." };
+    return { ok: false, error: "Recipients can only be cleared while the broadcast is a draft." };
   }
 
   const { error } = await companyOs.from("email_campaign_recipients").delete().eq("campaign_id", id);
@@ -198,7 +198,7 @@ export async function clearRecipients(id: string): Promise<ActionResult> {
 export async function sendTest(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
 
   const { data: person } = await companyOs
     .from("people")
@@ -229,9 +229,9 @@ export async function sendTest(id: string): Promise<ActionResult> {
 export async function approveCampaign(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
-    return { ok: false, error: `Campaign is already ${campaign.status}.` };
+    return { ok: false, error: `Broadcast is already ${campaign.status}.` };
   }
   if (!campaign.bodyMd.trim()) {
     return { ok: false, error: "Write the email body before approving." };
@@ -270,9 +270,9 @@ export async function approveCampaign(id: string): Promise<ActionResult> {
 export async function cancelCampaign(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status === "sent") {
-    return { ok: false, error: "A sent campaign cannot be cancelled." };
+    return { ok: false, error: "A sent broadcast cannot be cancelled." };
   }
 
   const now = new Date().toISOString();
@@ -298,9 +298,9 @@ export async function cancelCampaign(id: string): Promise<ActionResult> {
 export async function startSending(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const campaign = await getCampaign(id);
-  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "approved") {
-    return { ok: false, error: "Only an approved campaign can start sending." };
+    return { ok: false, error: "Only an approved broadcast can start sending." };
   }
 
   const now = new Date().toISOString();

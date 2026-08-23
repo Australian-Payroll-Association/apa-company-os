@@ -1,4 +1,5 @@
 import { companyOs } from "@/lib/supabase";
+import { isMarketingEligible } from "@/lib/admin/campaigns";
 
 // Reads for the Revenue → Marketing hub. Two sources, both already populated:
 // company_os.interactions (every email lib/email.ts has ever accepted) and
@@ -301,11 +302,6 @@ export async function getDeliverability(range: MarketingRange): Promise<Delivera
 
 // -------------------------------------------------------------------- audience
 
-// Personas that never receive marketing email, whatever their consent state.
-// job_seeker gave us their address to be considered for a job; employees are
-// internal. Both are excluded structurally rather than by remembering to filter.
-export const NON_MARKETING_PERSONAS = ["job_seeker", "employee"] as const;
-
 export type AudienceBreakdown = {
   total: number;
   contactable: number;
@@ -338,16 +334,6 @@ const PERSONA_LABELS: Record<string, string> = {
 export function personaLabel(persona: string | null): string {
   if (!persona) return "Unset";
   return PERSONA_LABELS[persona] ?? persona;
-}
-
-// Eligibility is now stored (people.marketing_consent), not derived. This
-// mirrors lib/admin/campaigns.ts passesSuppression() so the number on the hub
-// and the number the sender actually reaches cannot drift apart.
-export function isEligible(row: PersonRow): boolean {
-  if (row.marketing_consent !== "subscribed") return false;
-  if (row.do_not_contact) return false;
-  if (row.is_team_member) return false;
-  return !NON_MARKETING_PERSONAS.includes(row.persona as (typeof NON_MARKETING_PERSONAS)[number]);
 }
 
 export async function getAudienceBreakdown(): Promise<AudienceBreakdown> {
@@ -388,7 +374,7 @@ export async function getAudienceBreakdown(): Promise<AudienceBreakdown> {
     if (row.marketing_consent === "subscribed") subscribed += 1;
     else if (row.marketing_consent === "unsubscribed") unsubscribed += 1;
     else neverAsked += 1;
-    if (isEligible(row)) eligible += 1;
+    if (isMarketingEligible(row)) eligible += 1;
   }
 
   return {

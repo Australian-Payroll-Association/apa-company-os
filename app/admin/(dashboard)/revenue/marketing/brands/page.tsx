@@ -21,7 +21,7 @@ export default async function BrandsPage() {
       <PageHead
         eyebrow="Revenue · Marketing"
         title="Brands"
-        sub="Each brand's voice, channels, and writing process. The campaign editor and the AI writer read from here."
+        sub="Each brand's voice, channels, and writing process. The broadcast editor and the AI writer read from here."
         action={
           <Link className="admin-btn" href="/admin/revenue/marketing">
             Back to Marketing

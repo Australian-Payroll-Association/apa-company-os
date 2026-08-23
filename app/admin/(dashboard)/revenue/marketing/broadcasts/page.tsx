@@ -4,14 +4,14 @@ import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listCampaigns, type CampaignStatus } from "@/lib/admin/campaigns";
-import { NewCampaignForm } from "./NewCampaignForm";
+import { NewBroadcastForm } from "./NewBroadcastForm";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "Campaigns",
-  description: "Newsletter and marketing email campaigns.",
+  title: "Broadcasts",
+  description: "Newsletter and marketing email broadcasts.",
 };
 
 const STATUS_TONE: Record<CampaignStatus, "ok" | "warn" | "err" | "info"> = {
@@ -35,7 +35,7 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default async function CampaignsPage() {
+export default async function BroadcastsPage() {
   await requireAdmin();
   const { rows, error } = await listCampaigns();
 
@@ -43,8 +43,8 @@ export default async function CampaignsPage() {
     <div>
       <PageHead
         eyebrow="Revenue · Marketing"
-        title="Campaigns"
-        sub={`${rows.length} campaign${rows.length === 1 ? "" : "s"}. Nothing sends without an explicit approval.`}
+        title="Broadcasts"
+        sub={`${rows.length} broadcast${rows.length === 1 ? "" : "s"}. Nothing sends without an explicit approval.`}
         action={
           <Link className="admin-btn" href="/admin/revenue/marketing">
             Back to Marketing
@@ -59,13 +59,13 @@ export default async function CampaignsPage() {
       )}
 
       <section className="admin-card admin-section-card">
-        <div className="admin-card-title">New campaign</div>
-        <NewCampaignForm />
+        <div className="admin-card-title">New broadcast</div>
+        <NewBroadcastForm />
       </section>
 
       <div className="admin-table-wrap">
         {rows.length === 0 ? (
-          <div className="admin-empty">No campaigns yet.</div>
+          <div className="admin-empty">No broadcasts yet.</div>
         ) : (
           <div className="admin-table-scroll">
             <table className="admin-table">
@@ -83,7 +83,7 @@ export default async function CampaignsPage() {
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td className="admin-cell-strong">
-                      <Link href={`/admin/revenue/marketing/campaigns/${row.id}`}>{row.name}</Link>
+                      <Link href={`/admin/revenue/marketing/broadcasts/${row.id}`}>{row.name}</Link>
                     </td>
                     <td className="admin-cell-muted">{row.brandName ?? "—"}</td>
                     <td className="admin-cell-muted">{row.subject}</td>

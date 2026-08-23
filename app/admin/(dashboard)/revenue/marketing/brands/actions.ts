@@ -83,7 +83,6 @@ export async function saveBrandProfile(
     context: { fields: Object.keys(patch) },
   });
   revalidatePath("/admin/revenue/marketing/brands");
-  revalidatePath(`/admin/revenue/marketing/brands`);
-  revalidatePath("/admin/revenue/marketing/campaigns");
+  revalidatePath("/admin/revenue/marketing/broadcasts");
   return { ok: true };
 }

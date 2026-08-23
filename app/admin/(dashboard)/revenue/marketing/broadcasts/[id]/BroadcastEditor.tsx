@@ -31,7 +31,7 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function CampaignEditor({
+export function BroadcastEditor({
   campaign,
   pendingCount,
   brands,
@@ -88,8 +88,8 @@ export function CampaignEditor({
         <div className="admin-card-title">Content</div>
         {!isDraft && (
           <div className="admin-hint" style={{ marginTop: 6 }}>
-            The content is frozen because this campaign is {campaign.status}. Editing it mid-send
-            would change what later recipients receive. Cancel the campaign to edit it.
+            The content is frozen because this broadcast is {campaign.status}. Editing it mid-send
+            would change what later recipients receive. Cancel the broadcast to edit it.
           </div>
         )}
         <div className="admin-form" style={{ marginTop: 12 }}>
@@ -241,7 +241,7 @@ export function CampaignEditor({
         </p>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
           {campaign.brandName && campaign.brandName !== "Edge8"
-            ? `This is a ${campaign.brandName} campaign, so it reaches only ${campaign.brandName}'s brand audience.`
+            ? `This is a ${campaign.brandName} broadcast, so it reaches only ${campaign.brandName}'s brand audience.`
             : "With no brand (or the Edge8 brand) set, this reaches the full house list. Pick a guest brand to scope the send to that brand's audience only."}
         </p>
         <div className="admin-form" style={{ marginTop: 12 }}>
@@ -337,8 +337,8 @@ export function CampaignEditor({
             `Approved by ${campaign.approvedBy ?? "an admin"}. Nothing has been sent yet.`}
           {campaign.status === "sending" &&
             `Sending in batches of ${campaign.batchSize} every 15 minutes. ${pendingCount} left.`}
-          {campaign.status === "sent" && "This campaign has finished sending."}
-          {campaign.status === "cancelled" && "This campaign was cancelled."}
+          {campaign.status === "sent" && "This broadcast has finished sending."}
+          {campaign.status === "cancelled" && "This broadcast was cancelled."}
         </p>
 
         <div className="admin-form" style={{ marginTop: 12 }}>
@@ -385,7 +385,7 @@ export function CampaignEditor({
               type="button"
               className="admin-btn admin-btn--primary"
               disabled={pending || pendingCount === 0}
-              onClick={() => run(() => approveCampaign(campaign.id), "Campaign approved.")}
+              onClick={() => run(() => approveCampaign(campaign.id), "Broadcast approved.")}
             >
               Approve
             </button>
@@ -407,9 +407,9 @@ export function CampaignEditor({
               type="button"
               className="admin-btn admin-btn--danger"
               disabled={pending}
-              onClick={() => run(() => cancelCampaign(campaign.id), "Campaign cancelled.")}
+              onClick={() => run(() => cancelCampaign(campaign.id), "Broadcast cancelled.")}
             >
-              Cancel campaign
+              Cancel broadcast
             </button>
           )}
         </div>

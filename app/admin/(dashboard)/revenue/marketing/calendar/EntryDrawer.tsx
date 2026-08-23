@@ -208,7 +208,7 @@ export function EntryDrawer({
         return;
       }
       onLinkedCampaign(entry.id, r.campaignId);
-      router.push(`/admin/revenue/marketing/campaigns/${r.campaignId}`);
+      router.push(`/admin/revenue/marketing/broadcasts/${r.campaignId}`);
     });
   }
 
@@ -403,7 +403,7 @@ export function EntryDrawer({
           <ConfirmButton
             label="Delete"
             title="Delete this entry?"
-            body="This removes the calendar entry. Any linked campaign is left untouched."
+            body="This removes the calendar entry. Any linked broadcast is left untouched."
             confirmLabel="Delete"
             disabled={pending}
             onConfirm={() => deleteEntry(entry.id)}
@@ -447,19 +447,19 @@ export function EntryDrawer({
 
       {entry.channel === "email" && (
         <div className="admin-card" style={{ padding: "12px 14px" }}>
-          <div className="admin-label" style={{ marginBottom: 8 }}>Email campaign</div>
+          <div className="admin-label" style={{ marginBottom: 8 }}>Broadcast</div>
           {entry.campaignId ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               {entry.campaignStatus && (
                 <Badge tone={statusTone(entry.campaignStatus)}>{entry.campaignStatus}</Badge>
               )}
-              <Link className="admin-btn admin-btn--sm" href={`/admin/revenue/marketing/campaigns/${entry.campaignId}`}>
-                Open campaign
+              <Link className="admin-btn admin-btn--sm" href={`/admin/revenue/marketing/broadcasts/${entry.campaignId}`}>
+                Open broadcast
               </Link>
             </div>
           ) : (
             <button type="button" className="admin-btn admin-btn--primary" disabled={pending} onClick={spawnCampaign}>
-              Create campaign
+              Create broadcast
             </button>
           )}
           {perf && perf.sent > 0 && (
@@ -471,7 +471,7 @@ export function EntryDrawer({
             </div>
           )}
           <div className="admin-hint" style={{ marginTop: 8 }}>
-            Spawns a draft campaign in the send engine, prefilled with this entry&apos;s title, brand, and date.
+            Spawns a draft broadcast in the send engine, prefilled with this entry&apos;s title, brand, and date.
           </div>
         </div>
       )}
