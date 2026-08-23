@@ -6,8 +6,8 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { PasswordField } from "@/components/admin/PasswordField";
 import { requestSignInLink, requestPasswordReset } from "./actions";
 
-// Magic-link (passwordless) sign-in for client contacts, with a password
-// fallback plus a self-serve password reset. The link and reset emails are
+// Password sign-in for client contacts is the default, with a magic-link
+// (passwordless) alternative plus a self-serve password reset. The link and reset emails are
 // sent server-side (see ./actions.ts) through the /portal/verify interstitial:
 // corporate mail security (e.g. Microsoft Safe Links) prefetches raw one-time
 // links and consumes the token before the person can click, so the emailed
@@ -17,7 +17,7 @@ import { requestSignInLink, requestPasswordReset } from "./actions";
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [mode, setMode] = useState<"link" | "password">("link");
+  const [mode, setMode] = useState<"link" | "password">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
