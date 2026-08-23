@@ -2021,6 +2021,18 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .mcr-asset-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
+/* Campaign report: two-column split of email vs content. */
+.mcr-report-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .mcr-report-split { grid-template-columns: 1fr; } }
+.mcr-report-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+.mcr-report-row:last-child { border-bottom: none; }
+
 /* ─── View toggle (segmented) ─────────────────────── */
 .admin-viewtoggle {
   display: inline-flex;

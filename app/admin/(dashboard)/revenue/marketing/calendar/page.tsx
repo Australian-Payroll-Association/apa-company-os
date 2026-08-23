@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listEntries, listBrands, listPillars, getPillarPerformance } from "@/lib/admin/marketing-calendar";
+import { listCampaignOptions } from "@/lib/admin/marketing-campaigns";
 import { listBrandProfiles } from "@/lib/admin/brand-profiles";
 import { CalendarClient } from "./CalendarClient";
 
@@ -16,12 +17,13 @@ export const metadata: Metadata = {
 
 export default async function MarketingCalendarPage() {
   await requireAdmin();
-  const [{ rows, error }, brands, pillars, performance, profiles] = await Promise.all([
+  const [{ rows, error }, brands, pillars, performance, profiles, campaigns] = await Promise.all([
     listEntries(),
     listBrands(),
     listPillars(),
     getPillarPerformance(),
     listBrandProfiles(),
+    listCampaignOptions(),
   ]);
   const stylePrefs = profiles.map((p) => ({
     brandId: p.brandId,
@@ -87,7 +89,13 @@ export default async function MarketingCalendarPage() {
         </section>
       )}
 
-      <CalendarClient initialEntries={rows} brands={brands} initialPillars={pillars} stylePrefs={stylePrefs} />
+      <CalendarClient
+        initialEntries={rows}
+        brands={brands}
+        initialPillars={pillars}
+        stylePrefs={stylePrefs}
+        campaigns={campaigns}
+      />
     </div>
   );
 }

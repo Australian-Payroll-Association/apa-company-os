@@ -9,6 +9,7 @@ import {
   type CalendarEntryRow,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
+import type { CampaignOption } from "@/lib/admin/marketing-campaigns";
 import { NewEntryForm } from "./NewEntryForm";
 import { PillarManager } from "./PillarManager";
 import { CalendarBoard } from "./CalendarBoard";
@@ -23,20 +24,27 @@ export function CalendarClient({
   brands,
   initialPillars,
   stylePrefs,
+  campaigns,
 }: {
   initialEntries: CalendarEntryRow[];
   brands: BrandOption[];
   initialPillars: PillarOption[];
   stylePrefs: BrandStylePrefs[];
+  campaigns: CampaignOption[];
 }) {
   const [entries, setEntries] = useState<CalendarEntryRow[]>(initialEntries);
   const [pillars, setPillars] = useState<PillarOption[]>(initialPillars);
   const [pillarFilter, setPillarFilter] = useState<string | null>(null);
+  const [campaignFilter, setCampaignFilter] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ ok: boolean; text: string } | null>(null);
 
   const selected = entries.find((e) => e.id === selectedId) ?? null;
-  const visible = pillarFilter ? entries.filter((e) => e.pillarId === pillarFilter) : entries;
+  const visible = entries.filter(
+    (e) =>
+      (!pillarFilter || e.pillarId === pillarFilter) &&
+      (!campaignFilter || e.campaignId === campaignFilter),
+  );
 
   function move(id: string, status: string) {
     const prev = entries;
@@ -59,8 +67,8 @@ export function CalendarClient({
     setSelectedId(null);
   }
 
-  function linkCampaign(id: string, campaignId: string) {
-    patch(id, { campaignId, campaignStatus: "draft" });
+  function linkCampaign(id: string, broadcastId: string) {
+    patch(id, { broadcastId, broadcastStatus: "draft" });
   }
 
   function add(entry: CalendarEntryRow) {
@@ -117,6 +125,23 @@ export function CalendarClient({
               {p.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {campaigns.length > 0 && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 14px", flexWrap: "wrap" }}>
+          <span className="admin-label">Campaign</span>
+          <select
+            className="admin-input"
+            style={{ maxWidth: 280 }}
+            value={campaignFilter}
+            onChange={(e) => setCampaignFilter(e.target.value)}
+          >
+            <option value="">All campaigns</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
       )}
 

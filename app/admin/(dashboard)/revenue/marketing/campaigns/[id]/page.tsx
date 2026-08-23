@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getCampaign, listCampaignAssets } from "@/lib/admin/marketing-campaigns";
-import { listBrands, listPillars } from "@/lib/admin/marketing-calendar";
+import { getCampaign, getCampaignReport } from "@/lib/admin/marketing-campaigns";
+import { listBrands, listPillars, listEntriesByCampaign } from "@/lib/admin/marketing-calendar";
 import { CampaignHub } from "./CampaignHub";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +20,11 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
   const campaign = await getCampaign(params.id);
   if (!campaign) notFound();
 
-  const [assets, brands, pillars] = await Promise.all([
-    listCampaignAssets(campaign.id),
+  const [entries, brands, pillars, report] = await Promise.all([
+    listEntriesByCampaign(campaign.id),
     listBrands(),
     listPillars(),
+    getCampaignReport(campaign.id),
   ]);
 
   return (
@@ -42,7 +43,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
           </Link>
         }
       />
-      <CampaignHub campaign={campaign} assets={assets} brands={brands} pillars={pillars} />
+      <CampaignHub campaign={campaign} entries={entries} report={report} brands={brands} pillars={pillars} />
     </div>
   );
 }

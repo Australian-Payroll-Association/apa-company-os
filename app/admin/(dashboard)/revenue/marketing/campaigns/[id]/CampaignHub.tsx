@@ -3,22 +3,27 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/admin/Badge";
+import { MetricCard } from "@/components/admin/MetricCard";
 import {
   CHANNELS,
   STATUS_LABEL,
   type BrandOption,
   type CalendarChannel,
+  type CalendarEntryRow,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import {
   CAMPAIGN_STATUSES,
-  type CampaignAsset,
+  type CampaignReport,
   type MarketingCampaignRow,
 } from "@/lib/admin/marketing-campaigns";
+import { CalendarBoard } from "../../calendar/CalendarBoard";
+import { CalendarMonth } from "../../calendar/CalendarMonth";
+import { moveEntry } from "../../calendar/actions";
 import { addAssetToCampaign, updateCampaign } from "../actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
-type Tab = "assets" | "seo";
+type Tab = "assets" | "workboard" | "calendar" | "report" | "seo";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -27,12 +32,14 @@ function fmtDate(iso: string | null): string {
 
 export function CampaignHub({
   campaign,
-  assets: initialAssets,
+  entries: initialEntries,
+  report,
   brands,
   pillars,
 }: {
   campaign: MarketingCampaignRow;
-  assets: CampaignAsset[];
+  entries: CalendarEntryRow[];
+  report: CampaignReport;
   brands: BrandOption[];
   pillars: PillarOption[];
 }) {
@@ -42,8 +49,6 @@ export function CampaignHub({
   const [tab, setTab] = useState<Tab>("assets");
   const [editing, setEditing] = useState(false);
 
-  // Campaign fields (state is the source of truth once edited, so read-only mode
-  // reflects a save without a full reload).
   const [name, setName] = useState(campaign.name);
   const [objective, setObjective] = useState(campaign.objective ?? "");
   const [brandId, setBrandId] = useState(campaign.brandId ?? "");
@@ -53,9 +58,8 @@ export function CampaignHub({
   const [status, setStatus] = useState(campaign.status);
   const [seoGeoMd, setSeoGeoMd] = useState(campaign.seoGeoMd ?? "");
 
-  const [assets, setAssets] = useState<CampaignAsset[]>(initialAssets);
+  const [entries, setEntries] = useState<CalendarEntryRow[]>(initialEntries);
 
-  // New-asset form.
   const [addOpen, setAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newChannel, setNewChannel] = useState<CalendarChannel>("blog");
@@ -100,6 +104,19 @@ export function CampaignHub({
     run(() => updateCampaign(campaign.id, { seoGeoMd: seoGeoMd || null }), "SEO / GEO plan saved.");
   }
 
+  // Optimistic status move for the workboard; revert on failure.
+  function move(id: string, next: string) {
+    const prev = entries;
+    setEntries((es) => es.map((e) => (e.id === id ? { ...e, status: next as CalendarEntryRow["status"] } : e)));
+    setNote(null);
+    moveEntry(id, next).then((r) => {
+      if (!r.ok) {
+        setEntries(prev);
+        setNote({ tone: "err", text: `Couldn't move: ${r.error}` });
+      }
+    });
+  }
+
   function addAsset() {
     const title = newTitle.trim();
     if (!title) {
@@ -114,17 +131,36 @@ export function CampaignHub({
         publishDate: newDate || null,
       });
       if (result.ok) {
-        setAssets((prev) => [
+        setEntries((prev) => [
           ...prev,
           {
             id: result.id,
             title,
+            brandId: campaign.brandId,
+            brandName: campaign.brandName,
+            pillarId: campaign.pillarId,
+            pillarName: campaign.pillarName,
             channel: newChannel,
             status: "idea",
             publishDate: newDate || null,
+            parentId: null,
             broadcastId: null,
             broadcastStatus: null,
+            campaignId: campaign.id,
+            campaignName: campaign.name,
+            copyMd: null,
+            assetUrl: null,
+            postedUrl: null,
+            notes: null,
+            blogStyle: null,
+            socialStyle: null,
+            imageStyle: null,
+            imageType: null,
+            seoMd: null,
+            imageBriefMd: null,
             imageUrl: null,
+            sortOrder: 0,
+            createdAt: new Date().toISOString(),
           },
         ]);
         setNewTitle("");
@@ -255,14 +291,23 @@ export function CampaignHub({
           <button type="button" className={`admin-tab${tab === "assets" ? " is-active" : ""}`} onClick={() => setTab("assets")}>
             Assets by channel
           </button>
+          <button type="button" className={`admin-tab${tab === "workboard" ? " is-active" : ""}`} onClick={() => setTab("workboard")}>
+            Workboard
+          </button>
+          <button type="button" className={`admin-tab${tab === "calendar" ? " is-active" : ""}`} onClick={() => setTab("calendar")}>
+            Calendar
+          </button>
+          <button type="button" className={`admin-tab${tab === "report" ? " is-active" : ""}`} onClick={() => setTab("report")}>
+            Report
+          </button>
           <button type="button" className={`admin-tab${tab === "seo" ? " is-active" : ""}`} onClick={() => setTab("seo")}>
             SEO / GEO plan
           </button>
         </nav>
 
-        {tab === "assets" ? (
+        {tab === "assets" && (
           <AssetsByChannel
-            assets={assets}
+            entries={entries}
             addOpen={addOpen}
             setAddOpen={setAddOpen}
             newTitle={newTitle}
@@ -274,7 +319,36 @@ export function CampaignHub({
             addAsset={addAsset}
             pending={pending}
           />
-        ) : (
+        )}
+
+        {tab === "workboard" && (
+          <div className="admin-card admin-section-card">
+            <div className="admin-card-title">Workboard</div>
+            <p className="admin-page-sub" style={{ marginTop: 4, marginBottom: 12 }}>
+              Where each asset sits in production. Drag a card to move its stage.
+            </p>
+            {entries.length === 0 ? (
+              <div className="admin-empty">No assets yet.</div>
+            ) : (
+              <CalendarBoard entries={entries} onMove={move} onCardClick={() => {}} />
+            )}
+          </div>
+        )}
+
+        {tab === "calendar" && (
+          <div className="admin-card admin-section-card">
+            <div className="admin-card-title">Publish calendar</div>
+            {entries.length === 0 ? (
+              <div className="admin-empty">No assets yet.</div>
+            ) : (
+              <CalendarMonth entries={entries} onSelect={() => {}} />
+            )}
+          </div>
+        )}
+
+        {tab === "report" && <ReportPanel report={report} />}
+
+        {tab === "seo" && (
           <section className="admin-card admin-section-card">
             <div className="admin-card-title">SEO / GEO plan</div>
             <p className="admin-page-sub" style={{ marginTop: 4 }}>
@@ -303,7 +377,7 @@ export function CampaignHub({
 }
 
 function AssetsByChannel({
-  assets,
+  entries,
   addOpen,
   setAddOpen,
   newTitle,
@@ -315,7 +389,7 @@ function AssetsByChannel({
   addAsset,
   pending,
 }: {
-  assets: CampaignAsset[];
+  entries: CalendarEntryRow[];
   addOpen: boolean;
   setAddOpen: (v: boolean) => void;
   newTitle: string;
@@ -327,12 +401,13 @@ function AssetsByChannel({
   addAsset: () => void;
   pending: boolean;
 }) {
+  const channelCount = new Set(entries.map((a) => a.channel)).size;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div className="admin-page-sub">
-          {assets.length} asset{assets.length === 1 ? "" : "s"} across {new Set(assets.map((a) => a.channel)).size} channel
-          {new Set(assets.map((a) => a.channel)).size === 1 ? "" : "s"}.
+          {entries.length} asset{entries.length === 1 ? "" : "s"} across {channelCount} channel
+          {channelCount === 1 ? "" : "s"}.
         </div>
         <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setAddOpen(!addOpen)} disabled={pending}>
           {addOpen ? "Close" : "+ Add asset"}
@@ -342,12 +417,12 @@ function AssetsByChannel({
       {addOpen && (
         <section className="admin-card" style={{ padding: "14px 16px" }}>
           <div className="admin-form">
-            <div className="admin-field" style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <div style={{ flex: 2 }}>
+            <div className="admin-field" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ flex: "2 1 220px" }}>
                 <label className="admin-label" htmlFor="a-title">Title</label>
                 <input id="a-title" className="admin-input" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="What is a centaur team?" />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: "1 1 130px" }}>
                 <label className="admin-label" htmlFor="a-channel">Channel</label>
                 <select id="a-channel" className="admin-input" value={newChannel} onChange={(e) => setNewChannel(e.target.value as CalendarChannel)}>
                   {CHANNELS.map((c) => (
@@ -355,7 +430,7 @@ function AssetsByChannel({
                   ))}
                 </select>
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: "1 1 150px" }}>
                 <label className="admin-label" htmlFor="a-date">Publish date</label>
                 <input id="a-date" className="admin-input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
               </div>
@@ -369,12 +444,12 @@ function AssetsByChannel({
         </section>
       )}
 
-      {assets.length === 0 ? (
+      {entries.length === 0 ? (
         <div className="admin-empty">No assets yet. Add the first piece of content above.</div>
       ) : (
         <div className="mcr-lanes">
           {CHANNELS.map((ch) => {
-            const lane = assets.filter((a) => a.channel === ch.id);
+            const lane = entries.filter((a) => a.channel === ch.id);
             return (
               <div key={ch.id} className="admin-card mcr-lane">
                 <div className="mcr-lane-head">
@@ -403,6 +478,60 @@ function AssetsByChannel({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReportPanel({ report }: { report: CampaignReport }) {
+  const openRate = report.delivered > 0 ? `${Math.round((report.opened / report.delivered) * 100)}%` : "—";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="mp-kpi-grid">
+        <MetricCard label="Assets live" value={String(report.assetsLive)} sub={`of ${report.assetsTotal} planned`} />
+        <MetricCard label="Emails delivered" value={report.delivered.toLocaleString()} sub={`${report.broadcasts.length} broadcast${report.broadcasts.length === 1 ? "" : "s"}`} />
+        <MetricCard label="Open rate" value={openRate} sub={`${report.opened.toLocaleString()} opened`} />
+        <MetricCard label="Clicks" value={report.clicked.toLocaleString()} sub="link clicks" />
+      </div>
+
+      <div className="mcr-report-split">
+        <section className="admin-card admin-section-card">
+          <div className="admin-card-title">Email (Broadcasts)</div>
+          {report.broadcasts.length === 0 ? (
+            <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 13 }}>No broadcasts in this campaign yet.</div>
+          ) : (
+            <div style={{ marginTop: 10 }}>
+              {report.broadcasts.map((b) => (
+                <div key={b.id} className="mcr-report-row">
+                  <span style={{ flex: 1, fontSize: 13 }}>{b.title}</span>
+                  <span className="admin-cell-mono" style={{ fontSize: 12 }}>
+                    {b.sent > 0 ? `${b.sent.toLocaleString()} sent · ${b.openRate ?? "—"}% open` : b.status ?? "draft"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="admin-card admin-section-card">
+          <div className="admin-card-title">Content (Blog · Social)</div>
+          {report.content.filter((c) => c.channel !== "email").length === 0 ? (
+            <div className="admin-cell-muted" style={{ marginTop: 8, fontSize: 13 }}>No content assets yet.</div>
+          ) : (
+            <div style={{ marginTop: 10 }}>
+              {report.content
+                .filter((c) => c.channel !== "email")
+                .map((c) => (
+                  <div key={c.channel} className="mcr-report-row">
+                    <span style={{ flex: 1, fontSize: 13, textTransform: "capitalize" }}>{c.channel}</span>
+                    <span className="admin-cell-mono" style={{ fontSize: 12 }}>
+                      {c.published} / {c.total} published
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

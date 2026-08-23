@@ -71,19 +71,19 @@ export function EntryDrawer({
   const [imageUrl, setImageUrl] = useState(entry.imageUrl ?? "");
   const [perf, setPerf] = useState<EntryPerformance | null>(null);
 
-  // Delivery numbers for a linked email campaign, loaded once the drawer opens.
+  // Delivery numbers for a linked broadcast, loaded once the drawer opens.
   useEffect(() => {
     let live = true;
     setPerf(null);
-    if (entry.campaignId) {
-      getEntryPerformance(entry.campaignId).then((p) => {
+    if (entry.broadcastId) {
+      getEntryPerformance(entry.broadcastId).then((p) => {
         if (live) setPerf(p);
       });
     }
     return () => {
       live = false;
     };
-  }, [entry.campaignId]);
+  }, [entry.broadcastId]);
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
@@ -448,12 +448,12 @@ export function EntryDrawer({
       {entry.channel === "email" && (
         <div className="admin-card" style={{ padding: "12px 14px" }}>
           <div className="admin-label" style={{ marginBottom: 8 }}>Broadcast</div>
-          {entry.campaignId ? (
+          {entry.broadcastId ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              {entry.campaignStatus && (
-                <Badge tone={statusTone(entry.campaignStatus)}>{entry.campaignStatus}</Badge>
+              {entry.broadcastStatus && (
+                <Badge tone={statusTone(entry.broadcastStatus)}>{entry.broadcastStatus}</Badge>
               )}
-              <Link className="admin-btn admin-btn--sm" href={`/admin/revenue/marketing/broadcasts/${entry.campaignId}`}>
+              <Link className="admin-btn admin-btn--sm" href={`/admin/revenue/marketing/broadcasts/${entry.broadcastId}`}>
                 Open broadcast
               </Link>
             </div>

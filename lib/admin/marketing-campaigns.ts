@@ -1,4 +1,5 @@
 import { companyOs } from "@/lib/supabase";
+import { getCampaignStats } from "@/lib/admin/campaigns";
 import type { CalendarChannel, CalendarStatus } from "@/lib/admin/marketing-calendar";
 
 // Reads for the campaign umbrella: a campaign is the founder's idea (goal, dates,
@@ -21,17 +22,6 @@ const BUILT_STATUSES = new Set<CalendarStatus>(["approved", "scheduled", "publis
 
 // Channel display order.
 const CHANNEL_ORDER: CalendarChannel[] = ["blog", "email", "linkedin", "facebook"];
-
-export type CampaignAsset = {
-  id: string;
-  title: string;
-  channel: CalendarChannel;
-  status: CalendarStatus;
-  publishDate: string | null;
-  broadcastId: string | null;
-  broadcastStatus: string | null;
-  imageUrl: string | null;
-};
 
 export type MarketingCampaignRow = {
   id: string;
@@ -142,36 +132,97 @@ export async function getCampaign(id: string): Promise<MarketingCampaignRow | nu
   return mapCampaign(data as DbCampaign, agg.get(id));
 }
 
-const ASSET_SELECT =
-  "id, title, channel, status, publish_date, broadcast_id, image_url, email_campaigns!broadcast_id(status)";
+export type CampaignOption = { id: string; name: string };
 
-export async function listCampaignAssets(campaignId: string): Promise<CampaignAsset[]> {
+// Light list for the calendar's campaign filter.
+export async function listCampaignOptions(): Promise<CampaignOption[]> {
+  const { data } = await companyOs
+    .from("marketing_campaigns")
+    .select("id, name")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as CampaignOption[];
+}
+
+// ---------------------------------------------------------------- report
+
+export type CampaignReportBroadcast = {
+  id: string;
+  title: string;
+  status: string | null;
+  sent: number;
+  delivered: number;
+  openRate: number | null;
+};
+
+export type CampaignReport = {
+  assetsLive: number;
+  assetsTotal: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  broadcasts: CampaignReportBroadcast[];
+  content: { channel: CalendarChannel; published: number; total: number }[];
+};
+
+// One rolled-up read across a campaign's channels: email delivery stats summed
+// from each linked broadcast, plus content published/total per channel. Loops
+// one stats read per broadcast, fine at this volume.
+export async function getCampaignReport(campaignId: string): Promise<CampaignReport> {
   const { data } = await companyOs
     .from("marketing_calendar")
-    .select(ASSET_SELECT)
-    .eq("campaign_id", campaignId)
-    .order("publish_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true });
+    .select("id, title, channel, status, broadcast_id, email_campaigns!broadcast_id(status)")
+    .eq("campaign_id", campaignId);
 
   type Row = {
     id: string;
     title: string;
     channel: string;
     status: string;
-    publish_date: string | null;
     broadcast_id: string | null;
-    image_url: string | null;
     email_campaigns: { status: string } | { status: string }[] | null;
   };
+  const rows = (data ?? []) as unknown as Row[];
 
-  return ((data ?? []) as unknown as Row[]).map((r) => ({
-    id: r.id,
-    title: r.title,
-    channel: r.channel as CalendarChannel,
-    status: r.status as CalendarStatus,
-    publishDate: r.publish_date,
-    broadcastId: r.broadcast_id,
-    broadcastStatus: one(r.email_campaigns)?.status ?? null,
-    imageUrl: r.image_url,
+  let assetsLive = 0;
+  let sent = 0;
+  let delivered = 0;
+  let opened = 0;
+  let clicked = 0;
+  const broadcasts: CampaignReportBroadcast[] = [];
+  const contentMap = new Map<CalendarChannel, { published: number; total: number }>();
+
+  for (const r of rows) {
+    const ch = r.channel as CalendarChannel;
+    const cm = contentMap.get(ch) ?? { published: 0, total: 0 };
+    cm.total += 1;
+    if (r.status === "published") {
+      cm.published += 1;
+      assetsLive += 1;
+    }
+    contentMap.set(ch, cm);
+
+    if (r.channel === "email" && r.broadcast_id) {
+      const s = await getCampaignStats(r.broadcast_id);
+      sent += s.sent;
+      delivered += s.delivered;
+      opened += s.opened;
+      clicked += s.clicked;
+      broadcasts.push({
+        id: r.broadcast_id,
+        title: r.title,
+        status: one(r.email_campaigns)?.status ?? null,
+        sent: s.sent,
+        delivered: s.delivered,
+        openRate: s.delivered > 0 ? Math.round((s.opened / s.delivered) * 100) : null,
+      });
+    }
+  }
+
+  const content = CHANNEL_ORDER.filter((ch) => contentMap.has(ch)).map((ch) => ({
+    channel: ch,
+    ...contentMap.get(ch)!,
   }));
+
+  return { assetsLive, assetsTotal: rows.length, sent, delivered, opened, clicked, broadcasts, content };
 }

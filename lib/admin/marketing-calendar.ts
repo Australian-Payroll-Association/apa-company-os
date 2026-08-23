@@ -65,8 +65,12 @@ export type CalendarEntryRow = {
   status: CalendarStatus;
   publishDate: string | null; // YYYY-MM-DD
   parentId: string | null;
+  // The email-send link (email_campaigns). Named "broadcast" since PR 2.
+  broadcastId: string | null;
+  broadcastStatus: string | null;
+  // The umbrella campaign (marketing_campaigns) this asset belongs to.
   campaignId: string | null;
-  campaignStatus: string | null;
+  campaignName: string | null;
   copyMd: string | null;
   assetUrl: string | null;
   postedUrl: string | null;
@@ -92,6 +96,7 @@ type DbEntry = {
   publish_date: string | null;
   parent_id: string | null;
   broadcast_id: string | null;
+  campaign_id: string | null;
   copy_md: string | null;
   asset_url: string | null;
   posted_url: string | null;
@@ -108,12 +113,13 @@ type DbEntry = {
   brands: { name: string } | { name: string }[] | null;
   marketing_pillars: { name: string } | { name: string }[] | null;
   email_campaigns: { status: string } | { status: string }[] | null;
+  marketing_campaigns: { name: string } | { name: string }[] | null;
 };
 
-// broadcast_id is the email-send link (was campaign_id). The embed is pinned to
-// that FK explicitly so it stays unambiguous through the column transition.
+// broadcast_id is the email-send link; campaign_id is the umbrella. Both embeds
+// are pinned to their FK explicitly so they stay unambiguous.
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, broadcast_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns!broadcast_id(status)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, broadcast_id, campaign_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns!broadcast_id(status), marketing_campaigns!campaign_id(name)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -122,7 +128,8 @@ function one<T>(v: T | T[] | null): T | null {
 function mapEntry(row: DbEntry): CalendarEntryRow {
   const brand = one(row.brands);
   const pillar = one(row.marketing_pillars);
-  const campaign = one(row.email_campaigns);
+  const broadcast = one(row.email_campaigns);
+  const campaign = one(row.marketing_campaigns);
   return {
     id: row.id,
     title: row.title,
@@ -134,8 +141,10 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
     status: row.status as CalendarStatus,
     publishDate: row.publish_date,
     parentId: row.parent_id,
-    campaignId: row.broadcast_id,
-    campaignStatus: campaign?.status ?? null,
+    broadcastId: row.broadcast_id,
+    broadcastStatus: broadcast?.status ?? null,
+    campaignId: row.campaign_id,
+    campaignName: campaign?.name ?? null,
     copyMd: row.copy_md,
     assetUrl: row.asset_url,
     postedUrl: row.posted_url,
@@ -162,6 +171,18 @@ export async function listEntries(): Promise<{ rows: CalendarEntryRow[]; error?:
   return { rows: ((data ?? []) as unknown as DbEntry[]).map(mapEntry) };
 }
 
+// The full calendar rows for one campaign's assets, so the campaign hub can
+// render the same board and month grid the global calendar uses.
+export async function listEntriesByCampaign(campaignId: string): Promise<CalendarEntryRow[]> {
+  const { data } = await companyOs
+    .from("marketing_calendar")
+    .select(ENTRY_SELECT)
+    .eq("campaign_id", campaignId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  return ((data ?? []) as unknown as DbEntry[]).map(mapEntry);
+}
+
 export async function listBrands(): Promise<BrandOption[]> {
   const { data } = await companyOs
     .from("brands")
@@ -180,36 +201,34 @@ export type PillarPerformance = {
   clicked: number;
 };
 
-// Rolls the linked email campaigns' delivery stats up by pillar. Loops one
-// stats read per linked campaign — fine at this volume (a handful of sends);
-// revisit with a single aggregate RPC if campaign counts grow large.
+// Rolls broadcast delivery stats up by pillar, counting distinct campaigns (not
+// individual sends) so the "campaigns" column reflects the umbrella. A broadcast
+// with no campaign counts as its own unit, so nothing is dropped. Loops one
+// stats read per broadcast — fine at this volume; revisit with an aggregate RPC
+// if the count grows large.
 export async function getPillarPerformance(): Promise<PillarPerformance[]> {
   const { data } = await companyOs
     .from("marketing_calendar")
-    .select("broadcast_id, marketing_pillars(name)")
+    .select("broadcast_id, campaign_id, marketing_pillars(name)")
     .eq("channel", "email")
     .not("broadcast_id", "is", null);
 
   const rows = (data ?? []) as unknown as {
     broadcast_id: string;
+    campaign_id: string | null;
     marketing_pillars: { name: string } | { name: string }[] | null;
   }[];
 
-  const byPillar = new Map<string, PillarPerformance>();
+  type Acc = Omit<PillarPerformance, "campaigns"> & { units: Set<string> };
+  const byPillar = new Map<string, Acc>();
   for (const row of rows) {
     const stats = await getCampaignStats(row.broadcast_id);
     if (stats.sent === 0) continue;
-    const p = one(row.marketing_pillars);
-    const key = p?.name ?? "Unassigned";
-    const acc = byPillar.get(key) ?? {
-      pillar: key,
-      campaigns: 0,
-      sent: 0,
-      delivered: 0,
-      opened: 0,
-      clicked: 0,
-    };
-    acc.campaigns += 1;
+    const key = one(row.marketing_pillars)?.name ?? "Unassigned";
+    const acc =
+      byPillar.get(key) ??
+      { pillar: key, sent: 0, delivered: 0, opened: 0, clicked: 0, units: new Set<string>() };
+    acc.units.add(row.campaign_id ?? `broadcast:${row.broadcast_id}`);
     acc.sent += stats.sent;
     acc.delivered += stats.delivered;
     acc.opened += stats.opened;
@@ -217,7 +236,9 @@ export async function getPillarPerformance(): Promise<PillarPerformance[]> {
     byPillar.set(key, acc);
   }
 
-  return [...byPillar.values()].sort((a, b) => b.clicked - a.clicked);
+  return [...byPillar.values()]
+    .map(({ units, ...rest }) => ({ ...rest, campaigns: units.size }))
+    .sort((a, b) => b.clicked - a.clicked);
 }
 
 export async function listPillars(): Promise<PillarOption[]> {
