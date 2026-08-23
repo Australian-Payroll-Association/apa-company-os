@@ -106,32 +106,34 @@ export function LoginForm() {
           />
         </div>
         <div className="admin-field">
-          <label className="admin-label" htmlFor="password">Password</label>
+          <div className="admin-label-row">
+            <label className="admin-label" htmlFor="password">Password</label>
+            <button
+              type="button"
+              className="admin-auth-link"
+              disabled={loading}
+              onClick={handleForgotPassword}
+            >
+              Forgot password?
+            </button>
+          </div>
           <PasswordField id="password" value={password} onChange={setPassword} />
         </div>
         <div className="admin-form-actions">
           <button type="submit" className="admin-btn admin-btn--primary" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </button>
-          <button
-            type="button"
-            className="admin-btn"
-            disabled={loading}
-            onClick={handleForgotPassword}
-          >
-            Forgot password?
-          </button>
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={() => {
-              setMode("link");
-              setError(null);
-            }}
-          >
-            Use a sign-in link instead
-          </button>
         </div>
+        <button
+          type="button"
+          className="admin-auth-link"
+          onClick={() => {
+            setMode("link");
+            setError(null);
+          }}
+        >
+          Use a sign-in link instead
+        </button>
       </form>
     );
   }
