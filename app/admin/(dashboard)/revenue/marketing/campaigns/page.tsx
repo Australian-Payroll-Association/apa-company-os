@@ -5,7 +5,7 @@ import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listCampaigns, type MarketingCampaignStatus } from "@/lib/admin/marketing-campaigns";
 import { listBrands, listPillars, CHANNEL_LABEL } from "@/lib/admin/marketing-calendar";
-import { NewCampaignForm } from "./NewCampaignForm";
+import { NewCampaignButton } from "./NewCampaignButton";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -54,9 +54,12 @@ export default async function CampaignsPage() {
         title="Campaigns"
         sub={`${rows.length} campaign${rows.length === 1 ? "" : "s"}. A campaign is the idea; it spawns assets across every channel.`}
         action={
-          <Link className="admin-btn" href="/admin/revenue/marketing">
-            Back to Marketing
-          </Link>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link className="admin-btn" href="/admin/revenue/marketing">
+              Back to Marketing
+            </Link>
+            <NewCampaignButton brands={brands} pillars={pillars} />
+          </div>
         }
       />
 
@@ -65,11 +68,6 @@ export default async function CampaignsPage() {
           {error}
         </div>
       )}
-
-      <section className="admin-card admin-section-card">
-        <div className="admin-card-title">New campaign</div>
-        <NewCampaignForm brands={brands} pillars={pillars} />
-      </section>
 
       <div className="admin-table-wrap">
         {rows.length === 0 ? (

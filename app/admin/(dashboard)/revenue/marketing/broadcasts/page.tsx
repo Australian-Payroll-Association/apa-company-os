@@ -4,7 +4,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listCampaigns, type CampaignStatus } from "@/lib/admin/campaigns";
-import { NewBroadcastForm } from "./NewBroadcastForm";
+import { NewBroadcastButton } from "./NewBroadcastButton";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -46,9 +46,12 @@ export default async function BroadcastsPage() {
         title="Broadcasts"
         sub={`${rows.length} broadcast${rows.length === 1 ? "" : "s"}. Nothing sends without an explicit approval.`}
         action={
-          <Link className="admin-btn" href="/admin/revenue/marketing">
-            Back to Marketing
-          </Link>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link className="admin-btn" href="/admin/revenue/marketing">
+              Back to Marketing
+            </Link>
+            <NewBroadcastButton />
+          </div>
         }
       />
 
@@ -57,11 +60,6 @@ export default async function BroadcastsPage() {
           {error}
         </div>
       )}
-
-      <section className="admin-card admin-section-card">
-        <div className="admin-card-title">New broadcast</div>
-        <NewBroadcastForm />
-      </section>
 
       <div className="admin-table-wrap">
         {rows.length === 0 ? (

@@ -88,11 +88,6 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
         eyebrow="Revenue"
         title="Marketing"
         sub={`Site traffic, email activity, and the newsletter audience, ${active.sub}.`}
-        action={
-          <Link className="admin-btn admin-btn--primary" href="/admin/revenue/marketing/broadcasts">
-            Broadcasts
-          </Link>
-        }
       />
 
       <div className="admin-tabs" role="tablist" style={{ marginBottom: 14 }}>
