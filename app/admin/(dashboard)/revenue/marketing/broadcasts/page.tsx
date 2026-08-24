@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listCampaigns, type CampaignStatus } from "@/lib/admin/campaigns";
+import { listBroadcasts, type BroadcastStatus } from "@/lib/admin/broadcasts";
 import { NewBroadcastButton } from "./NewBroadcastButton";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Newsletter and marketing email broadcasts.",
 };
 
-const STATUS_TONE: Record<CampaignStatus, "ok" | "warn" | "err" | "info"> = {
+const STATUS_TONE: Record<BroadcastStatus, "ok" | "warn" | "err" | "info"> = {
   draft: "info",
   approved: "warn",
   sending: "warn",
@@ -22,7 +22,7 @@ const STATUS_TONE: Record<CampaignStatus, "ok" | "warn" | "err" | "info"> = {
   cancelled: "err",
 };
 
-const STATUS_LABEL: Record<CampaignStatus, string> = {
+const STATUS_LABEL: Record<BroadcastStatus, string> = {
   draft: "Draft",
   approved: "Approved",
   sending: "Sending",
@@ -37,7 +37,7 @@ function formatDate(iso: string | null): string {
 
 export default async function BroadcastsPage() {
   await requireAdmin();
-  const { rows, error } = await listCampaigns();
+  const { rows, error } = await listBroadcasts();
 
   return (
     <div>

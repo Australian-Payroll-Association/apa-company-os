@@ -1,5 +1,5 @@
 import { companyOs } from "@/lib/supabase";
-import { getCampaignStats } from "@/lib/admin/campaigns";
+import { getBroadcastStats } from "@/lib/admin/broadcasts";
 import {
   STAGE_LEAD,
   STAGE_NEUTRAL,
@@ -233,7 +233,7 @@ export async function getPillarPerformance(): Promise<PillarPerformance[]> {
   type Acc = Omit<PillarPerformance, "campaigns"> & { units: Set<string> };
   const byPillar = new Map<string, Acc>();
   for (const row of rows) {
-    const stats = await getCampaignStats(row.broadcast_id);
+    const stats = await getBroadcastStats(row.broadcast_id);
     if (stats.sent === 0) continue;
     const key = one(row.marketing_pillars)?.name ?? "Unassigned";
     const acc =

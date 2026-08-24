@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { companyOs } from "@/lib/supabase";
 import { sendMarketingEmail } from "@/lib/marketing-email";
-import { checkSendGate } from "@/lib/admin/campaigns";
+import { checkSendGate } from "@/lib/admin/broadcasts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

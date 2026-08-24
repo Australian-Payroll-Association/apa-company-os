@@ -3,7 +3,7 @@ import {
   listCampaigns as listMarketingCampaigns,
   type MarketingCampaignRow,
 } from "@/lib/admin/marketing-campaigns";
-import { listCampaigns as listBroadcasts } from "@/lib/admin/campaigns";
+import { listBroadcasts } from "@/lib/admin/broadcasts";
 
 // Composition-only read for the Marketing overview's "Content engine" section.
 // Every number already exists in a channel-owned lib; this filters and shapes

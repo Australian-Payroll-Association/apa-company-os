@@ -2,17 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { CampaignRow } from "@/lib/admin/campaigns";
+import type { BroadcastRow } from "@/lib/admin/broadcasts";
 import type { BrandOption } from "@/lib/admin/marketing-calendar";
 import type { BrandProfile } from "@/lib/admin/brand-profiles";
 import {
-  approveCampaign,
+  approveBroadcast,
   buildRecipients,
-  cancelCampaign,
+  cancelBroadcast,
   clearRecipients,
   sendTest,
   startSending,
-  updateCampaign,
+  updateBroadcast,
 } from "../actions";
 
 const PERSONA_CHOICES = [
@@ -37,7 +37,7 @@ export function BroadcastEditor({
   brands,
   profiles,
 }: {
-  campaign: CampaignRow;
+  campaign: BroadcastRow;
   pendingCount: number;
   brands: BrandOption[];
   profiles: BrandProfile[];
@@ -207,7 +207,7 @@ export function BroadcastEditor({
               onClick={() =>
                 run(
                   () =>
-                    updateCampaign(campaign.id, {
+                    updateBroadcast(campaign.id, {
                       name,
                       subject,
                       preheader,
@@ -288,7 +288,7 @@ export function BroadcastEditor({
               disabled={!isDraft || pending}
               onClick={() =>
                 run(
-                  () => updateCampaign(campaign.id, { segment: { personas }, batchSize: Number(batchSize) }),
+                  () => updateBroadcast(campaign.id, { segment: { personas }, batchSize: Number(batchSize) }),
                   "Audience settings saved.",
                 )
               }
@@ -367,7 +367,7 @@ export function BroadcastEditor({
                   disabled={pending}
                   onClick={() =>
                     run(
-                      () => updateCampaign(campaign.id, { scheduledAt: scheduledAt || null }),
+                      () => updateBroadcast(campaign.id, { scheduledAt: scheduledAt || null }),
                       scheduledAt ? "Schedule saved." : "Schedule cleared.",
                     )
                   }
@@ -385,7 +385,7 @@ export function BroadcastEditor({
               type="button"
               className="admin-btn admin-btn--primary"
               disabled={pending || pendingCount === 0}
-              onClick={() => run(() => approveCampaign(campaign.id), "Broadcast approved.")}
+              onClick={() => run(() => approveBroadcast(campaign.id), "Broadcast approved.")}
             >
               Approve
             </button>
@@ -407,7 +407,7 @@ export function BroadcastEditor({
               type="button"
               className="admin-btn admin-btn--danger"
               disabled={pending}
-              onClick={() => run(() => cancelCampaign(campaign.id), "Broadcast cancelled.")}
+              onClick={() => run(() => cancelBroadcast(campaign.id), "Broadcast cancelled.")}
             >
               Cancel broadcast
             </button>

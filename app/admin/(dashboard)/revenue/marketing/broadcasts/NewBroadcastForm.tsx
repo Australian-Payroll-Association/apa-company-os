@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createCampaign } from "./actions";
+import { createBroadcast } from "./actions";
 
 export function NewBroadcastForm() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export function NewBroadcastForm() {
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await createCampaign({ name, subject });
+      const result = await createBroadcast({ name, subject });
       if (result.ok) {
         router.push(`/admin/revenue/marketing/broadcasts/${result.id}`);
       } else {

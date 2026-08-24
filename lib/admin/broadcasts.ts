@@ -1,25 +1,26 @@
 import { companyOs } from "@/lib/supabase";
 
-// Campaign reads and audience resolution.
+// Broadcast (email send) reads and audience resolution. The table is still
+// company_os.email_campaigns; "broadcast" is the product name for one send.
 //
 // The single most important function here is resolveAudience(). Every path that
 // sends mail goes through it, and it is the only place that decides who is
 // allowed to receive marketing email.
 
-export type CampaignStatus = "draft" | "approved" | "sending" | "sent" | "cancelled";
+export type BroadcastStatus = "draft" | "approved" | "sending" | "sent" | "cancelled";
 
-export type CampaignSegment = {
+export type BroadcastSegment = {
   personas?: string[];
 };
 
-export type CampaignRow = {
+export type BroadcastRow = {
   id: string;
   name: string;
   subject: string;
   preheader: string | null;
   bodyMd: string;
-  status: CampaignStatus;
-  segment: CampaignSegment;
+  status: BroadcastStatus;
+  segment: BroadcastSegment;
   fromEmail: string | null;
   replyTo: string | null;
   batchSize: number;
@@ -33,14 +34,14 @@ export type CampaignRow = {
   createdAt: string;
 };
 
-type DbCampaign = {
+type DbBroadcast = {
   id: string;
   name: string;
   subject: string;
   preheader: string | null;
   body_md: string;
   status: string;
-  segment: CampaignSegment | null;
+  segment: BroadcastSegment | null;
   from_email: string | null;
   reply_to: string | null;
   batch_size: number;
@@ -57,14 +58,14 @@ type DbCampaign = {
 const CAMPAIGN_SELECT =
   "id, name, subject, preheader, body_md, status, segment, from_email, reply_to, batch_size, brand_id, scheduled_at, approved_at, approved_by, sent_at, created_by, created_at, brands(name)";
 
-function mapCampaign(row: DbCampaign): CampaignRow {
+function mapBroadcast(row: DbBroadcast): BroadcastRow {
   return {
     id: row.id,
     name: row.name,
     subject: row.subject,
     preheader: row.preheader,
     bodyMd: row.body_md,
-    status: row.status as CampaignStatus,
+    status: row.status as BroadcastStatus,
     segment: row.segment ?? {},
     fromEmail: row.from_email,
     replyTo: row.reply_to,
@@ -80,23 +81,23 @@ function mapCampaign(row: DbCampaign): CampaignRow {
   };
 }
 
-export async function listCampaigns(): Promise<{ rows: CampaignRow[]; error?: string }> {
+export async function listBroadcasts(): Promise<{ rows: BroadcastRow[]; error?: string }> {
   const { data, error } = await companyOs
     .from("email_campaigns")
     .select(CAMPAIGN_SELECT)
     .order("created_at", { ascending: false });
   if (error) return { rows: [], error: error.message };
-  return { rows: ((data ?? []) as DbCampaign[]).map(mapCampaign) };
+  return { rows: ((data ?? []) as DbBroadcast[]).map(mapBroadcast) };
 }
 
-export async function getCampaign(id: string): Promise<CampaignRow | null> {
+export async function getBroadcast(id: string): Promise<BroadcastRow | null> {
   const { data, error } = await companyOs
     .from("email_campaigns")
     .select(CAMPAIGN_SELECT)
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
-  return mapCampaign(data as DbCampaign);
+  return mapBroadcast(data as DbBroadcast);
 }
 
 // ------------------------------------------------------------------- audience
@@ -151,7 +152,7 @@ function passesSuppression(row: CandidateRow): boolean {
 // grown. Paging until a short page arrives is the only way to know it is whole.
 const AUDIENCE_PAGE = 500;
 
-// Edge8 owns this CRM, so an Edge8-branded (or brand-less) campaign draws from
+// Edge8 owns this CRM, so an Edge8-branded (or brand-less) broadcast draws from
 // the whole house list. Any other brand is a guest and is scoped strictly to
 // its brand_contacts membership, so a guest send can never reach the house list.
 const HOME_BRAND_SLUG = "edge8";
@@ -185,7 +186,7 @@ async function brandMemberIds(brandId: string): Promise<{ ids: string[] | null; 
 }
 
 export async function resolveAudience(
-  segment: CampaignSegment,
+  segment: BroadcastSegment,
   brandId?: string | null,
 ): Promise<{ members: AudienceMember[]; error?: string }> {
   const personas = (segment.personas ?? []).filter((p) => !BLOCKED_PERSONAS.has(p));
@@ -294,7 +295,7 @@ export async function checkSendGate(personId: string, email: string): Promise<Se
 // mailed again. A bounce is only permanent when the provider says it is; Resend
 // also emits email.bounced for transient conditions such as a full mailbox, and
 // treating those as permanent would silently drop a real client from every
-// future campaign with no way to undo it.
+// future broadcast with no way to undo it.
 function isPermanentBounce(metadata: unknown): boolean {
   const bounce = (metadata as { data?: { bounce?: { type?: string; subType?: string } } })?.data?.bounce;
   const type = `${bounce?.type ?? ""}`.toLowerCase();
@@ -328,7 +329,7 @@ export async function hardFailureReason(email: string): Promise<SendGate> {
 
 // -------------------------------------------------------------------- results
 
-export type CampaignStats = {
+export type BroadcastStats = {
   total: number;
   pending: number;
   sent: number;
@@ -340,8 +341,8 @@ export type CampaignStats = {
   clicked: number;
 };
 
-export async function getCampaignStats(campaignId: string): Promise<CampaignStats> {
-  const empty: CampaignStats = {
+export async function getBroadcastStats(broadcastId: string): Promise<BroadcastStats> {
+  const empty: BroadcastStats = {
     total: 0,
     pending: 0,
     sent: 0,
@@ -354,11 +355,11 @@ export async function getCampaignStats(campaignId: string): Promise<CampaignStat
   };
 
   // Both aggregate in SQL. Counting fetched rows in JS was silently capped by
-  // PostgREST: one 185-person campaign emits roughly five events per email, so
-  // two campaigns would have taken this past the cap and understated bounces.
+  // PostgREST: one 185-person broadcast emits roughly five events per email, so
+  // two broadcasts would have taken this past the cap and understated bounces.
   const [{ data: recips }, { data: events }] = await Promise.all([
-    companyOs.rpc("campaign_recipient_stats", { p_campaign_id: campaignId }),
-    companyOs.rpc("email_delivery_stats", { p_since: null, p_campaign_id: campaignId }),
+    companyOs.rpc("campaign_recipient_stats", { p_campaign_id: broadcastId }),
+    companyOs.rpc("email_delivery_stats", { p_since: null, p_campaign_id: broadcastId }),
   ]);
 
   const stats = { ...empty };
@@ -397,11 +398,11 @@ export type RecipientRow = {
   sentAt: string | null;
 };
 
-export async function listRecipients(campaignId: string, limit = 200): Promise<RecipientRow[]> {
+export async function listRecipients(broadcastId: string, limit = 200): Promise<RecipientRow[]> {
   const { data } = await companyOs
     .from("email_campaign_recipients")
     .select("id, email, person_id, status, skip_reason, error, sent_at, people:people!person_id(full_name, preferred_name)")
-    .eq("campaign_id", campaignId)
+    .eq("campaign_id", broadcastId)
     .order("status", { ascending: true })
     .limit(limit);
 

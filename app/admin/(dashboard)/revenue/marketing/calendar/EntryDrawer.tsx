@@ -16,7 +16,7 @@ import type { BrandStylePrefs } from "./CalendarClient";
 import {
   updateEntry,
   deleteEntry,
-  createCampaignFromEntry,
+  createBroadcastFromEntry,
   repurposeEntry,
   draftWithAI,
   generateImage,
@@ -35,7 +35,7 @@ export function EntryDrawer({
   allEntries,
   onPatched,
   onDeleted,
-  onLinkedCampaign,
+  onLinkedBroadcast,
   onRepurposed,
 }: {
   entry: CalendarEntryRow;
@@ -45,7 +45,7 @@ export function EntryDrawer({
   allEntries: CalendarEntryRow[];
   onPatched: (id: string, partial: Partial<CalendarEntryRow>) => void;
   onDeleted: (id: string) => void;
-  onLinkedCampaign: (id: string, campaignId: string) => void;
+  onLinkedBroadcast: (id: string, broadcastId: string) => void;
   onRepurposed: (entries: CalendarEntryRow[]) => void;
 }) {
   const router = useRouter();
@@ -199,16 +199,16 @@ export function EntryDrawer({
     });
   }
 
-  function spawnCampaign() {
+  function spawnBroadcast() {
     setNote(null);
     startTransition(async () => {
-      const r = await createCampaignFromEntry(entry.id);
+      const r = await createBroadcastFromEntry(entry.id);
       if (!r.ok) {
         setNote({ tone: "err", text: r.error });
         return;
       }
-      onLinkedCampaign(entry.id, r.campaignId);
-      router.push(`/admin/revenue/marketing/broadcasts/${r.campaignId}`);
+      onLinkedBroadcast(entry.id, r.broadcastId);
+      router.push(`/admin/revenue/marketing/broadcasts/${r.broadcastId}`);
     });
   }
 
@@ -458,7 +458,7 @@ export function EntryDrawer({
               </Link>
             </div>
           ) : (
-            <button type="button" className="admin-btn admin-btn--primary" disabled={pending} onClick={spawnCampaign}>
+            <button type="button" className="admin-btn admin-btn--primary" disabled={pending} onClick={spawnBroadcast}>
               Create broadcast
             </button>
           )}

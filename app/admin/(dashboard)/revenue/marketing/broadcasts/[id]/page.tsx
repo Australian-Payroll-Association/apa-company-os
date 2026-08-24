@@ -5,7 +5,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getCampaign, getCampaignStats, listRecipients, type CampaignStatus } from "@/lib/admin/campaigns";
+import { getBroadcast, getBroadcastStats, listRecipients, type BroadcastStatus } from "@/lib/admin/broadcasts";
 import { listBrands } from "@/lib/admin/marketing-calendar";
 import { listBrandProfiles } from "@/lib/admin/brand-profiles";
 import { BroadcastEditor } from "./BroadcastEditor";
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "Compose, approve, and send a marketing broadcast.",
 };
 
-const STATUS_TONE: Record<CampaignStatus, "ok" | "warn" | "err" | "info"> = {
+const STATUS_TONE: Record<BroadcastStatus, "ok" | "warn" | "err" | "info"> = {
   draft: "info",
   approved: "warn",
   sending: "warn",
@@ -35,11 +35,11 @@ const RECIPIENT_TONE: Record<string, "ok" | "warn" | "err" | "info"> = {
 
 export default async function BroadcastDetailPage({ params }: { params: { id: string } }) {
   await requireAdmin();
-  const campaign = await getCampaign(params.id);
+  const campaign = await getBroadcast(params.id);
   if (!campaign) notFound();
 
   const [stats, recipients, brands, profiles] = await Promise.all([
-    getCampaignStats(campaign.id),
+    getBroadcastStats(campaign.id),
     listRecipients(campaign.id),
     listBrands(),
     listBrandProfiles(),

@@ -1,5 +1,5 @@
 import { companyOs } from "@/lib/supabase";
-import { isMarketingEligible } from "@/lib/admin/campaigns";
+import { isMarketingEligible } from "@/lib/admin/broadcasts";
 
 // Reads for the Revenue → Marketing hub. Two sources, both already populated:
 // company_os.interactions (every email lib/email.ts has ever accepted) and

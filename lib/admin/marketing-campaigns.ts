@@ -1,5 +1,5 @@
 import { companyOs } from "@/lib/supabase";
-import { getCampaignStats } from "@/lib/admin/campaigns";
+import { getBroadcastStats } from "@/lib/admin/broadcasts";
 import type { CalendarChannel, CalendarStatus } from "@/lib/admin/marketing-calendar";
 
 // Reads for the campaign umbrella: a campaign is the founder's idea (goal, dates,
@@ -210,7 +210,7 @@ export async function getCampaignReport(campaignId: string): Promise<CampaignRep
     contentMap.set(ch, cm);
 
     if (r.channel === "email" && r.broadcast_id) {
-      const s = await getCampaignStats(r.broadcast_id);
+      const s = await getBroadcastStats(r.broadcast_id);
       sent += s.sent;
       delivered += s.delivered;
       opened += s.opened;

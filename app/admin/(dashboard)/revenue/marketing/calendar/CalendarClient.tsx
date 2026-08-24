@@ -67,7 +67,7 @@ export function CalendarClient({
     setSelectedId(null);
   }
 
-  function linkCampaign(id: string, broadcastId: string) {
+  function linkBroadcast(id: string, broadcastId: string) {
     patch(id, { broadcastId, broadcastStatus: "draft" });
   }
 
@@ -129,19 +129,24 @@ export function CalendarClient({
       )}
 
       {campaigns.length > 0 && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 14px", flexWrap: "wrap" }}>
-          <span className="admin-label">Campaign</span>
-          <select
-            className="admin-input"
-            style={{ maxWidth: 280 }}
-            value={campaignFilter}
-            onChange={(e) => setCampaignFilter(e.target.value)}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 14px" }}>
+          <button
+            type="button"
+            className={`admin-btn admin-btn--sm${campaignFilter === "" ? " admin-btn--primary" : ""}`}
+            onClick={() => setCampaignFilter("")}
           >
-            <option value="">All campaigns</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+            All campaigns
+          </button>
+          {campaigns.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`admin-btn admin-btn--sm${campaignFilter === c.id ? " admin-btn--primary" : ""}`}
+              onClick={() => setCampaignFilter(c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
         </div>
       )}
 
@@ -180,7 +185,7 @@ export function CalendarClient({
             allEntries={entries}
             onPatched={patch}
             onDeleted={remove}
-            onLinkedCampaign={linkCampaign}
+            onLinkedBroadcast={linkBroadcast}
             onRepurposed={replaceAll}
           />
         )}

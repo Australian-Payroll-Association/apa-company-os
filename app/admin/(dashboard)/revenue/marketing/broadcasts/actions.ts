@@ -5,7 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { sendMarketingEmail } from "@/lib/marketing-email";
-import { getCampaign, resolveAudience, type CampaignSegment } from "@/lib/admin/campaigns";
+import { getBroadcast, resolveAudience, type BroadcastSegment } from "@/lib/admin/broadcasts";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
@@ -16,7 +16,7 @@ function refresh(id?: string) {
   if (id) revalidatePath(`/admin/revenue/marketing/broadcasts/${id}`);
 }
 
-export async function createCampaign(input: { name: string; subject: string }): Promise<CreateResult> {
+export async function createBroadcast(input: { name: string; subject: string }): Promise<CreateResult> {
   const admin = await requireAdmin();
   const name = input.name.trim();
   const subject = input.subject.trim();
@@ -44,14 +44,14 @@ export async function createCampaign(input: { name: string; subject: string }): 
   return { ok: true, id };
 }
 
-export async function updateCampaign(
+export async function updateBroadcast(
   id: string,
   patch: {
     name?: string;
     subject?: string;
     preheader?: string;
     bodyMd?: string;
-    segment?: CampaignSegment;
+    segment?: BroadcastSegment;
     replyTo?: string;
     batchSize?: number;
     brandId?: string | null;
@@ -59,7 +59,7 @@ export async function updateCampaign(
   },
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
 
   // Editing an approved or sent campaign would change what recipients receive
@@ -108,7 +108,7 @@ export async function updateCampaign(
 // re-building after editing the segment adds newcomers without duplicating anyone.
 export async function buildRecipients(id: string): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
     return { ok: false, error: "Recipients can only be built while the broadcast is a draft." };
@@ -174,7 +174,7 @@ export async function buildRecipients(id: string): Promise<{ ok: true; added: nu
 
 export async function clearRecipients(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
     return { ok: false, error: "Recipients can only be cleared while the broadcast is a draft." };
@@ -197,7 +197,7 @@ export async function clearRecipients(id: string): Promise<ActionResult> {
 // so it can be run as many times as it takes to get the copy right.
 export async function sendTest(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
 
   const { data: person } = await companyOs
@@ -226,9 +226,9 @@ export async function sendTest(id: string): Promise<ActionResult> {
 }
 
 // The approval gate. Nothing reaches a recipient without passing through here.
-export async function approveCampaign(id: string): Promise<ActionResult> {
+export async function approveBroadcast(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "draft") {
     return { ok: false, error: `Broadcast is already ${campaign.status}.` };
@@ -267,9 +267,9 @@ export async function approveCampaign(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function cancelCampaign(id: string): Promise<ActionResult> {
+export async function cancelBroadcast(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status === "sent") {
     return { ok: false, error: "A sent broadcast cannot be cancelled." };
@@ -297,7 +297,7 @@ export async function cancelCampaign(id: string): Promise<ActionResult> {
 // press: approving says "this copy is right", starting says "go now".
 export async function startSending(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const campaign = await getCampaign(id);
+  const campaign = await getBroadcast(id);
   if (!campaign) return { ok: false, error: "Broadcast not found." };
   if (campaign.status !== "approved") {
     return { ok: false, error: "Only an approved broadcast can start sending." };

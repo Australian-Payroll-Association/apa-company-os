@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { getCampaignStats } from "@/lib/admin/campaigns";
+import { getBroadcastStats } from "@/lib/admin/broadcasts";
 import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
 import { generateEntryImage } from "@/lib/ai/brand-image";
 import {
@@ -17,7 +17,7 @@ import {
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
-type CampaignResult = { ok: true; campaignId: string } | { ok: false; error: string };
+type BroadcastResult = { ok: true; broadcastId: string } | { ok: false; error: string };
 type RepurposeResult = { ok: true; entries: CalendarEntryRow[] } | { ok: false; error: string };
 type PillarResult = { ok: true; pillar: PillarOption } | { ok: false; error: string };
 
@@ -36,7 +36,7 @@ function addDays(isoDate: string, days: number): string {
 }
 
 // The single place a calendar entry mints a draft broadcast (email_campaigns row)
-// and links it back via broadcast_id. Shared by createCampaignFromEntry (the
+// and links it back via broadcast_id. Shared by createBroadcastFromEntry (the
 // "Create broadcast" button) and the email branch of draftWithAI, so the row
 // shape and the link step cannot drift apart. Returns the new broadcast id, or
 // null if the insert produced no row.
@@ -249,9 +249,9 @@ export type EntryPerformance = {
   clicked: number;
 };
 
-export async function getEntryPerformance(campaignId: string): Promise<EntryPerformance> {
+export async function getEntryPerformance(broadcastId: string): Promise<EntryPerformance> {
   await requireAdmin();
-  const s = await getCampaignStats(campaignId);
+  const s = await getBroadcastStats(broadcastId);
   return { sent: s.sent, delivered: s.delivered, opened: s.opened, clicked: s.clicked };
 }
 
@@ -533,7 +533,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
 // the calendar reflects the campaign's real send status from then on. The
 // entry's brand and publish date carry through; scheduling stays draft-editable
 // on the campaign side.
-export async function createCampaignFromEntry(id: string): Promise<CampaignResult> {
+export async function createBroadcastFromEntry(id: string): Promise<BroadcastResult> {
   const admin = await requireAdmin();
 
   const { data: entryData, error: entryError } = await companyOs
@@ -561,7 +561,7 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
     return { ok: false, error: "This entry already has a broadcast." };
   }
 
-  const campaignId = await createDraftBroadcastForEntry({
+  const broadcastId = await createDraftBroadcastForEntry({
     entryId: id,
     name: entry.title,
     subject: entry.title,
@@ -569,15 +569,15 @@ export async function createCampaignFromEntry(id: string): Promise<CampaignResul
     publishDate: entry.publish_date,
     createdBy: admin.email,
   });
-  if (!campaignId) return { ok: false, error: "Broadcast was not created." };
+  if (!broadcastId) return { ok: false, error: "Broadcast was not created." };
 
   await recordAudit({
     table: "email_campaigns",
-    recordId: campaignId,
+    recordId: broadcastId,
     operation: "insert",
     actor: admin.email,
     context: { from_calendar_entry: id, name: entry.title },
   });
   refresh();
-  return { ok: true, campaignId };
+  return { ok: true, broadcastId };
 }
