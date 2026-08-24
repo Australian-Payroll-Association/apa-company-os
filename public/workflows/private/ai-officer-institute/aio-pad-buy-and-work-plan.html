@@ -81,6 +81,22 @@ h4.am{color:var(--am)}
 .day.key .d{color:var(--navy)}
 @media(max-width:620px){.day{grid-template-columns:1fr;gap:3px}.day .o{text-align:left}}
 
+tr.pri td{background:#EFECE5!important;border-top:3px solid var(--navy);border-bottom:1px solid var(--ln2);padding:16px 12px 14px}
+tr.pri .pn{font-family:var(--m);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--navy);padding:4px 9px;border-radius:2px}
+tr.pri.p1 .pn{background:#A9631F}
+tr.pri .ph{font-weight:600;font-size:16px;color:var(--navy);margin-left:12px}
+tr.pri .pv{font-family:var(--m);font-size:13px;color:var(--ce);margin-left:12px;white-space:nowrap}
+tr.pri .pw{display:block;font-size:13.5px;color:var(--ink2);margin-top:6px;max-width:70em}
+.pcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:6px}
+.pc{background:var(--card);border:1px solid var(--ln);border-top:3px solid var(--navy);padding:16px 18px 18px}
+.pc.p1{border-top-color:#A9631F;background:var(--am-bg)}
+.pch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pch b{font-family:var(--m);font-size:11px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--navy)}
+.pc.p1 .pch b{color:#A9631F}
+.pch span{font-family:var(--m);font-size:13px;font-weight:500;color:var(--navy);white-space:nowrap}
+.pcw{font-size:15px;font-weight:500;color:var(--navy);margin:0 0 4px;line-height:1.35}
+.pcm{font-family:var(--m);font-size:11.5px;color:var(--mut);margin:0 0 8px}
+.pcy{font-size:13.5px;color:var(--ink2);margin:0;line-height:1.5}
 footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-size:13px}
 @media print{
   body{background:#fff}
@@ -150,20 +166,23 @@ footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-
 </section>
 
 <section>
+  <div class="eb">Priority</div>
+  <p class="sub"><strong>Start with Priority 1.</strong> Bedding is the one thing a guest touches for eight hours, and a bare mattress is what makes the apartment read as vacant. It sits with the two longest leads in the plan — the artist at 2–3 weeks and the armchair at 7–14 days — plus the paint, because nothing can be hung until it is dry.</p>
+  <div class="pcs">
+    <div class="pc p1"><div class="pch"><b>Priority 1</b><span>39,730,000 ₫</span></div><p class="pcw">Bedding, artwork, armchair, paint</p><p class="pcm">Order day 1 · 12 lines · 40% of budget</p><p class="pcy">Longest leads, and the one thing a guest touches for eight hours. Miss these and day 30 slips.</p></div>
+    <div class="pc p2"><div class="pch"><b>Priority 2</b><span>32,240,000 ₫</span></div><p class="pcw">TVs, balcony, hardware, printed frames</p><p class="pcm">Order day 1–2 · 18 lines · 32% of budget</p><p class="pcy">Guest-facing, 2–7 day leads. Everything lands before install week.</p></div>
+    <div class="pc p3"><div class="pch"><b>Priority 3</b><span>17,250,000 ₫</span></div><p class="pcw">The Thảo Điền shopping run</p><p class="pcm">Buy day 3–4 · 21 lines · 17% of budget</p><p class="pcy">The styling layer. Bought in person because colour and hand do not survive a product photo.</p></div>
+    <div class="pc p4"><div class="pch"><b>Priority 4</b><span>11,350,000 ₫</span></div><p class="pcw">Frames for the originals, plants, installer</p><p class="pcm">Day 7 onward · 6 lines · 11% of budget</p><p class="pcy">Cannot start earlier. Frames wait for the paintings, plants die if bought early, installer is scheduled.</p></div>
+  </div>
+</section>
+
+<section>
   <div class="eb">Buy list</div>
-  <p class="sub">Rooms: <strong>EN</strong> entry · <strong>LV</strong> living · <strong>DN</strong> dining · <strong>BB</strong> big bedroom · <strong>SB</strong> small bedroom · <strong>BA</strong> bathrooms · <strong>BC</strong> balcony. Prices are estimates at ±15%. Sources are suppliers, not product pages.</p>
+  <p class="sub">Rooms: <strong>EN</strong> entry · <strong>LV</strong> living · <strong>DN</strong> dining · <strong>BB</strong> big bedroom · <strong>SB</strong> small bedroom · <strong>BA</strong> bathrooms · <strong>BC</strong> balcony. Grouped by priority, then by supplier. Prices are estimates at ±15%. Sources are suppliers, not product pages.</p>
   <div class="tw"><table>
     <thead><tr><th style="width:26px"></th><th>Item</th><th class="c">Qty</th><th class="n">Unit ₫</th><th class="n">Total ₫</th><th>Room</th><th class="c">Who</th></tr></thead>
     <tbody>
-      <tr class="grp"><td colspan="7"><span class="gt">Local artist</span><span class="gs">16,300,000 ₫ · lead 2–3 weeks</span><span class="wh">Commission one artist for all five. Quotes from 2–3 first.</span></td></tr>
-      <tr><td class="ck">☐</td><td>Original ink-wash painting 90×60, commissioned</td><td class="c">3</td><td class="n">3,800,000</td><td class="n">11,400,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oV">V</td></tr>
-      <tr><td class="ck">☐</td><td>Original ink-wash painting 60×40, commissioned</td><td class="c">2</td><td class="n">2,200,000</td><td class="n">4,400,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oV">V</td></tr>
-      <tr><td class="ck">☐</td><td>Concept sketches — 3 options before commission</td><td class="c">1</td><td class="n">500,000</td><td class="n">500,000</td><td class="rm"><i>ALL</i></td><td class="who oV">V</td></tr>
-      <tr class="grp"><td colspan="7"><span class="gt">Mia Home</span><span class="gs">8,520,000 ₫ · lead 5–7 days after artwork</span><span class="wh">280F8 Lương Định Của, An Phú, District 2</span></td></tr>
-      <tr><td class="ck">☐</td><td>Frame 90×60 — acid-free mount, UV glass</td><td class="c">3</td><td class="n">1,600,000</td><td class="n">4,800,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oA">A</td></tr>
-      <tr><td class="ck">☐</td><td>Frame 60×40 — acid-free mount, UV glass</td><td class="c">2</td><td class="n">1,100,000</td><td class="n">2,200,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
-      <tr><td class="ck">☐</td><td>Print + frame 40×30 — entry</td><td class="c">1</td><td class="n">480,000</td><td class="n">480,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
-      <tr><td class="ck">☐</td><td>Print + frame 40×30, glazed — bathrooms</td><td class="c">2</td><td class="n">520,000</td><td class="n">1,040,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr class="pri p1"><td colspan="7"><span class="pn">Priority 1</span><span class="ph">Bedding, artwork, armchair, paint</span><span class="pv">39,730,000 ₫ &nbsp;·&nbsp; Order day 1</span><span class="pw">Longest leads, and the one thing a guest touches for eight hours. Miss these and day 30 slips.</span></td></tr>
       <tr class="grp"><td colspan="7"><span class="gt">Sagatex</span><span class="gs">10,780,000 ₫ · lead 3–5 days</span><span class="wh">sagatexvietnam.com.vn · Zalo 0905609176 (Mr Quang)</span></td></tr>
       <tr><td class="ck">☐</td><td>Hotel bed set — T400 cotton, white, no logo</td><td class="c">2</td><td class="n">3,200,000</td><td class="n">6,400,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Bath towel 70×140</td><td class="c">8</td><td class="n">190,000</td><td class="n">1,520,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
@@ -171,13 +190,20 @@ footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-
       <tr><td class="ck">☐</td><td>Face towel</td><td class="c">4</td><td class="n">55,000</td><td class="n">220,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Bath mat, charcoal</td><td class="c">4</td><td class="n">180,000</td><td class="n">720,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Waffle robe, white</td><td class="c">2</td><td class="n">600,000</td><td class="n">1,200,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Local artist</span><span class="gs">16,300,000 ₫ · lead 2–3 weeks</span><span class="wh">Commission one artist for all five. Quotes from 2–3 first.</span></td></tr>
+      <tr><td class="ck">☐</td><td>Original ink-wash painting 90×60, commissioned</td><td class="c">3</td><td class="n">3,800,000</td><td class="n">11,400,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Original ink-wash painting 60×40, commissioned</td><td class="c">2</td><td class="n">2,200,000</td><td class="n">4,400,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Concept sketches — 3 options before commission</td><td class="c">1</td><td class="n">500,000</td><td class="n">500,000</td><td class="rm"><i>ALL</i></td><td class="who oV">V</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Nhà Xinh / UMA</span><span class="gs">8,350,000 ₫ · lead 7–14 days</span><span class="wh">In store — Estella Place or Vincom Thảo Điền</span></td></tr>
+      <tr><td class="ck">☐</td><td>Armchair + ottoman, oatmeal linen</td><td class="c">1</td><td class="n">7,500,000</td><td class="n">7,500,000</td><td class="rm"><i>LV</i></td><td class="who oV">V</td></tr>
+      <tr><td class="ck">☐</td><td>Bedside table, black</td><td class="c">1</td><td class="n">850,000</td><td class="n">850,000</td><td class="rm"><i>SB</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Painter</span><span class="gs">4,300,000 ₫ · lead Book by day 2</span><span class="wh">Local trade, 2 days, apartment empty</span></td></tr>
+      <tr><td class="ck">☐</td><td>Navy feature paint, ~28m², incl. painter and 2 coats</td><td class="c">1</td><td class="n">4,300,000</td><td class="n">4,300,000</td><td class="rm"><i>EN</i><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr class="pri p2"><td colspan="7"><span class="pn">Priority 2</span><span class="ph">TVs, balcony, hardware, printed frames</span><span class="pv">32,240,000 ₫ &nbsp;·&nbsp; Order day 1–2</span><span class="pw">Guest-facing, 2–7 day leads. Everything lands before install week.</span></td></tr>
       <tr class="grp"><td colspan="7"><span class="gt">Điện Máy Xanh</span><span class="gs">18,500,000 ₫ · lead 2–4 days</span><span class="wh">dienmayxanh.com or in store</span></td></tr>
       <tr><td class="ck">☐</td><td>43″ 4K smart TV</td><td class="c">2</td><td class="n">8,000,000</td><td class="n">16,000,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Slim tilting wall bracket</td><td class="c">2</td><td class="n">450,000</td><td class="n">900,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>TV install + cable trunking</td><td class="c">2</td><td class="n">800,000</td><td class="n">1,600,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
-      <tr class="grp"><td colspan="7"><span class="gt">Nhà Xinh / UMA</span><span class="gs">8,350,000 ₫ · lead 7–14 days</span><span class="wh">In store — Estella Place or Vincom Thảo Điền</span></td></tr>
-      <tr><td class="ck">☐</td><td>Armchair + ottoman, oatmeal linen</td><td class="c">1</td><td class="n">7,500,000</td><td class="n">7,500,000</td><td class="rm"><i>LV</i></td><td class="who oV">V</td></tr>
-      <tr><td class="ck">☐</td><td>Bedside table, black</td><td class="c">1</td><td class="n">850,000</td><td class="n">850,000</td><td class="rm"><i>SB</i></td><td class="who oA">A</td></tr>
       <tr class="grp"><td colspan="7"><span class="gt">Minh Thy Furniture</span><span class="gs">4,450,000 ₫ · lead 3–7 days</span><span class="wh">Search "Minh Thy ghế rope ban công"</span></td></tr>
       <tr><td class="ck">☐</td><td>Lounge chair — rope, aluminium or 304 stainless frame</td><td class="c">2</td><td class="n">1,600,000</td><td class="n">3,200,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Outdoor side table</td><td class="c">1</td><td class="n">750,000</td><td class="n">750,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
@@ -194,6 +220,10 @@ footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-
       <tr><td class="ck">☐</td><td>Folding luggage rack</td><td class="c">1</td><td class="n">450,000</td><td class="n">450,000</td><td class="rm"><i>SB</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Amber glass pump dispenser, refillable</td><td class="c">4</td><td class="n">130,000</td><td class="n">520,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Rechargeable LED lantern, IP44, warm</td><td class="c">1</td><td class="n">380,000</td><td class="n">380,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Mia Home — prints</span><span class="gs">1,520,000 ₫ · lead 5–7 days</span><span class="wh">280F8 Lương Định Của, An Phú, District 2</span></td></tr>
+      <tr><td class="ck">☐</td><td>Print + frame 40×30 — entry</td><td class="c">1</td><td class="n">480,000</td><td class="n">480,000</td><td class="rm"><i>EN</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Print + frame 40×30, glazed — bathrooms</td><td class="c">2</td><td class="n">520,000</td><td class="n">1,040,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
+      <tr class="pri p3"><td colspan="7"><span class="pn">Priority 3</span><span class="ph">The Thảo Điền shopping run</span><span class="pv">17,250,000 ₫ &nbsp;·&nbsp; Buy day 3–4</span><span class="pw">The styling layer. Bought in person because colour and hand do not survive a product photo.</span></td></tr>
       <tr class="grp"><td colspan="7"><span class="gt">Thảo Điền stores</span><span class="gs">17,250,000 ₫ · lead Buy day 3–4</span><span class="wh">UMA, Baya — Vincom Mega Mall then Estella Place. Books: Fahasa. Coffee set: Là Việt</span></td></tr>
       <tr><td class="ck">☐</td><td>Linen cushion cover + inner, living</td><td class="c">4</td><td class="n">260,000</td><td class="n">1,040,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Decorative cushion, bedrooms</td><td class="c">4</td><td class="n">260,000</td><td class="n">1,040,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
@@ -216,11 +246,14 @@ footer{padding:30px 0 56px;border-top:1px solid var(--ln);color:var(--mut);font-
       <tr><td class="ck">☐</td><td>Woven basket</td><td class="c">2</td><td class="n">190,000</td><td class="n">380,000</td><td class="rm"><i>BA</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Monochrome hardback book</td><td class="c">4</td><td class="n">160,000</td><td class="n">640,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Niche kit — teal vessel, phin coffee set, 2 books, throw</td><td class="c">1 set</td><td class="n">1,400,000</td><td class="n">1,400,000</td><td class="rm"><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr class="pri p4"><td colspan="7"><span class="pn">Priority 4</span><span class="ph">Frames for the originals, plants, installer</span><span class="pv">11,350,000 ₫ &nbsp;·&nbsp; Day 7 onward</span><span class="pw">Cannot start earlier. Frames wait for the paintings, plants die if bought early, installer is scheduled.</span></td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Mia Home — frames for originals</span><span class="gs">7,000,000 ₫ · lead 5–7 days after art</span><span class="wh">Same shop. Cannot start until the paintings are done</span></td></tr>
+      <tr><td class="ck">☐</td><td>Frame 90×60 — acid-free mount, UV glass</td><td class="c">3</td><td class="n">1,600,000</td><td class="n">4,800,000</td><td class="rm"><i>LV</i><i>BB</i></td><td class="who oA">A</td></tr>
+      <tr><td class="ck">☐</td><td>Frame 60×40 — acid-free mount, UV glass</td><td class="c">2</td><td class="n">1,100,000</td><td class="n">2,200,000</td><td class="rm"><i>BB</i><i>SB</i></td><td class="who oA">A</td></tr>
       <tr class="grp"><td colspan="7"><span class="gt">Plant market</span><span class="gs">2,050,000 ₫ · lead Buy day 7</span><span class="wh">Chợ hoa Hồ Thị Kỷ (D10) or a Thảo Điền nursery</span></td></tr>
       <tr><td class="ck">☐</td><td>Ficus lyrata 1.6m + matte charcoal pot</td><td class="c">1</td><td class="n">1,150,000</td><td class="n">1,150,000</td><td class="rm"><i>LV</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Outdoor planter + hardy plant</td><td class="c">1</td><td class="n">900,000</td><td class="n">900,000</td><td class="rm"><i>BC</i></td><td class="who oA">A</td></tr>
-      <tr class="grp"><td colspan="7"><span class="gt">Local trades</span><span class="gs">6,600,000 ₫ · lead Book by day 2</span><span class="wh">Painter 2 days, installer 1 day</span></td></tr>
-      <tr><td class="ck">☐</td><td>Navy feature paint, ~28m², incl. painter and 2 coats</td><td class="c">1</td><td class="n">4,300,000</td><td class="n">4,300,000</td><td class="rm"><i>EN</i><i>LV</i></td><td class="who oA">A</td></tr>
+      <tr class="grp"><td colspan="7"><span class="gt">Installer + delivery</span><span class="gs">2,300,000 ₫ · lead Book by day 2</span><span class="wh">Two visits: day 10 and day 29</span></td></tr>
       <tr><td class="ck">☐</td><td>Installer — TVs, prints, mirror, film, hooks</td><td class="c">1</td><td class="n">1,500,000</td><td class="n">1,500,000</td><td class="rm"><i>ALL</i></td><td class="who oA">A</td></tr>
       <tr><td class="ck">☐</td><td>Delivery consolidation and packaging disposal</td><td class="c">1</td><td class="n">800,000</td><td class="n">800,000</td><td class="rm"><i>ALL</i></td><td class="who oA">A</td></tr>
       <tr class="tot"><td></td><td>Total</td><td class="c"></td><td class="n"></td><td class="n">100,570,000</td><td></td><td class="c"></td></tr>
