@@ -20,6 +20,8 @@ import {
   getMeetingsBookedThisWeek,
   getNewLeadsCount,
 } from "@/lib/admin/lead-stats";
+import { getContentEngine } from "@/lib/admin/marketing-engine";
+import { CHANNEL_LABEL } from "@/lib/admin/marketing-calendar";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { EmailAudienceToggle } from "./EmailAudienceToggle";
 
@@ -70,6 +72,15 @@ const AUDIENCE_EMPTY: Record<EmailAudience, string> = {
   transactional: "No transactional email in this window.",
 };
 
+// Broadcast (email_campaigns) status, shown as a tone next to the next send.
+const BROADCAST_TONE: Record<string, "ok" | "warn" | "err" | "info" | "neutral"> = {
+  draft: "info",
+  approved: "warn",
+  sending: "warn",
+  sent: "ok",
+  cancelled: "neutral",
+};
+
 function formatRate(value: number | null): string {
   if (value === null) return "—";
   return `${value.toFixed(1)}%`;
@@ -85,13 +96,14 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
   const emailAudience = parseAudience(firstParam(searchParams.email));
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
-  const [traffic, email, audience, delivery, newLeads, meetingsBooked] = await Promise.all([
+  const [traffic, email, audience, delivery, newLeads, meetingsBooked, engine] = await Promise.all([
     getAnalyticsOverview(range, "public"),
     getEmailActivity(range, emailAudience),
     getAudienceBreakdown(),
     getDeliverability(range),
     getNewLeadsCount(rangeSince(range)),
     getMeetingsBookedThisWeek(),
+    getContentEngine(),
   ]);
 
   const trafficError = "error" in traffic ? traffic.error : null;
@@ -163,6 +175,158 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           Audience: {audience.error}
         </div>
       )}
+
+      <section className="admin-card admin-section-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div className="admin-card-title">Content engine</div>
+          <Link className="admin-btn" href="/admin/revenue/marketing/calendar">
+            Open calendar
+          </Link>
+        </div>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          Every asset on the calendar board by stage, the campaigns in flight, and the next email to
+          go out. {engine.pipelineTotal.toLocaleString()} asset
+          {engine.pipelineTotal === 1 ? "" : "s"} on the board.
+        </p>
+
+        <div className="admin-summary-pills" style={{ marginTop: 12, marginBottom: 4 }}>
+          {engine.stages.map((s) => (
+            <Link key={s.id} className="admin-pill" href="/admin/revenue/marketing/calendar">
+              <span className="admin-pill-label">{s.label}</span>
+              <span className="admin-pill-val">{s.count.toLocaleString()}</span>
+            </Link>
+          ))}
+        </div>
+
+        <div
+          className="admin-summary-grid"
+          style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", marginTop: 12 }}
+        >
+          <div className="admin-card admin-chart-card">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <div className="mp-kpi-label">Active campaigns</div>
+              <Link href="/admin/revenue/marketing/campaigns" className="admin-cell-muted">
+                See all
+              </Link>
+            </div>
+            {engine.activeCampaigns.length === 0 ? (
+              <div className="admin-empty" style={{ marginTop: 12 }}>
+                No active campaigns. Start one on the campaigns page.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+                {engine.activeCampaigns.map((c) => {
+                  const pct = c.assetCount === 0 ? 0 : Math.round((c.builtCount / c.assetCount) * 100);
+                  return (
+                    <div key={c.id}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          justifyContent: "space-between",
+                          gap: 8,
+                        }}
+                      >
+                        <Link
+                          href={`/admin/revenue/marketing/campaigns/${c.id}`}
+                          className="admin-cell-strong"
+                        >
+                          {c.name}
+                        </Link>
+                        <span className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>
+                          {c.builtCount} / {c.assetCount} built
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: 8,
+                          borderRadius: 20,
+                          background: "var(--admin-line-soft)",
+                          overflow: "hidden",
+                          marginTop: 6,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${pct}%`,
+                            height: "100%",
+                            borderRadius: 20,
+                            background: "var(--admin-accent)",
+                          }}
+                        />
+                      </div>
+                      {c.channels.length > 0 && (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                          {c.channels.map((ch) => (
+                            <span key={ch} className="admin-chip">
+                              {CHANNEL_LABEL[ch]}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card admin-chart-card">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <div className="mp-kpi-label">Next broadcast</div>
+              <Link href="/admin/revenue/marketing/broadcasts" className="admin-cell-muted">
+                See all
+              </Link>
+            </div>
+            {engine.nextBroadcast === null ? (
+              <div className="admin-empty" style={{ marginTop: 12 }}>
+                Nothing queued. Draft one on the broadcasts page.
+              </div>
+            ) : (
+              <div style={{ marginTop: 12 }}>
+                <Link
+                  href={`/admin/revenue/marketing/broadcasts/${engine.nextBroadcast.id}`}
+                  className="admin-cell-strong"
+                >
+                  {engine.nextBroadcast.name}
+                </Link>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+                  <Badge tone={BROADCAST_TONE[engine.nextBroadcast.status] ?? "neutral"}>
+                    {engine.nextBroadcast.status}
+                  </Badge>
+                  <span className="admin-cell-muted">
+                    {engine.nextBroadcast.scheduledAt
+                      ? `scheduled ${formatDate(engine.nextBroadcast.scheduledAt)}`
+                      : "not scheduled yet"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="admin-card admin-section-card">
         <div className="admin-card-title">Public site traffic</div>
