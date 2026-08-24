@@ -36,6 +36,13 @@ export const e8PrivateItems: LibraryItem[] = [
   },
   {
     category: 'plan',
+    href: '/workflows/private/e8/8-edges-business-model.html',
+    title: '8 Edges: Business Model',
+    description:
+      'Forum pitch deck for the 8 Edges business model: why AI programs fail, the open source data spine and app, the Australian target market, and the four ways in from free to done for you.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/e8/eight-edges-product-doc.html',
     title: '8 Edges: Product Doc',
     description:

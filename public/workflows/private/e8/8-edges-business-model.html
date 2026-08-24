@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>8 Edges Business Model</title>
+<style>
+  @font-face{
+    font-family:'Manrope';
+    src:url('/fonts/manrope-latin.woff2') format('woff2');
+    font-weight:200 800;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:'Manrope';
+    src:url('/fonts/manrope-latin-ext.woff2') format('woff2');
+    font-weight:200 800;font-style:normal;font-display:swap;
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  }
+</style>
+
+<style>
+  :root{
+    --ground:#101014;
+    --surface:#1A1A1F;
+    --surface-2:#232329;
+    --line:rgba(234,238,242,0.12);
+    --line-strong:rgba(234,238,242,0.28);
+    --ink:#FFFFFF;
+    --ink-2:#B6BAC1;
+    --muted:#797C82;
+    --blue:#287BE8;
+    --blue-bright:#3B8CF5;
+    --mint:#6FF2C1;
+    --font:'Manrope','Helvetica Neue',Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--font);
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .deck{
+    height:100dvh;
+    overflow-y:scroll;
+    scroll-snap-type:y mandatory;
+  }
+  .slide{
+    min-height:100dvh;
+    scroll-snap-align:start;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:clamp(28px,6vw,96px);
+    padding-bottom:clamp(72px,10vw,132px);
+    border-bottom:1px solid var(--line);
+  }
+  .inner{width:100%;max-width:1080px;margin:0 auto;}
+
+  /* ── Type ── */
+  .eyebrow{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--mint);
+    margin:0 0 clamp(16px,2vw,24px);
+  }
+  .eyebrow .num{color:var(--muted);margin-right:10px;}
+  h1{
+    font-size:clamp(38px,7vw,84px);
+    font-weight:800;
+    line-height:1.02;
+    letter-spacing:-0.03em;
+    text-wrap:balance;
+    margin:0;
+  }
+  h2{
+    font-size:clamp(30px,4.6vw,54px);
+    font-weight:700;
+    line-height:1.08;
+    letter-spacing:-0.02em;
+    text-wrap:balance;
+    margin:0 0 clamp(18px,2.4vw,32px);
+  }
+  h3{
+    font-size:clamp(17px,1.6vw,20px);
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0 0 8px;
+  }
+  p{margin:0;}
+  .lede{
+    font-size:clamp(17px,1.9vw,22px);
+    font-weight:300;
+    line-height:1.5;
+    color:var(--ink-2);
+    max-width:60ch;
+  }
+  .note{
+    font-size:14px;
+    font-weight:400;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:62ch;
+  }
+  .blue{color:var(--blue-bright);}
+  .mintword{color:var(--mint);}
+
+  /* ── Title slide ── */
+  .title-slide .brandmark{
+    display:inline-flex;align-items:center;gap:12px;
+    margin-bottom:clamp(28px,5vw,48px);
+  }
+  .brandmark .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--mint);
+    box-shadow:0 0 0 6px rgba(111,242,193,0.14);
+  }
+  .brandmark .name{
+    font-size:14px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink);
+  }
+  .title-slide .sub{margin-top:clamp(20px,3vw,34px);}
+  .title-meta{
+    margin-top:clamp(36px,6vw,64px);
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:10px 28px;
+    font-size:13px;color:var(--muted);
+  }
+
+  /* ── Inline callout stat (problem slide) ── */
+  .callout{
+    display:flex;align-items:center;gap:clamp(16px,2.4vw,26px);
+    margin:0 0 clamp(18px,2.4vw,26px);
+    padding-left:clamp(16px,2vw,22px);
+    border-left:3px solid var(--line-strong);
+  }
+  .callout .figure{
+    font-size:clamp(46px,6vw,72px);
+    font-weight:800;line-height:0.9;letter-spacing:-0.045em;
+    color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  .callout .cap{
+    font-size:clamp(15px,1.5vw,18px);font-weight:500;line-height:1.4;color:var(--ink);max-width:32ch;
+  }
+  .callout .src{margin-top:8px;font-size:12px;color:var(--muted);}
+
+  /* ── Stat block ── */
+  .statwrap{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:clamp(20px,3vw,40px);
+    align-items:center;
+  }
+  @media(min-width:820px){ .statwrap{grid-template-columns:minmax(0,340px) minmax(0,1fr);} }
+  .stat{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:clamp(24px,3vw,32px);
+  }
+  .stat .big{
+    font-size:clamp(56px,9vw,96px);
+    font-weight:800;
+    line-height:0.94;
+    letter-spacing:-0.045em;
+    color:var(--mint);
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .cap{margin-top:14px;font-size:15px;font-weight:500;color:var(--ink);line-height:1.4;}
+  .stat .src{margin-top:10px;font-size:12px;color:var(--muted);}
+
+  .bar{
+    margin-top:20px;height:10px;border-radius:999px;
+    background:var(--surface-2);overflow:hidden;display:flex;
+  }
+  .bar .fill{width:77%;background:linear-gradient(90deg,var(--blue),var(--mint));}
+  .barkey{
+    display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;
+    font-size:12px;color:var(--muted);
+  }
+  .barkey span{display:inline-flex;align-items:center;gap:7px;}
+  .swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+  /* ── Reason list ── */
+  .reasons{
+    list-style:none;padding:0;margin:clamp(20px,3vw,32px) 0 0;
+    display:grid;gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  }
+  .reasons li{background:var(--ground);padding:clamp(18px,2.4vw,24px);}
+  .reasons li p{color:var(--ink-2);font-size:15px;line-height:1.55;font-weight:300;}
+
+  /* ── Size scale (target market) ── */
+  .scale{
+    display:grid;gap:8px;margin:clamp(18px,2.4vw,26px) 0 clamp(16px,2vw,22px);
+    grid-template-columns:0.8fr 1.6fr 0.9fr;
+  }
+  @media(max-width:640px){ .scale{grid-template-columns:1fr;} }
+  .seg{
+    border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;display:grid;gap:4px;background:var(--surface);
+  }
+  .seg .range{font-size:15px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;color:var(--ink-2);}
+  .seg .verdict{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  .seg.sweet{
+    border-color:rgba(111,242,193,0.5);
+    background:linear-gradient(180deg,rgba(111,242,193,0.12),rgba(111,242,193,0.03));
+  }
+  .seg.sweet .range{color:var(--ink);}
+  .seg.sweet .verdict{color:var(--mint);}
+
+  .geo{
+    display:flex;flex-wrap:wrap;gap:8px;
+    margin-top:clamp(16px,2vw,22px);
+  }
+  .pill{
+    font-size:12px;font-weight:600;letter-spacing:0.04em;
+    color:var(--ink-2);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:999px;
+    padding:7px 14px;
+  }
+
+  .whygrid{
+    display:grid;gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  }
+  .why{
+    border:1px solid var(--line);border-radius:20px;background:var(--surface);
+    padding:clamp(18px,2.2vw,24px);
+  }
+  .why p{font-size:14px;line-height:1.55;color:var(--ink-2);font-weight:300;}
+
+  /* ── Stack diagram ── */
+  .stack{display:grid;gap:12px;margin-top:clamp(20px,3vw,32px);}
+  .layer{
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    padding:clamp(20px,2.6vw,26px);
+    display:grid;gap:6px;
+  }
+  .layer.app{border-color:rgba(40,123,232,0.5);background:linear-gradient(180deg,rgba(40,123,232,0.14),rgba(40,123,232,0.04));}
+  .layer.db{border-color:rgba(111,242,193,0.4);background:linear-gradient(180deg,rgba(111,242,193,0.10),rgba(111,242,193,0.03));}
+  .layer .tag{
+    font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);
+  }
+  .layer p{color:var(--ink-2);font-size:15px;line-height:1.55;font-weight:300;}
+  .layer .free{
+    display:inline-block;margin-top:4px;
+    font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--ground);background:var(--mint);
+    border-radius:999px;padding:5px 12px;
+  }
+  .arrowrow{display:flex;justify-content:center;color:var(--muted);font-size:18px;line-height:1;}
+
+  /* ── Pricing ladder ── */
+  .ladder{
+    display:grid;gap:12px;margin-top:clamp(20px,3vw,28px);
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  }
+  .rung{
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--surface);
+    padding:clamp(20px,2.2vw,24px);
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .rung .step{
+    font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);
+  }
+  .rung .price{
+    font-size:clamp(26px,2.6vw,32px);font-weight:800;letter-spacing:-0.03em;
+    color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  .rung .price small{display:block;font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--muted);margin-top:6px;text-transform:uppercase;}
+  .rung p{font-size:14px;line-height:1.55;color:var(--ink-2);font-weight:300;}
+  .rung.free .price{color:var(--mint);}
+  .rung.done{border-color:rgba(40,123,232,0.5);}
+  .rung.done .price{color:var(--blue-bright);}
+
+  .tokenline{
+    margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-strong);
+    font-size:13px;color:var(--muted);line-height:1.6;
+  }
+
+  /* ── Ask rounds ── */
+  .rounds{
+    display:grid;gap:12px;margin-top:clamp(20px,3vw,32px);
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  }
+  .round{
+    border:1px solid var(--line);border-radius:20px;background:var(--surface);
+    padding:clamp(22px,2.6vw,28px);display:flex;flex-direction:column;gap:12px;
+  }
+  .round .rnum{
+    font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--mint);
+  }
+  .round .q{font-size:clamp(19px,2vw,24px);font-weight:700;line-height:1.25;letter-spacing:-0.015em;}
+  .round p{font-size:14px;line-height:1.55;color:var(--muted);font-weight:300;}
+
+  /* ── Chrome: progress + hint ── */
+  .rail{
+    position:fixed;left:0;right:0;bottom:0;
+    display:flex;align-items:center;gap:16px;
+    padding:14px clamp(20px,4vw,40px);
+    background:linear-gradient(180deg,rgba(16,16,20,0),rgba(16,16,20,0.92) 42%);
+    font-size:12px;color:var(--muted);
+    pointer-events:none;
+  }
+  .ticks{display:flex;gap:6px;pointer-events:auto;}
+  .tick{
+    width:26px;height:4px;border-radius:999px;background:var(--line-strong);
+    border:0;padding:0;cursor:pointer;transition:background .2s ease;
+  }
+  .tick:hover{background:var(--ink-2);}
+  .tick[aria-current="true"]{background:var(--mint);}
+  .tick:focus-visible{outline:2px solid var(--blue-bright);outline-offset:3px;}
+  .counter{font-variant-numeric:tabular-nums;letter-spacing:0.08em;}
+  .hint{margin-left:auto;display:none;}
+  @media(min-width:720px){ .hint{display:block;} }
+  kbd{
+    font-family:inherit;font-size:11px;font-weight:700;
+    border:1px solid var(--line-strong);border-radius:5px;
+    padding:2px 6px;color:var(--ink-2);
+  }
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none !important;}
+  }
+</style>
+
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 — Title -->
+  <section class="slide title-slide">
+    <div class="inner">
+      <div class="brandmark"><span class="dot"></span><span class="name">Edge8</span></div>
+      <h1>8 Edges: the business model</h1>
+      <p class="lede sub">An open source data spine for AI programs, and four ways to get on it. Bring your sharpest questions, this is a working draft.</p>
+      <div class="title-meta">
+        <span>Forum feedback session</span>
+        <span>Problem &rarr; Market &rarr; Solution &rarr; Model &rarr; The ask</span>
+        <span>7 slides, then round robin</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — Problem -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">01</span>The problem</p>
+      <h2>Most AI programs are failing</h2>
+      <div class="callout">
+        <div class="figure">95%</div>
+        <div>
+          <p class="cap">of enterprise AI pilots deliver no measurable return.</p>
+          <p class="src">MIT Sloan</p>
+        </div>
+      </div>
+      <p class="lede">Not because the models are weak. Because the company underneath them is not machine readable.</p>
+      <ul class="reasons">
+        <li>
+          <h3>The data is scattered</h3>
+          <p>People, clients, deals, projects, hours, and outcomes live in ten tools that do not talk to each other. There is no single place an agent can read the business from.</p>
+        </li>
+        <li>
+          <h3>The workflows are undocumented</h3>
+          <p>How work actually gets done sits in heads and habits. You cannot automate a process nobody has written down.</p>
+        </li>
+        <li>
+          <h3>So the pilots stall</h3>
+          <p>Teams buy a model, run a demo, and hit a wall the moment it needs real company context. The pilot never becomes production.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 — Evidence -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">02</span>The evidence</p>
+      <h2>The programs that work spend their time on data and workflows</h2>
+      <div class="statwrap">
+        <div class="stat">
+          <div class="big">77%</div>
+          <p class="cap">of the work in a successful AI program is data and workflows, not models.</p>
+          <p class="src">Stanford study of successful AI programs</p>
+        </div>
+        <div>
+          <p class="lede">Everyone is shopping for the last 23%. The winners did the unglamorous 77% first: got their data into one place, then wrote their workflows down.</p>
+          <div class="bar"><div class="fill"></div></div>
+          <div class="barkey">
+            <span><i class="swatch" style="background:linear-gradient(90deg,var(--blue),var(--mint))"></i>Data and workflows, 77%</span>
+            <span><i class="swatch" style="background:var(--surface-2)"></i>Models and tooling, 23%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — Target market -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">03</span>Who this is for</p>
+      <h2>Australian companies, startups up to 500 people</h2>
+      <p class="lede">Big enough to have the mess. Small enough that one spine can still cover the whole business, and one person can say yes. Australia first, because that is where the relationships already are.</p>
+      <div class="geo">
+        <span class="pill">Market: Australia</span>
+        <span class="pill">Size: startups to 500</span>
+        <span class="pill">Buyer: founder or CEO</span>
+      </div>
+
+      <div class="scale" aria-label="Company size fit">
+        <div class="seg thin"><span class="range">1 &ndash; 20</span><span class="verdict">Pain is still thin</span></div>
+        <div class="seg sweet"><span class="range">20 &ndash; 500</span><span class="verdict">Sweet spot</span></div>
+        <div class="seg heavy"><span class="range">500+</span><span class="verdict">Enterprise stack wins</span></div>
+      </div>
+
+      <div class="whygrid">
+        <div class="why">
+          <h3>The mess has arrived</h3>
+          <p>Ten tools, none connected. Real clients, real hires, real projects. Enough complexity that scattered data actually costs money.</p>
+        </div>
+        <div class="why">
+          <h3>One person can decide</h3>
+          <p>The founder or CEO is the buyer. No procurement, no security review committee, no eighteen month enterprise cycle.</p>
+        </div>
+        <div class="why">
+          <h3>Nothing is entrenched yet</h3>
+          <p>No warehouse, no seven figure ERP to rip out. Adopting one spine is a decision, not a migration.</p>
+        </div>
+      </div>
+      <p class="note" style="margin-top:18px;">Above 500 the sale becomes integration work and the buyer becomes a committee. That is a different business, and not this one yet. Australia is the beachhead, not the ceiling: the product is open source, so it travels on its own.</p>
+    </div>
+  </section>
+
+  <!-- 5 — Solution -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">04</span>The solution</p>
+      <h2>Give everyone the 77% for free</h2>
+      <p class="lede">One open source data spine for a company, and an open source application that runs on top of it.</p>
+      <div class="stack">
+        <div class="layer app">
+          <span class="tag">Application layer</span>
+          <h3>8 Edges</h3>
+          <p>An open source app to run a real business on: revenue, talent, operations, innovation. Fork it, host it, change it.</p>
+          <span class="free">Open source, free</span>
+        </div>
+        <div class="arrowrow">&darr;</div>
+        <div class="layer db">
+          <span class="tag">Data layer</span>
+          <h3>The centralized database</h3>
+          <p>100+ tables covering the whole company: people, clients, deals, projects, meetings, hours, goals. One place your agents can actually read.</p>
+          <span class="free">Open source, free</span>
+        </div>
+      </div>
+      <p class="note" style="margin-top:20px;">The software is not the business. Getting you onto it is.</p>
+    </div>
+  </section>
+
+  <!-- 6 — Model -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">05</span>The model</p>
+      <h2>Four ways in, priced by how much you want us involved</h2>
+      <div class="ladder">
+        <div class="rung free">
+          <span class="step">Do it yourself</span>
+          <div class="price">Free<small>Open source</small></div>
+          <p>Take the database and the app, run them yourself. No catch, no upsell required.</p>
+        </div>
+        <div class="rung">
+          <span class="step">Get answers</span>
+          <div class="price">$99<small>per month</small></div>
+          <p>The AI Officer community. Ask questions, join group coaching, learn from others doing the same build.</p>
+        </div>
+        <div class="rung done">
+          <span class="step">Have it done for you</span>
+          <div class="price">$15,000<small>one time setup</small></div>
+          <p>We wire up to five of your data sources and make sure the core functionality works on your data.</p>
+        </div>
+        <div class="rung">
+          <span class="step">Staff it</span>
+          <div class="price">~$4,000<small>per month</small></div>
+          <p>A dedicated person running it with you, month to month.</p>
+        </div>
+      </div>
+      <p class="tokenline"><strong style="color:var(--ink)">Or buy human tokens:</strong> $2,000 for roughly 40 tokens, about 40 hours of skilled time. Use them when you need them instead of carrying a headcount.</p>
+    </div>
+  </section>
+
+  <!-- 7 — Ask -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow"><span class="num">06</span>The ask</p>
+      <h2>Round robin, three rounds</h2>
+      <p class="lede">Everyone answers each question before we move on. No debate inside a round, just your answer.</p>
+      <div class="rounds">
+        <div class="round">
+          <span class="rnum">Round one</span>
+          <p class="q">What part did you not understand?</p>
+          <p>Where did I lose you, or where did you have to guess what I meant?</p>
+        </div>
+        <div class="round">
+          <span class="rnum">Round two</span>
+          <p class="q">What part is appealing to you?</p>
+          <p>If you were the buyer, which piece would you actually reach for first?</p>
+        </div>
+        <div class="round">
+          <span class="rnum">Round three</span>
+          <p class="q">What is missing from the pitch?</p>
+          <p>What would you need to hear before you would say yes, or send this to someone?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="rail">
+  <div class="ticks" id="ticks" role="tablist" aria-label="Slides"></div>
+  <span class="counter" id="counter">01 / 06</span>
+  <span class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> to move</span>
+</div>
+
+<script>
+  const deck = document.getElementById('deck');
+  const slides = [...document.querySelectorAll('.slide')];
+  const ticks = document.getElementById('ticks');
+  const counter = document.getElementById('counter');
+  const pad = n => String(n).padStart(2, '0');
+  let current = 0;
+
+  slides.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'tick';
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-label', 'Slide ' + (i + 1));
+    b.addEventListener('click', () => go(i));
+    ticks.appendChild(b);
+  });
+
+  function paint() {
+    counter.textContent = pad(current + 1) + ' / ' + pad(slides.length);
+    [...ticks.children].forEach((t, i) => t.setAttribute('aria-current', String(i === current)));
+  }
+
+  function go(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides[current].scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    paint();
+  }
+
+  deck.addEventListener('scroll', () => {
+    const i = Math.round(deck.scrollTop / deck.clientHeight);
+    if (i !== current) { current = i; paint(); }
+  }, { passive: true });
+
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+  });
+
+  paint();
+</script>
+</body>
+</html>
