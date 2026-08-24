@@ -55,6 +55,9 @@ export type AnalyticsOverview = {
   daily: AnalyticsBar[];
   topPages: AnalyticsRow[];
   topReferrers: AnalyticsRow[];
+  // Referrer pageviews rolled up by channel (Direct / Social / Search / …), for
+  // the "Traffic by channel" strip. Empty channels are omitted.
+  byChannel: AnalyticsBar[];
   // Pageviews represented by the rows above, against the segment total. The
   // API's "Others" remainder is dropped rather than charted (it was 76% of the
   // bar chart and squashed every real page), so this is how the page can still
@@ -135,6 +138,64 @@ export function toBars(rows: AnalyticsRow[], metric: "pageviews" | "visitors" = 
   return rows.map((row) => ({ label: row.label, value: row[metric] }));
 }
 
+// ----------------------------------------------------------- traffic channels
+
+// The marketing question "where is our traffic coming from" answered at the
+// grouping people think in, not raw hostnames. Social is the one this exists to
+// surface: it rolls up every network's referrer host into one number.
+export type Channel = "Direct" | "Social" | "Search" | "Email" | "Referral";
+
+// Bare (www-stripped) hostnames. Extend as new networks show up in the referrer
+// list. Anything unmatched is a plain Referral, so a miss under-reports a
+// specific channel rather than vanishing.
+const SOCIAL_HOSTS = new Set([
+  "linkedin.com", "lnkd.in",
+  "facebook.com", "l.facebook.com", "m.facebook.com", "lm.facebook.com", "fb.me",
+  "t.co", "twitter.com", "x.com",
+  "instagram.com", "l.instagram.com",
+  "youtube.com", "m.youtube.com", "youtu.be",
+  "reddit.com", "out.reddit.com",
+  "threads.net", "tiktok.com", "pinterest.com",
+]);
+const SEARCH_HOSTS = new Set([
+  "google.com", "bing.com", "duckduckgo.com", "search.brave.com",
+  "ecosia.org", "baidu.com", "yandex.com", "search.yahoo.com",
+]);
+// Webmail referrers: a click from an email opened in the browser. Precise email
+// attribution needs UTM tags (a follow-up); this catches the common webmail
+// hosts so those clicks are not mislabelled as generic referrals.
+const EMAIL_HOSTS = new Set([
+  "mail.google.com", "outlook.live.com", "outlook.office365.com", "outlook.office.com", "mail.yahoo.com",
+]);
+
+export function channelFor(hostname: string | null | undefined): Channel {
+  const bare = (hostname ?? "").trim().toLowerCase().replace(/^www\./, "");
+  if (!bare) return "Direct";
+  // Email before the google catch-all: mail.google.com is a webmail click, not
+  // a search visit.
+  if (EMAIL_HOSTS.has(bare)) return "Email";
+  if (SOCIAL_HOSTS.has(bare)) return "Social";
+  if (SEARCH_HOSTS.has(bare) || bare.endsWith(".google.com") || bare.endsWith(".bing.com")) return "Search";
+  return "Referral";
+}
+
+// Pageviews summed per channel across the referrer rows. Pageviews are additive,
+// so this total is honest; visitors are NOT summable across rows (one person on
+// two referrers is two rows, one visitor), so this deliberately uses pageviews.
+// The "Others" remainder is not a hostname and is skipped, so a long tail of
+// tiny referrers is uncounted here — the number is a floor, which the UI says.
+function channelTotals(rows: AggregateRow[]): AnalyticsBar[] {
+  const totals = new Map<Channel, number>();
+  for (const row of rows) {
+    const host = row.referrerHostname as string | undefined;
+    if (host === REMAINDER_LABEL) continue;
+    const ch = channelFor(host);
+    totals.set(ch, (totals.get(ch) ?? 0) + row.pageviews);
+  }
+  const order: Channel[] = ["Direct", "Social", "Search", "Referral", "Email"];
+  return order.map((label) => ({ label, value: totals.get(label) ?? 0 })).filter((b) => b.value > 0);
+}
+
 // Totals only — one API call, for the dashboard's two traffic tiles. The full
 // getAnalyticsOverview() (4 calls) is for the dedicated /operations/analytics page.
 export async function getAnalyticsTotals(
@@ -196,12 +257,14 @@ export async function getAnalyticsOverview(
 
     const topPages = toRows(pages.data, "requestPath", "(unknown)");
     const topReferrers = toRows(referrers.data, "referrerHostname", "Direct");
+    const byChannel = channelTotals(referrers.data);
 
     return {
       totals: count.data,
       daily: daily.data.map((row) => ({ label: formatDay(row.timestamp), value: row.pageviews })),
       topPages,
       topReferrers,
+      byChannel,
       coverage: {
         shownPageviews: topPages.reduce((sum, row) => sum + row.pageviews, 0),
         totalPageviews: count.data.pageviews,

@@ -436,6 +436,25 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           )}
           <Link href="/admin/operations/analytics?segment=internal">See Company OS usage</Link>.
         </p>
+
+        {!("error" in traffic) && traffic.byChannel.length > 0 && (
+          <>
+            <div className="admin-summary-pills" style={{ marginTop: 12, marginBottom: 4 }}>
+              {traffic.byChannel.map((c) => (
+                <div key={c.label} className="admin-pill">
+                  <span className="admin-pill-label">{c.label}</span>
+                  <span className="admin-pill-val">{c.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+            <div className="admin-hint">
+              Traffic grouped by referrer. Social is a floor: links opened from apps and DMs arrive
+              without a referrer and count as Direct. Precise per-post attribution needs UTM tags on
+              the links we post (a planned follow-up).
+            </div>
+          </>
+        )}
+
         <div
           className="admin-summary-grid"
           style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", marginTop: 12 }}
