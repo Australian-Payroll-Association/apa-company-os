@@ -2,6 +2,7 @@ import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { ACTIVE_LEAD_STATUSES } from "@/lib/lifecycle";
+import { WEEKLY_MEETINGS_GOAL, getMeetingsBookedThisWeek } from "@/lib/admin/lead-stats";
 import { LeadQueue, type QueueRow } from "./LeadQueue";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,6 @@ export const metadata = {
 // oldest promotion), worked top to bottom. Rows come from the lead satellite
 // (one row per person being worked); nurture/unqualified leads leave the queue
 // but stay on /admin/contacts; customers never appear here.
-
-const WEEKLY_MEETINGS_GOAL = 8;
 
 type Embedded<T> = T | T[] | null;
 const one = <T,>(e: Embedded<T>): T | null => (Array.isArray(e) ? e[0] ?? null : e);
@@ -47,14 +46,6 @@ type LeadJoinRow = {
   } | null;
 };
 
-function startOfWeekIso(): string {
-  const d = new Date();
-  const day = (d.getDay() + 6) % 7;
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - day);
-  return d.toISOString();
-}
-
 function startOfDayIso(): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -64,7 +55,7 @@ function startOfDayIso(): string {
 export default async function LeadsPage() {
   const nowIso = new Date().toISOString();
 
-  const [queueRes, meetingsRes, connectsRes] = await Promise.all([
+  const [queueRes, meetingsBooked, connectsRes] = await Promise.all([
     companyOs
       .from("lead")
       .select(
@@ -78,11 +69,7 @@ export default async function LeadsPage() {
       .order("sla_due_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true })
       .limit(200),
-    companyOs
-      .from("lifecycle_transitions")
-      .select("id", { count: "exact", head: true })
-      .eq("reason", "meeting_booked")
-      .gte("occurred_at", startOfWeekIso()),
+    getMeetingsBookedThisWeek(),
     companyOs
       .from("lifecycle_transitions")
       .select("id", { count: "exact", head: true })
@@ -128,7 +115,6 @@ export default async function LeadsPage() {
       };
     });
 
-  const meetingsBooked = meetingsRes.count ?? 0;
   const connectsToday = connectsRes.count ?? 0;
   const slaOverdue = rows.filter((r) => r.slaDueAt && r.slaDueAt < nowIso).length;
 

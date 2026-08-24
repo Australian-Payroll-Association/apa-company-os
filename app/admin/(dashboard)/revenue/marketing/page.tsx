@@ -11,9 +11,15 @@ import {
   getAudienceBreakdown,
   getDeliverability,
   getEmailActivity,
+  rangeSince,
   type EmailAudience,
   type MarketingRange,
 } from "@/lib/admin/marketing";
+import {
+  WEEKLY_MEETINGS_GOAL,
+  getMeetingsBookedThisWeek,
+  getNewLeadsCount,
+} from "@/lib/admin/lead-stats";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { EmailAudienceToggle } from "./EmailAudienceToggle";
 
@@ -38,8 +44,15 @@ function parseRange(value: string | undefined): MarketingRange {
   return value === "7d" || value === "90d" || value === "all" ? value : "30d";
 }
 
+// Sales & marketing is the default view. The table's other tab, transactional,
+// is the system's own mail (portal invites, board digests, task nudges) and runs
+// ~40x the volume of real outreach; defaulting to "all" buried the five sends
+// that matter under two hundred that don't.
+const DEFAULT_AUDIENCE: EmailAudience = "outbound";
+
 function parseAudience(value: string | undefined): EmailAudience {
-  return value === "outbound" || value === "transactional" ? value : "all";
+  if (value === "all" || value === "transactional") return value;
+  return DEFAULT_AUDIENCE;
 }
 
 // The by-source chart follows the same filter as the list, so it says which set
@@ -72,11 +85,13 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
   const emailAudience = parseAudience(firstParam(searchParams.email));
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
-  const [traffic, email, audience, delivery] = await Promise.all([
+  const [traffic, email, audience, delivery, newLeads, meetingsBooked] = await Promise.all([
     getAnalyticsOverview(range, "public"),
     getEmailActivity(range, emailAudience),
     getAudienceBreakdown(),
     getDeliverability(range),
+    getNewLeadsCount(rangeSince(range)),
+    getMeetingsBookedThisWeek(),
   ]);
 
   const trafficError = "error" in traffic ? traffic.error : null;
@@ -87,7 +102,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       <PageHead
         eyebrow="Revenue"
         title="Marketing"
-        sub={`Site traffic, email activity, and the newsletter audience, ${active.sub}.`}
+        sub={`The funnel from site traffic to booked meetings, plus email activity, ${active.sub}.`}
       />
 
       <div className="admin-tabs" role="tablist" style={{ marginBottom: 14 }}>
@@ -105,6 +120,9 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
         ))}
       </div>
 
+      {/* The funnel, left to right: attention in, meetings out. Page views now
+          live in the traffic section's coverage line, and total emails sent in
+          the Recent email toggle, so nothing here is lost. */}
       <div className="mp-kpi-grid">
         <MetricCard
           label="Visitors"
@@ -112,19 +130,21 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           sub={trafficError ? "Vercel Analytics unavailable" : "unique, public site only"}
         />
         <MetricCard
-          label="Page views"
-          value={totals ? totals.pageviews.toLocaleString() : "—"}
-          sub={trafficError ? "Vercel Analytics unavailable" : "public site only"}
-        />
-        <MetricCard
-          label="Emails sent"
-          value={email.total.toLocaleString()}
-          sub={`${email.bySource.length} source${email.bySource.length === 1 ? "" : "s"}`}
-        />
-        <MetricCard
           label="Newsletter audience"
           value={audience.eligible.toLocaleString()}
           sub={`of ${audience.total.toLocaleString()} contacts`}
+        />
+        <MetricCard
+          label="New leads"
+          value={newLeads.toLocaleString()}
+          sub={active.sub}
+          href="/admin/revenue/leads"
+        />
+        <MetricCard
+          label="Meetings booked"
+          value={`${meetingsBooked} / ${WEEKLY_MEETINGS_GOAL}`}
+          sub="this week vs goal"
+          href="/admin/revenue/leads"
         />
       </div>
 
@@ -321,6 +341,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           <div className="admin-card-title">Recent email</div>
           <EmailAudienceToggle
             active={emailAudience}
+            defaultAudience={DEFAULT_AUDIENCE}
             counts={email.counts}
             searchParams={searchParams}
           />

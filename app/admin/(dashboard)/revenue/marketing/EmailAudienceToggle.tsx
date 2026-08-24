@@ -21,10 +21,12 @@ const OPTIONS: { key: EmailAudience; label: string }[] = [
 
 export function EmailAudienceToggle({
   active,
+  defaultAudience,
   counts,
   searchParams,
 }: {
   active: EmailAudience;
+  defaultAudience: EmailAudience;
   counts: { all: number; outbound: number; transactional: number };
   searchParams: SearchParamsObj;
 }) {
@@ -32,8 +34,9 @@ export function EmailAudienceToggle({
   const [pending, startTransition] = useTransition();
 
   function select(next: EmailAudience) {
-    // "all" is the default, so drop the param rather than pinning it.
-    const query = mergeQuery(searchParams, { email: next === "all" ? null : next });
+    // Selecting the default drops the param rather than pinning it, so the
+    // canonical URL stays clean and matches the page's own default.
+    const query = mergeQuery(searchParams, { email: next === defaultAudience ? null : next });
     startTransition(() => router.push(`/admin/revenue/marketing${query}`, { scroll: false }));
   }
 
