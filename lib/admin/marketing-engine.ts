@@ -23,7 +23,13 @@ export type ContentEngine = {
   pipelineTotal: number;
   activeCampaigns: MarketingCampaignRow[];
   nextBroadcast: NextBroadcast | null;
+  // Non-skipped calendar entries grouped by pillar, most content first. Answers
+  // "what are we making most of" and, unlike email delivery stats, is populated
+  // from the moment there are entries (no send/webhook dependency).
+  contentByPillar: { label: string; value: number }[];
 };
+
+const PILLAR_TOP_N = 8;
 
 // The board columns shown as a strip, in flow order. "skipped" is abandoned
 // work, not pipeline, so it is left out. Counts are the live board state rather
@@ -49,12 +55,20 @@ export async function getContentEngine(): Promise<ContentEngine> {
   ]);
 
   const counts = new Map<CalendarStatus, number>();
+  const pillarCounts = new Map<string, number>();
   for (const e of entries) {
     if (e.status === "skipped") continue;
     counts.set(e.status, (counts.get(e.status) ?? 0) + 1);
+    const pillar = e.pillarName ?? "Unassigned";
+    pillarCounts.set(pillar, (pillarCounts.get(pillar) ?? 0) + 1);
   }
   const stages = PIPELINE.map((s) => ({ id: s.id, label: s.label, count: counts.get(s.id) ?? 0 }));
   const pipelineTotal = stages.reduce((sum, s) => sum + s.count, 0);
+
+  const contentByPillar = [...pillarCounts.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, PILLAR_TOP_N);
 
   const activeCampaigns = campaigns
     .filter((c) => c.status === "active")
@@ -76,5 +90,5 @@ export async function getContentEngine(): Promise<ContentEngine> {
     ? { id: chosen.id, name: chosen.name, status: chosen.status, scheduledAt: chosen.scheduledAt }
     : null;
 
-  return { stages, pipelineTotal, activeCampaigns, nextBroadcast };
+  return { stages, pipelineTotal, activeCampaigns, nextBroadcast, contentByPillar };
 }

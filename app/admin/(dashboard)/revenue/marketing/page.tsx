@@ -22,6 +22,12 @@ import {
 } from "@/lib/admin/lead-stats";
 import { getContentEngine } from "@/lib/admin/marketing-engine";
 import { CHANNEL_LABEL } from "@/lib/admin/marketing-calendar";
+import {
+  KEYNOTE_ATTENDEES_GOAL,
+  DOCUMENTED_WORKFLOWS_GOAL,
+  getWorkshopAttendeesTotal,
+  getDocumentedWorkflowsTotal,
+} from "@/lib/stats";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { EmailAudienceToggle } from "./EmailAudienceToggle";
 
@@ -96,15 +102,35 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
   const emailAudience = parseAudience(firstParam(searchParams.email));
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
-  const [traffic, email, audience, delivery, newLeads, meetingsBooked, engine] = await Promise.all([
-    getAnalyticsOverview(range, "public"),
-    getEmailActivity(range, emailAudience),
-    getAudienceBreakdown(),
-    getDeliverability(range),
-    getNewLeadsCount(rangeSince(range)),
-    getMeetingsBookedThisWeek(),
-    getContentEngine(),
-  ]);
+  const [traffic, email, audience, delivery, newLeads, meetingsBooked, engine, attendees, workflows] =
+    await Promise.all([
+      getAnalyticsOverview(range, "public"),
+      getEmailActivity(range, emailAudience),
+      getAudienceBreakdown(),
+      getDeliverability(range),
+      getNewLeadsCount(rangeSince(range)),
+      getMeetingsBookedThisWeek(),
+      getContentEngine(),
+      getWorkshopAttendeesTotal(),
+      getDocumentedWorkflowsTotal(),
+    ]);
+
+  // Year goals marketing drives, drawn from the same sources the Edges collector
+  // and /api/stats use. Read-only progress against annual targets.
+  const yearGoals = [
+    {
+      label: "Keynote attendees",
+      value: attendees,
+      target: KEYNOTE_ATTENDEES_GOAL,
+      href: "/admin/edges/metrics",
+    },
+    {
+      label: "Documented workflows",
+      value: workflows,
+      target: DOCUMENTED_WORKFLOWS_GOAL,
+      href: "/admin/edges/metrics",
+    },
+  ];
 
   const trafficError = "error" in traffic ? traffic.error : null;
   const totals = "error" in traffic ? null : traffic.totals;
@@ -329,6 +355,72 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       </section>
 
       <section className="admin-card admin-section-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div className="admin-card-title">Year goals</div>
+          <Link href="/admin/edges/metrics" className="admin-cell-muted">
+            Edges metrics
+          </Link>
+        </div>
+        <p className="admin-page-sub" style={{ marginTop: 4 }}>
+          The annual targets marketing drives, from the same source the Edges scoreboard reads.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 14 }}>
+          {yearGoals.map((g) => {
+            const pct =
+              g.value === null ? 0 : Math.min(100, Math.round((g.value / g.target) * 100));
+            return (
+              <div key={g.label}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <span className="admin-cell-strong">{g.label}</span>
+                  <span
+                    className="admin-cell-muted"
+                    style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
+                  >
+                    {g.value === null
+                      ? "—"
+                      : `${g.value.toLocaleString()} / ${g.target.toLocaleString()}`}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 10,
+                    borderRadius: 20,
+                    background: "var(--admin-line-soft)",
+                    overflow: "hidden",
+                    marginTop: 6,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: "100%",
+                      borderRadius: 20,
+                      background: "var(--admin-accent)",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="admin-card admin-section-card">
         <div className="admin-card-title">Public site traffic</div>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
           The marketing site only. Company OS (admin, team, and client portal) is excluded, since
@@ -346,7 +438,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
         </p>
         <div
           className="admin-summary-grid"
-          style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", marginTop: 12 }}
+          style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", marginTop: 12 }}
         >
           <div className="admin-card admin-chart-card">
             <div className="mp-kpi-label">Top pages</div>
@@ -366,91 +458,20 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
               stacked
             />
           </div>
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">Content by pillar</div>
+            <BarChart
+              data={engine.contentByPillar}
+              ariaLabel="Calendar content by pillar"
+              emptyText="No content on the calendar yet."
+              stacked
+            />
+          </div>
         </div>
       </section>
 
       <section className="admin-card admin-section-card">
-        <div className="admin-card-title">Deliverability</div>
-        {delivery.error ? (
-          <div className="admin-alert admin-alert--err" style={{ marginTop: 12 }}>
-            {delivery.error}
-          </div>
-        ) : !delivery.hasData ? (
-          <div className="admin-empty" style={{ marginTop: 12 }}>
-            No delivery data yet. Register the Resend webhook at{" "}
-            <code>https://www.edge8.ai/api/webhooks/resend/</code> (trailing slash required) and set{" "}
-            <code>RESEND_WEBHOOK_SECRET</code>. Events accrue from that point forward.
-          </div>
-        ) : (
-          <>
-            <div className="mp-kpi-grid" style={{ marginTop: 12, marginBottom: 0 }}>
-              <MetricCard
-                label="Delivered"
-                value={formatRate(delivery.deliveryRate)}
-                sub={`${delivery.delivered.toLocaleString()} of ${delivery.sent.toLocaleString()} sent`}
-              />
-              <MetricCard
-                label="Bounced"
-                value={formatRate(delivery.bounceRate)}
-                sub={
-                  delivery.bounceRate !== null && delivery.bounceRate > 5
-                    ? "over 5%, clean the list"
-                    : `${delivery.bounced.toLocaleString()} address${delivery.bounced === 1 ? "" : "es"}`
-                }
-              />
-              <MetricCard
-                label="Opened"
-                value={formatRate(delivery.openRate)}
-                sub={`${delivery.opened.toLocaleString()} of those delivered`}
-              />
-              <MetricCard
-                label="Clicked"
-                value={formatRate(delivery.clickRate)}
-                sub={`${delivery.clicked.toLocaleString()} of those delivered`}
-              />
-            </div>
-            {delivery.problems.length > 0 && (
-              <div className="admin-table-wrap" style={{ marginTop: 16 }}>
-                <div className="admin-table-scroll">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Address</th>
-                        <th>Problem</th>
-                        <th>When</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {delivery.problems.map((row) => (
-                        <tr key={`${row.recipient}-${row.occurredAt}-${row.eventType}`}>
-                          <td className="admin-cell-strong">
-                            {row.personId ? (
-                              <Link href={`/admin/contacts/${row.personId}`}>{row.recipient}</Link>
-                            ) : (
-                              row.recipient
-                            )}
-                          </td>
-                          <td>
-                            <span
-                              className={`admin-badge admin-badge--${row.eventType === "complained" ? "err" : "warn"}`}
-                            >
-                              {row.eventType === "complained" ? "Marked as spam" : "Bounced"}
-                            </span>
-                          </td>
-                          <td className="admin-cell-mono">{formatDate(row.occurredAt)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      <section className="admin-card admin-section-card">
-        <div className="admin-card-title">Audience</div>
+        <div className="admin-card-title">Email health</div>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
           {audience.eligible.toLocaleString()} of {audience.total.toLocaleString()} contacts can receive
           marketing email. {audience.neverAsked.toLocaleString()} have never been asked,{" "}
@@ -461,7 +482,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
         </p>
         <div
           className="admin-summary-grid"
-          style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", marginTop: 12 }}
+          style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", marginTop: 12 }}
         >
           <div className="admin-card admin-chart-card">
             <div className="mp-kpi-label">Contacts by persona</div>
@@ -489,7 +510,84 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
               </div>
             )}
           </div>
+          <div className="admin-card admin-chart-card">
+            <div className="mp-kpi-label">Deliverability</div>
+            {delivery.error ? (
+              <div className="admin-alert admin-alert--err" style={{ marginTop: 12 }}>
+                {delivery.error}
+              </div>
+            ) : !delivery.hasData ? (
+              <div className="admin-empty" style={{ marginTop: 12 }}>
+                No delivery data yet. Register the Resend webhook at{" "}
+                <code>https://www.edge8.ai/api/webhooks/resend/</code> (trailing slash required) and
+                set <code>RESEND_WEBHOOK_SECRET</code>. Events accrue from that point forward.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+                {[
+                  { label: "Delivered", value: delivery.deliveryRate },
+                  { label: "Bounced", value: delivery.bounceRate },
+                  { label: "Opened", value: delivery.openRate },
+                  { label: "Clicked", value: delivery.clickRate },
+                ].map((r) => (
+                  <div
+                    key={r.label}
+                    style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}
+                  >
+                    <span className="admin-cell-muted">{r.label}</span>
+                    <span
+                      className="admin-cell-strong"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    >
+                      {formatRate(r.value)}
+                    </span>
+                  </div>
+                ))}
+                {delivery.bounceRate !== null && delivery.bounceRate > 5 && (
+                  <div className="admin-hint" style={{ color: "var(--admin-err-ink)" }}>
+                    Bounce rate over 5%, clean the list.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+        {delivery.hasData && delivery.problems.length > 0 && (
+          <div className="admin-table-wrap" style={{ marginTop: 16 }}>
+            <div className="admin-table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Address</th>
+                    <th>Problem</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {delivery.problems.map((row) => (
+                    <tr key={`${row.recipient}-${row.occurredAt}-${row.eventType}`}>
+                      <td className="admin-cell-strong">
+                        {row.personId ? (
+                          <Link href={`/admin/contacts/${row.personId}`}>{row.recipient}</Link>
+                        ) : (
+                          row.recipient
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`admin-badge admin-badge--${row.eventType === "complained" ? "err" : "warn"}`}
+                        >
+                          {row.eventType === "complained" ? "Marked as spam" : "Bounced"}
+                        </span>
+                      </td>
+                      <td className="admin-cell-mono">{formatDate(row.occurredAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="admin-card admin-section-card">
