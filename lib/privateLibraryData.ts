@@ -36,6 +36,13 @@ export const e8PrivateItems: LibraryItem[] = [
   },
   {
     category: 'plan',
+    href: '/workflows/private/e8/ai-officer-institute-business-model.html',
+    title: 'AI Officer Institute: Business Model',
+    description:
+      'Forum pitch deck for the AI Officer Institute: the three AI roles nobody has on payroll, the Australia and USA market from 20 to 5,000 people, build the people or borrow a CAIO, and the four products.',
+  },
+  {
+    category: 'plan',
     href: '/workflows/private/e8/8-edges-business-model.html',
     title: '8 Edges: Business Model',
     description:
