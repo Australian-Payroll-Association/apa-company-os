@@ -5,6 +5,7 @@ import { STAGE_WON, STAGE_LOST, STAGE_NEUTRAL } from "@/lib/admin/stageColors";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
+import { Band } from "@/components/admin/Band";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
@@ -26,17 +27,6 @@ export const metadata = {
   title: "Revenue cockpit",
   description: "The whole revenue engine on one screen: sales, marketing, and (soon) customer success.",
 };
-
-// A labeled band divider that splits the cockpit into sections.
-function Band({ label, note, muted }: { label: string; note?: string; muted?: boolean }) {
-  return (
-    <div className={`admin-band${muted ? " admin-band--muted" : ""}`}>
-      <span className="admin-band-label">{label}</span>
-      <span className="admin-band-rule" />
-      {note && <span className="admin-band-note">{note}</span>}
-    </div>
-  );
-}
 
 // The Marketing band leans on the external Vercel Analytics API (visitors +
 // traffic by channel), so it streams in its own boundary rather than gating the

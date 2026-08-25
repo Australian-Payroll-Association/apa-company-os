@@ -2,20 +2,21 @@ import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { Band } from "@/components/admin/Band";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { OfficeGoalsCard } from "@/components/admin/OfficeGoalsCard";
 import { getOfficeGoals, healthSummary } from "@/lib/admin/office-goals";
 import { one, monthsThisYear, MS_DAY } from "@/lib/admin/dashboard-helpers";
 import { getSurveyScore } from "@/lib/admin/survey-scores";
 import { FIXED_VND_PER_USD } from "@/lib/admin/compensation-shared";
-import { formatDate } from "@/lib/admin/format";
+import { formatDate, timeAgo } from "@/lib/admin/format";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Operations cockpit",
-  description: "Keeping the company running: time off, workplace, and internal service.",
+  description: "Two bands: who's in and who's out, then the workplace and internal service.",
 };
 
 // Work-request statuses that are finished; anything else is still in flight.
@@ -27,6 +28,7 @@ type LeaveRow = {
   leave_type: string | null;
   team_members: unknown;
 };
+type RequestRow = { id: string; title: string | null; created_at: string };
 
 export default async function OperationsCockpitPage() {
   const now = new Date();
@@ -53,14 +55,17 @@ export default async function OperationsCockpitPage() {
       .gte("last_message_at", iso30),
     companyOs
       .from("contractor_work_requests")
-      .select("id", { count: "exact", head: true })
-      .not("status", "in", WR_TERMINAL),
+      .select("id, title, created_at")
+      .not("status", "in", WR_TERMINAL)
+      .order("created_at", { ascending: false })
+      .limit(20),
     getSurveyScore("team-pulse"),
     getOfficeGoals(),
   ]);
 
   const err = leaveRes.error || equipRes.error || botRes.error || reqRes.error;
 
+  // ── Time off: who's in and who's out ──
   const leave = (leaveRes.data as LeaveRow[] | null) ?? [];
   const daysOff30 = leave.filter((l) => l.start_date >= date30).length;
   const outToday = leave.filter((l) => l.start_date <= today && l.end_date >= today).length;
@@ -83,13 +88,14 @@ export default async function OperationsCockpitPage() {
       };
     });
 
+  // ── Workplace & service ──
   const equipUsd = ((equipRes.data as { cost_vnd: number | null }[] | null) ?? []).reduce(
     (s, e) => s + (e.cost_vnd ?? 0),
     0,
   ) / FIXED_VND_PER_USD;
 
   const botCount = botRes.count ?? 0;
-  const openRequests = reqRes.count ?? 0;
+  const requests = (reqRes.data as RequestRow[] | null) ?? [];
 
   const ops = goals.byOffice.operations;
   const chips = healthSummary(ops.health);
@@ -99,7 +105,7 @@ export default async function OperationsCockpitPage() {
       <PageHead
         eyebrow="Four Offices · Operations"
         title="Operations cockpit"
-        sub="Time off, workplace, and internal service."
+        sub="Who's in and who's out, then the workplace and internal service."
       />
 
       {err && (
@@ -108,45 +114,21 @@ export default async function OperationsCockpitPage() {
         </div>
       )}
 
-      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard
-          label="Days off · 30d"
-          value={daysOff30}
-          sub={`${outToday} out today · ${pending} pending`}
-          href="/admin/operations/time-off/requests"
-        />
-        <MetricCard
-          label="Equipment value"
-          value={`$${Math.round(equipUsd).toLocaleString("en-US")}`}
-          sub="on the register"
-          href="/admin/operations/equipment"
-        />
-        <MetricCard label="Open requests" value={openRequests} sub="contractor + client" href="/admin/operations/contractor-requests" />
-        <MetricCard label="Company docs" value="soon" sub="documents — coming later" />
-        <MetricCard label="Chat bot inquiries · 30d" value={botCount} sub="admin + team assistants" />
-        <MetricCard
-          label="Employee feedback"
-          value={employeeScore.avg != null ? `${employeeScore.avg} / ${employeeScore.scale}` : "—"}
-          sub={employeeScore.responses > 0 ? `team pulse · ${employeeScore.responses} responses` : "no responses yet"}
-          href="/admin/operations/surveys"
-        />
+      {/* ── TIME OFF ── */}
+      <Band
+        label="Time off"
+        note={pending > 0 ? `${pending} ${pending === 1 ? "request" : "requests"} pending` : "no pending requests"}
+      />
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard label="Days off · 30d" value={daysOff30} sub="approved leave" href="/admin/operations/time-off/requests" />
+        <MetricCard label="Out today" value={outToday} sub={outToday === 0 ? "everyone's in" : "on leave now"} href="/admin/operations/time-off/requests" />
+        <MetricCard label="Pending requests" value={pending} sub="awaiting approval" href="/admin/operations/time-off/requests" />
       </div>
-
-      {chips && (
-        <div className="mp-kpi-label" style={{ marginBottom: 16 }}>
-          Operations goals · {goals.quarter.label}: {chips}
-          {ops.openIssues > 0 ? ` · ${ops.openIssues} open ${ops.openIssues === 1 ? "issue" : "issues"}` : ""}
-        </div>
-      )}
-
-      <div className="admin-summary-grid" style={{ marginBottom: 20 }}>
+      <div className="admin-cockpit-cols" style={{ marginBottom: 8 }}>
         <div className="admin-card admin-chart-card">
           <div className="mp-kpi-label">Days off by month · {year}</div>
           <BarChart data={leaveByMonth} ariaLabel="Approved time off by month" emptyText="No time off this year." />
         </div>
-      </div>
-
-      <div className="admin-cockpit-cols">
         <div className="admin-card admin-section-card">
           <h2 className="admin-card-title">Out this week</h2>
           {outThisWeek.length === 0 ? (
@@ -174,7 +156,53 @@ export default async function OperationsCockpitPage() {
             </div>
           )}
         </div>
+      </div>
 
+      {/* ── WORKPLACE & SERVICE ── */}
+      <Band label="Workplace & service" note={chips ? `goals: ${chips}` : undefined} />
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard
+          label="Equipment value"
+          value={`$${Math.round(equipUsd).toLocaleString("en-US")}`}
+          sub="on the register"
+          href="/admin/operations/equipment"
+        />
+        <MetricCard label="Open requests" value={requests.length} sub="contractor + client" href="/admin/operations/contractor-requests" />
+        <MetricCard label="Chat bot · 30d" value={botCount} sub="assistant conversations" />
+        <MetricCard
+          label="Employee feedback"
+          value={employeeScore.avg != null ? `${employeeScore.avg} / ${employeeScore.scale}` : "—"}
+          sub={employeeScore.responses > 0 ? `team pulse · ${employeeScore.responses} responses` : "no responses yet"}
+          href="/admin/operations/surveys"
+        />
+        {/* Company docs tile joins this row when the Documents feature ships —
+            a dead "coming later" tile wraps alone and breaks the band. */}
+      </div>
+      <div className="admin-cockpit-cols">
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Open requests</h2>
+          {requests.length === 0 ? (
+            <div className="admin-empty">No open work requests.</div>
+          ) : (
+            <div className="admin-list">
+              {requests.slice(0, 8).map((r) => (
+                <div key={r.id} className="admin-list-row">
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{r.title || "Untitled request"}</div>
+                  </div>
+                  <div className="admin-list-aside">
+                    <span className="admin-list-sub">{timeAgo(r.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+              <div style={{ paddingTop: 10 }}>
+                <Link href="/admin/operations/contractor-requests" className="admin-auth-link">
+                  Open requests →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
         <OfficeGoalsCard snapshot={ops} quarterLabel={goals.quarter.label} />
       </div>
     </>

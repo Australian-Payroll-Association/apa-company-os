@@ -2,6 +2,7 @@ import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { Band } from "@/components/admin/Band";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { OfficeGoalsCard } from "@/components/admin/OfficeGoalsCard";
@@ -14,7 +15,7 @@ export const fetchCache = "force-no-store";
 
 export const metadata = {
   title: "Talent cockpit",
-  description: "The Talent office in full: the team, turnover, and the hiring pipeline.",
+  description: "The Talent office in two bands: the team we have, and the hiring that grows it.",
 };
 
 type TeamRow = { status: string | null; start_date: string | null; end_date: string | null; departments: unknown };
@@ -38,6 +39,7 @@ export default async function TalentCockpitPage() {
 
   const err = teamRes.error || appsRes.error || openReqsRes.error || onboardingRes.error;
 
+  // ── Team: the people we have ──
   const team = (teamRes.data as TeamRow[] | null) ?? [];
   const active = team.filter((t) => t.status === "active");
   const headcount = active.length;
@@ -57,7 +59,9 @@ export default async function TalentCockpitPage() {
     (p) => p.stage && p.stage !== "complete",
   ).length;
 
+  // ── Hiring: the people we're getting ──
   const apps = (appsRes.data as AppRow[] | null) ?? [];
+  const activeApps = apps.filter((a) => a.status === "active").length;
   const apps30 = apps.filter((a) => a.applied_at && a.applied_at >= iso30).length;
   const appsPrev30 = apps.filter((a) => a.applied_at && a.applied_at >= iso60 && a.applied_at < iso30).length;
 
@@ -69,8 +73,7 @@ export default async function TalentCockpitPage() {
           hired.length,
       )
     : null;
-  const totalApps = apps.length;
-  const conversion = totalApps ? Math.round((apps.filter((a) => a.status === "hired").length / totalApps) * 1000) / 10 : 0;
+  const conversion = apps.length ? Math.round((apps.filter((a) => a.status === "hired").length / apps.length) * 1000) / 10 : 0;
 
   const appsByMonth = monthsThisYear(now).map(({ label, from, to }) => ({
     label,
@@ -97,7 +100,7 @@ export default async function TalentCockpitPage() {
       <PageHead
         eyebrow="Four Offices · Talent"
         title="Talent cockpit"
-        sub="The team, turnover, and the pipeline that grows it."
+        sub="The team we have, and the hiring that grows it."
       />
 
       {err && (
@@ -106,36 +109,35 @@ export default async function TalentCockpitPage() {
         </div>
       )}
 
-      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+      {/* ── TEAM ── */}
+      <Band label="Team" note={chips ? `goals: ${chips}` : undefined} />
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
         <MetricCard label="Headcount" value={headcount} sub="active team members" href="/admin/talent/team" />
-        <MetricCard label={`Turnover · ${year}`} value={turnover} sub="left this year" href="/admin/talent/team" />
         <MetricCard label={`New hires · ${year}`} value={newHires} sub="joined this year" href="/admin/talent/team" />
+        <MetricCard label={`Turnover · ${year}`} value={turnover} sub="left this year" href="/admin/talent/team" />
         <MetricCard label="Onboarding" value={onboarding} sub="in cycle now" href="/admin/talent/onboarding" />
-        <MetricCard label="Open roles" value={openReqs.length} sub={`${activeByReq.size} with active apps`} href="/admin/talent/jobs" />
-        <MetricCard label="Applications · 30d" value={apps30} sub={vsPrior(apps30, appsPrev30)} href="/admin/talent/applications" />
-        <MetricCard label="Days to hire" value={daysToHire ?? "—"} sub="avg, hired applicants" href="/admin/talent/applications" />
-        <MetricCard label="Conversion" value={`${conversion}%`} sub="application → hire" href="/admin/talent/applications" />
       </div>
-
-      {chips && (
-        <div className="mp-kpi-label" style={{ marginBottom: 16 }}>
-          Talent goals · {goals.quarter.label}: {chips}
-          {talent.openIssues > 0 ? ` · ${talent.openIssues} open ${talent.openIssues === 1 ? "issue" : "issues"}` : ""}
-        </div>
-      )}
-
-      <div className="admin-summary-grid" style={{ marginBottom: 20 }}>
+      <div className="admin-cockpit-cols" style={{ marginBottom: 8 }}>
         <div className="admin-card admin-chart-card">
           <div className="mp-kpi-label">Headcount by department</div>
           <DonutChart data={deptChart} centerLabel="people" ariaLabel="Active team members by department" />
         </div>
+        <OfficeGoalsCard snapshot={talent} quarterLabel={goals.quarter.label} />
+      </div>
+
+      {/* ── HIRING ── */}
+      <Band label="Hiring" note={`${openReqs.length} open ${openReqs.length === 1 ? "role" : "roles"} · ${activeApps} active applications`} />
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard label="Open roles" value={openReqs.length} sub="hiring now" href="/admin/talent/jobs" />
+        <MetricCard label="Applications · 30d" value={apps30} sub={vsPrior(apps30, appsPrev30)} href="/admin/talent/applications" />
+        <MetricCard label="Days to hire" value={daysToHire ?? "—"} sub="avg, hired applicants" href="/admin/talent/applications" />
+        <MetricCard label="Conversion" value={`${conversion}%`} sub="application → hire" href="/admin/talent/applications" />
+      </div>
+      <div className="admin-cockpit-cols">
         <div className="admin-card admin-chart-card">
           <div className="mp-kpi-label">Applications by month · {year}</div>
           <BarChart data={appsByMonth} ariaLabel="Job applications received by month" emptyText="No applications this year." />
         </div>
-      </div>
-
-      <div className="admin-cockpit-cols">
         <div className="admin-card admin-section-card">
           <h2 className="admin-card-title">Hiring pipeline</h2>
           {pipeline.length === 0 ? (
@@ -162,8 +164,6 @@ export default async function TalentCockpitPage() {
             </div>
           )}
         </div>
-
-        <OfficeGoalsCard snapshot={talent} quarterLabel={goals.quarter.label} />
       </div>
     </>
   );
