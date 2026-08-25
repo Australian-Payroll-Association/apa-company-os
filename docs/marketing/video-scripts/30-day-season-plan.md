@@ -77,7 +77,7 @@ The company runs. The rhythm, the steering, the proof.
 | 27 | The Monday sync | Meetings that report instead of decide | FAST: frequently discussed goals; the AI-prepared packet |
 | 28 | Reviews: misses are data | Blame kills learning; agents get reviewed too | Edmondson; GROW reviews |
 | 29 | The receipts | Prove it | Our real numbers after 30 days, on screen |
-| 30 | Finale: the other 199 | Replay Day 1's question, answer it with the tour | The four outcomes; CTA to the AI program |
+| 30 | Finale: two skills, three doors | App development vs process excellence: two different skills, and we handled the app development for you | The offer: Free (DIY) · Assisted ($99/mo, AI Officer Institute) · We Build ($15,000: 10 custom workflows, 5 data sources). Replay Day 1's question, close on the four outcomes |
 
 ---
 
