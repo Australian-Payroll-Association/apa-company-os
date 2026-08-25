@@ -18,9 +18,11 @@ const SCHEMA = {
   additionalProperties: false,
   required: ["themes"],
   properties: {
+    // No maxItems: output_config JSON schemas reject array length keywords
+    // (the API 400s on them). The 2-4 cap is enforced in the prompt and by the
+    // .slice(0, 4) on the parsed result below.
     themes: {
       type: "array",
-      maxItems: 4,
       items: {
         type: "string",
         description:
@@ -58,7 +60,9 @@ export async function generateIdeaTrends(): Promise<IdeaTrends | null> {
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 800,
+      // 4 one-sentence themes run past 800 tokens and truncate the JSON mid-
+      // string, which then fails to parse; 1500 leaves headroom.
+      max_tokens: 1500,
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
       messages: [
         {
