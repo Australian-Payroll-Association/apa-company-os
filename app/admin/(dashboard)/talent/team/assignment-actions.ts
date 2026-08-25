@@ -90,6 +90,53 @@ export async function setAssignmentVisibility(id: string, clientVisible: boolean
   return { ok: true };
 }
 
+// Names (or clears) the person at the client who approves this placement's
+// leave. Approval power follows this field, not the portal role, so it is an
+// admin-only write and every change is audited. Clearing it hands approval
+// back to the Edge8 manager (lib/time-off/approver.ts).
+export async function setAssignmentClientManager(
+  id: string,
+  clientManagerPersonId: string | null,
+): Promise<Result> {
+  const admin = await requireAdmin();
+
+  const { data: row, error: rErr } = await companyOs
+    .from("staff_assignments")
+    .select("company_id, team_member_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (rErr || !row) return { ok: false, error: rErr?.message ?? "Assignment not found." };
+
+  // The named person must actually be a contact at THIS client — otherwise a
+  // mistyped id could hand a stranger the reason text and the decision.
+  if (clientManagerPersonId) {
+    const { data: link } = await companyOs
+      .from("person_companies")
+      .select("person_id")
+      .eq("company_id", row.company_id as string)
+      .eq("person_id", clientManagerPersonId)
+      .maybeSingle();
+    if (!link) return { ok: false, error: "That person is not a contact at this client." };
+  }
+
+  const { error } = await companyOs
+    .from("staff_assignments")
+    .update({ client_manager_person_id: clientManagerPersonId })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "staff_assignments",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { action: "set_client_manager", client_manager_person_id: clientManagerPersonId },
+  });
+
+  refresh(row.company_id as string, row.team_member_id as string);
+  return { ok: true };
+}
+
 // Ends an assignment (status -> 'ended'); the row stays for history rather than
 // being deleted. Re-assigning the same pair inserts a fresh active row.
 export async function endAssignment(id: string): Promise<Result> {

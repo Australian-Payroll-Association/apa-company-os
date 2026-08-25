@@ -28,6 +28,8 @@ export type RequestRow = {
   days: number;
   requestedAt: string;
   isAutoApproved: boolean;
+  // Set when the decision was made by a client manager in the portal.
+  clientApproverName: string | null;
 };
 
 export type LeaderRow = { id: string; name: string; days: number };
@@ -123,6 +125,9 @@ export function TimeOffBoard({
                     <td>
                       <Badge tone={statusTone(r.status)}>{r.status}</Badge>
                       {r.isAutoApproved && <span className="admin-cell-muted"> auto</span>}
+                      {r.clientApproverName && (
+                        <span className="admin-cell-muted"> by {r.clientApproverName} (client)</span>
+                      )}
                     </td>
                     <td className="admin-cell-muted">{formatDate(r.requestedAt.slice(0, 10))}</td>
                     <td className="admin-cell-muted">{r.reason || "—"}</td>

@@ -6,13 +6,14 @@ import {
   teamInsertOwn,
   teamRead,
   teamUpdateInScope,
-  getManagerContact,
   getOwnApprovalPolicy,
 } from "@/lib/team/data";
+import { resolveLeaveApprover, clientWatcherEmails } from "@/lib/time-off/approver";
 import { LEAVE_TYPES, LEAVE_TYPE_LABEL, countWorkingDays, formatDays, type LeaveType } from "@/lib/admin/time-off";
 import { formatDate } from "@/lib/admin/format";
 import { notifyOps } from "@/lib/lark";
 import { sendTransactionalEmail } from "@/lib/email";
+import { getSiteOrigin } from "@/lib/site-origin";
 
 // Own-service time-off actions for /team. Deliberately NOT a reuse of the
 // admin actions in app/admin/(dashboard)/operations/time-off/requests/actions.ts
@@ -90,25 +91,56 @@ export async function requestOwnTimeOff(input: {
       : `Time off requested: ${actor.displayName} — ${leaveLabel}, ${dateRange} (${formatDays(days)}). Needs approval.`,
   ).catch(() => {});
 
-  getManagerContact(actor)
-    .then((mgr) => {
-      if (!mgr) return undefined;
-      return sendTransactionalEmail({
-        to: mgr.email,
-        subject: policy.autoApprove
-          ? `Time off: ${actor.displayName} — ${dateRange}`
-          : `Time off request from ${actor.displayName}`,
-        html: policy.autoApprove
-          ? `
-          <p>${escapeHtml(actor.displayName)} booked ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
-          ${input.reason.trim() ? `<p>Reason: ${escapeHtml(input.reason.trim())}</p>` : ""}
-          <p>Approved automatically under the ${escapeHtml(policy.policyName ?? "company")} policy — no action needed.</p>
-        `
-          : `
-          <p>${escapeHtml(actor.displayName)} requested ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
-          ${input.reason.trim() ? `<p>Reason: ${escapeHtml(input.reason.trim())}</p>` : ""}
-          <p>It is awaiting approval in the Edge8 admin under Operations &gt; Time Off.</p>
-        `,
+  // The approver is the client manager on this person's placement when there
+  // is one, else their Edge8 manager (lib/time-off/approver.ts). The client's
+  // portal admins are copied for visibility only — and their copy carries NO
+  // reason: the plan's privacy line is that the free-text reason reaches the
+  // one person deciding, nobody else.
+  const reason = input.reason.trim();
+  const subject = policy.autoApprove
+    ? `Time off: ${actor.displayName} — ${dateRange}`
+    : `Time off request from ${actor.displayName}`;
+  const body = (opts: { withReason: boolean; where: string; link: string }) =>
+    policy.autoApprove
+      ? `
+        <p>${escapeHtml(actor.displayName)} booked ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
+        ${opts.withReason && reason ? `<p>Reason: ${escapeHtml(reason)}</p>` : ""}
+        <p>Approved automatically under the ${escapeHtml(policy.policyName ?? "company")} policy — no action needed.</p>
+      `
+      : `
+        <p>${escapeHtml(actor.displayName)} requested ${leaveLabel.toLowerCase()} leave: ${dateRange} (${formatDays(days)}).</p>
+        ${opts.withReason && reason ? `<p>Reason: ${escapeHtml(reason)}</p>` : ""}
+        <p>${opts.where}</p>
+        ${opts.link}
+      `;
+
+  resolveLeaveApprover(actor.teamMemberId)
+    .then(async (approver) => {
+      if (!approver) return;
+      const isClient = approver.kind === "client";
+      const portalLink = `<p><a href="${getSiteOrigin()}/portal/time-off">Open Time Off</a></p>`;
+      await sendTransactionalEmail({
+        to: approver.email,
+        subject,
+        html: body({
+          withReason: true,
+          where: isClient
+            ? "It is waiting for your decision in the Edge8 client portal, under Time Off."
+            : "It is awaiting approval in the Edge8 admin under Operations &gt; Time Off.",
+          link: isClient ? portalLink : "",
+        }),
+      });
+
+      const watchers = await clientWatcherEmails(approver);
+      if (watchers.length === 0) return;
+      await sendTransactionalEmail({
+        to: watchers,
+        subject,
+        html: body({
+          withReason: false,
+          where: `${escapeHtml(approver.displayName)} has been asked to approve it. This copy is for visibility.`,
+          link: portalLink,
+        }),
       });
     })
     .catch(() => {});

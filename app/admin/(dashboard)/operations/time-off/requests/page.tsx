@@ -40,6 +40,7 @@ type TimeOffRow = {
   created_at: string;
   approved_at: string | null;
   approved_by: string | null;
+  client_approved_by: string | null;
   external_source: string | null;
   team_members: Embedded<MemberEmbed>;
 };
@@ -62,7 +63,7 @@ export default async function TimeOffPage() {
     companyOs
       .from("time_off")
       .select(
-        "id, leave_type, status, start_date, end_date, is_half_day, reason, days, created_at, approved_at, approved_by, external_source, team_members!team_member_id(id, people!person_id(display_name, preferred_name, full_name, email))",
+        "id, leave_type, status, start_date, end_date, is_half_day, reason, days, created_at, approved_at, approved_by, client_approved_by, external_source, team_members!team_member_id(id, people!person_id(display_name, preferred_name, full_name, email))",
       )
       .order("created_at", { ascending: false })
       .limit(1000),
@@ -73,6 +74,19 @@ export default async function TimeOffPage() {
     .sort((a, b) => byFirstName(a.name, b.name));
 
   const raw = (offRes.data ?? []) as TimeOffRow[];
+
+  // Client-manager decisions point at people, not team_members, so they can't
+  // ride the team_members embed above. Small, separate name lookup.
+  const clientApproverIds = [...new Set(raw.map((r) => r.client_approved_by).filter((id): id is string => !!id))];
+  const { data: approverPeople } = clientApproverIds.length
+    ? await companyOs
+        .from("people")
+        .select("id, display_name, preferred_name, full_name, email")
+        .in("id", clientApproverIds)
+    : { data: [] as (Person & { id: string })[] };
+  const approverNameById = new Map(
+    ((approverPeople ?? []) as (Person & { id: string })[]).map((p) => [p.id, personName(p)]),
+  );
   const rows: RequestRow[] = raw.map((r) => ({
     id: r.id,
     memberName: personName(one(one(r.team_members)?.people ?? null)),
@@ -86,8 +100,14 @@ export default async function TimeOffPage() {
     requestedAt: r.created_at,
     // Approved-by-policy, not by a person: only portal auto-approval produces
     // approved_at with no approver and no external source (Day Off imports have
-    // external_source; admin decisions stamp approved_by).
-    isAutoApproved: r.approved_at !== null && r.approved_by === null && r.external_source === null,
+    // external_source; admin decisions stamp approved_by; a client manager's
+    // decision stamps client_approved_by and must not read as "auto").
+    isAutoApproved:
+      r.approved_at !== null &&
+      r.approved_by === null &&
+      r.client_approved_by === null &&
+      r.external_source === null,
+    clientApproverName: r.client_approved_by ? approverNameById.get(r.client_approved_by) ?? null : null,
   }));
 
   const today = new Date().toISOString().slice(0, 10);
