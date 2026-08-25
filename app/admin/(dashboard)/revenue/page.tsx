@@ -6,10 +6,14 @@ import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
 import { BarChart } from "@/components/admin/charts/BarChart";
+import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
 import { compactUsd, vsPrior, monthsThisYear, MS_DAY } from "@/lib/admin/dashboard-helpers";
 import { getSurveyScore } from "@/lib/admin/survey-scores";
 import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
+import { getAudienceBreakdown, getDeliverability } from "@/lib/admin/marketing";
+import { getContentEngine } from "@/lib/admin/marketing-engine";
+import { WEEKLY_MEETINGS_GOAL, getMeetingsBookedThisWeek } from "@/lib/admin/lead-stats";
 import { ACTIVE_LEAD_STATUSES } from "@/lib/lifecycle";
 import { CockpitDeals } from "./CockpitDeals";
 import type { DealCard } from "./deals/DealsBoard";
@@ -20,26 +24,107 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Revenue cockpit",
-  description: "The Revenue office: revenue, marketing signals, and the sales command center.",
+  description: "The whole revenue engine on one screen: sales, marketing, and (soon) customer success.",
 };
 
-// Page views hit the external Vercel Analytics API, so this tile streams in its
-// own boundary rather than gating the DB-backed cockpit. getAnalyticsOverview
-// has a hard timeout, so a slow upstream degrades to "—".
-async function PageViewsTile() {
-  const analytics = await getAnalyticsOverview("30d");
-  const views = "error" in analytics ? null : analytics.totals.pageviews;
+// A labeled band divider that splits the cockpit into sections.
+function Band({ label, note, muted }: { label: string; note?: string; muted?: boolean }) {
   return (
-    <MetricCard
-      label="Page views · 30d"
-      value={views != null ? views.toLocaleString("en-US") : "—"}
-      sub="www.edge8.ai"
-      href="/admin/operations/analytics"
-    />
+    <div className={`admin-band${muted ? " admin-band--muted" : ""}`}>
+      <span className="admin-band-label">{label}</span>
+      <span className="admin-band-rule" />
+      {note && <span className="admin-band-note">{note}</span>}
+    </div>
   );
 }
-function PageViewsTileFallback() {
-  return <MetricCard label="Page views · 30d" value="…" sub="www.edge8.ai" href="/admin/operations/analytics" />;
+
+// The Marketing band leans on the external Vercel Analytics API (visitors +
+// traffic by channel), so it streams in its own boundary rather than gating the
+// DB-backed sales section above. The DB-derived marketing numbers (audience,
+// email opens, campaigns) are passed in already-resolved.
+async function MarketingSection({
+  audience,
+  openedEmails,
+  openRate,
+  activeCampaigns,
+}: {
+  audience: { total: number; eligible: number };
+  openedEmails: number;
+  openRate: number | null;
+  activeCampaigns: { id: string; title: string | null; status: string | null }[];
+}) {
+  const analytics = await getAnalyticsOverview("30d", "public");
+  const visitors = "error" in analytics ? null : analytics.totals.visitors;
+  const byChannel = "error" in analytics ? [] : analytics.byChannel;
+
+  return (
+    <>
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard
+          label="Visitors · 30d"
+          value={visitors != null ? visitors.toLocaleString("en-US") : "—"}
+          sub="unique, public site"
+          href="/admin/revenue/marketing"
+        />
+        <MetricCard
+          label="Newsletter audience"
+          value={audience.eligible.toLocaleString("en-US")}
+          sub={`of ${audience.total.toLocaleString("en-US")} contacts`}
+          href="/admin/revenue/marketing"
+        />
+        <MetricCard
+          label="Emails opened · 30d"
+          value={openedEmails.toLocaleString("en-US")}
+          sub={openRate != null ? `${openRate.toFixed(0)}% open rate` : "no email activity yet"}
+          href="/admin/revenue/marketing"
+        />
+        <MetricCard
+          label="Active campaigns"
+          value={activeCampaigns.length}
+          sub="in flight"
+          href="/admin/revenue/marketing/campaigns"
+        />
+      </div>
+      <div className="admin-summary-grid" style={{ marginBottom: 4 }}>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Traffic by channel · 30d</div>
+          <DonutChart data={byChannel} centerLabel="visits" ariaLabel="Public site traffic by channel" emptyText="No traffic data." />
+        </div>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Active campaigns</div>
+          {activeCampaigns.length === 0 ? (
+            <div className="admin-empty">Nothing in flight.</div>
+          ) : (
+            <div className="admin-list">
+              {activeCampaigns.slice(0, 6).map((c) => (
+                <div key={c.id} className="admin-list-row">
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">{c.title || "Untitled campaign"}</div>
+                  </div>
+                  <div className="admin-list-aside">
+                    <span className="admin-list-sub">{(c.status ?? "").replace(/_/g, " ")}</span>
+                  </div>
+                </div>
+              ))}
+              <div style={{ paddingTop: 10 }}>
+                <Link href="/admin/revenue/marketing/campaigns" className="admin-auth-link">Open campaigns →</Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+function MarketingSectionFallback() {
+  return (
+    <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+      <MetricCard label="Visitors · 30d" value="…" sub="unique, public site" />
+      <MetricCard label="Newsletter audience" value="…" sub="loading" />
+      <MetricCard label="Emails opened · 30d" value="…" sub="loading" />
+      <MetricCard label="Active campaigns" value="…" sub="loading" />
+    </div>
+  );
 }
 
 // The Revenue office landing: a sales command center. Every open deal is checked
@@ -112,10 +197,9 @@ function dealGaps(d: DealRow): string[] {
   return gaps;
 }
 
-type InvoiceRow = { txn_date: string | null; amount_cents: number | null; status: string | null; entity: string };
+type InvoiceRow = { txn_date: string | null; amount_cents: number | null; balance_cents: number | null; status: string | null; entity: string };
 type OrderRow = { created_at: string; amount_usd_cents: number | null; status: string | null };
 type FunnelDealRow = { status: string | null; created_at: string; closed_at: string | null };
-type EmailEventRow = { resend_email_id: string | null; event_type: string | null };
 
 export default async function SalesCockpitPage() {
   const now = new Date();
@@ -158,8 +242,11 @@ export default async function SalesCockpitPage() {
     funnelDealsRes,
     newLeadsRes,
     inq30Res,
-    emailRes,
     clientScore,
+    audience,
+    delivery,
+    engine,
+    meetingsBooked,
   ] = await Promise.all([
     companyOs.from("pipeline_stages").select("id, name, is_won, is_lost").order("position"),
     dealsQuery,
@@ -187,7 +274,7 @@ export default async function SalesCockpitPage() {
       .gte("closed_at", "2026-01-01")
       .lt("closed_at", "2027-01-01"),
     // Revenue = non-voided invoices by invoice date + paid Stripe orders, all USD.
-    companyOs.from("invoices").select("txn_date, amount_cents, status, entity").neq("status", "voided").limit(2000),
+    companyOs.from("invoices").select("txn_date, amount_cents, balance_cents, status, entity").neq("status", "voided").limit(2000),
     companyOs.from("orders").select("created_at, amount_usd_cents, status").limit(2000),
     // All deals for the 30d funnel and 90d lead→won conversion.
     companyOs.from("deals").select("status, created_at, closed_at").is("archived_at", null).limit(2000),
@@ -197,8 +284,12 @@ export default async function SalesCockpitPage() {
       .select("id", { count: "exact", head: true })
       .not("type", "in", NON_SALES_INQUIRY_TYPES)
       .gte("created_at", iso30),
-    companyOs.from("email_events").select("resend_email_id, event_type").gte("occurred_at", iso30).limit(5000),
     getSurveyScore("ai-capability-pulse"),
+    // Marketing (DB-derived; analytics is streamed separately in MarketingSection).
+    getAudienceBreakdown(),
+    getDeliverability("30d"),
+    getContentEngine(),
+    getMeetingsBookedThisWeek(),
   ]);
 
   const stages = (stagesRes.data as Stage[] | null) ?? [];
@@ -251,6 +342,12 @@ export default async function SalesCockpitPage() {
   );
   const revenueByMonth = monthsThisYear(now).map(({ label, from, to }) => ({ label, value: cashBetween(from, to) }));
 
+  // AR = balance still owed on open/overdue invoices.
+  const allInvoices = (invoicesRes.data as InvoiceRow[] | null) ?? [];
+  const arOutstanding = allInvoices
+    .filter((i) => i.status === "open" || i.status === "overdue")
+    .reduce((s, i) => s + (i.balance_cents ?? 0), 0);
+
   const funnelDeals = (funnelDealsRes.data as FunnelDealRow[] | null) ?? [];
   const newLeadDates = ((newLeadsRes.data as { created_at: string }[] | null) ?? []).map((l) => l.created_at);
   const newLeads30 = newLeadDates.filter((d) => d >= iso30).length;
@@ -267,12 +364,8 @@ export default async function SalesCockpitPage() {
   const won90 = funnelDeals.filter((d) => d.status === "won" && d.closed_at && d.closed_at >= iso90).length;
   const conversion90 = leads90 ? Math.round((won90 / leads90) * 1000) / 10 : 0;
 
-  // Email opens (30d): distinct emails opened, and open rate over delivered.
-  const emailEvents = (emailRes.data as EmailEventRow[] | null) ?? [];
-  const openedIds = new Set(emailEvents.filter((e) => e.event_type === "opened").map((e) => e.resend_email_id));
-  const deliveredIds = new Set(emailEvents.filter((e) => e.event_type === "delivered").map((e) => e.resend_email_id));
-  const emailsOpened = openedIds.size;
-  const openRate = deliveredIds.size ? Math.round((emailsOpened / deliveredIds.size) * 100) : null;
+  // Marketing (DB-derived): audience, email opens + rate, active campaigns.
+  const activeCampaigns = engine.activeCampaigns.map((c) => ({ id: c.id, title: c.name, status: String(c.status) }));
 
   const openPipeline = deals.reduce((s, d) => s + (d.amount_usd_cents ?? 0), 0);
   const needsAttention = deals
@@ -355,32 +448,33 @@ export default async function SalesCockpitPage() {
         </div>
       )}
 
-      {/* ── Revenue office overview ── */}
-      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+      {/* ── Shared money strip: the numbers every revenue function cares about ── */}
+      <div className="mp-kpi-grid" style={{ marginBottom: 4 }}>
         <MetricCard
           label="Revenue · 1yr"
           value={formatCents(revenue1yr)}
           sub={vsPrior(revenue1yr, revenue1yrPrev, (n) => compactUsd(n))}
         />
         <MetricCard label="Revenue · YTD" value={formatCents(revenueYtd)} sub={entitySplit(yearStart, tomorrow)} />
-        <MetricCard label="New leads · 30d" value={newLeads30} sub={vsPrior(newLeads30, newLeadsPrev30)} href="/admin/revenue/leads" />
-        <Suspense fallback={<PageViewsTileFallback />}>
-          <PageViewsTile />
-        </Suspense>
-        <MetricCard
-          label="Emails opened · 30d"
-          value={emailsOpened}
-          sub={openRate != null ? `${openRate}% open rate` : "no email activity yet"}
-        />
-        <MetricCard label="Meetings booked · 7d" value="soon" sub="needs calendar integration" />
-        <MetricCard label="Conversion · 90d" value={`${conversion90}%`} sub="lead → won" />
-        <MetricCard
-          label="Client feedback"
-          value={clientScore.avg != null ? `${clientScore.avg} / ${clientScore.scale}` : "—"}
-          sub={clientScore.responses > 0 ? `AI capability pulse · ${clientScore.responses} responses` : "no responses yet"}
-        />
+        <MetricCard label={`Won · YTD`} value={formatCents(dealsClosed)} sub={`closed deal value, ${year}`} href="/admin/revenue/deals" />
+        <MetricCard label="AR outstanding" value={formatCents(arOutstanding)} sub="open + overdue invoices" href="/admin/revenue/invoices" />
       </div>
-      <div className="admin-summary-grid" style={{ marginBottom: 24 }}>
+
+      {/* ── SALES ── */}
+      <Band
+        label="Sales"
+        note={[
+          needsAttention.length > 0 ? `${needsAttention.length} need attention` : "pipeline clean",
+          slaOverdue > 0 ? `${slaOverdue} SLA overdue` : null,
+        ].filter(Boolean).join(" · ")}
+      />
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${deals.length} open deals`} href="/admin/revenue/deals" />
+        <MetricCard label="New leads · 30d" value={newLeads30} sub={vsPrior(newLeads30, newLeadsPrev30)} href="/admin/revenue/leads" />
+        <MetricCard label="Meetings booked" value={`${meetingsBooked} / ${WEEKLY_MEETINGS_GOAL}`} sub="this week vs goal" href="/admin/revenue/leads" />
+        <MetricCard label="Conversion · 90d" value={`${conversion90}%`} sub="lead → won" />
+      </div>
+      <div className="admin-summary-grid" style={{ marginBottom: 16 }}>
         <div className="admin-card admin-chart-card">
           <div className="mp-kpi-label">Revenue by month · {year}</div>
           <BarChart data={revenueByMonth} ariaLabel="Revenue by month" formatValue={compactUsd} />
@@ -389,20 +483,6 @@ export default async function SalesCockpitPage() {
           <div className="mp-kpi-label">Pipeline flow · last 30 days</div>
           <BarChart data={funnel30} ariaLabel="Pipeline flow over the last 30 days" emptyText="No pipeline activity in the last 30 days." />
         </div>
-      </div>
-
-      {/* ── Sales command center ── */}
-      <div className="mp-kpi-label" style={{ margin: "0 0 12px" }}>Sales command center</div>
-      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-        <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${deals.length} open deals`} href="/admin/revenue/deals" />
-        <MetricCard label="Deals closed" value={formatCents(dealsClosed)} sub="won value, 2026" href="/admin/revenue/deals" />
-        <MetricCard label="Leads to work" value={leads.length} sub={slaOverdue > 0 ? `${slaOverdue} SLA overdue` : "all inside SLA"} href="/admin/revenue/leads" />
-        <MetricCard label="Inquiries to triage" value={inquiries.length} sub="contact-us, unworked" href="/admin/revenue/inquiries" />
-        <MetricCard
-          label="Deals needing attention"
-          value={needsAttention.length}
-          sub={needsAttention.length > 0 ? "missing owner / value / next step" : "pipeline is clean"}
-        />
       </div>
 
       {/* ── Deals needing attention: the priority action list ── */}
@@ -485,6 +565,30 @@ export default async function SalesCockpitPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── MARKETING (analytics streams in its own boundary) ── */}
+      <Band label="Marketing" note={`${audience.eligible} newsletter-eligible`} />
+      <Suspense fallback={<MarketingSectionFallback />}>
+        <MarketingSection
+          audience={{ total: audience.total, eligible: audience.eligible }}
+          openedEmails={delivery.opened}
+          openRate={delivery.openRate}
+          activeCampaigns={activeCampaigns}
+        />
+      </Suspense>
+
+      {/* ── CUSTOMER SUCCESS (placeholder; retention + support tickets land here later) ── */}
+      <Band label="Customer Success" note="coming later" muted />
+      <div className="mp-kpi-grid" style={{ opacity: 0.6 }}>
+        <MetricCard label="Active clients" value="—" sub="coming later" />
+        <MetricCard label="Renewals due" value="—" sub="coming later" />
+        <MetricCard
+          label="Client feedback"
+          value={clientScore.avg != null ? `${clientScore.avg} / ${clientScore.scale}` : "—"}
+          sub={clientScore.responses > 0 ? `AI capability pulse · ${clientScore.responses} responses` : "coming later"}
+        />
+        <MetricCard label="At-risk accounts" value="—" sub="coming later" />
       </div>
     </>
   );
