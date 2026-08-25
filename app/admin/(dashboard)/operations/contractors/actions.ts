@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin, canViewSensitive } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -56,7 +56,11 @@ export async function updateContractorRates(input: {
   currency: string;
   changeReason?: string;
 }): Promise<Result> {
+  // Rates are pay data — gated like salaries (Dave & Mai), not just admin.
   const admin = await requireAdmin();
+  if (!(await canViewSensitive(admin.email))) {
+    return { ok: false, error: "Not authorized." };
+  }
 
   if (!input.teamMemberId) return { ok: false, error: "Missing contractor." };
   const hourly = Math.round(input.hourlyRateCents);

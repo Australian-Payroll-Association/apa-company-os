@@ -28,7 +28,16 @@ import { listContractorWorkRequests, updateContractorRates, type ContractorWorkI
 
 const ShelfContext = createContext<{ open: (row: ContractorRow) => void } | null>(null);
 
-export function ContractorsShelfProvider({ children }: { children: ReactNode }) {
+export function ContractorsShelfProvider({
+  children,
+  canSeePay,
+}: {
+  children: ReactNode;
+  // Server-decided (canViewSensitive): when false the rows carry no rates and
+  // the Pay rates section renders as restricted. Cosmetic here — the server
+  // never fetches rates for non-cleared admins and the save action re-checks.
+  canSeePay: boolean;
+}) {
   const [selected, setSelected] = useState<ContractorRow | null>(null);
 
   return (
@@ -40,7 +49,7 @@ export function ContractorsShelfProvider({ children }: { children: ReactNode }) 
         eyebrow="Contractor"
         title={selected?.full_name ?? selected?.email ?? ""}
       >
-        {selected && <ContractorShelfBody row={selected} />}
+        {selected && <ContractorShelfBody row={selected} canSeePay={canSeePay} />}
       </DetailDrawer>
     </ShelfContext.Provider>
   );
@@ -156,7 +165,7 @@ function WorkRequestsSection({ personId }: { personId: string }) {
   );
 }
 
-function ContractorShelfBody({ row }: { row: ContractorRow }) {
+function ContractorShelfBody({ row, canSeePay }: { row: ContractorRow; canSeePay: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [hourly, setHourly] = useState(toDollars(row.hourly_rate_cents));
@@ -224,6 +233,12 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
 
       <WorkRequestsSection personId={row.person_id} />
 
+      {!canSeePay ? (
+        <section>
+          <div className="admin-shelf-heading">Pay rates</div>
+          <p className="admin-cell-muted">Restricted — visible to Dave and Mai only.</p>
+        </section>
+      ) : (
       <section>
         <div className="admin-shelf-heading">
           Pay rates
@@ -300,6 +315,7 @@ function ContractorShelfBody({ row }: { row: ContractorRow }) {
           </dl>
         )}
       </section>
+      )}
     </div>
   );
 }

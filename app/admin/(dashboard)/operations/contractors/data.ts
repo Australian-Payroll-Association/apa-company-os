@@ -6,6 +6,10 @@ import type { ContractorRow } from "./contractor-shared";
 // Roster read: contract team members + their current rates. Two queries
 // (team_members has no FK into compensation's current rows) merged in JS —
 // the roster is a handful of people, not a paged table.
+//
+// Rates are pay data (Dave & Mai only): the caller passes includeRates from
+// canViewSensitive, and when false the compensation query never runs — rates
+// stay null server-side rather than being fetched and hidden.
 
 type TmRow = {
   id: string;
@@ -21,7 +25,9 @@ type PersonNameRow = NamedPerson & { email: string };
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
 
-export async function listContractors(): Promise<{ rows: ContractorRow[]; error: string | null }> {
+export async function listContractors(
+  includeRates: boolean,
+): Promise<{ rows: ContractorRow[]; error: string | null }> {
   const { data: tms, error } = await companyOs
     .from("team_members")
     .select(
@@ -36,7 +42,7 @@ export async function listContractors(): Promise<{ rows: ContractorRow[]; error:
     string,
     { hourly: number | null; overtime: number | null; billable: number | null; currency: string }
   >();
-  if (ids.length > 0) {
+  if (includeRates && ids.length > 0) {
     const { data: comps, error: cErr } = await companyOs
       .from("compensation")
       .select("team_member_id, comp_type, amount_cents, currency")

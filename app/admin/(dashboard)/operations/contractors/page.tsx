@@ -3,6 +3,7 @@ import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import type { SearchParamsObj } from "@/lib/admin/url";
+import { getSensitiveViewer } from "@/lib/admin-auth";
 import { listContractors } from "./data";
 import type { ContractorRow } from "./contractor-shared";
 import { ContractorsShelfProvider, ContractorShelfRow } from "./ContractorsShelf";
@@ -15,21 +16,13 @@ export const metadata = {
 };
 
 export default async function ContractorsPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const { rows, error } = await listContractors();
+  // Pay rates are restricted (Dave & Mai): non-cleared admins get the roster
+  // without the rate columns, and the rates are never fetched for them.
+  const viewer = await getSensitiveViewer();
+  const canSeePay = viewer?.canViewSensitive ?? false;
+  const { rows, error } = await listContractors(canSeePay);
 
-  const columns: Column<ContractorRow>[] = [
-    {
-      key: "name",
-      header: "Contractor",
-      cell: (r) => (
-        <div>
-          <span className="admin-cell-strong">{r.full_name || r.email}</span>
-          <div className="admin-cell-muted" style={{ fontSize: 12 }}>{r.email}</div>
-        </div>
-      ),
-    },
-    { key: "position", header: "Position", cell: (r) => r.position || <span className="admin-cell-muted">—</span> },
-    { key: "department", header: "Department", cell: (r) => r.department || <span className="admin-cell-muted">—</span> },
+  const rateColumns: Column<ContractorRow>[] = [
     {
       key: "hourly",
       header: "Hourly",
@@ -50,6 +43,22 @@ export default async function ContractorsPage({ searchParams }: { searchParams: 
           <span className="admin-cell-muted">—</span>
         ),
     },
+  ];
+
+  const columns: Column<ContractorRow>[] = [
+    {
+      key: "name",
+      header: "Contractor",
+      cell: (r) => (
+        <div>
+          <span className="admin-cell-strong">{r.full_name || r.email}</span>
+          <div className="admin-cell-muted" style={{ fontSize: 12 }}>{r.email}</div>
+        </div>
+      ),
+    },
+    { key: "position", header: "Position", cell: (r) => r.position || <span className="admin-cell-muted">—</span> },
+    { key: "department", header: "Department", cell: (r) => r.department || <span className="admin-cell-muted">—</span> },
+    ...(canSeePay ? rateColumns : []),
     {
       key: "status",
       header: "Status",
@@ -63,10 +72,14 @@ export default async function ContractorsPage({ searchParams }: { searchParams: 
       <PageHead
         eyebrow="Operations"
         title="Contractors"
-        sub={`${rows.length} ${rows.length === 1 ? "contractor" : "contractors"} · rates power the monthly payment roll-up`}
+        sub={
+          canSeePay
+            ? `${rows.length} ${rows.length === 1 ? "contractor" : "contractors"} · rates power the monthly payment roll-up`
+            : `${rows.length} ${rows.length === 1 ? "contractor" : "contractors"}`
+        }
       />
       {error && <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>{error}</div>}
-      <ContractorsShelfProvider>
+      <ContractorsShelfProvider canSeePay={canSeePay}>
         <DataTable
           columns={columns}
           rows={rows}

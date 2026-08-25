@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin, canViewSensitive, type AdminUser } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { formatCents } from "@/lib/admin/format";
 import { periodMonth, rollupContractorPayments, type RollupSummary } from "@/lib/admin/contractor-payments";
@@ -13,6 +13,13 @@ type Result = { ok: true } | { ok: false; error: string };
 
 function refresh() {
   revalidatePath("/admin/operations/contractor-payments");
+}
+
+// Every action here handles pay data, so all are gated like the page itself:
+// admin AND canViewSensitive (Dave & Mai). Returns null when not cleared.
+async function requireClearedAdmin(): Promise<AdminUser | null> {
+  const admin = await requireAdmin();
+  return (await canViewSensitive(admin.email)) ? admin : null;
 }
 
 async function loadPayment(id: string) {
@@ -34,7 +41,8 @@ export async function decidePayment(
   decision: "paid" | "rejected" | "info_requested",
   note: string,
 ): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireClearedAdmin();
+  if (!admin) return { ok: false, error: "Not authorized." };
   const payment = await loadPayment(id);
   if (!payment) return { ok: false, error: "Payment not found." };
   if (!["pending", "info_requested"].includes(payment.status))
@@ -82,7 +90,8 @@ export async function decidePayment(
 // Admin override of the computed amount (rounding, agreed adjustments) —
 // only while the payment is still undecided.
 export async function overridePaymentAmount(id: string, amountCents: number, note: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireClearedAdmin();
+  if (!admin) return { ok: false, error: "Not authorized." };
   const payment = await loadPayment(id);
   if (!payment) return { ok: false, error: "Payment not found." };
   if (!["pending", "info_requested"].includes(payment.status))
@@ -114,7 +123,8 @@ export async function overridePaymentAmount(id: string, amountCents: number, not
 // this month's accepted work into a payment early (e.g. for testing or an
 // off-cycle payout).
 export async function runRollup(which: "previous" | "current"): Promise<Result & { summary?: RollupSummary }> {
-  const admin = await requireAdmin();
+  const admin = await requireClearedAdmin();
+  if (!admin) return { ok: false, error: "Not authorized." };
   const period = periodMonth(which === "previous" ? -1 : 0);
   const result = await rollupContractorPayments(period);
   if ("error" in result) return { ok: false, error: result.error };
@@ -132,7 +142,7 @@ export async function runRollup(which: "previous" | "current"): Promise<Result &
 
 // Line items for the shelf: the work requests bundled into this payment.
 export async function listPaymentItems(paymentId: string): Promise<PaymentItemRow[]> {
-  await requireAdmin();
+  if (!(await requireClearedAdmin())) return [];
   const { data, error } = await companyOs
     .from("contractor_work_requests")
     .select("id, title, actual_hours, actual_overtime_hours, work_link, accepted_at")

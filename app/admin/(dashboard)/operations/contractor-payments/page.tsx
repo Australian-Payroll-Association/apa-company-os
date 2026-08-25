@@ -5,6 +5,7 @@ import { Badge } from "@/components/admin/Badge";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
+import { getSensitiveViewer } from "@/lib/admin-auth";
 import { PAYMENT_STATUSES, formatHours, paymentTone } from "@/lib/admin/contractors";
 import { PAYMENT_SELECT, monthLabel, onePerson, type PaymentRow } from "./payment-shared";
 import { PaymentsShelfProvider, PaymentShelfRow } from "./PaymentsShelf";
@@ -21,6 +22,22 @@ const PAGE_SIZES = [25, 50, 100];
 const SORTABLE = new Set(["period_month", "status", "amount_cents", "created_at"]);
 
 export default async function ContractorPaymentsPage({ searchParams }: { searchParams: SearchParamsObj }) {
+  // The whole page is pay data (monthly payment amounts), so it is gated like
+  // salaries (Dave & Mai): non-cleared admins get a notice and no query runs.
+  const viewer = await getSensitiveViewer();
+  if (!viewer?.canViewSensitive) {
+    return (
+      <>
+        <PageHead
+          eyebrow="Operations"
+          title="Contractor Payments"
+          sub="Monthly contractor payment requests"
+        />
+        <p className="admin-cell-muted">Restricted — visible to Dave and Mai only.</p>
+      </>
+    );
+  }
+
   const page = Math.max(1, Number(firstParam(searchParams.page) ?? "1") || 1);
   const sizeParam = Number(firstParam(searchParams.size));
   const pageSizeChoice = PAGE_SIZES.includes(sizeParam) ? sizeParam : 25;

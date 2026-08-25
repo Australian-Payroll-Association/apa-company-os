@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function NewWorkRequestPage({ searchParams }: { searchParams: SearchParamsObj }) {
-  const { rows, error } = await listContractors();
+  // Rates are fetched (any admin can raise a request) but only the hasRate
+  // boolean ever reaches the client — the amounts stay server-side.
+  const { rows, error } = await listContractors(true);
   const preselect = firstParam(searchParams.person);
   const contractors = rows
     .filter((r) => r.status === "active")
