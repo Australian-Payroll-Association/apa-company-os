@@ -504,6 +504,11 @@ a.admin-pill:hover { border-color: var(--admin-accent); }
 a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
 .admin-pill-label { font-size: 13px; color: var(--admin-muted); }
 .admin-pill-val { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--admin-ink); font-variant-numeric: tabular-nums; }
+/* A pill holding a full sentence (a campaign goal) rather than a short scalar.
+   The display-font 600/16px value reads as a fat headline for prose, so text
+   pills drop to body font at a normal weight and let the value wrap. */
+.admin-pill--text { align-items: baseline; }
+.admin-pill--text .admin-pill-val { font-family: var(--font-body, inherit); font-weight: 500; font-size: 14px; line-height: 1.45; white-space: normal; }
 .admin-chart-card .mp-kpi-label { margin-bottom: 12px; }
 .admin-chart text { font-family: var(--font-body, inherit); }
 .admin-donut { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
@@ -1970,14 +1975,18 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
-  padding: 9px 13px;
+  padding: 10px 14px;
   font: inherit;
-  font-size: 13px;
-  color: var(--admin-muted);
+  font-size: 14px;
+  /* Inactive tabs were --admin-muted (tertiary) and near-invisible on the light
+     shell. Secondary ink at weight 500 keeps the whole row legible while the
+     accent underline still marks the active one. */
+  font-weight: 500;
+  color: var(--admin-ink-2);
   cursor: pointer;
   margin-bottom: -1px;
 }
-.admin-tab:hover { color: var(--admin-ink); }
+.admin-tab:hover { color: var(--admin-ink); border-bottom-color: var(--admin-line); }
 .admin-tab.is-active { color: var(--admin-accent); border-bottom-color: var(--admin-accent); font-weight: 600; }
 
 /* ─── Chip ────────────────────────────────────────── */
@@ -2024,9 +2033,47 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   margin-bottom: 8px;
 }
 .mcr-asset:last-child { margin-bottom: 0; }
+a.mcr-asset { display: block; text-decoration: none; }
 .mcr-asset-title { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--admin-ink); text-decoration: none; }
 a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Card view: the selected asset image as a 16:9 cover above the title. */
+.mcr-asset-cover {
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: var(--admin-line-soft);
+}
+.mcr-asset-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mcr-asset-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.mcr-asset-date { font-size: 12px; color: var(--admin-muted); }
+/* Marketing campaign view layout helpers (kept in CSS per the design guardrail). */
+.mcr-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mcr-toolbar-actions { display: flex; align-items: center; gap: 10px; }
+.mcr-toolbar-right { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.mcr-section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.mcr-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.mcr-progress { display: flex; align-items: center; gap: 8px; }
+.mcr-progress-track { flex: 1; height: 8px; border-radius: 20px; background: var(--admin-line-soft); overflow: hidden; }
+.mcr-progress-fill { height: 100%; }
+.mcr-progress-num { font-size: 12px; min-width: 62px; text-align: right; }
+/* List view: a small square thumbnail in the image column. */
+.mcr-asset-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--admin-radius-sm);
+  object-fit: cover;
+  display: block;
+  background: var(--admin-line-soft);
+}
 
 /* The founder's idea, shown prominently on the campaign hub header. */
 .mcr-campaign-idea {

@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { MetricCard } from "@/components/admin/MetricCard";
 import {
   CHANNELS,
+  CHANNEL_LABEL,
   STATUS_LABEL,
   type BrandOption,
   type CalendarChannel,
   type CalendarEntryRow,
+  type CalendarStatus,
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import {
@@ -19,17 +21,38 @@ import {
   type MarketingCampaignRow,
 } from "@/lib/admin/marketing-campaigns";
 import { CalendarBoard } from "../../calendar/CalendarBoard";
-import { CalendarMonth } from "../../calendar/CalendarMonth";
 import { moveEntry } from "../../calendar/actions";
-import { addAssetToCampaign, updateCampaign } from "../actions";
+import { addAssetToCampaign, generateSeoGeoPlan, updateCampaign } from "../actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
-type Tab = "idea" | "assets" | "workboard" | "calendar" | "report" | "seo";
+type Tab = "idea" | "assets" | "workboard" | "report" | "seo";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+// The empty-state structure for the SEO/GEO plan, so the three sections are
+// visible before anything is written. "Generate with AI" fills them in.
+const SEO_SCAFFOLD = `## Search (SEO)
+- Primary keyword:
+- Secondary keywords:
+- Title tag (<=60 chars):
+- Meta description (<=155 chars):
+- URL slug:
+- Internal link targets:
+
+## FAQ
+1. Q:
+   A:
+2. Q:
+   A:
+
+## GEO (generative engines)
+- Named entities:
+- Citable stats (with source):
+- One-sentence definition to quote:
+- Questions people ask an AI assistant:`;
 
 export function CampaignHub({
   campaign,
@@ -109,6 +132,19 @@ export function CampaignHub({
 
   function saveSeo() {
     run(() => updateCampaign(campaign.id, { seoGeoMd: seoGeoMd || null }), "SEO / GEO plan saved.");
+  }
+
+  function generatePlan() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await generateSeoGeoPlan(campaign.id);
+      if (r.ok) {
+        setSeoGeoMd(r.seoGeoMd);
+        setNote({ tone: "ok", text: "Plan drafted. Review and edit, then Save." });
+      } else {
+        setNote({ tone: "err", text: r.error });
+      }
+    });
   }
 
   function openAsset(id: string) {
@@ -208,7 +244,7 @@ export function CampaignHub({
 
         {!editing ? (
           <div className="admin-summary-pills" style={{ marginTop: 14 }}>
-            <span className="admin-pill">
+            <span className="admin-pill admin-pill--text" style={{ flex: "1 1 320px" }}>
               <span className="admin-pill-label">Goal</span>
               <span className="admin-pill-val">{objective || "—"}</span>
             </span>
@@ -309,9 +345,6 @@ export function CampaignHub({
           <button type="button" className={`admin-tab${tab === "workboard" ? " is-active" : ""}`} onClick={() => setTab("workboard")}>
             Workboard
           </button>
-          <button type="button" className={`admin-tab${tab === "calendar" ? " is-active" : ""}`} onClick={() => setTab("calendar")}>
-            Calendar
-          </button>
           <button type="button" className={`admin-tab${tab === "report" ? " is-active" : ""}`} onClick={() => setTab("report")}>
             Report
           </button>
@@ -394,33 +427,33 @@ export function CampaignHub({
           </div>
         )}
 
-        {tab === "calendar" && (
-          <div className="admin-card admin-section-card">
-            <div className="admin-card-title">Publish calendar</div>
-            {entries.length === 0 ? (
-              <div className="admin-empty">No assets yet.</div>
-            ) : (
-              <CalendarMonth entries={entries} onSelect={openAsset} />
-            )}
-          </div>
-        )}
-
         {tab === "report" && <ReportPanel report={report} />}
 
         {tab === "seo" && (
           <section className="admin-card admin-section-card">
-            <div className="admin-card-title">SEO / GEO plan</div>
-            <p className="admin-page-sub" style={{ marginTop: 4 }}>
-              The search and generative-engine plan for this campaign: target keywords, questions to
-              own, entities, and internal links. The writer reads it when drafting.
-            </p>
-            <div className="admin-form" style={{ marginTop: 12 }}>
+            <div className="mcr-section-head">
+              <div>
+                <div className="admin-card-title">SEO / GEO plan</div>
+                <p className="admin-page-sub" style={{ marginTop: 4, maxWidth: 640 }}>
+                  Three parts, one plan the writer reads when drafting. <strong>Search</strong> is the
+                  classic package (keywords, title tag, meta, slug, internal links). <strong>FAQ</strong> is
+                  the real questions people type: these win featured snippets and People Also Ask, and
+                  ship as FAQ structured data on the blog post. <strong>GEO</strong> is what gets you cited
+                  by ChatGPT and Perplexity: named entities, quotable stats with sources, a one-line
+                  definition, and the question phrasings people ask an assistant.
+                </p>
+              </div>
+              <button type="button" className="admin-btn admin-btn--sm" onClick={generatePlan} disabled={pending}>
+                {pending ? "Generating…" : seoGeoMd.trim() ? "Regenerate with AI" : "Generate with AI"}
+              </button>
+            </div>
+            <div className="admin-form" style={{ marginTop: 14 }}>
               <textarea
                 className="admin-textarea"
-                rows={14}
+                rows={20}
                 value={seoGeoMd}
                 onChange={(e) => setSeoGeoMd(e.target.value)}
-                placeholder={"## Target keywords\n\n## Questions to own\n\n## Entities & internal links"}
+                placeholder={SEO_SCAFFOLD}
               />
               <div className="admin-form-actions">
                 <button type="button" className="admin-btn admin-btn--primary" onClick={saveSeo} disabled={pending}>
@@ -463,6 +496,19 @@ function AssetsByChannel({
   pending: boolean;
 }) {
   const channelCount = new Set(entries.map((a) => a.channel)).size;
+
+  // Card vs list, remembered per operator. Card is the default: it shows the
+  // asset image, which is the fastest way to see a campaign's visual state.
+  const [view, setView] = useState<"card" | "list">("card");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("mcr-assets-view");
+    if (saved === "card" || saved === "list") setView(saved);
+  }, []);
+  function pickView(v: "card" | "list") {
+    setView(v);
+    window.localStorage.setItem("mcr-assets-view", v);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -470,9 +516,19 @@ function AssetsByChannel({
           {entries.length} asset{entries.length === 1 ? "" : "s"} across {channelCount} channel
           {channelCount === 1 ? "" : "s"}.
         </div>
-        <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setAddOpen(!addOpen)} disabled={pending}>
-          {addOpen ? "Close" : "+ Add asset"}
-        </button>
+        <div className="mcr-toolbar-actions">
+          <div className="admin-viewtoggle" role="group" aria-label="Asset view">
+            <button type="button" className={view === "card" ? "is-active" : ""} onClick={() => pickView("card")} aria-pressed={view === "card"}>
+              Cards
+            </button>
+            <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => pickView("list")} aria-pressed={view === "list"}>
+              List
+            </button>
+          </div>
+          <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={() => setAddOpen(!addOpen)} disabled={pending}>
+            {addOpen ? "Close" : "+ Add asset"}
+          </button>
+        </div>
       </div>
 
       {addOpen && (
@@ -507,7 +563,7 @@ function AssetsByChannel({
 
       {entries.length === 0 ? (
         <div className="admin-empty">No assets yet. Add the first piece of content above.</div>
-      ) : (
+      ) : view === "card" ? (
         <div className="mcr-lanes">
           {CHANNELS.map((ch) => {
             const lane = entries.filter((a) => a.channel === ch.id);
@@ -521,26 +577,119 @@ function AssetsByChannel({
                   <div className="admin-cell-muted" style={{ fontSize: 12, padding: "6px 2px" }}>—</div>
                 ) : (
                   lane.map((a) => (
-                    <div key={a.id} className="mcr-asset">
-                      <Link className="mcr-asset-title" href={`/admin/revenue/marketing/campaigns/${campaignId}/assets/${a.id}`}>
-                        {a.title}
-                      </Link>
-                      <div className="mcr-asset-foot">
+                    <Link
+                      key={a.id}
+                      className="mcr-asset"
+                      href={`/admin/revenue/marketing/campaigns/${campaignId}/assets/${a.id}`}
+                    >
+                      {a.imageUrl ? (
+                        <span className="mcr-asset-cover">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={a.imageUrl} alt="" loading="lazy" />
+                        </span>
+                      ) : (
+                        <span className="mcr-asset-cover mcr-asset-cover--empty">No image</span>
+                      )}
+                      <span className="mcr-asset-title">{a.title}</span>
+                      <span className="mcr-asset-foot">
                         {a.channel === "email" && a.broadcastId ? (
                           <span className="admin-chip admin-chip--accent">Broadcast</span>
                         ) : (
                           <Badge tone={statusTone(a.status)}>{STATUS_LABEL[a.status]}</Badge>
                         )}
-                        <span className="admin-cell-muted" style={{ fontSize: 12 }}>{fmtDate(a.publishDate)}</span>
-                      </div>
-                    </div>
+                        <span className="mcr-asset-date">
+                          {a.publishDate ? `Publishes ${fmtDate(a.publishDate)}` : "No date"}
+                        </span>
+                      </span>
+                    </Link>
                   ))
                 )}
               </div>
             );
           })}
         </div>
+      ) : (
+        <AssetsList campaignId={campaignId} entries={entries} />
       )}
+    </div>
+  );
+}
+
+// Flat, sortable table of every asset. Publish date is a first-class sortable
+// column here (it is the "when" the card view only hints at).
+function AssetsList({ campaignId, entries }: { campaignId: string; entries: CalendarEntryRow[] }) {
+  const router = useRouter();
+  type SortKey = "title" | "channel" | "status" | "date";
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "asc" });
+
+  function onSort(key: SortKey) {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+  }
+  const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
+
+  const STATUS_ORDER: Record<CalendarStatus, number> = {
+    idea: 0, drafted: 1, approved: 2, scheduled: 3, published: 4, skipped: 5,
+  };
+  const rows = [...entries].sort((a, b) => {
+    let d = 0;
+    if (sort.key === "title") d = a.title.localeCompare(b.title);
+    else if (sort.key === "channel") d = CHANNEL_LABEL[a.channel].localeCompare(CHANNEL_LABEL[b.channel]);
+    else if (sort.key === "status") d = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    else {
+      // Dateless assets sink to the bottom regardless of direction.
+      const av = a.publishDate;
+      const bv = b.publishDate;
+      if (!av && !bv) d = 0;
+      else if (!av) return 1;
+      else if (!bv) return -1;
+      else d = av.localeCompare(bv);
+    }
+    return sort.dir === "desc" ? -d : d;
+  });
+
+  return (
+    <div className="admin-table-wrap">
+      <div className="admin-table-scroll">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th style={{ width: 56 }}>Image</th>
+              <th><button type="button" className="admin-th-sort" onClick={() => onSort("title")}>Title{arrow("title")}</button></th>
+              <th><button type="button" className="admin-th-sort" onClick={() => onSort("channel")}>Channel{arrow("channel")}</button></th>
+              <th><button type="button" className="admin-th-sort" onClick={() => onSort("status")}>Status{arrow("status")}</button></th>
+              <th><button type="button" className="admin-th-sort" onClick={() => onSort("date")}>Publish date{arrow("date")}</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((a) => (
+              <tr
+                key={a.id}
+                style={{ cursor: "pointer" }}
+                onClick={() => router.push(`/admin/revenue/marketing/campaigns/${campaignId}/assets/${a.id}`)}
+              >
+                <td>
+                  {a.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="mcr-asset-thumb" src={a.imageUrl} alt="" loading="lazy" />
+                  ) : (
+                    <span className="mcr-asset-thumb" aria-hidden />
+                  )}
+                </td>
+                <td className="admin-cell-strong">{a.title}</td>
+                <td>{CHANNEL_LABEL[a.channel]}</td>
+                <td>
+                  {a.channel === "email" && a.broadcastId ? (
+                    <span className="admin-chip admin-chip--accent">Broadcast</span>
+                  ) : (
+                    <Badge tone={statusTone(a.status)}>{STATUS_LABEL[a.status]}</Badge>
+                  )}
+                </td>
+                <td className="admin-cell-mono">{a.publishDate ? fmtDate(a.publishDate) : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

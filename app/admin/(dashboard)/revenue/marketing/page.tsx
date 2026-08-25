@@ -213,19 +213,19 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           }}
         >
           <div className="admin-card-title">Content engine</div>
-          <Link className="admin-btn" href="/admin/revenue/marketing/calendar">
-            Open calendar
+          <Link className="admin-btn" href="/admin/revenue/marketing/campaigns">
+            Open campaigns
           </Link>
         </div>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
-          Every asset on the calendar board by stage, the campaigns in flight, and the next email to
-          go out. {engine.pipelineTotal.toLocaleString()} asset
-          {engine.pipelineTotal === 1 ? "" : "s"} on the board.
+          Every campaign asset by stage, the campaigns in flight, and the next email to go out.{" "}
+          {engine.pipelineTotal.toLocaleString()} asset
+          {engine.pipelineTotal === 1 ? "" : "s"} in the pipeline.
         </p>
 
         <div className="admin-summary-pills" style={{ marginTop: 12, marginBottom: 4 }}>
           {engine.stages.map((s) => (
-            <Link key={s.id} className="admin-pill" href="/admin/revenue/marketing/calendar">
+            <Link key={s.id} className="admin-pill" href="/admin/revenue/marketing/campaigns">
               <span className="admin-pill-label">{s.label}</span>
               <span className="admin-pill-val">{s.count.toLocaleString()}</span>
             </Link>

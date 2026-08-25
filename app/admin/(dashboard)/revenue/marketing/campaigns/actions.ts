@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { generateCampaignSeoGeo } from "@/lib/ai/campaign-seo";
 import type { MarketingCampaignStatus } from "@/lib/admin/marketing-campaigns";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -173,4 +174,23 @@ export async function addAssetToCampaign(
   });
   refresh(campaignId);
   return { ok: true, id };
+}
+
+// Drafts the campaign's Search / FAQ / GEO plan with the brand's SEO lens and
+// saves it. Returns the markdown so the editor re-syncs without a reload.
+export async function generateSeoGeoPlan(
+  campaignId: string,
+): Promise<{ ok: true; seoGeoMd: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+  const r = await generateCampaignSeoGeo(campaignId);
+  if (!r.ok) return r;
+  await recordAudit({
+    table: "marketing_campaigns",
+    recordId: campaignId,
+    operation: "update",
+    actor: admin.email,
+    context: { seo_geo_generated: true },
+  });
+  refresh(campaignId);
+  return r;
 }

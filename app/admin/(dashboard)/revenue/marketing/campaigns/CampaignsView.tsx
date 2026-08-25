@@ -1,0 +1,170 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Badge } from "@/components/admin/Badge";
+import { CHANNEL_LABEL, type CalendarEntryRow } from "@/lib/admin/marketing-calendar";
+import type { MarketingCampaignRow, MarketingCampaignStatus } from "@/lib/admin/marketing-campaigns";
+import { CalendarMonth } from "../calendar/CalendarMonth";
+
+const STATUS_TONE: Record<MarketingCampaignStatus, "ok" | "warn" | "err" | "info"> = {
+  draft: "info",
+  active: "warn",
+  done: "ok",
+  archived: "info",
+};
+const STATUS_LABEL: Record<MarketingCampaignStatus, string> = {
+  draft: "Draft",
+  active: "Active",
+  done: "Done",
+  archived: "Archived",
+};
+const STATUS_ORDER: Record<MarketingCampaignStatus, number> = {
+  draft: 0, active: 1, done: 2, archived: 3,
+};
+
+function fmt(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+type SortKey = "name" | "status" | "start" | "progress";
+
+export function CampaignsView({
+  rows,
+  entries,
+}: {
+  rows: MarketingCampaignRow[];
+  entries: CalendarEntryRow[];
+}) {
+  const router = useRouter();
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "start", dir: "desc" });
+
+  function onSort(key: SortKey) {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "name" ? "asc" : "desc" }));
+  }
+  const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
+
+  const sorted = [...rows].sort((a, b) => {
+    let d = 0;
+    if (sort.key === "name") d = a.name.localeCompare(b.name);
+    else if (sort.key === "status") d = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    else if (sort.key === "progress") {
+      const pa = a.assetCount === 0 ? 0 : a.builtCount / a.assetCount;
+      const pb = b.assetCount === 0 ? 0 : b.builtCount / b.assetCount;
+      d = pa - pb;
+    } else {
+      // Start date; dateless campaigns sink to the bottom regardless of direction.
+      const av = a.startsOn;
+      const bv = b.startsOn;
+      if (!av && !bv) d = 0;
+      else if (!av) return 1;
+      else if (!bv) return -1;
+      else d = av.localeCompare(bv);
+    }
+    return sort.dir === "desc" ? -d : d;
+  });
+
+  return (
+    <>
+      <div className="mcr-toolbar-right">
+        <div className="admin-viewtoggle" role="group" aria-label="Campaigns view">
+          <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-pressed={view === "list"}>
+            List
+          </button>
+          <button type="button" className={view === "calendar" ? "is-active" : ""} onClick={() => setView("calendar")} aria-pressed={view === "calendar"}>
+            Calendar
+          </button>
+        </div>
+      </div>
+
+      {view === "calendar" ? (
+        <div className="admin-card admin-section-card">
+          <div className="admin-card-title">Publish calendar</div>
+          <p className="admin-page-sub" style={{ marginTop: 4, marginBottom: 12 }}>
+            Every campaign asset by publish date. Click one to open it.
+          </p>
+          {entries.length === 0 ? (
+            <div className="admin-empty">No dated assets yet.</div>
+          ) : (
+            <CalendarMonth
+              entries={entries}
+              onSelect={(id) => {
+                const e = entries.find((x) => x.id === id);
+                if (e?.campaignId) router.push(`/admin/revenue/marketing/campaigns/${e.campaignId}/assets/${id}`);
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="admin-table-wrap">
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th><button type="button" className="admin-th-sort" onClick={() => onSort("name")}>Campaign{arrow("name")}</button></th>
+                  <th><button type="button" className="admin-th-sort" onClick={() => onSort("status")}>Status{arrow("status")}</button></th>
+                  <th><button type="button" className="admin-th-sort" onClick={() => onSort("start")}>Start{arrow("start")}</button></th>
+                  <th>Channels</th>
+                  <th><button type="button" className="admin-th-sort" onClick={() => onSort("progress")}>Build progress{arrow("progress")}</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((c) => {
+                  const pct = c.assetCount === 0 ? 0 : Math.round((c.builtCount / c.assetCount) * 100);
+                  return (
+                    <tr key={c.id}>
+                      <td className="admin-cell-strong">
+                        <Link href={`/admin/revenue/marketing/campaigns/${c.id}`}>{c.name}</Link>
+                        <div className="admin-cell-muted" style={{ fontWeight: 400, marginTop: 2 }}>
+                          {[c.objective, c.pillarName ? `Pillar: ${c.pillarName}` : null, c.brandName]
+                            .filter(Boolean)
+                            .join(" · ") || "No goal set"}
+                        </div>
+                      </td>
+                      <td>
+                        <Badge tone={STATUS_TONE[c.status]}>{STATUS_LABEL[c.status]}</Badge>
+                      </td>
+                      <td className="admin-cell-mono">{fmt(c.startsOn)}</td>
+                      <td>
+                        <div className="mcr-chip-row">
+                          {c.channels.length === 0 ? (
+                            <span className="admin-cell-muted">—</span>
+                          ) : (
+                            c.channels.map((ch) => (
+                              <span key={ch} className="admin-chip">
+                                {CHANNEL_LABEL[ch]}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ minWidth: 160 }}>
+                        <div className="mcr-progress">
+                          <div className="mcr-progress-track">
+                            <div
+                              className="mcr-progress-fill"
+                              style={{
+                                width: `${pct}%`,
+                                background: pct === 100 ? "var(--admin-ok-ink)" : "var(--admin-accent)",
+                              }}
+                            />
+                          </div>
+                          <span className="admin-cell-mono mcr-progress-num">
+                            {c.builtCount}/{c.assetCount} built
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
