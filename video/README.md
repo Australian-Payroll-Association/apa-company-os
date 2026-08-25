@@ -51,6 +51,27 @@ takes `--dry-run` to print the ffmpeg command instead of running it.
 Re-running the voiceover only re-bills the beats whose words actually changed. The rest come
 from cache, keyed on text plus voice plus settings.
 
+## Preview before you record
+
+An animatic plays the whole episode before a frame of it exists: beats at their real length,
+captions where they will sit, the real cards, and a real still of every screen the script
+lands on.
+
+```bash
+E8_BASE_URL=https://www.edge8.ai npx playwright test specs/shots.spec.ts
+node scripts/previz.mjs eight-edges-intro
+```
+
+The first command takes one still per route the episode visits, using the same zoom and the
+same blur selectors as the real capture. The second builds a single self-contained
+`out/<slug>/previz.html` with the stills inlined. Routes behind the admin login need
+`E8_DEMO_EMAIL` and `E8_DEMO_PASSWORD` in `.env`; without them those beats fall back to a
+labelled placeholder carrying the route and the stage directions, and the page says which
+ones are missing.
+
+Timings come from the rendered voiceover when it exists and a 145 wpm estimate before that.
+This is where a script that runs long shows up, at no cost.
+
 ## Writing an episode
 
 One file in `episodes/`, registered in `episodes/index.ts`. A beat is one paragraph of
