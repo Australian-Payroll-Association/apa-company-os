@@ -11,23 +11,23 @@ Structure: transformation arc as the spine (Act 1 diagnose, Act 2 build, Act 3 o
 3. **Humans + AI in 8 Edges**: the demo, always answering the same two questions: what did the AI just do, and what does your person still decide.
 4. **Outcome chorus**: land on the outcome line. "That's greater revenue." "That's higher performing talent." "That's streamlined operations." "That's an innovative culture."
 
-Recurring rules: real screens, real data, names blurred. Plain words, no jargon. "Edge8" exact casing, no em dashes. Numbers carry between episodes so the season itself is the proof.
+Recurring rules: 8 Edges appears on screen in every episode, including Act 1; the diagnosis episodes end with a glimpse of the cure, the build episodes live inside it. Real screens, real data, names blurred. Plain words, no jargon. "Edge8" exact casing, no em dashes. Numbers carry between episodes so the season itself is the proof.
 
 ---
 
 ## Act 1 · Diagnose (Days 1 to 7)
 
-The gaps, the evidence, the way of thinking. No features until the viewer feels the wound.
+The gaps, the evidence, the way of thinking. The pain leads, but 8 Edges is on screen every day: each diagnosis ends with a look at the cure, so by Day 7 the viewer has already seen the whole system once.
 
-| Day | Episode | Pain | Framework / source |
-|---|---|---|---|
-| 1 | The two gaps (intro, live) | You know the strategy; do the other 199? | Stanford Digital Economy Lab, 77% |
-| 2 | The execution gap | Strategy dies between the conference room and the calendar | Rumelt; Sull & Sull, FAST goals |
-| 3 | Your business lives in 40 places | AI can only create value where it can see the data | Stanford: only 6% had AI-ready data |
-| 4 | Why AI pilots fail | You bought the tools; nothing changed | Stanford Enterprise AI Playbook, the 77% unpacked |
-| 5 | Frameworks, not prompts | Everyone prompts; everyone gets the same average | Jobs to Be Done, Christensen |
-| 6 | The 50/50 question | What should AI do, and what should your people do? | The Other 50%, Holtom |
-| 7 | The plan | Where do you even start? Not with a re-org | Four outcomes, Four Offices; ADKAR (Hiatt) |
+| Day | Episode | Pain | Framework / source | 8 Edges on screen |
+|---|---|---|---|---|
+| 1 | The two gaps (intro, live) | You know the strategy; do the other 199? | Stanford Digital Economy Lab, 77% | The four-office tour |
+| 2 | The execution gap | Strategy dies between the conference room and the calendar | Rumelt; Sull & Sull, FAST goals | The goal tree: strategy visible down to every person and agent |
+| 3 | Your business lives in 40 places | AI can only create value where it can see the data | Stanford: only 6% had AI-ready data | One database: contacts, deals, people, books, all in one admin |
+| 4 | Why AI pilots fail | You bought the tools; nothing changed | Stanford Enterprise AI Playbook, the 77% unpacked | A designed workflow running end to end: call transcript to live proposal |
+| 5 | Frameworks, not prompts | Everyone prompts; everyone gets the same average | Jobs to Be Done, Christensen | Frameworks baked into the system: the resume-screen rubric, GROW coaching briefs |
+| 6 | The 50/50 question | What should AI do, and what should your people do? | The Other 50%, Holtom | The split on screen: AI score beside recruiter assessment, one accountable human per goal |
+| 7 | The plan | Where do you even start? Not with a re-org | Four outcomes, Four Offices; ADKAR (Hiatt) | The map: Four Offices in the sidebar, the season's route through them |
 
 ## Act 2 · Build (Days 8 to 24)
 
