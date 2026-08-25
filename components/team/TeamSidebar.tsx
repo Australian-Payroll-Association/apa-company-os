@@ -114,12 +114,6 @@ export function TeamSidebar({
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-
-  function toggleGroup(key: string) {
-    setCollapsed((c) => ({ ...c, [key]: !c[key] }));
-  }
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const groups: NavGroup[] = [
     { label: null, items: [{ label: "Home", href: "/team", ico: "◈", enabled: true }] },
@@ -131,6 +125,18 @@ export function TeamSidebar({
       : []),
     companyGroup(),
   ];
+
+  // Nav starts fully collapsed: every labeled group is closed on load, so the
+  // sidebar shows only the group labels until the user clicks one open.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(groups.filter((g) => g.label).map((g) => [g.label as string, true])),
+  );
+
+  function toggleGroup(key: string) {
+    setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+  }
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
   const userInitials = initials(name);
 
   useEffect(() => {

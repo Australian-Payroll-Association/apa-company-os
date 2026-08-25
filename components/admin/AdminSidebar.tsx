@@ -16,6 +16,22 @@ type NavSection = { section: string | null; groups: NavGroup[] };
 
 const isSubsection = (e: NavEntry): e is NavSubsection => "subheading" in e;
 
+// Nav starts fully collapsed: every collapsible group and every subsection is
+// closed on load, so the sidebar shows only the top-level labels. Clicking a
+// group (e.g. Revenue) reveals its subsections (CRM, Commerce, Marketing).
+function buildCollapsed(): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  for (const sect of NAV) {
+    for (const group of sect.groups) {
+      if (group.label && group.collapsible) map[group.label] = true;
+      for (const entry of group.items) {
+        if (isSubsection(entry)) map[`${group.label ?? ""}/${entry.subheading}`] = true;
+      }
+    }
+  }
+  return map;
+}
+
 // Three labeled sections (agreed 2026-08-09, see
 // docs/product/eight-edges/eight-edges-engineering-plan.md): 8 EDGES points
 // the company (Company Dashboard = the unchanged /admin home, plus the Edges
@@ -263,7 +279,7 @@ export function AdminSidebar({
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(buildCollapsed);
   const userInitials = initials(user.email);
 
   useEffect(() => {

@@ -80,6 +80,14 @@ const NAV: NavGroup[] = [
   },
 ];
 
+// Nav starts fully collapsed: every labeled group is closed on load, so the
+// sidebar shows only the section labels until the user clicks one open.
+function buildCollapsed(): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  for (const group of NAV) if (group.label) map[group.label] = true;
+  return map;
+}
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
@@ -108,7 +116,7 @@ export function PortalSidebar({
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(buildCollapsed);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   function toggleGroup(key: string) {
