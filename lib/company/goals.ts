@@ -2,7 +2,7 @@ import { companyOs } from "@/lib/supabase";
 import {
   KR_SELECT,
   OBJECTIVE_SELECT,
-  LINE_LABELS,
+  BRAND_LABELS,
   currentQuarter,
   personInitials,
   type KrRow,
@@ -175,8 +175,8 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
   const byObjective: ObjectiveGroup[] = tree.map((o, oi) => ({
     objectiveId: o.id,
     label: `O${oi + 1} · ${o.title}`,
-    lineTag: o.business_line ?? "company",
-    lineLabel: LINE_LABELS[o.business_line ?? "company"],
+    lineTag: o.brand ?? "company",
+    lineLabel: BRAND_LABELS[o.brand ?? "company"],
     items: resolved
       .filter((r) => r.objId === o.id)
       .sort((a, b) => a.name.localeCompare(b.name))

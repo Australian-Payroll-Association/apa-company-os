@@ -195,7 +195,7 @@ export async function createObjective(input: ObjectiveInput): Promise<Result & {
 
 export async function updateObjective(
   id: string,
-  patch: { title?: string; status?: string; business_line?: string; owner_agent?: string },
+  patch: { title?: string; status?: string; brand?: string; owner_agent?: string },
 ): Promise<Result> {
   const res = await _updateObjective(id, patch);
   refreshCascade();
