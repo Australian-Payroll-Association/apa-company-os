@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 
-// The "Team member goals" tab of /team/company-goals, with two ways to read the
-// same active FAST goals:
+// The "Team member goals" tab of the Company Goals view, with two ways to read
+// the same active FAST goals:
 //   By team member      — one card per person, their goals under them (default).
 //   By company objective — one section per company objective, the members whose
 //                          goals ladder to it, so the alignment is visible.
-// Both groupings are built server-side (page.tsx) and passed in; this only
-// toggles which is shown.
+// Both groupings are built server-side (lib/company/goals) and passed in; this
+// only toggles which is shown. `personHref` lets each shell (team directory vs
+// admin talent) point the name links at its own person page.
 
 export type FastGoal = { title: string; ladder: string | null };
 export type PersonGroup = { teamMemberId: string; name: string; goals: FastGoal[] };
@@ -34,10 +35,12 @@ export function TeamGoalsPanel({
   byPerson,
   byObjective,
   withGoal,
+  personHref,
 }: {
   byPerson: PersonGroup[];
   byObjective: ObjectiveGroup[];
   withGoal: number;
+  personHref: (teamMemberId: string) => string;
 }) {
   const [view, setView] = useState<View>("person");
 
@@ -75,7 +78,7 @@ export function TeamGoalsPanel({
           {byPerson.map((p) => (
             <div key={p.teamMemberId} className="edges-fast-person">
               <div className="edges-fast-name">
-                <Link href={`/team/directory/${p.teamMemberId}`}>{p.name}</Link>
+                <Link href={personHref(p.teamMemberId)}>{p.name}</Link>
               </div>
               {p.goals.length === 0 && <div className="admin-cell-muted">No active goal</div>}
               {p.goals.map((g, i) => (
@@ -105,7 +108,7 @@ export function TeamGoalsPanel({
               ) : (
                 o.items.map((it, i) => (
                   <div key={i} className="cg-obj-row">
-                    <Link href={`/team/directory/${it.teamMemberId}`} className="cg-obj-person">
+                    <Link href={personHref(it.teamMemberId)} className="cg-obj-person">
                       {it.name}
                     </Link>
                     <span className="cg-obj-goal">{it.goalTitle}</span>
