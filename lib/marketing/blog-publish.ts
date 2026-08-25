@@ -83,6 +83,19 @@ export function validateBlogForPublish(
   const emDashScope = [copy, parsed.titleTag ?? "", parsed.metaDescription ?? ""].join("\n");
   if (emDashScope.includes("—")) errors.push("Contains an em dash (—). Edge8 never uses em dashes.");
 
+  // SEO floor: every post links into the rest of the blog (in the body, not the
+  // FAQ), and the title tag must be crafted, not "{title} | Edge8 Blog" filler.
+  // Both defects shipped at scale once (the static migration bypassed this
+  // gate); the gate keeps them out of anything published from here on.
+  const bodyOnly = copy.split("## FAQ")[0];
+  const internalLinks = (bodyOnly.match(/\]\(\/post\//g) ?? []).length;
+  if (copy && internalLinks < 2) {
+    errors.push(`Only ${internalLinks} internal link(s) in the body. Add at least 2 links to related posts (/post/<slug>/).`);
+  }
+  if (parsed.titleTag && /\|\s*Edge8 Blog\s*$/i.test(parsed.titleTag)) {
+    errors.push('Title tag is the generic "... | Edge8 Blog" pattern. Write a keyword-led title tag.');
+  }
+
   return errors;
 }
 

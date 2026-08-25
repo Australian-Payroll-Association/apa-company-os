@@ -108,6 +108,18 @@ export function makePublishEditorTools(assetId: string, actor: string) {
       case "get_blog_asset": {
         const copy = row.copy_md ?? "";
         const profile = row.brand_id ? await getBrandProfile(row.brand_id) : null;
+        // Same-brand published posts: the internal-link targets the agent may
+        // use (checklist requires >=2 in-body links to related posts).
+        const { data: siblings } = await companyOs
+          .from("marketing_calendar")
+          .select("slug, title, brands!inner(slug)")
+          .eq("channel", "blog")
+          .eq("status", "published")
+          .eq("brands.slug", brand?.slug ?? "")
+          .not("slug", "is", null)
+          .neq("id", assetId)
+          .order("publish_date", { ascending: false })
+          .limit(100);
         return {
           content: JSON.stringify({
             title: row.title,
@@ -125,6 +137,7 @@ export function makePublishEditorTools(assetId: string, actor: string) {
             excerpt: parsed.excerpt,
             hasFaq: /<details[^>]*class="faq-item"/i.test(copy),
             brandRulesMd: profile?.rulesMd ?? null,
+            internalLinkTargets: (siblings ?? []).map((s) => ({ slug: (s as { slug: string }).slug, title: (s as { title: string }).title })),
             bodyMd: copy,
             seoMd: row.seo_md,
           }),
