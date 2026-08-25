@@ -15,6 +15,9 @@ const nextConfig = {
       // The new-member onboarding form is a purpose-driven survey; serve it at a
       // clean top-level URL while it runs on the survey engine underneath.
       { source: '/new-member-onboarding', destination: '/surveys/new-member-onboarding' },
+      // Video scripts are a static folder in public/; Next does not serve a
+      // directory's index.html on its own, so map the clean URL to it.
+      { source: '/video-scripts', destination: '/video-scripts/index.html' },
     ]
   },
   async redirects() {
