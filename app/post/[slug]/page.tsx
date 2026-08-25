@@ -41,6 +41,21 @@ export default async function PostPage({ params }: { params: { slug: string } })
   const post = await getPostDataBySlug(params.slug)
   if (!post) notFound()
 
+  // FAQPage structured data, so the post's Q&As are eligible for Google rich
+  // results and can be lifted directly by AI answer engines. Rendered only when
+  // the post actually carries an FAQ.
+  const faqJsonLd = post.faq.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: post.faq.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      }
+    : null
+
   // Sidebar: recent posts from same category (excluding this post)
   const relatedPosts = allPosts
     .filter((p) => p.categorySlug === post.categorySlug && p.slug !== post.slug)
@@ -49,6 +64,13 @@ export default async function PostPage({ params }: { params: { slug: string } })
 
   return (
     <main>
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       {/* ═══ POST HERO — dark section, cover image only ══════════ */}
       <section className="post-hero">
         <div className="post-cover-wrap">
