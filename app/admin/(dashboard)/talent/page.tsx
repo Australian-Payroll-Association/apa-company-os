@@ -20,7 +20,12 @@ export const metadata = {
 
 type TeamRow = { status: string | null; start_date: string | null; end_date: string | null; departments: unknown };
 type AppRow = { status: string | null; applied_at: string | null; decided_at: string | null; job_requisition_id: string | null };
-type ReqRow = { id: string; title: string | null };
+type ReqRow = { id: string; title: string | null; status: string | null; opened_at: string | null; closed_at: string | null };
+
+// 2026-07-08: the ATS import cleanup swept ~25 long-stale reqs to "filled" in
+// one batch, so their closed_at is the sweep date, not a hire date. Excluded
+// from days-to-hire so one cleanup doesn't read as 350-day hiring.
+const ATS_CLEANUP_SWEEP_DATE = "2026-07-08";
 
 export default async function TalentCockpitPage() {
   const now = new Date();
@@ -32,7 +37,11 @@ export default async function TalentCockpitPage() {
   const [teamRes, appsRes, openReqsRes, onboardingRes, goals] = await Promise.all([
     companyOs.from("team_members").select("status, start_date, end_date, departments!department_id(name)").limit(1000),
     companyOs.from("applications").select("status, applied_at, decided_at, job_requisition_id").limit(3000),
-    companyOs.from("job_requisitions").select("id, title").eq("status", "open").order("opened_at", { ascending: false }),
+    companyOs
+      .from("job_requisitions")
+      .select("id, title, status, opened_at, closed_at")
+      .in("status", ["open", "filled"])
+      .order("opened_at", { ascending: false }),
     companyOs.from("onboarding_plans").select("stage"),
     getOfficeGoals(),
   ]);
@@ -43,9 +52,12 @@ export default async function TalentCockpitPage() {
   const team = (teamRes.data as TeamRow[] | null) ?? [];
   const active = team.filter((t) => t.status === "active");
   const headcount = active.length;
-  const turnover = team.filter(
-    (t) => (t.status === "terminated" || t.status === "alumni") && t.end_date && t.end_date >= yearStart,
-  ).length;
+  // Turnover counts departures by end_date — but most imported terminated/
+  // alumni rows carry no end_date, so surface the undated count rather than
+  // silently undercounting. Backfill lives on /admin/talent/team (Past tab).
+  const departed = team.filter((t) => t.status === "terminated" || t.status === "alumni");
+  const turnover = departed.filter((t) => t.end_date && t.end_date >= yearStart).length;
+  const undatedDepartures = departed.filter((t) => !t.end_date).length;
   const newHires = team.filter((t) => t.start_date && t.start_date >= yearStart).length;
 
   const byDept = new Map<string, number>();
@@ -65,15 +77,28 @@ export default async function TalentCockpitPage() {
   const apps30 = apps.filter((a) => a.applied_at && a.applied_at >= iso30).length;
   const appsPrev30 = apps.filter((a) => a.applied_at && a.applied_at >= iso60 && a.applied_at < iso30).length;
 
-  // Days to hire: mean gap applied → decided over hired applications with both dates.
-  const hired = apps.filter((a) => a.status === "hired" && a.applied_at && a.decided_at);
-  const daysToHire = hired.length
+  const conversion = apps.length ? Math.round((apps.filter((a) => a.status === "hired").length / apps.length) * 1000) / 10 : 0;
+
+  // Days to hire: per ROLE, opened_at → closed_at over filled requisitions.
+  // Excludes the cleanup-sweep batch (closed_at is the sweep date, not a hire)
+  // and retro-created reqs (opened = closed same day: no real search ran).
+  const allReqs = (openReqsRes.data as ReqRow[] | null) ?? [];
+  const filledOrganic = allReqs.filter(
+    (r) =>
+      r.status === "filled" &&
+      r.opened_at &&
+      r.closed_at &&
+      r.closed_at.slice(0, 10) !== ATS_CLEANUP_SWEEP_DATE &&
+      r.closed_at.slice(0, 10) > r.opened_at.slice(0, 10),
+  );
+  const daysToHire = filledOrganic.length
     ? Math.round(
-        hired.reduce((s, a) => s + (new Date(a.decided_at!).getTime() - new Date(a.applied_at!).getTime()) / MS_DAY, 0) /
-          hired.length,
+        filledOrganic.reduce(
+          (s, r) => s + (new Date(r.closed_at!).getTime() - new Date(r.opened_at!).getTime()) / MS_DAY,
+          0,
+        ) / filledOrganic.length,
       )
     : null;
-  const conversion = apps.length ? Math.round((apps.filter((a) => a.status === "hired").length / apps.length) * 1000) / 10 : 0;
 
   const appsByMonth = monthsThisYear(now).map(({ label, from, to }) => ({
     label,
@@ -81,7 +106,7 @@ export default async function TalentCockpitPage() {
   }));
 
   // Hiring pipeline: open reqs with their count of active applications.
-  const openReqs = (openReqsRes.data as ReqRow[] | null) ?? [];
+  const openReqs = allReqs.filter((r) => r.status === "open");
   const activeByReq = new Map<string, number>();
   for (const a of apps) {
     if (a.status === "active" && a.job_requisition_id) {
@@ -114,7 +139,16 @@ export default async function TalentCockpitPage() {
       <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
         <MetricCard label="Headcount" value={headcount} sub="active team members" href="/admin/talent/team" />
         <MetricCard label={`New hires · ${year}`} value={newHires} sub="joined this year" href="/admin/talent/team" />
-        <MetricCard label={`Turnover · ${year}`} value={turnover} sub="left this year" href="/admin/talent/team" />
+        <MetricCard
+          label={`Turnover · ${year}`}
+          value={turnover}
+          sub={
+            undatedDepartures > 0
+              ? `+${undatedDepartures} departures missing an end date`
+              : "left this year"
+          }
+          href="/admin/talent/team"
+        />
         <MetricCard label="Onboarding" value={onboarding} sub="in cycle now" href="/admin/talent/onboarding" />
       </div>
       <div className="admin-cockpit-cols" style={{ marginBottom: 8 }}>
@@ -130,7 +164,12 @@ export default async function TalentCockpitPage() {
       <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
         <MetricCard label="Open roles" value={openReqs.length} sub="hiring now" href="/admin/talent/jobs" />
         <MetricCard label="Applications · 30d" value={apps30} sub={vsPrior(apps30, appsPrev30)} href="/admin/talent/applications" />
-        <MetricCard label="Days to hire" value={daysToHire ?? "—"} sub="avg, hired applicants" href="/admin/talent/applications" />
+        <MetricCard
+          label="Days to hire"
+          value={daysToHire ?? "—"}
+          sub={`avg per role · ${filledOrganic.length} filled`}
+          href="/admin/talent/jobs"
+        />
         <MetricCard label="Conversion" value={`${conversion}%`} sub="application → hire" href="/admin/talent/applications" />
       </div>
       <div className="admin-cockpit-cols">
