@@ -107,22 +107,23 @@ export type AudienceMember = { personId: string; email: string; name: string | n
 // Personas that never receive marketing email regardless of consent state.
 // Enforced here rather than by remembering to filter at each call site. Exported
 // so the marketing hub's audience breakdown counts against the exact same list
-// the sender uses, and the two cannot drift apart.
-export const BLOCKED_PERSONAS = new Set(["job_seeker", "employee"]);
+// the sender uses, and the two cannot drift apart. Job seekers are the only
+// structurally excluded persona: prospects, clients, and employees all belong on
+// the newsletter once they carry consent (the internal team included).
+export const BLOCKED_PERSONAS = new Set(["job_seeker"]);
 
 // The consent/suppression gate every marketing recipient must pass. This is the
 // single source of truth: the sender (passesSuppression, below) and the hub's
 // audience breakdown (lib/admin/marketing.ts) both call it, so the number shown
-// and the number reached are computed identically.
+// and the number reached are computed identically. Team members are no longer
+// suppressed structurally; consent alone decides, same as any other contact.
 export function isMarketingEligible(row: {
   marketing_consent: string;
   do_not_contact: boolean;
-  is_team_member: boolean;
   persona: string | null;
 }): boolean {
   if (row.marketing_consent !== "subscribed") return false;
   if (row.do_not_contact) return false;
-  if (row.is_team_member) return false;
   if (row.persona && BLOCKED_PERSONAS.has(row.persona)) return false;
   return true;
 }
@@ -279,7 +280,6 @@ export async function checkSendGate(personId: string, email: string): Promise<Se
   if (row.marketing_consent === "unsubscribed") return { verdict: "suppress", reason: "unsubscribed" };
   if (row.marketing_consent !== "subscribed") return { verdict: "suppress", reason: "no marketing consent" };
   if (row.do_not_contact) return { verdict: "suppress", reason: "do not contact" };
-  if (row.is_team_member) return { verdict: "suppress", reason: "team member" };
   if (row.persona && BLOCKED_PERSONAS.has(row.persona)) {
     return { verdict: "suppress", reason: `persona ${row.persona}` };
   }
