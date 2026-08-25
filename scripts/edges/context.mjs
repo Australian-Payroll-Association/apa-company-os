@@ -23,7 +23,7 @@ const quarter = `${now.getFullYear()}Q${Math.floor(now.getMonth() / 3) + 1}`;
 
 const [strategy] = await sql`select year, title from company_os.strategies order by year desc limit 1`;
 const objectives = await sql`
-  select id, level, office, business_line, parent_kr_id, title, owner_agent, sort_order
+  select id, level, office, brand, parent_kr_id, title, owner_agent, sort_order
   from company_os.objectives where quarter = ${quarter} and status = 'active' order by sort_order`;
 const krs = await sql`
   select k.*, p.full_name as accountable_name
@@ -69,7 +69,7 @@ lines.push('');
 function render(o, depth) {
   if (!keepObjective(o)) return;
   const pad = '  '.repeat(depth);
-  const scope = o.level === 'company' ? (o.business_line ?? 'company-wide') : o.level === 'office' ? `office of ${o.office}` : `executor${o.owner_agent ? ': ' + o.owner_agent + ' agent' : ''}`;
+  const scope = o.level === 'company' ? (o.brand ?? 'company-wide') : o.level === 'office' ? `office of ${o.office}` : `executor${o.owner_agent ? ': ' + o.owner_agent + ' agent' : ''}`;
   const myKrs = (krsByObjective.get(o.id) ?? []).filter(keepKr);
   const childLines = [];
   for (const k of krsByObjective.get(o.id) ?? []) {

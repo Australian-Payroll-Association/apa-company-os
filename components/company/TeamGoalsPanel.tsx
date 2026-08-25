@@ -24,7 +24,7 @@ export type ObjectiveGroup = {
   // null is the trailing "not yet aligned" bucket.
   objectiveId: string | null;
   label: string;
-  lineTag: string; // business_line for the chip colour, or "company"
+  lineTag: string; // brand for the chip colour, or "company"
   lineLabel: string;
   items: ObjectiveItem[];
 };

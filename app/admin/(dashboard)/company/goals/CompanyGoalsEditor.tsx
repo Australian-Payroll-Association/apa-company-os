@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AGENTS,
-  BUSINESS_LINES,
+  BRANDS,
   DAVE_PERSON_ID,
   DELIVERY_MIXES,
   KR_STATUSES,
-  LINE_LABELS,
+  BRAND_LABELS,
   agentInitials,
   looksLikeActivity,
   progressPct,
@@ -113,7 +113,7 @@ export function CompanyGoalsEditor({
                   level: "company",
                   title: d.title,
                   quarter,
-                  business_line: d.businessLine || undefined,
+                  brand: d.brand || undefined,
                 }),
               "Objective added.",
             )
@@ -126,8 +126,8 @@ export function CompanyGoalsEditor({
       {tree.map((o, oi) => (
         <div key={o.id} className="admin-card" style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
           <div className="edges-ohead">
-            <span className={`edges-ltag edges-ltag--${o.business_line ?? "company"}`}>
-              {LINE_LABELS[o.business_line ?? "company"]}
+            <span className={`edges-ltag edges-ltag--${o.brand ?? "company"}`}>
+              {BRAND_LABELS[o.brand ?? "company"]}
             </span>
             <h3>
               O{oi + 1} · {o.title}
@@ -275,17 +275,17 @@ function ObjectiveForm({
   quarter: string;
   pending: boolean;
   onCancel: () => void;
-  onSubmit: (d: { title: string; businessLine: string }) => void;
+  onSubmit: (d: { title: string; brand: string }) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [businessLine, setBusinessLine] = useState("");
+  const [brand, setBusinessLine] = useState("");
   return (
     <form
       className="admin-card admin-section-card admin-form"
       style={{ marginBottom: 16 }}
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ title, businessLine });
+        onSubmit({ title, brand });
       }}
     >
       <div className="admin-field">
@@ -293,12 +293,12 @@ function ObjectiveForm({
         <input className="admin-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Make renewals a system, not a scramble" required />
       </div>
       <div className="admin-field">
-        <label className="admin-label">Business line (blank = company-wide)</label>
-        <select className="admin-select" value={businessLine} onChange={(e) => setBusinessLine(e.target.value)}>
+        <label className="admin-label">Brand (blank = company-wide)</label>
+        <select className="admin-select" value={brand} onChange={(e) => setBusinessLine(e.target.value)}>
           <option value="">company-wide</option>
-          {BUSINESS_LINES.map((l) => (
+          {BRANDS.map((l) => (
             <option key={l} value={l}>
-              {LINE_LABELS[l]}
+              {BRAND_LABELS[l]}
             </option>
           ))}
         </select>

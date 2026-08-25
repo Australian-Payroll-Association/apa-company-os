@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { type Result } from "@/lib/admin/mutations";
 import {
-  BUSINESS_LINES,
+  BRANDS,
   DELIVERY_MIXES,
   KR_STATUSES,
   OBJECTIVE_LEVELS,
@@ -47,7 +47,7 @@ export type ObjectiveInput = {
   level: ObjectiveLevel;
   title: string;
   office?: string;
-  business_line?: string;
+  brand?: string;
   parent_kr_id?: string;
   quarter: string;
   strategy_id?: string;
@@ -67,8 +67,8 @@ export async function createObjective(input: ObjectiveInput): Promise<Result & {
   if (input.level === "office" && !OFFICES.includes(input.office as (typeof OFFICES)[number])) {
     return { ok: false, error: "Pick which office owns this objective." };
   }
-  if (input.business_line && !BUSINESS_LINES.includes(input.business_line as (typeof BUSINESS_LINES)[number])) {
-    return { ok: false, error: "Invalid business line." };
+  if (input.brand && !BRANDS.includes(input.brand as (typeof BRANDS)[number])) {
+    return { ok: false, error: "Invalid brand." };
   }
 
   const row = {
@@ -87,7 +87,7 @@ export async function createObjective(input: ObjectiveInput): Promise<Result & {
 
 export async function updateObjective(
   id: string,
-  patch: { title?: string; status?: string; business_line?: string; owner_agent?: string },
+  patch: { title?: string; status?: string; brand?: string; owner_agent?: string },
 ): Promise<Result> {
   const admin = await requireAdmin();
   if (patch.title !== undefined && !patch.title.trim()) {

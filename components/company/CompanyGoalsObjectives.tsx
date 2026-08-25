@@ -1,5 +1,5 @@
 import {
-  LINE_LABELS,
+  BRAND_LABELS,
   agentInitials,
   progressPct,
   type KrRow,
@@ -44,8 +44,8 @@ export function CompanyGoalsObjectives({
       {tree.map((o, oi) => (
         <div key={o.id} className="admin-card" style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
           <div className="edges-ohead">
-            <span className={`edges-ltag edges-ltag--${o.business_line ?? "company"}`}>
-              {LINE_LABELS[o.business_line ?? "company"]}
+            <span className={`edges-ltag edges-ltag--${o.brand ?? "company"}`}>
+              {BRAND_LABELS[o.brand ?? "company"]}
             </span>
             <h3>
               O{oi + 1} · {o.title}

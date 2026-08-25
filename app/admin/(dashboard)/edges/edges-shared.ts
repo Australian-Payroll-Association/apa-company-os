@@ -13,7 +13,8 @@ export const OBJECTIVE_LEVELS = ["company", "office", "executor"] as const;
 export type ObjectiveLevel = (typeof OBJECTIVE_LEVELS)[number];
 
 export const OFFICES = ["revenue", "talent", "operations", "innovation"] as const;
-export const BUSINESS_LINES = ["staffing", "ai_programs"] as const;
+export const BRANDS = ["edge8", "aio"] as const;
+export type Brand = (typeof BRANDS)[number];
 
 export const AGENTS = [
   "product-manager",
@@ -26,9 +27,9 @@ export const AGENTS = [
   "email-marketer",
 ] as const;
 
-export const LINE_LABELS: Record<string, string> = {
-  staffing: "Staffing",
-  ai_programs: "AI Programs",
+export const BRAND_LABELS: Record<string, string> = {
+  edge8: "Edge8",
+  aio: "AI Officer Institute",
   company: "Company",
 };
 
@@ -43,7 +44,7 @@ export type ObjectiveRow = {
   id: string;
   level: ObjectiveLevel;
   office: string | null;
-  business_line: string | null;
+  brand: string | null;
   parent_kr_id: string | null;
   quarter: string;
   title: string;
@@ -64,6 +65,8 @@ export type KrRow = {
   delivery_mix: DeliveryMix;
   accountable_person_id: string;
   executing_agent: string | null;
+  source: "agent" | "manual";
+  source_detail: string | null;
   status: KrStatus;
   sort_order: number;
 };
@@ -72,9 +75,9 @@ export type KrNode = KrRow & { children: ObjectiveNode[] };
 export type ObjectiveNode = ObjectiveRow & { krs: KrNode[] };
 
 export const OBJECTIVE_SELECT =
-  "id, level, office, business_line, parent_kr_id, quarter, title, status, owner_person_id, owner_agent, sort_order";
+  "id, level, office, brand, parent_kr_id, quarter, title, status, owner_person_id, owner_agent, sort_order";
 export const KR_SELECT =
-  "id, objective_id, title, target_value, current_value, unit, direction, delivery_mix, accountable_person_id, executing_agent, status, sort_order";
+  "id, objective_id, title, target_value, current_value, unit, direction, delivery_mix, accountable_person_id, executing_agent, source, source_detail, status, sort_order";
 
 // Direction-aware progress, clamped 0-100. For "down is good" a met target is
 // 100; overshoot decays as target/current. Target 0 means "keep it at zero".
