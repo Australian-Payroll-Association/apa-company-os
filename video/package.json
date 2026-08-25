@@ -14,7 +14,9 @@
     "captions": "node scripts/captions.mjs",
     "qc": "node scripts/qc.mjs",
     "assemble": "node scripts/assemble.mjs",
-    "render": "node scripts/render.mjs"
+    "render": "node scripts/render.mjs",
+    "shots": "playwright test specs/shots.spec.ts",
+    "previz": "node scripts/previz.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0"
