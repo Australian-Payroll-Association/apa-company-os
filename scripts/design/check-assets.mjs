@@ -18,7 +18,7 @@
  * Usage:  node scripts/design/check-assets.mjs [--warn-only]
  */
 
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 const ROOT = resolve(new URL("../..", import.meta.url).pathname);
@@ -393,6 +393,133 @@ if (adHocWidths.size) {
       `${entries.length > 6 ? ", ..." : ""}). Use .admin-content (880) or ` +
       `.admin-content--form (640), or leave the page at the default cap.`,
   });
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   Check: no NEW inline layout styles.
+
+   Born from the time-off decision row (PR #840): the buttons were laid out
+   with style={{ display: "flex", gap: 8 }} on .admin-list-aside, a class that
+   already sets flex-direction: column. The inline style lost silently, the
+   buttons shipped stacked, and nothing in typecheck, build, or CI could see
+   it. Layout belongs in a class; a class that lays out wrong is the wrong
+   class or a missing one.
+
+   This is a RATCHET, not a sweep. The repo has ~500 of these already and
+   cleaning them up is not this check's job — it only refuses to let the number
+   grow, per file. Baseline: scripts/design/inline-layout-baseline.json,
+   regenerate with `node scripts/design/check-assets.mjs --update-baseline`.
+
+   Escape hatch: put `layout-ok` in a comment on the same line, e.g.
+   style={{ display: "none" }} /* layout-ok: honeypot field *\/
+   ───────────────────────────────────────────────────────────── */
+
+const LAYOUT_PROPS = [
+  "display",
+  "flexDirection",
+  "alignItems",
+  "justifyContent",
+  "gap",
+  "flexWrap",
+  "gridTemplateColumns",
+];
+const BASELINE_PATH = join(ROOT, "scripts/design/inline-layout-baseline.json");
+const UPDATE_BASELINE = process.argv.includes("--update-baseline");
+
+/** Every `style={{ ... }}` block in a file, with the line it starts on. */
+function inlineStyleBlocks(src) {
+  const blocks = [];
+  const marker = "style={{";
+  let i = src.indexOf(marker);
+  while (i !== -1) {
+    let depth = 0;
+    let end = i + marker.length - 2; // sit on the first `{`
+    for (let j = end; j < src.length; j++) {
+      if (src[j] === "{") depth++;
+      else if (src[j] === "}") {
+        depth--;
+        if (depth === 0) {
+          end = j;
+          break;
+        }
+      }
+    }
+    blocks.push({
+      line: src.slice(0, i).split("\n").length,
+      text: src.slice(i, end + 1),
+    });
+    i = src.indexOf(marker, end + 1);
+  }
+  return blocks;
+}
+
+const inlineLayoutByFile = new Map();
+const inlineLayoutHits = [];
+
+for (const file of SCAN_DIRS.filter((d) => d !== "lib").flatMap((d) =>
+  walk(join(ROOT, d), [".tsx", ".jsx"]),
+)) {
+  const rel = relative(ROOT, file);
+  const src = readFileSync(file, "utf8");
+  const lines = src.split("\n");
+
+  for (const block of inlineStyleBlocks(src)) {
+    // `display: "none"` is a legitimate inline use (hidden honeypot inputs,
+    // print-only nodes) and never a layout decision, so it never counts.
+    const props = LAYOUT_PROPS.filter(
+      (prop) =>
+        new RegExp(`\\b${prop}\\s*:`).test(block.text) &&
+        !(prop === "display" && /display\s*:\s*["']none["']/.test(block.text)),
+    );
+    if (props.length === 0) continue;
+    if (/layout-ok/.test(lines[block.line - 1] ?? "")) continue;
+
+    inlineLayoutByFile.set(rel, (inlineLayoutByFile.get(rel) ?? 0) + 1);
+    inlineLayoutHits.push({ file: rel, line: block.line, props });
+  }
+}
+
+if (UPDATE_BASELINE) {
+  const next = Object.fromEntries([...inlineLayoutByFile.entries()].sort());
+  writeFileSync(BASELINE_PATH, JSON.stringify(next, null, 2) + "\n");
+  console.log(
+    `✓ inline-layout baseline written: ${Object.keys(next).length} file(s), ` +
+      `${inlineLayoutHits.length} occurrence(s)`,
+  );
+  process.exit(0);
+}
+
+const baseline = existsSync(BASELINE_PATH)
+  ? JSON.parse(readFileSync(BASELINE_PATH, "utf8"))
+  : {};
+
+for (const [file, count] of inlineLayoutByFile) {
+  const allowed = baseline[file] ?? 0;
+  if (count <= allowed) continue;
+  for (const hit of inlineLayoutHits.filter((h) => h.file === file)) {
+    errors.push({
+      check: "inline-layout-style",
+      file: hit.file,
+      line: hit.line,
+      msg:
+        `inline ${hit.props.join(", ")} in a style prop. Layout goes in a class: ` +
+        `copy the closest shipped row/card, or add a class to app/admin/admin.css. ` +
+        `(${count} in this file, baseline ${allowed}. Genuinely unavoidable? ` +
+        `add a "layout-ok: reason" comment on that line.)`,
+    });
+  }
+}
+
+// Cleanup should tighten the ratchet, but never fail a PR for removing them.
+const loosened = [...Object.entries(baseline)].filter(
+  ([file, allowed]) => (inlineLayoutByFile.get(file) ?? 0) < allowed,
+);
+if (loosened.length && !errors.length) {
+  console.log(
+    `\nℹ ${loosened.length} file(s) now have fewer inline layout styles than the ` +
+      `baseline. Run \`npm run check:design -- --update-baseline\` to lock the win in.`,
+  );
 }
 
 /* ───────────────────────────── report ───────────────────────────── */

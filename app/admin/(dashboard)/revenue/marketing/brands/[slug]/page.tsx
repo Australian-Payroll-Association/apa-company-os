@@ -24,11 +24,17 @@ export default async function BrandProfilePage({ params }: { params: { slug: str
       <PageHead
         eyebrow={
           <>
+            <Link href="/admin/revenue/marketing">Marketing</Link> ·{" "}
             <Link href="/admin/revenue/marketing/brands">Brands</Link> · Profile
           </>
         }
         title={profile.brandName}
         sub="The voice, channels, and writing process the AI writer follows for this brand."
+        action={
+          <Link className="admin-btn" href="/admin/revenue/marketing/brands">
+            Back to brands
+          </Link>
+        }
       />
       <BrandProfileTabs profile={profile} />
     </div>

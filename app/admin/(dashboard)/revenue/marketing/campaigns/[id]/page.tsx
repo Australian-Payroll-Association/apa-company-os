@@ -32,6 +32,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
       <PageHead
         eyebrow={
           <>
+            <Link href="/admin/revenue/marketing">Marketing</Link> ·{" "}
             <Link href="/admin/revenue/marketing/campaigns">Campaigns</Link> ·{" "}
             {campaign.brandName ?? "No brand"}
           </>
@@ -39,7 +40,7 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
         title={campaign.name}
         action={
           <Link className="admin-btn" href="/admin/revenue/marketing/campaigns">
-            All campaigns
+            Back to campaigns
           </Link>
         }
       />
