@@ -1,5 +1,5 @@
 import { companyOs } from "@/lib/supabase";
-import { isMarketingEligible } from "@/lib/admin/broadcasts";
+import { BLOCKED_PERSONAS, isMarketingEligible } from "@/lib/admin/broadcasts";
 
 // Reads for the Revenue → Marketing hub. Two sources, both already populated:
 // company_os.interactions (every email lib/email.ts has ever accepted) and
@@ -388,4 +388,47 @@ export async function getAudienceBreakdown(): Promise<AudienceBreakdown> {
     neverAsked,
     byPersona: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value })),
   };
+}
+
+// -------------------------------------------------------------- recent contacts
+
+export type RecentContact = {
+  id: string;
+  name: string;
+  persona: string | null;
+  source: string | null;
+  createdAt: string;
+};
+
+export type RecentContacts = {
+  rows: RecentContact[];
+  error?: string;
+};
+
+// The newest people to enter the CRM, so the hub shows who marketing just picked
+// up. Job seekers are excluded, matching the audience breakdown's BLOCKED_PERSONAS:
+// this is the marketing hub, not the full contact list.
+export async function getRecentContacts(limit = 5): Promise<RecentContacts> {
+  // persona.is.null kept explicitly: a bare NOT IN drops null-persona rows,
+  // and most fresh inbound contacts have no persona set yet.
+  const blocked = [...BLOCKED_PERSONAS].join(",");
+  const { data, error } = await companyOs
+    .from("people")
+    .select("id, full_name, email, persona, source, created_at")
+    .is("archived_at", null)
+    .or(`persona.is.null,persona.not.in.(${blocked})`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return { rows: [], error: error.message };
+
+  const rows = (data ?? []).map((r) => ({
+    id: r.id as string,
+    name: (r.full_name as string | null) || (r.email as string | null) || "Unknown",
+    persona: r.persona as string | null,
+    source: r.source as string | null,
+    createdAt: r.created_at as string,
+  }));
+
+  return { rows };
 }

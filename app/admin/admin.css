@@ -2900,6 +2900,9 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 /* ─── Time Off ────────────────────────────────────── */
 .admin-timeoff .admin-card { padding: 18px 20px; }
 .admin-card-title { font-size: 15px; font-weight: 600; color: var(--admin-ink); margin: 0 0 14px; }
+/* Title on the left, a "See all" or action link on the right, for a card header. */
+.admin-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.admin-card-head .admin-card-title { margin-bottom: 0; }
 .admin-timeoff-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
