@@ -38,11 +38,6 @@ export default async function CampaignDetailPage({ params }: { params: { id: str
           </>
         }
         title={campaign.name}
-        action={
-          <Link className="admin-btn" href="/admin/revenue/marketing/campaigns">
-            Back to campaigns
-          </Link>
-        }
       />
       <CampaignHub campaign={campaign} entries={entries} report={report} brands={brands} pillars={pillars} />
     </div>

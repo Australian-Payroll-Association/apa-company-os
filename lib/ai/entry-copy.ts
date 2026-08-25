@@ -58,8 +58,17 @@ function buildUserMessage(entry: EntryRow): string {
   if (entry.copy_md) parts.push(`Current draft to improve on (keep what works, tighten the rest):\n\n${entry.copy_md}`);
   if (entry.notes) parts.push(`Notes / direction: ${entry.notes}`);
   if (source) parts.push(`Reference URL: ${source}`);
-  parts.push(`Return only the ${channel} copy in Markdown, in this brand's voice and channel rules. No preamble.`);
+  parts.push(`Return only the ${channel} copy in Markdown, in this brand's voice and channel rules. No preamble. Do not open with a heading that repeats the title; the page renders the title above the body.`);
   return parts.join("\n\n");
+}
+
+// The detail page and blog preview render the title themselves, so a body that
+// opens by repeating it as a heading shows the title twice. The prompt forbids
+// it; this strips it when the model does it anyway.
+function stripLeadingTitleHeading(md: string, title: string): string {
+  const m = md.match(/^#{1,2}\s+(.+?)\s*\n+/);
+  if (m && m[1].trim().toLowerCase() === title.trim().toLowerCase()) return md.slice(m[0].length);
+  return md;
 }
 
 // The editable instruction seed for the regenerate modal.
@@ -118,7 +127,7 @@ export async function generateEntryCopy(
     if (!textBlock) return { ok: false, error: "Model returned no output." };
 
     const parsed = JSON.parse(textBlock.text) as { body_md?: string };
-    const bodyMd = (parsed.body_md ?? "").trim();
+    const bodyMd = stripLeadingTitleHeading((parsed.body_md ?? "").trim(), entry.title);
     if (!bodyMd) return { ok: false, error: "The writer produced nothing usable." };
 
     const { error } = await companyOs.from("marketing_calendar").update({ copy_md: bodyMd }).eq("id", entryId);

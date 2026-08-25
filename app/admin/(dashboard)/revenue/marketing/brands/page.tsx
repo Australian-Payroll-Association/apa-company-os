@@ -19,14 +19,9 @@ export default async function BrandsPage() {
   return (
     <div>
       <PageHead
-        eyebrow="Revenue · Marketing"
+        eyebrow={<>Revenue · <Link href="/admin/revenue/marketing">Marketing</Link></>}
         title="Brands"
         sub="Each brand's voice, channels, and writing process. The broadcast editor and the AI writer read from here."
-        action={
-          <Link className="admin-btn" href="/admin/revenue/marketing">
-            Back to Marketing
-          </Link>
-        }
       />
 
       {brands.length === 0 ? (

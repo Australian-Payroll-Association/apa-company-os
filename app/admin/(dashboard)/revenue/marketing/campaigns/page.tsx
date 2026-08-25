@@ -50,17 +50,10 @@ export default async function CampaignsPage() {
   return (
     <div>
       <PageHead
-        eyebrow="Revenue · Marketing"
+        eyebrow={<>Revenue · <Link href="/admin/revenue/marketing">Marketing</Link></>}
         title="Campaigns"
         sub={`${rows.length} campaign${rows.length === 1 ? "" : "s"}. A campaign is the idea; it spawns assets across every channel.`}
-        action={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link className="admin-btn" href="/admin/revenue/marketing">
-              Back to Marketing
-            </Link>
-            <NewCampaignButton brands={brands} pillars={pillars} />
-          </div>
-        }
+        action={<NewCampaignButton brands={brands} pillars={pillars} />}
       />
 
       {error && (

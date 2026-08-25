@@ -26,14 +26,9 @@ export default async function BooksPage() {
   return (
     <div>
       <PageHead
-        eyebrow="Revenue · Marketing"
+        eyebrow={<>Revenue · <Link href="/admin/revenue/marketing">Marketing</Link></>}
         title="Books"
         sub="The manuscripts, chapter by chapter. Raw material for blog posts and social, and the source for the Amazon editions."
-        action={
-          <Link className="admin-btn" href="/admin/revenue/marketing">
-            Back to Marketing
-          </Link>
-        }
       />
 
       {books.length === 0 ? (

@@ -30,11 +30,6 @@ export default async function BrandProfilePage({ params }: { params: { slug: str
         }
         title={profile.brandName}
         sub="The voice, channels, and writing process the AI writer follows for this brand."
-        action={
-          <Link className="admin-btn" href="/admin/revenue/marketing/brands">
-            Back to brands
-          </Link>
-        }
       />
       <BrandProfileTabs profile={profile} />
     </div>

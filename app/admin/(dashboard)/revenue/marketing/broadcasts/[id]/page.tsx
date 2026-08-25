@@ -57,14 +57,7 @@ export default async function BroadcastDetailPage({ params }: { params: { id: st
           </>
         }
         title={campaign.name}
-        action={
-          <div className="admin-head-actions">
-            <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
-            <Link className="admin-btn" href="/admin/revenue/marketing/broadcasts">
-              Back to broadcasts
-            </Link>
-          </div>
-        }
+        action={<Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>}
       />
 
       <div className="mp-kpi-grid">

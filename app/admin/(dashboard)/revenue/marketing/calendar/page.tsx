@@ -35,14 +35,9 @@ export default async function MarketingCalendarPage() {
   return (
     <div>
       <PageHead
-        eyebrow="Revenue · Marketing"
+        eyebrow={<>Revenue · <Link href="/admin/revenue/marketing">Marketing</Link></>}
         title="Calendar"
         sub="One plan across blog, email, LinkedIn, and Facebook. Email entries can spawn a real campaign."
-        action={
-          <Link className="admin-btn" href="/admin/revenue/marketing">
-            Back to Marketing
-          </Link>
-        }
       />
 
       {error && (

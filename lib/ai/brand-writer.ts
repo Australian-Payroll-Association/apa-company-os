@@ -111,7 +111,7 @@ ${s(profile.imageStyleMd)}
 - Social styles: ${profile.preferredSocialStyles.join(", ") || "(none set)"}
 
 # Output
-Produce one output per channel the Channel guidelines mark active for a write request (typically email, LinkedIn, Facebook). Re-purpose the same core idea per channel; never repeat identical text across channels. Run every piece through the editing lens before returning it. Tag each output with an image_style slug from the preferred list; tag social outputs with a social_style slug; if you produce a blog output, tag its blog_style, and include seo_md run through the SEO lens plus an image_brief_md. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
+Produce one output per channel the Channel guidelines mark active for a write request (typically email, LinkedIn, Facebook). Re-purpose the same core idea per channel; never repeat identical text across channels. Run every piece through the editing lens before returning it. Tag each output with an image_style slug from the preferred list; tag social outputs with a social_style slug; if you produce a blog output, tag its blog_style, and include seo_md run through the SEO lens plus an image_brief_md. Never open body_md with a heading that repeats the piece's title; the page renders the title above the body. Never use em dashes. Do not invent facts, metrics, or quotes that are not in the source. Return through the provided schema only.`;
 }
 
 export async function writeForBrand(input: {

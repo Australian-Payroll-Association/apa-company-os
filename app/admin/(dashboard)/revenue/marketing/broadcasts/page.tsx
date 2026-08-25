@@ -42,17 +42,10 @@ export default async function BroadcastsPage() {
   return (
     <div>
       <PageHead
-        eyebrow="Revenue · Marketing"
+        eyebrow={<>Revenue · <Link href="/admin/revenue/marketing">Marketing</Link></>}
         title="Broadcasts"
         sub={`${rows.length} broadcast${rows.length === 1 ? "" : "s"}. Nothing sends without an explicit approval.`}
-        action={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link className="admin-btn" href="/admin/revenue/marketing">
-              Back to Marketing
-            </Link>
-            <NewBroadcastButton />
-          </div>
-        }
+        action={<NewBroadcastButton />}
       />
 
       {error && (
