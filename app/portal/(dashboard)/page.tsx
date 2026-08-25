@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getAssignedTeam } from "@/lib/portal/team";
-import { getAssignedTimeOff } from "@/lib/portal/time-off";
+import { getAssignedTimeOff, getLeaveDecisionQueue } from "@/lib/portal/time-off";
 import { getInvoicesForActor } from "@/lib/portal/invoices";
 import { listWorkRequestsForActor } from "@/lib/portal/work-requests";
 import { getMyEvents } from "@/lib/portal/events";
@@ -55,17 +55,19 @@ function eventRange(startsAt: string | null, endsAt: string | null): string {
 export default async function PortalHome() {
   const actor = await requirePortalMember();
 
-  const [team, timeOff, invoices, requests, events, tokens, roadmap, board, documents] = await Promise.all([
-    getAssignedTeam(actor),
-    getAssignedTimeOff(actor),
-    getInvoicesForActor(actor),
-    listWorkRequestsForActor(actor),
-    getMyEvents(actor),
-    getTokenBalance(actor),
-    getRoadmapPreviewForActor(actor, 3),
-    getBoardForClient(actor),
-    listDocumentsForActor(actor),
-  ]);
+  const [team, timeOff, leaveDecisions, invoices, requests, events, tokens, roadmap, board, documents] =
+    await Promise.all([
+      getAssignedTeam(actor),
+      getAssignedTimeOff(actor),
+      getLeaveDecisionQueue(actor),
+      getInvoicesForActor(actor),
+      listWorkRequestsForActor(actor),
+      getMyEvents(actor),
+      getTokenBalance(actor),
+      getRoadmapPreviewForActor(actor, 3),
+      getBoardForClient(actor),
+      listDocumentsForActor(actor),
+    ]);
 
   const firstName = actor.displayName.split(/\s+/)[0] || actor.displayName;
   const companies = actor.memberships.map((m) => m.companyName).filter(Boolean) as string[];
@@ -100,7 +102,11 @@ export default async function PortalHome() {
     .sort((a, b) => (a.startsAt! < b.startsAt! ? -1 : 1));
   const nextEvent = upcomingEvents[0] ?? null;
 
-  const hasAttention = openInvoices.length > 0 || needsDecision.length > 0;
+  // Leave waiting on this person to decide. Empty unless they are named as
+  // client manager on an active placement, so it adds no surface for anyone
+  // else (lib/portal/time-off.ts).
+  const hasAttention =
+    openInvoices.length > 0 || needsDecision.length > 0 || leaveDecisions.length > 0;
 
   // Delivery at a glance: the three views shared with the team client hub.
   const openCards = (board?.cards ?? []).filter((c) => !c.done);
@@ -149,10 +155,7 @@ export default async function PortalHome() {
       )}
 
       {hasAttention && (
-        <div
-          className="admin-card admin-section-card"
-          style={{ borderLeft: "3px solid var(--admin-accent)", marginBottom: 16 }}
-        >
+        <div className="admin-card admin-section-card admin-card--attention" style={{ marginBottom: 16 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 10 }}>
             Needs your attention
           </h2>
@@ -194,6 +197,25 @@ export default async function PortalHome() {
                 </div>
               );
             })}
+
+            {leaveDecisions.map((r) => (
+              <Link
+                className="admin-list-row"
+                key={r.id}
+                href="/portal/time-off"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{r.fullName || "Team member"} requested time off</div>
+                  <div className="admin-list-sub">
+                    {timeOffRange(r.startDate, r.endDate, r.isHalfDay)}
+                  </div>
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone="warn">Approve leave</Badge>
+                </div>
+              </Link>
+            ))}
 
             {needsDecision.map((r) => (
               <Link

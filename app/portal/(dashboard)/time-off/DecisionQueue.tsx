@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { LEAVE_TYPE_LABEL, type LeaveType } from "@/lib/admin/time-off";
 import type { PortalDecisionRequest } from "@/lib/portal/time-off";
@@ -35,7 +34,7 @@ export function DecisionQueue({ requests }: { requests: PortalDecisionRequest[] 
   }
 
   return (
-    <div className="admin-card admin-section-card">
+    <div className="admin-card admin-section-card admin-card--attention">
       <h2 className="admin-card-title">Needs your decision ({requests.length})</h2>
       {banner && (
         <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>{banner.text}</div>
@@ -56,25 +55,29 @@ export function DecisionQueue({ requests }: { requests: PortalDecisionRequest[] 
                   <div className="admin-list-title">{name}</div>
                   <div className="admin-list-sub">
                     {LEAVE_TYPE_LABEL[r.leaveType as LeaveType] ?? r.leaveType} · {range}
-                    <Badge tone="warn">Pending</Badge>
                   </div>
                   {r.reason && <div className="admin-list-sub">Reason: {r.reason}</div>}
                 </div>
-                <div className="admin-list-aside" style={{ display: "flex", gap: 8 }}>
-                  <button
-                    className="admin-btn admin-btn--sm admin-btn--primary"
-                    disabled={pending}
-                    onClick={() => decide(r.id, "approved", name)}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="admin-btn admin-btn--sm admin-btn--danger"
-                    disabled={pending}
-                    onClick={() => decide(r.id, "rejected", name)}
-                  >
-                    Decline
-                  </button>
+                <div className="admin-list-aside">
+                  {/* No "pending" badge: the section title already says these
+                      are undecided, and the row reads cleaner with the two
+                      buttons as the only thing on the right. */}
+                  <div className="admin-timeoff-actions">
+                    <button
+                      className="admin-btn admin-btn--sm admin-btn--primary"
+                      disabled={pending}
+                      onClick={() => decide(r.id, "approved", name)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="admin-btn admin-btn--sm admin-btn--danger"
+                      disabled={pending}
+                      onClick={() => decide(r.id, "rejected", name)}
+                    >
+                      Decline
+                    </button>
+                  </div>
                 </div>
               </div>
             );

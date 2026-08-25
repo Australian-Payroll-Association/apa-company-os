@@ -2713,6 +2713,10 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 }
 .admin-timeoff-preview { align-self: center; font-size: 13px; color: var(--admin-muted); }
 .admin-timeoff-actions { display: flex; gap: 6px; justify-content: flex-end; }
+/* "Needs your attention/decision": the accent rail that marks a card as a
+   prompt to act rather than a report. Shared by the portal home attention card
+   and the time-off decision queue so the two read as one treatment. */
+.admin-card--attention { border-left: 3px solid var(--admin-accent); }
 .admin-btn--sm { padding: 5px 10px; font-size: 12px; }
 .admin-import-summary { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .admin-import-json {
