@@ -34,8 +34,9 @@ The division of labor after this plan:
 
 - `office`: `revenue | talent | operations | innovation | null` (null = company-wide)
 - **new** `brand`: `edge8 | aio | null` (null = company-wide). Text enum like `business_line`, NOT a FK to the deprecated brands table (company_os dropped brand FKs deliberately; do not reintroduce).
+- An objective may carry **both** brand and office (e.g. AIO certification revenue = `brand: aio` + `office: revenue`). Boards group primarily by office with brand as a chip/filter.
 - Keep `quarter`, `title`, owners, `parent_kr_id` cascade, `sort_order`.
-- **Drop** `level` (derived: no office + no brand = company). **Drop or migrate** `business_line` (open decision 1).
+- **Drop** `level` (derived: no office + no brand = company). **Drop** `business_line`: brand replaces it; existing `staffing`/`ai_programs` objectives migrate to `brand = edge8`.
 
 ### key_results (modified)
 
@@ -116,8 +117,8 @@ Humans log via an inline form on the goals board: value + note (manual-source KR
 
 | Phase | Name | Done-check |
 |---|---|---|
-| 0 | Decisions + metric triage | Open decisions below answered; each existing metric dispositioned (→ KR, → cockpit KPI, → delete) |
-| 1 | Schema migration | `brand` on objectives, `source`/`source_detail` on key_results, `kr_logs` created + grants; `kr_logs` backfilled from `metric_readings` where the metric had a `key_result_id` (author_kind from old `source`); app still builds green |
+| 0 | Decisions + metric triage | **Done 2026-08-25** — see "Decided" below |
+| 1 | Schema migration | `brand` on objectives, `source`/`source_detail` on key_results, `kr_logs` created + grants; the three promoted metrics (see triage) become KRs with their `metric_readings` migrated into `kr_logs` (author_kind from old `source`); `business_line` values migrated to `brand = edge8` then dropped; app still builds green |
 | 2 | KPI rules registry | `lib/kpi-rules.ts` + generator + CI check + `MetricCard` tooltip; `docs/product/kpi-rules.md` committed |
 | 3 | Derived status | `deriveKrStatus` replaces the status column everywhere (goals board, team company-goals, dashboard chips); status column dropped; asserted-status UI removed |
 | 4 | Heartbeat | Agent-logger in the Sunday run writes `kr_logs`; sync packet composes from logs; human log form on goals board |
@@ -137,15 +138,22 @@ Phases 1–2 are independent of 3–4 and can land in either order. Phase 5 is l
 
 ---
 
-## Decided
+## Decided (all decisions closed, Dave, 2026-08-25)
 
-- **Status is derived** (Dave, 2026-08-25). No asserted status anywhere; log notes may flag risk narratively.
+- **Status is derived.** No asserted status anywhere; log notes may flag risk narratively.
 - **One goal system.** Metrics/metric_readings retire; standing health numbers are cockpit KPIs computed live.
 - **KR logs are append-only**, agent-first with human correction, weekly cadence.
 - **Rules live in code**, doc is generated, CI-checked.
+- **`brand` replaces `business_line`.** Existing `staffing`/`ai_programs` objectives migrate to `brand = edge8`; the column drops.
+- **Brand AND office may both be set** on one objective; boards group by office with brand as a chip/filter.
 
-## Open decisions for Dave
+### Metric triage (live table checked 2026-08-25: 4 rows, none KR-linked, 1-2 readings each)
 
-1. **Does `brand` replace `business_line`?** Recommendation: yes — migrate `staffing`/`ai_programs` objectives to `brand = edge8` and drop the column, unless goals are still set per business line.
-2. **Brand AND office on one objective?** Recommendation: allow both (e.g. AIO certification revenue = `brand: aio` + `office: revenue`); boards group primarily by office with brand as a chip/filter.
-3. **Metric triage** (Phase 0): per-metric disposition list — needs the live metrics table contents in front of us.
+| Metric | Office | Disposition |
+|---|---|---|
+| Keynote attendees (target 1,000) | revenue | → KR under a Revenue objective; agent-computed (`workshop_attendees_total`, same number as the homepage) |
+| Avg sales call score (target 4.0) | revenue | → KR; agent-computed weekly from sales-call scorecards |
+| Documented workflows (target 100) | innovation | → KR under an Innovation objective; agent-computed from the /workflows stats endpoint |
+| Days to hire (target 20, manual) | talent | → cockpit KPI (Talent cockpit computes it live from applications); delete the metric row |
+
+The three promoted metrics carry their readings into `kr_logs` as opening entries. Nothing is lost.
