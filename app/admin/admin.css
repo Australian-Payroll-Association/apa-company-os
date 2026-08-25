@@ -488,13 +488,73 @@ a.admin-btn--danger:hover { color: var(--admin-err-ink); }
 .admin-summary-grid .mp-kpi { min-width: 0; }
 .admin-chart-card { padding: 16px 18px; min-width: 0; }
 
-/* Office block header on the company dashboard: office label on the left, the
-   cockpit link on the right. */
-.admin-panel-head {
+/* ─── Company dashboard: the four office panels (2×2) ───────────────────────
+   Each office is one card: a header (accent dot + name + cockpit link), three
+   compact KPI tiles, and the office's goal-health chips pinned to the bottom. */
+.admin-office-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width: 880px) {
+  .admin-office-grid { grid-template-columns: 1fr; }
+}
+.admin-office-panel {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-office-head { display: flex; align-items: center; justify-content: space-between; }
+.admin-office-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.admin-office-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-accent); flex-shrink: 0; }
+.admin-office-panel--revenue .admin-office-dot { background: var(--admin-accent-blue); }
+.admin-office-panel--talent .admin-office-dot { background: var(--admin-accent-green); }
+.admin-office-panel--operations .admin-office-dot { background: var(--admin-accent-pink); }
+.admin-office-panel--innovation .admin-office-dot { background: var(--admin-accent-gold); }
+.admin-office-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--admin-ink);
+}
+.admin-office-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.admin-office-stat {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition);
+}
+a.admin-office-stat:hover { border-color: var(--admin-accent); }
+.admin-office-stat-label { font-size: 11px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.admin-office-stat-val {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--admin-ink);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.admin-office-stat-sub { font-size: 11px; color: var(--admin-muted); overflow-wrap: anywhere; }
+.admin-office-goals { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
+.admin-office-goals-label {
+  font-size: 11px;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 700;
 }
 
 /* Two-column card row for the office cockpits (e.g. pipeline + goals). Wraps to
