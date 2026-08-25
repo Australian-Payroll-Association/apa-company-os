@@ -5,7 +5,6 @@ import { parseSeoMd } from "@/lib/marketing/seo";
 import { publishBlogAsset, validateBlogForPublish } from "@/lib/marketing/blog-publish";
 import { siteForBrandSlug, blogPublishBlocker } from "@/lib/marketing/brand-sites";
 import { getBrandProfile } from "@/lib/admin/brand-profiles";
-import { allPosts } from "@/lib/postData";
 
 // Runtime-agnostic tool layer for the Publish Editor agent. Every tool is bound
 // to ONE asset at construction (no tool takes an assetId), so the agent cannot
@@ -198,7 +197,6 @@ export function makePublishEditorTools(assetId: string, actor: string) {
 }
 
 async function isSlugTaken(slug: string, selfId: string): Promise<boolean> {
-  if (allPosts.some((p) => p.slug === slug)) return true;
   const { data } = await companyOs
     .from("marketing_calendar")
     .select("id")

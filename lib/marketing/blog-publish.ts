@@ -1,7 +1,7 @@
 import { revalidateTag, revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { recordAudit } from "@/lib/admin/audit";
-import { allPosts, categories } from "@/lib/postData";
+import { categories } from "@/lib/postData";
 import { parseSeoMd, isValidSlug, type ParsedSeo } from "@/lib/marketing/seo";
 import { BLOG_CACHE_TAG, postTag } from "@/lib/blog";
 import { siteForBrandSlug, blogPublishBlocker } from "@/lib/marketing/brand-sites";
@@ -89,7 +89,6 @@ export function validateBlogForPublish(
 // True if the slug belongs to a legacy static post or a *different* published
 // DB blog row.
 async function isSlugTaken(slug: string, selfId: string): Promise<boolean> {
-  if (allPosts.some((p) => p.slug === slug)) return true;
   const { data } = await companyOs
     .from("marketing_calendar")
     .select("id")
