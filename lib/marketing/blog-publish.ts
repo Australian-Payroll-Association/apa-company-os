@@ -108,6 +108,7 @@ export function revalidateBlog(slug: string): void {
   revalidatePath(`/post/${slug}/`);
   revalidatePath("/blog");
   revalidatePath("/sitemap.xml");
+  revalidatePath("/llms.txt");
 }
 
 async function verifyLive(url: string): Promise<boolean> {

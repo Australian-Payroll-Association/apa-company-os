@@ -21,7 +21,7 @@ import { OnboardingWalkthrough } from "@/components/team/OnboardingWalkthrough";
 import { TeamCollage } from "@/components/team/TeamCollage";
 import { StartHerePanel, bucketForRole } from "@/components/team/StartHerePanel";
 import { randomGalleryPhotos, collageAvatars } from "@/lib/gallery";
-import { allPosts } from "@/lib/postData";
+import { getAllPublishedPosts } from "@/lib/blog";
 import { setOnboardingDone } from "./actions";
 import Link from "next/link";
 
@@ -163,10 +163,10 @@ export default async function TeamHome() {
     profile?.employmentStage === "pre_boarding" ||
     profile?.employmentStage === "probation" ||
     START_HERE_PREVIEW_PERSON_IDS.has(actor.personId);
-  const coreTeaching = allPosts.find((p) => p.slug === CORE_TEACHING_SLUG) ?? null;
-  const recentPosts = [...allPosts]
+  const blogPosts = await getAllPublishedPosts();
+  const coreTeaching = blogPosts.find((p) => p.slug === CORE_TEACHING_SLUG) ?? null;
+  const recentPosts = blogPosts
     .filter((p) => p.slug !== CORE_TEACHING_SLUG)
-    .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 3);
   const roleBucket = bucketForRole(
     profile?.positionTitle ?? null,

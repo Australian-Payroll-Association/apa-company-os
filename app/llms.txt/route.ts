@@ -1,4 +1,4 @@
-import { allPosts } from '@/lib/postData'
+import { getAllPublishedPosts } from '@/lib/blog'
 import { allCaseStudies } from '@/lib/caseStudies'
 import { allWorkflows } from '@/lib/workflowsData'
 
@@ -33,7 +33,8 @@ function link(path: string, name: string, desc?: string) {
   return `- [${name}](${BASE}${path})${desc ? `: ${desc}` : ''}`
 }
 
-export function GET() {
+export async function GET() {
+  const allPosts = await getAllPublishedPosts()
   const lines: string[] = []
 
   lines.push('# Edge8')

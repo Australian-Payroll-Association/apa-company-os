@@ -1,13 +1,13 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getAllSlugs, getPostDataBySlug } from '@/lib/posts'
-import { getAllPublishedPosts, getUnifiedPostBySlug } from '@/lib/blog'
+import { getAllPublishedPosts, getAllPublishedSlugs, getUnifiedPostBySlug } from '@/lib/blog'
 
-// Only the static slugs are pre-rendered. dynamicParams (default true) lets a
-// slug published from the marketing DB render on demand and then cache.
+// The blog is DB-driven: every published post is prerendered from the DB at
+// build. dynamicParams (default true) renders any newly published slug on
+// demand and then caches it.
 export async function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({ slug }))
+  return (await getAllPublishedSlugs()).map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {

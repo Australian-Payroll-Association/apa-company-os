@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { allPosts, type PostMeta } from "@/lib/postData";
-import { getPostDataBySlug, renderPostMarkdown, extractFaq, type Post } from "@/lib/posts";
+import { type PostMeta } from "@/lib/postData";
+import { renderPostMarkdown, extractFaq, type Post } from "@/lib/posts";
 import { SELF_BRAND_SLUG } from "@/lib/marketing/brand-sites";
 
 // Unified blog lookup: the public site reads published posts from BOTH the 29
@@ -73,24 +73,23 @@ const getDbPostsList = unstable_cache(
   { tags: [BLOG_CACHE_TAG], revalidate: 3600 },
 );
 
-// All published posts, static + DB, newest first. Static wins on a slug
-// collision (defense in depth; the publish action also blocks collisions).
+// All published posts, newest first. The blog is now DB-only: every post,
+// including the migrated legacy ones, lives in marketing_calendar. The list is
+// tag-cached and degrades to [] on a DB failure.
 export async function getAllPublishedPosts(): Promise<UnifiedPostMeta[]> {
-  const staticMetas: UnifiedPostMeta[] = allPosts.map((p) => ({ ...p, source: "static" }));
-  const staticSlugs = new Set(staticMetas.map((p) => p.slug));
-  const dbMetas = (await getDbPostsList()).filter((p) => !staticSlugs.has(p.slug));
-  return [...staticMetas, ...dbMetas].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return getDbPostsList();
 }
 
-// Full post (with rendered HTML + FAQ) for one slug. Static first; then DB. The
-// DB fetch is cached per-slug and, on an uncached DB failure, THROWS rather than
-// returning null — a transient outage must not be cached as a 404. A successful
-// query that finds no row returns null (a real 404).
+// Published slugs, for generateStaticParams so every post is prerendered at
+// build. Degrades to [] on failure (dynamicParams then renders on demand).
+export async function getAllPublishedSlugs(): Promise<string[]> {
+  return (await getDbPostsList()).map((p) => p.slug);
+}
+
+// Full post (with rendered HTML + FAQ) for one slug, from the DB. On an uncached
+// DB failure THROWS rather than returning null, so a transient outage is never
+// cached as a 404. A successful query that finds no row returns null (real 404).
 export async function getUnifiedPostBySlug(slug: string): Promise<Post | null> {
-  const staticPost = await getPostDataBySlug(slug);
-  if (staticPost) return staticPost;
   return getDbPostBySlug(slug);
 }
 
