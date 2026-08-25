@@ -1,11 +1,16 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { Badge } from "@/components/admin/Badge";
 import { formatCents } from "@/lib/admin/format";
-import { getAnalyticsTotals } from "@/lib/admin/vercel-analytics";
-import { getOfficeGoals, healthSummary, type OfficeKey, type OfficeSnapshot } from "@/lib/admin/office-goals";
+import {
+  getOfficeGoals,
+  krStatusTone,
+  type OfficeKey,
+  type OfficeSnapshot,
+} from "@/lib/admin/office-goals";
+import { KR_STATUSES, type KrStatus } from "@/app/admin/(dashboard)/edges/edges-shared";
 import { compactUsd, vsPrior, MS_DAY } from "@/lib/admin/dashboard-helpers";
 
 // Live operational data, read fresh on every request.
@@ -16,62 +21,91 @@ export const metadata = {
   description: "The company at a glance, one panel per office. Each office's full picture lives on its cockpit.",
 };
 
-const NON_SALES_INQUIRY_TYPES = "(general,retreat,trip,checkout,newsletter)";
 // Work-request statuses that are finished; anything else is still in flight.
 const WR_TERMINAL = "(completed,rejected,cancelled,draft)";
+
+const STATUS_LABEL: Record<KrStatus, string> = {
+  on_track: "on track",
+  at_risk: "at risk",
+  off_track: "off track",
+  done: "done",
+};
 
 type InvoiceRow = { txn_date: string | null; amount_cents: number | null; status: string | null; entity: string };
 type OrderRow = { created_at: string; amount_usd_cents: number | null; status: string | null };
 type DealRow = { status: string | null; amount_usd_cents: number | null; created_at: string; closed_at: string | null };
 
-// One office block: the office's three headline numbers, its goal-health chips,
-// and a link to the office cockpit that holds the full picture.
+type Stat = { label: string; value: React.ReactNode; sub: string; href?: string };
+
+function OfficeStat({ label, value, sub, href }: Stat) {
+  const inner = (
+    <>
+      <div className="admin-office-stat-label">{label}</div>
+      <div className="admin-office-stat-val">{value}</div>
+      <div className="admin-office-stat-sub">{sub}</div>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="admin-office-stat">
+      {inner}
+    </Link>
+  ) : (
+    <div className="admin-office-stat">{inner}</div>
+  );
+}
+
+// One office card: header (accent dot + name + cockpit link), three KPI tiles,
+// and that office's goal-health chips pinned to the bottom.
 function OfficePanel({
   office,
   label,
   snapshot,
   quarterLabel,
-  children,
+  stats,
 }: {
   office: OfficeKey;
   label: string;
   snapshot: OfficeSnapshot;
   quarterLabel: string;
-  children: React.ReactNode;
+  stats: Stat[];
 }) {
-  const chips = healthSummary(snapshot.health);
-  const issues = snapshot.openIssues;
+  const chips = KR_STATUSES.filter((s) => snapshot.health[s] > 0);
+  const noGoals = snapshot.health.total === 0;
   return (
-    <section style={{ marginTop: 26 }}>
-      <div className="admin-panel-head">
-        <div className="mp-kpi-label" style={{ margin: 0 }}>{label}</div>
-        <Link href={`/admin/${office}`} className="admin-auth-link">Open cockpit →</Link>
-      </div>
-      <div className="mp-kpi-grid">{children}</div>
-      {(chips || issues > 0) && (
-        <div className="mp-kpi-note" style={{ marginTop: 10 }}>
-          {quarterLabel} goals: {chips || "none set"}
-          {issues > 0 ? ` · ${issues} open ${issues === 1 ? "issue" : "issues"}` : ""}
+    <section className={`admin-office-panel admin-office-panel--${office}`}>
+      <div className="admin-office-head">
+        <div className="admin-office-title">
+          <span className="admin-office-dot" aria-hidden />
+          <span className="admin-office-name">{label}</span>
         </div>
-      )}
+        <Link href={`/admin/${office}`} className="admin-auth-link">
+          Cockpit →
+        </Link>
+      </div>
+      <div className="admin-office-kpis">
+        {stats.map((s) => (
+          <OfficeStat key={s.label} {...s} />
+        ))}
+      </div>
+      <div className="admin-office-goals">
+        <span className="admin-office-goals-label">{quarterLabel} goals</span>
+        {noGoals ? (
+          <span className="admin-office-stat-sub">none set</span>
+        ) : (
+          chips.map((s) => (
+            <Badge key={s} tone={krStatusTone(s)} dot>
+              {snapshot.health[s]} {STATUS_LABEL[s]}
+            </Badge>
+          ))
+        )}
+        {snapshot.openIssues > 0 && (
+          <Badge tone="err">
+            {snapshot.openIssues} open {snapshot.openIssues === 1 ? "issue" : "issues"}
+          </Badge>
+        )}
+      </div>
     </section>
   );
-}
-
-async function TrafficNote() {
-  const analytics = await getAnalyticsTotals();
-  const traffic = "error" in analytics ? null : analytics.totals;
-  return (
-    <MetricCard
-      label="Page views"
-      value={traffic ? traffic.pageviews.toLocaleString("en-US") : "—"}
-      sub="since Jul 11"
-      href="/admin/operations/analytics"
-    />
-  );
-}
-function TrafficNoteFallback() {
-  return <MetricCard label="Page views" value="…" sub="since Jul 11" href="/admin/operations/analytics" />;
 }
 
 export default async function DashboardPage() {
@@ -174,6 +208,8 @@ export default async function DashboardPage() {
     ? Math.round((krs.filter((k) => k.delivery_mix === "ai" || k.delivery_mix === "blended").length / mixTotal) * 100)
     : 0;
 
+  const q = goals.quarter.label;
+
   return (
     <>
       <PageHead
@@ -210,40 +246,53 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <OfficePanel office="revenue" label="Revenue" snapshot={goals.byOffice.revenue} quarterLabel={goals.quarter.label}>
-        <MetricCard label="Revenue · YTD" value={formatCents(cashYtd)} sub={`${year} to date`} href="/admin/revenue" />
-        <MetricCard label="New leads · 30d" value={newLeads30} sub={vsPrior(newLeads30, newLeadsPrev30)} href="/admin/revenue/leads" />
-        <MetricCard label="Conversion · 90d" value={`${conversion90}%`} sub="lead → won" href="/admin/revenue" />
-      </OfficePanel>
-
-      <OfficePanel office="talent" label="Talent" snapshot={goals.byOffice.talent} quarterLabel={goals.quarter.label}>
-        <MetricCard label="Open roles" value={openRoles} sub="hiring now" href="/admin/talent/jobs" />
-        <MetricCard label="Applications · 30d" value={apps30} sub={vsPrior(apps30, appsPrev30)} href="/admin/talent/applications" />
-        <MetricCard label={`New hires · ${year}`} value={newHires} sub="joined this year" href="/admin/talent" />
-      </OfficePanel>
-
-      <OfficePanel office="operations" label="Operations" snapshot={goals.byOffice.operations} quarterLabel={goals.quarter.label}>
-        <MetricCard label="Days off · 30d" value={daysOff30} sub="approved leave" href="/admin/operations/time-off/requests" />
-        <MetricCard label="Open requests" value={openRequests} sub="contractor + client" href="/admin/operations/contractor-requests" />
-        <MetricCard label="Chat bot · 30d" value={botCount} sub="assistant conversations" href="/admin/operations" />
-      </OfficePanel>
-
-      <OfficePanel office="innovation" label="Innovation" snapshot={goals.byOffice.innovation} quarterLabel={goals.quarter.label}>
-        <MetricCard label="Ideas" value={buildIdeas} sub="open build ideas" href="/admin/innovation" />
-        <MetricCard label="Learning · 30d" value={learnings30} sub="learnings logged" href="/admin/innovation" />
-        <MetricCard label="AI delivery mix" value={`${agentShare}%`} sub={mixTotal ? "agent-run key results" : "no key results yet"} href="/admin/innovation" />
-      </OfficePanel>
-
-      {/* Traffic streams in its own boundary so a slow external analytics fetch
-          never gates the office panels above. */}
-      <section style={{ marginTop: 26 }}>
-        <div className="mp-kpi-label" style={{ marginBottom: 10 }}>Traffic</div>
-        <div className="mp-kpi-grid">
-          <Suspense fallback={<TrafficNoteFallback />}>
-            <TrafficNote />
-          </Suspense>
-        </div>
-      </section>
+      {/* ── Four offices ── */}
+      <div className="admin-office-grid">
+        <OfficePanel
+          office="revenue"
+          label="Revenue"
+          snapshot={goals.byOffice.revenue}
+          quarterLabel={q}
+          stats={[
+            { label: "Revenue · YTD", value: formatCents(cashYtd), sub: `${year} to date`, href: "/admin/revenue" },
+            { label: "New leads · 30d", value: newLeads30, sub: vsPrior(newLeads30, newLeadsPrev30), href: "/admin/revenue/leads" },
+            { label: "Conversion · 90d", value: `${conversion90}%`, sub: "lead → won", href: "/admin/revenue" },
+          ]}
+        />
+        <OfficePanel
+          office="talent"
+          label="Talent"
+          snapshot={goals.byOffice.talent}
+          quarterLabel={q}
+          stats={[
+            { label: "Open roles", value: openRoles, sub: "hiring now", href: "/admin/talent/jobs" },
+            { label: "Applications · 30d", value: apps30, sub: vsPrior(apps30, appsPrev30), href: "/admin/talent/applications" },
+            { label: `New hires · ${year}`, value: newHires, sub: "joined this year", href: "/admin/talent" },
+          ]}
+        />
+        <OfficePanel
+          office="operations"
+          label="Operations"
+          snapshot={goals.byOffice.operations}
+          quarterLabel={q}
+          stats={[
+            { label: "Days off · 30d", value: daysOff30, sub: "approved leave", href: "/admin/operations/time-off/requests" },
+            { label: "Open requests", value: openRequests, sub: "contractor + client", href: "/admin/operations/contractor-requests" },
+            { label: "Chat bot · 30d", value: botCount, sub: "assistant chats", href: "/admin/operations" },
+          ]}
+        />
+        <OfficePanel
+          office="innovation"
+          label="Innovation"
+          snapshot={goals.byOffice.innovation}
+          quarterLabel={q}
+          stats={[
+            { label: "Ideas", value: buildIdeas, sub: "open build ideas", href: "/admin/innovation" },
+            { label: "Learning · 30d", value: learnings30, sub: "learnings logged", href: "/admin/innovation" },
+            { label: "AI delivery mix", value: `${agentShare}%`, sub: mixTotal ? "agent-run KRs" : "no KRs yet", href: "/admin/innovation" },
+          ]}
+        />
+      </div>
     </>
   );
 }
