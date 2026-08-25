@@ -45,6 +45,8 @@ h1 { font-size:15px; font-weight:500; color:var(--muted); margin-top:8px; letter
 @media (prefers-reduced-motion: reduce) { .prompter .roll { animation:none; } .prompter .rec::before { animation:none; } }
 
 nav.tabs { margin:30px auto 6px; }
+nav.tabs.acts { margin:10px auto 6px; }
+nav.tabs.acts button.active { background:var(--blue); border-color:var(--blue); color:#fff; }
 nav.tabs .wrap { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
 nav.tabs button { font-family:'JetBrains Mono',monospace; font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); background:transparent; border:1.5px solid rgba(156,163,175,0.35); border-radius:999px; padding:9px 18px; cursor:pointer; }
 nav.tabs button.active { color:var(--dark); background:var(--mint); border-color:var(--mint); font-weight:500; }
@@ -92,6 +94,12 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 <button data-tab="operations">Operations</button>
 <button data-tab="innovation">Innovation</button>
 </div></nav>
+<nav class="tabs acts"><div class="wrap">
+<button data-act="all" class="active">All acts</button>
+<button data-act="1">Act 1 &middot; Diagnose</button>
+<button data-act="2">Act 2 &middot; Build</button>
+<button data-act="3">Act 3 &middot; Operate</button>
+</div></nav>
 <main><div class="wrap">
 
 <section class="panel active" id="panel-all"></section>
@@ -103,6 +111,18 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
   <span class="len">3:00</span>
   <span class="owner">Dave</span>
 </a>
+<a class="card" data-act="1" href="/video-scripts/day03-your-business-lives-in-40-places-video-script.html">
+  <span class="tag">DAY 03</span>
+  <span class="name">Your Business Lives in 40 Places</span>
+  <span class="len">2:45</span>
+  <span class="owner">Dave</span>
+</a>
+<a class="card" data-act="1" href="/video-scripts/day04-why-ai-pilots-fail-video-script.html">
+  <span class="tag">DAY 04</span>
+  <span class="name">Why AI Pilots Fail</span>
+  <span class="len">2:50</span>
+  <span class="owner">Dave</span>
+</a>
 <a class="card" href="/video-scripts/eo-melbourne-infinite-leverage-retreat-intro-video-script.html">
   <span class="tag">RETREAT</span>
   <span class="name">EO Melbourne &middot; Infinite Leverage Retreat Intro</span>
@@ -112,7 +132,18 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 </section>
 
 <section class="panel" id="panel-talent">
-<div class="empty">No Talent scripts yet. New scripts land here as they are written.</div>
+<a class="card" data-act="1" href="/video-scripts/day05-frameworks-not-prompts-video-script.html">
+  <span class="tag">DAY 05</span>
+  <span class="name">Frameworks, Not Prompts</span>
+  <span class="len">2:40</span>
+  <span class="owner">Dave</span>
+</a>
+<a class="card" data-act="1" href="/video-scripts/day06-the-50-50-question-video-script.html">
+  <span class="tag">DAY 06</span>
+  <span class="name">The 50/50 Question</span>
+  <span class="len">2:40</span>
+  <span class="owner">Dave</span>
+</a>
 </section>
 
 <section class="panel" id="panel-operations">
@@ -120,7 +151,18 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 </section>
 
 <section class="panel" id="panel-innovation">
-<div class="empty">No Innovation scripts yet. New scripts land here as they are written.</div>
+<a class="card" data-act="1" href="/video-scripts/day02-the-execution-gap-video-script.html">
+  <span class="tag">DAY 02</span>
+  <span class="name">The Execution Gap</span>
+  <span class="len">2:45</span>
+  <span class="owner">Dave</span>
+</a>
+<a class="card" data-act="1" href="/video-scripts/day07-the-plan-video-script.html">
+  <span class="tag">DAY 07</span>
+  <span class="name">The Plan</span>
+  <span class="len">2:45</span>
+  <span class="owner">Dave</span>
+</a>
 </section>
 
 <p class="note">&#10003; DONE · GREEN BADGE · FILMED &amp; PUBLISHED<br>ASSIGNED TO · THE BLUE PILL ON EACH ROW<br>PRODUCTION NOTES · TELEPROMPTER · PLAY / PAUSE · SPEED · MIRROR<br>Speed 12 matches the written pace. On iPad, the screen stays awake while the prompter runs.</p>
@@ -147,6 +189,18 @@ if (allCards.length) {
   empty.textContent = 'No scripts yet. New scripts land here as they are written.';
   allPanel.appendChild(empty);
 }
+
+/* Act filter: second, independent dimension. "All acts" shows everything;
+   an act shows only that act's episodes (standalone scripts have no data-act). */
+const actBtns = document.querySelectorAll('nav.tabs.acts button');
+actBtns.forEach(b => b.addEventListener('click', () => {
+  actBtns.forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  const act = b.dataset.act;
+  document.querySelectorAll('.card').forEach(c => {
+    c.style.display = (act === 'all' || c.dataset.act === act) ? '' : 'none';
+  });
+}));
 </script>
 </body>
 </html>
