@@ -21,9 +21,9 @@ export const SELF_BRAND_SLUG = "edge8";
 
 const SITES: Record<string, BrandSite> = {
   edge8: { slug: "edge8", domain: "https://www.edge8.ai", self: true, blogEnabled: true },
-  // ai-officer.com is a separate repo (aio-website) with no blog route yet.
-  // Domain is known so we can flip blogEnabled once that site reads these posts.
-  "ai-officer": { slug: "ai-officer", domain: "https://ai-officer.com", self: false, blogEnabled: false },
+  // ai-officer.com is a separate repo (aio-website) that reads these posts from
+  // the shared DB (brand-scoped to ai-officer) and renders them on its own site.
+  "ai-officer": { slug: "ai-officer", domain: "https://ai-officer.com", self: false, blogEnabled: true },
 };
 
 export function siteForBrandSlug(slug: string | null): BrandSite | null {
