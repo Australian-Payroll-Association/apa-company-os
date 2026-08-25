@@ -112,13 +112,13 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
   <span class="owner">Dave</span>
 </a>
 <a class="card" data-act="1" href="/video-scripts/day03-your-business-lives-in-40-places-video-script.html">
-  <span class="tag">DAY 03</span>
+  <span class="tag">ACT 1 &middot; DAY 03</span>
   <span class="name">Your Business Lives in 40 Places</span>
   <span class="len">2:45</span>
   <span class="owner">Dave</span>
 </a>
 <a class="card" data-act="1" href="/video-scripts/day04-why-ai-pilots-fail-video-script.html">
-  <span class="tag">DAY 04</span>
+  <span class="tag">ACT 1 &middot; DAY 04</span>
   <span class="name">Why AI Pilots Fail</span>
   <span class="len">2:50</span>
   <span class="owner">Dave</span>
@@ -133,13 +133,13 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 
 <section class="panel" id="panel-talent">
 <a class="card" data-act="1" href="/video-scripts/day05-frameworks-not-prompts-video-script.html">
-  <span class="tag">DAY 05</span>
+  <span class="tag">ACT 1 &middot; DAY 05</span>
   <span class="name">Frameworks, Not Prompts</span>
   <span class="len">2:40</span>
   <span class="owner">Dave</span>
 </a>
 <a class="card" data-act="1" href="/video-scripts/day06-the-50-50-question-video-script.html">
-  <span class="tag">DAY 06</span>
+  <span class="tag">ACT 1 &middot; DAY 06</span>
   <span class="name">The 50/50 Question</span>
   <span class="len">2:40</span>
   <span class="owner">Dave</span>
@@ -152,13 +152,13 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 
 <section class="panel" id="panel-innovation">
 <a class="card" data-act="1" href="/video-scripts/day02-the-execution-gap-video-script.html">
-  <span class="tag">DAY 02</span>
+  <span class="tag">ACT 1 &middot; DAY 02</span>
   <span class="name">The Execution Gap</span>
   <span class="len">2:45</span>
   <span class="owner">Dave</span>
 </a>
 <a class="card" data-act="1" href="/video-scripts/day07-the-plan-video-script.html">
-  <span class="tag">DAY 07</span>
+  <span class="tag">ACT 1 &middot; DAY 07</span>
   <span class="name">The Plan</span>
   <span class="len">2:45</span>
   <span class="owner">Dave</span>
@@ -168,7 +168,7 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 <p class="note">&#10003; DONE · GREEN BADGE · FILMED &amp; PUBLISHED<br>ASSIGNED TO · THE BLUE PILL ON EACH ROW<br>PRODUCTION NOTES · TELEPROMPTER · PLAY / PAUSE · SPEED · MIRROR<br>Speed 12 matches the written pace. On iPad, the screen stays awake while the prompter runs.</p>
 </div></main>
 <script>
-const tabs = document.querySelectorAll('nav.tabs button');
+const tabs = document.querySelectorAll('nav.tabs:not(.acts) button');
 tabs.forEach(b => b.addEventListener('click', () => {
   tabs.forEach(x => x.classList.remove('active'));
   document.querySelectorAll('section.panel').forEach(p => p.classList.remove('active'));
