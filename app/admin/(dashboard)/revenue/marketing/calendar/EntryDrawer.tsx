@@ -12,6 +12,7 @@ import {
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import { BLOG_TYPES, IMAGE_STYLES, SOCIAL_STYLES, type StyleOption } from "@/lib/marketing/style-catalogues";
+import { PublishEditorPanel } from "./PublishEditorPanel";
 import type { BrandStylePrefs } from "./CalendarClient";
 import {
   updateEntry,
@@ -432,8 +433,12 @@ export function EntryDrawer({
       </div>
 
       {entry.channel === "blog" && (
+        <PublishEditorPanel assetId={entry.id} onDone={() => router.refresh()} />
+      )}
+
+      {entry.channel === "blog" && (
         <div className="admin-card" style={{ padding: "12px 14px" }}>
-          <div className="admin-label" style={{ marginBottom: 8 }}>Publish to site</div>
+          <div className="admin-label" style={{ marginBottom: 8 }}>Publish to site (manual)</div>
           <div className="admin-form-actions">
             <button
               type="button"

@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { allPosts, type PostMeta } from "@/lib/postData";
 import { getPostDataBySlug, renderPostMarkdown, extractFaq, type Post } from "@/lib/posts";
+import { SELF_BRAND_SLUG } from "@/lib/marketing/brand-sites";
 
 // Unified blog lookup: the public site reads published posts from BOTH the 29
 // legacy static posts (lib/postData.ts + content/blog markdown) and blog assets
@@ -52,11 +53,14 @@ function mapDbMeta(row: DbListRow): UnifiedPostMeta {
 const getDbPostsList = unstable_cache(
   async (): Promise<UnifiedPostMeta[]> => {
     try {
+      // brands!inner scopes rows to THIS site's brand — AIO (and any other
+      // brand's) posts must never render on edge8.ai.
       const { data, error } = await companyOs
         .from("marketing_calendar")
-        .select(LIST_COLUMNS)
+        .select(`${LIST_COLUMNS}, brands!inner(slug)`)
         .eq("channel", "blog")
         .eq("status", "published")
+        .eq("brands.slug", SELF_BRAND_SLUG)
         .not("slug", "is", null)
         .order("publish_date", { ascending: false });
       if (error) return [];
@@ -95,9 +99,10 @@ const getDbPostBySlug = (slug: string) =>
     async (): Promise<Post | null> => {
       const { data, error } = await companyOs
         .from("marketing_calendar")
-        .select(`${LIST_COLUMNS}, copy_md, title_tag, meta_description, primary_keyword`)
+        .select(`${LIST_COLUMNS}, copy_md, title_tag, meta_description, primary_keyword, brands!inner(slug)`)
         .eq("channel", "blog")
         .eq("status", "published")
+        .eq("brands.slug", SELF_BRAND_SLUG)
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw new Error(`blog db read failed: ${error.message}`);

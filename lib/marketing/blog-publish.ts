@@ -4,14 +4,15 @@ import { recordAudit } from "@/lib/admin/audit";
 import { allPosts, categories } from "@/lib/postData";
 import { parseSeoMd, isValidSlug, type ParsedSeo } from "@/lib/marketing/seo";
 import { BLOG_CACHE_TAG, postTag } from "@/lib/blog";
+import { siteForBrandSlug, blogPublishBlocker } from "@/lib/marketing/brand-sites";
 
 // The deterministic publish core, runtime-agnostic so both the admin server
 // action and the Publish Editor agent's publish tool call the same logic. It
 // validates, normalizes the loose seo_md into columns, flips status, revalidates
-// every surface, and verifies the live URL. Never throws for a validation
-// problem — it returns the full failure list so the caller (or agent) can act.
+// every surface, and verifies the live URL. Brand-aware: the destination domain
+// comes from the asset's brand, never a hardcoded site. Never throws for a
+// validation problem — it returns the full failure list for the caller to act on.
 
-const PROD_BASE = "https://www.edge8.ai";
 const MIN_WORDS = 600;
 
 export type PublishResult =
@@ -28,10 +29,16 @@ type BlogRow = {
   image_url: string | null;
   publish_date: string | null;
   posted_url: string | null;
+  brand_id: string | null;
+  brands: { name: string; slug: string } | { name: string; slug: string }[] | null;
 };
 
 const SELECT =
-  "id, channel, title, status, copy_md, seo_md, image_url, publish_date, posted_url";
+  "id, channel, title, status, copy_md, seo_md, image_url, publish_date, posted_url, brand_id, brands(name, slug)";
+
+function one<T>(v: T | T[] | null): T | null {
+  return Array.isArray(v) ? v[0] ?? null : v;
+}
 
 function bodyWordCount(copyMd: string): number {
   const body = copyMd.split("## FAQ")[0];
@@ -103,8 +110,7 @@ export function revalidateBlog(slug: string): void {
   revalidatePath("/sitemap.xml");
 }
 
-async function verifyLive(slug: string): Promise<boolean> {
-  const url = `${PROD_BASE}/post/${slug}/`;
+async function verifyLive(url: string): Promise<boolean> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await fetch(url, { cache: "no-store", redirect: "follow" });
@@ -122,6 +128,16 @@ export async function publishBlogAsset(id: string, actor: string): Promise<Publi
   if (error) return { ok: false, errors: [error.message] };
   if (!data) return { ok: false, errors: ["Asset not found."] };
   const row = data as BlogRow;
+
+  // Resolve the destination site from the brand. A brand with no live blog
+  // (AIO until its site ships one, or any unconfigured brand) is refused here
+  // rather than sending content to the wrong domain or a dead URL.
+  const brand = one(row.brands);
+  const site = siteForBrandSlug(brand?.slug ?? null);
+  const brandBlock = blogPublishBlocker(brand?.slug ?? null, brand?.name ?? "This brand");
+  if (brandBlock || !site) {
+    return { ok: false, errors: [brandBlock ?? "This brand has no website configured for blog publishing."] };
+  }
 
   const parsed = parseSeoMd(row.seo_md);
   const slugTaken = new Set<string>();
@@ -154,11 +170,15 @@ export async function publishBlogAsset(id: string, actor: string): Promise<Publi
     .eq("id", id);
   if (upErr) return { ok: false, errors: [upErr.message] };
 
-  revalidateBlog(slug);
+  const liveUrl = `${site.domain}/post/${slug}/`;
 
-  const verified = await verifyLive(slug);
+  // Only this site's own cache can be revalidated from here. A different brand's
+  // site (a future AIO blog) revalidates itself; we still verify its live URL.
+  if (site.self) revalidateBlog(slug);
+
+  const verified = await verifyLive(liveUrl);
   if (verified) {
-    await companyOs.from("marketing_calendar").update({ posted_url: `${PROD_BASE}/post/${slug}/` }).eq("id", id);
+    await companyOs.from("marketing_calendar").update({ posted_url: liveUrl }).eq("id", id);
   }
 
   await recordAudit({
@@ -166,10 +186,8 @@ export async function publishBlogAsset(id: string, actor: string): Promise<Publi
     recordId: id,
     operation: "update",
     actor,
-    context: { published: true, slug, verified },
+    context: { published: true, slug, brand: brand?.slug, verified },
   });
-
-  const liveUrl = `${PROD_BASE}/post/${slug}/`;
   return verified
     ? { ok: true, slug, liveUrl, verified: true }
     : { ok: true, slug, liveUrl, verified: false, warning: "Published, but the live URL did not return 200 yet. It may take a minute to propagate; re-verify shortly." };
