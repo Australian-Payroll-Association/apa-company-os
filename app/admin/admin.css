@@ -2082,6 +2082,155 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-thumb.is-selected { border: 2px solid var(--admin-accent); }
 .mcr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Inline style picker in the panel head: auto-width so it sits beside the
+   buttons rather than taking the .admin-select full-width default. */
+.mcr-style-select { width: auto; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+
+/* ── Full blog preview ─────────────────────────────────────────────────
+   Renders a blog asset the way /post/[slug] will publish it, inside the
+   admin. Marketing foundation tokens (globals.css) on purpose, not admin
+   tokens: the point is fidelity to the live site. The presentation family
+   follows the chosen blog style via the --{family} variants below. */
+.mcr-blogprev { background: var(--white); }
+.mcr-blogprev-cover img { display: block; width: 100%; height: auto; }
+.mcr-blogprev-inner { max-width: 680px; margin: 0 auto; padding: 28px 24px 40px; }
+.mcr-blogprev-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--grey-mid);
+}
+.mcr-blogprev-tag {
+  padding: 4px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--blue-glow);
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 12px;
+}
+.mcr-blogprev-eyebrow {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.mcr-blogprev-title {
+  margin: 0 0 24px;
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: clamp(26px, 3.2vw, 34px);
+  line-height: 1.15;
+  color: var(--dark);
+}
+/* Body typography mirrors .post-body on the live site. */
+.mcr-blogprev-body { font-size: 17px; line-height: 1.8; color: var(--body-text); }
+.mcr-blogprev-body h1, .mcr-blogprev-body h2, .mcr-blogprev-body h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--dark);
+  margin: 40px 0 16px;
+  line-height: 1.2;
+}
+.mcr-blogprev-body h2 { font-size: clamp(20px, 2.5vw, 26px); }
+.mcr-blogprev-body h3 { font-size: 19px; }
+.mcr-blogprev-body p { margin: 0 0 22px; }
+.mcr-blogprev-body strong { font-weight: 600; color: var(--dark); }
+.mcr-blogprev-body a { color: var(--blue); text-decoration: none; }
+.mcr-blogprev-body a:hover { color: var(--link-hover); }
+.mcr-blogprev-body ul, .mcr-blogprev-body ol { margin: 0 0 22px; padding-left: 26px; }
+.mcr-blogprev-body li { margin-bottom: 8px; }
+.mcr-blogprev-body blockquote {
+  margin: 28px 0;
+  padding: 4px 0 4px 20px;
+  border-left: 3px solid var(--blue);
+  color: var(--dark);
+}
+.mcr-blogprev-body blockquote p:last-child { margin-bottom: 0; }
+.mcr-blogprev-body code {
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--tint);
+  color: var(--dark);
+}
+.mcr-blogprev-body pre { overflow-x: auto; margin: 0 0 22px; padding: 16px; border-radius: 12px; background: var(--tint); }
+.mcr-blogprev-body pre code { padding: 0; background: none; }
+.mcr-blogprev-body img { max-width: 100%; height: auto; border-radius: 12px; }
+.mcr-blogprev-body hr { margin: 32px 0; border: 0; border-top: 1px solid var(--card-border); }
+.mcr-blogprev-body table { width: 100%; margin: 0 0 22px; border-collapse: collapse; font-size: 15px; }
+.mcr-blogprev-body th, .mcr-blogprev-body td { padding: 8px 12px; border: 1px solid var(--card-border); text-align: left; }
+.mcr-blogprev-body th { background: var(--tint); color: var(--dark); font-weight: 600; }
+
+/* Statement (thesis, manifesto, contrarian, warning): a bold claim up top.
+   Heavier display title behind a mint slab; blockquotes become pull quotes. */
+.mcr-blogprev--statement .mcr-blogprev-title {
+  font-weight: 800;
+  font-size: clamp(30px, 3.8vw, 42px);
+  line-height: 1.08;
+}
+.mcr-blogprev--statement .mcr-blogprev-title::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 6px;
+  margin-bottom: 18px;
+  background: var(--mint);
+}
+.mcr-blogprev--statement .mcr-blogprev-eyebrow { color: var(--dark); }
+.mcr-blogprev--statement .mcr-blogprev-body blockquote {
+  border-left-color: var(--mint);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.4;
+}
+
+/* Structured (listicle, framework, how-to, quick-win): numbered spine.
+   h2s get counter chips so the steps / list items read as a sequence. */
+.mcr-blogprev--structured .mcr-blogprev-body { counter-reset: mcr-step; }
+.mcr-blogprev--structured .mcr-blogprev-body h2 { counter-increment: mcr-step; display: flex; align-items: baseline; gap: 12px; }
+.mcr-blogprev--structured .mcr-blogprev-body h2::before {
+  content: counter(mcr-step, decimal-leading-zero);
+  flex: none;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--blue);
+}
+.mcr-blogprev--structured .mcr-blogprev-body ul li::marker,
+.mcr-blogprev--structured .mcr-blogprev-body ol li::marker { color: var(--blue); font-weight: 700; }
+
+/* Analytical (case study, research dive, trend, myth-buster): evidence-led.
+   Underlined section heads, blockquotes as findings callouts. */
+.mcr-blogprev--analytical .mcr-blogprev-body h2 { padding-bottom: 10px; border-bottom: 1px solid var(--card-border); }
+.mcr-blogprev--analytical .mcr-blogprev-body blockquote {
+  padding: 16px 20px;
+  border-left: 3px solid var(--blue);
+  border-radius: 0 12px 12px 0;
+  background: var(--tint);
+  color: var(--dark);
+}
+
+/* Narrative (story, open letter): reads like prose. Roomier line height,
+   lighter centered title, opening drop cap. */
+.mcr-blogprev--narrative .mcr-blogprev-title { font-weight: 500; text-align: center; }
+.mcr-blogprev--narrative .mcr-blogprev-meta { justify-content: center; }
+.mcr-blogprev--narrative .mcr-blogprev-eyebrow { text-align: center; }
+.mcr-blogprev--narrative .mcr-blogprev-body { line-height: 1.9; }
+.mcr-blogprev--narrative .mcr-blogprev-body > p:first-child::first-letter {
+  float: left;
+  padding-right: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 54px;
+  line-height: 0.85;
+  color: var(--dark);
+}
+
 /* Regenerate dialog (shared by image + text). */
 .mcr-modal-overlay {
   position: fixed;

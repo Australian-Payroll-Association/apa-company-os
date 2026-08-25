@@ -50,6 +50,31 @@ export const SOCIAL_STYLES: StyleOption[] = [
   { value: "myth-reality", label: "Myth vs reality", desc: "You think X, actually Y" },
 ];
 
+// Visual treatment families for the full blog preview. Each blog type maps to
+// one of four presentation families so the rendered preview reflects the
+// chosen style, not just the words.
+export type BlogPreviewFamily = "statement" | "structured" | "analytical" | "narrative";
+
+const BLOG_PREVIEW_FAMILY: Record<string, BlogPreviewFamily> = {
+  thesis: "statement",
+  manifesto: "statement",
+  contrarian: "statement",
+  warning: "statement",
+  listicle: "structured",
+  framework: "structured",
+  "how-to": "structured",
+  "quick-win": "structured",
+  "case-study": "analytical",
+  "research-dive": "analytical",
+  trend: "analytical",
+  "myth-buster": "analytical",
+  story: "narrative",
+  "open-letter": "narrative",
+};
+
+export const blogPreviewFamily = (v: string | null): BlogPreviewFamily | null =>
+  v ? BLOG_PREVIEW_FAMILY[v] ?? null : null;
+
 const label = (opts: StyleOption[], value: string | null): string | null =>
   value ? opts.find((o) => o.value === value)?.label ?? value : null;
 

@@ -8,6 +8,7 @@ import { marketingMarkdownToHtml } from "@/lib/marketing/markdown";
 import { generateEntryImage, buildEntryImagePrompt } from "@/lib/ai/brand-image";
 import { generateEntryCopy, buildEntryCopyPrompt } from "@/lib/ai/entry-copy";
 import { listAssetImages, setSelectedImage, type AssetImage } from "@/lib/admin/marketing-images";
+import { BLOG_TYPES } from "@/lib/marketing/style-catalogues";
 
 type CopyResult = { ok: true; html: string } | { ok: false; error: string };
 type ImagesResult = { ok: true; images: AssetImage[] } | { ok: false; error: string };
@@ -42,6 +43,34 @@ export async function saveAssetCopy(
   });
   refresh(campaignId, assetId);
   return { ok: true, html: await marketingMarkdownToHtml(copyMd) };
+}
+
+// Saves the blog style picked on the preview so the full-page preview can
+// switch presentation without a round trip through the calendar drawer.
+export async function saveAssetBlogStyle(
+  campaignId: string,
+  assetId: string,
+  blogStyle: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+  if (blogStyle && !BLOG_TYPES.some((o) => o.value === blogStyle)) {
+    return { ok: false, error: "Unknown blog style." };
+  }
+  const { error } = await companyOs
+    .from("marketing_calendar")
+    .update({ blog_style: blogStyle || null })
+    .eq("id", assetId);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "marketing_calendar",
+    recordId: assetId,
+    operation: "update",
+    actor: admin.email,
+    context: { fields: ["blog_style"] },
+  });
+  refresh(campaignId, assetId);
+  return { ok: true };
 }
 
 // The assembled prompts, shown in the regenerate modal so they can be edited

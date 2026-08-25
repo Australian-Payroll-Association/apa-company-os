@@ -4,14 +4,17 @@ import { useState, useTransition } from "react";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { STATUS_LABEL, type CalendarEntryRow } from "@/lib/admin/marketing-calendar";
 import type { AssetImage } from "@/lib/admin/marketing-images";
+import { BLOG_TYPES } from "@/lib/marketing/style-catalogues";
 import {
   getCopyPrompt,
   getImagePrompt,
   regenerateAssetCopy,
   regenerateAssetImage,
+  saveAssetBlogStyle,
   saveAssetCopy,
   selectAssetImage,
 } from "./actions";
+import { BlogPreview } from "./BlogPreview";
 import { RegenerateModal } from "./RegenerateModal";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
@@ -38,6 +41,22 @@ export function ContentDetail({
   const selected = images.find((i) => i.isSelected) ?? images[0] ?? null;
 
   const [modal, setModal] = useState<"image" | "text" | null>(null);
+
+  const isBlog = entry.channel === "blog";
+  const [blogStyle, setBlogStyle] = useState(entry.blogStyle ?? "");
+
+  function pickBlogStyle(style: string) {
+    const previous = blogStyle;
+    setBlogStyle(style); // optimistic: the preview restyles immediately
+    setNote(null);
+    startTransition(async () => {
+      const r = await saveAssetBlogStyle(campaignId, entry.id, style);
+      if (!r.ok) {
+        setBlogStyle(previous);
+        setNote({ tone: "err", text: r.error });
+      }
+    });
+  }
 
   function saveCopy() {
     setNote(null);
@@ -82,8 +101,24 @@ export function ContentDetail({
         {/* Formatted text */}
         <section className="admin-card mcr-panel">
           <div className="mcr-panel-head">
-            <span className="mcr-panel-title">Formatted text</span>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span className="mcr-panel-title">{isBlog ? "Blog preview" : "Formatted text"}</span>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {isBlog && (
+                <select
+                  className="admin-select mcr-style-select"
+                  value={blogStyle}
+                  onChange={(e) => pickBlogStyle(e.target.value)}
+                  disabled={pending}
+                  aria-label="Blog style"
+                >
+                  <option value="">Style: none</option>
+                  {BLOG_TYPES.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 type="button"
                 className="admin-btn admin-btn--sm"
@@ -118,7 +153,19 @@ export function ContentDetail({
               </div>
             </div>
           ) : html.trim() ? (
-            <div className="idea-plan" style={{ padding: 16 }} dangerouslySetInnerHTML={{ __html: html }} />
+            isBlog ? (
+              <BlogPreview
+                title={entry.title}
+                html={html}
+                blogStyle={blogStyle || null}
+                categoryLabel={entry.pillarName ?? entry.campaignName}
+                publishDate={entry.publishDate}
+                copyMd={copyMd}
+                coverUrl={selected?.url ?? null}
+              />
+            ) : (
+              <div className="idea-plan" style={{ padding: 16 }} dangerouslySetInnerHTML={{ __html: html }} />
+            )
           ) : (
             <div className="admin-empty" style={{ margin: 16 }}>
               No copy yet. Edit markdown to write it, or draft it from the calendar.
