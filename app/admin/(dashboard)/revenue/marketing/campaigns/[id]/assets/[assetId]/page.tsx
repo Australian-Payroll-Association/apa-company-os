@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getEntry, CHANNEL_LABEL } from "@/lib/admin/marketing-calendar";
+import { getEntry, listEntriesByCampaign, CHANNEL_LABEL } from "@/lib/admin/marketing-calendar";
 import { listAssetImages } from "@/lib/admin/marketing-images";
 import { marketingMarkdownToHtml } from "@/lib/marketing/markdown";
 import { ContentDetail } from "./ContentDetail";
@@ -26,9 +26,10 @@ export default async function AssetDetailPage({
   // The asset must exist and belong to this campaign.
   if (!entry || entry.campaignId !== params.id) notFound();
 
-  const [images, html] = await Promise.all([
+  const [images, html, siblings] = await Promise.all([
     listAssetImages(entry.id),
     marketingMarkdownToHtml(entry.copyMd ?? ""),
+    listEntriesByCampaign(params.id),
   ]);
 
   return (
@@ -45,7 +46,31 @@ export default async function AssetDetailPage({
           </>
         }
         title={entry.title}
+        action={
+          <Link className="admin-btn" href={`/admin/revenue/marketing/campaigns/${params.id}`}>
+            ← Back to campaign
+          </Link>
+        }
       />
+
+      {/* Campaign context: this piece sits within the campaign. Jump between its
+          other assets without leaving. */}
+      {siblings.length > 1 && (
+        <div className="mcr-sibling-nav">
+          <span className="mcr-sibling-label">In this campaign</span>
+          {siblings.map((s) => (
+            <Link
+              key={s.id}
+              href={`/admin/revenue/marketing/campaigns/${params.id}/assets/${s.id}`}
+              className={`admin-chip${s.id === entry.id ? " admin-chip--accent" : ""}`}
+              aria-current={s.id === entry.id ? "page" : undefined}
+            >
+              {CHANNEL_LABEL[s.channel]}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <ContentDetail
         campaignId={params.id}
         entry={entry}

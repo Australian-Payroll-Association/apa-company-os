@@ -186,12 +186,17 @@ export function ContentDetail({
 
           {selected ? (
             <>
-              <a href={selected.url} target="_blank" rel="noreferrer" className="mcr-imgbox">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={selected.url} alt={entry.title} />
-              </a>
-              {images.length > 1 && (
-                <div className="mcr-thumbs">
+              {/* For a blog, the cover in the preview already shows the selected
+                  image full size, so don't duplicate it here; just show the
+                  version tray. Other channels have no preview cover, so show it. */}
+              {!isBlog && (
+                <a href={selected.url} target="_blank" rel="noreferrer" className="mcr-imgbox">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selected.url} alt={entry.title} />
+                </a>
+              )}
+              {(isBlog ? images.length >= 1 : images.length > 1) && (
+                <div className="mcr-thumbs" style={isBlog ? { paddingTop: 14 } : undefined}>
                   {images.map((img, i) => (
                     <button
                       key={img.id}
@@ -208,8 +213,9 @@ export function ContentDetail({
                 </div>
               )}
               <div className="admin-hint" style={{ padding: "0 16px 16px" }}>
-                Every generation is kept. The highlighted version is the one that publishes; click an
-                older one to switch back.
+                {isBlog
+                  ? "The cover in the preview shows the selected image. Every generation is kept; click a version to switch, or regenerate to add one."
+                  : "Every generation is kept. The highlighted version is the one that publishes; click an older one to switch back."}
               </div>
             </>
           ) : (

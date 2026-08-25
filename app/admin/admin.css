@@ -2100,6 +2100,27 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 .mcr-report-row:last-child { border-bottom: none; }
 
 /* Asset content detail: text panel + image versions. */
+/* Sibling-asset strip on the content detail page: keeps the campaign context. */
+.mcr-sibling-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-muted-bg);
+}
+.mcr-sibling-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  margin-right: 2px;
+}
+a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accent); text-decoration: none; }
+
 .mcr-detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 820px) { .mcr-detail-grid { grid-template-columns: 1fr; } }
 .mcr-panel { padding: 0; overflow: hidden; }
