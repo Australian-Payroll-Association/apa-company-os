@@ -21,6 +21,7 @@ import {
   draftWithAI,
   generateImage,
   markPosted,
+  publishBlogEntry,
   getEntryPerformance,
   type EntryPerformance,
 } from "./actions";
@@ -183,6 +184,24 @@ export function EntryDrawer({
       setImageUrl(r.url);
       onPatched(entry.id, { imageUrl: r.url });
       setNote({ tone: "ok", text: "Image generated." });
+    });
+  }
+
+  // Blog: publish to the live site as a data event (validate → flip status →
+  // revalidate → verify URL). No git. Social channels keep the manual post()/markPosted.
+  function publishToSite() {
+    setNote(null);
+    startTransition(async () => {
+      const r = await publishBlogEntry(entry.id);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      onPatched(entry.id, { status: "published", postedUrl: r.liveUrl });
+      setNote({
+        tone: "ok",
+        text: r.verified ? `Published and live at ${r.liveUrl}` : (r.warning ?? "Published."),
+      });
     });
   }
 
@@ -412,7 +431,32 @@ export function EntryDrawer({
         </div>
       </div>
 
-      {entry.channel !== "email" && (
+      {entry.channel === "blog" && (
+        <div className="admin-card" style={{ padding: "12px 14px" }}>
+          <div className="admin-label" style={{ marginBottom: 8 }}>Publish to site</div>
+          <div className="admin-form-actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={pending}
+              onClick={publishToSite}
+            >
+              {entry.status === "published" ? "Re-publish" : "Publish to site"}
+            </button>
+            {entry.postedUrl && (
+              <a className="admin-btn admin-btn--sm" href={entry.postedUrl} target="_blank" rel="noreferrer">
+                View live
+              </a>
+            )}
+          </div>
+          <div className="admin-hint" style={{ marginTop: 8 }}>
+            Publishes straight to edge8.ai from the database: validates the post, sets it live, and
+            verifies the URL. No code deploy. Needs a body, an image, and an SEO plan with a slug.
+          </div>
+        </div>
+      )}
+
+      {entry.channel !== "email" && entry.channel !== "blog" && (
         <div className="admin-card" style={{ padding: "12px 14px" }}>
           <div className="admin-label" style={{ marginBottom: 8 }}>Publish</div>
           <div className="admin-form">

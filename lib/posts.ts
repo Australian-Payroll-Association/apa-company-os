@@ -16,6 +16,11 @@ export interface FaqItem {
 export interface Post extends PostMeta {
   contentHtml: string
   faq: FaqItem[]
+  // DB-backed posts (lib/blog.ts) carry a purpose-built title tag and meta
+  // description from their SEO plan; static posts leave these undefined and
+  // generateMetadata falls back to title/excerpt as before.
+  titleTag?: string | null
+  metaDescription?: string | null
 }
 
 const contentDir = path.join(process.cwd(), 'content', 'blog')
@@ -29,7 +34,7 @@ const contentDir = path.join(process.cwd(), 'content', 'blog')
 // The answer is reduced to plain text (tags and markdown emphasis stripped);
 // Google's FAQPage schema wants the plain answer, and this keeps the JSON-LD
 // free of the markup the visible accordion still renders.
-function extractFaq(markdown: string): FaqItem[] {
+export function extractFaq(markdown: string): FaqItem[] {
   const items: FaqItem[] = []
   const block = /<details[^>]*class="faq-item"[^>]*>([\s\S]*?)<\/details>/gi
   let m: RegExpExecArray | null
@@ -55,6 +60,15 @@ function plain(s: string): string {
     .trim()
 }
 
+// The single markdown → HTML pipeline every post body goes through. sanitize:false
+// lets first-party markdown use raw HTML: <figure>/<figcaption> exhibit framing and
+// the <details class="faq-item"> FAQ accordion. Shared so DB-backed posts (lib/blog.ts)
+// render byte-identically to the file-backed ones.
+export async function renderPostMarkdown(markdown: string): Promise<string> {
+  const processed = await remark().use(remarkHtml, { sanitize: false }).process(markdown)
+  return processed.toString()
+}
+
 export async function getPostDataBySlug(slug: string): Promise<Post | null> {
   const post = allPosts.find((p) => p.slug === slug)
   if (!post) return null
@@ -74,10 +88,7 @@ export async function getPostDataBySlug(slug: string): Promise<Post | null> {
   const hrIndex = rawContent.search(/\n---+\s*\n/)
   const content = hrIndex !== -1 ? rawContent.slice(hrIndex).replace(/^---+\s*\n/, '') : rawContent
 
-  // sanitize:false lets first-party markdown use raw HTML — <figure>/<figcaption>
-  // exhibit framing and the <details> FAQ accordion. Pure-markdown posts are unaffected.
-  const processedContent = await remark().use(remarkHtml, { sanitize: false }).process(content)
-  const contentHtml = processedContent.toString()
+  const contentHtml = await renderPostMarkdown(content)
 
   return { ...post, contentHtml, faq }
 }

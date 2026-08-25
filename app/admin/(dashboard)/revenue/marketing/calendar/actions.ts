@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/admin/audit";
 import { getBroadcastStats } from "@/lib/admin/broadcasts";
 import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
 import { generateEntryImage } from "@/lib/ai/brand-image";
+import { publishBlogAsset, revalidateBlog } from "@/lib/marketing/blog-publish";
 import {
   listEntries,
   type CalendarChannel,
@@ -202,11 +203,24 @@ export async function moveEntry(
     return { ok: false, error: "Unknown status." };
   }
 
+  // If this is a published blog asset moving OUT of published (unpublish), we
+  // need its slug to revalidate the public surfaces after the change.
+  const { data: before } = await companyOs
+    .from("marketing_calendar")
+    .select("channel, status, slug")
+    .eq("id", id)
+    .maybeSingle();
+
   const update: Record<string, unknown> = { status };
   if (sortOrder !== undefined && Number.isFinite(sortOrder)) update.sort_order = sortOrder;
 
   const { error } = await companyOs.from("marketing_calendar").update(update).eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  const prev = before as { channel: string; status: string; slug: string | null } | null;
+  if (prev?.channel === "blog" && prev.slug && prev.status === "published" && status !== "published") {
+    revalidateBlog(prev.slug);
+  }
 
   await recordAudit({
     table: "marketing_calendar",
@@ -217,6 +231,20 @@ export async function moveEntry(
   });
   refresh();
   return { ok: true };
+}
+
+// Publish a blog asset to the public site as a data event: validate, normalize
+// the SEO fields into columns, flip to published, revalidate, verify the live
+// URL. No git, no deploy. (Social channels keep using markPosted.) The heavy
+// lifting is in lib/marketing/blog-publish so the Publish Editor agent reuses it.
+export async function publishBlogEntry(
+  id: string,
+): Promise<{ ok: true; slug: string; liveUrl: string; verified: boolean; warning?: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+  const result = await publishBlogAsset(id, admin.email);
+  refresh();
+  if (!result.ok) return { ok: false, error: result.errors.join(" ") };
+  return { ok: true, slug: result.slug, liveUrl: result.liveUrl, verified: result.verified, warning: result.warning };
 }
 
 // Manual social path: record where a blog/LinkedIn/Facebook entry went live and

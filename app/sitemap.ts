@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next'
-import { allPosts } from '@/lib/postData'
 import { allCaseStudies } from '@/lib/caseStudies'
 import { allWorkflows } from '@/lib/workflowsData'
 import { getActiveJobs } from '@/lib/jobs'
+import { getAllPublishedPosts } from '@/lib/blog'
 
 const BASE = 'https://www.edge8.ai'
 
@@ -44,7 +44,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  const postEntries: MetadataRoute.Sitemap = allPosts.map((p) => ({
+  // Static + DB-published posts. getAllPublishedPosts degrades to static-only on
+  // a DB read failure, so the sitemap never fails the build.
+  const postEntries: MetadataRoute.Sitemap = (await getAllPublishedPosts()).map((p) => ({
     url: `${BASE}/post/${p.slug}/`,
     lastModified: p.date ? new Date(p.date) : now,
     changeFrequency: 'monthly',

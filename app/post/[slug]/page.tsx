@@ -2,20 +2,25 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getAllSlugs, getPostDataBySlug } from '@/lib/posts'
-import { allPosts } from '@/lib/postData'
+import { getAllPublishedPosts, getUnifiedPostBySlug } from '@/lib/blog'
 
+// Only the static slugs are pre-rendered. dynamicParams (default true) lets a
+// slug published from the marketing DB render on demand and then cache.
 export async function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = allPosts.find((p) => p.slug === params.slug)
+  const post = await getUnifiedPostBySlug(params.slug)
   if (!post) return {}
-  const title = `${post.title} | Edge8 Blog`
-  // Prefer real excerpt; fall back to a short generated line so Google never sees "8 min read · Innovation"
-  const description = (post.excerpt && post.excerpt.length > 30)
-    ? post.excerpt.slice(0, 160)
-    : `${post.title}. ${post.readTime} on AI and business by Edge8.`
+  // DB posts carry a purpose-built title tag; static posts keep the "| Edge8 Blog" convention.
+  const title = post.titleTag && post.titleTag.length > 0 ? post.titleTag : `${post.title} | Edge8 Blog`
+  // Prefer a real meta description / excerpt; fall back so Google never sees "8 min read · Innovation"
+  const description = (post.metaDescription && post.metaDescription.length > 30)
+    ? post.metaDescription.slice(0, 160)
+    : (post.excerpt && post.excerpt.length > 30)
+      ? post.excerpt.slice(0, 160)
+      : `${post.title}. ${post.readTime} on AI and business by Edge8.`
   const canonical = `/post/${post.slug}/`
   return {
     title,
@@ -38,7 +43,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function PostPage({ params }: { params: { slug: string } }) {
-  const post = await getPostDataBySlug(params.slug)
+  const post = await getUnifiedPostBySlug(params.slug)
   if (!post) notFound()
 
   // FAQPage structured data, so the post's Q&As are eligible for Google rich
@@ -56,10 +61,10 @@ export default async function PostPage({ params }: { params: { slug: string } })
       }
     : null
 
-  // Sidebar: recent posts from same category (excluding this post)
-  const relatedPosts = allPosts
+  // Sidebar: recent posts from same category (excluding this post). Draws from
+  // both static and DB posts so the two sources cross-link.
+  const relatedPosts = (await getAllPublishedPosts())
     .filter((p) => p.categorySlug === post.categorySlug && p.slug !== post.slug)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
 
   return (
