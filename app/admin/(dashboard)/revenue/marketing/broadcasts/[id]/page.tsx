@@ -52,11 +52,19 @@ export default async function BroadcastDetailPage({ params }: { params: { id: st
       <PageHead
         eyebrow={
           <>
+            <Link href="/admin/revenue/marketing">Marketing</Link> ·{" "}
             <Link href="/admin/revenue/marketing/broadcasts">Broadcasts</Link> · {campaign.subject}
           </>
         }
         title={campaign.name}
-        action={<Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>}
+        action={
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
+            <Link className="admin-btn" href="/admin/revenue/marketing/broadcasts">
+              Back to broadcasts
+            </Link>
+          </div>
+        }
       />
 
       <div className="mp-kpi-grid">

@@ -36,6 +36,7 @@ export default async function AssetDetailPage({
       <PageHead
         eyebrow={
           <>
+            <Link href="/admin/revenue/marketing">Marketing</Link> ·{" "}
             <Link href="/admin/revenue/marketing/campaigns">Campaigns</Link> ·{" "}
             <Link href={`/admin/revenue/marketing/campaigns/${params.id}`}>
               {entry.campaignName ?? "Campaign"}
