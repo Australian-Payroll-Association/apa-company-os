@@ -46,11 +46,6 @@ export default async function AssetDetailPage({
           </>
         }
         title={entry.title}
-        action={
-          <Link className="admin-btn" href={`/admin/revenue/marketing/campaigns/${params.id}`}>
-            ← Back to campaign
-          </Link>
-        }
       />
 
       {/* Campaign context: this piece sits within the campaign. Jump between its
