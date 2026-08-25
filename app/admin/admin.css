@@ -3697,6 +3697,8 @@ a.mcr-asset-title:hover { color: var(--admin-accent); }
 .cg-obj-goal { flex: 1; min-width: 160px; }
 .cg-obj-ladder { font-size: 12px; }
 .edges-fast-name { font-weight: 600; margin-bottom: 6px; }
+/* Name + inline action (admin individual-goals editor): title left, button right. */
+.edges-fast-name--action { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .edges-fast-goal { margin: 6px 0; font-size: 13px; }
 .edges-fast-goal .admin-cell-muted { font-size: 12px; }
 .coach-dash-hint { font-style: italic; margin-top: 2px; }

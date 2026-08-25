@@ -35,11 +35,25 @@ const NAV: NavSection[] = [
           // Client Hubs replaces the standalone Work Boards + Client Roadmaps:
           // pick a client, land on their hub (board + roadmap now editable there).
           { label: "Client Hubs", href: "/admin/client-hubs", ico: "▦", enabled: true },
-          { label: "Goals", href: "/admin/edges/goals", ico: "◆", enabled: true },
+          // Goals editing moved to the Company group below (single place; the
+          // old /admin/edges/goals cascade board is unlinked but still routable).
           { label: "Metrics", href: "/admin/edges/metrics", ico: "▲", enabled: true },
           { label: "Sync", href: "/admin/edges/sync", ico: "☰", enabled: true },
           { label: "Issues", href: "/admin/edges/issues", ico: "◉", enabled: true },
           { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
+        ],
+      },
+      {
+        // The company-visible pages the team reads under /team (Strategy →
+        // Company Goals → individual goals), edited here. Shared components
+        // render both surfaces; see components/company/*.
+        label: "Company",
+        collapsible: true,
+        items: [
+          { label: "Strategy", href: "/admin/company/strategy", ico: "◆", enabled: true },
+          { label: "Company Goals", href: "/admin/company/goals", ico: "⊚", enabled: true },
+          { label: "Core Values", href: "/admin/company/values", ico: "♥", enabled: true },
+          { label: "Org Chart", href: "/admin/company/org", ico: "⌥", enabled: true },
         ],
       },
     ],
