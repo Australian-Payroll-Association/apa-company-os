@@ -1,0 +1,170 @@
+import Link from "next/link";
+import { companyOs } from "@/lib/supabase";
+import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { BarChart } from "@/components/admin/charts/BarChart";
+import { DonutChart } from "@/components/admin/charts/DonutChart";
+import { OfficeGoalsCard } from "@/components/admin/OfficeGoalsCard";
+import { getOfficeGoals, healthSummary } from "@/lib/admin/office-goals";
+import { one, vsPrior, monthsThisYear, MS_DAY } from "@/lib/admin/dashboard-helpers";
+
+// Live operational data; never serve a frozen render after a write elsewhere.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+export const metadata = {
+  title: "Talent cockpit",
+  description: "The Talent office in full: the team, turnover, and the hiring pipeline.",
+};
+
+type TeamRow = { status: string | null; start_date: string | null; end_date: string | null; departments: unknown };
+type AppRow = { status: string | null; applied_at: string | null; decided_at: string | null; job_requisition_id: string | null };
+type ReqRow = { id: string; title: string | null };
+
+export default async function TalentCockpitPage() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const yearStart = `${year}-01-01`;
+  const iso30 = new Date(now.getTime() - 30 * MS_DAY).toISOString();
+  const iso60 = new Date(now.getTime() - 60 * MS_DAY).toISOString();
+
+  const [teamRes, appsRes, openReqsRes, onboardingRes, goals] = await Promise.all([
+    companyOs.from("team_members").select("status, start_date, end_date, departments!department_id(name)").limit(1000),
+    companyOs.from("applications").select("status, applied_at, decided_at, job_requisition_id").limit(3000),
+    companyOs.from("job_requisitions").select("id, title").eq("status", "open").order("opened_at", { ascending: false }),
+    companyOs.from("onboarding_plans").select("stage"),
+    getOfficeGoals(),
+  ]);
+
+  const err = teamRes.error || appsRes.error || openReqsRes.error || onboardingRes.error;
+
+  const team = (teamRes.data as TeamRow[] | null) ?? [];
+  const active = team.filter((t) => t.status === "active");
+  const headcount = active.length;
+  const turnover = team.filter(
+    (t) => (t.status === "terminated" || t.status === "alumni") && t.end_date && t.end_date >= yearStart,
+  ).length;
+  const newHires = team.filter((t) => t.start_date && t.start_date >= yearStart).length;
+
+  const byDept = new Map<string, number>();
+  for (const t of active) {
+    const name = one(t.departments as { name: string | null } | null)?.name ?? "Uncategorized";
+    byDept.set(name, (byDept.get(name) ?? 0) + 1);
+  }
+  const deptChart = [...byDept.entries()].map(([label, value]) => ({ label, value }));
+
+  const onboarding = ((onboardingRes.data as { stage: string | null }[] | null) ?? []).filter(
+    (p) => p.stage && p.stage !== "complete",
+  ).length;
+
+  const apps = (appsRes.data as AppRow[] | null) ?? [];
+  const apps30 = apps.filter((a) => a.applied_at && a.applied_at >= iso30).length;
+  const appsPrev30 = apps.filter((a) => a.applied_at && a.applied_at >= iso60 && a.applied_at < iso30).length;
+
+  // Days to hire: mean gap applied → decided over hired applications with both dates.
+  const hired = apps.filter((a) => a.status === "hired" && a.applied_at && a.decided_at);
+  const daysToHire = hired.length
+    ? Math.round(
+        hired.reduce((s, a) => s + (new Date(a.decided_at!).getTime() - new Date(a.applied_at!).getTime()) / MS_DAY, 0) /
+          hired.length,
+      )
+    : null;
+  const totalApps = apps.length;
+  const conversion = totalApps ? Math.round((apps.filter((a) => a.status === "hired").length / totalApps) * 1000) / 10 : 0;
+
+  const appsByMonth = monthsThisYear(now).map(({ label, from, to }) => ({
+    label,
+    value: apps.filter((a) => a.applied_at && a.applied_at >= from && a.applied_at < to).length,
+  }));
+
+  // Hiring pipeline: open reqs with their count of active applications.
+  const openReqs = (openReqsRes.data as ReqRow[] | null) ?? [];
+  const activeByReq = new Map<string, number>();
+  for (const a of apps) {
+    if (a.status === "active" && a.job_requisition_id) {
+      activeByReq.set(a.job_requisition_id, (activeByReq.get(a.job_requisition_id) ?? 0) + 1);
+    }
+  }
+  const pipeline = openReqs
+    .map((r) => ({ id: r.id, title: r.title ?? "Untitled role", active: activeByReq.get(r.id) ?? 0 }))
+    .sort((a, b) => b.active - a.active);
+
+  const talent = goals.byOffice.talent;
+  const chips = healthSummary(talent.health);
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Four Offices · Talent"
+        title="Talent cockpit"
+        sub="The team, turnover, and the pipeline that grows it."
+      />
+
+      {err && (
+        <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
+          {err.message}
+        </div>
+      )}
+
+      <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+        <MetricCard label="Headcount" value={headcount} sub="active team members" href="/admin/talent/team" />
+        <MetricCard label={`Turnover · ${year}`} value={turnover} sub="left this year" href="/admin/talent/team" />
+        <MetricCard label={`New hires · ${year}`} value={newHires} sub="joined this year" href="/admin/talent/team" />
+        <MetricCard label="Onboarding" value={onboarding} sub="in cycle now" href="/admin/talent/onboarding" />
+        <MetricCard label="Open roles" value={openReqs.length} sub={`${activeByReq.size} with active apps`} href="/admin/talent/jobs" />
+        <MetricCard label="Applications · 30d" value={apps30} sub={vsPrior(apps30, appsPrev30)} href="/admin/talent/applications" />
+        <MetricCard label="Days to hire" value={daysToHire ?? "—"} sub="avg, hired applicants" href="/admin/talent/applications" />
+        <MetricCard label="Conversion" value={`${conversion}%`} sub="application → hire" href="/admin/talent/applications" />
+      </div>
+
+      {chips && (
+        <div className="mp-kpi-label" style={{ marginBottom: 16 }}>
+          Talent goals · {goals.quarter.label}: {chips}
+          {talent.openIssues > 0 ? ` · ${talent.openIssues} open ${talent.openIssues === 1 ? "issue" : "issues"}` : ""}
+        </div>
+      )}
+
+      <div className="admin-summary-grid" style={{ marginBottom: 20 }}>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Headcount by department</div>
+          <DonutChart data={deptChart} centerLabel="people" ariaLabel="Active team members by department" />
+        </div>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Applications by month · {year}</div>
+          <BarChart data={appsByMonth} ariaLabel="Job applications received by month" emptyText="No applications this year." />
+        </div>
+      </div>
+
+      <div className="admin-cockpit-cols">
+        <div className="admin-card admin-section-card">
+          <h2 className="admin-card-title">Hiring pipeline</h2>
+          {pipeline.length === 0 ? (
+            <div className="admin-empty">No open roles.</div>
+          ) : (
+            <div className="admin-list">
+              {pipeline.slice(0, 8).map((r) => (
+                <div key={r.id} className="admin-list-row">
+                  <div className="admin-list-main">
+                    <div className="admin-list-title">
+                      <Link href={`/admin/talent/jobs/${r.id}`}>{r.title}</Link>
+                    </div>
+                  </div>
+                  <div className="admin-list-aside">
+                    <span className="admin-list-sub">{r.active} active</span>
+                  </div>
+                </div>
+              ))}
+              <div style={{ paddingTop: 10 }}>
+                <Link href="/admin/talent/jobs" className="admin-auth-link">
+                  Open job reqs →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <OfficeGoalsCard snapshot={talent} quarterLabel={goals.quarter.label} />
+      </div>
+    </>
+  );
+}

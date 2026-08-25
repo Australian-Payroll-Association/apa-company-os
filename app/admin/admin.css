@@ -487,6 +487,14 @@ a.admin-btn--danger:hover { color: var(--admin-err-ink); }
 }
 .admin-summary-grid .mp-kpi { min-width: 0; }
 .admin-chart-card { padding: 16px 18px; min-width: 0; }
+
+/* Two-column card row for the office cockpits (e.g. pipeline + goals). Wraps to
+   one column when the cards can't both hold their minimum width. */
+.admin-cockpit-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
 /* Headline stat pills above the chart columns (Companies / Active Deals / Clients). */
 .admin-summary-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 .admin-pill {
