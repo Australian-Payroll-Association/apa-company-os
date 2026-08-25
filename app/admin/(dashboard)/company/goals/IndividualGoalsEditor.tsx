@@ -65,6 +65,20 @@ function formOf(g: CoachingGoal): FormState {
 
 const numOrNull = (s: string): number | null => (s.trim() === "" ? null : Number(s));
 
+// Same status tone + progress bar the member's own goal card uses, so the admin
+// view carries the same colour instead of a flat wall of grey.
+function badgeTone(status: GoalStatus): string {
+  return status === "achieved" ? "admin-badge--ok" : status === "active" ? "admin-badge--info" : "admin-badge--warn";
+}
+
+function progressPct(g: CoachingGoal): number | null {
+  if (g.targetValue === null || g.currentValue === null) return null;
+  const from = g.startValue ?? 0;
+  const span = g.targetValue - from;
+  if (span === 0) return null;
+  return Math.max(0, Math.min(100, Math.round(((g.currentValue - from) / span) * 100)));
+}
+
 export function IndividualGoalsEditor({
   members,
   edges,
@@ -247,11 +261,19 @@ export function IndividualGoalsEditor({
                   }, "Save goal")
                 ) : (
                   <>
-                    <div>{g.title}</div>
-                    <div className="admin-cell-muted">
-                      {GOAL_STATUS_LABELS[g.status]}
-                      {g.ladder ? ` · ⇗ ${g.ladder.label}` : " · No ladder yet"}
+                    <div className="goals-card-head">
+                      <strong>{g.title}</strong>
+                      <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
                     </div>
+                    {(() => {
+                      const pct = progressPct(g);
+                      return pct !== null ? (
+                        <div className="goals-bar" aria-label={`${pct}% of target`}>
+                          <span style={{ width: `${pct}%` }} />
+                        </div>
+                      ) : null;
+                    })()}
+                    <div className="admin-cell-muted">{g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}</div>
                     <div className="admin-form-actions" style={{ marginTop: 6 }}>
                       <button className="admin-btn admin-btn--sm" onClick={() => openEdit(g)} disabled={pending}>
                         Edit
