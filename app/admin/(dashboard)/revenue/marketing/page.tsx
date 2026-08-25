@@ -11,6 +11,8 @@ import {
   getAudienceBreakdown,
   getDeliverability,
   getEmailActivity,
+  getRecentContacts,
+  personaLabel,
   rangeSince,
   type EmailAudience,
   type MarketingRange,
@@ -102,7 +104,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
   const emailAudience = parseAudience(firstParam(searchParams.email));
   const active = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
-  const [traffic, email, audience, delivery, newLeads, meetingsBooked, engine, attendees, workflows] =
+  const [traffic, email, audience, delivery, newLeads, meetingsBooked, engine, attendees, workflows, recentContacts] =
     await Promise.all([
       getAnalyticsOverview(range, "public"),
       getEmailActivity(range, emailAudience),
@@ -113,6 +115,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       getContentEngine(),
       getWorkshopAttendeesTotal(),
       getDocumentedWorkflowsTotal(),
+      getRecentContacts(5),
     ]);
 
   // Year goals marketing drives, drawn from the same sources the Edges collector
@@ -607,6 +610,56 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
             </div>
           </div>
         )}
+      </section>
+
+      <section className="admin-card admin-section-card">
+        <div className="admin-card-head">
+          <div className="admin-card-title">New contacts</div>
+          <Link href="/admin/contacts" className="admin-cell-muted">
+            See all
+          </Link>
+        </div>
+        {recentContacts.error && (
+          <div className="admin-alert admin-alert--err" style={{ marginTop: 12 }}>
+            Contacts: {recentContacts.error}
+          </div>
+        )}
+        <div className="admin-table-wrap" style={{ marginTop: 12 }}>
+          {recentContacts.rows.length === 0 ? (
+            <div className="admin-empty">No contacts yet.</div>
+          ) : (
+            <div className="admin-table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Added</th>
+                    <th>Name</th>
+                    <th>Persona</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentContacts.rows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="admin-cell-mono">{formatDate(row.createdAt)}</td>
+                      <td className="admin-cell-strong">
+                        <Link href={`/admin/contacts/${row.id}`}>{row.name}</Link>
+                      </td>
+                      <td>
+                        {row.persona ? (
+                          <Badge>{personaLabel(row.persona)}</Badge>
+                        ) : (
+                          <span className="admin-cell-muted">—</span>
+                        )}
+                      </td>
+                      <td className="admin-cell-muted">{row.source || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="admin-card admin-section-card">
