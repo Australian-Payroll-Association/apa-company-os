@@ -497,7 +497,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
           {audience.unsubscribed.toLocaleString()} opted out, and{" "}
           {audience.doNotContact.toLocaleString()}{" "}
           {audience.doNotContact === 1 ? "person is" : "people are"} marked do-not-contact. Job
-          seekers and team members are excluded structurally.
+          seekers are excluded structurally.
         </p>
         <div
           className="admin-summary-grid"
