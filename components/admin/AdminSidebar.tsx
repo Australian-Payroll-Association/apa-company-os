@@ -84,6 +84,7 @@ const NAV: NavSection[] = [
           { label: "Calendar", href: "/admin/revenue/marketing/calendar", ico: "▤", enabled: true },
           { label: "Broadcasts", href: "/admin/revenue/marketing/broadcasts", ico: "✉", enabled: true },
           { label: "Brands", href: "/admin/revenue/marketing/brands", ico: "◈", enabled: true },
+          { label: "Books", href: "/admin/revenue/marketing/books", ico: "❒", enabled: true },
         ],
       },
     ],

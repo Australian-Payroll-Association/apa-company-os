@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+<title>The Other 50%</title>
+<style>
+  :root{
+    --navy:#17233E;
+    --paper:#ffffff;
+    --paper-card:#ffffff;
+    --ink:#1F2937;
+    --ink-soft:#5B6472;
+    --accent:#E4572E;
+    --rule:#E2E0DA;
+    --serif:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,'Times New Roman',serif;
+    --mono:'Menlo','Consolas','SFMono-Regular','Courier New',monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--navy);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:20px;
+    line-height:1.72;
+    text-rendering:optimizeLegibility;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- the white sheet on the navy mat ---------- */
+  .sheet{
+    background:var(--paper);
+    max-width:47rem;
+    margin:clamp(2rem,6vw,4.5rem) auto;
+    padding:clamp(2.5rem,6vw,5rem) clamp(1.5rem,5vw,4rem) clamp(3rem,7vw,5.5rem);
+    box-shadow:0 40px 90px -50px rgba(0,0,0,.65);
+  }
+
+  /* ---------- shared layout ---------- */
+  .page{max-width:none;margin:0;padding:0;}
+  .meta{font-family:var(--mono);text-transform:uppercase;letter-spacing:.22em;font-size:.68rem;color:var(--ink-soft);}
+  .rule{border:0;border-top:1px solid var(--rule);width:100%;margin:3.5rem auto;}
+  .rule-dot{border:0;text-align:center;margin:3.25rem auto;width:100%;}
+  .rule-dot::before{content:"\00B7 \00B7 \00B7";letter-spacing:.6em;color:var(--accent);font-size:1rem;}
+
+  /* contents (parts only, airy) */
+  .toc h1{font-family:var(--serif);font-weight:600;font-size:1.6rem;margin:0 0 2.4rem;}
+  .toc ol{list-style:none;margin:0;padding:0;}
+  .toc li{margin:0 0 1.5rem;}
+  .toc a{text-decoration:none;display:block;}
+  .toc .t{display:block;font-family:var(--serif);font-size:1.15rem;color:var(--ink);line-height:1.4;}
+  .toc .t .pn{font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;font-size:.66rem;color:var(--accent);margin-right:.9rem;}
+  .toc .d{display:block;font-size:.95rem;color:var(--ink-soft);margin-top:.15rem;font-style:italic;}
+  .toc a:hover .t{color:var(--accent);}
+
+
+  /* ---------- cover ---------- */
+  .cover{
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:5vh 1.25rem;
+  }
+  .cover-frame{
+    width:100%;max-width:47rem;
+    border:1.5px solid var(--ink);
+    padding:clamp(1.75rem,5vw,3.25rem) clamp(1.25rem,4vw,2.75rem);
+    position:relative;
+    background:var(--paper-card);
+    box-shadow:0 18px 40px -28px rgba(0,0,0,.5);
+  }
+  .cover-frame::after{
+    content:"";position:absolute;inset:9px;border:1px solid var(--rule);pointer-events:none;
+  }
+  .cover-inner{position:relative;text-align:center;}
+  .cover-kicker{margin:0 0 clamp(1.5rem,6vw,2.75rem);}
+  .emblem{width:118px;height:74px;display:block;margin:0 auto clamp(1.5rem,5vw,2.5rem);}
+  .cover-title{
+    font-family:var(--serif);
+    font-weight:600;
+    letter-spacing:-.01em;
+    line-height:.98;
+    font-size:clamp(3rem,13vw,5.5rem);
+    margin:0;
+  }
+  .cover-title .amp{color:var(--accent);}
+  .cover-sub{
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;
+    font-size:clamp(.6rem,2.4vw,.78rem);color:var(--ink-soft);
+    margin:clamp(1.1rem,3.5vw,1.6rem) auto 0;max-width:26rem;line-height:1.9;
+  }
+  .cover-divide{width:44px;height:1.5px;background:var(--accent);border:0;margin:clamp(1.6rem,5vw,2.4rem) auto;}
+  .cover-authors{
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.13em;
+    font-size:clamp(.68rem,2.6vw,.82rem);color:var(--ink);line-height:2;margin:0;
+  }
+  .cover-authors .by{color:var(--ink-soft);letter-spacing:.24em;font-size:.62rem;display:block;margin-bottom:.55rem;}
+  .cover-foot{margin:clamp(1.75rem,6vw,3rem) 0 0;}
+
+  /* ---------- opening / chapter headers ---------- */
+  .opener{padding-top:clamp(1rem,4vw,2.25rem);}
+  .part-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.3em;font-size:.72rem;color:var(--accent);margin:0 0 1.5rem;}
+  .chap-num{font-family:var(--mono);text-transform:uppercase;letter-spacing:.3em;font-size:.72rem;color:var(--ink-soft);margin:0 0 .9rem;}
+  h1.title{
+    font-family:var(--serif);font-weight:600;letter-spacing:-.01em;
+    font-size:clamp(2.1rem,6.5vw,3.1rem);line-height:1.08;margin:0 0 2.4rem;
+  }
+  h2{
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;
+    font-size:.9rem;color:var(--ink);margin:3rem 0 1.3rem;font-weight:700;
+  }
+
+  /* ---------- body ---------- */
+  p{margin:0 0 1.35rem;}
+  .lead::first-letter{
+    float:left;font-family:var(--serif);font-weight:600;
+    font-size:3.9rem;line-height:.82;padding:.32rem .55rem 0 0;color:var(--accent);
+  }
+  strong{font-weight:700;}
+  ul,ol{margin:0 0 1.35rem;padding-left:1.6rem;}
+  li{margin:0 0 .55rem;}
+  .q{padding-left:1.1rem;border-left:2px solid var(--accent);}
+  .q strong{display:block;margin-bottom:.15rem;}
+  .pull{margin:1.8rem 0;padding:.3rem 0 .3rem 1.2rem;border-left:2px solid var(--accent);font-style:italic;font-size:1.12em;line-height:1.5;}
+
+  /* appendix */
+  table.tpl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.7rem;margin:1.2rem 0;}
+  table.tpl th,table.tpl td{border:1px solid var(--rule);padding:.55rem .6rem;text-align:left;vertical-align:top;line-height:1.4;}
+  table.tpl th{background:#F4F1E8;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;}
+  .fill{color:var(--rule);letter-spacing:.05em;}
+  .fw{border-top:1px solid var(--rule);padding:1rem 0;}
+  .fw h4{font-family:var(--mono);font-size:.9rem;letter-spacing:.03em;margin:0 0 .5rem;}
+  .fw p{margin:0 0 .35rem;font-size:.92em;}
+  .fw .inst{font-style:italic;color:var(--ink-soft);}
+  .src{font-size:.92em;margin:0 0 .7rem;}
+  .end-mark{text-align:center;margin:4rem 0 1rem;}
+  .end-mark .em-rule{width:44px;height:1.5px;background:var(--accent);margin:0 auto 1.2rem;}
+
+  /* ---------- figures / plates ---------- */
+  figure.plate{
+    margin:3rem 0;
+    background:var(--paper-card);
+    box-shadow:0 18px 44px -30px rgba(0,0,0,.5);
+  }
+  figure.plate svg{display:block;width:100%;height:auto;}
+
+  /* ---------- section footer ---------- */
+  .chap-foot{margin:3.5rem 0 5rem;text-align:center;}
+  .chap-foot .meta{display:block;line-height:1.9;}
+
+  /* ---------- workbook coach callout ---------- */
+  .coach{border:1.5px solid var(--navy);background:#FAF8F3;padding:1.4rem 1.6rem;margin:2.6rem 0;}
+  .coach-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;font-size:.66rem;color:var(--accent);margin:0 0 .65rem;}
+  .coach-body{font-size:1rem;line-height:1.62;margin:0 0 .85rem;}
+  .coach-link{font-family:var(--mono);letter-spacing:.05em;font-size:.9rem;color:var(--ink-soft);margin:0;}
+  .coach-link a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);font-weight:700;}
+
+  /* ---------- author bios ---------- */
+  .bio{border-top:1px solid var(--rule);padding:1.7rem 0 0;margin:0 0 1.9rem;}
+  .bio h3{font-family:var(--serif);font-weight:600;font-size:1.35rem;line-height:1.2;margin:0 0 .3rem;color:var(--navy);}
+  .bio .role{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;color:var(--accent);margin:0 0 .85rem;line-height:1.5;}
+  .bio p{font-size:1rem;line-height:1.66;margin:0;}
+
+  @media (max-width:640px){
+    body{font-size:18px;line-height:1.66;}
+    .lead::first-letter{font-size:3.2rem;}
+  }
+  @media print{
+    body{background:#fff;}
+    .cover-frame,figure.plate{box-shadow:none;}
+    figure.plate{break-inside:avoid;}
+    .cover{min-height:auto;page-break-after:always;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div class="cover-frame">
+    <div class="cover-inner">
+      <p class="cover-kicker meta">AI Officer Institute &nbsp;&middot;&nbsp; Field Guide Edition</p>
+
+      <svg class="emblem" viewBox="0 0 200 120" aria-hidden="true">
+        <defs>
+          <clipPath id="halfL"><rect x="30" y="20" width="70" height="80"/></clipPath>
+        </defs>
+        <!-- the half you know: staffed, hatched -->
+        <g clip-path="url(#halfL)" stroke="#1F2937" stroke-width="1.4">
+          <line x1="26" y1="104" x2="104" y2="26"/>
+          <line x1="40" y1="104" x2="118" y2="26"/>
+          <line x1="54" y1="104" x2="132" y2="26"/>
+          <line x1="12" y1="104" x2="90" y2="26"/>
+          <line x1="0"  y1="104" x2="78" y2="26"/>
+          <line x1="68" y1="104" x2="146" y2="26"/>
+        </g>
+        <rect x="30" y="20" width="70" height="80" fill="none" stroke="#1F2937" stroke-width="2.4"/>
+        <!-- the half nobody staffed: empty, dashed accent -->
+        <rect x="100" y="20" width="70" height="80" fill="none" stroke="#E4572E" stroke-width="2.4" stroke-dasharray="3 5"/>
+      </svg>
+
+      <h1 class="cover-title">The Other <span class="amp">50%</span></h1>
+      <p class="cover-sub">A Field Guide to Workflow Design and the Second Half of Leadership</p>
+      <hr class="cover-divide">
+      <p class="cover-authors"><span class="by">By</span> Dave Hajdu &nbsp;&middot;&nbsp; David Nilssen &nbsp;&middot;&nbsp; Brooks C. Holtom, PhD</p>
+      <p class="cover-foot meta">The Number That Will Not Move</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE WHITE SHEET (reading pages) ============ -->
+<main class="sheet">
+
+<nav class="toc page" id="contents">
+<h1>Contents</h1>
+<ol>
+<li><a href="#opening"><span class="t"><span class="pn">Opening</span>The Number That Will Not Move</span><span class="d">You spent on AI, and the number did not move</span></a></li>
+<li><a href="#chapter-1"><span class="t"><span class="pn">Part I</span>Lost</span><span class="d">Everyone bought, nobody built</span></a></li>
+<li><a href="#chapter-4"><span class="t"><span class="pn">Part II</span>The Craft</span><span class="d">One workflow, made visible</span></a></li>
+<li><a href="#chapter-8"><span class="t"><span class="pn">Part III</span>Altitudes</span><span class="d">The same skill at every level of your company</span></a></li>
+<li><a href="#close"><span class="t"><span class="pn">Close</span>Monday</span><span class="d">Four weeks, one workflow</span></a></li>
+<li><a href="#appendix"><span class="t"><span class="pn">Appendix</span>The Reference Shelf</span><span class="d">Templates, framework cards, and sources</span></a></li>
+</ol>
+</nav>
+
+<hr class="rule-dot">
+
+
+<!-- ============ OPENING ============ -->
+<article class="page opener" id="opening">
+  <p class="part-label">Opening</p>
+  <h1 class="title">The Number That Will Not Move</h1>
+
+  <p class="lead">You have spent on AI. Seats, subscriptions, a pilot or two, maybe a working group with a deck and a Slack channel that was on fire for exactly one month. You did the responsible thing. And when you look at the number that is supposed to move, the profit and loss statement, it is sitting exactly where you left it, whistling, pretending nothing happened.</p>
+
+  <p>Before you blame the tools, sit with a less comfortable idea. The tools are fine. The job of leadership quietly doubled in size while you were in a meeting, and your company is still staffed for the half that is now only half the job.</p>
+
+  <p>Let me give you the hardest number first, because it is the one that finally made me stop pretending. In 2025, researchers at the Massachusetts Institute of Technology studied enterprise generative AI programs and found that ninety-five percent of them delivered no measurable return to the profit and loss statement. Not ninety-five percent were a bit slow. Ninety-five percent showed up nowhere in the money. This was after companies had cheerfully set fire to somewhere between thirty and forty billion dollars. Fewer than one program in twenty paid for itself.</p>
+
+  <p>The instinct is to read that as a story about AI not being ready yet. It is the opposite. The same researchers were blunt about the cause. The failure was not the quality of the models. It was what they called a learning gap: tools that never learned from, or adapted to, the way the work actually flows. The models were plenty smart. The workflows they were dropped into were invisible, undocumented, and living rent-free in three people's heads. You cannot automate a process that nobody has ever written down. The machine shows up ready to work and there is no work to do, because the work is a rumor.</p>
+
+  <p>That is the whole book in one paragraph, so let me say it plainly. The reason your AI spend is not in the P&amp;L is almost never the AI. It is that leadership in the AI era stopped being one job and became two, and nobody handed you the manual for the second one.</p>
+
+  <p>The first half you know cold. Hire well. Set direction. Build a culture people do not flee. Hold people accountable. None of that is going anywhere, and if you are good at it, keep doing it. The second half is new. It is the work of directing AI rather than only managing people, and it rests on three skills you can actually learn: designing workflows, organizing information, and writing instructions. This book is about the first and most important of the three, the one that holds the other two up. Workflow design.</p>
+
+  <p>Here is who I wrote it for. You run a company, or a large piece of one. You are the founder, the chief executive, the person that MIT number is quietly about. You have spent, and somewhere in the back of your mind you are afraid the failure is yours. Some of it is, and honestly that is the good news, because the fixable problems are the ones that belong to you. This book is written to you, and it is short on purpose, because you do not have time for a treatise, and a workflow you could have documented this afternoon does not become more likely to exist because you read three hundred pages about the theory of documenting it.</p>
+
+  <p>But it is not only about the workflows you design yourself. Here is the idea that reorganizes how you should lead the second half, and it is the reason the book is built the way it is.</p>
+
+  <p>Workflow design is the single most important skill anyone in your company can learn, from the newest coordinator to you, and it is the same skill at every level. What changes is the altitude. A junior person designs the flow of their own daily work. A team leader designs the flow of a whole function and points it at an outcome. You design the flow of the entire company and the data floor underneath it. Same craft, three heights. And your job as the leader is not to climb those heights, you are already standing on top of them. Your job is to see this skill clearly enough to recognize it in a twenty-four-year-old, to grow it in your managers, and to practice it yourself where the stakes are highest and the audience is a board.</p>
+
+  <p>That is why the last part of this book walks down through your own organization: the individual contributor, the team leader, and finally your own chair. Not so you can find yourself in one of them, you are the reader at every level, but so you can see exactly what this one skill produces at each height, and what changes when it is present or missing. The leaders who win the AI era will not be the ones who mastered workflow design alone. They will be the ones who built a company where it lives at every altitude.</p>
+
+  <p>A word on what this book is not. It is not a novel. If you want the story, my co-authored fable follows a proud, non-technical owner named Ron Woo through the lawsuit that dismantles his oldest belief, that leadership was a job he had already mastered. This is the field guide that sits next to it, with fewer feelings and more checklists. It is not a prompt handbook, and it is not a tour of tools, because tools change every quarter and the skill does not. It is not another breathless argument that AI is changing everything. It is one skill, argued and taught, so that at the end you can actually do it.</p>
+
+  <p>Every chapter carries one idea, one picture, and one exercise you can do on a real piece of your own work. If you do the exercises, you finish this book with a documented, partly automated workflow that did not exist when you started, and the beginnings of a skill you can then recognize, grow, and demand across your whole company.</p>
+
+  <p>The rest of this book is one skill, and how to lead it at every altitude of your company. We start with why the smartest, best-funded leaders in the world are so thoroughly lost.</p>
+</article>
+
+<hr class="rule-dot">
+
+<!-- ============ CHAPTER 1 ============ -->
+<article class="page opener" id="chapter-1">
+  <p class="part-label">Part I &nbsp;&middot;&nbsp; Lost</p>
+  <p class="chap-num">Chapter One</p>
+  <h1 class="title">Everyone Bought, Nobody Built</h1>
+
+  <p class="lead">Let me be precise about the failure, because the size of it is the whole argument, and it is genuinely impressive in the way a three-car pileup is impressive.</p>
+
+  <p>There are three levels at which you can measure whether AI is working, and it is failing at all three. Watch the number get worse as you zoom out.</p>
+
+  <p>Start at the level of a single project. That is the MIT number from the opening: ninety-five percent of enterprise generative AI pilots deliver no measurable return. Zoom out to a whole company and ask the person in charge. In its 29th annual global survey of chief executives, the professional services firm PwC found that fifty-six percent said they were getting nothing out of their AI investment. The firm's own global chairman did not blame the technology. He blamed companies for, in his words, forgetting the basics. That is a consultant telling his own clients they skipped the reading, which takes a certain courage.</p>
+
+  <p>Now zoom all the way out, to the entire market. In July of 2026, on the All-In Podcast, the investor Chamath Palihapitiya did the arithmetic on the whole economy. Take the S&amp;P 493, which is the S&amp;P 500 with the handful of giant technology companies driving the AI boom removed. Since generative AI went mainstream, that group has produced roughly nine percent earnings growth. How much of that nine percent, he asked, actually came from AI making companies more productive? His answer was zero to two percent. The rest was inflation and share buybacks. He called the gap between what has been spent and what has been produced potentially the biggest capital allocation mistake in history, which is not a phrase you use about a rounding error.</p>
+
+  <p>Sit with the shape of that. One project: ninety-five percent fail. One company: fifty-six percent get nothing. The whole market: almost none of the growth is real AI productivity. It is the same hole, seen from three heights.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 1.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE FUNNEL OF NOTHING</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="108" font-size="15" letter-spacing="2" fill="#1F2937" text-anchor="middle">$30 TO 40 BILLION IN</text>
+      <g stroke="#1F2937" stroke-width="2" fill="none">
+        <line x1="360" y1="118" x2="360" y2="142"/>
+        <line x1="440" y1="118" x2="440" y2="142"/>
+        <line x1="520" y1="118" x2="520" y2="142"/>
+        <path d="M 354 136 L 360 146 L 366 136"/>
+        <path d="M 434 136 L 440 146 L 446 136"/>
+        <path d="M 514 136 L 520 146 L 526 136"/>
+      </g>
+      <path d="M 180 158 L 700 158 L 592 452 L 464 512 L 464 550 L 416 550 L 416 512 L 288 452 Z"
+            fill="none" stroke="#1F2937" stroke-width="2.5" stroke-linejoin="round"/>
+      <g stroke="#1F2937" stroke-width="1.5">
+        <line x1="216" y1="256" x2="664" y2="256"/>
+        <line x1="252" y1="354" x2="628" y2="354"/>
+      </g>
+      <g font-size="13" letter-spacing="2" fill="#1F2937">
+        <text x="80" y="200">THE PILOT</text>
+        <line x1="80" y1="212" x2="168" y2="212" stroke="#1F2937" stroke-width="1"/>
+        <text x="80" y="298">THE COMPANY</text>
+        <line x1="80" y1="310" x2="204" y2="310" stroke="#1F2937" stroke-width="1"/>
+        <text x="80" y="396">THE MARKET</text>
+        <line x1="80" y1="408" x2="240" y2="408" stroke="#1F2937" stroke-width="1"/>
+      </g>
+      <g fill="#1F2937" text-anchor="middle">
+        <text x="440" y="202" font-size="22" letter-spacing="1">95% SHIP NOTHING</text>
+        <text x="440" y="230" font-size="12" letter-spacing="2">MIT, ENTERPRISE PILOTS</text>
+        <text x="440" y="300" font-size="22" letter-spacing="1">56% SEE NOTHING</text>
+        <text x="440" y="328" font-size="12" letter-spacing="2">PWC, GLOBAL CEO SURVEY</text>
+        <text x="440" y="398" font-size="19" letter-spacing="1">0 TO 2% OF GROWTH</text>
+        <text x="440" y="424" font-size="12" letter-spacing="2">S&amp;P 493, EARNINGS FROM AI</text>
+      </g>
+      <path d="M 440 562 C 440 574 432 580 440 590 C 448 580 440 574 440 562"
+            fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <line x1="140" y1="606" x2="740" y2="606" stroke="#1F2937" stroke-width="2"/>
+      <text x="754" y="611" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="start">P&amp;L</text>
+      <text x="440" y="628" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THREE HEIGHTS. SAME HOLE. THE LINE DID NOT NOTICE.</text>
+    </svg>
+  </figure>
+
+  <p>I call it the funnel of nothing, and notice what it is not. It is not a funnel of bad models. The models in these companies are the same models winning everywhere else. It is not a funnel of stingy budgets, because thirty to forty billion dollars is not stingy. It is a funnel of capability. The money bought access to intelligence. It did not buy the skill to point that intelligence at anything.</p>
+
+  <p>Here is the part that should sting, because it is the tell. The people closest to the work are more ready than the people in charge. A 2026 survey found that seventy percent of workers said they were ready to work with AI, while only thirty-nine percent of leaders believed their workforce was ready. Read that twice. The workers are waving their hands saying they are ready. The bottleneck is not on the front line. It moved up the org chart, to the people who control the budget, set the direction, and have never once written down how the work actually flows.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 1.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE BOTTLENECK MOVED UP</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <rect x="392" y="128" width="96" height="70" fill="none" stroke="#1F2937" stroke-width="2.5"/>
+      <text x="440" y="158" font-size="12" letter-spacing="2" fill="#1F2937" text-anchor="middle">LEADERS</text>
+      <text x="440" y="182" font-size="16" letter-spacing="1" fill="#1F2937" text-anchor="middle">39%</text>
+      <text x="512" y="158" font-size="12" letter-spacing="2" fill="#1F2937">BELIEVE THE</text>
+      <text x="512" y="176" font-size="12" letter-spacing="2" fill="#1F2937">TEAM IS READY</text>
+      <g stroke="#1F2937" stroke-width="2.5" fill="none" stroke-linejoin="round">
+        <path d="M 190 545 L 424 226 L 424 198"/>
+        <path d="M 690 545 L 456 226 L 456 198"/>
+        <line x1="190" y1="545" x2="690" y2="545"/>
+      </g>
+      <g stroke="#E4572E" stroke-width="2.5" fill="none">
+        <path d="M 408 246 C 420 236 420 214 410 204"/>
+        <path d="M 472 246 C 460 236 460 214 470 204"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <line x1="340" y1="470" x2="404" y2="330"/>
+        <path d="M 398 338 L 404 330 L 406 340"/>
+        <line x1="440" y1="480" x2="440" y2="320"/>
+        <path d="M 434 329 L 440 319 L 446 329"/>
+        <line x1="540" y1="470" x2="476" y2="330"/>
+        <path d="M 474 340 L 476 330 L 482 338"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <g id="p"><circle cx="280" cy="502" r="7"/><path d="M 268 526 C 268 514 292 514 292 526"/></g>
+        <use href="#p" x="45"/><use href="#p" x="90"/><use href="#p" x="135"/>
+        <use href="#p" x="180"/><use href="#p" x="225"/><use href="#p" x="270"/><use href="#p" x="315"/>
+      </g>
+      <text x="440" y="580" font-size="16" letter-spacing="2" fill="#1F2937" text-anchor="middle">WORKERS: 70% SAY THEY ARE READY</text>
+      <text x="440" y="620" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE FRONT LINE IS NOT THE PROBLEM.</text>
+    </svg>
+  </figure>
+
+  <p>The leaders know it too, when you ask them the right way. The consulting firm EY found that only thirty-one percent of executives said their leadership team had enough AI skill to understand the risks and the opportunities. Fewer than one in three. And the research firm Gartner found that eighty percent of chief executives expect AI to force a wholesale overhaul of their operational capabilities. They can feel the ground moving under them. What they cannot do is name the specific skill they are missing, because nobody has named it for them. Hard to buy a thing when you do not know what it is called.</p>
+
+  <p>So they do what capable, well-funded people do when they feel behind and cannot name why. They buy.</p>
+
+  <p>They buy seats, on the theory that access equals capability. A guitar in the closet does not make you a guitarist. It makes you a person who owns a guitar.</p>
+
+  <p>They buy bootcamps, on the theory that a week of training installs a skill. What it installs is awareness, and then everyone goes back to work, and the process that was invisible on Monday is still invisible on Friday, only now with a certificate near it.</p>
+
+  <p>They buy consultants, on the theory that you can rent the judgment. You can rent the analysis. You cannot rent the judgment, because judgment is built by doing the real work on your own business, and the moment the consultant leaves, the judgment climbs into the car with them and waves goodbye.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 1.3</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">ACCESS IS NOT CAPABILITY</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <line x1="440" y1="100" x2="440" y2="560" stroke="#1F2937" stroke-width="1" stroke-dasharray="2 6"/>
+      <text x="240" y="118" font-size="13" letter-spacing="3" fill="#1F2937" text-anchor="middle">THE PURCHASE</text>
+      <text x="640" y="118" font-size="13" letter-spacing="3" fill="#1F2937" text-anchor="middle">THE SKILL</text>
+      <defs>
+        <g id="guitar" stroke="#1F2937" stroke-width="2" fill="none">
+          <path d="M 0 0 C 30 0 43 20 37 40 C 33 54 37 60 47 70 C 63 86 63 120 39 136 C 17 150 -17 150 -39 136 C -63 120 -63 86 -47 70 C -37 60 -33 54 -37 40 C -43 20 -30 0 0 0 Z"/>
+          <circle cx="0" cy="72" r="10"/>
+          <line x1="-16" y1="112" x2="16" y2="112"/>
+          <line x1="-6" y1="0" x2="-6" y2="-120"/>
+          <line x1="6" y1="0" x2="6" y2="-120"/>
+          <line x1="-6" y1="-30" x2="6" y2="-30"/>
+          <line x1="-6" y1="-55" x2="6" y2="-55"/>
+          <line x1="-6" y1="-78" x2="6" y2="-78"/>
+          <rect x="-10" y="-150" width="20" height="30"/>
+          <circle cx="-14" cy="-142" r="3"/><circle cx="-14" cy="-130" r="3"/>
+          <circle cx="14" cy="-142" r="3"/><circle cx="14" cy="-130" r="3"/>
+        </g>
+      </defs>
+      <g stroke="#1F2937" stroke-width="2.5" fill="none">
+        <rect x="110" y="150" width="240" height="390"/>
+        <line x1="290" y1="150" x2="290" y2="540"/>
+        <circle cx="278" cy="350" r="4"/>
+        <line x1="118" y1="190" x2="284" y2="190"/>
+        <path d="M 168 190 C 168 182 176 182 176 190 M 148 214 L 168 192 L 188 214 L 148 214"/>
+      </g>
+      <use href="#guitar" transform="translate(200,378) rotate(-9)"/>
+      <g transform="translate(212,252) rotate(18)">
+        <line x1="-16" y1="-12" x2="0" y2="0" stroke="#E4572E" stroke-width="1.5"/>
+        <rect x="0" y="0" width="52" height="26" fill="#ffffff" stroke="#E4572E" stroke-width="2"/>
+        <text x="26" y="18" font-size="13" letter-spacing="1" fill="#E4572E" text-anchor="middle">$40B</text>
+      </g>
+      <text x="240" y="580" font-size="14" letter-spacing="2" fill="#1F2937" text-anchor="middle">A GUITAR, OWNED</text>
+      <use href="#guitar" transform="translate(620,370) rotate(4)"/>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <path d="M 700 420 A 52 52 0 0 1 700 480"/>
+        <path d="M 722 408 A 76 76 0 0 1 722 494"/>
+        <path d="M 744 396 A 100 100 0 0 1 744 508"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <circle cx="746" cy="316" r="7"/>
+        <line x1="753" y1="316" x2="753" y2="278"/>
+        <path d="M 753 278 C 763 282 767 290 763 300"/>
+        <circle cx="786" cy="286" r="7"/>
+        <line x1="793" y1="286" x2="793" y2="248"/>
+        <path d="M 793 248 C 803 252 807 260 803 270"/>
+      </g>
+      <text x="640" y="580" font-size="14" letter-spacing="2" fill="#1F2937" text-anchor="middle">A GUITARIST, BUILT</text>
+      <text x="440" y="620" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">A GUITAR IN THE CLOSET MAKES YOU A PERSON WHO OWNS A GUITAR.</text>
+    </svg>
+  </figure>
+
+  <p>I know this pattern intimately, because I ran it myself for an embarrassing stretch. I was teaching these ideas without practicing them, quietly turning into the thing I have always hated: the guy who can explain the swing but has never held the bat. I had bought the awareness. I had built no skill. That gap is exactly the gap in the funnel of nothing, and it does not close by spending more. It closes by building something.</p>
+
+  <p>Everyone bought. Almost nobody built. That is the whole diagnosis, and if it describes you, you are not behind because you are slow or old or allergic to technology. You are behind because the second half of your job showed up without a manual, and the manual is a skill, not a purchase.</p>
+
+  <h2>Score Yourself Before We Go On</h2>
+
+  <p>Three questions. Answer them honestly, in writing, before the next chapter. They are the same three I ask a chief executive in the first ten minutes, and the answers tell me more than any AI strategy deck with a glowing roadmap on slide 14.</p>
+
+  <p class="q"><strong>One. What did AI actually ship for you last week?</strong> Not "we're exploring." Not "the team is energized." What concrete thing exists in the world that would not exist if you had unplugged the AI on Monday. If the honest answer is nothing, you bought a tool, not a capability.</p>
+
+  <p class="q"><strong>Two. Could a brand-new hire run your single most important process from what is written down?</strong> Not from asking around. Not from three weeks of shadowing your best person. From the documentation. If the answer is no, that process is invisible, and invisible processes cannot be improved, scaled, or handed to a machine.</p>
+
+  <p class="q"><strong>Three. Who on your team owns a workflow, rather than a task?</strong> A task is "answer the support tickets." A workflow is "the system that turns an incoming ticket into a resolved customer, and here is who owns the result." If nobody owns workflows, nobody is doing the second half of the job. Including, respectfully, you.</p>
+
+  <p>Keep your three answers. We will be back for them.</p>
+
+  <p>There is one move leaders are making faster than any other right now to try to close this gap. It looks like the answer. It is actually the clearest symptom yet, and it comes with a job title and a very good salary.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter One</span>
+    <span class="meta" style="color:var(--accent)">Chapter Two &middot; The Chief of Staff Boom Is a Symptom</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 2 ============ -->
+<article class="page opener newpage" id="chapter-2">
+  <p class="part-label">Part I &nbsp;&middot;&nbsp; Lost</p>
+  <p class="chap-num">Chapter Two</p>
+  <h1 class="title">The Chief of Staff Boom Is a Symptom</h1>
+
+  <p class="lead">Watch what leaders grab for when they feel the job doubling, and you learn what they think the problem is. Right now they are grabbing, in large numbers and with real money, for one hire.</p>
+
+  <p>The Chief of Staff role is having a moment. Positions carrying that title are up roughly thirty percent since 2019, and the growth is not coming from the giant enterprises where the role used to live. It is coming from smaller companies. Startups now open the role before they cross fifty employees, which a decade ago would have gotten you laughed out of the board meeting. The pay reflects the demand: median Chief of Staff compensation in 2026 sits around one hundred eighty-five thousand dollars, and once you count the search, the benefits, and the ramp, the all-in cost of a growth-stage hire lands somewhere between two hundred eighty and three hundred sixty thousand dollars in the first year. That is a serious bet, made quickly, by a lot of people at once, which usually means everyone is scared of the same thing.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 2.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE FASTEST-GROWING SEAT</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <line x1="150" y1="150" x2="150" y2="500" stroke="#1F2937" stroke-width="1.5"/>
+      <line x1="150" y1="500" x2="770" y2="500" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="70" y="330" font-size="12" letter-spacing="2" fill="#1F2937" transform="rotate(-90 70 330)" text-anchor="middle">CHIEF OF STAFF ROLES</text>
+      <polyline points="170,468 250,450 330,424 410,398 490,388 570,330 650,282 730,228" fill="none" stroke="#1F2937" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <g font-size="12" letter-spacing="1" fill="#1F2937" text-anchor="middle">
+        <text x="170" y="522">2019</text><text x="330" y="522">2021</text><text x="490" y="522">2023</text><text x="650" y="522">2025</text><text x="730" y="522">2026</text>
+      </g>
+      <circle cx="730" cy="228" r="6" fill="#E4572E"/>
+      <text x="702" y="196" font-size="26" letter-spacing="1" fill="#E4572E" text-anchor="end">+30%</text>
+      <text x="702" y="214" font-size="11" letter-spacing="2" fill="#E4572E" text-anchor="end">SINCE 2019</text>
+      <rect x="196" y="168" width="230" height="58" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="311" y="192" font-size="12" letter-spacing="2" fill="#1F2937" text-anchor="middle">FIRST-YEAR COST</text>
+      <text x="311" y="212" font-size="15" letter-spacing="1" fill="#1F2937" text-anchor="middle">$280K TO $360K</text>
+      <text x="300" y="470" font-size="11" letter-spacing="1.5" fill="#1F2937" text-anchor="middle">STARTUPS NOW HIRE IT</text>
+      <text x="300" y="486" font-size="11" letter-spacing="1.5" fill="#1F2937" text-anchor="middle">BEFORE 50 EMPLOYEES</text>
+      <text x="440" y="602" font-size="10" letter-spacing="2" fill="#5B6472" text-anchor="middle">SOURCE: CHIEF OF STAFF NETWORK, RECRUITING FROM SCRATCH</text>
+      <text x="440" y="628" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE ORG CHART'S ANSWER TO A JOB THAT DOUBLED.</text>
+    </svg>
+  </figure>
+
+  <p>Let me be careful here, because it would be cheap and wrong to mock the role. The best Chiefs of Staff are extraordinary. They are the reason a founder's week does not fold in on itself like a dying star. So let me be exact about what the boom means, because the meaning is the point, and it is not an insult.</p>
+
+  <p>Ask why the role exploded and you get one honest answer: executive bandwidth collapsed. The number of things demanding a senior leader's attention grew faster than the number of hours in a day, which is a fixed quantity that no amount of ambition has ever increased. The Chief of Staff is the human response to that collapse. They route: they decide what reaches you and what does not. They synthesize: they turn ten inputs into the one-page version you can actually act on. They chase: they make sure the thing you decided on Tuesday has actually happened by Friday and is not still "in progress." Routing, synthesis, follow-up. A human buffer between a leader and a job that got too big.</p>
+
+  <p>Now hold that description next to what AI is good at, and watch it quietly evaporate.</p>
+
+  <p>Routing is a workflow. Synthesis is the single thing large language models do best, arguably better than they do anything else. Follow-up is a scheduled task with a checklist. The research on the role has already noticed this: as AI absorbs the research-and-synthesis half of the Chief of Staff's day, the role is drifting toward the part machines cannot do, which is judgment. That drift is the tell. It means a large and growing slice of what leaders are paying three hundred thousand dollars a year for is work that a well-designed workflow now does for roughly the price of a sandwich.</p>
+
+  <p>So here is the uncomfortable reframe. The Chief of Staff boom is not evidence that leaders are solving the AI problem. It is evidence that they feel the job doubling and are trying to solve it by hiring bandwidth. And bandwidth is not the thing that is missing. Capability is.</p>
+
+  <p>Think about what actually happens when you drop a Chief of Staff into a company whose workflows live in people's heads. They do not find a system to run. They find a fog to wander around in. They become one more person asking around, one more node the information has to squeeze through, one more skull holding context that walks out the door if they take a better offer. You have not made the work visible. You have hired a very talented person to be excellent at working around the fact that it is invisible. That is a real service. It is also, at three hundred thousand dollars a year, a memorable way to avoid documenting your workflows.</p>
+
+  <p>Now watch what happens when the sequence runs the other way. A leader who has the workflow design skill first makes the work visible: the process is documented, the decisions are named, the handoffs are explicit. In a lot of cases, that leader discovers they do not need the hire at all, because half of what the Chief of Staff was going to absorb was routing and synthesis a machine now handles without complaint or vacation. And when they do hire one, the role starts from a designed system instead of a fog, which means the human's judgment gets spent on judgment, not on being a highly paid workaround for undocumented work.</p>
+
+  <p>This is the through-line of the whole book, so let me make it a rule. You cannot delegate the second half of your job before you have designed it. Not to a Chief of Staff, not to a consultant, not to a Director of AI Innovation with a great deck. The design is the job. Once the work is visible, delegating it to a person or a machine is easy. Before it is visible, every delegation just relocates the fog to a nicer office.</p>
+
+  <p>The best Chiefs of Staff already know this, by the way. Ask a good one what they actually do all day and they will describe workflow design without using the words. They map how work flows, they find where it breaks, they decide who owns what, they build the system that runs without the founder in the room. That is this skill. If that is you, this book is not a criticism. It is a promotion in disguise, and a vocabulary for the thing you have been doing on instinct.</p>
+
+  <h2>An Exercise, Before We Name the Skill</h2>
+
+  <p>Write down the last five things you wanted a Chief of Staff for. If you do not have one, write the last five things you wished someone would just take off your plate before it slid onto the floor. Be specific. "Handle the board deck." "Chase the three teams who owe me updates." "Figure out why onboarding takes a geological age."</p>
+
+  <p>Now mark each one with a single word:</p>
+
+  <ul>
+    <li><strong>Judgment</strong>, if it genuinely needs human taste, relationships, or accountability that cannot be handed off.</li>
+    <li><strong>Routing</strong>, if it is really about getting the right thing to the right person.</li>
+    <li><strong>Synthesis</strong>, if it is really about turning many inputs into one clear output.</li>
+    <li><strong>Chasing</strong>, if it is really about making sure a decided thing actually happens.</li>
+  </ul>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 2.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE SORT</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="120" y="118" font-size="12" letter-spacing="3" fill="#5B6472">WHAT YOU WANTED OFF YOUR PLATE</text>
+      <rect x="120" y="150" width="250" height="60" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="140" y="180" font-size="16" letter-spacing="1" fill="#1F2937">ROUTING</text>
+      <text x="140" y="198" font-size="10" letter-spacing="1" fill="#5B6472">RIGHT THING, RIGHT PERSON</text>
+      <line x1="370" y1="180" x2="556" y2="180" stroke="#1F2937" stroke-width="1.75"/>
+      <path d="M 548 174 L 558 180 L 548 186" fill="none" stroke="#1F2937" stroke-width="1.75"/>
+      <rect x="120" y="230" width="250" height="60" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="140" y="260" font-size="16" letter-spacing="1" fill="#1F2937">SYNTHESIS</text>
+      <text x="140" y="278" font-size="10" letter-spacing="1" fill="#5B6472">MANY INPUTS, ONE OUTPUT</text>
+      <line x1="370" y1="260" x2="556" y2="260" stroke="#1F2937" stroke-width="1.75"/>
+      <path d="M 548 254 L 558 260 L 548 266" fill="none" stroke="#1F2937" stroke-width="1.75"/>
+      <rect x="120" y="310" width="250" height="60" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="140" y="340" font-size="16" letter-spacing="1" fill="#1F2937">CHASING</text>
+      <text x="140" y="358" font-size="10" letter-spacing="1" fill="#5B6472">MAKE IT ACTUALLY HAPPEN</text>
+      <line x1="370" y1="340" x2="556" y2="340" stroke="#1F2937" stroke-width="1.75"/>
+      <path d="M 548 334 L 558 340 L 548 346" fill="none" stroke="#1F2937" stroke-width="1.75"/>
+      <rect x="120" y="418" width="250" height="60" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <text x="140" y="448" font-size="16" letter-spacing="1" fill="#E4572E">JUDGMENT</text>
+      <text x="140" y="466" font-size="10" letter-spacing="1" fill="#E4572E">TASTE, TRUST, ACCOUNTABILITY</text>
+      <line x1="370" y1="448" x2="556" y2="448" stroke="#E4572E" stroke-width="2"/>
+      <path d="M 548 442 L 558 448 L 548 454" fill="none" stroke="#E4572E" stroke-width="2"/>
+      <rect x="560" y="150" width="200" height="220" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="660" y="248" font-size="20" letter-spacing="2" fill="#1F2937" text-anchor="middle">MACHINE</text>
+      <text x="660" y="276" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="middle">WORKFLOW</text>
+      <text x="660" y="292" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="middle">DESIGNABLE, AUTOMATABLE</text>
+      <rect x="560" y="418" width="200" height="60" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <text x="660" y="455" font-size="20" letter-spacing="2" fill="#E4572E" text-anchor="middle">HUMAN</text>
+      <text x="440" y="624" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">EVERYTHING THAT IS NOT JUDGMENT IS WORKFLOW.</text>
+    </svg>
+  </figure>
+
+  <p>Look at your five. Everything you did not mark Judgment is workflow. It is designable, and most of it is automatable. The Judgment items are the only things that truly need a human, and even those need a designed workflow around them, so the human's judgment arrives at the right moment with the right information in front of it instead of at 11pm with a half-remembered detail.</p>
+
+  <p>That sort is the beginning of the skill. The second half of leadership has a shape, and it is made of three learnable pieces. One of them holds up the other two. That is the next chapter.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Two</span>
+    <span class="meta" style="color:var(--accent)">Chapter Three &middot; The Other 50%: Three Skills, One Keystone</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 3 ============ -->
+<article class="page opener newpage" id="chapter-3">
+  <p class="part-label">Part I &nbsp;&middot;&nbsp; Lost</p>
+  <p class="chap-num">Chapter Three</p>
+  <h1 class="title">The Other 50%: Three Skills, One Keystone</h1>
+
+  <p class="lead">Here is the claim the rest of the book stands on. Leadership in the AI era did not get better tools. It got a second half, of equal size, that moved in right next to the half you already know and started unpacking boxes. And most companies are staffed, structured, and reviewed for the first half alone. That is the gap the funnel of nothing measures, and it is the gap the Chief of Staff boom is trying, expensively, to hire its way out of.</p>
+
+  <p>The first half has not changed and is not going anywhere. Hire well. Set direction. Build a culture people want to stay in. Hold people accountable. If you are good at leading people, keep doing it. None of it gets automated away, and anyone who tells you otherwise is trying to sell you something with a monthly subscription.</p>
+
+  <p>The second half is new. It is the part of leadership that lets you direct AI rather than only manage people. And it is not one vague competency you can nod along to in a keynote. It is three specific skills, each one a discipline you can practice and measurably improve, not a tool you buy.</p>
+
+  <p><strong>Workflow design</strong> is the org chart for the AI era. It is deciding the process that turns inputs into an outcome: who does what, in what order, who owns the result, and where a human stays in the loop. The only thing that changed from the org chart you already know is that some of the "who" are now AI agents, and you design for them the same way you design for people. Clear roles, clear handoffs, clear ownership. Agents just never ask for a raise.</p>
+
+  <p><strong>Organizing information</strong> is making your information usable by a machine. At the AI Officer Institute we call it Always Be Cataloguing, and the rule is blunt: if your AI cannot find it, it does not exist. Most companies faceplant here first, because their knowledge lives in inboxes, in chat threads, and in the heads of two or three people who are, statistically, about to go on holiday. You cannot point an agent at a mess and expect a clean result. This skill is unglamorous and it is the whole game underneath the game.</p>
+
+  <p><strong>Creating instructions</strong> is translating a vision into instructions a machine can execute. Prompts are instructions. System instructions are instructions. Scripts and apps are instructions. You do not type the code yourself. You direct, and AI writes. But you have to say exactly what you want, with enough precision that the result is the thing you pictured and not a confident, fluent, beautifully formatted version of the wrong thing.</p>
+
+  <p>Now, I could tell you those three are the skills and ask you to trust me. I would rather show you that the evidence picked them, not me.</p>
+
+  <p>In 2026, Stanford's Digital Economy Lab did something refreshingly sensible. Instead of studying why AI programs fail, they studied the ones that worked. They found fifty-one enterprise deployments that delivered real, measurable value, the roughly five percent MIT could not locate, and asked the practitioners a simple question. What was the hardest part?</p>
+
+  <p>Seventy-seven percent of them pointed at the same three things, and not one of them was the model. They named what the report calls invisible and intangible costs: process redesign, data quality, and change management. That was the hard part of winning with AI. Not the algorithm. The process, the data, and the people.</p>
+
+  <p>Map those three onto this book and watch them click into place:</p>
+
+  <ul>
+    <li>Process redesign <strong>is</strong> workflow design.</li>
+    <li>Data quality <strong>is</strong> organizing information.</li>
+    <li>Change management <strong>is</strong> the first fifty percent, leading people, which never stopped mattering.</li>
+  </ul>
+
+  <p>The effort profile of the companies that actually won with AI is literally the table of contents of this book. I did not reverse-engineer the skills from a clever theory. The winners spent their hardest hours on process, data, and people, and this book is about the first two of those, standing on the third you already have.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 3.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE WINNERS' EFFORT PROFILE</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="168" font-size="52" letter-spacing="1" fill="#E4572E" text-anchor="middle">77%</text>
+      <text x="440" y="196" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">OF THE HARDEST PART OF WINNING WITH AI</text>
+      <text x="440" y="216" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="middle">STANFORD DIGITAL ECONOMY LAB, 51 WINNING DEPLOYMENTS</text>
+      <line x1="150" y1="248" x2="730" y2="248" stroke="#1F2937" stroke-width="1" stroke-dasharray="2 6"/>
+      <text x="405" y="290" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="end">STANFORD'S WORDS</text>
+      <text x="475" y="290" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="start">THIS BOOK'S SKILLS</text>
+      <g font-size="16" letter-spacing="1">
+        <text x="405" y="340" fill="#1F2937" text-anchor="end">PROCESS REDESIGN</text>
+        <text x="440" y="340" fill="#E4572E" text-anchor="middle">=</text>
+        <text x="475" y="340" fill="#1F2937" text-anchor="start">WORKFLOW DESIGN</text>
+        <text x="405" y="398" fill="#1F2937" text-anchor="end">DATA QUALITY</text>
+        <text x="440" y="398" fill="#E4572E" text-anchor="middle">=</text>
+        <text x="475" y="398" fill="#1F2937" text-anchor="start">ORGANIZING INFORMATION</text>
+        <text x="405" y="456" fill="#1F2937" text-anchor="end">CHANGE MANAGEMENT</text>
+        <text x="440" y="456" fill="#E4572E" text-anchor="middle">=</text>
+        <text x="475" y="456" fill="#1F2937" text-anchor="start">LEADING PEOPLE</text>
+      </g>
+      <text x="475" y="474" font-size="10" letter-spacing="2" fill="#5B6472" text-anchor="start">THE FIRST 50%, WHICH NEVER STOPPED MATTERING</text>
+      <text x="440" y="600" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE WINNERS' HARDEST WORK IS THIS BOOK'S TABLE OF CONTENTS.</text>
+    </svg>
+  </figure>
+
+  <p>There is a bonus finding in that Stanford work worth pocketing, because it kills a popular excuse. Messy data, they found, is not the blocker everyone treats it as, as long as you design around it. Their guidance was almost cheeky: store everything, connect it, and let the models help do the cleaning. So if you have been waiting to build one perfect, pristine database before you begin, please stop. The waiting is the mistake. Design the workflow, point it at the data you have, and clean as you go.</p>
+
+  <p>Which brings me to why, of the three skills, workflow design comes first, and why the whole book is built around it.</p>
+
+  <p>The three skills are not equals. Workflow design is the keystone, the piece that makes the other two matter. Here is the mechanism, and it is the most useful idea in the book, so I will not bury it.</p>
+
+  <p>The workflow tells you what data each step needs. So the workflow scopes the cataloguing. You do not organize all your information, which is a project with no end and no ribbon-cutting. You organize the specific information the specific step of the specific workflow requires. The design hands the cataloguing a work order.</p>
+
+  <p>The workflow also tells you what each step must actually do. So the workflow scopes the instructions. You do not write prompts into the void. You write the instruction that this step, in this flow, needs in order to produce the output the next step is waiting for. The design hands the instruction-writing a work order too.</p>
+
+  <p>Design the flow first, and the other two skills know exactly what to do. Skip it, and you get the failure I see most often: a team that catalogues everything and instructs nothing in particular. They build a gorgeous knowledge base no workflow points at, and they write clever prompts that produce outputs no downstream step is waiting to receive. Effort with no flow to run in. Motion with no leverage. A lot of very busy people going nowhere in formation.</p>
+
+  <p>That is why the keystone matters. Pull it out and the arch falls on your head. Set it first and everything else has somewhere to sit.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 3.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE KEYSTONE</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="140" font-size="11" letter-spacing="3" fill="#E4572E" text-anchor="middle">THE KEYSTONE</text>
+      <text x="440" y="164" font-size="17" letter-spacing="2" fill="#1F2937" text-anchor="middle">WORKFLOW DESIGN</text>
+      <line x1="440" y1="172" x2="440" y2="214" stroke="#1F2937" stroke-width="1"/>
+      <g stroke="#1F2937" stroke-width="2.5" fill="none">
+        <path d="M 250 400 A 190 190 0 0 1 630 400"/>
+        <path d="M 320 400 A 120 120 0 0 1 560 400"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.5">
+        <line x1="331.9" y1="347.9" x2="268.8" y2="317.6"/>
+        <line x1="365.1" y1="306.2" x2="321.5" y2="251.5"/>
+        <line x1="514.9" y1="306.2" x2="558.5" y2="251.5"/>
+        <line x1="548.1" y1="347.9" x2="611.2" y2="317.6"/>
+      </g>
+      <path d="M 413.3 283 L 466.7 283 L 482.3 214.8 L 397.7 214.8 Z" fill="none" stroke="#E4572E" stroke-width="2.75"/>
+      <g stroke="#1F2937" stroke-width="2.5" fill="none">
+        <rect x="250" y="400" width="70" height="122"/>
+        <rect x="560" y="400" width="70" height="122"/>
+        <line x1="228" y1="522" x2="652" y2="522"/>
+      </g>
+      <g font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">
+        <text x="285" y="548">ORGANIZING</text>
+        <text x="285" y="566">INFORMATION</text>
+        <text x="595" y="548">CREATING</text>
+        <text x="595" y="566">INSTRUCTIONS</text>
+      </g>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">PULL THE KEYSTONE AND THE ARCH FALLS.</text>
+    </svg>
+  </figure>
+
+  <h2>Pick Your Workflow Now</h2>
+
+  <p>The rest of this book is a craft, and a craft is learned on a real object, not in the abstract. So before you turn the page, pick the workflow you are going to drag through every remaining chapter.</p>
+
+  <p>Choose one process you either own or personally suffer from. Not the whole department. One process, with a beginning and an end. The lead that comes in and has to become a reply. The report that gets rebuilt every Monday out of spite. The candidate who has to move from application to decision. The invoice that has to go from received to paid before the vendor starts emailing in bold.</p>
+
+  <p>Name it in a single sentence, using this shape: "When ___ happens, we turn it into ___." When a lead comes in, we turn it into a qualified reply. When the month closes, we turn it into a board update. When a ticket arrives, we turn it into a resolved customer.</p>
+
+  <p>Write your sentence down. That workflow is now your object. In the next chapter, we make it visible, because right now, I promise you, it is not.</p>
+
+  <aside class="coach">
+    <p class="coach-label">Work the book with a coach</p>
+    <p class="coach-body">You just picked your workflow. From here, every chapter hands you an exercise to run on it. If you would rather be walked through them, one prompt turns any AI into a coach that takes you chapter by chapter, keeps your answers, and assembles them into a playbook you keep. Free, and no sign-up.</p>
+    <p class="coach-link">Get it at <a href="https://www.ai-officer.com/workbook">ai-officer.com/workbook</a></p>
+  </aside>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Three &nbsp;&middot;&nbsp; End of Part I</span>
+    <span class="meta" style="color:var(--accent)">Part II: The Craft &middot; Chapter Four: Making the Invisible Visible</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 4 ============ -->
+<article class="page opener newpage" id="chapter-4">
+  <p class="part-label">Part II &nbsp;&middot;&nbsp; The Craft</p>
+  <p class="chap-num">Chapter Four</p>
+  <h1 class="title">Making the Invisible Visible</h1>
+
+  <p class="lead">The work your company relies on most is usually the work nobody ever bothered to write down.</p>
+
+  <p>Think about the process you named at the end of the last chapter. Who actually knows how it runs, start to finish? In most companies the honest answer is one person, it lives entirely in their head, and it has never once touched a page. That is not the sign of a bad company. It is the natural state of every process that grew up organically, one exception at a time, handled by a competent human who simply knew what to do next. It worked. Nobody needed to write it down, so nobody did, and now it is load-bearing and undocumented, which is a fun combination.</p>
+
+  <p>This is the invisibility problem, and it is the single biggest reason AI programs fail. You cannot improve what you cannot see. You cannot scale what you cannot see. And you absolutely cannot hand to a machine what you cannot see, because a machine has no wise colleague to ask and no gut to trust. The invisible process was survivable for years. Then AI showed up and turned survivable into fatal.</p>
+
+  <p>Here is the thing to understand about AI's effect, because it reframes the whole problem. AI did not invent the standard of documented, organized work. It just made the gap impossible to ignore. Knowledge locked in one person's head. A team quietly propped up by a single superstar. A workflow nobody ever wrote down. At human speed, those were tolerable weaknesses you could live around. Under the speed AI now demands, they are exposed for what they always were, which is simply poor business practice wearing a trench coat. The speed did not break your process. It revealed that your process was never actually built, only performed, night after night, by someone very good at improvising.</p>
+
+  <p>So the first move of the craft, before any tool, before any prompt, is to drag the invisible process into the light and make it stand still. And there is a specific way to do it that has held up across every workflow we have built at Edge8. You break the work into seven elements. Every time. The same seven, whether it is a marketing workflow or a manufacturing one.</p>
+
+  <h2>The Seven Elements</h2>
+
+  <ol>
+    <li><strong>Trigger.</strong> What starts this? A workflow does not hover in the air waiting to be admired. Something kicks it off: an email arrives, a form is submitted, the clock hits Monday, a deal is marked closed. Name the trigger and you have found the true beginning.</li>
+    <li><strong>Inputs.</strong> What information does this need to run? The data, the documents, the context. Where does it live, and can anyone actually reach it? This is where the organizing-information skill gets its work order, exactly as the last chapter promised.</li>
+    <li><strong>Decision.</strong> What judgment gets made in the middle? Almost every real workflow has a moment where someone decides something: which category this is, whether it qualifies, which path it takes. This is the beating heart of the workflow, and it is the element people leave the vaguest, usually with a hand-wave. Hold that thought, because the next chapter is entirely about this box.</li>
+    <li><strong>Routing.</strong> Based on the decision, where does the work go next? To which person, team, system, or path. Routing is what turns a workflow into a system instead of a lonely single step.</li>
+    <li><strong>Output.</strong> What actually gets produced? The concrete deliverable. The drafted reply, the scored lead, the assembled report. State it so specifically that you would recognize it in a lineup.</li>
+    <li><strong>Delivery.</strong> How and where does the output land? In whose inbox, in which system, in what format. An output that gets produced but never delivered to the right place is a tree falling in an empty forest while everyone is in a different meeting.</li>
+    <li><strong>Measurement.</strong> How do you know it worked? The number you check to see whether this workflow is earning its keep. Skip this and you are flying blind, and you will never be able to prove the leverage you are about to build, which means you built it for no one.</li>
+  </ol>
+
+  <p>Trigger, Inputs, Decision, Routing, Output, Delivery, Measurement. Seven boxes. Learn them once and you will never see work the same way again, in the mildly annoying way a musician cannot un-hear the chords under a pop song.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 4.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE SEVEN ELEMENTS</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="150" font-size="13" letter-spacing="3" fill="#5B6472" text-anchor="middle">EVERY WORKFLOW, EVERY TIME</text>
+      <g stroke="#1F2937" fill="none">
+        <rect x="60" y="300" width="78" height="82" stroke-width="2"/><rect x="176" y="300" width="78" height="82" stroke-width="2"/>
+        <rect x="292" y="300" width="78" height="82" stroke-width="2"/><rect x="408" y="300" width="78" height="82" stroke-width="2"/>
+        <rect x="524" y="300" width="78" height="82" stroke-width="2"/><rect x="640" y="300" width="78" height="82" stroke-width="2"/>
+        <rect x="756" y="300" width="78" height="82" stroke-width="2"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <line x1="138" y1="341" x2="176" y2="341"/><path d="M 168 335 L 178 341 L 168 347"/>
+        <line x1="254" y1="341" x2="292" y2="341"/><path d="M 284 335 L 294 341 L 284 347"/>
+        <line x1="370" y1="341" x2="408" y2="341"/><path d="M 400 335 L 410 341 L 400 347"/>
+        <line x1="486" y1="341" x2="524" y2="341"/><path d="M 516 335 L 526 341 L 516 347"/>
+        <line x1="602" y1="341" x2="640" y2="341"/><path d="M 632 335 L 642 341 L 632 347"/>
+        <line x1="718" y1="341" x2="756" y2="341"/><path d="M 748 335 L 758 341 L 748 347"/>
+      </g>
+      <g font-size="26" fill="#1F2937" text-anchor="middle">
+        <text x="99" y="352">1</text><text x="215" y="352">2</text><text x="331" y="352">3</text>
+        <text x="447" y="352">4</text><text x="563" y="352">5</text><text x="679" y="352">6</text><text x="795" y="352">7</text>
+      </g>
+      <g font-size="11" letter-spacing="1" fill="#1F2937" text-anchor="middle">
+        <text x="99" y="410">TRIGGER</text><text x="215" y="410">INPUTS</text><text x="331" y="410">DECISION</text>
+        <text x="447" y="410">ROUTING</text><text x="563" y="410">OUTPUT</text><text x="679" y="410">DELIVERY</text><text x="795" y="410">MEASURE</text>
+      </g>
+      <text x="440" y="620" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">SEE THESE SEVEN AND YOU WILL NEVER UNSEE THEM.</text>
+    </svg>
+  </figure>
+
+  <h2>One Workflow, All Seven</h2>
+
+  <p>Let me walk a real one, so the elements stop being a list and become a picture. Take a workflow nearly every business has: responding to an inbound lead.</p>
+
+  <ul>
+    <li><strong>Trigger:</strong> a prospect fills out the contact form on your website.</li>
+    <li><strong>Inputs:</strong> their name, company, and message; your record of any past contact; the one-paragraph description of what you actually sell.</li>
+    <li><strong>Decision:</strong> is this a real, qualified prospect, a job seeker, a vendor pitch, or a bot? And if qualified, which of your offerings does their message point to?</li>
+    <li><strong>Routing:</strong> qualified prospects go to the salesperson who owns that offering; job seekers go to hiring; vendors and bots go to the archive of good intentions.</li>
+    <li><strong>Output:</strong> for a qualified prospect, a drafted reply in your voice that answers their actual question and proposes a next step.</li>
+    <li><strong>Delivery:</strong> the draft lands in the salesperson's inbox, ready to review and send, not fired off automatically at a stranger.</li>
+    <li><strong>Measurement:</strong> how many qualified leads got a reply within one hour, and how many turned into a booked call.</li>
+  </ul>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 4.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">ONE WORKFLOW, ALL SEVEN</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="72" y="112" font-size="12" letter-spacing="2" fill="#5B6472">RESPONDING TO AN INBOUND LEAD</text>
+      <line x1="90" y1="140" x2="90" y2="520" stroke="#1F2937" stroke-width="1.5"/>
+      <circle cx="90" cy="160" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="165" font-size="14" fill="#1F2937" text-anchor="middle">1</text>
+      <text x="128" y="156" font-size="14" letter-spacing="1" fill="#1F2937">TRIGGER</text><text x="128" y="174" font-size="12" fill="#5B6472">A prospect submits the contact form</text>
+      <circle cx="90" cy="212" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="217" font-size="14" fill="#1F2937" text-anchor="middle">2</text>
+      <text x="128" y="208" font-size="14" letter-spacing="1" fill="#1F2937">INPUTS</text><text x="128" y="226" font-size="12" fill="#5B6472">Name, company, message, and what you sell</text>
+      <circle cx="90" cy="264" r="15" fill="#ffffff" stroke="#E4572E" stroke-width="2.5"/><text x="90" y="269" font-size="14" fill="#E4572E" text-anchor="middle">3</text>
+      <text x="128" y="260" font-size="14" letter-spacing="1" fill="#E4572E">DECISION</text><text x="128" y="278" font-size="12" fill="#5B6472">Qualified prospect, job seeker, vendor, or bot?</text>
+      <circle cx="90" cy="316" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="321" font-size="14" fill="#1F2937" text-anchor="middle">4</text>
+      <text x="128" y="312" font-size="14" letter-spacing="1" fill="#1F2937">ROUTING</text><text x="128" y="330" font-size="12" fill="#5B6472">Qualified to sales, the rest to their place</text>
+      <circle cx="90" cy="368" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="373" font-size="14" fill="#1F2937" text-anchor="middle">5</text>
+      <text x="128" y="364" font-size="14" letter-spacing="1" fill="#1F2937">OUTPUT</text><text x="128" y="382" font-size="12" fill="#5B6472">A drafted reply in your voice, with a next step</text>
+      <circle cx="90" cy="420" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="425" font-size="14" fill="#1F2937" text-anchor="middle">6</text>
+      <text x="128" y="416" font-size="14" letter-spacing="1" fill="#1F2937">DELIVERY</text><text x="128" y="434" font-size="12" fill="#5B6472">Into the salesperson's inbox, ready to send</text>
+      <circle cx="90" cy="472" r="15" fill="#ffffff" stroke="#1F2937" stroke-width="2"/><text x="90" y="477" font-size="14" fill="#1F2937" text-anchor="middle">7</text>
+      <text x="128" y="468" font-size="14" letter-spacing="1" fill="#1F2937">MEASUREMENT</text><text x="128" y="486" font-size="12" fill="#5B6472">Replies within an hour, and calls booked</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">A PERFORMANCE, TURNED INTO A SYSTEM.</text>
+    </svg>
+  </figure>
+
+  <p>Read that back. Nothing about it is exotic. But notice what happened: a fuzzy thing that used to live in one salesperson's habits is now seven named boxes, each of which you can look at, interrogate, improve, and eventually assign to a human or a machine. That is what "making it visible" means. It is not documentation for the pleasure of documentation. It is turning a performance into a system.</p>
+
+  <h2>The New Hire Test</h2>
+
+  <p>How do you know your documentation is actually good, and not just a diagram that makes you feel organized? There is one test, and it is brutally simple. It is the New Hire Test.</p>
+
+  <p>Your documentation is done when someone brand new, who has never run this process and cannot ask the person who used to, can execute it correctly from what you wrote down. That is the bar. Not "an experienced person could probably follow this." A newcomer. Where they get stuck is a gap in your workflow, and you fix the workflow, not the newcomer.</p>
+
+  <p>Here is why this test is the hinge of the whole book. The New Hire Test is also the AI-readiness test. An AI agent is, in the most useful sense, the ultimate new hire: infinitely fast, tireless, never hungover, and utterly literal, with zero ability to ask a colleague what you really meant. If your documented workflow can pass a human newcomer, it can be run by a machine. If it cannot, no amount of clever prompting will save it, because you are asking the machine to guess at the parts you never made visible, and the machine guesses with total confidence and no shame. Every AI failure I have ever diagnosed traces back to a workflow that could not have passed the New Hire Test even with a human standing in the box.</p>
+
+  <h2>Your Turn</h2>
+
+  <p>Take the workflow you named at the end of the last chapter and document it in the seven elements. There is a blank template in the appendix. Give it twenty minutes. Write the ugly first draft, the one with question marks where you are not sure, because the question marks are the most valuable thing on the page: they are the invisible parts, finally caught in the open.</p>
+
+  <p>When you finish, stare hard at box three, the Decision. I will bet you left it vague. "The salesperson figures out if it's qualified." How? Based on what, exactly? That vagueness is not laziness. It is the hardest box to fill, because the judgment really does live in someone's experienced gut.</p>
+
+  <p>Good news. Someone already designed that box for you, decades ago, and spent a century refining it. That is the next chapter, and it is the one that quietly connects everything you already know about business to everything AI can now do.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Four</span>
+    <span class="meta" style="color:var(--accent)">Chapter Five &middot; You Already Own a Hundred Frameworks</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 5 ============ -->
+<article class="page opener newpage" id="chapter-5">
+  <p class="part-label">Part II &nbsp;&middot;&nbsp; The Craft</p>
+  <p class="chap-num">Chapter Five</p>
+  <h1 class="title">You Already Own a Hundred Frameworks</h1>
+
+  <p class="lead">If you have ever taken a business course, run a marketing campaign, coached a direct report, or survived a reorganization, you already own the thing that fills the hardest box in your workflow. You just never filed it under "workflow component." You filed it under "framework," possibly on a poster, possibly in a drawer.</p>
+
+  <p>Here is the reframe that makes the AI era click into place. A business framework is a workflow that was designed on paper, decades ago, before software could run it.</p>
+
+  <p>Think about what a framework actually is. Take AIDA, the advertising model of Attention, Interest, Desire, Action. Someone at the Wharton School did not scribble that as a poster slogan. They crystallized, from a century of watching what actually moves a buyer, the sequence of mental states a person passes through on the way to opening their wallet. AIDA is a decision process, refined and validated across generations, compressed into four letters so you can carry it in your head. It is a proven answer to the question "how do I move a stranger to action," and it has been sitting there patiently, waiting for a system fast enough to run it at scale.</p>
+
+  <p>That is what every good framework is. GROW, the coaching model of Goal, Reality, Options, and Will, is Sir John Whitmore's crystallized answer to "how do I structure a conversation that actually develops someone." ADKAR, the change model of Awareness, Desire, Knowledge, Ability, and Reinforcement, is Prosci's validated answer to "how do people actually move through a change without revolting." SCQA, the communication structure of Situation, Complication, Question, and Answer, is McKinsey's answer, by way of Barbara Minto, to "how do I frame a message so an executive can act on it before they lose interest."</p>
+
+  <p>Look at what those really are. They are the highest-quality instruction sets civilization has already written and stress-tested. They are proven Decision steps, validated across thousands of real situations, waiting for a workflow to run them in. For decades, the value of a framework lived in a leader's head: you knew AIDA, so you wrote better ads than the person who did not. Knowing the framework was the edge. In the AI era, that edge nearly vanishes, because the AI knows all of them too, and it never forgets one halfway through. The new edge is not knowing the framework. It is wiring it into a workflow that runs.</p>
+
+  <h2>The Rule This Chapter Installs</h2>
+
+  <p>Go back to your seven elements. Box three was the Decision, and it was vague, because the judgment lived in someone's gut. Here is the move: a framework is the answer to the Decision box, and the other six elements are how that answer ships.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 5.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE DECISION BOX</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <rect x="356" y="150" width="168" height="54" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <text x="440" y="176" font-size="13" letter-spacing="2" fill="#E4572E" text-anchor="middle">A PROVEN</text>
+      <text x="440" y="194" font-size="13" letter-spacing="2" fill="#E4572E" text-anchor="middle">FRAMEWORK</text>
+      <line x1="440" y1="204" x2="440" y2="356" stroke="#E4572E" stroke-width="2"/>
+      <path d="M 434 348 L 440 358 L 446 348" fill="none" stroke="#E4572E" stroke-width="2"/>
+      <g stroke="#1F2937" fill="none">
+        <rect x="60" y="360" width="78" height="82" stroke-width="2"/><rect x="176" y="360" width="78" height="82" stroke-width="2"/>
+        <rect x="292" y="356" width="78" height="90" stroke="#E4572E" stroke-width="2.75"/>
+        <rect x="408" y="360" width="78" height="82" stroke-width="2"/><rect x="524" y="360" width="78" height="82" stroke-width="2"/>
+        <rect x="640" y="360" width="78" height="82" stroke-width="2"/><rect x="756" y="360" width="78" height="82" stroke-width="2"/>
+      </g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none">
+        <line x1="138" y1="401" x2="176" y2="401"/><path d="M 168 395 L 178 401 L 168 407"/>
+        <line x1="254" y1="401" x2="292" y2="401"/><path d="M 284 395 L 294 401 L 284 407"/>
+        <line x1="370" y1="401" x2="408" y2="401"/><path d="M 400 395 L 410 401 L 400 407"/>
+        <line x1="486" y1="401" x2="524" y2="401"/><path d="M 516 395 L 526 401 L 516 407"/>
+        <line x1="602" y1="401" x2="640" y2="401"/><path d="M 632 395 L 642 401 L 632 407"/>
+        <line x1="718" y1="401" x2="756" y2="401"/><path d="M 748 395 L 758 401 L 748 407"/>
+      </g>
+      <g font-size="24" fill="#1F2937" text-anchor="middle">
+        <text x="99" y="410">1</text><text x="215" y="410">2</text><text x="331" y="410" fill="#E4572E">3</text>
+        <text x="447" y="410">4</text><text x="563" y="410">5</text><text x="679" y="410">6</text><text x="795" y="410">7</text>
+      </g>
+      <g font-size="11" letter-spacing="1" fill="#1F2937" text-anchor="middle">
+        <text x="99" y="466">TRIGGER</text><text x="215" y="466">INPUTS</text><text x="331" y="466" fill="#E4572E">DECISION</text>
+        <text x="447" y="466">ROUTING</text><text x="563" y="466">OUTPUT</text><text x="679" y="466">DELIVERY</text><text x="795" y="466">MEASURE</text>
+      </g>
+      <text x="440" y="620" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">A FRAMEWORK IS THE ANSWER TO THE DECISION BOX.</text>
+    </svg>
+  </figure>
+
+  <p>A framework, on its own, is a smart way to think that changes precisely nothing until someone applies it under deadline. Wrapped in a workflow, it becomes a system that applies itself, over and over, at machine speed, with a human keeping the judgment where judgment belongs. Let me show you three, each drawn from the catalog of frameworks behind the diagnostic tool at the end of this book, each turned from a poster into a running workflow.</p>
+
+  <p><strong>GROW becomes a weekly coaching workflow.</strong> The framework tells your team leaders to move a coaching conversation through Goal, Reality, Options, and Will. On its own, that is a nice thing to remember and then completely forget the moment someone starts crying in the one-on-one. As a workflow: the Trigger is the scheduled one-on-one. The Input is the direct report's role, recent goals, and a short profile of how they work best. The Decision, GROW, is run by AI, which drafts the four or five questions that fit this person and this moment, moving through goal, reality, options, and will. The Output is a tailored question set. The Delivery lands in the manager's notes ten minutes before the meeting. And then a human, the manager, actually has the conversation, because the relationship is the one thing that can never be delegated to anything. The framework stops being a thing leaders forget and becomes a thing that shows up, prepared, every single week, whether or not anyone slept.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 5.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">POSTER VERSUS WIRED</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <line x1="440" y1="104" x2="440" y2="556" stroke="#1F2937" stroke-width="1" stroke-dasharray="2 6"/>
+      <text x="240" y="120" font-size="12" letter-spacing="3" fill="#5B6472" text-anchor="middle">THE POSTER</text>
+      <text x="640" y="120" font-size="12" letter-spacing="3" fill="#5B6472" text-anchor="middle">THE WORKFLOW</text>
+      <rect x="150" y="160" width="180" height="300" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="240" y="212" font-size="38" letter-spacing="6" fill="#1F2937" text-anchor="middle">GROW</text>
+      <line x1="180" y1="232" x2="300" y2="232" stroke="#1F2937" stroke-width="1"/>
+      <g font-size="14" fill="#1F2937" text-anchor="middle" letter-spacing="1">
+        <text x="240" y="272">GOAL</text><text x="240" y="316">REALITY</text><text x="240" y="360">OPTIONS</text><text x="240" y="404">WILL</text>
+      </g>
+      <text x="240" y="500" font-size="11" letter-spacing="1" fill="#5B6472" text-anchor="middle">A SMART WAY TO THINK,</text>
+      <text x="240" y="516" font-size="11" letter-spacing="1" fill="#5B6472" text-anchor="middle">EASILY FORGOTTEN</text>
+      <line x1="540" y1="176" x2="540" y2="452" stroke="#1F2937" stroke-width="1.5"/>
+      <circle cx="540" cy="188" r="12" fill="#ffffff" stroke="#1F2937" stroke-width="2"/>
+      <text x="562" y="184" font-size="12" letter-spacing="1" fill="#1F2937">TRIGGER</text><text x="562" y="200" font-size="11" fill="#5B6472">the scheduled one-on-one</text>
+      <circle cx="540" cy="244" r="12" fill="#ffffff" stroke="#1F2937" stroke-width="2"/>
+      <text x="562" y="240" font-size="12" letter-spacing="1" fill="#1F2937">INPUTS</text><text x="562" y="256" font-size="11" fill="#5B6472">the report's profile and goals</text>
+      <circle cx="540" cy="300" r="12" fill="#ffffff" stroke="#E4572E" stroke-width="2.5"/>
+      <text x="562" y="296" font-size="12" letter-spacing="1" fill="#E4572E">DECISION</text><text x="562" y="312" font-size="11" fill="#5B6472">apply GROW, draft the questions</text>
+      <circle cx="540" cy="356" r="12" fill="#ffffff" stroke="#1F2937" stroke-width="2"/>
+      <text x="562" y="352" font-size="12" letter-spacing="1" fill="#1F2937">OUTPUT</text><text x="562" y="368" font-size="11" fill="#5B6472">a tailored question set</text>
+      <circle cx="540" cy="412" r="12" fill="#ffffff" stroke="#1F2937" stroke-width="2"/>
+      <text x="562" y="408" font-size="12" letter-spacing="1" fill="#1F2937">HUMAN</text><text x="562" y="424" font-size="11" fill="#5B6472">the manager has the conversation</text>
+      <text x="440" y="600" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE FRAMEWORK IS THE PROVEN CORE. THE WORKFLOW MAKES IT RUN.</text>
+    </svg>
+  </figure>
+
+  <p><strong>AIDA becomes a content workflow.</strong> The Trigger is a new campaign brief. The Input is the product, the audience, and examples of your best past copy. The Decision, AIDA, is applied by AI to draft copy that moves through attention, interest, desire, and action in order. The Output is a first draft. The Delivery is the marketer's editing queue. The human judges resonance, taste, and truth, the things no model can feel, and ships it. What used to be a blank page and a slow panic every Monday is now a structured draft every Monday, and the marketer spends their scarce judgment on making it sing instead of on making it exist.</p>
+
+  <p><strong>ADKAR becomes a change rollout workflow.</strong> The Trigger is the decision to roll out a change: a new tool, a new process, a reorganization people will grumble about. The Input is the list of affected people and what each of them actually cares about. The Decision, ADKAR, is applied by AI to map who is likely to resist and to draft the stage-by-stage communications: build awareness first, then desire, then knowledge, then ability, then reinforcement. The Output is a named plan with drafted messages per stage. The Delivery is the leader's rollout calendar. And the human has the hard conversations, because change succeeds or fails person by person, in rooms a machine is not invited to.</p>
+
+  <p>See the pattern. In each one, the framework fills the Decision box, the AI does the drafting and the mapping, and the human keeps the judgment. The framework you already knew is the proven core; the workflow is what finally makes it run without you standing over it.</p>
+
+  <h2>The Bridge You Already Crossed</h2>
+
+  <p>If you found this book through our diagnostic, you have already watched this idea work, whether or not you clocked it. You described a business pain point, and the tool matched you to the proven frameworks that solve it, and then it did the exact thing this chapter is about: it turned each framework into a ready-to-run seven-element workflow built on the method you are learning right now. That was not a magic trick. That was this chapter, automated. The tool knows a hundred and two frameworks and knows how to wrap any of them in a workflow, because that wrapping is a repeatable skill, not a flash of genius reserved for the gifted.</p>
+
+  <p>Which is the real point. You do not have to memorize a hundred frameworks and keep them straight at 2pm on a Thursday. You have to learn the one move that turns any of them into a workflow, and let the AI hold the library. The frameworks are the crystallized judgment of the smartest institutions in business history. Your job is not to out-think them. Your job is to wire them in.</p>
+
+  <h2>Your Turn</h2>
+
+  <p>Look at your workflow's Decision box, the vague one from last chapter. Ask a simple question: what kind of judgment is this? A prioritization call, a segmentation call, a persuasion call, a diagnosis, a communication? There is almost certainly a proven framework for it, and the diagnostic tool will name it for you in about thirty seconds if you describe the decision in plain language.</p>
+
+  <p>Then write one sentence, and drop it into your seven-element document: "At the Decision step, we apply ___ to choose ___." At the Decision step, we apply lead-qualification criteria to choose which inbound messages a salesperson should see. At the Decision step, we apply RICE scoring, on Reach, Impact, Confidence, and Effort, to choose which features make the roadmap.</p>
+
+  <p>You now have a workflow with a proven decision at its heart. But look again at all seven boxes and ask the question that separates a real design from a wish. Which of these boxes still needs a human standing in it, and which can you hand to a machine? That line is a design decision, not a default, and drawing it well is the next chapter.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Five</span>
+    <span class="meta" style="color:var(--accent)">Chapter Six &middot; Drawing the Human Line</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 6 ============ -->
+<article class="page opener newpage" id="chapter-6">
+  <p class="part-label">Part II &nbsp;&middot;&nbsp; The Craft</p>
+  <p class="chap-num">Chapter Six</p>
+  <h1 class="title">Drawing the Human Line</h1>
+
+  <p class="lead">You have a workflow in seven boxes, with a proven framework in the Decision box. Now comes the design decision that separates the people who get leverage from the people who get a very fast mess: for each of those seven boxes, who does the work, a human or a machine?</p>
+
+  <p>Most people never actually decide this. They default. Either they automate everything they can reach and then look genuinely surprised when the workflow confidently ships nonsense, or they clutch every box out of habit and stay the bottleneck forever, wondering why nothing scales. Both are failures of design, and both come from treating the human-versus-machine question as something that just happens to you rather than something you choose, box by box, on purpose.</p>
+
+  <p>There is a tool for choosing it on purpose. We call it the Centaur Map.</p>
+
+  <p>The name comes from chess. After a computer first beat the world champion, a new format emerged where a human and a machine played together as a team, and for years those human-machine pairs, the centaurs, beat both the best humans and the best computers playing solo. The lesson was not that machines are better than people, or that people are better than machines. It was that a well-designed pairing beats either one alone, and the entire skill is in designing the pairing. Half horse, half person, fully better than both, and slightly harder to draw.</p>
+
+  <h2>The Three Assignments</h2>
+
+  <p>Walk each of your seven elements and give it exactly one of three labels.</p>
+
+  <p><strong>Human.</strong> This box needs human judgment, taste, relationships, or accountability that cannot be handed off. The final send on anything with your name on it. The actual coaching conversation. The call that carries real risk. When you are unsure whether something is truly human, ask: if this goes wrong, whose judgment is on the line? That person needs to be in the box.</p>
+
+  <p><strong>Machine.</strong> This box is retrieval, synthesis, formatting, routing, or drafting, the things a machine does faster, tirelessly, and consistently. Pulling the inputs together. Applying the framework to produce a first draft. Sorting things into categories. Moving the output to the right place. If the box is mechanical, a human standing in it is not adding judgment. They are adding a coffee break.</p>
+
+  <p><strong>Human checks machine.</strong> This is the most valuable label, and the one beginners underuse. The machine does the work and a human reviews before it counts. The AI drafts the reply; a person reads it and hits send. The AI scores the leads; a person spot-checks the weird ones. This is the centaur, and it is where most of your workflow should live at first, because it captures the machine's speed while keeping a human's judgment as the last line of defense.</p>
+
+  <p>Here is the pattern you will find in almost every well-designed workflow. The mechanical boxes, Inputs, Routing, Delivery, go to the machine. The drafting boxes, the Output and much of the Decision, go to the machine with a human checking. And the boxes that carry real judgment or a real relationship stay fully human. The line weaves through the seven boxes. It does not sit in one tidy place, which would be convenient and is not how real work behaves.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 6.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE HUMAN LINE</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="140" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">DRAW THE LINE THROUGH ALL SEVEN, BOX BY BOX</text>
+      <g stroke="#1F2937" stroke-width="1" stroke-dasharray="2 6">
+        <line x1="170" y1="240" x2="812" y2="240"/><line x1="170" y1="430" x2="812" y2="430"/>
+      </g>
+      <g font-size="11" letter-spacing="1" fill="#5B6472" text-anchor="end">
+        <text x="158" y="244">ALL HUMAN</text><text x="158" y="340">HUMAN CHECKS</text><text x="158" y="356">THE MACHINE</text><text x="158" y="434">ALL MACHINE</text>
+      </g>
+      <g stroke="#1F2937" stroke-width="2" fill="#ffffff">
+        <rect x="175" y="316" width="74" height="56"/><rect x="267" y="316" width="74" height="56"/><rect x="359" y="316" width="74" height="56"/>
+        <rect x="451" y="316" width="74" height="56"/><rect x="543" y="316" width="74" height="56"/><rect x="635" y="316" width="74" height="56"/><rect x="727" y="316" width="74" height="56"/>
+      </g>
+      <g font-size="10" letter-spacing="0" fill="#1F2937" text-anchor="middle">
+        <text x="212" y="348">TRIGGER</text><text x="304" y="348">INPUTS</text><text x="396" y="348">DECISION</text>
+        <text x="488" y="348">ROUTING</text><text x="580" y="348">OUTPUT</text><text x="672" y="348">DELIVERY</text><text x="764" y="348">MEASURE</text>
+      </g>
+      <polyline points="212,430 304,430 396,316 488,430 580,316 672,430 764,240" fill="none" stroke="#E4572E" stroke-width="2.75" stroke-linejoin="round"/>
+      <g fill="#E4572E">
+        <circle cx="212" cy="430" r="5"/><circle cx="304" cy="430" r="5"/><circle cx="396" cy="316" r="5"/>
+        <circle cx="488" cy="430" r="5"/><circle cx="580" cy="316" r="5"/><circle cx="672" cy="430" r="5"/><circle cx="764" cy="240" r="5"/>
+      </g>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">JUDGMENT STAYS HUMAN. THE MECHANICS GO TO THE MACHINE.</text>
+    </svg>
+  </figure>
+
+  <h2>The Four Questions, and the Honest Count</h2>
+
+  <p>Before you draw the line, read the workflow with four questions. They are the same four we take into a room with a chief executive on a Monday, and they force the honesty the whole thing depends on.</p>
+
+  <ul>
+    <li><strong>What is the process?</strong> The sequence of steps that turns inputs into the outcome. You have this already: it is your seven boxes.</li>
+    <li><strong>What outcome does it generate?</strong> The concrete thing this workflow ships, stated so plainly you would know it when you saw it.</li>
+    <li><strong>How many human tokens does it need?</strong> This is the one that changes everything, so let me define the term.</li>
+    <li><strong>Where does AI fit on the team?</strong> Which boxes an agent owns, and where a human stays in the loop.</li>
+  </ul>
+
+  <p>A human token is one unit of skilled human attention and judgment. It is the scarcest, most expensive resource in your building, and almost nobody counts it honestly, because the honest count is a little embarrassing. When you ask how many human tokens a workflow needs, you are asking: how much irreplaceable human attention does this genuinely require, and how much is a person doing mechanical work a machine should own?</p>
+
+  <p>Count it honestly for your workflow as it runs today. Then count it again for your workflow with the human line drawn well. The difference between those two numbers, the human tokens you free, is your business case. It is not a warm feeling about efficiency. It is a specific quantity of your most valuable resource, handed back to you to spend on something that actually needs a human.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 6.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE TOKEN COUNT</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="130" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">ONE HUMAN TOKEN = ONE UNIT OF SKILLED HUMAN ATTENTION</text>
+      <text x="120" y="210" font-size="13" letter-spacing="2" fill="#1F2937">TODAY</text>
+      <g stroke="#1F2937" stroke-width="2" fill="#1F2937">
+        <rect x="120" y="228" width="30" height="30"/><rect x="164" y="228" width="30" height="30"/><rect x="208" y="228" width="30" height="30"/><rect x="252" y="228" width="30" height="30"/><rect x="296" y="228" width="30" height="30"/>
+        <rect x="340" y="228" width="30" height="30"/><rect x="384" y="228" width="30" height="30"/><rect x="428" y="228" width="30" height="30"/><rect x="472" y="228" width="30" height="30"/><rect x="516" y="228" width="30" height="30"/>
+      </g>
+      <text x="580" y="250" font-size="20" letter-spacing="1" fill="#1F2937">10</text>
+      <text x="120" y="356" font-size="13" letter-spacing="2" fill="#1F2937">WITH THE LINE DRAWN</text>
+      <g stroke="#1F2937" stroke-width="2">
+        <rect x="120" y="374" width="30" height="30" fill="#1F2937"/><rect x="164" y="374" width="30" height="30" fill="#1F2937"/>
+        <rect x="208" y="374" width="30" height="30" fill="none"/><rect x="252" y="374" width="30" height="30" fill="none"/><rect x="296" y="374" width="30" height="30" fill="none"/>
+        <rect x="340" y="374" width="30" height="30" fill="none"/><rect x="384" y="374" width="30" height="30" fill="none"/><rect x="428" y="374" width="30" height="30" fill="none"/><rect x="472" y="374" width="30" height="30" fill="none"/><rect x="516" y="374" width="30" height="30" fill="none"/>
+      </g>
+      <text x="580" y="396" font-size="20" letter-spacing="1" fill="#1F2937">2</text>
+      <g stroke="#E4572E" stroke-width="2" fill="none">
+        <path d="M 208 420 L 208 432 L 546 432 L 546 420"/><line x1="377" y1="432" x2="377" y2="446"/>
+      </g>
+      <text x="377" y="470" font-size="16" letter-spacing="1" fill="#E4572E" text-anchor="middle">8 TOKENS FREED</text>
+      <text x="377" y="490" font-size="12" letter-spacing="2" fill="#E4572E" text-anchor="middle">YOUR BUSINESS CASE</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE DELTA IS THE NUMBER YOU BUILD AGAINST.</text>
+    </svg>
+  </figure>
+
+  <h2>Leverage Is a Ratio, Not a Subtraction</h2>
+
+  <p>Notice that the four questions already contain a ratio, and it is the most important idea in this chapter. The outcome, question two. The human tokens, question three. And where AI fits, question four, which is really asking how much cheap machine work, how many AI tokens, will carry the load. Leverage is those three read together. It is never the human-token number read alone.</p>
+
+  <p>Because a smaller human-token count, all by itself, can be a trap. If you cut human tokens and the outcome shrinks along with them, you did not get leverage. You got a smaller business doing less, with a tidier org chart and a worse year.</p>
+
+  <p>Leverage is the ratio between three things: the human tokens you spend, the AI tokens you pour in, and the outcomes you get out the far end. A human token is scarce and expensive. An AI token, one unit of machine work, is cheap and very nearly unlimited. The whole game of the second half is trading one scarce, expensive human token for a flood of cheap AI tokens and getting the same outcome, or a bigger one. So the number that actually matters is not human tokens. It is outcomes per human token, and you raise it by letting AI tokens do more of the work in between.</p>
+
+  <p>That is what the human line is really doing. When you move a box from Human to Machine, you are not just subtracting human effort and feeling lighter. You are shifting work from the scarce resource to the abundant one, so more of the workflow runs on the input that costs almost nothing. Draw the line well and the ratio tips the way you want: more AI tokens, fewer human tokens, the same outcome or more. That is leverage you can put on a chart, and it is the whole reason you are counting anything at all.</p>
+
+  <h2>Both Ways to Get It Wrong</h2>
+
+  <p>There are two failure modes, and you should respect both.</p>
+
+  <p>The first is <strong>automating judgment.</strong> You hand the Decision box, or the final Delivery, to a machine that has no business making that call alone, and the workflow ships confident, fluent, wrong output at scale. The machine does not know it is wrong. That is the danger: it fails with the serene composure of someone who has never once doubted themselves. Any box where being wrong is expensive, or where the output has your name on it, needs a human checking at minimum. Speed with no judgment in the loop is not leverage. It is a faster way to be wrong, at volume, with great formatting.</p>
+
+  <p>The second, and the one I see more often in experienced leaders, is <strong>hoarding the mechanics.</strong> You keep boxes that are purely mechanical, pulling the data, formatting the report, sorting the inbox, not because they need your judgment but because doing them is who you have always been and it feels productive. This is the harder failure to spot, because it wears the costume of diligence. It is not diligence. It is identity dressed up as necessity, and it keeps you the bottleneck in your own workflow. If a box does not need your judgment, keeping it is not loyalty to quality. It is a refusal to let go, and it caps the leverage of everyone standing downstream of you, waiting.</p>
+
+  <p>The discipline is to draw the line based on comparative advantage, not habit and not fear. Judgment, taste, relationships, and accountability stay human. Retrieval, synthesis, formatting, and routing go to the machine. The drafting in between goes to the machine with a human checking. Draw it that way and you get the centaur. Draw it by default and you get either a confident mess or a permanent bottleneck named after you.</p>
+
+  <h2>Your Turn</h2>
+
+  <p>Take your seven-element document and draw the line. Label every box Human, Machine, or Human checks machine. Use the colored-line version in the appendix if it helps you see it.</p>
+
+  <p>Then do the count, all of it. Human tokens to run this today, human tokens to run it with the line drawn well, and the outcome sitting next to both, held steady or climbing. Write the numbers down. If the human tokens fall while the outcome holds or grows, that gap is your leverage, and it is the number you will use to decide how far to build, which is the whole subject of the next chapter.</p>
+
+  <p>Because you now have a designed workflow. On paper. And paper does not run. There is a ladder from a paper design to software that runs without you, and the most important thing about that ladder is knowing which rung to stop on before you hurt yourself.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Six</span>
+    <span class="meta" style="color:var(--accent)">Chapter Seven &middot; The Ladder From Paper to Production</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 7 ============ -->
+<article class="page opener newpage" id="chapter-7">
+  <p class="part-label">Part II &nbsp;&middot;&nbsp; The Craft</p>
+  <p class="chap-num">Chapter Seven</p>
+  <h1 class="title">The Ladder From Paper to Production</h1>
+
+  <p class="lead">Your workflow exists on paper: seven boxes, a framework in the Decision, a human line drawn through it, and two honest token counts. Now, how far do you build it?</p>
+
+  <p>Most people get this exactly backward. They either stop too early, leaving a perfectly good design as a document that nobody runs and everybody forgets, or they lunge straight for the most impressive version, trying to build a fully autonomous agent for a workflow that fires twice a month. Both waste the design. There is a ladder between paper and production, and the skill is not climbing as high as you possibly can. It is climbing exactly as high as the workflow's value earns, and not one rung higher, because the top of the ladder is where the budget goes to die.</p>
+
+  <p>There are five rungs. Each one is the same three skills from chapter three, applied harder. What changes as you climb is how much the workflow can do without you in the room.</p>
+
+  <p><strong>Rung one: Packaged AI.</strong> One step, one prompt, one data source, wrapped so a teammate can run it without calling you. This is the smallest real version: you take the Decision box and its inputs, write a strong instruction around them, and save it as a reusable tool, a Claude Project or a custom assistant. It still needs a human to press go. But the judgment you designed is now something anyone on your team can trigger, consistently, instead of a thing only you knew how to do while making a face. Most workflows should start here, and plenty should retire here.</p>
+
+  <p><strong>Rung two: the wired workflow.</strong> Now it runs when you are not watching. You connect the trigger to the inputs to the AI step to the action to a log, so the process fires on its own: the form gets submitted, the data gets pulled, the AI drafts, the draft gets delivered, the run gets recorded. This is a straight line, no branching yet. It is the rung where you stop being the glue holding the steps together with your bare hands. For a huge share of real business workflows, rung two is the right and final answer.</p>
+
+  <p><strong>Rung three: decisions.</strong> The workflow learns to handle different inputs differently. You add the logic to classify each input, route it down the right path, and respond accordingly. The vendor pitch goes one way; the qualified prospect goes another. This is where your Decision box grows teeth and starts branching into real paths instead of treating everything the same. You climb to rung three when the variety of your inputs is high enough that one straight line simply cannot serve them all.</p>
+
+  <p><strong>Rung four: the agent.</strong> You stop scripting every path and give the work a goal, a set of guardrails, and the freedom to find its own way there. The agent runs a loop: it thinks, plans, acts, and reflects, and it handles situations you did not explicitly script, escalating to a human when it hits the edges you defined. This is genuinely more powerful and genuinely harder to control, which is why the guardrails and the human escalation paths matter more here than anywhere. You climb to rung four only when the real world stops fitting your branches, when there are too many paths to script and you need judgment inside the loop.</p>
+
+  <p><strong>Rung five: production.</strong> The workflow becomes real software: actual code, a real database, version control, running unattended and surviving an audit. This is where instructions live as version-controlled files, data lives in a proper database with a schema, and the workflow runs as deployed code that keeps working while you sleep. Reaching this rung is a craft of its own, with its own gates, prototype, then pilot, then production, and it is what our certification exists to teach. This book gets you the map to it, not the full climb, because the full climb needs boots.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 7.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE LADDER</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <g stroke="#1F2937" stroke-width="2.5" fill="none">
+        <line x1="360" y1="150" x2="360" y2="520"/><line x1="470" y1="150" x2="470" y2="520"/>
+        <line x1="360" y1="470" x2="470" y2="470"/><line x1="360" y1="400" x2="470" y2="400"/><line x1="360" y1="330" x2="470" y2="330"/><line x1="360" y1="260" x2="470" y2="260"/><line x1="360" y1="190" x2="470" y2="190"/>
+      </g>
+      <g font-size="16" fill="#1F2937" text-anchor="middle">
+        <text x="415" y="500">1</text><text x="415" y="430">2</text><text x="415" y="360">3</text><text x="415" y="290">4</text><text x="415" y="220">5</text>
+      </g>
+      <g font-size="14" letter-spacing="1" fill="#1F2937">
+        <text x="500" y="484">PACKAGED AI</text><text x="500" y="414">WIRED WORKFLOW</text><text x="500" y="344">DECISIONS</text><text x="500" y="274">AGENT</text><text x="500" y="204">PRODUCTION</text>
+      </g>
+      <g font-size="10" letter-spacing="1" fill="#5B6472">
+        <text x="500" y="500">A TOOL ANYONE RUNS</text><text x="500" y="430">RUNS WHEN YOU ARE NOT WATCHING</text><text x="500" y="360">CLASSIFY, ROUTE, RESPOND</text><text x="500" y="290">A GOAL AND GUARDRAILS</text><text x="500" y="220">REAL CODE, RUNS UNATTENDED</text>
+      </g>
+      <g stroke="#E4572E" stroke-width="2" fill="none"><path d="M 320 470 L 306 470 L 306 400 L 320 400"/></g>
+      <text x="296" y="428" font-size="12" letter-spacing="1" fill="#E4572E" text-anchor="end">MOST</text>
+      <text x="296" y="444" font-size="12" letter-spacing="1" fill="#E4572E" text-anchor="end">STOP HERE</text>
+      <line x1="150" y1="500" x2="150" y2="180" stroke="#1F2937" stroke-width="1.75"/>
+      <path d="M 144 190 L 150 178 L 156 190" fill="none" stroke="#1F2937" stroke-width="1.75"/>
+      <text x="132" y="340" font-size="11" letter-spacing="2" fill="#1F2937" transform="rotate(-90 132 340)" text-anchor="middle">SAME SKILL, HARDER EACH RUNG</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">CLIMB ONLY AS HIGH AS THE VALUE EARNS.</text>
+    </svg>
+  </figure>
+
+  <h2>Most Workflows Stop at Two or Three</h2>
+
+  <p>I want to say this loudly, because it is the most money-saving sentence in the book. Most workflows should stop at rung two or three. A weekly report belongs at rung one, packaged so anyone can generate it. A lead-response flow belongs at rung two or three, wired and branching. Only the workflows that clear a real return-on-investment bar, high volume, high value, high enough stakes to justify the build, earn rungs four and five.</p>
+
+  <p>The failure I see constantly is a team that falls in love with the top of the ladder and builds a fully autonomous agent for a workflow that would have been perfectly, cheaply, safely served by a rung-two wiring. They confused altitude on the ladder with value delivered. Those are not the same thing, and confusing them is expensive. A rung-two workflow that runs your actual business every day delivers infinitely more than a rung-five agent that dazzles in a demo and owns no real outcome and quietly costs a fortune.</p>
+
+  <p>This is exactly why the token count from the last chapter matters. The delta, the human tokens you free by building the workflow, tells you how high to climb. A big delta on a high-volume workflow justifies a real build. A small delta on something that runs monthly says: package it at rung one and go do something else with your afternoon. The count is not bureaucracy. It is the thing that stops you from over-building out of enthusiasm.</p>
+
+  <h2>Plan Any Climb With the 5D Brief</h2>
+
+  <p>However high you decide to go, plan the climb the same way, with a one-page brief we call the 5D. It is five questions, and the appendix has a blank template.</p>
+
+  <ul>
+    <li><strong>Define.</strong> What is the problem, in a sentence, and what does success look like?</li>
+    <li><strong>Datasources.</strong> What information does this need, and where does it live?</li>
+    <li><strong>Diagram.</strong> What is the workflow? Your seven boxes are your diagram; you already did this.</li>
+    <li><strong>Determine return on investment.</strong> What is the value, honestly counted? This is your token delta plus whatever the workflow moves in revenue or cost.</li>
+    <li><strong>Deployment.</strong> Which rung, who owns it, and where does the human stay in the loop?</li>
+  </ul>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 7.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE 5D BRIEF</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <rect x="220" y="120" width="440" height="410" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="240" y="156" font-size="13" letter-spacing="2" fill="#5B6472">ONE PAGE, BEFORE YOU BUILD</text>
+      <line x1="240" y1="168" x2="640" y2="168" stroke="#1F2937" stroke-width="1"/>
+      <text x="248" y="212" font-size="22" fill="#E4572E">D</text><text x="284" y="212" font-size="15" letter-spacing="1" fill="#1F2937">DEFINE</text><text x="284" y="232" font-size="11" fill="#5B6472">the problem in a sentence, and success</text>
+      <text x="248" y="272" font-size="22" fill="#E4572E">D</text><text x="284" y="272" font-size="15" letter-spacing="1" fill="#1F2937">DATASOURCES</text><text x="284" y="292" font-size="11" fill="#5B6472">what it needs, and where that lives</text>
+      <text x="248" y="332" font-size="22" fill="#E4572E">D</text><text x="284" y="332" font-size="15" letter-spacing="1" fill="#1F2937">DIAGRAM</text><text x="284" y="352" font-size="11" fill="#5B6472">your seven elements are the diagram</text>
+      <text x="248" y="392" font-size="22" fill="#E4572E">D</text><text x="284" y="392" font-size="15" letter-spacing="1" fill="#1F2937">DETERMINE ROI</text><text x="284" y="412" font-size="11" fill="#5B6472">the token delta, plus revenue or cost</text>
+      <text x="248" y="452" font-size="22" fill="#E4572E">D</text><text x="284" y="452" font-size="15" letter-spacing="1" fill="#1F2937">DEPLOYMENT</text><text x="284" y="472" font-size="11" fill="#5B6472">which rung, who owns it, human in the loop</text>
+      <text x="440" y="580" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">A PLAN YOU COULD HAND TO YOUR FUTURE SELF.</text>
+    </svg>
+  </figure>
+
+  <p>Fill in those five and you have converted a paper design into a plan you could hand to someone, or to your future self, and actually execute. Skip the brief and you will climb on vibes, which is how workflows end up at rung five for reasons no one can later reconstruct.</p>
+
+  <h2>Your Turn</h2>
+
+  <p>Place your workflow on the ladder. Given its value and your honest token delta, which rung does it deserve? For most of you, reading this with a real workflow in hand, the answer is rung one or two, and that is not a consolation prize. A single workflow, packaged or wired, that reliably runs a real part of your business is more than ninety-five percent of companies managed to produce out of all that AI spending.</p>
+
+  <p>Then fill in the one-page 5D brief for your workflow. Define, Datasources, Diagram, Determine return, Deployment. When it is done, you are holding something almost nobody in that MIT study had: a designed, scoped, planned AI workflow, with the human line drawn and the value counted.</p>
+
+  <p>That is the craft. Same skill, five rungs, and the wisdom to stop at the right one. Now let us zoom out, because the same skill you just used on one workflow lives at every altitude of your company, from the coordinator's desk to your own chair. Leading the second half means knowing what it looks like at each one, so you can spot it, grow it, and demand it. That is the last part of the book, and it starts one level below you.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Seven &nbsp;&middot;&nbsp; End of Part II</span>
+    <span class="meta" style="color:var(--accent)">Part III: Altitudes &middot; Chapter Eight: The People Who Do the Work</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 8 ============ -->
+<article class="page opener newpage" id="chapter-8">
+  <p class="part-label">Part III &nbsp;&middot;&nbsp; Altitudes</p>
+  <p class="chap-num">Chapter Eight</p>
+  <h1 class="title">Altitude One: The People Who Do the Work</h1>
+
+  <p class="lead">You have the craft now. You can take one workflow and make it visible, put a framework in its decision, draw the human line, and build it to the rung its value earns. But leading the second half is not you personally designing every workflow in the company while everyone watches. It is you making sure this skill exists at every altitude beneath you. So the last part of this book walks down through your organization, and it starts at the bottom, with the people who do the work.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 8.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">ONE SKILL, THREE HEIGHTS</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="130" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">THE SAME CRAFT AT EVERY LEVEL OF YOUR COMPANY</text>
+      <g stroke="#1F2937" stroke-width="2" fill="none"><line x1="330" y1="470" x2="330" y2="390"/><line x1="570" y1="390" x2="570" y2="310"/></g>
+      <line x1="570" y1="310" x2="812" y2="310" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="630" cy="270" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 616 304 C 616 286 644 286 644 304" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="690" y="288" width="16" height="16"/><rect x="720" y="288" width="16" height="16"/><rect x="750" y="288" width="16" height="16"/><line x1="706" y1="296" x2="720" y2="296"/><line x1="736" y1="296" x2="750" y2="296"/></g>
+      <text x="580" y="338" font-size="13" letter-spacing="1" fill="#1F2937">3 &#183; THE COMPANY</text>
+      <line x1="330" y1="390" x2="570" y2="390" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="390" cy="350" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 376 384 C 376 366 404 366 404 384" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="450" y="368" width="16" height="16"/><rect x="480" y="368" width="16" height="16"/><rect x="510" y="368" width="16" height="16"/><line x1="466" y1="376" x2="480" y2="376"/><line x1="496" y1="376" x2="510" y2="376"/></g>
+      <text x="340" y="418" font-size="13" letter-spacing="1" fill="#1F2937">2 &#183; THE TEAM LEADER</text>
+      <line x1="90" y1="470" x2="330" y2="470" stroke="#E4572E" stroke-width="3"/>
+      <circle cx="150" cy="430" r="9" fill="none" stroke="#E4572E" stroke-width="2.5"/><path d="M 136 464 C 136 446 164 446 164 464" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <g stroke="#E4572E" stroke-width="1.75" fill="none"><rect x="210" y="448" width="16" height="16"/><rect x="240" y="448" width="16" height="16"/><rect x="270" y="448" width="16" height="16"/><line x1="226" y1="456" x2="240" y2="456"/><line x1="256" y1="456" x2="270" y2="456"/></g>
+      <text x="100" y="498" font-size="13" letter-spacing="1" fill="#E4572E">1 &#183; THE INDIVIDUAL</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">IT STARTS AT THE BOTTOM, WITH THE PEOPLE WHO DO THE WORK.</text>
+    </svg>
+  </figure>
+
+  <p>Look at the newest people in your company. The coordinators, the analysts, the associates, the twenty-four-year-olds two levels down from your direct reports. Something is happening to their jobs that most of them can feel and few can name, and how you respond to it will quietly decide which of them are worth keeping.</p>
+
+  <p>AI compresses execution. The doing of tasks, the part that used to fill a junior person's day and justify their seat, is exactly the part getting cheaper by the month. For a young person who defines their value as "I do the task," that is a slow-motion threat. But there is a second line on the same graph, sprinting the other way. The value of designing the system that does the task is climbing fast, because almost nobody has learned to do it. The task is getting cheap. The design of the task is getting precious. The junior people who cross from the first to the second are the ones you cannot afford to lose. The ones who do not are the ones AI is quietly retiring, whether or not anyone has scheduled the conversation.</p>
+
+  <p>Here is the arithmetic, because it makes the shift concrete. Take a piece of work that used to take one hundred hours: twenty to plan it, eighty to execute it. With AI in the workflow, the execution collapses. The same work becomes twenty hours of planning and maybe five of execution. One hundred hours became twenty-five, four times the output per hour. Look at which number moved. The eighty hours of execution collapsed to five. The twenty hours of planning did not budge. The plan is the human token. The plan is the part that still needs a person, and therefore the plan is the job. A junior person who can do the twenty hours of planning is worth several times the one who could only ever do the eighty hours of doing, and the gap is widening while we speak.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 8.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE PLAN IS THE JOB</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="200" y="200" font-size="13" letter-spacing="2" fill="#1F2937">THE OLD WAY &#183; 100 HOURS</text>
+      <rect x="200" y="214" width="100" height="46" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <rect x="300" y="214" width="400" height="46" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="250" y="242" font-size="12" letter-spacing="1" fill="#E4572E" text-anchor="middle">20 PLAN</text>
+      <text x="500" y="242" font-size="12" letter-spacing="1" fill="#1F2937" text-anchor="middle">80 EXECUTE</text>
+      <text x="200" y="330" font-size="13" letter-spacing="2" fill="#1F2937">WITH AI &#183; 25 HOURS</text>
+      <rect x="200" y="344" width="100" height="46" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <rect x="300" y="344" width="25" height="46" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <text x="250" y="372" font-size="12" letter-spacing="1" fill="#E4572E" text-anchor="middle">20 PLAN</text>
+      <text x="360" y="372" font-size="12" letter-spacing="1" fill="#1F2937">5 EXECUTE</text>
+      <g stroke="#E4572E" stroke-width="2" fill="none"><path d="M 200 408 L 200 420 L 300 420 L 300 408"/><line x1="250" y1="420" x2="250" y2="434"/></g>
+      <text x="250" y="456" font-size="13" letter-spacing="1" fill="#E4572E" text-anchor="middle">THE PLAN DOES NOT MOVE</text>
+      <text x="250" y="474" font-size="11" letter-spacing="2" fill="#E4572E" text-anchor="middle">IT IS THE HUMAN TOKEN</text>
+      <text x="620" y="440" font-size="40" letter-spacing="1" fill="#1F2937" text-anchor="middle">4&#215;</text>
+      <text x="620" y="466" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">OUTPUT PER HOUR</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">EXECUTION COLLAPSES. THE PLANNER IS THE JOB.</text>
+    </svg>
+  </figure>
+
+  <h2>What the Skill Looks Like at This Altitude</h2>
+
+  <p>At the individual level, workflow design is small and unglamorous, which is exactly why it is easy to miss in someone. It looks like this. A junior person notices a task they repeat: the report they rebuild every week, the kind of email they retype so often they could do it in their sleep, the research they redo for every project. They document it in the seven elements. They wrap the core of it in a reusable tool at rung one, so it runs from a saved prompt instead of from scratch. And then, if they are really good, they do the move that separates a multiplier from a doer. They document it well enough to pass the New Hire Test and they give it away, so anyone on the team can run the thing they used to be needed for.</p>
+
+  <p>That last move is the tell, and most leaders punish it by accident. Every instinct in a junior person screams that making their work runnable by anyone is career suicide. If I make myself replaceable, what do they need me for? You have to make sure the answer, in your company, is loud and unmistakable. The person who does a task is worth the task. The person who designed the system that does the task, and can design the next one, is worth all of them. When someone hands you a workflow that now runs without them, they have not made themselves redundant. They have proven they multiply, and people who multiply get handed bigger problems, which is the good kind of problem to be handed. If your culture quietly rewards people for hoarding what only they know, you are training your most promising juniors to hide the exact skill you most need them to build, and then acting surprised when nothing scales.</p>
+
+  <h2>What to Look For, and What to Reward</h2>
+
+  <p>This changes how you hire and promote at the bottom of the org chart. Stop being impressed by effort. Effort is precisely the thing that just got cheap, and a junior person who recites everything they did is describing a job that is being automated around them. Look for leverage instead. Look for the person who can say, "Here is a system I built. It runs this part of the work now. Here is what it saved, and here is the next one I want to build." That sentence is rare, and the person who can say it is already doing the second half of the job you are struggling to find in anyone with a corner office.</p>
+
+  <p>You do not need to turn every junior person into an engineer. You need them to see work as a flow and design it, and you need giving the designs away to be safe and rewarded rather than career-limiting. That is a hiring filter, an onboarding standard, and a promotion signal all at once. And leverage is not a superstar trait. In almost every company I work with, the person quietly automating their own corner of the work on nights and weekends turns out to be one of the most valuable people in the building, not because they are a genius, but because leverage is a learnable skill and they learned it first, usually without permission. Your job is to find those people, reward them out loud, and spread the skill before they get bored and go do it somewhere that noticed.</p>
+
+  <h2>Your Move</h2>
+
+  <p>Pick one junior role in your company and ask a plain question: does anyone in that role own a workflow, or do they all just do tasks? Then run a small test. Ask one capable junior person to take the thing they do most often, document it in the seven elements, and package it at rung one. What comes back, and how they react to being asked, will tell you more about their ceiling than any performance review with a five-point scale. Do that a few times and you will start to see your own org chart the way this book wants you to: not as a list of people doing tasks, but as a set of altitudes where one skill is either present or missing.</p>
+
+  <p>The next altitude up is where AI programs are actually won or lost. Your team leaders.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Eight</span>
+    <span class="meta" style="color:var(--accent)">Chapter Nine &middot; Altitude Two: The Team Leader</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 9 ============ -->
+<article class="page opener newpage" id="chapter-9">
+  <p class="part-label">Part III &nbsp;&middot;&nbsp; Altitudes</p>
+  <p class="chap-num">Chapter Nine</p>
+  <h1 class="title">Altitude Two: The Team Leader</h1>
+
+  <p class="lead">One level up from the people who do the work are the people who run it. Your team leaders, your function heads, your managers. This is the altitude where AI programs are won or lost, because a team leader owns something a junior person does not: a whole function, its workflows, and an outcome the business actually measures and occasionally shouts about. Get this altitude right and the second half of leadership starts compounding. Get it wrong and you get a layer of managers who talk fluently about AI and change nothing, which is worse than a layer that does not talk about it at all, because at least those ones are honest.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 9.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">ONE SKILL, THREE HEIGHTS</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="130" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">THE SAME CRAFT AT EVERY LEVEL OF YOUR COMPANY</text>
+      <g stroke="#1F2937" stroke-width="2" fill="none"><line x1="330" y1="470" x2="330" y2="390"/><line x1="570" y1="390" x2="570" y2="310"/></g>
+      <line x1="570" y1="310" x2="812" y2="310" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="630" cy="270" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 616 304 C 616 286 644 286 644 304" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="690" y="288" width="16" height="16"/><rect x="720" y="288" width="16" height="16"/><rect x="750" y="288" width="16" height="16"/><line x1="706" y1="296" x2="720" y2="296"/><line x1="736" y1="296" x2="750" y2="296"/></g>
+      <text x="580" y="338" font-size="13" letter-spacing="1" fill="#1F2937">3 &#183; THE COMPANY</text>
+      <line x1="330" y1="390" x2="570" y2="390" stroke="#E4572E" stroke-width="3"/>
+      <circle cx="390" cy="350" r="9" fill="none" stroke="#E4572E" stroke-width="2.5"/><path d="M 376 384 C 376 366 404 366 404 384" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <g stroke="#E4572E" stroke-width="1.75" fill="none"><rect x="450" y="368" width="16" height="16"/><rect x="480" y="368" width="16" height="16"/><rect x="510" y="368" width="16" height="16"/><line x1="466" y1="376" x2="480" y2="376"/><line x1="496" y1="376" x2="510" y2="376"/></g>
+      <text x="340" y="418" font-size="13" letter-spacing="1" fill="#E4572E">2 &#183; THE TEAM LEADER</text>
+      <line x1="90" y1="470" x2="330" y2="470" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="150" cy="430" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 136 464 C 136 446 164 446 164 464" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="210" y="448" width="16" height="16"/><rect x="240" y="448" width="16" height="16"/><rect x="270" y="448" width="16" height="16"/><line x1="226" y1="456" x2="240" y2="456"/><line x1="256" y1="456" x2="270" y2="456"/></g>
+      <text x="100" y="498" font-size="13" letter-spacing="1" fill="#1F2937">1 &#183; THE INDIVIDUAL</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE MIDDLE ALTITUDE, WHERE PROGRAMS ARE WON OR LOST.</text>
+    </svg>
+  </figure>
+
+  <p>Here is what a good team leader does at this altitude, and therefore what you should be developing in yours and demanding of them.</p>
+
+  <h2>They Scan Their Function Against Four Outcomes</h2>
+
+  <p>A team leader should be able to look at everything their function does and see where AI should own an outcome. The lens that makes that concrete is four outcomes. Every team contributes to at least two of them.</p>
+
+  <ul>
+    <li><strong>Increased revenue.</strong> Work that wins customers, keeps them, or grows them.</li>
+    <li><strong>Higher-performing people.</strong> Work that develops the team, reduces friction, or raises output.</li>
+    <li><strong>Cheaper operations.</strong> Work that takes less time, cost, or error to run.</li>
+    <li><strong>Valuable innovation.</strong> Work that would not happen at all without AI buying back the time to do it.</li>
+  </ul>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 9.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">THE FOUR OUTCOMES</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="120" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">SCAN YOUR TEAM'S WORKFLOWS AGAINST ALL FOUR</text>
+      <rect x="200" y="150" width="480" height="360" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <line x1="440" y1="150" x2="440" y2="510" stroke="#1F2937" stroke-width="1.5"/>
+      <line x1="200" y1="330" x2="680" y2="330" stroke="#1F2937" stroke-width="1.5"/>
+      <g font-size="13" letter-spacing="1" fill="#1F2937" text-anchor="middle">
+        <text x="320" y="182">INCREASED</text><text x="320" y="200">REVENUE</text>
+        <text x="560" y="182">HIGHER-PERFORMING</text><text x="560" y="200">PEOPLE</text>
+        <text x="320" y="470">CHEAPER</text><text x="320" y="488">OPERATIONS</text>
+        <text x="560" y="470">VALUABLE</text><text x="560" y="488">INNOVATION</text>
+      </g>
+      <g fill="#1F2937"><circle cx="300" cy="250" r="6"/><circle cx="600" cy="270" r="6"/><circle cx="380" cy="290" r="6"/><circle cx="520" cy="400" r="6"/><circle cx="600" cy="440" r="6"/></g>
+      <circle cx="340" cy="400" r="6" fill="#E4572E"/><circle cx="340" cy="400" r="18" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <text x="340" y="446" font-size="12" letter-spacing="1" fill="#E4572E" text-anchor="middle">PICK ONE</text>
+      <text x="440" y="560" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">SCAN WIDE. THEN PICK ONE WITH A REAL OUTCOME.</text>
+    </svg>
+  </figure>
+
+  <p>A good manager places their real workflows against these four and sees which ones touch an outcome the business is measured on. That is the scan. What you should watch for is the manager who cannot do it, who still sees a flat list of tasks instead of a set of workflows pointed at outcomes. That blindness is the exact gap this book is about, sitting one altitude below your own and usually holding a status report.</p>
+
+  <h2>They Pick One, Not Five</h2>
+
+  <p>The failure mode at this altitude is the enthusiastic manager who launches five AI pilots at once, each of which demos beautifully in a status update and moves nothing in the numbers. The discipline you want is the opposite. Scan wide, then pick one. One workflow, where a good design would move an outcome the business cares about, with enough volume that the leverage compounds. Then carry that one all the way through the craft, document it, frame its decision, draw the human line, build it to the right rung, as a real program with a named owner. The owner is the team leader. Their name is on the outcome, in a place they cannot quietly delete it.</p>
+
+  <p>The shift you are developing in a manager is from doing to standard-setting. A good team leader is no longer the one writing every prompt. They are the one who decides how good an instruction has to be before it ships, and who makes the New Hire Test a team policy so that no workflow counts as done until someone new could run it. Their judgment moves up a level, from the content of the work to the standard the work has to meet. That is what leading the second half looks like at the middle altitude, and it is a teachable expectation, not a personality type you either drew in the lottery or did not.</p>
+
+  <h2>They Answer One Question Every Week</h2>
+
+  <p>There is a trap at this altitude, and it is seductive because it looks exactly like progress: the pilot that demos beautifully and owns no outcome. The way you keep your managers out of it is one question, asked every week, of every AI effort on their team.</p>
+
+  <p class="pull">What shipped this week that would not have shipped without it, and which outcome did it move?</p>
+
+  <p>That question is ruthless in the best way. It cannot be answered with "the team is excited" or "we're exploring the technology." It demands a concrete thing that exists and a specific outcome it touched. If the honest answer is nothing, the manager has a demo, not a program, and now you both know it. Install that question as the standard you hold your team leaders to, and none of them can drift into the funnel of nothing, because the funnel is made entirely of efforts nobody ever forced to answer it out loud.</p>
+
+  <p>Require one more thing: a real goal on the chosen workflow, not a wish. A good goal is frequently discussed, so it stays alive instead of dying quietly on slide 9; ambitious, so it is worth the build; specific, so everyone knows what they are aiming at; and transparent, so the progress is visible to the whole team. A manager who attaches a goal like that to one workflow has turned a project into a commitment their team can measure against, which is much harder to fake.</p>
+
+  <h2>Your Move</h2>
+
+  <p>Look at your team leaders and sort them honestly. Which of them is running at least one real AI program, with an owner, an outcome, and a goal? Which is running theater, pilots that demo and own nothing? Then do the highest-leverage thing available at this altitude. Install the weekly question as a standing expectation, and ask each manager to bring one workflow, scanned against the four outcomes, chosen and owned. You will find out quickly which of your managers can lead the second half and which need to be taught it, and that is useful information either way.</p>
+
+  <p>Run this well and your managers stop running teams that happen to use AI and start running AI programs. That leaves one altitude, the highest one, and it is yours.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Nine</span>
+    <span class="meta" style="color:var(--accent)">Chapter Ten &middot; Altitude Three: Design the Company</span>
+  </div>
+</article>
+
+<!-- ============ CHAPTER 10 ============ -->
+<article class="page opener newpage" id="chapter-10">
+  <p class="part-label">Part III &nbsp;&middot;&nbsp; Altitudes</p>
+  <p class="chap-num">Chapter Ten</p>
+  <h1 class="title">Altitude Three: Design the Company</h1>
+
+  <p class="lead">The highest altitude is yours, and at it the object you are designing is the company itself. And the move that unlocks everything is a shift in how you see it: a company is not an org chart, it is a workflow of workflows. Once you can read it that way, the second half of leadership stops being a mood and becomes concrete. You read the company as a system, you organize the data underneath it, and you point AI at named outcomes. This, and not another hire, is what closes the gap the whole book has been circling.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 10.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">ONE SKILL, THREE HEIGHTS</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="130" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">THE SAME CRAFT AT EVERY LEVEL OF YOUR COMPANY</text>
+      <g stroke="#1F2937" stroke-width="2" fill="none"><line x1="330" y1="470" x2="330" y2="390"/><line x1="570" y1="390" x2="570" y2="310"/></g>
+      <line x1="570" y1="310" x2="812" y2="310" stroke="#E4572E" stroke-width="3"/>
+      <circle cx="630" cy="270" r="9" fill="none" stroke="#E4572E" stroke-width="2.5"/><path d="M 616 304 C 616 286 644 286 644 304" fill="none" stroke="#E4572E" stroke-width="2.5"/>
+      <g stroke="#E4572E" stroke-width="1.75" fill="none"><rect x="690" y="288" width="16" height="16"/><rect x="720" y="288" width="16" height="16"/><rect x="750" y="288" width="16" height="16"/><line x1="706" y1="296" x2="720" y2="296"/><line x1="736" y1="296" x2="750" y2="296"/></g>
+      <text x="580" y="338" font-size="13" letter-spacing="1" fill="#E4572E">3 &#183; THE COMPANY</text>
+      <line x1="330" y1="390" x2="570" y2="390" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="390" cy="350" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 376 384 C 376 366 404 366 404 384" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="450" y="368" width="16" height="16"/><rect x="480" y="368" width="16" height="16"/><rect x="510" y="368" width="16" height="16"/><line x1="466" y1="376" x2="480" y2="376"/><line x1="496" y1="376" x2="510" y2="376"/></g>
+      <text x="340" y="418" font-size="13" letter-spacing="1" fill="#1F2937">2 &#183; THE TEAM LEADER</text>
+      <line x1="90" y1="470" x2="330" y2="470" stroke="#1F2937" stroke-width="2.5"/>
+      <circle cx="150" cy="430" r="9" fill="none" stroke="#1F2937" stroke-width="2"/><path d="M 136 464 C 136 446 164 446 164 464" fill="none" stroke="#1F2937" stroke-width="2"/>
+      <g stroke="#1F2937" stroke-width="1.5" fill="none"><rect x="210" y="448" width="16" height="16"/><rect x="240" y="448" width="16" height="16"/><rect x="270" y="448" width="16" height="16"/><line x1="226" y1="456" x2="240" y2="456"/><line x1="256" y1="456" x2="270" y2="456"/></g>
+      <text x="100" y="498" font-size="13" letter-spacing="1" fill="#1F2937">1 &#183; THE INDIVIDUAL</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">THE TOP ALTITUDE IS YOURS.</text>
+    </svg>
+  </figure>
+
+  <h2>Read the Company Through Four Offices</h2>
+
+  <p>To read the company as a system, you need a lens, the same way the team leader needed one. At this altitude the lens is four offices: Revenue, Operations, Talent, and Innovation. Every activity in your company sits in one of them.</p>
+
+  <p>Be clear about what this lens is and is not. It is a diagnostic, a way to read your company's work and data so you can see where AI should own an outcome. It is not a mandate to reorganize everyone into new boxes by Friday. The most nimble companies will probably end up redrawing their org chart around this view, but that is a consequence, not a homework assignment. What is required is only that you can see each office clearly enough to point AI at specific outcomes inside it.</p>
+
+  <p>Read each office with the same four questions from chapter six, now aimed at the whole company. What is the process? What outcome does it generate? How many human tokens does it need, honestly counted? Where does AI fit on the team? Run those four questions across Revenue, then Operations, then Talent, then Innovation.</p>
+
+  <p>When you do, expect the pain to concentrate. It never spreads politely and evenly. Most of your hidden cost and most of your design opportunity will pile up in one or two offices, not all four. In my experience the most underbuilt office is almost always Talent, because it is where the old playbook is stickiest, where "we will just hire another person" is still the reflex answer to every problem, and where the data underneath is thinnest. Talent is also where reading the office right changes the math on everything else, because Talent is where you quietly decide how many humans the rest of the company actually needs.</p>
+
+  <h2>The Floor: One Central Database</h2>
+
+  <p>Here is the part that is not optional and is not a detail you can delegate away. Underneath all four offices there has to be one central database. One organized place the whole company reads from and writes to. No central database, no organized information, no leverage. It is the floor the entire structure stands on, and if you skip it, everything above it falls through, slowly, and then all at once.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 10.2</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">FOUR OFFICES, ONE FLOOR</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="126" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">A LENS FOR READING THE WHOLE COMPANY</text>
+      <g stroke="#1F2937" stroke-width="2" fill="none"><rect x="110" y="170" width="150" height="90"/><rect x="280" y="170" width="150" height="90"/><rect x="450" y="170" width="150" height="90"/><rect x="620" y="170" width="150" height="90"/></g>
+      <g font-size="15" letter-spacing="1" fill="#1F2937" text-anchor="middle"><text x="185" y="222">REVENUE</text><text x="355" y="222">OPERATIONS</text><text x="525" y="222">TALENT</text><text x="695" y="222">INNOVATION</text></g>
+      <text x="525" y="284" font-size="10" letter-spacing="1" fill="#5B6472" text-anchor="middle">MOST UNDERBUILT</text>
+      <g stroke="#1F2937" stroke-width="1.5"><line x1="185" y1="260" x2="185" y2="360"/><line x1="355" y1="260" x2="355" y2="360"/><line x1="525" y1="290" x2="525" y2="360"/><line x1="695" y1="260" x2="695" y2="360"/></g>
+      <rect x="110" y="360" width="660" height="80" fill="none" stroke="#E4572E" stroke-width="3"/>
+      <text x="440" y="398" font-size="18" letter-spacing="2" fill="#E4572E" text-anchor="middle">ONE CENTRAL DATABASE</text>
+      <text x="440" y="422" font-size="11" letter-spacing="2" fill="#E4572E" text-anchor="middle">THE FLOOR EVERY OFFICE READS FROM</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">NO CENTRAL FLOOR, NO ORGANIZED INFORMATION, NO LEVERAGE.</text>
+    </svg>
+  </figure>
+
+  <p>This is the organizing-information skill at company scale, and it is where most transformations quietly die of neglect. The four offices can be beautifully mapped, the workflows can be perfectly designed, and none of it runs if the information an agent needs is scattered across inboxes, chat threads, and the three people who happen to know. You cannot point an agent at a mess. Building the floor, one organized, connected place the company's knowledge lives, is the unglamorous work that makes everything above it possible. Remember the Stanford finding: the data does not have to be perfect. It has to be stored, connected, and reachable. Store everything, connect it, and let the models help with the cleaning. But it does have to exist as a floor, and building that floor is the chief executive's job to insist on, because no one below you has the authority to mandate it, and no one below you will build it out of the goodness of their heart.</p>
+
+  <h2>Audit Before You Hire</h2>
+
+  <p>Now the callback to chapter two, and the answer to the Chief of Staff question. Before you hire anyone to solve your AI problem, audit. Read your four offices, build your floor, and look at your own org chart with one specific question in mind: how many AI agents are on it?</p>
+
+  <p>For almost every company, the honest answer is zero. Every team is staffed entirely with humans, standing on no shared floor. That empty space where the agents should be, on every team, is the second half of the job, unstaffed and unnoticed. You do not fix it by hiring a human to stand in front of the empty space and gesture at it reassuringly. You fix it by designing the workflows, building the floor, and pointing agents at the outcomes.</p>
+
+  <p>And when you do hire, the audit tells you exactly who you need, so you buy the capability your structure actually calls for instead of the one a job board happens to advertise. You need one of two roles, and they are different. You need AI Officers to run the program: people who own the offices, the design questions, and the central database, the second half of leadership turned into an actual job. And you need AI Engineers to build it: people who turn the designs into working systems and ship the concrete units of value you measure against. Hire either one before the audit and you are backfilling a seat your new structure may no longer need. Hire after, and you are staffing the exact gap, on purpose, for once.</p>
+
+  <h2>Leverage Becomes a Number</h2>
+
+  <p>Here is how you know the second half is working, and it is the same test at every altitude, now applied to the whole company. Leverage is a number, not a vibe. You know it is real when concrete units of value ship into the world, features, deliverables, things that exist that did not exist yesterday, measured against goals you named. The right question is never "do we have AI." Of course you have AI, everyone has AI. The question is "what shipped this week that would not have shipped without it, and did it move a goal we already set."</p>
+
+  <p>I will give you the number from my own company, and I want to be careful with it, because the easy version of this story is a lie. Edge8 is about twenty percent smaller in 2026 than it was. That is mostly attrition, and I am not proud of it. People left on their own; I only actually let two go. Over the same window, revenue is up about sixty percent since January. A fifth fewer people, sixty percent more revenue, and the two lines started together in January and fanned apart from there. Revenue per person roughly doubled.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 10.3</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">LEVERAGE, ON A P&amp;L</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="440" y="118" font-size="12" letter-spacing="2" fill="#5B6472" text-anchor="middle">INDEXED TO JANUARY 2026 = 100</text>
+      <line x1="150" y1="150" x2="150" y2="500" stroke="#1F2937" stroke-width="1.5"/>
+      <line x1="150" y1="500" x2="770" y2="500" stroke="#1F2937" stroke-width="1.5"/>
+      <line x1="150" y1="360" x2="770" y2="360" stroke="#1F2937" stroke-width="1" stroke-dasharray="2 6"/>
+      <text x="140" y="364" font-size="11" fill="#5B6472" text-anchor="end">100</text>
+      <polyline points="180,360 290,330 400,294 510,255 620,216 730,180" fill="none" stroke="#E4572E" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="730" cy="180" r="6" fill="#E4572E"/>
+      <text x="744" y="176" font-size="13" letter-spacing="1" fill="#E4572E">REVENUE</text><text x="744" y="194" font-size="12" letter-spacing="1" fill="#E4572E">UP 60%</text>
+      <polyline points="180,360 290,372 400,384 510,396 620,408 730,420" fill="none" stroke="#1F2937" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="730" cy="420" r="6" fill="#1F2937"/>
+      <text x="744" y="416" font-size="13" letter-spacing="1" fill="#1F2937">HEADCOUNT</text><text x="744" y="434" font-size="12" letter-spacing="1" fill="#1F2937">DOWN 20%</text>
+      <g stroke="#E4572E" stroke-width="1.5" fill="none"><path d="M 690 180 L 678 180 M 678 180 L 678 420 M 690 420 L 678 420"/></g>
+      <text x="664" y="296" font-size="11" letter-spacing="1" fill="#E4572E" text-anchor="end">REVENUE PER</text><text x="664" y="312" font-size="11" letter-spacing="1" fill="#E4572E" text-anchor="end">PERSON ~2&#215;</text>
+      <g font-size="11" fill="#1F2937" text-anchor="middle"><text x="180" y="522">JAN</text><text x="400" y="522">MAR</text><text x="620" y="522">MAY</text><text x="730" y="522">JUN</text></g>
+      <text x="440" y="588" font-size="10" letter-spacing="2" fill="#5B6472" text-anchor="middle">SOURCE: EDGE8. ILLUSTRATIVE PATH; ENDPOINTS REPORTED.</text>
+      <text x="440" y="614" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">FEWER PEOPLE, MORE REVENUE. THAT GAP IS LEVERAGE.</text>
+    </svg>
+  </figure>
+
+  <p>I did not cut headcount to juice a margin, and I would not recommend that to anyone as a strategy. What happened is that as people left, I did not reflexively backfill every seat one for one out of habit. AI absorbed the work, the structure held, and the business grew anyway. That distance between fewer people and far more revenue is what the second half of leadership looks like on a profit and loss statement.</p>
+
+  <p>Which brings me to the caution that matters most, because it is the one leaders get wrong with great enthusiasm. Leverage is not cost-cutting. The expense lever exists to fund the revenue lever. You free time and capacity from operations in order to spend it on the Innovation office and the next thing worth building, the hard, uncertain work that established companies chronically neglect and where real growth actually lives. Redeploy the freed capacity into innovation, or you have simply bought yourself a smaller company that still stagnates, which is a strange thing to celebrate. The point of the leverage was never to be smaller. It was to aim your scarce human judgment at the work that grows the business, and let the machine carry the rest without resentment.</p>
+
+  <h2>Your Turn</h2>
+
+  <p>Do the One-Page Company Read. Four offices, four questions each, sixteen honest answers, one circled bottleneck. That single page is the highest-altitude version of the same document your newest coordinator makes for their own work, and it starts the same way everything in this book starts. With a workflow, made visible.</p>
+
+  <p>One skill, and you have now seen it at all three altitudes: the coordinator's corner, the team leader's function, and your own company. It never changed its nature, only its scope. And at every height, it begins smaller than any of this sounds. One workflow. That is the close.</p>
+
+  <div class="chap-foot">
+    <span class="meta">End of Chapter Ten &nbsp;&middot;&nbsp; End of Part III</span>
+    <span class="meta" style="color:var(--accent)">Close &middot; Monday</span>
+  </div>
+</article>
+
+<!-- ============ CLOSE ============ -->
+<article class="page opener newpage" id="close">
+  <p class="part-label" style="color:var(--ink-soft)">Close</p>
+  <h1 class="title">Monday</h1>
+
+  <p class="lead">The sequence is not complicated. It just takes discipline, and discipline is a lot easier when the first step is small enough to actually take before lunch. So here is your next month, one week at a time, on the real workflow you have been dragging along since chapter three.</p>
+
+  <p><strong>Week one: make it visible.</strong> Take your one workflow and document it in the seven elements. Trigger, Inputs, Decision, Routing, Output, Delivery, Measurement. Then run the New Hire Test on it: could someone brand new execute it from what you wrote? Wherever they would get stuck is where your work was invisible. Fix those spots. By Friday you have something almost no company in that MIT study had: a real process, actually written down, in one place, that survives you being on a plane.</p>
+
+  <p><strong>Week two: put the judgment and the line in.</strong> Name the framework that belongs in your Decision box, and write the sentence: at the Decision step, we apply this to choose that. Then draw the human line through all seven boxes, Human, Machine, or Human checks machine. Count the human tokens the workflow needs today, and the number it needs with the line drawn well. That delta is your business case, and it fits on a sticky note.</p>
+
+  <p><strong>Week three: build to the right rung.</strong> Decide, from the value and the token delta, how high to climb. For most workflows that is rung one or rung two, packaged or wired. Build that. Do not reach for the top of the ladder to impress anyone, least of all yourself. Build the rung the workflow's value earns, and get it actually running.</p>
+
+  <p><strong>Week four: measure, then do the next one.</strong> Check your Measurement box. Did the workflow move the number? Write down what shipped that would not have shipped without it. Then pick your second workflow and start again at week one. Because that is the whole thing: not one heroic transformation with a launch party, but one workflow at a time, each visible, each measured, quietly compounding.</p>
+
+  <figure class="plate">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" font-family="Menlo, Consolas, 'Courier New', monospace">
+      <rect x="0" y="0" width="880" height="660" fill="#ffffff"/>
+      <rect x="24" y="24" width="832" height="612" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="48" y="62" font-size="14" letter-spacing="3" fill="#1F2937">FIG. 12.1</text>
+      <text x="832" y="62" font-size="14" letter-spacing="3" fill="#1F2937" text-anchor="end">MONDAY, AND THE NEXT FOUR WEEKS</text>
+      <line x1="48" y1="76" x2="832" y2="76" stroke="#1F2937" stroke-width="1"/>
+      <text x="72" y="300" font-size="15" letter-spacing="2" fill="#E4572E">MONDAY</text>
+      <line x1="150" y1="290" x2="180" y2="290" stroke="#1F2937" stroke-width="1.75"/><path d="M 172 284 L 182 290 L 172 296" fill="none" stroke="#1F2937" stroke-width="1.75"/>
+      <g stroke="#1F2937" stroke-width="2" fill="none"><rect x="190" y="250" width="146" height="90"/><rect x="368" y="250" width="146" height="90"/><rect x="546" y="250" width="146" height="90"/><rect x="724" y="250" width="110" height="90"/></g>
+      <g stroke="#1F2937" stroke-width="1.75" fill="none"><line x1="336" y1="295" x2="368" y2="295"/><path d="M 360 289 L 370 295 L 360 301"/><line x1="514" y1="295" x2="546" y2="295"/><path d="M 538 289 L 548 295 L 538 301"/><line x1="692" y1="295" x2="724" y2="295"/><path d="M 716 289 L 726 295 L 716 301"/></g>
+      <g text-anchor="middle">
+        <text x="263" y="280" font-size="12" letter-spacing="2" fill="#E4572E">WEEK 1</text><text x="263" y="304" font-size="13" letter-spacing="1" fill="#1F2937">MAKE IT</text><text x="263" y="322" font-size="13" letter-spacing="1" fill="#1F2937">VISIBLE</text>
+        <text x="441" y="280" font-size="12" letter-spacing="2" fill="#5B6472">WEEK 2</text><text x="441" y="304" font-size="13" letter-spacing="1" fill="#1F2937">JUDGMENT</text><text x="441" y="322" font-size="13" letter-spacing="1" fill="#1F2937">AND THE LINE</text>
+        <text x="619" y="280" font-size="12" letter-spacing="2" fill="#5B6472">WEEK 3</text><text x="619" y="304" font-size="13" letter-spacing="1" fill="#1F2937">BUILD THE</text><text x="619" y="322" font-size="13" letter-spacing="1" fill="#1F2937">RIGHT RUNG</text>
+        <text x="779" y="280" font-size="12" letter-spacing="2" fill="#5B6472">WEEK 4</text><text x="779" y="304" font-size="13" letter-spacing="1" fill="#1F2937">MEASURE,</text><text x="779" y="322" font-size="13" letter-spacing="1" fill="#1F2937">THEN NEXT</text>
+      </g>
+      <path d="M 779 340 L 779 400 L 263 400 L 263 342" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <path d="M 257 352 L 263 340 L 269 352" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+      <text x="521" y="424" font-size="11" letter-spacing="2" fill="#5B6472" text-anchor="middle">THEN PICK THE NEXT WORKFLOW AND BEGIN AGAIN</text>
+      <text x="440" y="616" font-size="13" letter-spacing="2" fill="#1F2937" text-anchor="middle">ONE WORKFLOW AT A TIME, QUIETLY COMPOUNDING.</text>
+    </svg>
+  </figure>
+
+  <p>Let me end where I started, with the doubling, and with a little warmth about it. The first half of leadership still matters most. Hiring well, setting direction, building a culture people do not flee, holding people accountable: none of that got automated, and none of it should. You have spent a career getting good at it. Keep going.</p>
+
+  <p>This book was about the other half. The half nobody trained you for, that arrived without a manual, that the smartest and best-funded leaders in the world are visibly, expensively lost inside. It turns out that half is not magic and it is not for engineers only. It is a craft, made of three learnable skills, held up by one keystone: the ability to look at any piece of work and see the flow underneath it. Trigger, inputs, decision, routing, output, delivery, measurement. Once you can see that, you can direct AI, at any altitude, on any work, and you can recognize it in the people who work for you.</p>
+
+  <p>You do not have to be technical. You do not have to be young. You do not have to reorganize anything or spend another dollar on tools that come with a lanyard. You have to pick one workflow and make it visible. That is the entire beginning, and the beginning is available to you the moment you put this book down.</p>
+
+  <p>So put it down, and go find your workflow.</p>
+
+  <aside class="coach">
+    <p class="coach-label">The workbook coach</p>
+    <p class="coach-body">Want company for the four weeks? The same prompt walks you back through every chapter's exercise on your real workflow, one at a time, and hands you a finished playbook at the end.</p>
+    <p class="coach-link">Start at <a href="https://www.ai-officer.com/workbook">ai-officer.com/workbook</a></p>
+  </aside>
+
+  <h2>Where to Go Next</h2>
+
+  <p>Three moves, and as the founder you may make all three. They run in order of commitment.</p>
+
+  <p><strong>Feel the skill yourself, this week.</strong> Take your own most nagging business problem to our diagnostic. Describe the pain point in plain language and it will match you to the proven frameworks that solve it and hand you a ready-to-run AI workflow built on exactly the method in this book. It is free and it takes a few minutes, and it is the fastest way to feel the thing work before you ask anyone else to build it. Do it once and you will lead the next two moves from experience instead of from a slide.</p>
+
+  <p><strong>Build the craft into your company.</strong> The skill has to live at every altitude, and that does not happen by accident or osmosis. The AI Officer certification at the AI Officer Institute is where your people learn the ladder rung by rung, all the way to shipping real production software they direct and AI writes. This book is the map you hand them. The certification is the climb. It is how you turn workflow design from a thing you understand into a capability your company owns.</p>
+
+  <p><strong>Rebuild the structure underneath.</strong> When you are ready to stop buying tools and start building the second half, we run the audit that reads your four offices and lays the central data floor before you spend another dollar on headcount, and we staff the AI Officers and AI Engineers who make the second half of leadership real inside your company. Not seats for the sake of seats. The specific capability your structure is missing.</p>
+
+  <p>Wherever you begin, begin small. One workflow, made visible, this week. The rest compounds from there.</p>
+
+  <div class="end-mark">
+    <div class="em-rule"></div>
+    <span class="meta">The Other 50% &nbsp;&middot;&nbsp; Field Guide Edition</span>
+  </div>
+</article>
+
+<!-- ============ APPENDIX ============ -->
+<article class="page opener newpage" id="appendix">
+  <p class="part-label" style="color:var(--ink-soft)">Appendix</p>
+  <h1 class="title">The Reference Shelf</h1>
+
+  <p class="lead">The fun part is over. This is the reference shelf: the templates you fill in, the framework cards you steal from, and the sources you check before you quote me in a board meeting.</p>
+
+  <h2>A1 &middot; The Seven-Element Workflow Template</h2>
+
+  <p>Copy this and fill it in for any workflow. Write the ugly first draft. Question marks are welcome; they mark the invisible parts, which are the whole reason you are here.</p>
+
+  <p><strong>Workflow name:</strong> When <span class="fill">_______</span> happens, we turn it into <span class="fill">_______</span>.</p>
+
+  <table class="tpl">
+    <thead><tr><th style="width:22%">Element</th><th style="width:40%">Question</th><th style="width:20%">Your answer</th><th style="width:18%">H / M / H-checks-M</th></tr></thead>
+    <tbody>
+      <tr><td>1. Trigger</td><td>What starts this?</td><td></td><td></td></tr>
+      <tr><td>2. Inputs</td><td>What information does it need, and where does that live?</td><td></td><td></td></tr>
+      <tr><td>3. Decision</td><td>What judgment gets made? Which framework fills it?</td><td></td><td></td></tr>
+      <tr><td>4. Routing</td><td>Based on the decision, where does the work go next?</td><td></td><td></td></tr>
+      <tr><td>5. Output</td><td>What concrete thing gets produced?</td><td></td><td></td></tr>
+      <tr><td>6. Delivery</td><td>How and where does the output land?</td><td></td><td></td></tr>
+      <tr><td>7. Measurement</td><td>What number tells you it worked?</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Human tokens today:</strong> <span class="fill">____</span> &nbsp; <strong>With the line drawn well:</strong> <span class="fill">____</span> &nbsp; <strong>Delta (your business case):</strong> <span class="fill">____</span></p>
+
+  <p><strong>New Hire Test:</strong> could a brand-new person run this from the above? If not, which box would stop them? <span class="fill">____________</span></p>
+
+  <h2>A2 &middot; The 5D Program Brief Template</h2>
+
+  <p>One page. Fill this in before you build anything past a paper design, so future-you knows why present-you did it.</p>
+
+  <ol>
+    <li><strong>Define.</strong> The problem in one sentence, and what success looks like.</li>
+    <li><strong>Datasources.</strong> What information this needs, and where it lives.</li>
+    <li><strong>Diagram.</strong> The workflow (your seven elements above are your diagram).</li>
+    <li><strong>Determine return on investment.</strong> The value, honestly counted: your human-token delta plus any revenue gained or cost removed.</li>
+    <li><strong>Deployment.</strong> Which rung of the ladder, who owns it, and where the human stays in the loop.</li>
+  </ol>
+
+  <p><strong>The ladder, for the Deployment line:</strong> (1) Packaged AI, a tool a teammate can run. (2) Wired workflow, runs when you are not watching. (3) Decisions, classify, route, respond. (4) Agent, goal plus guardrails plus a loop. (5) Production, real code, real database, unattended. Most workflows should stop at rung one or two. Climb to four or five only when volume and value clearly earn it, not because rung five sounds better at a dinner party.</p>
+
+  <h2>A3 &middot; Framework-to-Workflow Index</h2>
+
+  <p>Ten frameworks from the catalog behind our diagnostic, each shown as a workflow component. There are more than a hundred in the full catalog; describe your pain point to the diagnostic and it will name the right one and wire it for you, no memorization required.</p>
+
+  <div class="fw">
+    <h4>1. GROW Model (Goal, Reality, Options, Way Forward)</h4>
+    <p><strong>Decides:</strong> how to structure a coaching conversation with a direct report. <strong>Trigger:</strong> a scheduled one-on-one. <strong>Output:</strong> a tailored set of coaching questions.</p>
+    <p class="inst">"Here is my direct report's role, recent goals, and how they work best. Using the GROW model, draft five coaching questions for our one-on-one that move from goal to reality to options to a committed next step."</p>
+  </div>
+  <div class="fw">
+    <h4>2. ADKAR Change Management (Awareness, Desire, Knowledge, Ability, Reinforcement)</h4>
+    <p><strong>Decides:</strong> how to move people through a specific change. <strong>Trigger:</strong> the decision to roll out a new tool, process, or structure. <strong>Output:</strong> a stage-by-stage change plan with drafted communications.</p>
+    <p class="inst">"Here is the change and the people it affects. Using ADKAR, map who is likely to resist, then draft the communications for each stage: awareness, desire, knowledge, ability, reinforcement."</p>
+  </div>
+  <div class="fw">
+    <h4>3. AIDA (Attention, Interest, Desire, Action)</h4>
+    <p><strong>Decides:</strong> how to structure persuasive copy that moves a stranger to act. <strong>Trigger:</strong> a new campaign, landing page, or email brief. <strong>Output:</strong> a first draft that moves through attention, interest, desire, and action.</p>
+    <p class="inst">"Here is the product, the audience, and examples of our best past copy. Using AIDA, draft a landing page that moves the reader from attention to interest to desire to action."</p>
+  </div>
+  <div class="fw">
+    <h4>4. SCQA (Situation, Complication, Question, Answer)</h4>
+    <p><strong>Decides:</strong> how to frame a message so a busy executive can act on it. <strong>Trigger:</strong> an executive memo or strategy update. <strong>Output:</strong> a structured message with context, complication, question, and answer.</p>
+    <p class="inst">"Here is what I need to communicate to leadership. Using SCQA, structure it: set the situation, name the complication, frame the key question, and deliver the answer up front."</p>
+  </div>
+  <div class="fw">
+    <h4>5. RICE Prioritization (Reach, Impact, Confidence, Effort)</h4>
+    <p><strong>Decides:</strong> which initiatives make the roadmap. <strong>Trigger:</strong> a prioritization or roadmap decision. <strong>Output:</strong> a scored, ranked list of initiatives.</p>
+    <p class="inst">"Here is my list of possible initiatives. Score each one with RICE, on reach, impact, confidence, and effort, then rank them and show your reasoning."</p>
+  </div>
+  <div class="fw">
+    <h4>6. RACI Matrix (Responsible, Accountable, Consulted, Informed)</h4>
+    <p><strong>Decides:</strong> who owns what on a cross-functional effort. <strong>Trigger:</strong> the start of a project with unclear roles. <strong>Output:</strong> a matrix assigning each task an owner and the surrounding roles.</p>
+    <p class="inst">"Here are the tasks and people on this project. Build a RACI matrix marking who is responsible, accountable, consulted, and informed for each task, and flag any task with no clear accountable owner."</p>
+  </div>
+  <div class="fw">
+    <h4>7. SWOT Analysis (Strengths, Weaknesses, Opportunities, Threats)</h4>
+    <p><strong>Decides:</strong> a fast strategic read before a decision. <strong>Trigger:</strong> any significant decision needing a quick landscape scan. <strong>Output:</strong> a four-quadrant assessment.</p>
+    <p class="inst">"Here is the decision and our situation. Run a SWOT analysis: strengths, weaknesses, opportunities, threats, and end with the one move the analysis most supports."</p>
+  </div>
+  <div class="fw">
+    <h4>8. OKRs (Objectives and Key Results)</h4>
+    <p><strong>Decides:</strong> how to turn a strategy into measurable quarterly goals. <strong>Trigger:</strong> quarterly planning or team alignment. <strong>Output:</strong> an objective with three or four measurable key results, cascaded across levels.</p>
+    <p class="inst">"Here is our strategy for the quarter. Draft one clear objective and three to four measurable key results, then cascade them from company to team to individual."</p>
+  </div>
+  <div class="fw">
+    <h4>9. PAS (Problem, Agitate, Solution)</h4>
+    <p><strong>Decides:</strong> how to structure pain-point marketing that sells. <strong>Trigger:</strong> a blog post, product launch, or sales page aimed at a known pain. <strong>Output:</strong> copy that names a problem, intensifies it, and presents the solution.</p>
+    <p class="inst">"Here is the customer pain and our product. Using PAS, write copy that names the problem, agitates it honestly, and presents our solution as the resolution."</p>
+  </div>
+  <div class="fw">
+    <h4>10. RFM Analysis (Recency, Frequency, Monetary value)</h4>
+    <p><strong>Decides:</strong> how to segment customers for targeted action. <strong>Trigger:</strong> a segmentation, retention, or targeted-marketing effort. <strong>Output:</strong> customer segments scored by how recently, how often, and how much they buy.</p>
+    <p class="inst">"Here is our customer purchase data. Segment customers using RFM, on recency, frequency, and monetary value, then tell me which segment to prioritize for retention and why."</p>
+  </div>
+
+  <h2>A4 &middot; Sources and Further Reading</h2>
+
+  <p>Verify every figure against its primary source before print. Numbers age, and a founder who quotes a stale statistic in a board meeting has a bad afternoon.</p>
+
+  <p class="src"><strong>MIT NANDA, "The GenAI Divide: State of AI in Business 2025"</strong> (July 2025). The 95 percent finding. Coverage: Fortune, August 18, 2025.</p>
+  <p class="src"><strong>Stanford Digital Economy Lab, "The Enterprise AI Playbook: Lessons from 51 Successful Deployments,"</strong> Pereira, Graylin, and Brynjolfsson (2026). The 77 percent finding on process, data, and change management.</p>
+  <p class="src"><strong>PwC 29th Annual Global CEO Survey</strong> (2026). The 56 percent seeing no return; "forgetting the basics." Coverage: Fortune, January 19, 2026.</p>
+  <p class="src"><strong>Chamath Palihapitiya, All-In Podcast</strong> (July 2026) and CNBC Squawk Box (July 14, 2026). The 0 to 2 percent of S&amp;P 493 earnings growth from AI productivity. Confirm exact quote and episode number from the transcript.</p>
+  <p class="src"><strong>EY</strong> (November 2025). Only 31 percent of executives say leadership has sufficient AI skill; up to 40 percent of productivity gains missed on talent-strategy gaps.</p>
+  <p class="src"><strong>Gartner</strong> (April 2026). 80 percent of chief executives expect AI to force operational overhauls.</p>
+  <p class="src"><strong>Fair Play Talks</strong> (May 2026). 70 percent of workers ready for AI versus 39 percent of leaders who think so.</p>
+  <p class="src"><strong>Chief of Staff Network,</strong> "The State of Chief of Staff Jobs" (2024). Role up roughly 30 percent since 2019.</p>
+  <p class="src"><strong>Recruiting From Scratch</strong> (2026). Median Chief of Staff pay near $185K; role opening before 50 employees.</p>
+  <p class="src"><strong>Stealth Agents</strong> (2026). All-in first-year Chief of Staff cost of $280K to $360K.</p>
+  <p class="src"><strong>Wharton, "Accountable Acceleration"</strong> (2026). 75 percent self-report positive AI ROI; useful counterweight to acknowledge honestly.</p>
+  <p class="src"><strong>Dave Hajdu, "The Other 50% of Leadership,"</strong> Edge8 (June 2026). The essay this book expands.</p>
+  <p class="src"><strong>Edge8 Workflow Design Method,</strong> edge8.ai/workflows/method. The 5D brief, seven elements, Centaur Map, New Hire Test, and the prototype, pilot, production gates.</p>
+
+  <div class="end-mark">
+    <div class="em-rule"></div>
+    <span class="meta">End of the Appendix</span>
+  </div>
+</article>
+
+<hr class="rule-dot">
+
+<!-- ============ ABOUT THE AUTHORS ============ -->
+<article class="page opener newpage" id="authors">
+  <p class="part-label" style="color:var(--ink-soft)">About the Authors</p>
+  <h1 class="title">The Three Behind the Book</h1>
+
+  <p class="lead">One founder's hard-won method, a talent operator who lives in the Talent office, and a professor to keep the claims honest.</p>
+
+  <div class="bio">
+    <h3>Dave Hajdu</h3>
+    <p class="role">Founder &middot; AI Officer Institute</p>
+    <p>Dave Hajdu founded the AI Officer Institute and wrote the method this book is built on. He started as a data analyst at Microsoft in 1999, where he learned the lesson he has been repeating ever since: it is almost never an AI problem, it is a data problem. He went on to build companies including Vinasource and to co-found TINYpulse, later acquired by WebMD. He founded the Entrepreneurs' Organization chapter in Vietnam and serves as its Southeast Asia Area Director. The first-person voice in this book, and the honest numbers from Edge8, are his.</p>
+  </div>
+
+  <div class="bio">
+    <h3>David Nilssen</h3>
+    <p class="role">Founder and Chief Executive &middot; DOXA Talent</p>
+    <p>David Nilssen is the founder and chief executive of DOXA Talent, where he helps companies build distributed teams across six countries. He co-founded Guidant Financial, which has helped more than thirty thousand entrepreneurs secure over seven billion dollars in funding, and he was named National Young Entrepreneur of the Year by the United States Small Business Administration. He serves on the global board of the Entrepreneurs' Organization. His work on how companies actually staff and structure themselves runs underneath the Talent office in this book.</p>
+  </div>
+
+  <div class="bio">
+    <h3>Brooks C. Holtom, PhD</h3>
+    <p class="role">Professor of Management &middot; Georgetown University McDonough School of Business</p>
+    <p>Dr. Brooks C. Holtom is a professor of management at Georgetown University's McDonough School of Business, where his research on how organizations develop human and social capital has been cited alongside the work of scholars such as Michael Porter and Peter Senge. He holds a PhD from the University of Washington and has advised organizations including the World Bank and the United States Air Force. He brings the evidence base to a book that is otherwise one founder's strong opinions, and keeps the claims honest.</p>
+  </div>
+
+  <div class="end-mark">
+    <div class="em-rule"></div>
+    <span class="meta">End of Field Guide</span>
+  </div>
+</article>
+
+</main>
+
+</body>
+</html>
