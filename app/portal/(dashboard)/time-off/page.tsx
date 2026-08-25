@@ -1,5 +1,11 @@
 import { requirePortalMember } from "@/lib/portal-auth";
-import { getAssignedTimeOff, type PortalTimeOffEntry } from "@/lib/portal/time-off";
+import {
+  getAssignedTimeOff,
+  getLeaveDecisionQueue,
+  isClientLeaveApprover,
+  type PortalTimeOffEntry,
+} from "@/lib/portal/time-off";
+import { DecisionQueue } from "./DecisionQueue";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { ViewToggle } from "@/components/admin/ViewToggle";
@@ -37,7 +43,14 @@ function dateRange(e: PortalTimeOffEntry): string {
 
 export default async function PortalTimeOffPage() {
   const actor = await requirePortalMember();
-  const entries = await getAssignedTimeOff(actor);
+  // isApprover is false for everyone not named as client manager on an active
+  // placement, which is how the decision section, and the reasons in it, stay
+  // invisible to the rest of the client team.
+  const [entries, decisionQueue, isApprover] = await Promise.all([
+    getAssignedTimeOff(actor),
+    getLeaveDecisionQueue(actor),
+    isClientLeaveApprover(actor),
+  ]);
 
   const today = new Date().toISOString().slice(0, 10);
   const outNow = entries.filter(
@@ -153,6 +166,7 @@ export default async function PortalTimeOffPage() {
   return (
     <>
       <PageHead eyebrow="Client Portal" title="Time Off" sub="Who's out, and when, on your team." />
+      {isApprover && <DecisionQueue requests={decisionQueue} />}
       <ViewToggle
         views={[
           { key: "calendar", label: "Calendar", content: calendarView },

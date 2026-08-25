@@ -79,6 +79,10 @@ export function AssignmentsBlock({
                     <Badge tone="neutral">Internal only</Badge>
                   )}
                 </div>
+                <div className="admin-list-sub">
+                  Leave approved by{" "}
+                  {a.client_manager_name ? `${a.client_manager_name} (client)` : "their Edge8 manager"}
+                </div>
               </div>
               <div className="admin-list-aside" style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <button

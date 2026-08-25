@@ -2,8 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createAssignment, endAssignment, setAssignmentVisibility } from "@/app/admin/(dashboard)/talent/team/assignment-actions";
-import { ASSIGNMENT_ROLES, type AssignmentForCompany, type TeamMemberOption } from "@/lib/admin/staff-assignments";
+import {
+  createAssignment,
+  endAssignment,
+  setAssignmentVisibility,
+  setAssignmentClientManager,
+} from "@/app/admin/(dashboard)/talent/team/assignment-actions";
+import {
+  ASSIGNMENT_ROLES,
+  type AssignmentForCompany,
+  type ClientContactOption,
+  type TeamMemberOption,
+} from "@/lib/admin/staff-assignments";
 import { Badge } from "@/components/admin/Badge";
 
 // "Assigned staff" card on the company 360 — who from Edge8 is dedicated to
@@ -12,10 +22,12 @@ export function AssignedStaffCard({
   companyId,
   assignments,
   teamMembers,
+  clientContacts,
 }: {
   companyId: string;
   assignments: AssignmentForCompany[];
   teamMembers: TeamMemberOption[];
+  clientContacts: ClientContactOption[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -45,6 +57,15 @@ export function AssignedStaffCard({
     setMsg(null);
     start(async () => {
       const res = await setAssignmentVisibility(id, next);
+      if (res.ok) router.refresh();
+      else setMsg(res.error);
+    });
+  }
+
+  function setClientManager(id: string, personId: string) {
+    setMsg(null);
+    start(async () => {
+      const res = await setAssignmentClientManager(id, personId || null);
       if (res.ok) router.refresh();
       else setMsg(res.error);
     });
@@ -81,6 +102,22 @@ export function AssignedStaffCard({
                 </div>
               </div>
               <div className="admin-list-aside staff-assign-actions">
+                <label className="admin-cell-muted" style={{ fontSize: 12 }}>
+                  Approves leave
+                  <select
+                    className="admin-input"
+                    style={{ marginLeft: 6, width: "auto", fontSize: 12, padding: "4px 8px" }}
+                    value={a.client_manager_person_id ?? ""}
+                    disabled={pending}
+                    onChange={(e) => setClientManager(a.id, e.target.value)}
+                    title="Person at this client who approves this person's time off. Blank leaves it with their Edge8 manager."
+                  >
+                    <option value="">Edge8 manager</option>
+                    {clientContacts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
                 <button
                   className="admin-btn admin-btn--sm"
                   disabled={pending}

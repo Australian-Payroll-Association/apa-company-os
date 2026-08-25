@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany360, getCompanyReferredBy } from "@/lib/admin/companies";
 import { getPortalMembershipsForCompany } from "@/lib/admin/portal";
-import { getAssignmentsForCompany, listActiveTeamMembers } from "@/lib/admin/staff-assignments";
+import {
+  getAssignmentsForCompany,
+  listActiveTeamMembers,
+  listClientContacts,
+} from "@/lib/admin/staff-assignments";
 import { getInvoicesForCompany } from "@/lib/admin/invoices";
 import { getMeetingsForCompany } from "@/lib/admin/meetings";
 import { getSurveyResponsesForCompany } from "@/lib/admin/surveys";
@@ -72,10 +76,12 @@ export default async function CompanyDetailPage({
 
   // ── Internal tabs ────────────────────────────────────────────────
   async function internalTabs(): Promise<TabDef[]> {
-    const [portalMemberships, assignments, assignableTeamMembers, referredBy, surveys] = await Promise.all([
+    const [portalMemberships, assignments, assignableTeamMembers, clientContacts, referredBy, surveys] =
+      await Promise.all([
       getPortalMembershipsForCompany(company.id),
       getAssignmentsForCompany(company.id),
       listActiveTeamMembers(),
+      listClientContacts(company.id),
       getCompanyReferredBy(company.id),
       getSurveyResponsesForCompany(company.id),
     ]);
@@ -177,7 +183,12 @@ export default async function CompanyDetailPage({
         label: "Staffing",
         count: assignments.length,
         content: (
-          <AssignedStaffCard companyId={company.id} assignments={assignments} teamMembers={assignableTeamMembers} />
+          <AssignedStaffCard
+            companyId={company.id}
+            assignments={assignments}
+            teamMembers={assignableTeamMembers}
+            clientContacts={clientContacts}
+          />
         ),
       },
       {
