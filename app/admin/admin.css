@@ -416,6 +416,8 @@ a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #
   margin-bottom: 22px;
   flex-wrap: wrap;
 }
+/* Row of controls in the page-head action slot (badge + Back-to button, etc.). */
+.admin-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .admin-eyebrow {
   font-size: 12px;
   text-transform: uppercase;
