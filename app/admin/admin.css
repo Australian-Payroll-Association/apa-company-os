@@ -3852,7 +3852,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 .coach-okr-line { padding: 2px 0; }
 .coach-okr-line.is-laddered { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); border-radius: 4px; padding-left: 4px; }
 .coach-okr-line .admin-badge { margin-left: 8px; }
-.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: start; }
 .edges-fast-person { border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
 /* /team/company-goals · Team member goals: title + By member/By objective toggle. */
 .cg-panel-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }

@@ -65,14 +65,18 @@ function formOf(g: CoachingGoal): FormState {
 
 const numOrNull = (s: string): number | null => (s.trim() === "" ? null : Number(s));
 
-// Same status tone + progress bar the member's own goal card uses, so the admin
-// view carries the same colour instead of a flat wall of grey.
+// Status pill only for the exceptions (achieved / draft / dropped); "active" is
+// the default and stays unlabelled so 21 cards don't repeat the same pill.
 function badgeTone(status: GoalStatus): string {
-  return status === "achieved" ? "admin-badge--ok" : status === "active" ? "admin-badge--info" : "admin-badge--warn";
+  return status === "achieved" ? "admin-badge--ok" : "admin-badge--warn";
 }
 
+// Progress start → target. Null when the numbers can't tell a truthful story:
+// no target/current, zero span, or a down-direction goal ("under 20 days")
+// with no recorded start, which would otherwise clamp to a full bar.
 function progressPct(g: CoachingGoal): number | null {
   if (g.targetValue === null || g.currentValue === null) return null;
+  if (g.startValue === null && g.currentValue > g.targetValue) return null;
   const from = g.startValue ?? 0;
   const span = g.targetValue - from;
   if (span === 0) return null;
@@ -230,13 +234,14 @@ export function IndividualGoalsEditor({
     <div>
       {banner && <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>{banner.text}</div>}
 
-      <div className="edges-fast-grid">
-        {members.map((m) => (
+      <section className="admin-card admin-section-card">
+        <div className="edges-fast-grid">
+          {members.map((m) => (
           <div key={m.teamMemberId} className="edges-fast-person">
             <div className="edges-fast-name edges-fast-name--action">
               <span>{m.name}</span>
               {addingFor !== m.teamMemberId && editingId === null && (
-                <button className="admin-btn admin-btn--sm" onClick={() => openAdd(m.teamMemberId)} disabled={pending}>
+                <button className="edges-minibtn" onClick={() => openAdd(m.teamMemberId)} disabled={pending}>
                   + Goal
                 </button>
               )}
@@ -261,25 +266,17 @@ export function IndividualGoalsEditor({
                   }, "Save goal")
                 ) : (
                   <>
-                    <div className="goals-card-head">
-                      <strong>{g.title}</strong>
-                      <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
-                    </div>
-                    {(() => {
-                      const pct = progressPct(g);
-                      return pct !== null ? (
-                        <div className="goals-bar" aria-label={`${pct}% of target`}>
-                          <span style={{ width: `${pct}%` }} />
-                        </div>
-                      ) : null;
-                    })()}
-                    <div className="admin-cell-muted">{g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}</div>
-                    <div className="admin-form-actions" style={{ marginTop: 6 }}>
-                      <button className="admin-btn admin-btn--sm" onClick={() => openEdit(g)} disabled={pending}>
+                    <div className="goals-card-head" style={{ gap: 6 }}>
+                      <strong style={{ fontSize: 13 }}>{g.title}</strong>
+                      {g.status !== "active" && (
+                        <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
+                      )}
+                      <span style={{ flex: 1 }} />
+                      <button className="edges-minibtn" onClick={() => openEdit(g)} disabled={pending}>
                         Edit
                       </button>
                       <button
-                        className="admin-btn admin-btn--sm"
+                        className="edges-minibtn"
                         onClick={() => {
                           if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
                         }}
@@ -288,13 +285,23 @@ export function IndividualGoalsEditor({
                         Delete
                       </button>
                     </div>
+                    {(() => {
+                      const pct = progressPct(g);
+                      return pct !== null ? (
+                        <div className="goals-bar" style={{ margin: "6px 0" }} aria-label={`${pct}% of target`}>
+                          <span style={{ width: `${pct}%` }} />
+                        </div>
+                      ) : null;
+                    })()}
+                    <div className="admin-cell-muted">{g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}</div>
                   </>
                 )}
               </div>
             ))}
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
