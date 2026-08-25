@@ -1,10 +1,15 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { companyOs } from "@/lib/supabase";
 import { STAGE_WON, STAGE_LOST, STAGE_NEUTRAL } from "@/lib/admin/stageColors";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
+import { BarChart } from "@/components/admin/charts/BarChart";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
+import { compactUsd, vsPrior, monthsThisYear, MS_DAY } from "@/lib/admin/dashboard-helpers";
+import { getSurveyScore } from "@/lib/admin/survey-scores";
+import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
 import { ACTIVE_LEAD_STATUSES } from "@/lib/lifecycle";
 import { CockpitDeals } from "./CockpitDeals";
 import type { DealCard } from "./deals/DealsBoard";
@@ -14,9 +19,28 @@ import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sales cockpit",
-  description: "The one screen for current leads, open pipeline, and what to do next.",
+  title: "Revenue cockpit",
+  description: "The Revenue office: revenue, marketing signals, and the sales command center.",
 };
+
+// Page views hit the external Vercel Analytics API, so this tile streams in its
+// own boundary rather than gating the DB-backed cockpit. getAnalyticsOverview
+// has a hard timeout, so a slow upstream degrades to "—".
+async function PageViewsTile() {
+  const analytics = await getAnalyticsOverview("30d");
+  const views = "error" in analytics ? null : analytics.totals.pageviews;
+  return (
+    <MetricCard
+      label="Page views · 30d"
+      value={views != null ? views.toLocaleString("en-US") : "—"}
+      sub="www.edge8.ai"
+      href="/admin/operations/analytics"
+    />
+  );
+}
+function PageViewsTileFallback() {
+  return <MetricCard label="Page views · 30d" value="…" sub="www.edge8.ai" href="/admin/operations/analytics" />;
+}
 
 // The Revenue office landing: a sales command center. Every open deal is checked
 // for the four things a rep needs to act — an owner, a value, a next step, and a
@@ -88,8 +112,22 @@ function dealGaps(d: DealRow): string[] {
   return gaps;
 }
 
+type InvoiceRow = { txn_date: string | null; amount_cents: number | null; status: string | null; entity: string };
+type OrderRow = { created_at: string; amount_usd_cents: number | null; status: string | null };
+type FunnelDealRow = { status: string | null; created_at: string; closed_at: string | null };
+type EmailEventRow = { resend_email_id: string | null; event_type: string | null };
+
 export default async function SalesCockpitPage() {
-  const nowIso = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const year = now.getUTCFullYear();
+  const yearStart = `${year}-01-01`;
+  const tomorrow = new Date(now.getTime() + MS_DAY).toISOString().slice(0, 10);
+  const date30 = new Date(now.getTime() - 30 * MS_DAY).toISOString().slice(0, 10);
+  const date365 = new Date(now.getTime() - 365 * MS_DAY).toISOString().slice(0, 10);
+  const iso30 = new Date(now.getTime() - 30 * MS_DAY).toISOString();
+  const iso60 = new Date(now.getTime() - 60 * MS_DAY).toISOString();
+  const iso90 = new Date(now.getTime() - 90 * MS_DAY).toISOString();
 
   let dealsQuery = companyOs
     .from("deals")
@@ -108,7 +146,21 @@ export default async function SalesCockpitPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const [stagesRes, dealsRes, leadsRes, inqRes, overdueRes, wonRes] = await Promise.all([
+  const [
+    stagesRes,
+    dealsRes,
+    leadsRes,
+    inqRes,
+    overdueRes,
+    wonRes,
+    invoicesRes,
+    ordersRes,
+    funnelDealsRes,
+    newLeadsRes,
+    inq30Res,
+    emailRes,
+    clientScore,
+  ] = await Promise.all([
     companyOs.from("pipeline_stages").select("id, name, is_won, is_lost").order("position"),
     dealsQuery,
     companyOs
@@ -134,6 +186,19 @@ export default async function SalesCockpitPage() {
       .is("archived_at", null)
       .gte("closed_at", "2026-01-01")
       .lt("closed_at", "2027-01-01"),
+    // Revenue = non-voided invoices by invoice date + paid Stripe orders, all USD.
+    companyOs.from("invoices").select("txn_date, amount_cents, status, entity").neq("status", "voided").limit(2000),
+    companyOs.from("orders").select("created_at, amount_usd_cents, status").limit(2000),
+    // All deals for the 30d funnel and 90d lead→won conversion.
+    companyOs.from("deals").select("status, created_at, closed_at").is("archived_at", null).limit(2000),
+    companyOs.from("lead").select("created_at").gte("created_at", iso90).limit(1000),
+    companyOs
+      .from("inquiries")
+      .select("id", { count: "exact", head: true })
+      .not("type", "in", NON_SALES_INQUIRY_TYPES)
+      .gte("created_at", iso30),
+    companyOs.from("email_events").select("resend_email_id, event_type").gte("occurred_at", iso30).limit(5000),
+    getSurveyScore("ai-capability-pulse"),
   ]);
 
   const stages = (stagesRes.data as Stage[] | null) ?? [];
@@ -156,6 +221,58 @@ export default async function SalesCockpitPage() {
     0,
   );
   const err = stagesRes.error || dealsRes.error || leadsRes.error || inqRes.error;
+
+  // ── Revenue office overview ──
+  const invoices = ((invoicesRes.data as InvoiceRow[] | null) ?? []).filter((i) => i.txn_date);
+  const paidOrders = ((ordersRes.data as OrderRow[] | null) ?? []).filter((o) => o.status === "paid");
+  const invoiceCash = (from: string, to: string, entity?: "edge8" | "aio") =>
+    invoices.reduce(
+      (s, i) => (i.txn_date! >= from && i.txn_date! < to && (!entity || i.entity === entity) ? s + (i.amount_cents ?? 0) : s),
+      0,
+    );
+  const stripeCash = (from: string, to: string) =>
+    paidOrders.reduce((s, o) => {
+      const d = o.created_at.slice(0, 10);
+      return d >= from && d < to ? s + (o.amount_usd_cents ?? 0) : s;
+    }, 0);
+  const cashBetween = (from: string, to: string) => invoiceCash(from, to) + stripeCash(from, to);
+
+  const revenue1yr = cashBetween(date365, tomorrow);
+  const revenue1yrPrev = cashBetween(
+    new Date(now.getTime() - 730 * MS_DAY).toISOString().slice(0, 10),
+    date365,
+  );
+  const revenueYtd = cashBetween(yearStart, tomorrow);
+  const entitySplit = (from: string, to: string) => (
+    <>
+      <div>Edge8 {compactUsd(invoiceCash(from, to, "edge8") + stripeCash(from, to))}</div>
+      <div>AIO {compactUsd(invoiceCash(from, to, "aio"))}</div>
+    </>
+  );
+  const revenueByMonth = monthsThisYear(now).map(({ label, from, to }) => ({ label, value: cashBetween(from, to) }));
+
+  const funnelDeals = (funnelDealsRes.data as FunnelDealRow[] | null) ?? [];
+  const newLeadDates = ((newLeadsRes.data as { created_at: string }[] | null) ?? []).map((l) => l.created_at);
+  const newLeads30 = newLeadDates.filter((d) => d >= iso30).length;
+  const newLeadsPrev30 = newLeadDates.filter((d) => d >= iso60 && d < iso30).length;
+  const funnel30 = [
+    { label: "Inquiries", value: inq30Res.count ?? 0 },
+    { label: "New leads", value: newLeads30 },
+    { label: "Deals opened", value: funnelDeals.filter((d) => d.created_at >= iso30).length },
+    { label: "Deals won", value: funnelDeals.filter((d) => d.status === "won" && d.closed_at && d.closed_at >= iso30).length },
+  ];
+
+  // Conversion (90d): won deals closed in-window over leads created in-window.
+  const leads90 = newLeadDates.filter((d) => d >= iso90).length;
+  const won90 = funnelDeals.filter((d) => d.status === "won" && d.closed_at && d.closed_at >= iso90).length;
+  const conversion90 = leads90 ? Math.round((won90 / leads90) * 1000) / 10 : 0;
+
+  // Email opens (30d): distinct emails opened, and open rate over delivered.
+  const emailEvents = (emailRes.data as EmailEventRow[] | null) ?? [];
+  const openedIds = new Set(emailEvents.filter((e) => e.event_type === "opened").map((e) => e.resend_email_id));
+  const deliveredIds = new Set(emailEvents.filter((e) => e.event_type === "delivered").map((e) => e.resend_email_id));
+  const emailsOpened = openedIds.size;
+  const openRate = deliveredIds.size ? Math.round((emailsOpened / deliveredIds.size) * 100) : null;
 
   const openPipeline = deals.reduce((s, d) => s + (d.amount_usd_cents ?? 0), 0);
   const needsAttention = deals
@@ -228,9 +345,9 @@ export default async function SalesCockpitPage() {
   return (
     <>
       <PageHead
-        eyebrow="Revenue"
-        title="Sales cockpit"
-        sub="Current leads, open pipeline, and everything missing a next move."
+        eyebrow="Four Offices · Revenue"
+        title="Revenue cockpit"
+        sub="Revenue, marketing signals, and the sales command center."
       />
       {err && (
         <div className="admin-alert admin-alert--err" style={{ marginBottom: 14 }}>
@@ -238,6 +355,44 @@ export default async function SalesCockpitPage() {
         </div>
       )}
 
+      {/* ── Revenue office overview ── */}
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard
+          label="Revenue · 1yr"
+          value={formatCents(revenue1yr)}
+          sub={vsPrior(revenue1yr, revenue1yrPrev, (n) => compactUsd(n))}
+        />
+        <MetricCard label="Revenue · YTD" value={formatCents(revenueYtd)} sub={entitySplit(yearStart, tomorrow)} />
+        <MetricCard label="New leads · 30d" value={newLeads30} sub={vsPrior(newLeads30, newLeadsPrev30)} href="/admin/revenue/leads" />
+        <Suspense fallback={<PageViewsTileFallback />}>
+          <PageViewsTile />
+        </Suspense>
+        <MetricCard
+          label="Emails opened · 30d"
+          value={emailsOpened}
+          sub={openRate != null ? `${openRate}% open rate` : "no email activity yet"}
+        />
+        <MetricCard label="Meetings booked · 7d" value="soon" sub="needs calendar integration" />
+        <MetricCard label="Conversion · 90d" value={`${conversion90}%`} sub="lead → won" />
+        <MetricCard
+          label="Client feedback"
+          value={clientScore.avg != null ? `${clientScore.avg} / ${clientScore.scale}` : "—"}
+          sub={clientScore.responses > 0 ? `AI capability pulse · ${clientScore.responses} responses` : "no responses yet"}
+        />
+      </div>
+      <div className="admin-summary-grid" style={{ marginBottom: 24 }}>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Revenue by month · {year}</div>
+          <BarChart data={revenueByMonth} ariaLabel="Revenue by month" formatValue={compactUsd} />
+        </div>
+        <div className="admin-card admin-chart-card">
+          <div className="mp-kpi-label">Pipeline flow · last 30 days</div>
+          <BarChart data={funnel30} ariaLabel="Pipeline flow over the last 30 days" emptyText="No pipeline activity in the last 30 days." />
+        </div>
+      </div>
+
+      {/* ── Sales command center ── */}
+      <div className="mp-kpi-label" style={{ margin: "0 0 12px" }}>Sales command center</div>
       <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
         <MetricCard label="Open pipeline" value={formatCents(openPipeline)} sub={`${deals.length} open deals`} href="/admin/revenue/deals" />
         <MetricCard label="Deals closed" value={formatCents(dealsClosed)} sub="won value, 2026" href="/admin/revenue/deals" />
