@@ -1,4 +1,4 @@
-# HANDOFF — Human Token Tracker to edge8 integration
+# HANDOFF: Human Token Tracker to edge8 integration
 
 **Written:** 2026-08-24. **Why:** the prior session was launched from the wrong repo
 (`aiolabz-fe`); restarting rooted in `edge8-web`. All work below targets **edge8 only** and
@@ -43,7 +43,7 @@ nothing ever touched aiolabz. Resume from here with zero re-derivation.
   (`components/admin/*`: PageHead, MetricCard, Badge+statusTone, DataTable, DetailDrawer, MoneyCell,
   BarChart, DonutChart); use `--admin-*` tokens; no raw hex/radius/shadow; Manrope only.
 - **CI ("green") = 3 things:** `npm run check:design` passes, `npm run check:crons` passes, and the
-  **Vercel preview build succeeds** (`next build` runs TS strict + eslint; that IS the typecheck —
+  **Vercel preview build succeeds** (`next build` runs TS strict + eslint; that IS the typecheck,
   there is no GitHub Actions typecheck/test job, and no `tsc`/`test` npm script). Reproduce locally:
   `npm run check:design && npm run check:crons && npm run build`. `authorship-guard.yml` is advisory
   only; still add `<!-- author: dhajdu dave@edge8.co -->` to the PR body for token attribution.
@@ -64,14 +64,14 @@ debits = tracked delivery. Group D kept, rolled up to the AI Program with per-re
 
 Deviations (flagged for Dave; details in the build plan):
 1. **Consolidated forward migration**, not a 45-file `public.`->`htt.` replay (safer, same end state).
-2. **Phase order 0, 2, 3, 1, 4** — token win first; the roadmap/board re-key (Phase 1, 30+ live
+2. **Phase order 0, 2, 3, 1, 4**, token win first; the roadmap/board re-key (Phase 1, 30+ live
    sites) is highest-risk and not required for the token DoD, so it is isolated last and done additively.
 3. **htt column renames:** client_id->company_id, team_member_id->person_id, project_id->repo_id;
    `created_by` (was auth.users uuid) -> text.
 4. The `tracker` schema + 4 burn/git-pull functions + `current_user_*`/`resolve_*` RLS helpers are
    NOT migrated in Phases 0-3 (ingestion-time; Phase 4). Portal computes from base tables directly.
 
-## Credits balance (open item C — DEFAULT IMPLEMENTED, confirm with Dave)
+## Credits balance (open item C: DEFAULT IMPLEMENTED, confirm with Dave)
 
 ```
 credits (Bought) = SUM(company_os.token_purchases.tokens WHERE status='paid')   -- Stripe, additive
@@ -86,7 +86,7 @@ company pool). Confirm this in the Phase 3 PR.
 
 ## Current state (per phase)
 
-- **Phase 0 — AUTHORED, NOT APPLIED.** Two migration files exist:
+- **Phase 0, AUTHORED, NOT APPLIED.** Two migration files exist:
   - `supabase/migrations/20260824120000_htt_phase0_company_os.sql` (companies.is_ai_program;
     ai_programs repo fields; company_github_orgs; people.github_login; person_git_emails).
   - `supabase/migrations/20260824120001_htt_phase0_schema.sql` (the `htt` schema: repos + 14
@@ -103,7 +103,7 @@ company pool). Confirm this in the Phase 3 PR.
     Then verify: introspect `htt` (15 tables) + the new company_os columns/tables via MCP; run
     `npm run check:design && npm run check:crons && npm run build`. Then open the PR (docs + both
     migration files are already committed on this branch).
-- **Phase 2 — NOT STARTED. The crux is the tracker->edge8 identity map.** Build a mapping:
+- **Phase 2, NOT STARTED. The crux is the tracker->edge8 identity map.** Build a mapping:
   tracker `clients`(5) -> `company_os.companies` (by name/domain), tracker `team_members`(14) ->
   `company_os.people` (by email/github_login), tracker `projects`(22 repos) -> create one
   `ai_programs` row + one `htt.repos` row each (join by github_repo). Then copy data into htt
@@ -111,20 +111,20 @@ company pool). Confirm this in the Phase 3 PR.
   token_allocations, 56 goals, 42 summaries, 20 client_identities, 14 contributor_aliases (->
   company_os.person_git_emails, source='discovered'). Copy identity-sequence tables (project_goals,
   token_allocations) ordered by original seq so "latest wins" is preserved.
-- **Phase 3 — NOT STARTED.** Extend the EXISTING `/portal/tokens`
+- **Phase 3, NOT STARTED.** Extend the EXISTING `/portal/tokens`
   (`app/portal/(dashboard)/tokens/page.tsx`, `lib/portal/tokens.ts` `getTokenBalance`) to
   Bought/Planned/Delivered/leverage, rolled up + per-AI-Program drill-down. Add `export const htt =
   supabase.schema("htt")` to `lib/supabase.ts`. Add the two intake questions (migrations for
   survey_fields + the onboarding post-submit handler in `lib/onboarding.ts`: github_login
-  normalization after ~:111, person_git_emails upsert after ~:173 — see recon/04). Add a "Tokens"
+  normalization after ~:111, person_git_emails upsert after ~:173, see recon/04). Add a "Tokens"
   nav item (`components/portal/PortalSidebar.tsx` NAV + layout entitlements). Reads go through
   `requirePortalMember()` + `companyOs`/`htt` service-role client scoped by `actor.companyScope`.
-- **Phase 1 — NOT STARTED (do last, additive, with tests).** Add `ai_program_id` to
+- **Phase 1, NOT STARTED (do last, additive, with tests).** Add `ai_program_id` to
   client_roadmap_overview/client_backlog_items/client_roadmap_groups (col `company_id`) and boards
-  (col **`client_company_id`** — the naming exception), backfill from a default AI Program per
+  (col **`client_company_id`**, the naming exception), backfill from a default AI Program per
   company, migrate ~30 read/write sites program-aware (enumerated in recon/03 section 5).
   Multi-program companies (Australian Payroll: Fair Pay + PayrollIQ) need a human split decision.
-- **Phase 4 — CODE + RUNBOOK ONLY; STOP before secrets/auth/deletion.** Port the 2 edge functions
+- **Phase 4, CODE + RUNBOOK ONLY; STOP before secrets/auth/deletion.** Port the 2 edge functions
   + cron routes to write edge8 `htt` via service role; repoint hardcoded `human-tokens.com` URLs +
   default telemetry repo (all sites in recon/06 section 4); build htt versions of
   resolve_contributor/resolve_team_member. Then WRITE A RUNBOOK for Dave for: re-creating ~6

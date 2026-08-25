@@ -1,4 +1,4 @@
-# edge8 `company_os` schema — DDL recon (HTT migration)
+# edge8 `company_os` schema: DDL recon (HTT migration)
 
 - **Project:** edge8, `project_id = wwchefrgkkxmhlkntufm`
 - **Schema:** `company_os`
@@ -10,9 +10,9 @@
 - **Two different FK column names link content to a company:**
   - `company_id` on `ai_programs`, `client_roadmap_overview`, `client_roadmap_groups`, `client_backlog_items`, `program_documents`, `program_plans` (via `ai_program`), `token_purchases`, `person_companies`, `portal_members`, `compensation` (via `team_member`).
   - **`client_company_id`** on `boards` (NOT `company_id`). This is the single naming exception among roadmap/backlog/board.
-- **All FK targets = `company_os.companies(id)`** (a `uuid`). `client_roadmap_overview` has **no `id`** — its PK **is** `company_id` (one overview row per company).
+- **All FK targets = `company_os.companies(id)`** (a `uuid`). `client_roadmap_overview` has **no `id`**, its PK **is** `company_id` (one overview row per company).
 - **`ai_programs` is NOT referenced by roadmap/backlog/boards.** Roadmap overview, roadmap groups, backlog items, and boards all hang off `companies` directly, not off `ai_programs`. Only `program_plans` and `program_documents` reference `ai_program_id`. So "the AI program" and "the roadmap/board" are linked only transitively through the shared `company_id`.
-- **No native enums/domains** in `company_os` — every constrained field is `text` + a `CHECK (... = ANY (ARRAY[...]))`.
+- **No native enums/domains** in `company_os`, every constrained field is `text` + a `CHECK (... = ANY (ARRAY[...]))`.
 - **Schema is entirely `service_role`-gated.** `authenticated` and `anon` have **no USAGE** on the schema and no table grants. RLS is ON for every table; policies exist only for bespoke `chatbot_*` roles, none for `authenticated`/`anon`/`service_role` (service_role bypasses RLS anyway). This matches the "RLS on, app-code gating" model.
 
 ## Row-count snapshot (current data)
@@ -43,13 +43,13 @@
 ```
 Links to a company via **`company_id`**. No `ai_program`-style column exists anywhere on roadmap/backlog/boards to point back at this row.
 
-**`client_roadmap_overview` (2 rows) — keyed by `company_id` (PK), no `id` column:**
+**`client_roadmap_overview` (2 rows), keyed by `company_id` (PK), no `id` column:**
 | company_id | body (excerpt) |
 |---|---|
 | `6dbb0ebf-ed3c-42c5-b3d8-a91e219cc432` | "Set up a company database in the 8 Edges…" |
 | `47ea790d-ec5f-4c6c-8352-6457456d0132` | "**What this roadmap is**…" |
 
-**`boards` (8 rows) — link column is `client_company_id`:**
+**`boards` (8 rows), link column is `client_company_id`:**
 | board id | client_company_id | name |
 |---|---|---|
 | `abaadfb3-…-30ba9e19489a` | `47ea790d-…-6457456d0132` | Bstore Company Db |
@@ -227,7 +227,7 @@ paid_at           | timestamptz | NULL
 - Indexes: `token_purchases_pkey(id)`; `token_purchases_company_idx(company_id)`; `token_purchases_session_idx(stripe_session_id)`.
 
 ### client_roadmap_overview
-**PK is `(company_id)` — no surrogate `id`.** One row per company.
+**PK is `(company_id)`, no surrogate `id`.** One row per company.
 ```
 company_id | uuid        | NOT NULL  -> companies(id) ON DELETE CASCADE  (PK)
 body       | text        | NOT NULL | ''
@@ -264,7 +264,7 @@ client_sort_order(int4)
 - Indexes: `client_backlog_items_pkey(id)`; `client_backlog_items_company_idx(company_id)`; `client_backlog_items_company_group_idx(company_id, group_key, sort_order)`; **partial unique** `client_backlog_items_company_ref_key(company_id, ref) WHERE ref IS NOT NULL`.
 
 ### boards
-PK `(id)`. UNIQUE `slug`. **Link column is `client_company_id` (nullable) — the naming exception.**
+PK `(id)`. UNIQUE `slug`. **Link column is `client_company_id` (nullable), the naming exception.**
 ```
 id                | uuid        | NOT NULL | gen_random_uuid()
 name              | text        | NOT NULL
@@ -428,7 +428,7 @@ value(text), value_json(jsonb), created_at
 | set_deal_positions | p_ids uuid[], p_start integer | void | no |
 | workshop_attendees_total | p_year integer | integer | no |
 
-Trigger functions of interest: `handle_updated_at` (the standard `updated_at` touch — almost certainly wired to most tables' `BEFORE UPDATE`), `set_amount_usd_cents` (compensation), `meetings_normalize_type_tg` (meetings). No roadmap/board/portal-specific triggers exist in this function set.
+Trigger functions of interest: `handle_updated_at` (the standard `updated_at` touch, almost certainly wired to most tables' `BEFORE UPDATE`), `set_amount_usd_cents` (compensation), `meetings_normalize_type_tg` (meetings). No roadmap/board/portal-specific triggers exist in this function set.
 
 ## Enums / domains
 
@@ -438,7 +438,7 @@ Trigger functions of interest: `handle_updated_at` (the standard `updated_at` to
 
 Direct table ACLs (`aclexplode` of `relacl`) for the standard Supabase roles:
 
-- **`service_role`**: `SELECT, INSERT, UPDATE, DELETE` on every company_os table checked — **except `boards` and `tasks`, which grant only `SELECT, INSERT, UPDATE` (NO DELETE)**. (boards/tasks rely on `archived_at` soft-delete instead of hard delete.)
+- **`service_role`**: `SELECT, INSERT, UPDATE, DELETE` on every company_os table checked, **except `boards` and `tasks`, which grant only `SELECT, INSERT, UPDATE` (NO DELETE)**. (boards/tasks rely on `archived_at` soft-delete instead of hard delete.)
 - **`authenticated`**: no table grants; `has_schema_privilege('authenticated','company_os','USAGE') = false`.
 - **`anon`**: no table grants; `has_schema_privilege('anon','company_os','USAGE') = false`.
 - **`service_role`**: `has_schema_privilege('service_role','company_os','USAGE') = true`.
@@ -451,5 +451,5 @@ Direct table ACLs (`aclexplode` of `relacl`) for the standard Supabase roles:
 
 - **RLS is ENABLED on all 23 tables** (`relrowsecurity = true`); `relforcerowsecurity = false` everywhere (service_role, as table owner-adjacent superuser-like role, bypasses RLS regardless).
 - **Policy counts:** `companies`, `people`, `person_companies` = 5 each; `portal_members`, `surveys`, `survey_fields`, `survey_responses`, `survey_answers` = 4 each; **all others (ai_programs, program_plans, program_documents, compensation, token_purchases, client_roadmap_overview, client_roadmap_groups, client_backlog_items, boards, board_columns, board_members, sprints, tasks, task_stage_log, task_comments) = 0 policies.**
-- **Every existing policy targets bespoke roles only** — `chatbot_reader`, `chatbot_writer`, `team_chatbot_reader` — with `qual = true` / `with_check = true` (blanket allow for those roles' SELECT/INSERT/UPDATE). **No policy targets `authenticated`, `anon`, or `service_role`.**
+- **Every existing policy targets bespoke roles only**, `chatbot_reader`, `chatbot_writer`, `team_chatbot_reader`, with `qual = true` / `with_check = true` (blanket allow for those roles' SELECT/INSERT/UPDATE). **No policy targets `authenticated`, `anon`, or `service_role`.**
 - **Verdict on the plan's claim** ("RLS enabled with NO policies, app-code gating"): correct in substance for the roadmap/board/program/task group (0 policies) and correct for the standard client roles everywhere (no `authenticated`/`anon`/`service_role` policies → those roles get nothing except via service_role bypass). The nuance: 8 tables DO carry policies, but only for the internal `chatbot_*` roles, not the app's user-facing roles. App-code gating via service_role holds.

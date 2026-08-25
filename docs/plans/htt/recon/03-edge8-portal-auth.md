@@ -1,17 +1,17 @@
-# edge8-web — Portal auth + company-scoped read path (recon for /portal/tokens)
+# edge8-web: Portal auth + company-scoped read path (recon for /portal/tokens)
 
 Worktree: `/Users/infinite-leverage/code-projects/edge8-web-wt/htt-integration` (read-only).
 Repo uses a root `middleware.ts` (revalidates the JWT via `auth.getUser()` on every
 matched `/portal` request before the page gate runs). All paths below are relative to
 the worktree root.
 
-> NOTE: `/portal/tokens` and `lib/portal/tokens.ts` **already exist** — a "human-token
+> NOTE: `/portal/tokens` and `lib/portal/tokens.ts` **already exist**, a "human-token
 > pack" purchase page (Stripe Checkout). See §8. The HTT integration is likely rebuilding
 > or extending this, so read §8 before touching it.
 
 ---
 
-## 1. `requirePortalMember()` — the gate
+## 1. `requirePortalMember()`: the gate
 
 **File:** `lib/portal-auth.ts`
 
@@ -29,7 +29,7 @@ export async function requirePortalMember(): Promise<PortalActor> {
 }
 ```
 
-- Returns a `PortalActor` (never null — it `redirect()`s otherwise).
+- Returns a `PortalActor` (never null, it `redirect()`s otherwise).
 - Backed by `getPortalActor()` (`lib/portal-auth.ts:159`), wrapped in React `cache()` so
   the layout + page resolve identity once per request. Redirect targets:
   not signed in → `/portal/login`; an admin w/o Assume → `/admin`; active employee →
@@ -47,7 +47,7 @@ Siblings: `lib/admin-auth.ts` (admins, `requireAdmin`/`getAdminUser`) and
 
 ---
 
-## 2. `PortalActor` type — scope representation
+## 2. `PortalActor` type: scope representation
 
 **File:** `lib/portal-auth.ts:50-65`
 
@@ -75,7 +75,7 @@ export type PortalMembership = {
 ```
 
 **Multi-company scope:** `companyScope: string[]` is the flat list of `companies.id` the
-actor may read — computed server-side from the active `portal_members` rows
+actor may read, computed server-side from the active `portal_members` rows
 (`lib/portal-auth.ts:221-224`), one entry per membership. A person can be admin at one
 company and viewer at another; per-company power is resolved via
 `roleForCompany(actor, companyId)` in `lib/portal/roles.ts`. In Assume mode `companyScope`
@@ -97,7 +97,7 @@ import { createClient } from "@supabase/supabase-js";
 export const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
   auth: { persistSession: false },
 });
-// Scoped to the company_os schema — the canonical Company OS.
+// Scoped to the company_os schema, the canonical Company OS.
 export const companyOs = supabase.schema("company_os");   // lib/supabase.ts:28
 ```
 
@@ -106,26 +106,26 @@ Import used by all portal reads:
 import { companyOs } from "@/lib/supabase";
 ```
 
-- `supabase` uses `SUPABASE_SECRET_KEY` (service role — **bypasses RLS**). Server-only;
+- `supabase` uses `SUPABASE_SECRET_KEY` (service role, **bypasses RLS**). Server-only;
   comment at `lib/supabase.ts:3-5` says NEVER import from a client component.
 - `companyOs` = the same client `.schema("company_os")`. **All** portal DB reads go
   through `companyOs`.
 - CONFIRMED: portal reads use the service-role client. `company_os` has RLS enabled with
   **no policies and no grants to the browser/publishable key**, so the anon key can read
-  nothing there — the service-role gate is the boundary
+  nothing there, the service-role gate is the boundary
   (`lib/portal-auth.ts:6-12`, `lib/portal/data.ts:1-8`). The browser/anon key is never
   used for portal data.
 - The session client for identity only (never for data reads):
-  `createSessionClient()` from `@/lib/supabase/server` — `getPortalActor` calls
+  `createSessionClient()` from `@/lib/supabase/server`, `getPortalActor` calls
   `supabase.auth.getSession()` on it (`lib/portal-auth.ts:160-168`).
 
-### The sanctioned scoping helper — `lib/portal/data.ts`
+### The sanctioned scoping helper: `lib/portal/data.ts`
 
 Portal code is supposed to read through `portalRead()`, which injects the scope filter so
 an unscoped query is structurally impossible:
 
 ```ts
-// lib/portal/data.ts:18-25 — the ONLY tables /portal may read, + their scope column
+// lib/portal/data.ts:18-25, the ONLY tables /portal may read, + their scope column
 const SCOPE_ALLOWLIST = {
   portal_members:          { column: "person_id",  scope: "person"  },
   staff_assignments:       { column: "company_id", scope: "company" },
@@ -146,7 +146,7 @@ export async function assertInScope(actor, table, id): Promise<string|null>  // 
 > IMPORTANT: not every portal read uses `portalRead`. Tables not in the allowlist
 > (`ai_programs`, `program_plans`, `program_documents`, `boards`, `tasks`,
 > `token_purchases`, `orders`) are read directly on `companyOs` with a hand-written
-> `.in("company_id", actor.companyScope)` (or `.in("id", ids)`) filter — see §5, §6, §8.
+> `.in("company_id", actor.companyScope)` (or `.in("id", ids)`) filter, see §5, §6, §8.
 > A new `/portal/tokens` read should either add its table to the allowlist OR follow the
 > existing hand-scoped pattern in `lib/portal/tokens.ts` (which filters `token_purchases`
 > on `company_id` directly, NOT via portalRead).
@@ -163,7 +163,7 @@ list-plus-detail token page; the **hub roadmap** is the richest company-scoped r
   - `const actor = await requirePortalMember();` (`page.tsx:42`)
   - Loads via `listProgramsForActor(actor)` (`page.tsx:43-46`).
 - Data-loading fn: `listProgramsForActor()` in `lib/portal/ai-programs.ts:74`.
-  - Table queried: `ai_programs`, filter **`company_id`** — `.in("company_id", actor.companyScope)` (`ai-programs.ts:79`).
+  - Table queried: `ai_programs`, filter **`company_id`**, `.in("company_id", actor.companyScope)` (`ai-programs.ts:79`).
   - Then child reads: `program_plans` / `program_documents` filtered on **`ai_program_id`**
     `.in("ai_program_id", ids)` (`ai-programs.ts:94-102`).
 - Detail route: `app/portal/(dashboard)/programs/[id]/page.tsx` → `getProgramForActor()`
@@ -172,7 +172,7 @@ list-plus-detail token page; the **hub roadmap** is the richest company-scoped r
 
 ### B. Roadmap / Client Hub (company-scoped, goes through portalRead)
 - Page/route: `app/portal/(dashboard)/hub/page.tsx` (route `/portal/hub`). **There is no
-  `roadmap/page.tsx`** — the roadmap tab renders inside the hub via
+  `roadmap/page.tsx`**, the roadmap tab renders inside the hub via
   `BacklogPortalView` (`../roadmap/BacklogPortalView.tsx`).
 - Data-loading fns (all in `lib/portal/backlog.ts`, all via `portalRead`):
   `getBacklogForActor` (`backlog.ts:109`), `getGroupsForActor` (`backlog.ts:42`),
@@ -232,27 +232,27 @@ Current filter/insert column per site. **All roadmap/backlog reads today filter 
 | `app/admin/(dashboard)/revenue/companies/[id]/page.tsx:219` | read | `.eq("company_id", company.id)` |
 
 ### `boards` (filter/insert col = `client_company_id`)
-- Client-visible read: `lib/boards/client-view.ts:38,50` — `.in("client_company_id", companyIds)`.
+- Client-visible read: `lib/boards/client-view.ts:38,50`, `.in("client_company_id", companyIds)`.
 - Portal wrapper: `lib/portal/boards.ts` → `hasClientBoard` / `getClientBoardView`
   (`lib/boards/client-view.ts`), passed `actor.companyScope`.
-- Admin insert: `app/admin/(dashboard)/boards/actions.ts:46-47` — `client_company_id: input.clientCompanyId`.
+- Admin insert: `app/admin/(dashboard)/boards/actions.ts:46-47`, `client_company_id: input.clientCompanyId`.
 - Other reads: `lib/boards/access.ts:21`, `lib/boards/data.ts:72,200,211`,
   `lib/admin/company-hub.ts:57`, `lib/team/boards.ts:31,54,158,207`,
   `lib/coaching/data.ts:37,72`, `app/admin/(dashboard)/boards/[slug]/actions.ts:198,448,458,566`.
 
 ### `board_columns` (filter col = `board_id`)
-- `lib/boards/client-view.ts:62` — `.eq("board_id", board.id)`.
-- Admin insert: `app/admin/(dashboard)/boards/actions.ts:51-52` — `board_id`.
+- `lib/boards/client-view.ts:62`, `.eq("board_id", board.id)`.
+- Admin insert: `app/admin/(dashboard)/boards/actions.ts:51-52`, `board_id`.
 - Others: `lib/boards/data.ts:220`, `lib/team/boards.ts:208`,
   `app/admin/(dashboard)/boards/[slug]/actions.ts:80,134`, `lib/coaching/data.ts:74,1492`.
 
 ### `sprints` (filter col = `board_id`)
-- `lib/boards/client-view.ts:97` — `.in("id", sprintIds)` (client read by id).
+- `lib/boards/client-view.ts:97`, `.in("id", sprintIds)` (client read by id).
 - `lib/boards/data.ts:94,223`, and CRUD in `app/admin/(dashboard)/boards/[slug]/actions.ts`
   (insert `:319`; reads/updates `:334,359,366,395,511,523,533,541,555`).
 
 ### `tasks` (filter col = `board_id`; client read also `internal=false`)
-- Client read: `lib/boards/client-view.ts:64-70` — `.eq("board_id", board.id).eq("internal", false).is("parent_task_id", null).is("archived_at", null)`.
+- Client read: `lib/boards/client-view.ts:64-70`, `.eq("board_id", board.id).eq("internal", false).is("parent_task_id", null).is("archived_at", null)`.
 - CRUD: `app/admin/(dashboard)/boards/[slug]/actions.ts` (insert `:105`; many
   updates `:149,216,263,282,295,342,382,598,627`; reads `:27,40,184,236,375,471,479,490,495,593`).
 - Others: `lib/boards/data.ts:88,229,382`, `lib/team/boards.ts:68,140,188`,
@@ -260,7 +260,7 @@ Current filter/insert column per site. **All roadmap/backlog reads today filter 
   `lib/coaching/data.ts:57,1483,1515,1525`,
   `app/admin/(dashboard)/edges/client-roadmaps/page.tsx:72`.
 - `tasks.human_tokens` column already exists and is set by admins:
-  `app/admin/(dashboard)/boards/[slug]/actions.ts:598` — `.update({ human_tokens }).eq("id", taskId)`.
+  `app/admin/(dashboard)/boards/[slug]/actions.ts:598`, `.update({ human_tokens }).eq("id", taskId)`.
 
 **Summary for Phase 1:** roadmap/backlog/overview are scoped on `company_id`; boards on
 `client_company_id`; columns/sprints/tasks inherit scope through `board_id`. To make these
@@ -277,32 +277,32 @@ created_at, created_by`. Children link via **`ai_program_id`**: `program_plans`
 (`id, ai_program_id, title, method, brief_html, created_at, created_by`),
 `program_documents` (`id, company_id, ai_program_id, storage_path, filename, size_bytes,
 uploaded_by, created_at`). NOTE `program_documents` carries BOTH `company_id` and
-`ai_program_id` (documents are company-owned; the program is a tag —
+`ai_program_id` (documents are company-owned; the program is a tag,
 `lib/portal/ai-programs.ts:235-237`).
 
 Read/write sites:
-- `lib/portal/ai-programs.ts` — full portal CRUD, all scoped `.in("company_id",
+- `lib/portal/ai-programs.ts`, full portal CRUD, all scoped `.in("company_id",
   actor.companyScope)` (list `:79`), IDOR guard `ownedProgram` `:64-69`, children on
   `ai_program_id` (`:94-102`), inserts `company_id` (`:164`), plans insert `ai_program_id` (`:170-172`).
-- `lib/client-documents.ts:35,54,77,174` — `ai_program_id` on client documents +
+- `lib/client-documents.ts:35,54,77,174`, `ai_program_id` on client documents +
   a join `program:ai_programs!ai_program_id(name)`.
-- Admin: `app/admin/(dashboard)/edges/client-roadmaps/page.tsx:62` —
+- Admin: `app/admin/(dashboard)/edges/client-roadmaps/page.tsx:62`,
   `companyOs.from("ai_programs").select("id, name").eq("company_id", selected.id)`.
-- Admin: `app/admin/(dashboard)/revenue/companies/[id]/page.tsx:224` — same, per company.
-- Admin: `app/admin/(dashboard)/revenue/companies/documents-actions.ts:33` — reads
+- Admin: `app/admin/(dashboard)/revenue/companies/[id]/page.tsx:224`, same, per company.
+- Admin: `app/admin/(dashboard)/revenue/companies/documents-actions.ts:33`, reads
   `ai_programs` when attaching a doc.
-- `app/admin/(dashboard)/edges/edges-shared.ts:16,31` — `BUSINESS_LINES` includes
-  `"ai_programs"` (label "AI Programs") — a business-line enum, not a per-program surface.
+- `app/admin/(dashboard)/edges/edges-shared.ts:16,31`, `BUSINESS_LINES` includes
+  `"ai_programs"` (label "AI Programs"), a business-line enum, not a per-program surface.
 
 **Existing AI Programs surfaces:**
 - Portal (client-facing): `app/portal/(dashboard)/programs/**` (list `/portal/programs`,
   detail `/portal/programs/[id]`, add flows `add/plan`, `add/upload`). Nav item
   "AI Programs" → `/portal/programs` (`components/portal/PortalSidebar.tsx:48`).
 - Admin: **no dedicated per-program admin page.** AI programs surface only inside
-  `edges/client-roadmaps` and `revenue/companies/[id]` (as a name list) — there is no
+  `edges/client-roadmaps` and `revenue/companies/[id]` (as a name list), there is no
   `/admin/.../ai-programs` CRUD route.
 - `app/ai-programs/` is a **public marketing page** (`layout.tsx`, `page.tsx`,
-  `opengraph-image.tsx`) — unrelated to portal data.
+  `opengraph-image.tsx`), unrelated to portal data.
 
 ---
 
@@ -321,13 +321,13 @@ app/portal/(dashboard)/                                        (all behind requi
   team/  time-off/  tokens/  users/
 ```
 
-**How nav links are added — two steps:**
+**How nav links are added, two steps:**
 1. **Entitlement (server):** `app/portal/(dashboard)/layout.tsx:43-55` builds an
    `entitlements` object (booleans) and passes it to `<PortalSidebar entitlements={...}>`.
    Each boolean is a "does this company have X" check (e.g. `roadmap: hasBacklogResult`,
    `board: hasBoardResult`, `users/companyProfile: adminCompanyScope(actor).length > 0`).
    Add a new key here to gate a new module.
-2. **Nav entry (client):** `components/portal/PortalSidebar.tsx` — the `NAV` array
+2. **Nav entry (client):** `components/portal/PortalSidebar.tsx`, the `NAV` array
    (`:34-81`) holds `NavGroup`→`NavItem` ({ label, href, ico, built?, entitlementKey? }).
    A link renders **live** only when `built === true` AND (no `entitlementKey` OR
    `entitlements[key]` is true); otherwise it renders as a muted "soon" placeholder
@@ -336,24 +336,24 @@ app/portal/(dashboard)/                                        (all behind requi
    `built`. The `PortalEntitlements` type is declared in the sidebar (`:14-23`) and must
    stay in sync with the layout's object.
    > There is currently **no "Tokens" nav item** in `NAV`, even though
-   > `/portal/tokens` exists — the tokens page is reachable only by direct URL / from
+   > `/portal/tokens` exists, the tokens page is reachable only by direct URL / from
    > checkout redirects today. A new HTT nav link must be added to this array (and, if
    > gated, a matching entitlement key in both the type and the layout).
 
 ---
 
-## 8. Existing `/portal/tokens` (human-token packs) — read before rebuilding
+## 8. Existing `/portal/tokens` (human-token packs): read before rebuilding
 
-- Page: `app/portal/(dashboard)/tokens/page.tsx` — `requirePortalMember()` then
+- Page: `app/portal/(dashboard)/tokens/page.tsx`, `requirePortalMember()` then
   `getTokenBalance(actor)`; renders balance + purchase list + `<TokenPurchaseCard>`.
-- Action: `app/portal/(dashboard)/tokens/actions.ts` — `purchaseTokenPacks(packs)`:
+- Action: `app/portal/(dashboard)/tokens/actions.ts`, `purchaseTokenPacks(packs)`:
   inserts pending `token_purchases` + `orders`, creates a Stripe Checkout session, blocks
   purchases in Assume mode. `company_id = actor.companyScope[0]` (`actions.ts:25`).
-- Data: `lib/portal/tokens.ts` — `getTokenBalance(actor)` reads `token_purchases`
+- Data: `lib/portal/tokens.ts`, `getTokenBalance(actor)` reads `token_purchases`
   **directly** (NOT via portalRead): `companyOs.from("token_purchases")
   .select(...).in("company_id", actor.companyScope)` (`tokens.ts:33-37`). Constants:
   `PACK_TOKENS=40`, `PACK_PRICE_CENTS=200_000` ($2,000), `MAX_PACKS=4`. 1 token = 1 hour
   of skilled work. Balance = sum of `status="paid"` tokens; pending = `status="pending"`.
 - `tasks.human_tokens` (admin-set, `boards/[slug]/actions.ts:598`) is the consumption
-  side — no draw-down against purchases is wired yet (`lib/portal/tokens.ts:4-5`).
+  side, no draw-down against purchases is wired yet (`lib/portal/tokens.ts:4-5`).
   This is the likely seam for a Human Token Tracker.

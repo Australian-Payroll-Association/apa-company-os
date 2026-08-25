@@ -1,4 +1,4 @@
-# Recon 04 — edge8-web onboarding intake + survey system
+# Recon 04: edge8-web onboarding intake + survey system
 
 Worktree (read-only): `/Users/infinite-leverage/code-projects/edge8-web-wt/htt-integration`
 Branch: `feat/htt-phase0`. All paths below are repo-relative to that worktree.
@@ -28,7 +28,7 @@ Helper `surveyFieldMapsTo()` just reads+trims it (`surveys.ts:119-122`). Ordinar
 none. `isSensitiveSurveyField()` (`:128-132`) treats any `people_sensitive.*` maps_to (except the
 selfie) as restricted PII for display redaction.
 
-### EXACT code that APPLIES maps_to (onboarding) — `lib/onboarding.ts:94-111`
+### EXACT code that APPLIES maps_to (onboarding): `lib/onboarding.ts:94-111`
 
 ```ts
 for (const field of input.fields) {
@@ -52,20 +52,20 @@ for (const field of input.fields) {
 ```
 
 Then persisted by:
-- **people** update — `lib/onboarding.ts:142-145`:
+- **people** update, `lib/onboarding.ts:142-145`:
   `.from("people").update({ ...peoplePatch, metadata: mergedMetadata }).eq("id", personId)`
-- **people_sensitive** upsert — `lib/onboarding.ts:150-157` (onConflict `person_id`).
+- **people_sensitive** upsert, `lib/onboarding.ts:150-157` (onConflict `person_id`).
 
 ### CONFIRM the plan's assertion ("maps_to only writes scalar columns on company_os.people")
 
-**Partially true — imprecise, but the plan's downstream inference is CORRECT.** Within the
+**Partially true, imprecise, but the plan's downstream inference is CORRECT.** Within the
 onboarding processor the applier matches exactly three shapes and nothing else:
 1. `people.<col>` (parts.length===2) → **scalar column on people** (verbatim `String(value)`).
 2. `people.metadata.<a>.<b>…` → **nested JSON** into `people.metadata` (NOT a scalar column).
 3. `people_sensitive.<col>` (parts.length===2) → **scalar column on a DIFFERENT table**, people_sensitive.
 
 Any other `table` prefix (e.g. `person_git_emails.*`) matches NO branch and is **silently
-ignored — nothing is written**. So:
+ignored, nothing is written**. So:
 - It is NOT "people scalar only" (it also writes people.metadata JSON and people_sensitive).
 - BUT it categorically **cannot write into a separate/child table, and cannot insert a related
   row.** → The plan's core conclusion holds: a git commit email (child table row) CANNOT go
@@ -74,12 +74,12 @@ ignored — nothing is written**. So:
   maps_to applied by a different processor (`lib/reviews.ts` `applyReviewSubmission`, dispatched at
   `route.ts:49-74`), not this loop. There is no single global maps_to writer.
 
-**No generic normalization in the applier** — values are written verbatim (`String(value)`). The
+**No generic normalization in the applier**, values are written verbatim (`String(value)`). The
 only per-field massaging is hardcoded, keyed by destination column (see §4).
 
 ---
 
-## 2. Submit flow — where answers persist, and the post-submit hook point
+## 2. Submit flow: where answers persist, and the post-submit hook point
 
 **Persisting handler:** `app/api/surveys/[slug]/route.ts` → `POST` (public, unauthenticated).
 
@@ -88,7 +88,7 @@ only per-field massaging is hardcoded, keyed by destination column (see §4).
 - Resolve person (see §5).
 - **Persist:** insert `survey_responses` → `response.id` (`:150-161`); insert `survey_answers`
   (`:165-167`). If answers insert fails it deletes the response to avoid a half-save (`:168-173`).
-- **Onboarding post-process dispatch — `route.ts:183-198`:**
+- **Onboarding post-process dispatch, `route.ts:183-198`:**
   ```ts
   if (surveyData.purpose === "onboarding" && personId) {
     const answers = new Map(
@@ -106,7 +106,7 @@ only per-field massaging is hardcoded, keyed by destination column (see §4).
 `fields` + `answers` + `personId`. The processor is a sequence of best-effort steps
 (1 bucket → 2 people update → 3 people_sensitive → 3b selfie→avatar → 4 application lookup →
 5 team_members → 6 invite). **Exact insertion point: a new step "3c" after the selfie block,
-i.e. after `lib/onboarding.ts:173` and before step 4 (`:176`)** — `personId`, `input.fields`,
+i.e. after `lib/onboarding.ts:173` and before step 4 (`:176`)**, `personId`, `input.fields`,
 `input.answers` are all in scope there. (Alternative: a new block in `route.ts` after `:198`,
 but onboarding.ts is the correct layer.)
 
@@ -140,12 +140,12 @@ where not exists (
 Set `required = false` for both new questions (optional).
 
 ### (a) GitHub username → `people.github_login`
-- **Migration A1:** add column — no `github_login` exists today (grep found ZERO refs anywhere).
+- **Migration A1:** add column, no `github_login` exists today (grep found ZERO refs anywhere).
   `alter table company_os.people add column if not exists github_login text;`
 - **Migration A2:** insert survey_fields row, `type='short_text'`, `required=false`,
   `config='{"maps_to":"people.github_login"}'::jsonb`, guarded on that maps_to.
 - Because maps_to is `people.<col>` (parts.length===2), the answer flows through the generic
-  applier and lands in `people.github_login` with **NO app change strictly required** — BUT it is
+  applier and lands in `people.github_login` with **NO app change strictly required**, BUT it is
   written **verbatim** (`String(value)`), so the requested normalization (strip URL / leading `@`,
   lowercase) does NOT happen automatically.
 - **Normalization hook (github):** add a hardcoded special-case in `processOnboardingSubmission`,
@@ -164,7 +164,7 @@ Set `required = false` for both new questions (optional).
   `config='{"maps_to":"person_git_emails.email"}'`. The generic applier has no branch for that
   table, so it is **safely ignored** (no bad write) while still giving the post-submit step a
   stable way to find the field.
-- **Migration B1:** create `company_os.person_git_emails` (does not exist — grep found ZERO refs).
+- **Migration B1:** create `company_os.person_git_emails` (does not exist, grep found ZERO refs).
   Columns per the plan: `person_id` (FK people.id), `email`, `source`, `is_primary`, timestamps;
   unique on (person_id, lower(email)) for idempotent upsert.
 - **Migration B2:** insert survey_fields row, `type='short_text'`, `required=false`,
@@ -210,7 +210,7 @@ Set `required = false` for both new questions (optional).
 
 `app/api/surveys/[slug]/route.ts`:
 - `isOnboarding = surveyData.purpose === "onboarding"` (`:79`); for onboarding **`actor = null`**
-  (`:80`) — deliberately ignores any logged-in session so a recruiter previewing the link is not
+  (`:80`), deliberately ignores any logged-in session so a recruiter previewing the link is not
   mapped as the hire.
 - With `actor` null and the onboarding survey non-anonymous, flow hits the typed-identity branch
   (`:122-134`): reads `body.name` + `body.email` (must contain `@`), classifies, then:
