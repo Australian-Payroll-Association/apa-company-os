@@ -1,4 +1,4 @@
-# 8 Edges intro video, script v8
+# 8 Edges Operating System intro video, script v8
 
 Target length: 2:55. Audience: CEO of a 100 to 500 person company.
 Structure: two-gaps hook with Stanford proof, Four Offices intro as four outcomes, one segment per office. Every office segment ends on its outcome, spoken plainly. Written for the ear: short sentences, contractions, no framework vocabulary.
