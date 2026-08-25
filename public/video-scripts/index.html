@@ -86,14 +86,17 @@ a.card:active, a.card:hover { background:rgba(40,123,232,0.16); border-color:rgb
 </div>
 </div></header>
 <nav class="tabs"><div class="wrap">
-<button data-tab="revenue" class="active">Revenue</button>
+<button data-tab="all" class="active">All</button>
+<button data-tab="revenue">Revenue</button>
 <button data-tab="talent">Talent</button>
 <button data-tab="operations">Operations</button>
 <button data-tab="innovation">Innovation</button>
 </div></nav>
 <main><div class="wrap">
 
-<section class="panel active" id="panel-revenue">
+<section class="panel active" id="panel-all"></section>
+
+<section class="panel" id="panel-revenue">
 <div class="empty">No Revenue scripts yet. New scripts land here as they are written.</div>
 </section>
 
@@ -119,6 +122,20 @@ tabs.forEach(b => b.addEventListener('click', () => {
   b.classList.add('active');
   document.getElementById('panel-' + b.dataset.tab).classList.add('active');
 }));
+
+/* The All panel aggregates the category panels, so scripts are only ever
+   added in one place: their category. Cards are cloned in tab order. */
+const allPanel = document.getElementById('panel-all');
+const categories = ['revenue', 'talent', 'operations', 'innovation'];
+const allCards = categories.flatMap(c => [...document.querySelectorAll('#panel-' + c + ' .card')]);
+if (allCards.length) {
+  allCards.forEach(c => allPanel.appendChild(c.cloneNode(true)));
+} else {
+  const empty = document.createElement('div');
+  empty.className = 'empty';
+  empty.textContent = 'No scripts yet. New scripts land here as they are written.';
+  allPanel.appendChild(empty);
+}
 </script>
 </body>
 </html>
