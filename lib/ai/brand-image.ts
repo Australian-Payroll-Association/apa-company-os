@@ -29,7 +29,7 @@ ${brandGuidance || "(none provided)"}
 Image brief:
 ${brief || "(none provided; work from the title and style)"}
 
-Produce one high-quality image, no borders. Use only the brand's palette and typeface. Set any headline in normal sentence case. Do not add logos, watermarks, or stock-photo captions.`;
+Produce one high-quality image, no borders. Use only the brand's palette and typeface. Keep text to an absolute minimum: either no words at all, or one short headline of at most four words in normal sentence case. Never render sentences, paragraphs, small type, or UI copy; if the brief includes longer wording, express it visually instead of writing it out. Do not add logos, watermarks, or stock-photo captions.`;
 }
 
 type ImageInputs = { title: string; brief: string | null; styleLabel: string | null; brandGuidance: string | null };
