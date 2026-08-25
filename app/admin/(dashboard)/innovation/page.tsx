@@ -22,12 +22,14 @@ export default async function InnovationCockpitPage() {
   const now = new Date();
   const iso30 = new Date(now.getTime() - 30 * MS_DAY).toISOString();
 
-  const [ideasRes, boardsRes, tasksRes, krRes, goals] = await Promise.all([
+  const [ideasRes, boardsRes, tasksRes, krRes, trendRes, goals] = await Promise.all([
     companyOs.from("ideas").select("id, title, kind, status, created_at").neq("status", "archived").order("created_at", { ascending: false }).limit(200),
     companyOs.from("boards").select("id, name, client_company_id").is("archived_at", null),
     // status is only 'open' | 'done'; count top-level, unarchived, open cards.
     companyOs.from("tasks").select("board_id").eq("status", "open").is("archived_at", null).is("parent_task_id", null),
     companyOs.from("key_results").select("delivery_mix"),
+    // Newest AI trends summary, written weekly by the idea-trends cron.
+    companyOs.from("idea_trend_reports").select("themes, generated_at").order("generated_at", { ascending: false }).limit(1).maybeSingle(),
     getOfficeGoals(),
   ]);
 
@@ -53,6 +55,9 @@ export default async function InnovationCockpitPage() {
   const agentShare = mixTotal ? Math.round(((mix.ai + mix.blended) / mixTotal) * 100) : 0;
 
   const recent = ideas.slice(0, 8);
+
+  const trend = trendRes.data as { themes: string[] | null; generated_at: string } | null;
+  const themes = (trend?.themes ?? []).filter((t) => typeof t === "string" && t.trim().length > 0);
 
   const innovation = goals.byOffice.innovation;
   const chips = healthSummary(innovation.health);
@@ -92,9 +97,26 @@ export default async function InnovationCockpitPage() {
       <div className="admin-cockpit-cols" style={{ marginBottom: 20 }}>
         <div className="admin-card admin-section-card">
           <h2 className="admin-card-title">Trends across ideas</h2>
-          <div className="admin-empty">
-            An AI summary of the themes running through recent ideas and learnings will appear here, refreshed weekly.
-          </div>
+          {themes.length === 0 ? (
+            <div className="admin-empty">
+              An AI summary of the themes running through recent ideas and learnings will appear here, refreshed weekly.
+            </div>
+          ) : (
+            <div className="admin-list">
+              {themes.map((t, i) => (
+                <div key={i} className="admin-list-row">
+                  <div className="admin-list-main">
+                    <div className="admin-list-title" style={{ fontWeight: 400 }}>{t}</div>
+                  </div>
+                </div>
+              ))}
+              {trend?.generated_at && (
+                <div className="admin-list-sub" style={{ paddingTop: 10 }}>
+                  Updated {formatDate(trend.generated_at)}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="admin-card admin-section-card">
