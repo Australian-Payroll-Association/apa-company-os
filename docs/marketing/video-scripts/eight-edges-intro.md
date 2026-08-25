@@ -36,6 +36,8 @@ This is the Office of Revenue. Every contact, every company, every conversation,
 
 Now watch this. A sales call ends. The transcript goes in. The AI updates the CRM, moves the deal, and drafts the proposal. Live, in under ten minutes. Your salesperson stays focused on the relationship, and nothing slips through the cracks.
 
+And here's the finale. The AI coaches your salesperson on that call, as if Mark Roberge, the man who scaled HubSpot sales from zero to a hundred million, were right there in the room with them. What to ask next time, which objection to see coming, the move that closes it.
+
 Deals move faster, and fewer of them die quietly. That's greater revenue.
 
 ## 1:33–2:00 · Office of Talent
@@ -56,6 +58,8 @@ Your managers spend their time developing people, not pushing paper. That's high
 **VO:**
 The Office of Operations. Leave requests, equipment, vendors, the books. All the machinery that quietly eats your managers' week.
 
+Operations is usually seen as a cost center. It is one. Which means it has to run efficiently, not just to save you money, but to save your team the hours they should be spending on innovation and revenue.
+
 Here, the AI does the tracking and the syncing, straight from the source systems. Your people just approve and decide. No chasing, no stale spreadsheets, nothing waiting in an inbox. That's streamlined operations.
 
 ## 2:22–2:45 · Office of Innovation
@@ -63,7 +67,9 @@ Here, the AI does the tracking and the syncing, straight from the source systems
 **Screen grabs:** the ideas feed with team submissions, the AI programs view, the workflows library.
 
 **VO:**
-And the Office of Innovation. Every idea from your team lands here, instead of dying in a chat thread. The best ones get built into new workflows, and every workflow you've seen today started exactly this way.
+And the Office of Innovation, the one most companies leave behind. It's the nice-to-have you pass on when you're already buried in operational busywork. But here's the catch: in the AI era, if you don't innovate, you're already falling behind someone who is.
+
+Every idea from your team lands here, instead of dying in a chat thread. The best ones get built into new workflows, and every workflow you've seen today started exactly this way.
 
 When your whole team is improving how the company runs, week after week? That's an innovative culture.
 
