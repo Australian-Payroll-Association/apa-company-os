@@ -488,6 +488,15 @@ a.admin-btn--danger:hover { color: var(--admin-err-ink); }
 .admin-summary-grid .mp-kpi { min-width: 0; }
 .admin-chart-card { padding: 16px 18px; min-width: 0; }
 
+/* Office block header on the company dashboard: office label on the left, the
+   cockpit link on the right. */
+.admin-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
 /* Two-column card row for the office cockpits (e.g. pipeline + goals). Wraps to
    one column when the cards can't both hold their minimum width. */
 .admin-cockpit-cols {

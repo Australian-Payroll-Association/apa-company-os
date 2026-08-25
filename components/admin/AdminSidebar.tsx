@@ -122,6 +122,7 @@ const NAV: NavSection[] = [
     label: "Talent",
     collapsible: true,
     items: [
+      { label: "Cockpit", href: "/admin/talent", ico: "◎", enabled: true },
       {
         subheading: "People",
         items: [
@@ -144,6 +145,7 @@ const NAV: NavSection[] = [
     label: "Operations",
     collapsible: true,
     items: [
+      { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
       {
         subheading: "Time Off",
         items: [
@@ -188,6 +190,7 @@ const NAV: NavSection[] = [
     label: "Innovation",
     collapsible: true,
     items: [
+      { label: "Cockpit", href: "/admin/innovation", ico: "◎", enabled: true },
       {
         subheading: "Ideas",
         items: [{ label: "Idea backlog", href: "/admin/innovation/ideas", ico: "✦", enabled: true }],
