@@ -130,3 +130,27 @@ export async function getSensitiveViewer(): Promise<{ email: string; canViewSens
   if (!user) return null;
   return { email: user.email, canViewSensitive: await canViewSensitive(user.email) };
 }
+
+// ── Super admin gate ────────────────────────────────────────────────────────
+//
+// "Super admin" is the access-control name for the smallest, most-trusted admin
+// set — currently Dave and Mai. It is the SAME set already cleared for sensitive
+// data (wages + PII), so there is one source of truth: SENSITIVE_VIEWERS env +
+// admins.can_view_sensitive, via canViewSensitive(). Being a plain admin (My,
+// Quan) is not enough. Used to gate the ATS (recruiting: applications, job reqs,
+// candidate pool) and employee compensation — the two together are what a super
+// admin can see that a plain admin cannot.
+
+export const isSuperAdmin = cache(async (email: string | null | undefined): Promise<boolean> => {
+  return canViewSensitive(email);
+});
+
+// Server-side gate for super-admin-only surfaces. Call in the ATS route layouts
+// and at the top of EVERY ATS server action (a layout does not protect action
+// POSTs — the action gate is the real boundary). A signed-in admin who is not a
+// super admin is bounced to the admin home rather than the login page.
+export async function requireSuperAdmin(): Promise<AdminUser> {
+  const user = await requireAdmin();
+  if (!(await isSuperAdmin(user.email))) redirect("/admin");
+  return user;
+}

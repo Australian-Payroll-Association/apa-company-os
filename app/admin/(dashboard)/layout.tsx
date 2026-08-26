@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin, isSuperAdmin } from "@/lib/admin-auth";
 import { hasTeamAccess } from "@/lib/team-auth";
 import { avatarUrlForAuthUser } from "@/lib/avatars";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -19,14 +19,20 @@ export default async function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAdmin();
-  const [canSwitchToTeam, avatarUrl] = await Promise.all([
+  const [canSwitchToTeam, avatarUrl, superAdmin] = await Promise.all([
     hasTeamAccess(user.id),
     avatarUrlForAuthUser(user.id),
+    isSuperAdmin(user.email),
   ]);
 
   return (
     <div className="admin-shell">
-      <AdminSidebar user={user} avatarUrl={avatarUrl} canSwitchToTeam={canSwitchToTeam} />
+      <AdminSidebar
+        user={user}
+        avatarUrl={avatarUrl}
+        canSwitchToTeam={canSwitchToTeam}
+        isSuperAdmin={superAdmin}
+      />
       <main className="admin-main">{children}</main>
       <AdminChatWidget canWrite={isPrivilegedChatUser(user.email)} />
     </div>

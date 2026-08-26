@@ -9,7 +9,10 @@ import { signOut } from "@/app/admin/(dashboard)/actions";
 // are not navigable — flip them to `true` (and build the route) as each phase
 // ships, so the shell always looks complete without dead 404 links.
 type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
-type NavSubsection = { subheading: string; items: NavItem[] };
+// `superAdmin: true` restricts a subsection to super admins (Dave & Mai). It is
+// hidden for everyone else; the routes are gated server-side regardless (ATS
+// route layouts + action gates), so this is a nav convenience, not the boundary.
+type NavSubsection = { subheading: string; items: NavItem[]; superAdmin?: boolean };
 type NavEntry = NavItem | NavSubsection;
 type NavGroup = { label: string | null; items: NavEntry[]; collapsible?: boolean };
 type NavSection = { section: string | null; groups: NavGroup[] };
@@ -133,6 +136,7 @@ const NAV: NavSection[] = [
       },
       {
         subheading: "ATS",
+        superAdmin: true,
         items: [
           { label: "Applications", href: "/admin/talent/applications", ico: "⇉", enabled: true },
           { label: "Job Reqs", href: "/admin/talent/jobs", ico: "▤", enabled: true },
@@ -274,10 +278,12 @@ export function AdminSidebar({
   user,
   avatarUrl,
   canSwitchToTeam,
+  isSuperAdmin,
 }: {
   user: { email: string };
   avatarUrl: string | null;
   canSwitchToTeam: boolean;
+  isSuperAdmin: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const [navOpen, setNavOpen] = useState(false);
@@ -517,7 +523,11 @@ export function AdminSidebar({
               )}
               {!isCollapsed &&
               group.items.map((entry) =>
-                isSubsection(entry) ? renderSubsection(entry, label) : renderItem(entry, false),
+                isSubsection(entry)
+                  ? entry.superAdmin && !isSuperAdmin
+                    ? null
+                    : renderSubsection(entry, label)
+                  : renderItem(entry, false),
               )}
             </div>
             );

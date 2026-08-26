@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { waitUntil } from "@vercel/functions";
 import { ensureAiPanelist, scoreInterview } from "@/lib/interview-panelist";
@@ -53,7 +53,7 @@ export type TeamOption = { id: string; name: string };
 
 // Team members eligible to sit on a panel.
 export async function listTeamMembers(): Promise<{ ok: true; members: TeamOption[] } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { data, error } = await companyOs
     .from("people")
     .select("id, full_name, email")
@@ -73,7 +73,7 @@ export async function listTeamMembers(): Promise<{ ok: true; members: TeamOption
 export async function getInterviewRounds(
   applicationId: string,
 ): Promise<{ ok: true; rounds: InterviewRound[] } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const { data, error } = await companyOs
     .from("interviews")
@@ -164,7 +164,7 @@ export async function createInterviewRound(
   applicationId: string,
   input: { title: string; mode: string; scheduledAt: string | null; panelistIds: string[] },
 ): Promise<{ ok: true; roundId: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Give the round a title." };
@@ -222,7 +222,7 @@ export async function createInterviewRound(
 // cascade on the interview FK; transcript documents have no FK, so remove those
 // rows explicitly (the storage files are kept, matching the resume-replace policy).
 export async function deleteInterviewRound(roundId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   await companyOs.from("documents").delete().eq("entity_type", "interview").eq("entity_id", roundId);
   const { error } = await companyOs.from("interviews").delete().eq("id", roundId);
   if (error) return { ok: false, error: error.message };
@@ -233,7 +233,7 @@ export async function deleteInterviewRound(roundId: string): Promise<Result> {
 
 // Add a human panelist to an existing round.
 export async function addPanelist(roundId: string, personId: string, role: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   if (!SEAT_ROLES.has(role)) return { ok: false, error: "Unknown panel role." };
   const { error } = await companyOs
     .from("interview_interviewers")
@@ -256,7 +256,7 @@ export async function addPanelist(roundId: string, personId: string, role: strin
 // Remove a seat. Blocked for the AI panelist (it always holds a seat) and once
 // a scorecard has been submitted for that seat (delete the round instead).
 export async function removePanelist(roundId: string, interviewerId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const { data: person } = await companyOs
     .from("people")
@@ -348,7 +348,7 @@ export async function uploadInterviewTranscript(
   roundId: string,
   formData: FormData,
 ): Promise<{ ok: true; documentId: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const file = formData.get("transcript");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a file first." };
   if (file.size > MAX_TRANSCRIPT_BYTES) return { ok: false, error: "Transcript is too large (max 10 MB)." };
@@ -361,7 +361,7 @@ export async function saveTranscriptText(
   roundId: string,
   text: string,
 ): Promise<{ ok: true; documentId: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const body = text.trim();
   if (!body) return { ok: false, error: "Paste the transcript first." };
   if (Buffer.byteLength(body) > MAX_TRANSCRIPT_BYTES) return { ok: false, error: "Transcript is too large (max 10 MB)." };
@@ -374,7 +374,7 @@ export async function saveTranscriptText(
 export async function getTranscript(
   roundId: string,
 ): Promise<{ ok: true; text: string; mime: string | null } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { data: doc, error } = await companyOs
     .from("documents")
     .select("storage_path, mime_type")
@@ -399,7 +399,7 @@ export async function submitScorecard(
   interviewerId: string,
   input: ScorecardInput,
 ): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const r = await writeScorecard(roundId, interviewerId, input);
   if (!r.ok) return r;
   await recordAudit({
@@ -417,7 +417,7 @@ export async function submitScorecard(
 // is blind-first: it lands immediately but the UI withholds it until every human
 // on the round has submitted. Returns the model error verbatim so the UI can show it.
 export async function runAiPanelist(roundId: string): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const r = await scoreInterview(roundId);
   if (!r.ok) return r;
   revalidatePath("/admin/talent/applications");
