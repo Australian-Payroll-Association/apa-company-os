@@ -60,15 +60,19 @@ export function CompanyDocuments({
   companyId,
   documents,
   programs,
+  defaultProgramId,
 }: {
   companyId: string;
   documents: ClientDocument[];
   programs: ProgramOption[];
+  // Pre-selects the upload tag (used by the per-program view, where uploads
+  // default to that program). Still changeable in the picker.
+  defaultProgramId?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
-  const [programId, setProgramId] = useState<string>("");
+  const [programId, setProgramId] = useState<string>(defaultProgramId ?? "");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
