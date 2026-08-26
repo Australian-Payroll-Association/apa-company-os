@@ -94,7 +94,10 @@ export async function getAssignedTimeOff(actor: PortalActor): Promise<PortalTime
 export type PortalLeaveDirectoryRow = {
   id: string;
   fullName: string | null;
-  managerName: string | null;
+  // The client-side approver named on the placement, or null. Never the Edge8
+  // manager chain — internal reporting lines don't belong in a client portal
+  // (Dave, 2026-08-26: no "Dave Hajdu" in On Target's records).
+  approverName: string | null;
   team: string | null;
   location: string | null;
   leavePolicy: string | null;
@@ -107,7 +110,6 @@ export type PortalLeaveDirectoryRow = {
 type LeaveDirectoryRow = {
   id: string;
   full_name: string | null;
-  manager_name: string | null;
   team: string | null;
   location: string | null;
   leave_policy: string | null;
@@ -123,14 +125,44 @@ export async function getAssignedLeaveDirectory(actor: PortalActor): Promise<Por
 
   const { data } = await companyOs
     .from("team_directory")
-    .select("id, full_name, manager_name, team, location, leave_policy, work_schedule, status, used_days, total_days")
+    .select("id, full_name, team, location, leave_policy, work_schedule, status, used_days, total_days")
     .in("id", memberIds)
     .order("full_name", { ascending: true });
+
+  // Client-side approver per member: the client_manager named on this client's
+  // own active placement (oldest wins, same tie-break as resolveLeaveApprover).
+  // Members without one get null; the page renders "Edge8" so the client still
+  // sees the leave is handled, without naming internal staff.
+  const { data: assignmentRows } = await companyOs
+    .from("staff_assignments")
+    .select("team_member_id, client_manager_person_id, created_at")
+    .in("team_member_id", memberIds)
+    .in("company_id", actor.companyScope)
+    .eq("status", "active")
+    .not("client_manager_person_id", "is", null)
+    .order("created_at", { ascending: true });
+  const approverPersonByMember = new Map<string, string>();
+  for (const a of (assignmentRows ?? []) as { team_member_id: string; client_manager_person_id: string }[]) {
+    if (!approverPersonByMember.has(a.team_member_id))
+      approverPersonByMember.set(a.team_member_id, a.client_manager_person_id);
+  }
+
+  const approverIds = [...new Set(approverPersonByMember.values())];
+  const approverNameById = new Map<string, string | null>();
+  if (approverIds.length > 0) {
+    const { data: peopleRows } = await companyOs
+      .from("people")
+      .select("id, full_name, preferred_name")
+      .in("id", approverIds);
+    for (const p of (peopleRows ?? []) as { id: string; full_name: string | null; preferred_name: string | null }[]) {
+      approverNameById.set(p.id, p.preferred_name || p.full_name);
+    }
+  }
 
   return ((data ?? []) as LeaveDirectoryRow[]).map((r) => ({
     id: r.id,
     fullName: r.full_name,
-    managerName: r.manager_name,
+    approverName: approverNameById.get(approverPersonByMember.get(r.id) ?? "") ?? null,
     team: r.team,
     location: r.location,
     leavePolicy: r.leave_policy,
