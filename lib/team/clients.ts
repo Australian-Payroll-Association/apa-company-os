@@ -30,6 +30,7 @@ import {
   type RoadmapGroup,
 } from "@/lib/client-backlog";
 import {
+  fetchAll,
   fetchProgramSummaryInputs,
   getProgramDetail,
   listProgramSummaries,
@@ -227,7 +228,7 @@ export type HubTabFlags = { hasPrograms: boolean; dropCompanyWide: boolean };
 // untagged ones remain, so nothing ever becomes unreachable and a company
 // with programs but no boards/items keeps its tabs.
 export async function getHubTabFlags(companyId: string): Promise<HubTabFlags> {
-  const [{ data: progRows }, { data: boardRows }, { data: itemRows }] = await Promise.all([
+  const [{ data: progRows }, { data: boardRows }, items] = await Promise.all([
     companyOs.from("ai_programs").select("id").eq("company_id", companyId).limit(1),
     companyOs
       .from("boards")
@@ -235,15 +236,19 @@ export async function getHubTabFlags(companyId: string): Promise<HubTabFlags> {
       .eq("client_company_id", companyId)
       .eq("status", "active")
       .is("archived_at", null),
-    companyOs
-      .from("client_backlog_items")
-      .select("ai_program_id")
-      .eq("company_id", companyId)
-      .is("archived_at", null),
+    // Paginated: backlog items routinely outgrow PostgREST's 1000-row cap, and
+    // a truncated read here could wrongly drop the company-wide tabs.
+    fetchAll<{ ai_program_id: string | null }>(() =>
+      companyOs
+        .from("client_backlog_items")
+        .select("ai_program_id")
+        .eq("company_id", companyId)
+        .is("archived_at", null)
+        .order("id"),
+    ),
   ]);
   const hasPrograms = (progRows ?? []).length > 0;
   const boards = (boardRows ?? []) as Array<{ ai_program_id: string | null }>;
-  const items = (itemRows ?? []) as Array<{ ai_program_id: string | null }>;
   const untaggedBoards = boards.filter((b) => !b.ai_program_id).length;
   const untaggedItems = items.filter((i) => !i.ai_program_id).length;
   const taggedCount = boards.length - untaggedBoards + (items.length - untaggedItems);
@@ -266,22 +271,24 @@ export async function getHubOverviewForActor(
   const companies = await actorCompanyIds(actor);
   if (!companies.has(companyId)) return null;
 
-  const [inputs, balance, allocatedTokens, { data: plannedData }] = await Promise.all([
+  const [inputs, balance, allocatedTokens, plannedRows] = await Promise.all([
     fetchProgramSummaryInputs(companyId),
     getTokenBalanceForCompanies([companyId]),
     getAllocatedTokensForCompanies([companyId]),
-    companyOs
-      .from("client_backlog_items")
-      .select("token_high")
-      .eq("company_id", companyId)
-      .is("archived_at", null),
+    // Paginated: a truncated read here would undercount plannedTokens once the
+    // company's active backlog passes PostgREST's 1000-row cap.
+    fetchAll<{ token_high: number | null }>(() =>
+      companyOs
+        .from("client_backlog_items")
+        .select("token_high")
+        .eq("company_id", companyId)
+        .is("archived_at", null)
+        .order("id"),
+    ),
   ]);
 
   const programs = await listProgramSummaries(companyId, inputs);
-  const plannedTokens = ((plannedData ?? []) as Array<{ token_high: number | null }>).reduce(
-    (sum, r) => sum + Number(r.token_high ?? 0),
-    0,
-  );
+  const plannedTokens = plannedRows.reduce((sum, r) => sum + Number(r.token_high ?? 0), 0);
   const usage = computeTokenUsage({ balance, allocatedTokens, plannedTokens, delivery: inputs.delivery });
   return { usage, programs };
 }

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Client Overview" };
 
-// The hub Overview: the same top band as the admin hub home — the read-only
+// The hub Overview: the same top band as the admin hub home, the read-only
 // Human Tokens strip and the AI Programs card grid, each card linking into
 // the team program view. The company-wide surfaces (board, roadmap, documents,
 // meetings, invoices, team) stay on their own tabs below.

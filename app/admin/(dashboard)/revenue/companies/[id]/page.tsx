@@ -14,6 +14,7 @@ import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { getCompanyHubTeam, getLiveCardItemIds } from "@/lib/admin/company-hub";
 import {
+  fetchAll,
   listProgramSummaries,
   PROGRAM_SELECT,
   type ProgramSummary,
@@ -271,7 +272,18 @@ export default async function CompanyDetailPage({
       getAllocatedTokensForCompanies([company.id]),
       listBoardManageOptions(),
       getAdminUser(),
-      companyOs.from("client_backlog_items").select(BACKLOG_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
+      // Paginated: backlog items routinely outgrow PostgREST's 1000-row cap,
+      // and a truncated read would undercount plannedTokens and could wrongly
+      // drop the company-wide tabs. Trailing .order("id") keeps pages stable.
+      fetchAll<BacklogItem>(() =>
+        companyOs
+          .from("client_backlog_items")
+          .select(BACKLOG_SELECT)
+          .eq("company_id", company.id)
+          .is("archived_at", null)
+          .order("sort_order", { ascending: true })
+          .order("id"),
+      ),
       companyOs.from("client_roadmap_groups").select(ROADMAP_GROUPS_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
       companyOs.from("client_roadmap_overview").select("body").eq("company_id", company.id).maybeSingle(),
       getMeetingsForCompany(company.id),
@@ -289,7 +301,7 @@ export default async function CompanyDetailPage({
     // their program view instead).
     const boardSlug = (hasPrograms ? untaggedBoards[0] : hubBoards[0])?.slug ?? null;
 
-    const allItems = (itemRows.data ?? []) as unknown as BacklogItem[];
+    const allItems = itemRows;
     const allGroups = (groupRows.data ?? []) as unknown as RoadmapGroup[];
     // Company-wide slices: untagged rows only once programs exist.
     const roadmapItems = hasPrograms ? allItems.filter((i) => !i.ai_program_id) : allItems;
