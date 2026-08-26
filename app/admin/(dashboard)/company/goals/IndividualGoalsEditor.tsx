@@ -266,12 +266,11 @@ export function IndividualGoalsEditor({
                   }, "Save goal")
                 ) : (
                   <>
-                    <div className="goals-card-head" style={{ gap: 6 }}>
-                      <strong style={{ fontSize: 13 }}>{g.title}</strong>
+                    <div className="edges-fast-goal-head">
+                      <strong>{g.title}</strong>
                       {g.status !== "active" && (
                         <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
                       )}
-                      <span style={{ flex: 1 }} />
                       <button className="edges-minibtn" onClick={() => openEdit(g)} disabled={pending}>
                         Edit
                       </button>
@@ -288,7 +287,7 @@ export function IndividualGoalsEditor({
                     {(() => {
                       const pct = progressPct(g);
                       return pct !== null ? (
-                        <div className="goals-bar" style={{ margin: "6px 0" }} aria-label={`${pct}% of target`}>
+                        <div className="goals-bar" aria-label={`${pct}% of target`}>
                           <span style={{ width: `${pct}%` }} />
                         </div>
                       ) : null;
