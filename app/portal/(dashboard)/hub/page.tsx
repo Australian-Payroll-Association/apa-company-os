@@ -55,10 +55,10 @@ export default async function PortalHubPage() {
   // Company-wide slices: untagged rows only once programs exist.
   const untaggedBoards = hubBoards.filter((b) => !b.aiProgramId);
   const roadmapItems = hasPrograms ? items.filter((i) => !i.ai_program_id) : items;
-  const usedKeys = new Set(roadmapItems.map((i) => i.group_key));
-  const roadmapGroups = hasPrograms
-    ? groups.filter((g) => g.ai_program_id === null || usedKeys.has(g.key))
-    : groups;
+  // Company-wide sections only: a program-tagged group's header never renders
+  // here, even when an untagged item still sits under its key (same strictness
+  // as the program page's group filter; Edge8 retags such strays in admin).
+  const roadmapGroups = hasPrograms ? groups.filter((g) => g.ai_program_id === null) : groups;
   const hubMeetings = hasPrograms ? meetings.filter((m) => !m.aiProgramId) : meetings;
   const hubDocuments = hasPrograms ? documents.filter((d) => !d.programId) : documents;
 

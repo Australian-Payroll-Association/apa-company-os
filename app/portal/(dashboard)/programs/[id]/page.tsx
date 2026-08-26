@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getProgramForActor, getPlanBriefForActor } from "@/lib/portal/ai-programs";
-import { getProgramDetail } from "@/lib/hub/program";
 import {
+  getPortalProgramDelivery,
   listHubBoardsForActor,
   getBoardViewForActor,
   getProgramHighlights,
@@ -57,14 +57,14 @@ export default async function AiProgramDetailPage({
   const program = await getProgramForActor(actor, params.id);
   if (!program) notFound();
 
-  const [detail, allItems, allGroups, allMeetings, allBoards] = await Promise.all([
-    getProgramDetail(program.companyId, program.id),
+  const [delivery, allItems, allGroups, allMeetings, allBoards] = await Promise.all([
+    getPortalProgramDelivery(actor, program.id),
     getBacklogForActor(actor),
     getGroupsForActor(actor),
     getMeetingsForActor(actor),
     listHubBoardsForActor(actor),
   ]);
-  if (!detail) notFound();
+  if (!delivery) notFound();
 
   // Roadmap: this program's items, under its own sections plus any
   // company-wide section a program item still sits in (same rule as the hub).
@@ -85,14 +85,16 @@ export default async function AiProgramDetailPage({
     : null;
 
   // Progress: delivery stats exist only once a repo is connected.
-  const hasRepo = !!detail.repoId;
-  const highlights: ProgramHighlightWeek[] = detail.repoId
-    ? await getProgramHighlights(detail.repoId)
+  const hasRepo = delivery.hasRepo;
+  const highlights: ProgramHighlightWeek[] = hasRepo
+    ? await getProgramHighlights(actor, program.id)
     : [];
 
-  // Meetings: program-tagged and published only. (Draft meetings surface to
-  // client managers on the hub; the program page keeps to the published set.)
-  const meetings = allMeetings.filter((m) => m.aiProgramId === program.id && m.publishedAt !== null);
+  // Meetings: this program's tagged meetings. Visibility is the lib's own
+  // rule (same as the hub): getMeetingsForActor returns published meetings,
+  // plus drafts of companies the actor manages, so client managers see this
+  // program's drafts here too and other members stay published-only.
+  const meetings = allMeetings.filter((m) => m.aiProgramId === program.id);
 
   // Plan briefs (guided 5Ds plans with saved HTML).
   const briefs = new Map<string, string>();
@@ -162,14 +164,14 @@ export default async function AiProgramDetailPage({
           ) : (
             <>
               <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
-                <MetricCard label="Delivered hours" value={fmtHours(detail.deliveredHours)} sub="tracked hours of skilled work" />
-                <MetricCard label="Updates this week" value={detail.prsMergedLast7d.toLocaleString("en-US")} sub="improvements shipped, last 7 days" />
-                <MetricCard label="Updates this month" value={detail.prsMergedLast30d.toLocaleString("en-US")} sub="improvements shipped, last 30 days" />
+                <MetricCard label="Delivered hours" value={fmtHours(delivery.deliveredHours)} sub="tracked hours of skilled work" />
+                <MetricCard label="Updates this week" value={delivery.prsMerged7d.toLocaleString("en-US")} sub="improvements shipped, last 7 days" />
+                <MetricCard label="Updates this month" value={delivery.prsMerged30d.toLocaleString("en-US")} sub="improvements shipped, last 30 days" />
               </div>
               <h2 className="admin-card-title">Delivered hours, last 8 weeks</h2>
               <BarChart
                 ariaLabel="Delivered hours per ISO week, last 8 weeks"
-                data={detail.weeklyHours.map((w) => ({ label: w.isoWeek.slice(5), value: Math.round(w.hours * 10) / 10 }))}
+                data={delivery.weeklyHours.map((w) => ({ label: w.isoWeek.slice(5), value: Math.round(w.hours * 10) / 10 }))}
                 emptyText="No delivered hours tracked in the last 8 weeks."
                 formatValue={(n) => `${fmtHours(n)}h`}
               />

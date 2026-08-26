@@ -12,8 +12,27 @@
 
 import { companyOs, htt } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
-import { listProgramSummaries, type ProgramStatus } from "@/lib/hub/program";
+import {
+  listProgramSummaries,
+  getProgramDetail,
+  isoWeekLabel,
+  lastIsoWeeks,
+  type ProgramStatus,
+} from "@/lib/hub/program";
 import type { ClientBoardColumn, ClientBoardCard } from "@/lib/boards/client-view";
+
+// IDOR guard shared by the loaders below: resolve a program only when it
+// belongs to one of the actor's companies; returns the owning company id.
+async function ownedProgramCompany(actor: PortalActor, programId: string): Promise<string | null> {
+  if (actor.companyScope.length === 0) return null;
+  const { data } = await companyOs
+    .from("ai_programs")
+    .select("id, company_id")
+    .eq("id", programId)
+    .in("company_id", actor.companyScope)
+    .maybeSingle();
+  return (data as { company_id: string } | null)?.company_id ?? null;
+}
 
 export type PortalProgramSummary = {
   id: string;
@@ -206,6 +225,40 @@ export async function getBoardViewForActor(actor: PortalActor, boardId: string):
   return { boardName: board.name, columns, cards };
 }
 
+// ── Delivery projection ──────────────────────────────────────────────────
+
+// The client-safe slice of a program's delivery stats. This projection is the
+// STRUCTURAL boundary: lib/hub/program.ts's admin-grade ProgramDetail (repo
+// org/name, PR rows with author logins and URLs, admin meeting rows) is
+// consumed here and only these fields ever leave the module, so unsafe fields
+// never enter a portal page module at all.
+export type PortalProgramDelivery = {
+  companyId: string;
+  hasRepo: boolean;
+  deliveredHours: number;
+  prsMerged7d: number;
+  prsMerged30d: number;
+  weeklyHours: Array<{ isoWeek: string; hours: number }>; // last 8 ISO weeks, oldest first
+};
+
+export async function getPortalProgramDelivery(
+  actor: PortalActor,
+  programId: string,
+): Promise<PortalProgramDelivery | null> {
+  const companyId = await ownedProgramCompany(actor, programId);
+  if (!companyId) return null;
+  const detail = await getProgramDetail(companyId, programId);
+  if (!detail) return null;
+  return {
+    companyId,
+    hasRepo: !!detail.repoId,
+    deliveredHours: detail.deliveredHours,
+    prsMerged7d: detail.prsMergedLast7d,
+    prsMerged30d: detail.prsMergedLast30d,
+    weeklyHours: detail.weeklyHours.map((w) => ({ isoWeek: w.isoWeek, hours: w.hours })),
+  };
+}
+
 // ── Shipped highlights ───────────────────────────────────────────────────
 
 export type ProgramHighlightWeek = {
@@ -213,38 +266,57 @@ export type ProgramHighlightWeek = {
   titles: string[];
 };
 
-// ISO week label, same convention as lib/hub/program.ts.
-function isoWeekLabel(d: Date): string {
-  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const day = t.getUTCDay() || 7;
-  t.setUTCDate(t.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-  const week = Math.ceil(((t.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
-  return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
-}
-
 const HIGHLIGHT_WEEKS = 8;
-const HIGHLIGHT_CAP = 300; // plenty for 8 weeks; keeps the query bounded
 
-// The latest merged PR TITLES for a program's repo, grouped by ISO week,
-// newest week first. Titles only: no numbers, URLs, or author logins. The
-// caller passes a repoId it already resolved through a scope-checked program.
-export async function getProgramHighlights(repoId: string): Promise<ProgramHighlightWeek[]> {
-  const since = new Date(Date.now() - HIGHLIGHT_WEEKS * 7 * 86_400_000).toISOString();
-  const { data } = await htt
-    .from("pull_requests")
-    .select("title, merged_at")
-    .eq("repo_id", repoId)
-    .eq("state", "merged")
-    .gte("merged_at", since)
-    .order("merged_at", { ascending: false })
-    .limit(HIGHLIGHT_CAP);
-  const rows = (data ?? []) as Array<{ title: string; merged_at: string }>;
+// PostgREST caps a response at 1000 rows; page through so an active repo's
+// full 8-week window still lists completely (same pattern as
+// lib/hub/program.ts). The total order ends on the unique id so pages never
+// repeat or skip rows; the window filter bounds the loop.
+const PAGE = 1000;
 
+// Merged PR TITLES for a program's repo, grouped by ISO week, newest week
+// first, over exactly the same lastIsoWeeks(8) set as the delivered-hours
+// chart. Titles only: no numbers, URLs, or author logins. Scope is resolved
+// here (actor + programId), never trusted from the caller.
+export async function getProgramHighlights(
+  actor: PortalActor,
+  programId: string,
+): Promise<ProgramHighlightWeek[]> {
+  const companyId = await ownedProgramCompany(actor, programId);
+  if (!companyId) return [];
+  const { data: repoRow } = await htt
+    .from("repos")
+    .select("id")
+    .eq("ai_program_id", programId)
+    .maybeSingle();
+  const repoId = (repoRow as { id: string } | null)?.id;
+  if (!repoId) return [];
+
+  // Generous lower bound (a calendar window can span 9 ISO weeks); the week
+  // set below is the exact filter.
+  const since = new Date(Date.now() - (HIGHLIGHT_WEEKS + 1) * 7 * 86_400_000).toISOString();
+  const rows: Array<{ title: string; merged_at: string }> = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await htt
+      .from("pull_requests")
+      .select("title, merged_at")
+      .eq("repo_id", repoId)
+      .eq("state", "merged")
+      .gte("merged_at", since)
+      .order("merged_at", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE - 1);
+    const page = (data ?? []) as Array<{ title: string; merged_at: string }>;
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+
+  const weekSet = new Set(lastIsoWeeks(HIGHLIGHT_WEEKS));
   const weeks: ProgramHighlightWeek[] = [];
   const byWeek = new Map<string, string[]>();
   for (const r of rows) {
     const label = isoWeekLabel(new Date(r.merged_at));
+    if (!weekSet.has(label)) continue;
     let bucket = byWeek.get(label);
     if (!bucket) {
       bucket = [];
