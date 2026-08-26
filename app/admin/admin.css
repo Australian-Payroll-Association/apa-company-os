@@ -3607,6 +3607,8 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
    the .team-glance strip (a glance, not a KPI board); the action cluster is the
    one client island. */
 .coach-hero { display: grid; gap: 14px; margin-bottom: 24px; }
+.coach-hero__back { justify-self: start; margin-bottom: 0; text-decoration: none; transition: color var(--transition); }
+.coach-hero__back:hover { color: var(--admin-ink); }
 .coach-hero__id {
   display: flex;
   align-items: flex-start;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CoachProfileDetail, CommitmentStatus, OneOnOne } from "@/lib/coaching/data";
 import { OPEN_COMMITMENT_STATUSES, RETENTION_ROOT_LABELS } from "@/lib/coaching/data";
 import { CoachHeaderActions } from "./CoachHeaderActions";
@@ -98,7 +99,9 @@ export function CoachProfileHeader({ detail }: { detail: CoachProfileDetail }) {
 
   return (
     <header className="coach-hero">
-      <div className="admin-eyebrow">Coaching</div>
+      <Link className="admin-eyebrow coach-hero__back" href="/team/coaching">
+        ← Coaching
+      </Link>
 
       <div className="coach-hero__id">
         {member.avatarUrl ? (
