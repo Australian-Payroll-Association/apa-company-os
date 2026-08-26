@@ -174,13 +174,14 @@ export function IndividualGoalsEditor({
         />
       </div>
       <div className="admin-field">
-        <label className="admin-label">Aligns to a company goal (optional)</label>
+        <label className="admin-label">Aligns to a company goal</label>
         <LadderSelect
           edges={edges}
           value={form.ladder}
           onChange={(v) => set("ladder", v)}
           disabled={pending}
-          emptyLabel="Stands on its own"
+          emptyLabel="Choose the company goal this serves…"
+          required
         />
       </div>
       <div className="goals-grid">

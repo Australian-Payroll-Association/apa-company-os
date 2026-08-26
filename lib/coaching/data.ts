@@ -2154,6 +2154,9 @@ function goalColumns(input: MyGoalInput): Record<string, unknown> {
 
 function validateGoal(input: MyGoalInput): string | null {
   if (!input.title.trim()) return "Write the goal first.";
+  // Every FAST goal ladders to a company goal; "stands on its own" is no
+  // longer accepted from the goal forms (coach-tier quick edits are separate).
+  if (input.ladder.kind === "none") return "Pick the company goal this ladders up to.";
   if (input.title.trim().length > 200) return "Keep the goal title under 200 characters.";
   if (!(input.status in GOAL_STATUS_LABELS)) return "Bad status.";
   for (const v of [input.startValue, input.targetValue, input.currentValue]) {

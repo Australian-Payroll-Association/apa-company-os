@@ -216,14 +216,15 @@ export function MyGoalsPanel({
       </div>
 
       <div className="admin-field">
-        <label className="admin-label" htmlFor="goal-ladder">Aligns to a company goal (optional)</label>
+        <label className="admin-label" htmlFor="goal-ladder">Aligns to a company goal</label>
         <LadderSelect
           id="goal-ladder"
           edges={edges}
           value={form.ladder}
           onChange={(v) => set("ladder", v)}
           disabled={pending}
-          emptyLabel="Stands on its own"
+          emptyLabel="Choose the company goal this serves…"
+          required
         />
       </div>
 
