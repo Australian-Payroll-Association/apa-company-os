@@ -44,17 +44,21 @@ export async function hasClientBoard(companyIds: string[]): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
-export async function getClientBoardView(companyIds: string[]): Promise<ClientBoardView | null> {
+export async function getClientBoardView(
+  companyIds: string[],
+  opts?: { untaggedOnly?: boolean },
+): Promise<ClientBoardView | null> {
   if (companyIds.length === 0) return null;
-  const { data: boardRow } = await companyOs
+  let boardQb = companyOs
     .from("boards")
     .select("id, slug, name")
     .in("client_company_id", companyIds)
     .eq("status", "active")
-    .is("archived_at", null)
-    .order("sort_order")
-    .limit(1)
-    .maybeSingle();
+    .is("archived_at", null);
+  // untaggedOnly: company-wide boards only (ai_program_id null); program-tagged
+  // boards render in their AI Program view instead.
+  if (opts?.untaggedOnly) boardQb = boardQb.is("ai_program_id", null);
+  const { data: boardRow } = await boardQb.order("sort_order").limit(1).maybeSingle();
   if (!boardRow) return null;
   const board = boardRow as { id: string; slug: string; name: string };
 

@@ -18,7 +18,6 @@ import {
   PROGRAM_SELECT,
   type ProgramSummary,
   type ProgramSummaryInputs,
-  type ProgramStatus,
 } from "@/lib/hub/program";
 import {
   computeTokenUsage,
@@ -30,9 +29,8 @@ import {
 import { BACKLOG_SELECT, ROADMAP_GROUPS_SELECT, type BacklogItem, type RoadmapGroup } from "@/lib/client-backlog";
 import { getAdminUser } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { Badge } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
@@ -41,6 +39,7 @@ import { CompanyDocuments, type ProgramOption } from "@/components/admin/Company
 import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
 import { InvoicesPanel } from "@/components/hub/InvoicesPanel";
 import { HubTeamPanel } from "@/components/hub/HubTeamPanel";
+import { HubProgramsBand } from "@/components/hub/HubProgramsBand";
 import { BoardView } from "@/app/admin/(dashboard)/boards/[slug]/BoardView";
 import { BacklogAdminEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/BacklogAdminEditor";
 import { OverviewEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/OverviewEditor";
@@ -54,18 +53,8 @@ export const dynamic = "force-dynamic";
 
 const CLIENT_STAGES = new Set(["customer", "evangelist"]);
 
-const PROGRAM_STATUS_TONE: Record<ProgramStatus, BadgeTone> = {
-  draft: "neutral",
-  active: "ok",
-  complete: "info",
-};
-
 function Empty({ text }: { text: string }) {
   return <div className="admin-empty">{text}</div>;
-}
-
-function fmtHours(n: number): string {
-  return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 export default async function CompanyDetailPage({
@@ -484,72 +473,11 @@ export default async function CompanyDetailPage({
       </div>
 
       {hub && (
-        <>
-          <div className="hub-band-head">
-            <h2 className="admin-card-title">Human Tokens</h2>
-            <span className="admin-cell-muted" style={{ fontSize: 12 }}>Company credit pool, shared by all AI Programs</span>
-          </div>
-          <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
-            <MetricCard label="Bought" value={hub.usage.boughtTokens.toLocaleString()} sub="Purchased + allocated tokens" />
-            <MetricCard label="Delivered" value={fmtHours(hub.usage.deliveredHours)} sub="Hours of tracked work" />
-            <MetricCard label="Balance" value={fmtHours(hub.usage.balanceTokens)} sub="Bought minus delivered" />
-            <MetricCard label="Planned" value={hub.usage.plannedTokens.toLocaleString()} sub="Roadmap high estimates" />
-            <MetricCard
-              label="AI leverage"
-              value={hub.usage.leverage != null ? `${fmtHours(hub.usage.leverage)}x` : "n/a"}
-              sub="AI tokens per delivered hour"
-            />
-          </div>
-
-          <div className="hub-band-head">
-            <h2 className="admin-card-title">AI Programs</h2>
-          </div>
-          {hub.programs.length === 0 ? (
-            <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
-              <Empty text="No AI Programs yet. Created from the client portal or by Edge8." />
-            </div>
-          ) : (
-            <div className="mp-kpi-grid hub-programs-grid">
-              {hub.programs.map((p) => {
-                const pct = p.roadmapTotal > 0 ? Math.round((p.roadmapDone / p.roadmapTotal) * 100) : 0;
-                return (
-                  <Link
-                    key={p.id}
-                    href={`/admin/revenue/companies/${company.id}/programs/${p.id}`}
-                    className="admin-card admin-section-card hub-program-card"
-                  >
-                    <div className="hub-program-head">
-                      <span className="admin-cell-strong" style={{ fontSize: 15 }}>{p.name}</span>
-                      <Badge tone={PROGRAM_STATUS_TONE[p.status]}>{p.status}</Badge>
-                    </div>
-                    <div className="admin-cell-muted admin-cell-mono" style={{ marginTop: 4, minHeight: 18, fontSize: 12, overflowWrap: "anywhere" }}>
-                      {p.githubRepo ?? "No repo connected"}
-                    </div>
-                    <div style={{ marginTop: 14 }}>
-                      <div className="admin-cell-muted hub-program-progressrow">
-                        <span>
-                          {p.roadmapTotal === 0
-                            ? "No roadmap items yet"
-                            : `Roadmap ${p.roadmapDone}/${p.roadmapTotal} done`}
-                        </span>
-                        {p.roadmapTotal > 0 && <span>{pct}%</span>}
-                      </div>
-                      <div className="board-progress">
-                        <div className="board-progress-fill" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                    <div className="admin-cell-muted" style={{ marginTop: 12, fontSize: 12 }}>
-                      {p.repoId
-                        ? `${fmtHours(p.deliveredHours)} hrs delivered · ${p.prsMergedLast7d} PR${p.prsMergedLast7d === 1 ? "" : "s"} merged 7d · `
-                        : ""}
-                      {p.boardCount} {p.boardCount === 1 ? "board" : "boards"}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </>
+        <HubProgramsBand
+          usage={hub.usage}
+          programs={hub.programs}
+          programHref={(programId) => `/admin/revenue/companies/${company.id}/programs/${programId}`}
+        />
       )}
 
       <div className="admin-card admin-section-card">

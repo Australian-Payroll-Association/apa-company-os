@@ -24,6 +24,7 @@ export async function teamDownloadClientDocument(
 export async function teamSignedClientDocumentUpload(input: {
   companyId: string;
   filename: string;
+  programId?: string | null;
 }): Promise<DocResult<{ signedUrl: string; path: string }>> {
   const actor = await requireTeamMember();
   return signedClientDocumentUploadForActor(actor, input);
@@ -34,12 +35,16 @@ export async function teamRecordClientDocument(input: {
   path: string;
   filename: string;
   sizeBytes: number | null;
+  programId?: string | null;
 }): Promise<DocResult> {
   const actor = await requireTeamMember();
   const r = await recordClientDocumentForActor(actor, input);
   if (r.ok) {
     revalidatePath(`/team/clients/${input.companyId}`);
     revalidatePath(`/team/clients/${input.companyId}/documents`);
+    if (input.programId) {
+      revalidatePath(`/team/clients/${input.companyId}/programs/${input.programId}`);
+    }
   }
   return r;
 }

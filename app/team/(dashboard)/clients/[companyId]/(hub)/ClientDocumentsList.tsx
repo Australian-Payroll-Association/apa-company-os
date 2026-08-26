@@ -55,14 +55,18 @@ function putToSignedUrl(signedUrl: string, file: File, onProgress: (p: number) =
   });
 }
 
+// programId (optional) tags every upload to that AI Program, so uploads from
+// a program view land in its Documents tab; the server re-validates it.
 export function ClientDocumentsList({
   documents,
   companyId,
   actorEmail,
+  programId,
 }: {
   documents: ClientDocument[];
   companyId: string;
   actorEmail: string | null;
+  programId?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +89,7 @@ export function ClientDocumentsList({
     setQueue((q) => [...items, ...q]);
     for (const it of items) {
       update(it.id, { status: "uploading", progress: 0 });
-      const signed = await teamSignedClientDocumentUpload({ companyId, filename: it.file.name });
+      const signed = await teamSignedClientDocumentUpload({ companyId, filename: it.file.name, programId: programId ?? null });
       if (!signed.ok) {
         update(it.id, { status: "error", error: signed.error });
         continue;
@@ -100,6 +104,7 @@ export function ClientDocumentsList({
         path: signed.path,
         filename: it.file.name,
         sizeBytes: it.file.size,
+        programId: programId ?? null,
       });
       update(it.id, rec.ok ? { status: "done", progress: 1 } : { status: "error", error: rec.error });
     }

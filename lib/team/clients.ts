@@ -29,6 +29,20 @@ import {
   type BacklogPriority,
   type RoadmapGroup,
 } from "@/lib/client-backlog";
+import {
+  fetchProgramSummaryInputs,
+  getProgramDetail,
+  listProgramSummaries,
+  type ProgramDetail,
+  type ProgramPrOptions,
+  type ProgramSummary,
+} from "@/lib/hub/program";
+import {
+  computeTokenUsage,
+  getAllocatedTokensForCompanies,
+  getTokenBalanceForCompanies,
+  type TokenUsage,
+} from "@/lib/hub/tokens";
 
 export type ClientCompany = { id: string; name: string; roleTitle: string | null };
 
@@ -180,14 +194,111 @@ export async function getClientRoadmapSnippets(
 
 // The client-visible board for an assigned company: exactly what the client
 // sees on /portal/board (shared view in lib/boards/client-view.ts). Null when
-// unassigned (authorization) or when the client has no active board.
+// unassigned (authorization) or when the client has no active board. With
+// untaggedOnly, only a company-wide (ai_program_id null) board qualifies;
+// program-tagged boards render in their AI Program view.
 export async function getClientBoardViewForActor(
   actor: TeamActor,
   companyId: string,
+  opts?: { untaggedOnly?: boolean },
 ): Promise<ClientBoardView | null> {
   const companies = await actorCompanyIds(actor);
   if (!companies.has(companyId)) return null;
-  return getClientBoardView([companyId]);
+  return getClientBoardView([companyId], opts);
+}
+
+// Whether a company has any AI Programs at all: the switch the hub tab pages
+// use to decide between "everything" (no programs, today's behavior) and
+// "untagged only" (programs exist; tagged rows live in their program view).
+export async function companyHasPrograms(companyId: string): Promise<boolean> {
+  const { data } = await companyOs
+    .from("ai_programs")
+    .select("id")
+    .eq("company_id", companyId)
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
+export type HubTabFlags = { hasPrograms: boolean; dropCompanyWide: boolean };
+
+// Flags for the hub tab nav. dropCompanyWide mirrors the admin hub home's
+// guarded drop rule exactly: the Work Board and Roadmap tabs drop together
+// only when at least one board or roadmap item is program-tagged AND zero
+// untagged ones remain, so nothing ever becomes unreachable and a company
+// with programs but no boards/items keeps its tabs.
+export async function getHubTabFlags(companyId: string): Promise<HubTabFlags> {
+  const [{ data: progRows }, { data: boardRows }, { data: itemRows }] = await Promise.all([
+    companyOs.from("ai_programs").select("id").eq("company_id", companyId).limit(1),
+    companyOs
+      .from("boards")
+      .select("ai_program_id")
+      .eq("client_company_id", companyId)
+      .eq("status", "active")
+      .is("archived_at", null),
+    companyOs
+      .from("client_backlog_items")
+      .select("ai_program_id")
+      .eq("company_id", companyId)
+      .is("archived_at", null),
+  ]);
+  const hasPrograms = (progRows ?? []).length > 0;
+  const boards = (boardRows ?? []) as Array<{ ai_program_id: string | null }>;
+  const items = (itemRows ?? []) as Array<{ ai_program_id: string | null }>;
+  const untaggedBoards = boards.filter((b) => !b.ai_program_id).length;
+  const untaggedItems = items.filter((i) => !i.ai_program_id).length;
+  const taggedCount = boards.length - untaggedBoards + (items.length - untaggedItems);
+  return {
+    hasPrograms,
+    dropCompanyWide: hasPrograms && taggedCount > 0 && untaggedBoards === 0 && untaggedItems === 0,
+  };
+}
+
+export type HubOverview = { usage: TokenUsage; programs: ProgramSummary[] };
+
+// The hub Overview's top band for an assigned client: the company-grain token
+// usage and the AI Program summaries, both derived from one shared fetch of
+// the delivery rows (same one-fetch discipline as the admin hub home). Null
+// when the company is not in the actor's active assignment set.
+export async function getHubOverviewForActor(
+  actor: TeamActor,
+  companyId: string,
+): Promise<HubOverview | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+
+  const [inputs, balance, allocatedTokens, { data: plannedData }] = await Promise.all([
+    fetchProgramSummaryInputs(companyId),
+    getTokenBalanceForCompanies([companyId]),
+    getAllocatedTokensForCompanies([companyId]),
+    companyOs
+      .from("client_backlog_items")
+      .select("token_high")
+      .eq("company_id", companyId)
+      .is("archived_at", null),
+  ]);
+
+  const programs = await listProgramSummaries(companyId, inputs);
+  const plannedTokens = ((plannedData ?? []) as Array<{ token_high: number | null }>).reduce(
+    (sum, r) => sum + Number(r.token_high ?? 0),
+    0,
+  );
+  const usage = computeTokenUsage({ balance, allocatedTokens, plannedTokens, delivery: inputs.delivery });
+  return { usage, programs };
+}
+
+// One AI Program's full detail for an assigned client. Null both when the
+// company is outside the actor's assignments (authorization) and when the
+// program is not one of that company's (getProgramDetail only ever matches
+// programs of the given company), so either way the page 404s.
+export async function getProgramDetailForActor(
+  actor: TeamActor,
+  companyId: string,
+  programId: string,
+  prOpts: ProgramPrOptions = {},
+): Promise<ProgramDetail | null> {
+  const companies = await actorCompanyIds(actor);
+  if (!companies.has(companyId)) return null;
+  return getProgramDetail(companyId, programId, prOpts);
 }
 
 // Read-only client documents for an assigned company (title, date, uploader,
@@ -303,24 +414,47 @@ export async function getActorEmail(actor: TeamActor): Promise<string | null> {
 // authorization rule as reads: the company must be in the actor's active
 // assignment set, resolved server-side; the ids in the input are never trusted.
 
+// Optional programId tags the upload to one of the company's own AI Programs
+// (validated here, never trusted); the program view passes it so its uploads
+// land in that program's Documents tab.
+async function programBelongsToCompany(companyId: string, programId: string): Promise<boolean> {
+  const { data } = await companyOs
+    .from("ai_programs")
+    .select("id")
+    .eq("id", programId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function signedClientDocumentUploadForActor(
   actor: TeamActor,
-  input: { companyId: string; filename: string },
+  input: { companyId: string; filename: string; programId?: string | null },
 ): Promise<DocResult<{ signedUrl: string; path: string }>> {
   const companies = await actorCompanyIds(actor);
   if (!companies.has(input.companyId)) return { ok: false, error: "Not found." };
-  return createSignedDocumentUpload({ companyId: input.companyId, filename: input.filename });
+  if (input.programId && !(await programBelongsToCompany(input.companyId, input.programId))) {
+    return { ok: false, error: "Invalid AI Program." };
+  }
+  return createSignedDocumentUpload({
+    companyId: input.companyId,
+    filename: input.filename,
+    programId: input.programId ?? null,
+  });
 }
 
 export async function recordClientDocumentForActor(
   actor: TeamActor,
-  input: { companyId: string; path: string; filename: string; sizeBytes: number | null },
+  input: { companyId: string; path: string; filename: string; sizeBytes: number | null; programId?: string | null },
 ): Promise<DocResult> {
   const companies = await actorCompanyIds(actor);
   if (!companies.has(input.companyId)) return { ok: false, error: "Not found." };
+  if (input.programId && !(await programBelongsToCompany(input.companyId, input.programId))) {
+    return { ok: false, error: "Invalid AI Program." };
+  }
   const email = await getActorEmail(actor);
   if (!email) return { ok: false, error: "Could not resolve your account email." };
-  return recordDocument({ ...input, uploadedBy: email });
+  return recordDocument({ ...input, programId: input.programId ?? null, uploadedBy: email });
 }
 
 // Uploader-only delete, same rule as the client portal: the document must be
