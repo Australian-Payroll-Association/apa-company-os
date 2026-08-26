@@ -21,6 +21,8 @@ import {
   RETENTION_ROOT_LABELS,
 } from "@/lib/coaching/data";
 import { LadderSelect } from "./LadderSelect";
+import { ReviewHistoryTable } from "@/components/admin/ReviewHistoryTable";
+import type { MemberReviewCycle } from "@/lib/reviews-labels";
 import { ladderValue, parseLadder } from "@/lib/coaching/ladder";
 import {
   addCommitment,
@@ -66,6 +68,7 @@ const COACH_TABS = [
   { id: "log", label: "1-1 Log" },
   { id: "goals", label: "Goals" },
   { id: "person", label: "Person" },
+  { id: "performance", label: "Performance" },
   { id: "insights", label: "Insights" },
 ] as const;
 
@@ -89,11 +92,15 @@ function fmt(iso: string | null): string {
 export function CoachProfileView({
   detail,
   html,
+  reviews,
   initialTab,
   todayIso,
 }: {
   detail: CoachProfileDetail;
   html: RenderedHtml;
+  // Performance-review cycles for this member (fetched in the page, not in the
+  // coaching data layer, so lib/reviews' server deps never reach this bundle).
+  reviews: MemberReviewCycle[];
   initialTab?: string;
   todayIso: string;
 }) {
@@ -125,6 +132,7 @@ export function CoachProfileView({
   const counts: Partial<Record<CoachTab, number>> = {
     log: detail.meetings.length,
     goals: detail.goals.filter((g) => g.status === "active").length,
+    performance: reviews.length,
   };
 
   return (
@@ -186,6 +194,8 @@ export function CoachProfileView({
             <CadenceCard detail={detail} run={run} busy={busy} />
           </>
         )}
+
+        {tab === "performance" && <PerformanceCard memberName={detail.member.name} reviews={reviews} />}
 
         {tab === "insights" && (
           <>
@@ -1133,6 +1143,32 @@ function MeetingRow({
         </div>
       )}
     </div>
+  );
+}
+
+// ---- performance ------------------------------------------------------------
+
+function PerformanceCard({ memberName, reviews }: { memberName: string; reviews: MemberReviewCycle[] }) {
+  return (
+    <section className="admin-card coach-section">
+      <div className="admin-card-title">
+        Performance reviews{" "}
+        <span className="admin-cell-muted">system of record</span>
+      </div>
+      {reviews.length === 0 ? (
+        <div className="admin-hint">
+          No review cycles yet for {memberName}. Self-assessments and manager reviews appear here
+          once opened.
+        </div>
+      ) : (
+        <>
+          <div className="admin-hint">
+            Every self-assessment and manager review for {memberName}. Open a row to read both sides.
+          </div>
+          <ReviewHistoryTable cycles={reviews} />
+        </>
+      )}
+    </section>
   );
 }
 

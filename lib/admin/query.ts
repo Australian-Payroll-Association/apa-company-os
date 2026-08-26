@@ -20,9 +20,25 @@ export type ListParams = {
   dir?: "asc" | "desc";
   // `null` filters to IS NULL (e.g. persona: null for "unset").
   filters?: Record<string, string | number | boolean | null | (string | number)[]>;
+  // Negative filter: rows whose column is one of these values are excluded
+  // (col NOT IN (...)). Used to hide the performance-review capture forms from
+  // the Surveys list — see PERFORMANCE_REVIEW_SLUGS.
+  exclude?: Record<string, (string | number)[]>;
   // For archivable tables (people, companies, deals): hide soft-deleted rows.
   excludeArchived?: boolean;
 };
+
+// Applies col NOT IN (...) filters. PostgREST wants the list bare-parenthesised
+// (perf-review-self,perf-review-manager); our slugs have no commas or quotes.
+function applyExclude<Q extends { not(col: string, op: string, val: string): Q }>(
+  q: Q,
+  exclude: Record<string, (string | number)[]> | undefined,
+): Q {
+  for (const [col, vals] of Object.entries(exclude ?? {})) {
+    if (vals.length) q = q.not(col, "in", `(${vals.join(",")})`);
+  }
+  return q;
+}
 
 export type ListResult<T> = {
   rows: T[];
@@ -55,6 +71,7 @@ export async function listEntity<T>(
     else if (Array.isArray(val)) q = q.in(col, val);
     else q = q.eq(col, val);
   }
+  q = applyExclude(q, params.exclude);
 
   // Tokenized search: split on whitespace and AND the tokens together (each
   // successive .or() call is ANDed by PostgREST), so "john smith" requires
@@ -93,6 +110,7 @@ export async function listEntity<T>(
 export async function countEntity(
   table: string,
   filters: ListParams["filters"] = {},
+  exclude?: ListParams["exclude"],
 ): Promise<number> {
   let q = companyOs.from(table).select("*", { count: "exact", head: true });
   for (const [col, val] of Object.entries(filters ?? {})) {
@@ -100,6 +118,7 @@ export async function countEntity(
     else if (Array.isArray(val)) q = q.in(col, val);
     else q = q.eq(col, val);
   }
+  q = applyExclude(q, exclude);
   const { count } = await q;
   return count ?? 0;
 }

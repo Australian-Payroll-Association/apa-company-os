@@ -25,6 +25,10 @@ export type TeamActor = {
   role: TeamRole;
   displayName: string;
   avatarUrl: string | null;
+  // Auth email, lowercased. Identity/scope is NEVER keyed on this (see the id
+  // rationale below); it exists only to reuse the email-keyed sensitive-data
+  // gate (canViewSensitive) for privileged read access like reviews.
+  email: string;
   // Scope sets, computed server-side from the JWT — never from client input.
   // Employees: just their own id. Managers: own id + active direct reports.
   teamMemberScope: string[]; // team_members.id values this actor may read
@@ -141,6 +145,7 @@ export const getTeamActor = cache(async (): Promise<GetActorResult> => {
       role: isManager ? "manager" : "employee",
       displayName: displayNameOf(person),
       avatarUrl: person.avatar_url,
+      email,
       teamMemberScope,
       personScope,
       directReportIds,

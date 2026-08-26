@@ -7,6 +7,7 @@ import { listEntity, countEntity } from "@/lib/admin/query";
 import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { formatDate } from "@/lib/admin/format";
 import { surveyStatusTone } from "@/lib/admin/surveys";
+import { PERFORMANCE_REVIEW_SLUGS } from "@/lib/reviews";
 import { NewSurveyButton } from "./NewSurveyButton";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,13 @@ export default async function SurveysPage({
   const sort = firstParam(searchParams.sort) ?? "updated_at";
   const dir = (firstParam(searchParams.dir) as "asc" | "desc" | undefined) ?? "desc";
 
+  // The performance-review capture forms (perf-review-self/manager) are surveys
+  // by storage but managed entirely through the review flow — their answers go
+  // to performance_reviews, never survey_responses, so they'd always read
+  // "Results (0)" here. Hide them from the list and the counts; they stay
+  // reachable by direct URL for editing.
+  const hiddenSlugs = [...PERFORMANCE_REVIEW_SLUGS];
+
   const [list, total, published, responses] = await Promise.all([
     listEntity<Row>(
       "survey_list",
@@ -45,10 +53,11 @@ export default async function SurveysPage({
         sort: SORTABLE.includes(sort) ? sort : "updated_at",
         dir,
         excludeArchived: true,
+        exclude: { slug: hiddenSlugs },
       },
     ),
-    countEntity("surveys"),
-    countEntity("surveys", { status: "published" }),
+    countEntity("surveys", {}, { slug: hiddenSlugs }),
+    countEntity("surveys", { status: "published" }, { slug: hiddenSlugs }),
     countEntity("survey_responses"),
   ]);
 

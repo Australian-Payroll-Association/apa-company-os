@@ -1,5 +1,6 @@
 import { companyOs } from "@/lib/supabase";
 import { getTeamActor, type TeamActor } from "@/lib/team-auth";
+import { canViewSensitive } from "@/lib/admin-auth";
 import { parseStoredAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 
 // Performance reviews domain (docs/plans/2026-08-12-performance-reviews.md).
@@ -12,19 +13,27 @@ import { parseStoredAnswer, type SurveyFieldRow } from "@/lib/admin/surveys";
 //   subject  — their own self rows, and manager rows about them once FINALIZED
 //   manager  — rows they review (any status), and the subject's self row only
 //              after their own manager row is submitted (blind drafting)
+//   observer — the subject's coach and sensitive-cleared admins may READ a
+//              review (both sides, once submitted) but never finalize it
 // Everything is scoped through the actor from lib/team-auth; ids from the
 // client are only ever row ids that these checks re-authorize.
 
-export type ReviewType = "probation" | "midyear" | "renewal" | "adhoc" | "annual";
-export type RaterKind = "self" | "manager";
-
-export const REVIEW_TYPE_LABEL: Record<ReviewType, string> = {
-  probation: "Probation review",
-  midyear: "Mid-year check-in",
-  renewal: "Renewal review",
-  adhoc: "Review",
-  annual: "Annual review",
-};
+// Client-safe types and label maps live in ./reviews-labels (no server deps);
+// re-exported here so server callers keep importing them from "@/lib/reviews".
+export {
+  REVIEW_TYPE_LABEL,
+  DECISION_BY_LABEL,
+  DECISION_LABEL,
+  type ReviewType,
+  type RaterKind,
+  type MemberReviewCycle,
+} from "./reviews-labels";
+import {
+  DECISION_BY_LABEL,
+  type ReviewType,
+  type RaterKind,
+  type MemberReviewCycle,
+} from "./reviews-labels";
 
 // The eleven dimensions, in form order. Six Performance Pulse behaviors kept
 // verbatim + five AI craft skills (AI Officer curriculum).
@@ -80,20 +89,6 @@ export function visibleReviewFields<T extends { config: { show_when?: { types?: 
     return !types || types.includes(reviewType);
   });
 }
-
-// Survey decision labels -> stored enum.
-const DECISION_BY_LABEL: Record<string, string> = {
-  "Continue to contract": "continue_to_contract",
-  "Extend probation 30 days": "extend_probation",
-  Discontinue: "discontinue",
-  Renew: "renew",
-  "Renew with changes": "renew_with_changes",
-  "Do not renew": "do_not_renew",
-};
-
-export const DECISION_LABEL: Record<string, string> = Object.fromEntries(
-  Object.entries(DECISION_BY_LABEL).map(([label, value]) => [value, label]),
-);
 
 export type ReviewRow = {
   id: string;
@@ -355,6 +350,20 @@ export type ReviewDetail = {
   canFinalize: boolean;
 };
 
+// A non-participant who may still READ this subject's reviews: the coach who
+// owns their coaching profile, or an admin cleared for sensitive data. Read
+// only — finalizeReview re-checks reviewer_id, so observers can never finalize.
+async function canObserveReview(actor: TeamActor, subjectTeamMemberId: string): Promise<boolean> {
+  if (actor.isAdmin && (await canViewSensitive(actor.email))) return true;
+  const { data } = await companyOs
+    .from("coaching_profiles")
+    .select("id")
+    .eq("coach_id", actor.teamMemberId)
+    .eq("team_member_id", subjectTeamMemberId)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function getReviewDetail(actor: TeamActor, id: string): Promise<ReviewDetail | null> {
   if (!UUID_RE.test(id)) return null;
   const { data } = await companyOs
@@ -369,7 +378,10 @@ export async function getReviewDetail(actor: TeamActor, id: string): Promise<Rev
   // founder) holds both roles and sees both sides.
   const isSubject = anchor.team_member_id === actor.teamMemberId;
   const isReviewer = anchor.reviewer_id === actor.teamMemberId;
-  if (!isSubject && !isReviewer) return null;
+  // Participants aside, the subject's coach and sensitive admins may observe.
+  const isObserver =
+    !isSubject && !isReviewer && (await canObserveReview(actor, anchor.team_member_id));
+  if (!isSubject && !isReviewer && !isObserver) return null;
 
   // The sibling row of the same cycle (same subject + cycle_label, other kind).
   let sibling: ReviewRow | null = null;
@@ -390,18 +402,25 @@ export async function getReviewDetail(actor: TeamActor, id: string): Promise<Rev
   //   subject:  own self row always; manager row only once finalized
   //   reviewer: own manager row always; self row only after they submitted
   //             (blind drafting), and only submitted self content
+  //   observer: both sides, but only once each is submitted (never raw drafts)
   const managerDone = managerRow?.status === "submitted" || managerRow?.status === "finalized";
+  const selfDone = selfRow?.status === "submitted" || selfRow?.status === "finalized";
   const visibleSelf = isSubject
     ? selfRow
     : isReviewer && managerDone && selfRow?.status === "submitted"
       ? selfRow
-      : null;
-  // The reviewer always sees their own review; the subject only a finalized one.
+      : isObserver && selfDone
+        ? selfRow
+        : null;
+  // The reviewer always sees their own review; the subject only a finalized one;
+  // an observer any submitted-or-finalized one.
   const visibleManager = isReviewer
     ? managerRow
     : managerRow?.status === "finalized"
       ? managerRow
-      : null;
+      : isObserver && managerDone
+        ? managerRow
+        : null;
   if (!visibleSelf && !visibleManager) return null;
 
   const subject = await subjectInfo(anchor.team_member_id);
@@ -639,18 +658,7 @@ export function reviewMomentsInWindow(input: {
 // Admin/talent view of a member's reviews, grouped by cycle. Both sides of a
 // cycle collapse into one row (self ✓ / manager ✓). Unlike the team-portal
 // lists, this is unscoped: the caller (requireAdmin) is the boundary.
-export type MemberReviewCycle = {
-  cycleLabel: string | null;
-  reviewType: ReviewType;
-  date: string | null; // latest submitted_at across the cycle's rows
-  hasSelf: boolean;
-  hasManager: boolean;
-  status: string; // most-advanced status across the cycle
-  decision: string | null;
-  keeper: boolean | null;
-  // A row id to link the detail page at (prefer the manager row).
-  linkId: string;
-};
+// The MemberReviewCycle shape lives in ./reviews-labels (client-safe).
 
 const STATUS_RANK: Record<string, number> = {
   open: 0,

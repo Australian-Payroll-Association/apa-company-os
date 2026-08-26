@@ -22,9 +22,9 @@ import {
   computeNextReview,
   hasProbationReview,
   REVIEW_TYPE_LABEL,
-  DECISION_LABEL,
 } from "@/lib/reviews";
 import { PreviewRow } from "@/components/admin/PreviewRow";
+import { ReviewHistoryTable } from "@/components/admin/ReviewHistoryTable";
 import { getPersonSurveyResponses } from "@/lib/admin/surveys";
 import { getAssignmentsForTeamMember, listAssignableCompanies } from "@/lib/admin/staff-assignments";
 import { formatDate, humanize } from "@/lib/admin/format";
@@ -367,50 +367,7 @@ export default async function TeamMemberPage({ params }: { params: { id: string 
               <SendReviewButton teamMemberId={m.id} defaultType={defaultReviewType} />
             </div>
 
-            {reviewHistory.length > 0 && (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Date</th>
-                      <th>Sides</th>
-                      <th>Status</th>
-                      <th>Decision</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reviewHistory.map((c) => (
-                      <tr key={c.linkId}>
-                        <td>{REVIEW_TYPE_LABEL[c.reviewType] ?? "Review"}</td>
-                        <td>{c.date ? formatDate(c.date) : <span className="admin-cell-muted">—</span>}</td>
-                        <td className="admin-cell-muted">
-                          {[c.hasSelf ? "Self" : null, c.hasManager ? "Manager" : null]
-                            .filter(Boolean)
-                            .join(" + ") || "—"}
-                        </td>
-                        <td>
-                          <Badge tone={statusTone(c.status)}>{humanize(c.status)}</Badge>
-                        </td>
-                        <td>
-                          {c.decision ? (
-                            DECISION_LABEL[c.decision] ?? c.decision
-                          ) : c.keeper !== null ? (
-                            c.keeper ? (
-                              <Badge tone="ok">Keeper</Badge>
-                            ) : (
-                              "—"
-                            )
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {reviewHistory.length > 0 && <ReviewHistoryTable cycles={reviewHistory} />}
           </div>
 
           <div className="admin-card admin-section-card">
