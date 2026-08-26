@@ -17,6 +17,7 @@ import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { formatLeverage } from "@/lib/hub/tokens";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { ClientBoardView } from "@/components/hub/ClientBoardView";
 import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
@@ -35,6 +36,10 @@ export const metadata = {
 
 function fmtHours(n: number): string {
   return (Math.round(n * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+// AI tokens run into the millions; compact keeps the KPI legible.
+function fmtCompact(n: number): string {
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 }
 
 function Empty({ text }: { text: string }) {
@@ -109,6 +114,87 @@ export default async function AiProgramDetailPage({
 
   const tabs: TabDef[] = [
     {
+      key: "overview",
+      label: "Overview",
+      content: (
+        <>
+          <section className="admin-card admin-section-card">
+            {!hasRepo ? (
+              <Empty text="Delivery tracking starts when a repo is connected." />
+            ) : (
+              <>
+                <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+                  <MetricCard
+                    label="Human Tokens"
+                    value={fmtHours(delivery.deliveredHours)}
+                    sub="hours of skilled work delivered"
+                  />
+                  <MetricCard label="AI Tokens" value={fmtCompact(delivery.aiTokens)} sub="Claude + app tokens used" />
+                  <MetricCard
+                    label="Pull Requests"
+                    value={delivery.prsMergedTotal.toLocaleString("en-US")}
+                    sub="merged to date"
+                  />
+                  <MetricCard
+                    label="Leverage"
+                    value={formatLeverage(delivery.leverage)}
+                    sub="AI value delivered per human hour"
+                  />
+                </div>
+                <h2 className="admin-card-title">Delivered hours, last 8 weeks</h2>
+                <BarChart
+                  ariaLabel="Delivered hours per ISO week, last 8 weeks"
+                  data={delivery.weeklyHours.map((w) => ({ label: w.isoWeek.slice(5), value: Math.round(w.hours * 10) / 10 }))}
+                  emptyText="No delivered hours tracked in the last 8 weeks."
+                  formatValue={(n) => `${fmtHours(n)}h`}
+                />
+                <h2 className="admin-card-title" style={{ marginTop: 20 }}>Shipped highlights</h2>
+                {highlights.length === 0 ? (
+                  <Empty text="Nothing shipped in the last 8 weeks yet." />
+                ) : (
+                  highlights.map((w) => (
+                    <div key={w.isoWeek} style={{ marginBottom: 14 }}>
+                      <div className="admin-cell-muted" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                        Week {w.isoWeek.slice(5).replace("W", "")} ({w.isoWeek.slice(0, 4)})
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.7 }}>
+                        {w.titles.map((t, i) => (
+                          <li key={`${w.isoWeek}-${i}`}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+          </section>
+          {program.plans.length > 0 && (
+            <section className="admin-card admin-section-card" style={{ maxWidth: 900, marginTop: 16 }}>
+              <h2 className="admin-card-title" style={{ marginBottom: 12 }}>Plan</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {program.plans.map((pl) => (
+                  <div key={pl.id}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <strong>{pl.title}</strong>
+                      <Badge>{pl.method === "chat" ? "Guided plan" : "Documents"}</Badge>
+                      <span className="admin-cell-muted">{formatDate(pl.createdAt)}</span>
+                    </div>
+                    {pl.method === "chat" && briefs.has(pl.id) ? (
+                      <BriefViewer html={briefs.get(pl.id)!} title={pl.title} />
+                    ) : pl.method === "chat" ? (
+                      <div className="admin-cell-muted">This plan has no saved brief.</div>
+                    ) : (
+                      <div className="admin-cell-muted">See the Documents tab.</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      ),
+    },
+    {
       key: "roadmap",
       label: "Roadmap",
       count: roadmapItems.length,
@@ -155,49 +241,6 @@ export default async function AiProgramDetailPage({
       ),
     },
     {
-      key: "progress",
-      label: "Progress",
-      content: (
-        <section className="admin-card admin-section-card">
-          {!hasRepo ? (
-            <Empty text="Delivery tracking starts when a repo is connected." />
-          ) : (
-            <>
-              <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
-                <MetricCard label="Delivered hours" value={fmtHours(delivery.deliveredHours)} sub="tracked hours of skilled work" />
-                <MetricCard label="Updates this week" value={delivery.prsMerged7d.toLocaleString("en-US")} sub="improvements shipped, last 7 days" />
-                <MetricCard label="Updates this month" value={delivery.prsMerged30d.toLocaleString("en-US")} sub="improvements shipped, last 30 days" />
-              </div>
-              <h2 className="admin-card-title">Delivered hours, last 8 weeks</h2>
-              <BarChart
-                ariaLabel="Delivered hours per ISO week, last 8 weeks"
-                data={delivery.weeklyHours.map((w) => ({ label: w.isoWeek.slice(5), value: Math.round(w.hours * 10) / 10 }))}
-                emptyText="No delivered hours tracked in the last 8 weeks."
-                formatValue={(n) => `${fmtHours(n)}h`}
-              />
-              <h2 className="admin-card-title" style={{ marginTop: 20 }}>Shipped highlights</h2>
-              {highlights.length === 0 ? (
-                <Empty text="Nothing shipped in the last 8 weeks yet." />
-              ) : (
-                highlights.map((w) => (
-                  <div key={w.isoWeek} style={{ marginBottom: 14 }}>
-                    <div className="admin-cell-muted" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-                      Week {w.isoWeek.slice(5).replace("W", "")} ({w.isoWeek.slice(0, 4)})
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.7 }}>
-                      {w.titles.map((t, i) => (
-                        <li key={`${w.isoWeek}-${i}`}>{t}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              )}
-            </>
-          )}
-        </section>
-      ),
-    },
-    {
       key: "documents",
       label: "Documents",
       count: program.documents.length,
@@ -207,36 +250,6 @@ export default async function AiProgramDetailPage({
             <Empty text="No documents uploaded." />
           ) : (
             <ProgramDocuments documents={program.documents} actorEmail={actor.email} />
-          )}
-        </section>
-      ),
-    },
-    {
-      key: "plan",
-      label: "Plan",
-      content: (
-        <section className="admin-card admin-section-card" style={{ maxWidth: 900 }}>
-          {program.plans.length === 0 ? (
-            <Empty text="No plans yet." />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {program.plans.map((pl) => (
-                <div key={pl.id}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <strong>{pl.title}</strong>
-                    <Badge>{pl.method === "chat" ? "Guided plan" : "Documents"}</Badge>
-                    <span className="admin-cell-muted">{formatDate(pl.createdAt)}</span>
-                  </div>
-                  {pl.method === "chat" && briefs.has(pl.id) ? (
-                    <BriefViewer html={briefs.get(pl.id)!} title={pl.title} />
-                  ) : pl.method === "chat" ? (
-                    <div className="admin-cell-muted">This plan has no saved brief.</div>
-                  ) : (
-                    <div className="admin-cell-muted">See the Documents tab.</div>
-                  )}
-                </div>
-              ))}
-            </div>
           )}
         </section>
       ),
@@ -256,7 +269,7 @@ export default async function AiProgramDetailPage({
   return (
     <div className="admin-content">
       <PageHead
-        eyebrow={<Link href="/portal/programs">← AI Programs</Link>}
+        eyebrow={<Link href="/portal/hub">← AI Programs</Link>}
         title={program.name}
         sub={`Created ${formatDate(program.createdAt)}`}
         action={<Badge tone={statusTone(program.status)}>{humanize(program.status)}</Badge>}

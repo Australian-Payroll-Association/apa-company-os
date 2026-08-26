@@ -8,7 +8,10 @@
 //   Delivered = SUM(htt.man_hour_entries.hours) with status <> 'excluded'
 //   Balance   = Bought - Delivered
 //   Planned   = SUM(client_backlog_items.token_high), active items
-//   Leverage  = AI tokens (htt.token_entries, kind claude/app) per delivered hour
+//   Leverage  = value tokens per delivered hour, where value tokens are the AI
+//               tokens (htt.token_entries, kind claude/app) divided by
+//               CLAUDE_TOKENS_PER_VALUE_TOKEN. Rendered as a multiple (e.g.
+//               "27.3×") via formatLeverage; null (shown "n/a") when no hours.
 // Never re-derive the seq/latest-allocation logic anywhere else.
 //
 // SCOPING (critical): these helpers sit OUTSIDE the portalRead allowlist, so
@@ -19,6 +22,22 @@
 // /portal), same discipline as lib/hub/program.ts.
 
 import { companyOs, htt } from "@/lib/supabase";
+
+// Claude tokens are counted in the millions; a "value token" normalizes them to
+// a human-legible unit so leverage reads as a small multiple (AI value delivered
+// per human hour) rather than a six-figure tokens-per-hour figure. One value
+// token = 100,000 Claude/app tokens.
+export const CLAUDE_TOKENS_PER_VALUE_TOKEN = 100_000;
+
+// Leverage = value tokens per delivered hour; null when no hours are delivered.
+export const leverageOf = (aiTokens: number, deliveredHours: number): number | null =>
+  deliveredHours > 0 ? aiTokens / CLAUDE_TOKENS_PER_VALUE_TOKEN / deliveredHours : null;
+
+// The one display form for leverage: a one-decimal multiple with the × sign, or
+// "n/a" when there is nothing to divide by. Never an em dash.
+export function formatLeverage(leverage: number | null): string {
+  return leverage == null ? "n/a" : `${leverage.toFixed(1)}×`;
+}
 
 export type TokenPurchase = {
   id: string;
@@ -41,7 +60,7 @@ export type ProgramUsage = {
   name: string;
   deliveredHours: number;
   aiTokens: number;
-  leverage: number | null; // AI tokens per delivered hour; null when no hours
+  leverage: number | null; // value tokens per delivered hour (multiple); null when no hours
 };
 
 export type TokenUsage = {
@@ -53,7 +72,7 @@ export type TokenUsage = {
   deliveredHours: number; // SUM(htt.man_hour_entries.hours), status <> excluded
   balanceTokens: number; // bought - delivered
   aiTokens: number; // SUM(htt.token_entries.amount) for kind claude/app
-  leverage: number | null; // aiTokens / deliveredHours; null when no hours
+  leverage: number | null; // value tokens per delivered hour (multiple); null when no hours
   programs: ProgramUsage[];
   purchases: TokenPurchase[];
 };
@@ -206,8 +225,6 @@ export async function getAllocatedTokensForCompanies(companyIds: string[]): Prom
 // ---------------------------------------------------------------------------
 // Pure rollup
 // ---------------------------------------------------------------------------
-
-const leverageOf = (ai: number, hours: number): number | null => (hours > 0 ? ai / hours : null);
 
 // Derives the TokenUsage rollup from already-fetched pieces, so a surface that
 // fetched the delivery rows for another view (the hub's program cards) never

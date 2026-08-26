@@ -40,13 +40,10 @@ const NAV: NavGroup[] = [
   {
     label: "Delivery",
     items: [
-      // Client Hub leads: one tabbed page for the collaborative delivery
-      // surfaces (Overview, Roadmap, Board, Documents), replacing the separate
-      // Work Board / Roadmap / Documents links. Membership is the entitlement.
-      { label: "Client Hub", href: "/portal/hub", ico: "\u25a6", built: true },
-      // AI Programs: being a portal member IS the entitlement for v1 (like Requests);
-      // token/staff-based gating is refined later with the Human Token Tracker.
-      { label: "AI Programs", href: "/portal/programs", ico: "\u21c9", built: true },
+      // AI Programs leads: /portal/hub is the one AI Programs hub (company
+      // overview + program cards); /portal/programs redirects here, so this is
+      // the single entry point. Membership is the entitlement.
+      { label: "AI Programs", href: "/portal/hub", ico: "\u21c9", built: true },
       // Requests has no entitlement key on purpose: being a portal member IS the
       // entitlement to ask for work; all data inside is company-scoped anyway.
       { label: "Requests", href: "/portal/requests", ico: "\u270e", built: true },

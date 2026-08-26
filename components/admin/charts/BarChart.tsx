@@ -49,7 +49,10 @@ export function BarChart({
       viewBox={`0 0 ${chartW} ${height}`}
       role="img"
       aria-label={ariaLabel}
-      style={{ width: "100%", height: "auto", maxWidth: stacked ? 840 : undefined }}
+      // Cap the inline variant near its native CHART_W (320) so a wide container
+      // never upscales the SVG and blows its 12px text up to ~34px; the stacked
+      // variant keeps its own wider cap.
+      style={{ width: "100%", height: "auto", maxWidth: stacked ? 840 : 360 }}
     >
       <title>{ariaLabel}</title>
       {data.map((d, i) => {

@@ -20,7 +20,7 @@ import {
 } from "@/lib/client-backlog";
 import { listDocumentsForCompanies, type ClientDocument } from "@/lib/client-documents";
 import { getMeetingsForCompany, type AdminMeetingRow } from "@/lib/admin/meetings";
-import { fetchDeliveryRaw, type DeliveryRaw } from "@/lib/hub/tokens";
+import { fetchDeliveryRaw, leverageOf, type DeliveryRaw } from "@/lib/hub/tokens";
 
 export type ProgramStatus = "draft" | "active" | "complete";
 
@@ -37,7 +37,7 @@ export type ProgramSummary = {
   // Delivery stats (zeros when no repo is connected).
   deliveredHours: number;
   aiTokens: number; // token_entries, kind claude/app
-  leverage: number | null; // aiTokens / deliveredHours; null when no hours
+  leverage: number | null; // value tokens per delivered hour (multiple); null when no hours
   prsMergedLast7d: number;
   // Company OS rollups (by ai_program_id).
   roadmapDone: number; // backlog items with status 'shipped'
@@ -177,8 +177,6 @@ export async function fetchProgramSummaryInputs(companyId: string): Promise<Prog
 function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString();
 }
-
-const leverageOf = (ai: number, hours: number): number | null => (hours > 0 ? ai / hours : null);
 
 export async function listProgramSummaries(
   companyId: string,

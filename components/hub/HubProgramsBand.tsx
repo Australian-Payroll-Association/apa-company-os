@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { MetricCard } from "@/components/admin/MetricCard";
 import type { ProgramStatus, ProgramSummary } from "@/lib/hub/program";
-import type { TokenUsage } from "@/lib/hub/tokens";
+import { formatLeverage, type TokenUsage } from "@/lib/hub/tokens";
 
 // The hub home's top band, shared by the admin company 360 (Client Hub view)
 // and the team client hub Overview: the company-grain Human Tokens strip, then
@@ -42,8 +42,8 @@ export function HubProgramsBand({
         <MetricCard label="Planned" value={usage.plannedTokens.toLocaleString()} sub="Roadmap high estimates" />
         <MetricCard
           label="AI leverage"
-          value={usage.leverage != null ? `${fmtHours(usage.leverage)}x` : "n/a"}
-          sub="AI tokens per delivered hour"
+          value={formatLeverage(usage.leverage)}
+          sub="AI value delivered per human hour"
         />
       </div>
 
