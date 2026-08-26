@@ -16,7 +16,7 @@ export const metadata = { title: "Company Goals" };
 // Both drive the read-only /team/company-goals view the whole team sees.
 export default async function AdminCompanyGoalsPage() {
   await requireAdmin();
-  const [{ quarter, tree, initialsById }, roster] = await Promise.all([
+  const [{ quarter, tree, initialsById, ladderedByKr }, roster] = await Promise.all([
     getCompanyGoals(),
     getAdminRosterGoals(),
   ]);
@@ -25,6 +25,7 @@ export default async function AdminCompanyGoalsPage() {
     <CompanyGoalsEditor
       tree={tree}
       initialsById={initialsById}
+      ladderedByKr={ladderedByKr}
       quarter={quarter.label}
       emptyLabel={`No objectives for ${quarter.label} yet. Add the first one.`}
     />
