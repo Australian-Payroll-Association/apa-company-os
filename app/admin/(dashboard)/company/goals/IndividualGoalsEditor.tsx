@@ -234,8 +234,7 @@ export function IndividualGoalsEditor({
     <div>
       {banner && <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>{banner.text}</div>}
 
-      <section className="admin-card admin-section-card">
-        <div className="edges-fast-grid">
+      <div className="edges-fast-grid">
           {members.map((m) => (
           <div key={m.teamMemberId} className="edges-fast-person">
             <div className="edges-fast-name edges-fast-name--action">
@@ -271,18 +270,20 @@ export function IndividualGoalsEditor({
                       {g.status !== "active" && (
                         <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
                       )}
-                      <button className="edges-minibtn" onClick={() => openEdit(g)} disabled={pending}>
-                        Edit
-                      </button>
-                      <button
-                        className="edges-minibtn"
-                        onClick={() => {
-                          if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
-                        }}
-                        disabled={pending}
-                      >
-                        Delete
-                      </button>
+                      <span className="edges-fast-goal-actions">
+                        <button className="edges-minibtn" onClick={() => openEdit(g)} disabled={pending}>
+                          Edit
+                        </button>
+                        <button
+                          className="edges-minibtn"
+                          onClick={() => {
+                            if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
+                          }}
+                          disabled={pending}
+                        >
+                          Delete
+                        </button>
+                      </span>
                     </div>
                     {(() => {
                       const pct = progressPct(g);
@@ -297,10 +298,9 @@ export function IndividualGoalsEditor({
                 )}
               </div>
             ))}
-            </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
