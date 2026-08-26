@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getTokenUsage, PACK_PRICE_CENTS, PACK_TOKENS } from "@/lib/portal/tokens";
+import { formatLeverage } from "@/lib/hub/tokens";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge } from "@/components/admin/Badge";
@@ -27,11 +28,6 @@ function fmtHours(n: number): string {
   const rounded = Math.round(n * 10) / 10;
   return rounded.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
-function fmtLeverage(l: number | null): string {
-  if (l === null) return "n/a";
-  return `${(Math.round(l * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 })}x`;
-}
-
 export default async function PortalTokensPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const actor = await requirePortalMember();
   // Balances and delivery are company-scoped; a member with no company in
@@ -79,8 +75,8 @@ export default async function PortalTokensPage({ searchParams }: { searchParams:
         />
         <MetricCard
           label="AI leverage"
-          value={fmtLeverage(usage.leverage)}
-          sub="AI tokens per delivered hour"
+          value={formatLeverage(usage.leverage)}
+          sub="AI value delivered per human hour"
         />
         {usage.pendingTokens > 0 && (
           <MetricCard
@@ -121,7 +117,7 @@ export default async function PortalTokensPage({ searchParams }: { searchParams:
                       {fmtTokens(p.aiTokens)}
                     </td>
                     <td className="admin-cell-mono" style={{ textAlign: "right" }}>
-                      {fmtLeverage(p.leverage)}
+                      {formatLeverage(p.leverage)}
                     </td>
                   </tr>
                 ))}

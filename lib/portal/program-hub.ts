@@ -15,10 +15,12 @@ import type { PortalActor } from "@/lib/portal-auth";
 import {
   listProgramSummaries,
   getProgramDetail,
+  fetchAll,
   isoWeekLabel,
   lastIsoWeeks,
   type ProgramStatus,
 } from "@/lib/hub/program";
+import { getTokenUsageForCompanies } from "@/lib/hub/tokens";
 import type { ClientBoardColumn, ClientBoardCard } from "@/lib/boards/client-view";
 
 // IDOR guard shared by the loaders below: resolve a program only when it
@@ -115,6 +117,68 @@ export async function listPortalProgramSummaries(actor: PortalActor): Promise<Po
     roadmapTotal: s.roadmapTotal,
     boardCount: s.boardCount,
   }));
+}
+
+// ── Company-grain overview ─────────────────────────────────────────────────
+
+// Total merged pull requests across every repo of the actor's companies. Counts
+// only; no repo names, PR numbers, or author logins ever leave the module.
+async function countMergedPrsForCompanies(companyIds: string[]): Promise<number> {
+  if (companyIds.length === 0) return 0;
+  const repos = await fetchAll<{ id: string }>(() =>
+    htt.from("repos").select("id").in("company_id", companyIds).order("id"),
+  );
+  const repoIds = repos.map((r) => r.id);
+  if (repoIds.length === 0) return 0;
+  const { count } = await htt
+    .from("pull_requests")
+    .select("id", { count: "exact", head: true })
+    .in("repo_id", repoIds)
+    .eq("state", "merged");
+  return count ?? 0;
+}
+
+// The client-safe company overview for the AI Programs hub: the shared Human
+// Token pool figures, the AI-token total, total merged PRs, and the normalized
+// leverage multiple. Scalars only, scoped to the actor's companies.
+export type PortalHubOverview = {
+  boughtTokens: number;
+  purchasedTokens: number;
+  allocatedTokens: number;
+  balanceTokens: number;
+  aiTokens: number;
+  deliveredHours: number;
+  leverage: number | null;
+  prsMergedTotal: number;
+};
+
+export async function getPortalHubOverview(actor: PortalActor): Promise<PortalHubOverview> {
+  if (actor.companyScope.length === 0) {
+    return {
+      boughtTokens: 0,
+      purchasedTokens: 0,
+      allocatedTokens: 0,
+      balanceTokens: 0,
+      aiTokens: 0,
+      deliveredHours: 0,
+      leverage: null,
+      prsMergedTotal: 0,
+    };
+  }
+  const [usage, prsMergedTotal] = await Promise.all([
+    getTokenUsageForCompanies(actor.companyScope),
+    countMergedPrsForCompanies(actor.companyScope),
+  ]);
+  return {
+    boughtTokens: usage.boughtTokens,
+    purchasedTokens: usage.purchasedTokens,
+    allocatedTokens: usage.allocatedTokens,
+    balanceTokens: usage.balanceTokens,
+    aiTokens: usage.aiTokens,
+    deliveredHours: usage.deliveredHours,
+    leverage: usage.leverage,
+    prsMergedTotal,
+  };
 }
 
 // ── Boards ───────────────────────────────────────────────────────────────
@@ -236,8 +300,11 @@ export type PortalProgramDelivery = {
   companyId: string;
   hasRepo: boolean;
   deliveredHours: number;
+  aiTokens: number; // token_entries, kind claude/app
+  leverage: number | null; // value tokens per delivered hour (multiple); null when no hours
   prsMerged7d: number;
   prsMerged30d: number;
+  prsMergedTotal: number; // merged to date, this program's repo
   weeklyHours: Array<{ isoWeek: string; hours: number }>; // last 8 ISO weeks, oldest first
 };
 
@@ -249,12 +316,27 @@ export async function getPortalProgramDelivery(
   if (!companyId) return null;
   const detail = await getProgramDetail(companyId, programId);
   if (!detail) return null;
+
+  // Total merged PRs for this program's repo (count only; no numbers/URLs/logins).
+  let prsMergedTotal = 0;
+  if (detail.repoId) {
+    const { count } = await htt
+      .from("pull_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("repo_id", detail.repoId)
+      .eq("state", "merged");
+    prsMergedTotal = count ?? 0;
+  }
+
   return {
     companyId,
     hasRepo: !!detail.repoId,
     deliveredHours: detail.deliveredHours,
+    aiTokens: detail.aiTokens,
+    leverage: detail.leverage,
     prsMerged7d: detail.prsMergedLast7d,
     prsMerged30d: detail.prsMergedLast30d,
+    prsMergedTotal,
     weeklyHours: detail.weeklyHours.map((w) => ({ isoWeek: w.isoWeek, hours: w.hours })),
   };
 }

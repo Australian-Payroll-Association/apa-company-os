@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { getProgramDetail, PR_PAGE_SIZE } from "@/lib/hub/program";
+import { formatLeverage } from "@/lib/hub/tokens";
 import { getLiveCardItemIds } from "@/lib/admin/company-hub";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
@@ -156,8 +157,8 @@ export default async function ProgramDetailPage({
                 <MetricCard label="AI tokens (total)" value={detail.aiTokens.toLocaleString()} />
                 <MetricCard
                   label="AI leverage"
-                  value={detail.leverage != null ? `${fmtHours(detail.leverage)}x` : "n/a"}
-                  sub="AI tokens per delivered hour"
+                  value={formatLeverage(detail.leverage)}
+                  sub="AI value delivered per human hour"
                 />
               </div>
               <h2 className="admin-card-title">Delivered hours, last 8 weeks</h2>
@@ -266,8 +267,8 @@ export default async function ProgramDetailPage({
         />
         <MetricCard
           label="AI leverage"
-          value={hasRepo ? (detail.leverage != null ? `${fmtHours(detail.leverage)}x` : "n/a") : "Not tracked"}
-          sub={hasRepo ? "AI tokens per delivered hour" : "No repo connected"}
+          value={hasRepo ? formatLeverage(detail.leverage) : "Not tracked"}
+          sub={hasRepo ? "AI value delivered per human hour" : "No repo connected"}
         />
         <MetricCard label="Planned tokens" value={detail.plannedTokens.toLocaleString()} sub="Roadmap high estimates" />
         <MetricCard
