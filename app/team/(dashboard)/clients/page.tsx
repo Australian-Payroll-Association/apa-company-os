@@ -45,8 +45,9 @@ export default async function TeamClientsPage({ searchParams }: { searchParams: 
   const sortParam = firstParam(searchParams.sort);
   const sort = sortParam && SORTABLE.has(sortParam) ? sortParam : "name";
   const dir = firstParam(searchParams.dir) === "desc" ? "desc" : "asc";
-  // Team default is the card view; admin defaults to list.
-  const view = firstParam(searchParams.view) === "list" ? "list" : "cards";
+  // List is the default view (matching admin). The DataTable's "List" link
+  // clears ?view=, so the default and the toggle must agree.
+  const view = firstParam(searchParams.view) === "cards" ? "cards" : "list";
   const priorityParam = firstParam(searchParams.priority);
   const industryParam = firstParam(searchParams.industry);
   const bandParam = firstParam(searchParams.size_band);
