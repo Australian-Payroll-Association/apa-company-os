@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -46,7 +46,7 @@ export type NewJobReq = {
 };
 
 export async function createJobReq(input: NewJobReq): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Title is required." };
@@ -111,7 +111,7 @@ export type JobReqPatch = {
 };
 
 export async function updateJobReq(jobReqId: string, patch: JobReqPatch): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const updates: Record<string, unknown> = {};
 
   if (patch.title !== undefined) {
@@ -176,7 +176,7 @@ export async function updateJobReq(jobReqId: string, patch: JobReqPatch): Promis
 // A non-open req drops off /careers automatically (the public listing requires
 // status='open'), so is_public is left as the recruiter set it.
 export async function closeJobReq(jobReqId: string, outcome: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   if (!CLOSE_OUTCOMES.has(outcome)) return { ok: false, error: "Pick an outcome (filled, closed, or cancelled)." };
 
   const updates = { status: outcome, closed_at: new Date().toISOString() };
@@ -194,7 +194,7 @@ export async function closeJobReq(jobReqId: string, outcome: string): Promise<Re
 }
 
 export async function reopenJobReq(jobReqId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const updates = { status: "open", closed_at: null, opened_at: new Date().toISOString() };
   const { error } = await companyOs.from("job_requisitions").update(updates).eq("id", jobReqId);
   if (error) return { ok: false, error: error.message };
@@ -214,7 +214,7 @@ export async function reopenJobReq(jobReqId: string): Promise<Result> {
 // applicant history is part of the hiring record. An empty req's stages are
 // removed first (they FK the req).
 export async function deleteJobReq(jobReqId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const { count, error: cErr } = await companyOs
     .from("applications")

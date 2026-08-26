@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { logStageMove } from "@/lib/ats/stage-log";
 import { APPLICATION_SOURCES, POOL_STATUSES } from "@/lib/admin/recruiting-options";
@@ -40,7 +40,7 @@ export type AppNote = {
 export async function getApplicationStages(
   jobReqId: string,
 ): Promise<{ ok: true; stages: StageOption[] } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { data, error } = await companyOs
     .from("application_stages")
     .select("id, name, is_terminal, position")
@@ -71,7 +71,7 @@ export type ApplicationExtras = {
 export async function getApplicationExtras(
   applicationId: string,
 ): Promise<{ ok: true; extras: ApplicationExtras } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { data, error } = await companyOs
     .from("applications")
     .select("cover_letter, answers, ai_rating, ai_screen_status, ai_screen_error, ai_screened_at, ai_summary")
@@ -116,7 +116,7 @@ export async function updateApplication(
   applicationId: string,
   patch: ApplicationPatch,
 ): Promise<UpdateApplicationResult> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const updates: Record<string, unknown> = {};
 
   if (patch.status !== undefined) {
@@ -210,7 +210,7 @@ export async function updateApplication(
 // archiving it (reversible) rather than a hard delete, so nothing is lost. The
 // list hides archived rows by default and the full-page profile offers Restore.
 export async function archiveApplication(applicationId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const { error } = await companyOs
     .from("applications")
     .update({ archived_at: new Date().toISOString() })
@@ -231,7 +231,7 @@ export async function archiveApplication(applicationId: string): Promise<Result>
 }
 
 export async function unarchiveApplication(applicationId: string): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const { error } = await companyOs
     .from("applications")
     .update({ archived_at: null })
@@ -277,7 +277,7 @@ export type ApplicantProfilePatch = {
 };
 
 export async function updateApplicantProfile(personId: string, patch: ApplicantProfilePatch): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const personUpdates: Record<string, unknown> = {};
   const profileUpdates: Record<string, unknown> = {};
 
@@ -359,7 +359,7 @@ export async function uploadApplicationResume(
   applicationId: string,
   formData: FormData,
 ): Promise<{ ok: true; documentId: string } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const file = formData.get("resume");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a file first." };
@@ -422,7 +422,7 @@ const AUTO_INTERACTION_KINDS = ["status_change"];
 export async function getApplicationNotes(
   applicationId: string,
 ): Promise<{ ok: true; items: AppNote[] } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { data, error } = await companyOs
     .from("interactions")
     .select("id, kind, body, occurred_at, metadata")
@@ -457,7 +457,7 @@ export async function addApplicationNote(
   applicationId: string,
   body: string,
 ): Promise<{ ok: true; item: AppNote } | { ok: false; error: string }> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const text = body.trim();
   if (!text) return { ok: false, error: "Write something before saving." };

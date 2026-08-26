@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { waitUntil } from "@vercel/functions";
 import { companyOs, supabase } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { getOrCreatePerson, getOrCreateApplication, attachApplicationResume } from "@/lib/company-os";
 import { extractResumeFields, type ExtractedCandidate } from "@/lib/resume-extract";
@@ -49,7 +49,7 @@ export type DraftResult =
   | { ok: false; error: string };
 
 export async function extractResumeDraft(formData: FormData): Promise<DraftResult> {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const file = formData.get("resume");
   if (!(file instanceof File)) return { ok: false, error: "Choose a file first." };
@@ -88,7 +88,7 @@ export async function createCandidateWithFile(
   input: Omit<CreateCandidateInput, "resume">,
   formData: FormData,
 ): Promise<CreateCandidateResult> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const file = formData.get("resume");
   let resume: ResumeUpload | null = null;
   if (file instanceof File && file.size > 0) {
@@ -100,7 +100,7 @@ export async function createCandidateWithFile(
 }
 
 export async function createCandidate(input: CreateCandidateInput): Promise<CreateCandidateResult> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
 
   const fullName = input.fullName.trim();
   const email = input.email.trim().toLowerCase();

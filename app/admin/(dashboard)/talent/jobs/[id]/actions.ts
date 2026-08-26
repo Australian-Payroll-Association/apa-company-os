@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { logStageMove } from "@/lib/ats/stage-log";
 import { screenApplication } from "@/lib/resume-screen";
@@ -23,7 +23,7 @@ export async function moveApplicationStage(
   toStageId: string,
   jobReqId: string,
 ): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const { data: stage, error: stageErr } = await companyOs
     .from("application_stages")
@@ -55,7 +55,7 @@ export async function moveApplicationStage(
 // Run (or re-run) the AI screen for one application. Synchronous by design —
 // the admin clicked a button and wants the result on refresh.
 export async function rescanApplication(applicationId: string, jobReqId: string): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await screenApplication(applicationId);
   revalidatePath(`/admin/talent/jobs/${jobReqId}`);
   return res.ok ? { ok: true } : { ok: false, error: res.error };
@@ -66,7 +66,7 @@ export async function rescanApplication(applicationId: string, jobReqId: string)
 export async function scanUnscannedApplications(
   jobReqId: string,
 ): Promise<{ ok: true; scanned: number; failed: number } | { ok: false; error: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const { data, error } = await companyOs
     .from("applications")
@@ -103,7 +103,7 @@ export type JobPostingPatch = {
 };
 
 export async function updateJobPosting(jobReqId: string, patch: JobPostingPatch): Promise<Result> {
-  const admin = await requireAdmin();
+  const admin = await requireSuperAdmin();
   const updates: Record<string, unknown> = {};
 
   if (patch.is_public !== undefined) updates.is_public = patch.is_public;
@@ -167,7 +167,7 @@ export async function addInterviewStep(
   durationMinutes: number | null,
   interviewerIds: string[],
 ): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await addLoopStep(reqId, { name, durationMinutes, interviewerIds });
   if (res.ok) refreshReq(reqId);
   return res;
@@ -179,7 +179,7 @@ export async function updateInterviewStep(
   name: string,
   durationMinutes: number | null,
 ): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await updateLoopStep(stepId, { name, durationMinutes });
   if (res.ok) refreshReq(reqId);
   return res;
@@ -190,14 +190,14 @@ export async function setInterviewStepInterviewers(
   stepId: string,
   personIds: string[],
 ): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await setStepInterviewers(stepId, personIds);
   if (res.ok) refreshReq(reqId);
   return res;
 }
 
 export async function removeInterviewStep(reqId: string, stepId: string): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await deleteLoopStep(stepId);
   if (res.ok) refreshReq(reqId);
   return res;
@@ -208,7 +208,7 @@ export async function moveInterviewStep(
   stepId: string,
   direction: "up" | "down",
 ): Promise<Result> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const res = await moveLoopStep(stepId, direction);
   if (res.ok) refreshReq(reqId);
   return res;
