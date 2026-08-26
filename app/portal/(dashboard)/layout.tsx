@@ -52,6 +52,10 @@ export default async function PortalDashboardLayout({
     board: hasBoardResult,
     // Roadmap appears in the nav once the company actually has one.
     roadmap: hasBacklogResult,
+    // Tokens is company-scoped (balances and delivery are per company), so it
+    // needs a company in scope; being a member is otherwise the entitlement,
+    // same rule as Requests.
+    tokens: actor.companyScope.length > 0,
   };
 
   return (

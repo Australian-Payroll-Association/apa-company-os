@@ -55,6 +55,19 @@ export function splitBankDetails(raw: string): {
   return out;
 }
 
+// GitHub logins arrive as whatever the new member typed: a bare login, an
+// @-handle, or a pasted profile URL. Reduce all of those to the bare login,
+// lowercased (the column is citext; lowercasing keeps the stored form uniform).
+// Conservative: anything after the login segment of a URL is dropped. Exported
+// for reuse by backfills.
+export function normalizeGithubLogin(raw: string): string {
+  let v = raw.trim();
+  v = v.replace(/^https?:\/\/(www\.)?github\.com\//i, "");
+  v = v.replace(/^@/, "");
+  v = v.split(/[/?#]/)[0];
+  return v.trim().toLowerCase();
+}
+
 type AnswerValue = string | string[] | number | boolean | null;
 
 // A non-empty answer keyed by field id, already server-validated.
@@ -108,6 +121,14 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       } else if (table === "people_sensitive" && parts.length === 2) {
         sensitivePatch[parts[1]] = String(value);
       }
+    }
+
+    // GitHub username: written through the generic maps_to path above, but the
+    // raw answer may be a profile URL or @-handle; normalize to the bare login.
+    if (peoplePatch.github_login) {
+      const login = normalizeGithubLogin(peoplePatch.github_login);
+      if (login) peoplePatch.github_login = login;
+      else delete peoplePatch.github_login;
     }
 
     // The selfie is a public profile photo, not restricted PII: pull it out of
@@ -170,6 +191,48 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
     if (selfiePath) {
       const ok = await promoteSelfieToAvatar(personId, selfiePath);
       if (!ok) console.error("[onboarding] selfie -> avatar failed for", personId);
+    }
+
+    // 3c) Git commit email -> company_os.person_git_emails. A child-table row,
+    //     so it cannot flow through the generic maps_to applier (which only
+    //     writes people / people_sensitive); the field's maps_to
+    //     'person_git_emails.git_email' is ignored there by design and handled
+    //     here. git_email is globally unique (one commit email = one person),
+    //     so never reassign a row that already belongs to someone else.
+    const gitEmailField = input.fields.find(
+      (f) => f.config?.maps_to === "person_git_emails.git_email",
+    );
+    const rawGitEmail = gitEmailField ? input.answers.get(gitEmailField.id) : null;
+    if (typeof rawGitEmail === "string" && rawGitEmail.trim()) {
+      const gitEmail = rawGitEmail.trim().toLowerCase();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gitEmail)) {
+        const { data: existingGitEmail } = await companyOs
+          .from("person_git_emails")
+          .select("id, person_id")
+          .eq("git_email", gitEmail)
+          .maybeSingle();
+        if (!existingGitEmail) {
+          // First email for this person becomes primary (a partial unique index
+          // allows only one primary per person).
+          const { data: primaryRow } = await companyOs
+            .from("person_git_emails")
+            .select("id")
+            .eq("person_id", personId)
+            .eq("is_primary", true)
+            .maybeSingle();
+          const { error: geErr } = await companyOs.from("person_git_emails").insert({
+            person_id: personId,
+            git_email: gitEmail,
+            source: "intake",
+            is_primary: !primaryRow,
+          });
+          if (geErr) console.error("[onboarding] person_git_emails insert failed:", geErr.message);
+        } else if (existingGitEmail.person_id !== personId) {
+          console.error("[onboarding] git email already mapped to another person:", gitEmail);
+        }
+      } else {
+        console.error("[onboarding] git email answer is not a valid email, skipped");
+      }
     }
 
     // 4) Did this person come through the hiring pipeline? Drives the invite +
