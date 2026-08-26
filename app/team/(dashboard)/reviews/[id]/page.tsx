@@ -329,6 +329,19 @@ export default async function ReviewDetailPage({
         </div>
       )}
 
+      {detail.isReviewer && manager && manager.status !== "finalized" && (
+        <div style={{ marginBottom: 16 }}>
+          <Link className="admin-btn" href={`/surveys/perf-review-manager?review=${manager.id}`}>
+            Edit review
+          </Link>
+          <p className="admin-hint" style={{ marginTop: 6 }}>
+            Change any of your ratings or answers before finalizing. The self-assessment stays as
+            {" "}
+            {detail.subjectName} wrote it.
+          </p>
+        </div>
+      )}
+
       {detail.canFinalize && (
         <form action={finalizeReviewAction} style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <input type="hidden" name="id" value={manager!.id} />

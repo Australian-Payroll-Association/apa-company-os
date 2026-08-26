@@ -28,6 +28,7 @@ export function SurveyRunner({
   reviewId = null,
   subjectName = null,
   expectedLevel = null,
+  initialAnswers,
 }: {
   slug: string;
   name: string;
@@ -51,10 +52,14 @@ export function SurveyRunner({
   // Where the "expected" marker sits on AI-craft rating scales (fields with
   // config.expected_marker), from the subject's career level. Null = no marker.
   expectedLevel?: number | null;
+  // Editing a submitted review: the current saved answers, so the form opens
+  // prefilled instead of blank. Present only in that edit path.
+  initialAnswers?: Record<string, unknown>;
 }) {
+  const isEdit = !!initialAnswers && Object.keys(initialAnswers).length > 0;
   const [phase, setPhase] = useState<Phase>("intro");
   const [qIndex, setQIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(initialAnswers ?? {});
   const [respName, setRespName] = useState("");
   const [respEmail, setRespEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +76,9 @@ export function SurveyRunner({
   // old behavior: nothing is stored.
   const draftKey = reviewId ? `e8-review-draft:${reviewId}` : null;
   useEffect(() => {
-    if (!draftKey) return;
+    // In edit mode the saved DB answers are the source of truth; skip restoring
+    // a possibly-stale local draft over them.
+    if (!draftKey || isEdit) return;
     try {
       const stored = window.localStorage.getItem(draftKey);
       if (stored) setAnswers(JSON.parse(stored));

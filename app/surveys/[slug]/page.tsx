@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
 import { resolveSurveyActor } from "@/lib/survey-identity";
 import { isAiJourneyPurpose, resolveCompanyPrefill } from "@/lib/ai-journey";
-import { getReviewRunContext, visibleReviewFields } from "@/lib/reviews";
+import { getReviewRunContext, visibleReviewFields, reviewInitialAnswers } from "@/lib/reviews";
 import type { SurveyFieldRow, SurveyRow } from "@/lib/admin/surveys";
 import { SurveyRunner } from "./SurveyRunner";
 import styles from "./survey.module.css";
@@ -96,6 +96,10 @@ export default async function PublicSurveyPage({
       (reviewFieldsData ?? []) as SurveyFieldRow[],
       ctx.review.review_type,
     );
+    // A submitted review is being re-edited: seed the form with its saved
+    // answers so nothing looks blank or gets accidentally cleared.
+    const initialAnswers =
+      ctx.review.status === "submitted" ? reviewInitialAnswers(ctx.review, reviewFields) : undefined;
     return (
       <main className={styles.page}>
         <SurveyRunner
@@ -110,6 +114,7 @@ export default async function PublicSurveyPage({
           reviewId={ctx.review.id}
           subjectName={ctx.subjectName}
           expectedLevel={ctx.expectedLevel}
+          initialAnswers={initialAnswers}
         />
       </main>
     );

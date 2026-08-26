@@ -170,7 +170,14 @@ export async function getReviewRunContext(
       : review.reviewer_id === actor.teamMemberId;
   if (!isRater) return null;
   if (reviewSurveySlug(review) !== slug) return null;
-  if (review.status !== "open" && review.status !== "draft") return "closed";
+  // Open/draft rows are always fillable. A manager may additionally re-edit
+  // their own SUBMITTED review right up until it is finalized; a submitted
+  // self-assessment stays closed (the subject does not get to revise it).
+  const editable =
+    review.status === "open" ||
+    review.status === "draft" ||
+    (review.rater_kind === "manager" && review.status === "submitted");
+  if (!editable) return "closed";
 
   const subject = await subjectInfo(review.team_member_id);
   return {
@@ -226,15 +233,58 @@ export async function applyReviewSubmission(
       ratings,
       metadata,
       status: "submitted",
-      submitted_at: new Date().toISOString(),
+      // Preserve the original submission time when a manager re-edits a
+      // already-submitted review; only stamp it on the first submit.
+      submitted_at: review.submitted_at ?? new Date().toISOString(),
     })
     .eq("id", review.id)
-    // Refuse to overwrite a row that was submitted from another tab meanwhile.
-    .in("status", ["open", "draft"])
+    // Never overwrite a finalized review; a submitted one may be re-edited by
+    // its manager (the run context already gated who may reach here).
+    .in("status", ["open", "draft", "submitted"])
     .select("id");
   if (error) return { ok: false, error: "Could not save the review." };
-  if (!data?.length) return { ok: false, error: "This review was already submitted." };
+  if (!data?.length) return { ok: false, error: "This review can no longer be edited." };
   return { ok: true };
+}
+
+// The inverse of applyReviewSubmission: turn a review row's stored columns back
+// into the runner's answer map ({ fieldId: value }) so re-editing a submitted
+// review shows the current answers instead of a blank wizard. Value shapes match
+// what SurveyRunner holds per field type: rating -> number, single_choice ->
+// the option label, yes_no -> boolean, text -> string.
+export function reviewInitialAnswers(
+  review: ReviewRow,
+  fields: SurveyFieldRow[],
+): Record<string, unknown> {
+  // decision is stored canonical (via DECISION_BY_LABEL); reverse it to the
+  // choice label the single_choice field shows.
+  const labelByDecision = new Map(
+    Object.entries(DECISION_BY_LABEL).map(([label, value]) => [value, label]),
+  );
+  const answers: Record<string, unknown> = {};
+  for (const field of fields) {
+    const mapsTo = field.config?.maps_to;
+    if (!mapsTo?.startsWith("performance_reviews.")) continue;
+    const path = mapsTo.slice("performance_reviews.".length);
+
+    if (path.startsWith("ratings.")) {
+      const v = review.ratings?.[path.slice("ratings.".length)];
+      if (typeof v === "number") answers[field.id] = v;
+    } else if (path === "achievements" || path === "improvements" || path === "comments") {
+      if (typeof review[path] === "string" && review[path]) answers[field.id] = review[path];
+    } else if (path === "decision") {
+      if (review.decision) {
+        const label = labelByDecision.get(review.decision);
+        if (label) answers[field.id] = label;
+      }
+    } else if (path === "keeper") {
+      if (typeof review.keeper === "boolean") answers[field.id] = review.keeper;
+    } else if (path.startsWith("metadata.")) {
+      const v = review.metadata?.[path.slice("metadata.".length)];
+      if (v !== undefined && v !== null) answers[field.id] = v;
+    }
+  }
+  return answers;
 }
 
 // ---- lists for /team/reviews ------------------------------------------------
