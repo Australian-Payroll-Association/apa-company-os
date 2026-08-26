@@ -19,6 +19,7 @@ import {
   type RoadmapGroup,
 } from "@/lib/client-backlog";
 import { listDocumentsForCompanies, type ClientDocument } from "@/lib/client-documents";
+import { getMeetingsForCompany, type AdminMeetingRow } from "@/lib/admin/meetings";
 
 export type ProgramStatus = "draft" | "active" | "complete";
 
@@ -66,14 +67,6 @@ export type ProgramWeek = {
   hours: number;
 };
 
-// Placeholder until meetings carry a program tag; a parallel PR adds
-// meetings.ai_program_id. Typed now so the page shape does not change later.
-export type ProgramMeeting = {
-  id: string;
-  title: string;
-  heldAt: string | null;
-};
-
 export type ProgramDetail = ProgramSummary & {
   plannedTokens: number; // SUM(token_high) of the program's backlog items
   prsMergedLast30d: number;
@@ -86,7 +79,7 @@ export type ProgramDetail = ProgramSummary & {
   prTotalAll: number; // full count regardless of filter (tab badge)
   weeklyHours: ProgramWeek[]; // last 8 ISO weeks, oldest first
   documents: ClientDocument[];
-  meetings: ProgramMeeting[]; // TODO: populate once meetings.ai_program_id lands
+  meetings: AdminMeetingRow[]; // meetings tagged to this program (meetings.ai_program_id)
 };
 
 export type ProgramPrOptions = {
@@ -383,6 +376,7 @@ export async function getProgramDetail(
     weekRows,
     merged30Rows,
     allDocuments,
+    meetings,
   ] = await Promise.all([
     companyOs
       .from("client_roadmap_groups")
@@ -431,6 +425,7 @@ export async function getProgramDetail(
         )
       : Promise.resolve([] as { id: string }[]),
     listDocumentsForCompanies([companyId]),
+    getMeetingsForCompany(companyId, programId),
   ]);
 
   const roadmapItems = (itemData ?? []) as unknown as BacklogItem[];
@@ -486,8 +481,6 @@ export async function getProgramDetail(
     prTotalAll: prPage.totalAll,
     weeklyHours: weekLabels.map((w) => ({ isoWeek: w, hours: hoursByWeek.get(w) ?? 0 })),
     documents: allDocuments.filter((d) => d.programId === programId),
-    // TODO: meetings have no program tag yet; populate from company_os.meetings
-    // once meetings.ai_program_id lands (parallel PR).
-    meetings: [],
+    meetings,
   };
 }

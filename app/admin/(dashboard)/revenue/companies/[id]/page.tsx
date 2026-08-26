@@ -12,12 +12,15 @@ import { getMeetingsForCompany } from "@/lib/admin/meetings";
 import { getSurveyResponsesForCompany } from "@/lib/admin/surveys";
 import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
-import { getCompanyHubTeam, getCompanyBoardSlug, getLiveCardItemIds } from "@/lib/admin/company-hub";
+import { getCompanyHubTeam, getLiveCardItemIds } from "@/lib/admin/company-hub";
+import { listProgramSummaries, type ProgramSummary, type ProgramStatus } from "@/lib/hub/program";
+import { getTokenUsageForCompanies, type TokenUsage } from "@/lib/hub/tokens";
 import { BACKLOG_SELECT, ROADMAP_GROUPS_SELECT, type BacklogItem, type RoadmapGroup } from "@/lib/client-backlog";
 import { getAdminUser } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
-import { Badge } from "@/components/admin/Badge";
+import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { Tabs, type TabDef } from "@/components/admin/Tabs";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
 import { PortalMemberControls } from "@/components/admin/PortalMemberControls";
 import { CrmCommandBar } from "@/components/admin/CrmCommandBar";
@@ -39,8 +42,18 @@ export const dynamic = "force-dynamic";
 
 const CLIENT_STAGES = new Set(["customer", "evangelist"]);
 
+const PROGRAM_STATUS_TONE: Record<ProgramStatus, BadgeTone> = {
+  draft: "neutral",
+  active: "ok",
+  complete: "info",
+};
+
 function Empty({ text }: { text: string }) {
   return <div className="admin-empty">{text}</div>;
+}
+
+function fmtHours(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 export default async function CompanyDetailPage({
@@ -217,9 +230,33 @@ export default async function CompanyDetailPage({
     ];
   }
 
-  // ── Client Hub tabs ──────────────────────────────────────────────
-  async function hubTabs(): Promise<TabDef[]> {
-    const boardSlug = await getCompanyBoardSlug(company.id);
+  // ── Client Hub tabs + top band data ──────────────────────────────
+  // The hub home is organized by AI Program: a company-grain Human Tokens
+  // strip, the program card grid, then the company-wide tabs. When programs
+  // exist, the Work Board / Roadmap / Documents / Meetings tabs show ONLY
+  // untagged (ai_program_id null) rows, so nothing is presented twice; tagged
+  // rows live in their program view. When no programs exist, the tabs behave
+  // exactly as before.
+  async function hubData(): Promise<{ tabs: TabDef[]; programs: ProgramSummary[]; usage: TokenUsage }> {
+    const [programSummaries, usage, boardRowsRes] = await Promise.all([
+      listProgramSummaries(company.id),
+      getTokenUsageForCompanies([company.id]),
+      companyOs
+        .from("boards")
+        .select("id, slug, ai_program_id")
+        .eq("client_company_id", company.id)
+        .eq("status", "active")
+        .is("archived_at", null)
+        .order("sort_order", { ascending: true }),
+    ]);
+    const hasPrograms = programSummaries.length > 0;
+    const hubBoards = (boardRowsRes.data ?? []) as Array<{ id: string; slug: string; ai_program_id: string | null }>;
+    const untaggedBoards = hubBoards.filter((b) => !b.ai_program_id);
+    // First active board (same "first active" convention as before); with
+    // programs present, first active UNTAGGED board (program boards render in
+    // their program view instead).
+    const boardSlug = (hasPrograms ? untaggedBoards[0] : hubBoards[0])?.slug ?? null;
+
     const [boardDetail, boardOptions, admin, itemRows, groupRows, overviewRow, meetings, invoices, team, documents, programRows] =
       await Promise.all([
         boardSlug ? getBoardBySlug(boardSlug) : Promise.resolve(null),
@@ -235,8 +272,20 @@ export default async function CompanyDetailPage({
         companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
       ]);
 
-    const roadmapItems = (itemRows.data ?? []) as unknown as BacklogItem[];
-    const roadmapGroups = (groupRows.data ?? []) as unknown as RoadmapGroup[];
+    const allItems = (itemRows.data ?? []) as unknown as BacklogItem[];
+    const allGroups = (groupRows.data ?? []) as unknown as RoadmapGroup[];
+    // Company-wide slices: untagged rows only once programs exist.
+    const roadmapItems = hasPrograms ? allItems.filter((i) => !i.ai_program_id) : allItems;
+    const usedKeys = new Set(roadmapItems.map((i) => i.group_key));
+    const roadmapGroups = hasPrograms
+      ? allGroups.filter((g) => g.ai_program_id === null || usedKeys.has(g.key))
+      : allGroups;
+    const hubMeetings = hasPrograms ? meetings.filter((m) => !m.aiProgramId) : meetings;
+    const hubDocuments = hasPrograms ? documents.filter((d) => !d.programId) : documents;
+    // Both tabs drop together only when NOTHING company-wide remains: every
+    // board and every roadmap item is program-tagged (zero data loss of
+    // access; each tagged row is reachable in its program view).
+    const dropCompanyWideTabs = hasPrograms && untaggedBoards.length === 0 && allItems.every((i) => !!i.ai_program_id);
     const overviewBody = (overviewRow.data as { body: string } | null)?.body ?? "";
     const liveCardItemIds = await getLiveCardItemIds(roadmapItems.map((i) => i.id));
 
@@ -259,46 +308,65 @@ export default async function CompanyDetailPage({
       status: r.status,
     }));
 
-    return [
-      {
-        key: "board",
-        label: "Work Board",
-        content: boardDetail ? (
-          <BoardView detail={boardDetail} canManage teamOptions={boardOptions.team} clientOptions={boardOptions.clients} programOptions={boardOptions.programs} viewerPersonId={viewerPersonId} />
-        ) : (
-          <section className="admin-card admin-section-card">
-            <Empty text="This client has no active work board yet. Create one from Work Boards." />
-          </section>
-        ),
-      },
-      {
-        key: "roadmap",
-        label: "Roadmap",
-        count: roadmapItems.length,
-        content: (
-          <>
-            <OverviewEditor companyId={company.id} initialBody={overviewBody} />
-            <BacklogAdminEditor companyId={company.id} groups={roadmapGroups} items={roadmapItems} showArchived={false} liveCardItemIds={liveCardItemIds} />
-          </>
-        ),
-      },
+    const companyWideTabs: TabDef[] = dropCompanyWideTabs
+      ? []
+      : [
+          {
+            key: "board",
+            label: hasPrograms ? "Work Board (company-wide)" : "Work Board",
+            content: boardDetail ? (
+              <BoardView detail={boardDetail} canManage teamOptions={boardOptions.team} clientOptions={boardOptions.clients} programOptions={boardOptions.programs} viewerPersonId={viewerPersonId} />
+            ) : (
+              <section className="admin-card admin-section-card">
+                <Empty
+                  text={
+                    hasPrograms
+                      ? "No company-wide work board. Program boards live in their AI Program view."
+                      : "This client has no active work board yet. Create one from Work Boards."
+                  }
+                />
+              </section>
+            ),
+          },
+          {
+            key: "roadmap",
+            label: hasPrograms ? "Roadmap (company-wide)" : "Roadmap",
+            count: roadmapItems.length,
+            content: (
+              <>
+                <OverviewEditor companyId={company.id} initialBody={overviewBody} />
+                <BacklogAdminEditor
+                  companyId={company.id}
+                  groups={roadmapGroups}
+                  items={roadmapItems}
+                  programs={hasPrograms ? programOptions : undefined}
+                  showArchived={false}
+                  liveCardItemIds={liveCardItemIds}
+                />
+              </>
+            ),
+          },
+        ];
+
+    const tabs: TabDef[] = [
+      ...companyWideTabs,
       {
         key: "documents",
         label: "Documents",
-        count: documents.length,
+        count: hubDocuments.length,
         content: (
           <section className="admin-card admin-section-card">
-            <CompanyDocuments companyId={company.id} documents={documents} programs={programOptions} />
+            <CompanyDocuments companyId={company.id} documents={hubDocuments} programs={programOptions} />
           </section>
         ),
       },
       {
         key: "meetings",
         label: "Meetings",
-        count: meetings.length,
+        count: hubMeetings.length,
         content: (
           <section className="admin-card admin-section-card">
-            <MeetingsPanel meetings={meetings} publishAction={setMeetingPublished} programAction={setMeetingProgram} programOptions={programOptions} />
+            <MeetingsPanel meetings={hubMeetings} publishAction={setMeetingPublished} programAction={setMeetingProgram} programOptions={programOptions} />
           </section>
         ),
       },
@@ -314,9 +382,12 @@ export default async function CompanyDetailPage({
       },
       { key: "team", label: "Team", content: <HubTeamPanel team={team} /> },
     ];
+
+    return { tabs, programs: programSummaries, usage };
   }
 
-  const tabs = view === "hub" ? await hubTabs() : await internalTabs();
+  const hub = view === "hub" ? await hubData() : null;
+  const tabs = hub ? hub.tabs : await internalTabs();
 
   return (
     <div>
@@ -362,6 +433,76 @@ export default async function CompanyDetailPage({
           <Link href={`/admin/revenue/deals?company=${company.id}`}>Open in CRM →</Link>
         </span>
       </div>
+
+      {hub && (
+        <>
+          <div className="hub-band-head">
+            <h2 className="admin-card-title">Human Tokens</h2>
+            <span className="admin-cell-muted" style={{ fontSize: 12 }}>Company credit pool, shared by all AI Programs</span>
+          </div>
+          <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
+            <MetricCard label="Bought" value={hub.usage.boughtTokens.toLocaleString()} sub="Purchased + allocated tokens" />
+            <MetricCard label="Delivered" value={fmtHours(hub.usage.deliveredHours)} sub="Hours of tracked work" />
+            <MetricCard label="Balance" value={hub.usage.balanceTokens.toLocaleString()} sub="Bought minus delivered" />
+            <MetricCard label="Planned" value={hub.usage.plannedTokens.toLocaleString()} sub="Roadmap high estimates" />
+            <MetricCard
+              label="AI leverage"
+              value={hub.usage.leverage != null ? `${fmtHours(hub.usage.leverage)}x` : "n/a"}
+              sub="AI tokens per delivered hour"
+            />
+          </div>
+
+          <div className="hub-band-head">
+            <h2 className="admin-card-title">AI Programs</h2>
+          </div>
+          <div className="mp-kpi-grid hub-programs-grid">
+            {hub.programs.length === 0 ? (
+              <div className="admin-card admin-section-card hub-program-card hub-program-card--new">
+                <span className="admin-cell-strong" style={{ fontSize: 15 }}>New AI Program</span>
+                <span className="admin-cell-muted" style={{ fontSize: 12 }}>Created from the client portal or by Edge8</span>
+              </div>
+            ) : (
+              hub.programs.map((p) => {
+                const pct = p.roadmapTotal > 0 ? Math.round((p.roadmapDone / p.roadmapTotal) * 100) : 0;
+                return (
+                  <Link
+                    key={p.id}
+                    href={`/admin/revenue/companies/${company.id}/programs/${p.id}`}
+                    className="admin-card admin-section-card is-clickable hub-program-card"
+                  >
+                    <div className="hub-program-head">
+                      <span className="admin-cell-strong" style={{ fontSize: 15 }}>{p.name}</span>
+                      <Badge tone={PROGRAM_STATUS_TONE[p.status]}>{p.status}</Badge>
+                    </div>
+                    <div className="admin-cell-muted admin-cell-mono" style={{ marginTop: 4, minHeight: 18, fontSize: 12, overflowWrap: "anywhere" }}>
+                      {p.githubRepo ?? "No repo connected"}
+                    </div>
+                    <div style={{ marginTop: 14 }}>
+                      <div className="admin-cell-muted hub-program-progressrow">
+                        <span>
+                          {p.roadmapTotal === 0
+                            ? "No roadmap items yet"
+                            : `Roadmap ${p.roadmapDone}/${p.roadmapTotal} done`}
+                        </span>
+                        {p.roadmapTotal > 0 && <span>{pct}%</span>}
+                      </div>
+                      <div className="board-progress">
+                        <div className="board-progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                    <div className="admin-cell-muted" style={{ marginTop: 12, fontSize: 12 }}>
+                      {p.repoId
+                        ? `${fmtHours(p.deliveredHours)} hrs delivered · ${p.prsMergedLast7d} PR${p.prsMergedLast7d === 1 ? "" : "s"} merged 7d · `
+                        : ""}
+                      {p.boardCount} {p.boardCount === 1 ? "board" : "boards"}
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
 
       <div className="admin-card admin-section-card">
         <Tabs tabs={tabs} />

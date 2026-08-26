@@ -4722,3 +4722,47 @@ a.ideas-share-card:hover {
 .admin-cal-chip.is-warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); box-shadow: inset 0 0 0 1px currentColor; }
 .admin-cal-legend { display: flex; gap: 8px; margin-top: 10px; }
 .admin-cal-legend .admin-cal-chip { display: inline-block; }
+
+/* ─── Client Hub home: Human Tokens band + AI Program cards ─── */
+/* Section header row above a band on the hub home. */
+.hub-band-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.hub-band-head .admin-card-title { margin-bottom: 0; }
+/* Program card grid: same auto-fill sizing as the boards index cards view. */
+.hub-programs-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin-bottom: 20px;
+}
+/* One AI Program card (a link to the program view). */
+.hub-program-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  text-decoration: none;
+}
+/* Empty state: dashed, non-interactive (programs are created from the client
+   portal or by Edge8; admin has no create surface yet). */
+.hub-program-card--new {
+  border: 1px dashed var(--admin-line-strong);
+  box-shadow: none;
+  gap: 4px;
+}
+.hub-program-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* Roadmap done/total labels above the progress track. */
+.hub-program-progressrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
