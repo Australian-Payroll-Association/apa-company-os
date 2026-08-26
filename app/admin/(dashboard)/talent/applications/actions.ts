@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireSuperAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
+import { upsertCandidateSalary, type SalaryInput } from "@/lib/admin/candidate-sensitive";
 import { logStageMove } from "@/lib/ats/stage-log";
 import { APPLICATION_SOURCES, POOL_STATUSES } from "@/lib/admin/recruiting-options";
 import type { AiScreenSummary } from "@/lib/resume-screen";
@@ -302,15 +303,22 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
   if (patch.english_proficiency !== undefined)
     profileUpdates.english_proficiency = patch.english_proficiency?.trim() || null;
   if (patch.notice_period !== undefined) profileUpdates.notice_period = patch.notice_period?.trim() || null;
-  if (patch.salary_expectation_cents !== undefined)
-    profileUpdates.salary_expectation_cents =
-      patch.salary_expectation_cents == null || Number.isNaN(patch.salary_expectation_cents)
-        ? null
-        : Math.max(0, Math.round(patch.salary_expectation_cents));
-  if (patch.salary_expectation_currency !== undefined)
-    profileUpdates.salary_expectation_currency = patch.salary_expectation_currency?.trim() || null;
 
-  if (Object.keys(personUpdates).length === 0 && Object.keys(profileUpdates).length === 0) {
+  // Salary is sensitive: it is stored on candidate_sensitive (super-admin-only),
+  // never on candidate_profile. requireSuperAdmin() above IS the canViewSensitive
+  // gate, so reaching here already means the caller is cleared.
+  const salaryPatch: SalaryInput = {};
+  if (patch.salary_expectation_cents !== undefined)
+    salaryPatch.salary_expectation_cents = patch.salary_expectation_cents;
+  if (patch.salary_expectation_currency !== undefined)
+    salaryPatch.salary_expectation_currency = patch.salary_expectation_currency;
+  const hasSalary = Object.keys(salaryPatch).length > 0;
+
+  if (
+    Object.keys(personUpdates).length === 0 &&
+    Object.keys(profileUpdates).length === 0 &&
+    !hasSalary
+  ) {
     return { ok: true };
   }
 
@@ -344,6 +352,11 @@ export async function updateApplicantProfile(personId: string, patch: ApplicantP
       actor: admin.email,
       newData: profileUpdates,
     });
+  }
+
+  if (hasSalary) {
+    const res = await upsertCandidateSalary(personId, salaryPatch, admin.email);
+    if (!res.ok) return res;
   }
 
   revalidatePath("/admin/talent/applications");

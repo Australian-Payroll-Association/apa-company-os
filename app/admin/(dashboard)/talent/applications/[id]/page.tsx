@@ -3,6 +3,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
+import { getSensitiveViewer } from "@/lib/admin-auth";
+import { getCandidateSensitive } from "@/lib/admin/candidate-sensitive";
 import { PageHead } from "@/components/admin/PageHead";
 import { listAssignablePeople, listPeopleNames, type PersonOption } from "@/lib/admin/people-options";
 import { appSlug, isShortCode, isUuid, shortCodeRange, shortOf } from "@/lib/admin/slug";
@@ -25,8 +27,6 @@ type Cp = {
   do_not_hire: boolean;
   pool_status: string | null;
   english_proficiency: string | null;
-  salary_expectation_cents: number | null;
-  salary_expectation_currency: string | null;
   notice_period: string | null;
 };
 type P = {
@@ -158,7 +158,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const { data, error } = await companyOs
     .from("applications")
     .select(
-      "id, status, rating, rejection_reason, applied_at, decided_at, source, source_detail, referrer_person_id, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, city, country, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, pool_status, english_proficiency, salary_expectation_cents, salary_expectation_currency, notice_period)), job_requisitions(title), application_stages(name)",
+      "id, status, rating, rejection_reason, applied_at, decided_at, source, source_detail, referrer_person_id, current_stage_id, resume_document_id, job_requisition_id, person_id, archived_at, hr_assessment, people!person_id(full_name, email, phone, city, country, linkedin_url, candidate_profile(headline, current_title, portfolio_url, do_not_hire, pool_status, english_proficiency, notice_period)), job_requisitions(title), application_stages(name)",
     )
     .eq("id", ref.id)
     .maybeSingle();
@@ -177,6 +177,13 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const p = one(r.people);
   const cp = one(p?.candidate_profile ?? null);
   const candidateName = p?.full_name || p?.email || null;
+
+  // Candidate salary is super-admin-only (Dave + Mai). It lives on the
+  // restricted candidate_sensitive store, fetched ONLY when the viewer is
+  // cleared; everyone else never receives the figures.
+  const viewer = await getSensitiveViewer();
+  const canViewSalary = viewer?.canViewSensitive ?? false;
+  const salary = canViewSalary && r.person_id ? await getCandidateSensitive(r.person_id) : null;
 
   // Referrer picker: assignable team members (the usual referrers), plus the
   // current referrer if it happens to be someone no longer assignable, so the
@@ -217,8 +224,10 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
     poolStatus: cp?.pool_status ?? null,
     hrAssessment: r.hr_assessment,
     englishProficiency: cp?.english_proficiency ?? null,
-    salaryExpectationCents: cp?.salary_expectation_cents ?? null,
-    salaryExpectationCurrency: cp?.salary_expectation_currency ?? null,
+    canViewSalary,
+    salaryExpectationCents: salary?.salary_expectation_cents ?? null,
+    salaryExpectationCurrency: salary?.salary_expectation_currency ?? null,
+    aiSalary: salary?.ai_salary_expectation ?? null,
     noticePeriod: cp?.notice_period ?? null,
   };
 

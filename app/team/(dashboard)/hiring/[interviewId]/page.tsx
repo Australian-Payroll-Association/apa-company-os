@@ -74,7 +74,8 @@ export default async function InterviewKitPage({ params }: { params: { interview
                 {[
                   kit.aiSummary.english ? `English: ${kit.aiSummary.english}` : null,
                   kit.aiSummary.notice_period ? `Notice: ${kit.aiSummary.notice_period}` : null,
-                  kit.aiSummary.salary_expectation ? `Salary: ${kit.aiSummary.salary_expectation}` : null,
+                  // Salary is deliberately omitted here: interviewers are not
+                  // super admins, and candidate salary is super-admin-only.
                 ]
                   .filter(Boolean)
                   .join(" · ")}

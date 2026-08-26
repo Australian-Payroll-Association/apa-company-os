@@ -179,7 +179,6 @@ export function AiRanking({ jobReqId, rows }: { jobReqId: string; rows: AiRankRo
                               </div>
                               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                                 <span><span className="admin-label">English</span> {s.english}</span>
-                                <span><span className="admin-label">Salary expectation</span> {s.salary_expectation}</span>
                                 <span><span className="admin-label">Notice period</span> {s.notice_period}</span>
                               </div>
                               <div style={{ display: "flex", gap: 16 }}>

@@ -68,9 +68,14 @@ export type AppManageData = {
   hrAssessment: string | null;
   // recruiter overrides for the AI-extracted fields (write candidate_profile)
   englishProficiency: string | null;
+  noticePeriod: string | null;
+  // Salary is super-admin-only (Dave + Mai). These are populated from the
+  // restricted candidate_sensitive store ONLY when canViewSalary is true;
+  // otherwise they are null and the UI hides the salary row entirely.
+  canViewSalary: boolean;
   salaryExpectationCents: number | null;
   salaryExpectationCurrency: string | null;
-  noticePeriod: string | null;
+  aiSalary: string | null;
 };
 
 // A stored timestamp -> the YYYY-MM-DD a <input type="date"> expects. The org
@@ -341,13 +346,14 @@ export function ApplicationManage({
             <SignalsCard
               personId={app.personId}
               englishProficiency={app.englishProficiency}
+              canViewSalary={app.canViewSalary}
               salaryExpectationCents={app.salaryExpectationCents}
               salaryExpectationCurrency={app.salaryExpectationCurrency}
               noticePeriod={app.noticePeriod}
               poolStatus={app.poolStatus}
               doNotHire={app.doNotHire}
               aiEnglish={extras?.aiSummary?.english ?? null}
-              aiSalary={extras?.aiSummary?.salary_expectation ?? null}
+              aiSalary={app.aiSalary}
               aiNotice={extras?.aiSummary?.notice_period ?? null}
             />
           )}
@@ -902,6 +908,7 @@ function aiHint(v: string | null): string | null {
 function SignalsCard(props: {
   personId: string;
   englishProficiency: string | null;
+  canViewSalary: boolean;
   salaryExpectationCents: number | null;
   salaryExpectationCurrency: string | null;
   noticePeriod: string | null;
@@ -926,15 +933,19 @@ function SignalsCard(props: {
           <EditableText value={props.englishProficiency ?? ""} fallback={english} placeholder="Add…" ariaLabel="English proficiency"
             onSave={(v) => updateApplicantProfile(props.personId, { english_proficiency: v.trim() || null })} />
         </dd>
-        <dt>Salary</dt>
-        <dd style={{ padding: "2px 0" }}>
-          <SalaryField
-            personId={props.personId}
-            cents={props.salaryExpectationCents}
-            currency={props.salaryExpectationCurrency}
-            aiFallback={aiHint(props.aiSalary)}
-          />
-        </dd>
+        {props.canViewSalary && (
+          <>
+            <dt>Salary</dt>
+            <dd style={{ padding: "2px 0" }}>
+              <SalaryField
+                personId={props.personId}
+                cents={props.salaryExpectationCents}
+                currency={props.salaryExpectationCurrency}
+                aiFallback={aiHint(props.aiSalary)}
+              />
+            </dd>
+          </>
+        )}
         <dt>Notice</dt>
         <dd>
           <EditableText value={props.noticePeriod ?? ""} fallback={notice} placeholder="Add…" ariaLabel="Notice period"

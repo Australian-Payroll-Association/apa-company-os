@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import mammoth from "mammoth";
 import { supabase, companyOs } from "@/lib/supabase";
+import { setCandidateAiSalary } from "@/lib/admin/candidate-sensitive";
 
 // AI resume screen: reads an application's resume + the job requisition,
 // asks Claude for a templated summary and a 0-5 fit rating, and writes the
@@ -9,11 +10,13 @@ import { supabase, companyOs } from "@/lib/supabase";
 
 const MODEL = "claude-opus-4-8";
 
+// Salary is deliberately NOT here: the AI still extracts it (SCREEN_SCHEMA
+// keeps the field), but it is stored on the restricted candidate_sensitive
+// store, never on applications.ai_summary, which is read broadly across the ATS.
 export type AiScreenSummary = {
   overview: string;
   skills: string[];
   english: string;
-  salary_expectation: string;
   notice_period: string;
 };
 
@@ -133,7 +136,7 @@ async function runScreen(applicationId: string): Promise<Ok | Err> {
 
   const { data: app, error: appErr } = await companyOs
     .from("applications")
-    .select("id, cover_letter, answers, resume_document_id, job_requisition_id")
+    .select("id, person_id, cover_letter, answers, resume_document_id, job_requisition_id")
     .eq("id", applicationId)
     .maybeSingle();
   if (appErr || !app) return markFailed(applicationId, appErr?.message ?? "Application not found.");
@@ -207,15 +210,21 @@ async function runScreen(applicationId: string): Promise<Ok | Err> {
   );
   if (!textBlock) return markFailed(applicationId, "Model returned no text output.");
 
-  const parsed = JSON.parse(textBlock.text) as AiScreenSummary & { rating: number };
+  const parsed = JSON.parse(textBlock.text) as AiScreenSummary & {
+    rating: number;
+    salary_expectation: string;
+  };
   const rating = Math.min(5, Math.max(0, Math.round(parsed.rating * 10) / 10));
   const summary: AiScreenSummary = {
     overview: parsed.overview,
     skills: parsed.skills,
     english: parsed.english,
-    salary_expectation: parsed.salary_expectation,
     notice_period: parsed.notice_period,
   };
+
+  // Salary is sensitive: keep it out of ai_summary; store on the restricted
+  // candidate_sensitive store (super-admin-only). Best-effort, never blocks.
+  await setCandidateAiSalary(app.person_id as string | null, parsed.salary_expectation);
 
   const { error: upErr } = await companyOs
     .from("applications")
