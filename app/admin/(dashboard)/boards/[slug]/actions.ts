@@ -432,7 +432,13 @@ export async function removeBoardMember(boardId: string, personId: string, board
 
 export async function updateBoard(
   boardId: string,
-  patch: { name?: string; description?: string | null; clientCompanyId?: string | null },
+  patch: {
+    name?: string;
+    description?: string | null;
+    clientCompanyId?: string | null;
+    // Optional AI Program key. null = company-wide (the default state).
+    aiProgramId?: string | null;
+  },
   boardSlug: string,
 ): Promise<Result> {
   const admin = await requireAdmin();
@@ -444,6 +450,54 @@ export async function updateBoard(
   }
   if (patch.description !== undefined) updates.description = patch.description?.trim() || null;
   if (patch.clientCompanyId !== undefined) updates.client_company_id = patch.clientCompanyId || null;
+  if (patch.aiProgramId !== undefined) {
+    const programId = patch.aiProgramId || null;
+    if (programId) {
+      // The program must belong to the board's (effective) client company.
+      let clientCompanyId = (updates.client_company_id ?? null) as string | null;
+      if (patch.clientCompanyId === undefined) {
+        const { data: b } = await companyOs
+          .from("boards")
+          .select("client_company_id")
+          .eq("id", boardId)
+          .maybeSingle();
+        clientCompanyId = (b as { client_company_id: string | null } | null)?.client_company_id ?? null;
+      }
+      const { data: program } = await companyOs
+        .from("ai_programs")
+        .select("id, company_id")
+        .eq("id", programId)
+        .maybeSingle();
+      const programCompanyId = (program as { company_id: string } | null)?.company_id;
+      if (!programCompanyId || programCompanyId !== clientCompanyId) {
+        return { ok: false, error: "That AI Program belongs to a different client." };
+      }
+    }
+    updates.ai_program_id = programId;
+  } else if (patch.clientCompanyId !== undefined) {
+    // The client changed but no program key was sent: a stale ai_program_id
+    // must not keep pointing at the previous company's program (the FK does
+    // not enforce the company match, and this action is callable directly).
+    const { data: b } = await companyOs
+      .from("boards")
+      .select("ai_program_id")
+      .eq("id", boardId)
+      .maybeSingle();
+    const currentProgramId = (b as { ai_program_id: string | null } | null)?.ai_program_id ?? null;
+    if (currentProgramId) {
+      const newClientId = (updates.client_company_id ?? null) as string | null;
+      let keep = false;
+      if (newClientId) {
+        const { data: program } = await companyOs
+          .from("ai_programs")
+          .select("company_id")
+          .eq("id", currentProgramId)
+          .maybeSingle();
+        keep = ((program as { company_id: string } | null)?.company_id ?? null) === newClientId;
+      }
+      if (!keep) updates.ai_program_id = null;
+    }
+  }
   if (Object.keys(updates).length === 0) return { ok: true };
   const { error } = await companyOs.from("boards").update(updates).eq("id", boardId);
   if (error) return { ok: false, error: error.message };

@@ -23,6 +23,8 @@ function refresh() {
 
 export type BacklogItemInput = {
   group_key: string;
+  // Optional AI Program tag. null/undefined = company-wide (the default).
+  ai_program_id?: string | null;
   ref?: string;
   title: string;
   who?: string;
@@ -64,6 +66,17 @@ async function groupExists(companyId: string, key: string | undefined): Promise<
   return !!data;
 }
 
+// An AI Program tag is only valid when the program belongs to the same company.
+async function programBelongs(companyId: string, programId: string): Promise<boolean> {
+  const { data } = await companyOs
+    .from("ai_programs")
+    .select("id")
+    .eq("id", programId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function createBacklogItem(
   companyId: string,
   input: BacklogItemInput,
@@ -78,6 +91,9 @@ export async function createBacklogItem(
   }
   if (input.status && !BACKLOG_STATUSES.includes(input.status)) {
     return { ok: false, error: "Invalid status." };
+  }
+  if (input.ai_program_id && !(await programBelongs(companyId, input.ai_program_id))) {
+    return { ok: false, error: "Invalid AI Program." };
   }
 
   const row = {
@@ -97,11 +113,15 @@ export async function createBacklogItem(
 
 export async function updateBacklogItem(id: string, patch: Partial<BacklogItemInput>): Promise<Result> {
   const admin = await requireAdmin();
-  if (patch.group_key !== undefined) {
+  if (patch.group_key !== undefined || patch.ai_program_id) {
     const { data: item } = await companyOs.from(TABLE).select("company_id").eq("id", id).maybeSingle();
     if (!item) return { ok: false, error: "Item not found." };
-    if (!(await groupExists((item as { company_id: string }).company_id, patch.group_key))) {
+    const companyId = (item as { company_id: string }).company_id;
+    if (patch.group_key !== undefined && !(await groupExists(companyId, patch.group_key))) {
       return { ok: false, error: "Invalid group." };
+    }
+    if (patch.ai_program_id && !(await programBelongs(companyId, patch.ai_program_id))) {
+      return { ok: false, error: "Invalid AI Program." };
     }
   }
   if (patch.edge8_priority && !BACKLOG_PRIORITIES.includes(patch.edge8_priority)) {

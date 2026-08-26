@@ -52,7 +52,7 @@ export type BoardCard = TaskRow & {
 };
 
 export type BoardDetail = {
-  board: BoardRow & { client_name: string | null };
+  board: BoardRow & { client_name: string | null; program_name: string | null };
   columns: BoardColumnRow[];
   members: BoardPerson[];
   sprints: SprintRow[];
@@ -145,10 +145,16 @@ export async function listBoards(): Promise<BoardListItem[]> {
 
 // Options for board settings: active team people (member picker) + client
 // companies (the board's client link). Admin management surfaces only.
-export type ManageOptions = { team: BoardPerson[]; clients: { id: string; name: string }[] };
+export type ManageOptions = {
+  team: BoardPerson[];
+  clients: { id: string; name: string }[];
+  // All AI Programs with their owning company, so the board settings picker
+  // can offer the ones belonging to the selected client.
+  programs: { id: string; name: string; company_id: string }[];
+};
 
 export async function listBoardManageOptions(): Promise<ManageOptions> {
-  const [tmRes, coRes] = await Promise.all([
+  const [tmRes, coRes, progRes] = await Promise.all([
     companyOs
       .from("team_members")
       .select("status, people:people!person_id(id, display_name, full_name, email)")
@@ -159,6 +165,7 @@ export async function listBoardManageOptions(): Promise<ManageOptions> {
       .in("lifecycle_stage", ["customer", "evangelist"])
       .is("archived_at", null)
       .order("name"),
+    companyOs.from("ai_programs").select("id, name, company_id").order("name"),
   ]);
 
   type PersonEmbed = { id: string; display_name: string | null; full_name: string | null; email: string };
@@ -172,7 +179,13 @@ export async function listBoardManageOptions(): Promise<ManageOptions> {
   }
   team.sort((a, b) => a.name.localeCompare(b.name));
   const clients = (coRes.data ?? []) as { id: string; name: string }[];
-  return { team, clients };
+  // Surface a failed programs fetch rather than silently offering an empty
+  // picker (the settings drawer hides the AI Program select when this is []).
+  if (progRes.error) {
+    console.error("listBoardManageOptions: ai_programs fetch failed:", progRes.error.message);
+  }
+  const programs = (progRes.data ?? []) as { id: string; name: string; company_id: string }[];
+  return { team, clients, programs };
 }
 
 // Recent meetings for the sprint "attach meeting" picker. One weekly meeting
@@ -283,7 +296,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   // ~5 serial round trips, so a phone opening its daily board (this function is
   // reused by /admin, /team, and /portal) paid that latency stacked on a
   // force-dynamic page. Empty-id cases resolve to an empty result without a query.
-  const [peopleRes, commitmentsRes, backlogLabelRes, clientCoRes, clientBacklogRes, roadmapGroupsRes, logsRes, commentsRes] =
+  const [peopleRes, commitmentsRes, backlogLabelRes, clientCoRes, programRes, clientBacklogRes, roadmapGroupsRes, logsRes, commentsRes] =
     await Promise.all([
       personIds.length
         ? companyOs.from("people").select("id, display_name, full_name, email").in("id", personIds)
@@ -296,6 +309,9 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
         : Promise.resolve({ data: [] as { id: string; title: string }[] }),
       board.client_company_id
         ? companyOs.from("companies").select("name").eq("id", board.client_company_id).maybeSingle()
+        : Promise.resolve({ data: null as { name: string } | null }),
+      board.ai_program_id
+        ? companyOs.from("ai_programs").select("name").eq("id", board.ai_program_id).maybeSingle()
         : Promise.resolve({ data: null as { name: string } | null }),
       board.client_company_id
         ? companyOs
@@ -337,6 +353,7 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
   for (const r of (backlogLabelRes.data ?? []) as { id: string; title: string }[]) subjectLabel.set(r.id, r.title);
 
   const client_name = (clientCoRes.data as { name: string } | null)?.name ?? null;
+  const program_name = (programRes.data as { name: string } | null)?.name ?? null;
   const backlogItems = (clientBacklogRes.data ?? []) as BacklogRef[];
   const backlogGroups: BacklogGroupRef[] = (
     (roadmapGroupsRes.data ?? []) as { key: string; step_label: string | null; title: string }[]
@@ -402,5 +419,5 @@ export async function getBoardBySlug(slug: string): Promise<BoardDetail | null> 
     archivedBy: a.archived_by,
   }));
 
-  return { board: { ...board, client_name }, columns, members, sprints, cards, backlogItems, backlogGroups, archivedCards };
+  return { board: { ...board, client_name, program_name }, columns, members, sprints, cards, backlogItems, backlogGroups, archivedCards };
 }
