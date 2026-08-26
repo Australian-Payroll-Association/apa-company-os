@@ -78,12 +78,16 @@ export function BoardView({
   canManage = false,
   teamOptions = [],
   clientOptions = [],
+  programOptions = [],
   viewerPersonId = null,
 }: {
   detail: BoardDetail;
   canManage?: boolean;
   teamOptions?: BoardPerson[];
   clientOptions?: { id: string; name: string }[];
+  // All AI Programs with their owning company; the settings picker shows the
+  // ones belonging to the selected client. Empty = picker hidden.
+  programOptions?: { id: string; name: string; company_id: string }[];
   viewerPersonId?: string | null;
 }) {
   const router = useRouter();
@@ -110,6 +114,7 @@ export function BoardView({
   const [boardName, setBoardName] = useState(board.name);
   const [boardDescription, setBoardDescription] = useState(board.description ?? "");
   const [boardClientId, setBoardClientId] = useState(board.client_company_id ?? "");
+  const [boardProgramId, setBoardProgramId] = useState(board.ai_program_id ?? "");
   const [newMemberId, setNewMemberId] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
@@ -175,12 +180,32 @@ export function BoardView({
   const memberIds = new Set(members.map((m) => m.id));
   const addableMembers = teamOptions.filter((p) => !memberIds.has(p.id));
 
+  // Programs offerable for the currently selected client; a program from a
+  // different company never reaches the save call.
+  const clientPrograms = useMemo(
+    () => programOptions.filter((p) => boardClientId && p.company_id === boardClientId),
+    [programOptions, boardClientId],
+  );
+
   function saveSettings() {
     setBanner(null);
+    // Only send the program key when it actually changed, so an unrelated
+    // rename never clears an existing program tag.
+    const desiredProgramId =
+      clientPrograms.some((p) => p.id === boardProgramId) ? boardProgramId : "";
+    const programPatch =
+      (desiredProgramId || null) !== (board.ai_program_id ?? null)
+        ? { aiProgramId: desiredProgramId || null }
+        : {};
     startSaving(async () => {
       const r = await updateBoard(
         board.id,
-        { name: boardName, description: boardDescription, clientCompanyId: boardClientId || null },
+        {
+          name: boardName,
+          description: boardDescription,
+          clientCompanyId: boardClientId || null,
+          ...programPatch,
+        },
         slug,
       );
       if (!r.ok) return setBanner(r.error);
@@ -575,6 +600,7 @@ export function BoardView({
             </button>
           </>
         )}
+        {board.program_name && <Badge tone="info">{board.program_name}</Badge>}
         <button className="admin-btn admin-btn--sm" onClick={() => setSprintsOpen(true)}>
           Sprints
         </button>
@@ -1103,6 +1129,24 @@ export function BoardView({
             </select>
             <p className="admin-hint">A client board is read-only in that client&apos;s portal.</p>
           </div>
+          {boardClientId && clientPrograms.length > 0 && (
+            <div className="admin-field">
+              <label className="admin-label">AI Program</label>
+              <select
+                className="admin-select"
+                value={clientPrograms.some((p) => p.id === boardProgramId) ? boardProgramId : ""}
+                onChange={(e) => setBoardProgramId(e.target.value)}
+              >
+                <option value="">Company-wide</option>
+                {clientPrograms.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="admin-hint">Optional: key this board to one of the client&apos;s AI Programs.</p>
+            </div>
+          )}
           <div className="admin-form-actions">
             <button className="admin-btn admin-btn--primary" onClick={saveSettings} disabled={saving}>
               Save

@@ -18,7 +18,7 @@ export default async function TeamBoardPage({ params }: { params: { slug: string
   const detail = await getBoardForActor(actor, params.slug);
   if (!detail) notFound();
   // Admins get the same management controls on /team as on /admin.
-  const options = actor.isAdmin ? await listBoardManageOptions() : { team: [], clients: [] };
+  const options = actor.isAdmin ? await listBoardManageOptions() : { team: [], clients: [], programs: [] };
 
   return (
     <>
@@ -32,6 +32,7 @@ export default async function TeamBoardPage({ params }: { params: { slug: string
         canManage={actor.isAdmin}
         teamOptions={options.team}
         clientOptions={options.clients}
+        programOptions={options.programs}
         viewerPersonId={actor.personId}
       />
     </>

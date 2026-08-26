@@ -71,13 +71,15 @@ export type BoardRow = {
   slug: string;
   description: string | null;
   client_company_id: string | null;
+  // NULL = company-wide (or internal) board; set = keyed to one AI Program.
+  ai_program_id: string | null;
   owner_id: string | null;
   status: BoardStatus;
   sort_order: number;
 };
 
 export const BOARD_SELECT =
-  "id, name, slug, description, client_company_id, owner_id, status, sort_order";
+  "id, name, slug, description, client_company_id, ai_program_id, owner_id, status, sort_order";
 
 export type BoardColumnRow = {
   id: string;
