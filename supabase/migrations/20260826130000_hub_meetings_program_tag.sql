@@ -1,4 +1,4 @@
--- NOT YET APPLIED; apply via supabase db query --linked before merge --
+-- Applied via Supabase Management API (supabase db query --linked, role postgres) on 2026-08-26.
 --
 -- 20260826130000_hub_meetings_program_tag.sql
 --
