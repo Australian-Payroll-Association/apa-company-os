@@ -18,7 +18,7 @@ import type { PortalActor } from "@/lib/portal-auth";
 import { adminCompanyScope } from "@/lib/portal/roles";
 
 const NOTES_SELECT =
-  "id, company_id, started_at, title, attendees, summary, published_at, ai_program:ai_programs!ai_program_id(name)";
+  "id, company_id, started_at, title, attendees, summary, published_at, ai_program_id, ai_program:ai_programs!ai_program_id(name)";
 
 export type PortalMeeting = {
   id: string;
@@ -27,7 +27,9 @@ export type PortalMeeting = {
   attendees: string[];
   summary: string | null;
   publishedAt: string | null;
-  // Display-only AI Program tag; null = company-wide.
+  // AI Program tag; null = company-wide. The id lets the hub and program
+  // pages split company-wide from program-tagged rows.
+  aiProgramId: string | null;
   aiProgramName: string | null;
 };
 
@@ -39,6 +41,7 @@ type Row = {
   attendees: string[] | null;
   summary: string | null;
   published_at: string | null;
+  ai_program_id: string | null;
   ai_program?: { name: string | null } | { name: string | null }[] | null;
 };
 
@@ -52,6 +55,7 @@ const toMeeting = (r: Row): PortalMeeting => ({
   attendees: r.attendees ?? [],
   summary: r.summary,
   publishedAt: r.published_at,
+  aiProgramId: r.ai_program_id,
   aiProgramName: one(r.ai_program)?.name ?? null,
 });
 
