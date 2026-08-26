@@ -106,9 +106,13 @@ export function DataTable<T extends { id?: string | number }>({
         )}
       </div>
 
-      <div className="admin-table-wrap">
+      {/* Card view: the cards are their own chrome, so they sit directly on the
+          canvas; wrapping them in the white table panel made white-on-white
+          cards with invisible edges. The pagination bar keeps the panel. */}
+      {view === "cards" && renderCards && rows.length > 0 && renderCards(rows)}
+      <div className={`admin-table-wrap${view === "cards" && renderCards && rows.length > 0 ? " admin-cards-pager" : ""}`}>
         {view === "cards" && renderCards ? (
-          rows.length === 0 ? <div className="admin-empty">{emptyText}</div> : renderCards(rows)
+          rows.length === 0 ? <div className="admin-empty">{emptyText}</div> : null
         ) : (
         <div className="admin-table-scroll">
         <table className="admin-table">

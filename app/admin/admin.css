@@ -1642,6 +1642,10 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
 .admin-empty { padding: 48px 16px; text-align: center; color: var(--admin-muted); }
 
 /* ─── Pagination ──────────────────────────────────── */
+/* Pagination bar under a card-view grid: its own panel, clear of the grid. */
+.admin-cards-pager { margin-top: 16px; }
+.admin-cards-pager .admin-pagination { border-top: 0; }
+
 .admin-pagination {
   display: flex;
   flex-wrap: wrap; /* on a phone the count + page-size chips + Prev/Next must drop to a second line, not clip Next off-screen */
