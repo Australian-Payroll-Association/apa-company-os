@@ -90,6 +90,7 @@ export function BacklogPortalView({
   companyId,
   canPrioritize,
   canPropose,
+  programId,
 }: {
   items: BacklogItem[];
   groups: RoadmapGroup[];
@@ -98,6 +99,9 @@ export function BacklogPortalView({
   // viewers read. The server actions re-check, this only shapes the UI.
   canPrioritize: boolean;
   canPropose: boolean;
+  // Set on a program page's roadmap tab: proposals made here carry the
+  // program's tag. The hub's company-wide roadmap omits it.
+  programId?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -295,7 +299,7 @@ export function BacklogPortalView({
                       className="cbp-btn"
                       disabled={pending || !pTitle.trim()}
                       onClick={() => run(
-                        () => proposeMyItem({ companyId, groupKey: g.key, title: pTitle, note: pNote, priority: pPriority }),
+                        () => proposeMyItem({ companyId, groupKey: g.key, title: pTitle, note: pNote, priority: pPriority, aiProgramId: programId }),
                         () => { setProposeGroup(null); setPTitle(""); setPNote(""); setPPriority("next"); setPHint(null); },
                       )}
                     >

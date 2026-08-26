@@ -38,6 +38,9 @@ export async function proposeMyItem(input: {
   title: string;
   note?: string;
   priority?: string;
+  // Set by the program page's roadmap tab, so the proposal lands in that
+  // program; the hub's company-wide roadmap leaves it unset.
+  aiProgramId?: string;
 }) {
   const actor = await requirePortalMember();
   const r = await proposeItemForActor(actor, input);

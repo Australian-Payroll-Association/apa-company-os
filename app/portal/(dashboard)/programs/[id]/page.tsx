@@ -2,9 +2,27 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getProgramForActor, getPlanBriefForActor } from "@/lib/portal/ai-programs";
+import { getProgramDetail } from "@/lib/hub/program";
+import {
+  listHubBoardsForActor,
+  getBoardViewForActor,
+  getProgramHighlights,
+  type PortalBoardView,
+  type ProgramHighlightWeek,
+} from "@/lib/portal/program-hub";
+import { getBacklogForActor, getGroupsForActor } from "@/lib/portal/backlog";
+import { getMeetingsForActor } from "@/lib/portal/meetings";
+import { isPortalAdmin, canContribute } from "@/lib/portal/roles";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, statusTone } from "@/components/admin/Badge";
+import { Tabs, type TabDef } from "@/components/admin/Tabs";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { BarChart } from "@/components/admin/charts/BarChart";
+import { ClientBoardView } from "@/components/hub/ClientBoardView";
+import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
+import { BacklogPortalView } from "../../roadmap/BacklogPortalView";
 import { formatDate, humanize } from "@/lib/admin/format";
+import { firstParam, type SearchParamsObj } from "@/lib/admin/url";
 import { BriefViewer } from "./BriefViewer";
 import { ProgramDocuments } from "./ProgramDocuments";
 
@@ -12,15 +30,71 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "AI Program",
-  description: "View your AI program, plans, and documents.",
+  description: "Your AI program's roadmap, work board, progress, and documents.",
 };
 
-export default async function AiProgramDetailPage({ params }: { params: { id: string } }) {
+function fmtHours(n: number): string {
+  return (Math.round(n * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+function Empty({ text }: { text: string }) {
+  return <div className="admin-empty">{text}</div>;
+}
+
+// The client-facing AI Program workspace: one program's roadmap, work board,
+// progress, documents, plan brief, and meetings, mirroring the admin program
+// view with client-safe fields only (program name + counts + PR titles; repo
+// org/name, author logins, and sync details never render here).
+export default async function AiProgramDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: SearchParamsObj;
+}) {
   const actor = await requirePortalMember();
+  // IDOR gate first: the program must belong to the actor's companyScope.
   const program = await getProgramForActor(actor, params.id);
   if (!program) notFound();
 
-  // Load brief HTML for chat plans that have one (few plans per program).
+  const [detail, allItems, allGroups, allMeetings, allBoards] = await Promise.all([
+    getProgramDetail(program.companyId, program.id),
+    getBacklogForActor(actor),
+    getGroupsForActor(actor),
+    getMeetingsForActor(actor),
+    listHubBoardsForActor(actor),
+  ]);
+  if (!detail) notFound();
+
+  // Roadmap: this program's items, under its own sections plus any
+  // company-wide section a program item still sits in (same rule as the hub).
+  const roadmapItems = allItems.filter((i) => i.ai_program_id === program.id);
+  const usedKeys = new Set(roadmapItems.map((i) => i.group_key));
+  const roadmapGroups = allGroups.filter(
+    (g) => g.ai_program_id === program.id || (g.ai_program_id === null && usedKeys.has(g.key)),
+  );
+  const canPrioritize = isPortalAdmin(actor, program.companyId);
+  const canPropose = canContribute(actor, program.companyId);
+
+  // Work board(s): the program's boards; ?board= picks one when several exist.
+  const programBoards = allBoards.filter((b) => b.aiProgramId === program.id);
+  const boardSlug = firstParam(searchParams.board);
+  const selectedBoard = programBoards.find((b) => b.slug === boardSlug) ?? programBoards[0] ?? null;
+  const boardView: PortalBoardView | null = selectedBoard
+    ? await getBoardViewForActor(actor, selectedBoard.id)
+    : null;
+
+  // Progress: delivery stats exist only once a repo is connected.
+  const hasRepo = !!detail.repoId;
+  const highlights: ProgramHighlightWeek[] = detail.repoId
+    ? await getProgramHighlights(detail.repoId)
+    : [];
+
+  // Meetings: program-tagged and published only. (Draft meetings surface to
+  // client managers on the hub; the program page keeps to the published set.)
+  const meetings = allMeetings.filter((m) => m.aiProgramId === program.id && m.publishedAt !== null);
+
+  // Plan briefs (guided 5Ds plans with saved HTML).
   const briefs = new Map<string, string>();
   await Promise.all(
     program.plans
@@ -31,6 +105,152 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
       }),
   );
 
+  const tabs: TabDef[] = [
+    {
+      key: "roadmap",
+      label: "Roadmap",
+      count: roadmapItems.length,
+      content:
+        roadmapItems.length === 0 && roadmapGroups.length === 0 ? (
+          <section className="admin-card admin-section-card">
+            <Empty text="No roadmap items in this program yet. Edge8 adds them as the program is scoped." />
+          </section>
+        ) : (
+          <BacklogPortalView
+            items={roadmapItems}
+            groups={roadmapGroups}
+            companyId={program.companyId}
+            canPrioritize={canPrioritize}
+            canPropose={canPropose}
+            programId={program.id}
+          />
+        ),
+    },
+    {
+      key: "board",
+      label: "Work Board",
+      content: boardView ? (
+        <>
+          {programBoards.length > 1 && (
+            <div className="admin-viewtoggle" style={{ marginBottom: 14 }}>
+              {programBoards.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/portal/programs/${program.id}?tab=board&board=${b.slug}`}
+                  className={selectedBoard?.id === b.id ? "is-active" : ""}
+                >
+                  {b.name}
+                </Link>
+              ))}
+            </div>
+          )}
+          <ClientBoardView board={boardView} viewerPersonId={actor.personId} />
+        </>
+      ) : (
+        <section className="admin-card admin-section-card">
+          <Empty text="No work board for this program yet." />
+        </section>
+      ),
+    },
+    {
+      key: "progress",
+      label: "Progress",
+      content: (
+        <section className="admin-card admin-section-card">
+          {!hasRepo ? (
+            <Empty text="Delivery tracking starts when a repo is connected." />
+          ) : (
+            <>
+              <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+                <MetricCard label="Delivered hours" value={fmtHours(detail.deliveredHours)} sub="tracked hours of skilled work" />
+                <MetricCard label="Updates this week" value={detail.prsMergedLast7d.toLocaleString("en-US")} sub="improvements shipped, last 7 days" />
+                <MetricCard label="Updates this month" value={detail.prsMergedLast30d.toLocaleString("en-US")} sub="improvements shipped, last 30 days" />
+              </div>
+              <h2 className="admin-card-title">Delivered hours, last 8 weeks</h2>
+              <BarChart
+                ariaLabel="Delivered hours per ISO week, last 8 weeks"
+                data={detail.weeklyHours.map((w) => ({ label: w.isoWeek.slice(5), value: Math.round(w.hours * 10) / 10 }))}
+                emptyText="No delivered hours tracked in the last 8 weeks."
+                formatValue={(n) => `${fmtHours(n)}h`}
+              />
+              <h2 className="admin-card-title" style={{ marginTop: 20 }}>Shipped highlights</h2>
+              {highlights.length === 0 ? (
+                <Empty text="Nothing shipped in the last 8 weeks yet." />
+              ) : (
+                highlights.map((w) => (
+                  <div key={w.isoWeek} style={{ marginBottom: 14 }}>
+                    <div className="admin-cell-muted" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                      Week {w.isoWeek.slice(5).replace("W", "")} ({w.isoWeek.slice(0, 4)})
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.7 }}>
+                      {w.titles.map((t, i) => (
+                        <li key={`${w.isoWeek}-${i}`}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+        </section>
+      ),
+    },
+    {
+      key: "documents",
+      label: "Documents",
+      count: program.documents.length,
+      content: (
+        <section className="admin-card admin-section-card" style={{ maxWidth: 900 }}>
+          {program.documents.length === 0 ? (
+            <Empty text="No documents uploaded." />
+          ) : (
+            <ProgramDocuments documents={program.documents} actorEmail={actor.email} />
+          )}
+        </section>
+      ),
+    },
+    {
+      key: "plan",
+      label: "Plan",
+      content: (
+        <section className="admin-card admin-section-card" style={{ maxWidth: 900 }}>
+          {program.plans.length === 0 ? (
+            <Empty text="No plans yet." />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {program.plans.map((pl) => (
+                <div key={pl.id}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <strong>{pl.title}</strong>
+                    <Badge>{pl.method === "chat" ? "Guided plan" : "Documents"}</Badge>
+                    <span className="admin-cell-muted">{formatDate(pl.createdAt)}</span>
+                  </div>
+                  {pl.method === "chat" && briefs.has(pl.id) ? (
+                    <BriefViewer html={briefs.get(pl.id)!} title={pl.title} />
+                  ) : pl.method === "chat" ? (
+                    <div className="admin-cell-muted">This plan has no saved brief.</div>
+                  ) : (
+                    <div className="admin-cell-muted">See the Documents tab.</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ),
+    },
+    {
+      key: "meetings",
+      label: "Meetings",
+      count: meetings.length,
+      content: (
+        <section className="admin-card admin-section-card" style={{ maxWidth: 900 }}>
+          <MeetingsPanel meetings={meetings} detailBasePath="/portal/meetings" />
+        </section>
+      ),
+    },
+  ];
+
   return (
     <div className="admin-content">
       <PageHead
@@ -39,42 +259,7 @@ export default async function AiProgramDetailPage({ params }: { params: { id: st
         sub={`Created ${formatDate(program.createdAt)}`}
         action={<Badge tone={statusTone(program.status)}>{humanize(program.status)}</Badge>}
       />
-
-      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Plans</h2>
-        {program.plans.length === 0 ? (
-          <div className="admin-empty">No plans yet.</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {program.plans.map((pl) => (
-              <div key={pl.id}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <strong>{pl.title}</strong>
-                  <Badge>{pl.method === "chat" ? "Guided plan" : "Documents"}</Badge>
-                  <span className="admin-cell-muted">{formatDate(pl.createdAt)}</span>
-                </div>
-                {pl.method === "chat" && briefs.has(pl.id) ? (
-                  <BriefViewer html={briefs.get(pl.id)!} title={pl.title} />
-                ) : pl.method === "chat" ? (
-                  <div className="admin-cell-muted">This plan has no saved brief.</div>
-                ) : (
-                  <div className="admin-cell-muted">See documents below.</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="admin-card admin-section-card" style={{ marginBottom: 16 }}>
-        <h2 className="admin-card-title" style={{ marginBottom: 10 }}>Documents</h2>
-        {program.documents.length === 0 ? (
-          <div className="admin-empty">No documents uploaded.</div>
-        ) : (
-          <ProgramDocuments documents={program.documents} actorEmail={actor.email} />
-        )}
-      </div>
-
+      <Tabs tabs={tabs} initialKey={firstParam(searchParams.tab)} syncParam="tab" />
     </div>
   );
 }
