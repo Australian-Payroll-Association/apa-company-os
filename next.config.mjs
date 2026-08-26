@@ -22,6 +22,9 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // The 100-human-hours post was retitled to lead with the outcome; the old
+      // slug was already shared, so keep those links working.
+      { source: '/post/100-human-hours-one-whole-product', destination: '/post/imagine-knowing-everything-about-your-company', permanent: true },
       // My Tasks was renamed to Work Boards.
       { source: '/team/my-tasks', destination: '/team/my-work-boards', permanent: true },
       // The talent Rank page was renamed to Candidate Pool.
