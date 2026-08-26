@@ -1,4 +1,4 @@
--- NOT YET APPLIED; apply via supabase db query --linked before merge --
+-- Applied via Supabase Management API (supabase db query --linked, role postgres) on 2026-08-26.
 -- Human Token Tracker integration, Phase 4: ingestion-time SQL.
 --
 -- 1) htt versions of the tracker's contributor resolvers, re-pointed to the
