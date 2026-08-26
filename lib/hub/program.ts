@@ -262,7 +262,9 @@ export async function listProgramSummaries(
 }
 
 // ISO week label ("2026-W34") for a date, and the last N week labels.
-function isoWeekLabel(d: Date): string {
+// Exported so the portal projection (lib/portal/program-hub.ts) buckets its
+// shipped-highlights weeks with exactly the same convention as the chart.
+export function isoWeekLabel(d: Date): string {
   // Thursday of the same ISO week determines the week-year.
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const day = t.getUTCDay() || 7;
@@ -272,7 +274,7 @@ function isoWeekLabel(d: Date): string {
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-function lastIsoWeeks(n: number): string[] {
+export function lastIsoWeeks(n: number): string[] {
   const weeks: string[] = [];
   for (let i = n - 1; i >= 0; i--) {
     weeks.push(isoWeekLabel(new Date(Date.now() - i * 7 * 86_400_000)));

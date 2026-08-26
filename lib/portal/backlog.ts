@@ -201,7 +201,7 @@ export async function setClientNoteForActor(
 // resolved from the actor's scope, never trusted from the client.
 export async function proposeItemForActor(
   actor: PortalActor,
-  input: { companyId: string; groupKey: string; title: string; note?: string; priority?: string },
+  input: { companyId: string; groupKey: string; title: string; note?: string; priority?: string; aiProgramId?: string | null },
 ): Promise<Result & { id?: string }> {
   if (!actor.companyScope.includes(input.companyId)) {
     return { ok: false, error: "Not your company." };
@@ -209,6 +209,18 @@ export async function proposeItemForActor(
   if (!canContribute(actor, input.companyId)) return { ok: false, error: ROLE_DENIED };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "A short title is required." };
+  // Proposals made inside a program view carry its tag, so they land in that
+  // program's roadmap. The program must be the company's own (IDOR guard).
+  const aiProgramId = input.aiProgramId ?? null;
+  if (aiProgramId) {
+    const { data: programRow } = await companyOs
+      .from("ai_programs")
+      .select("id")
+      .eq("id", aiProgramId)
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+    if (!programRow) return { ok: false, error: "That AI Program no longer exists." };
+  }
   // The group must be one of this company's own active sections.
   const { data: groupRow } = await companyOs
     .from("client_roadmap_groups")
@@ -224,6 +236,7 @@ export async function proposeItemForActor(
     .from("client_backlog_items")
     .insert({
       company_id: input.companyId,
+      ai_program_id: aiProgramId,
       group_key: input.groupKey,
       title,
       client_note: input.note?.trim() || null,

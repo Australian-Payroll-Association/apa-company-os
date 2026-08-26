@@ -18,6 +18,7 @@ export function LadderSelect({
   disabled,
   id,
   emptyLabel = "No ladder",
+  required,
 }: {
   edges: EdgesOptions;
   value: string;
@@ -25,6 +26,8 @@ export function LadderSelect({
   disabled?: boolean;
   id?: string;
   emptyLabel?: string;
+  // Native required: the "" placeholder option blocks submit until a pick.
+  required?: boolean;
 }) {
   return (
     <select
@@ -32,6 +35,7 @@ export function LadderSelect({
       className="admin-input"
       value={value}
       disabled={disabled}
+      required={required}
       onChange={(e) => onChange(e.target.value)}
       aria-label="Ladders to (8 Edges)"
     >

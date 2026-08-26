@@ -11,11 +11,12 @@ import {
   BRAND_LABELS,
   agentInitials,
   looksLikeActivity,
+  personInitials,
   progressPct,
   type KrRow,
   type KrStatus,
 } from "../../edges/edges-shared";
-import type { ObjectiveWithKrs } from "@/lib/company/goals";
+import type { LadderedPerson, ObjectiveWithKrs } from "@/lib/company/goals";
 import { barClass, fmtValue } from "@/components/company/CompanyGoalsObjectives";
 import { checkInKr, createKr, createObjective, updateKr, updateObjective } from "../actions";
 
@@ -49,11 +50,13 @@ function krDraft(kr?: KrRow): KrDraft {
 export function CompanyGoalsEditor({
   tree,
   initialsById,
+  ladderedByKr,
   quarter,
   emptyLabel,
 }: {
   tree: ObjectiveWithKrs[];
   initialsById: Record<string, string>;
+  ladderedByKr: Record<string, LadderedPerson[]>;
   quarter: string;
   emptyLabel: string;
 }) {
@@ -183,6 +186,7 @@ export function CompanyGoalsEditor({
                     </span>
                     {kr.title}
                   </div>
+                  <LadderStack people={ladderedByKr[kr.id] ?? []} />
                   <span className="edges-owner">
                     <span className="edges-av" title="Accountable human">
                       {initialsById[kr.accountable_person_id] ?? "?"}
@@ -229,13 +233,9 @@ export function CompanyGoalsEditor({
                       kr={kr}
                       pending={pending}
                       onCancel={() => setMode({ kind: "none" })}
+                      onEdit={() => setMode({ kind: "edit-kr", id: kr.id })}
                       onSubmit={(current, status) => run(() => checkInKr(kr.id, { current_value: current, status }), "Checked in.")}
                     />
-                    <div className="admin-form-actions" style={{ padding: "6px 0 0" }}>
-                      <button className="admin-btn admin-btn--sm" onClick={() => setMode({ kind: "edit-kr", id: kr.id })} disabled={pending}>
-                        Edit key result
-                      </button>
-                    </div>
                   </div>
                 ) : null}
               </div>
@@ -282,6 +282,37 @@ export function CompanyGoalsEditor({
         </div>
       ))}
     </div>
+  );
+}
+
+// Members whose FAST goals ladder up to this KR. Photo avatars where we have
+// them, initials otherwise; the name is on hover (and for screen readers).
+const LADDER_MAX = 5;
+function LadderStack({ people }: { people: LadderedPerson[] }) {
+  if (people.length === 0) return null;
+  const shown = people.slice(0, LADDER_MAX);
+  const extra = people.slice(LADDER_MAX);
+  return (
+    <span
+      className="edges-ladder"
+      title={people.length > 1 ? `Laddered: ${people.map((p) => p.name).join(", ")}` : undefined}
+    >
+      {shown.map((p) =>
+        p.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={p.teamMemberId} className="edges-ladder-av" src={p.avatarUrl} alt={p.name} title={p.name} />
+        ) : (
+          <span key={p.teamMemberId} className="edges-ladder-av edges-ladder-av--txt" title={p.name} aria-label={p.name}>
+            {personInitials(p.name)}
+          </span>
+        ),
+      )}
+      {extra.length > 0 && (
+        <span className="edges-ladder-more" title={extra.map((p) => p.name).join(", ")}>
+          +{extra.length}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -466,11 +497,13 @@ function CheckinForm({
   kr,
   pending,
   onCancel,
+  onEdit,
   onSubmit,
 }: {
   kr: KrRow;
   pending: boolean;
   onCancel: () => void;
+  onEdit: () => void;
   onSubmit: (current: number, status: KrStatus) => void;
 }) {
   const [value, setValue] = useState(String(kr.current_value));
@@ -483,28 +516,56 @@ function CheckinForm({
         onSubmit(Number(value), status);
       }}
     >
-      <label className="admin-label" style={{ margin: 0 }}>
-        Current{kr.unit ? ` (${kr.unit})` : ""}
-      </label>
-      <input className="admin-input" type="number" step="any" value={value} onChange={(e) => setValue(e.target.value)} />
-      <select className="admin-select" value={status} onChange={(e) => setStatus(e.target.value as KrStatus)}>
-        {KR_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s.replace("_", " ")}
-          </option>
-        ))}
-      </select>
-      <button type="submit" className="admin-btn admin-btn--primary admin-btn--sm" disabled={pending}>
-        {pending ? "Saving…" : "Save check-in"}
-      </button>
-      <button type="button" className="admin-btn admin-btn--sm" onClick={onCancel} disabled={pending}>
-        Cancel
-      </button>
-      {kr.target_value != null && (
-        <span style={{ fontSize: 11, color: "var(--admin-muted)" }}>
-          target {kr.direction === "down" ? "≤" : ""} {Number(kr.target_value)}
-        </span>
-      )}
+      <div className="edges-checkin-fields">
+        <label className="edges-checkin-field">
+          <span className="admin-label">Current{kr.unit ? ` (${kr.unit})` : ""}</span>
+          <input
+            className="admin-input edges-checkin-input"
+            type="number"
+            step="any"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </label>
+        <div className="edges-checkin-field">
+          <span className="admin-label">Status</span>
+          <div className="edges-status-seg" role="radiogroup" aria-label="Status">
+            {KR_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                role="radio"
+                aria-checked={status === s}
+                className={`edges-status-seg-btn${status === s ? ` is-on is-${s}` : ""}`}
+                onClick={() => setStatus(s)}
+              >
+                {s.replace("_", " ")}
+              </button>
+            ))}
+          </div>
+        </div>
+        {kr.target_value != null && (
+          <span className="edges-checkin-target">
+            {kr.current_value != null ? `${Number(kr.current_value)} → ` : ""}
+            target {kr.direction === "down" ? "≤ " : ""}
+            {Number(kr.target_value)}
+            {kr.unit === "%" ? "%" : ""}
+          </span>
+        )}
+      </div>
+      <div className="edges-checkin-foot">
+        <button type="submit" className="admin-btn admin-btn--primary admin-btn--sm" disabled={pending}>
+          {pending ? "Saving…" : "Save check-in"}
+        </button>
+        <button type="button" className="admin-btn admin-btn--sm" onClick={onCancel} disabled={pending}>
+          Cancel
+        </button>
+        <button type="button" className="edges-checkin-editlink" onClick={onEdit} disabled={pending}>
+          Edit key result
+        </button>
+      </div>
     </form>
   );
 }

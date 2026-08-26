@@ -16,10 +16,13 @@ import type { ObjectiveGroup, PersonGroup } from "@/components/company/TeamGoals
 // FAST goals laddered back to the company objective each ultimately serves.
 export type ObjectiveWithKrs = ObjectiveRow & { krs: KrRow[] };
 
+export type LadderedPerson = { teamMemberId: string; name: string; avatarUrl: string | null };
+
 export type CompanyGoals = {
   quarter: ReturnType<typeof currentQuarter>;
   tree: ObjectiveWithKrs[];
   initialsById: Record<string, string>;
+  ladderedByKr: Record<string, LadderedPerson[]>;
   byPerson: PersonGroup[];
   byObjective: ObjectiveGroup[];
   withGoal: number;
@@ -42,7 +45,7 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
     companyOs
       .from("team_members")
       .select(
-        "id, people:people!person_id(full_name, preferred_name), coaching_profiles:coaching_profiles!team_member_id(id)",
+        "id, people:people!person_id(full_name, preferred_name, avatar_url), coaching_profiles:coaching_profiles!team_member_id(id)",
       )
       .eq("status", "active")
       .neq("employment_type", "contract"),
@@ -75,7 +78,7 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
   }
 
   // Every active employee with their FAST goals, laddered into the tree.
-  type PersonEmbed = { full_name: string | null; preferred_name: string | null };
+  type PersonEmbed = { full_name: string | null; preferred_name: string | null; avatar_url: string | null };
   type ProfileEmbed = { id: string };
   type RosterRow = {
     id: string;
@@ -136,12 +139,25 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
   }
 
   // profile -> the member who owns it (a member may hold more than one profile).
-  const profileToMember = new Map<string, { teamMemberId: string; name: string }>();
+  const profileToMember = new Map<string, { teamMemberId: string; name: string; avatarUrl: string | null }>();
   for (const tm of roster) {
     const person = first(tm.people);
     const name = person?.preferred_name || person?.full_name || "Unknown";
-    for (const p of many(tm.coaching_profiles)) profileToMember.set(p.id, { teamMemberId: tm.id, name });
+    for (const p of many(tm.coaching_profiles))
+      profileToMember.set(p.id, { teamMemberId: tm.id, name, avatarUrl: person?.avatar_url ?? null });
   }
+
+  // Members laddered to each KR (directly, or via a KR-linked metric), for the
+  // avatar stack on the KR row. One entry per member per KR.
+  const ladderedByKr: Record<string, LadderedPerson[]> = {};
+  for (const g of teamGoals) {
+    const krId = g.key_result_id ?? (g.metric_id ? metricKr.get(g.metric_id) ?? null : null);
+    const m = krId ? profileToMember.get(g.coaching_profile_id) : null;
+    if (!krId || !m) continue;
+    const list = (ladderedByKr[krId] ??= []);
+    if (!list.some((x) => x.teamMemberId === m.teamMemberId)) list.push(m);
+  }
+  for (const list of Object.values(ladderedByKr)) list.sort((a, b) => a.name.localeCompare(b.name));
 
   // One flat list of resolved goals (only those owned by a roster member), then
   // both groupings derive from it.
@@ -198,5 +214,5 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
     });
   }
 
-  return { quarter: q, tree, initialsById, byPerson, byObjective, withGoal };
+  return { quarter: q, tree, initialsById, ladderedByKr, byPerson, byObjective, withGoal };
 }
