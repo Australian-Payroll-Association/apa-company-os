@@ -7,7 +7,11 @@ import { requireTeamMember } from "@/lib/team-auth";
 import { finalizeReview, getReviewDetail } from "@/lib/reviews";
 import { extractTranscript, MEETING_MAX_BYTES } from "@/lib/meeting-extract";
 import { saveReviewTranscript } from "@/lib/reviews/transcript";
-import { summarizeReviewCall, markReviewSummaryPending } from "@/lib/ai/review-summary";
+import {
+  summarizeReviewCall,
+  markReviewSummaryPending,
+  setReviewSummaryIncluded,
+} from "@/lib/ai/review-summary";
 
 // Finalize a submitted manager review. Authorization (the actor must be the
 // row's reviewer-of-record) lives in finalizeReview; the id from the form is
@@ -54,6 +58,28 @@ export async function addReviewTranscriptAction(formData: FormData): Promise<voi
 
   await markReviewSummaryPending(writeId, saved.meetingId);
   waitUntil(summarizeReviewCall(writeId));
+
+  revalidatePath("/team/reviews");
+  revalidatePath(`/team/reviews/${id}`);
+}
+
+// Fold the call summary into the overall review as a labeled "From call"
+// section, or retract it. Same reviewer gate as adding a transcript. The
+// section is stored (edited text and all) on the manager row's
+// metadata.transcript_summary and rendered non-destructively, so the manager's
+// written narrative is never overwritten.
+export async function setReviewSummaryIncludedAction(formData: FormData): Promise<void> {
+  const actor = await requireTeamMember();
+  const id = String(formData.get("id") ?? "");
+  const include = String(formData.get("include") ?? "") === "1";
+  const finalMarkdown = String(formData.get("final_markdown") ?? "");
+  const back = (error: string) => redirect(`/team/reviews/${id}?error=${encodeURIComponent(error)}`);
+
+  const detail = await getReviewDetail(actor, id);
+  if (!detail || !detail.isReviewer || !detail.manager) return back("You cannot edit this review.");
+  if (detail.manager.status === "finalized") return back("This review is finalized and locked.");
+
+  await setReviewSummaryIncluded(detail.manager.id, include, include ? finalMarkdown : null);
 
   revalidatePath("/team/reviews");
   revalidatePath(`/team/reviews/${id}`);

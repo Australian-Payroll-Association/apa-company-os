@@ -11,7 +11,11 @@ import {
   type ReviewRow,
 } from "@/lib/reviews";
 import type { ReviewTranscriptSummary } from "@/lib/ai/review-summary";
-import { finalizeReviewAction, addReviewTranscriptAction } from "../actions";
+import {
+  finalizeReviewAction,
+  addReviewTranscriptAction,
+  setReviewSummaryIncludedAction,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -100,9 +104,41 @@ function ReviewTranscriptCard({
               </ul>
             </>
           )}
-          <p className="admin-hint" style={{ marginTop: 12 }}>
-            This is a draft aid, it is not part of the review until you fold it in.
-          </p>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--admin-line)" }}>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>
+              From call section{" "}
+              {summary.included ? (
+                <Badge tone="ok">Folded into review</Badge>
+              ) : (
+                <Badge tone="neutral">Not in review yet</Badge>
+              )}
+            </div>
+            <p className="admin-hint" style={{ marginTop: 4 }}>
+              Edit the text below, then fold it into the overall review as a labeled section.
+            </p>
+            {!locked && (
+              <form action={setReviewSummaryIncludedAction} className="admin-field" style={{ marginTop: 8 }}>
+                <input type="hidden" name="id" value={reviewId} />
+                <textarea
+                  name="final_markdown"
+                  rows={7}
+                  defaultValue={summary.final_markdown ?? summary.section_markdown ?? ""}
+                  className="admin-input"
+                  style={{ fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+                />
+                <div className="admin-form-actions">
+                  <button type="submit" name="include" value="1" className="admin-btn admin-btn--primary">
+                    {summary.included ? "Update section" : "Fold into review"}
+                  </button>
+                  {summary.included && (
+                    <button type="submit" name="include" value="0" className="admin-btn">
+                      Remove from review
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
 
@@ -154,6 +190,12 @@ export default async function ReviewDetailPage({
   const showGap = Boolean(self && manager);
   const anchorRow = manager ?? self;
   const decision = manager?.decision ?? null;
+  const managerSummary =
+    (manager?.metadata.transcript_summary as ReviewTranscriptSummary | undefined) ?? null;
+  // The folded-in "From call" section, shown read-only to the subject/observer
+  // (the reviewer sees and edits it inside their transcript card instead).
+  const foldedSection =
+    managerSummary?.included && managerSummary.final_markdown ? managerSummary.final_markdown : null;
 
   return (
     <>
@@ -263,9 +305,16 @@ export default async function ReviewDetailPage({
       {detail.isReviewer && manager && (
         <ReviewTranscriptCard
           reviewId={detail.anchor.id}
-          summary={(manager.metadata.transcript_summary as ReviewTranscriptSummary | undefined) ?? null}
+          summary={managerSummary}
           locked={manager.status === "finalized"}
         />
+      )}
+
+      {!detail.isReviewer && foldedSection && (
+        <div className="admin-card" style={{ padding: "18px 20px", marginBottom: 16 }}>
+          <div className="admin-card-title">From call</div>
+          <p style={{ margin: "4px 0 0", fontSize: 13, whiteSpace: "pre-wrap" }}>{foldedSection}</p>
+        </div>
       )}
 
       {decision && (
