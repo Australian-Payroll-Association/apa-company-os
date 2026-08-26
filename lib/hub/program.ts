@@ -80,11 +80,32 @@ export type ProgramDetail = ProgramSummary & {
   roadmapGroups: RoadmapGroup[];
   roadmapItems: BacklogItem[];
   boards: ProgramBoard[];
-  pullRequests: ProgramPullRequest[];
+  pullRequests: ProgramPullRequest[]; // one page (PR_PAGE_SIZE), server-filtered
+  prPage: number; // the (clamped) page pullRequests holds
+  prTotal: number; // full count matching the current search filter
+  prTotalAll: number; // full count regardless of filter (tab badge)
   weeklyHours: ProgramWeek[]; // last 8 ISO weeks, oldest first
   documents: ClientDocument[];
   meetings: ProgramMeeting[]; // TODO: populate once meetings.ai_program_id lands
 };
+
+export type ProgramPrOptions = {
+  page?: number; // 1-based; clamped to the filtered result's page range
+  search?: string; // matches title/author (ilike) and exact PR number
+};
+
+export const PR_PAGE_SIZE = 15;
+
+// User input goes into a PostgREST .or() filter string; strip the characters
+// that are structural in that syntax (commas, parens, quotes) and LIKE
+// wildcards, rather than interpolating raw input.
+function ilikeTerm(input: string): string {
+  return input
+    .replace(/[,()"'`\\%_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
 
 // PostgREST caps a response at 1000 rows; page through so a repo with more
 // tracked entries than that still sums correctly (same pattern as
@@ -143,8 +164,10 @@ export async function listProgramSummaries(companyId: string): Promise<ProgramSu
   const repos = (repoData ?? []) as RepoRow[];
   const repoByProgram = new Map(repos.map((r) => [r.ai_program_id, r]));
   const repoIds = repos.map((r) => r.id);
+  // Hoisted so every fetchAll page uses the same cutoff.
+  const mergedSince = daysAgoIso(7);
 
-  const [hourRows, aiRows, mergedRows, backlogRes, boardRes] = await Promise.all([
+  const [hourRows, aiRows, mergedRows, backlogRows, boardRows] = await Promise.all([
     repoIds.length
       ? fetchAll<{ repo_id: string | null; hours: number }>(() =>
           htt
@@ -172,21 +195,27 @@ export async function listProgramSummaries(companyId: string): Promise<ProgramSu
             .select("repo_id")
             .in("repo_id", repoIds)
             .eq("state", "merged")
-            .gte("merged_at", daysAgoIso(7))
+            .gte("merged_at", mergedSince)
             .order("id"),
         )
       : Promise.resolve([] as { repo_id: string }[]),
-    companyOs
-      .from("client_backlog_items")
-      .select("ai_program_id, status")
-      .eq("company_id", companyId)
-      .is("archived_at", null),
-    companyOs
-      .from("boards")
-      .select("ai_program_id")
-      .eq("client_company_id", companyId)
-      .eq("status", "active")
-      .is("archived_at", null),
+    fetchAll<{ ai_program_id: string | null; status: string }>(() =>
+      companyOs
+        .from("client_backlog_items")
+        .select("ai_program_id, status")
+        .eq("company_id", companyId)
+        .is("archived_at", null)
+        .order("id"),
+    ),
+    fetchAll<{ ai_program_id: string | null }>(() =>
+      companyOs
+        .from("boards")
+        .select("ai_program_id")
+        .eq("client_company_id", companyId)
+        .eq("status", "active")
+        .is("archived_at", null)
+        .order("id"),
+    ),
   ]);
 
   const hoursByRepo = new Map<string, number>();
@@ -206,7 +235,7 @@ export async function listProgramSummaries(companyId: string): Promise<ProgramSu
 
   const doneByProgram = new Map<string, number>();
   const totalByProgram = new Map<string, number>();
-  for (const r of (backlogRes.data ?? []) as Array<{ ai_program_id: string | null; status: string }>) {
+  for (const r of backlogRows) {
     if (!r.ai_program_id) continue;
     totalByProgram.set(r.ai_program_id, (totalByProgram.get(r.ai_program_id) ?? 0) + 1);
     if (r.status === "shipped") {
@@ -215,7 +244,7 @@ export async function listProgramSummaries(companyId: string): Promise<ProgramSu
   }
 
   const boardsByProgram = new Map<string, number>();
-  for (const r of (boardRes.data ?? []) as Array<{ ai_program_id: string | null }>) {
+  for (const r of boardRows) {
     if (!r.ai_program_id) continue;
     boardsByProgram.set(r.ai_program_id, (boardsByProgram.get(r.ai_program_id) ?? 0) + 1);
   }
@@ -263,9 +292,79 @@ function lastIsoWeeks(n: number): string[] {
   return weeks;
 }
 
+type PrPage = {
+  rows: ProgramPullRequest[];
+  page: number;
+  total: number; // matching the search filter
+  totalAll: number; // unfiltered
+};
+
+// One server-side page of a repo's pull requests, searched over the FULL set
+// (never just the visible page). Page is clamped to the filtered total so a
+// stale ?page= never turns into a range error.
+async function fetchPrPage(repoId: string, opts: ProgramPrOptions): Promise<PrPage> {
+  const term = ilikeTerm(opts.search ?? "");
+  const filtered = () => {
+    let qb = htt.from("pull_requests").select("id", { count: "exact", head: true }).eq("repo_id", repoId);
+    if (term) {
+      const pat = `%${term}%`;
+      const ors = [`title.ilike.${pat}`, `author_login.ilike.${pat}`];
+      if (/^\d+$/.test(term)) ors.push(`number.eq.${term}`);
+      qb = qb.or(ors.join(","));
+    }
+    return qb;
+  };
+
+  const [{ count: totalAll }, { count: total }] = await Promise.all([
+    htt.from("pull_requests").select("id", { count: "exact", head: true }).eq("repo_id", repoId),
+    filtered(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil((total ?? 0) / PR_PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.floor(opts.page ?? 1)), totalPages);
+
+  let rowQb = htt
+    .from("pull_requests")
+    .select("id, number, title, state, author_login, url, merged_at, opened_at")
+    .eq("repo_id", repoId);
+  if (term) {
+    const pat = `%${term}%`;
+    const ors = [`title.ilike.${pat}`, `author_login.ilike.${pat}`];
+    if (/^\d+$/.test(term)) ors.push(`number.eq.${term}`);
+    rowQb = rowQb.or(ors.join(","));
+  }
+  const { data } = await rowQb
+    .order("opened_at", { ascending: false })
+    .order("id")
+    .range((page - 1) * PR_PAGE_SIZE, page * PR_PAGE_SIZE - 1);
+
+  const rows = ((data ?? []) as Array<{
+    id: string;
+    number: number | null;
+    title: string;
+    state: "open" | "merged" | "closed";
+    author_login: string | null;
+    url: string | null;
+    merged_at: string | null;
+    opened_at: string;
+  }>).map((p) => ({
+    id: p.id,
+    number: p.number,
+    title: p.title,
+    state: p.state,
+    author: p.author_login,
+    url: p.url,
+    mergedAt: p.merged_at,
+    openedAt: p.opened_at,
+  }));
+
+  return { rows, page, total: total ?? 0, totalAll: totalAll ?? 0 };
+}
+
 export async function getProgramDetail(
   companyId: string,
   programId: string,
+  prOpts: ProgramPrOptions = {},
 ): Promise<ProgramDetail | null> {
   const summaries = await listProgramSummaries(companyId);
   const summary = summaries.find((s) => s.id === programId);
@@ -274,12 +373,13 @@ export async function getProgramDetail(
   const WEEKS = 8;
   const weekLabels = lastIsoWeeks(WEEKS);
   const weekFloorIso = daysAgoIso(WEEKS * 7 + 7); // generous lower bound; bucketed below
+  const merged30Since = daysAgoIso(30); // hoisted: same cutoff across fetchAll pages
 
   const [
     { data: groupData },
     { data: itemData },
     { data: boardData },
-    prRows,
+    prPage,
     weekRows,
     merged30Rows,
     allDocuments,
@@ -306,24 +406,8 @@ export async function getProgramDetail(
       .is("archived_at", null)
       .order("sort_order", { ascending: true }),
     summary.repoId
-      ? htt
-          .from("pull_requests")
-          .select("id, number, title, state, author_login, url, merged_at, opened_at")
-          .eq("repo_id", summary.repoId)
-          .order("opened_at", { ascending: false })
-          .order("id")
-          .limit(15)
-          .then(({ data }) => (data ?? []) as Array<{
-            id: string;
-            number: number | null;
-            title: string;
-            state: "open" | "merged" | "closed";
-            author_login: string | null;
-            url: string | null;
-            merged_at: string | null;
-            opened_at: string;
-          }>)
-      : Promise.resolve([]),
+      ? fetchPrPage(summary.repoId, prOpts)
+      : Promise.resolve({ rows: [], page: 1, total: 0, totalAll: 0 } satisfies PrPage),
     summary.repoId
       ? fetchAll<{ occurred_on: string; hours: number }>(() =>
           htt
@@ -342,7 +426,7 @@ export async function getProgramDetail(
             .select("id")
             .eq("repo_id", summary.repoId as string)
             .eq("state", "merged")
-            .gte("merged_at", daysAgoIso(30))
+            .gte("merged_at", merged30Since)
             .order("id"),
         )
       : Promise.resolve([] as { id: string }[]),
@@ -358,16 +442,18 @@ export async function getProgramDetail(
   );
 
   const boardRows = (boardData ?? []) as Array<{ id: string; name: string; slug: string }>;
-  let cardsByBoard = new Map<string, number>();
+  const cardsByBoard = new Map<string, number>();
   if (boardRows.length > 0) {
-    const { data: taskData } = await companyOs
-      .from("tasks")
-      .select("board_id")
-      .in("board_id", boardRows.map((b) => b.id))
-      .is("archived_at", null)
-      .is("parent_task_id", null);
-    cardsByBoard = new Map<string, number>();
-    for (const t of (taskData ?? []) as Array<{ board_id: string }>) {
+    const taskRows = await fetchAll<{ board_id: string }>(() =>
+      companyOs
+        .from("tasks")
+        .select("board_id")
+        .in("board_id", boardRows.map((b) => b.id))
+        .is("archived_at", null)
+        .is("parent_task_id", null)
+        .order("id"),
+    );
+    for (const t of taskRows) {
       cardsByBoard.set(t.board_id, (cardsByBoard.get(t.board_id) ?? 0) + 1);
     }
   }
@@ -394,16 +480,10 @@ export async function getProgramDetail(
       slug: b.slug,
       cardCount: cardsByBoard.get(b.id) ?? 0,
     })),
-    pullRequests: prRows.map((p) => ({
-      id: p.id,
-      number: p.number,
-      title: p.title,
-      state: p.state,
-      author: p.author_login,
-      url: p.url,
-      mergedAt: p.merged_at,
-      openedAt: p.opened_at,
-    })),
+    pullRequests: prPage.rows,
+    prPage: prPage.page,
+    prTotal: prPage.total,
+    prTotalAll: prPage.totalAll,
     weeklyHours: weekLabels.map((w) => ({ isoWeek: w, hours: hoursByWeek.get(w) ?? 0 })),
     documents: allDocuments.filter((d) => d.programId === programId),
     // TODO: meetings have no program tag yet; populate from company_os.meetings

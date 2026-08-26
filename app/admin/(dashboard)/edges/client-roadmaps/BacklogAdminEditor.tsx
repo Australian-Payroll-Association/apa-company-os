@@ -126,6 +126,7 @@ export function BacklogAdminEditor({
   showArchived,
   liveCardItemIds,
   programs = [],
+  defaultProgramId,
 }: {
   companyId: string;
   groups: RoadmapGroup[];
@@ -135,6 +136,10 @@ export function BacklogAdminEditor({
   liveCardItemIds?: Set<string>;
   // This company's AI Programs; when non-empty, items can be tagged to one.
   programs?: { id: string; name: string }[];
+  // When set (the per-program view), new items and new groups are created
+  // tagged to this program instead of company-wide, so they stay visible in
+  // the program-filtered roadmap. Absent = existing behavior, untagged.
+  defaultProgramId?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -167,7 +172,7 @@ export function BacklogAdminEditor({
   const orphans = items.filter((i) => !knownKeys.has(i.group_key));
 
   function groupInput(d: GroupDraft): RoadmapGroupInput {
-    return { step_label: d.step_label, title: d.title, intro: d.intro };
+    return { step_label: d.step_label, title: d.title, intro: d.intro, ai_program_id: defaultProgramId ?? null };
   }
 
   const programName = new Map(programs.map((p) => [p.id, p.name]));
@@ -407,7 +412,7 @@ export function BacklogAdminEditor({
             </div>
           </div>
         ) : (
-          <button type="button" className="cbe-link cbe-add" onClick={() => { setAddGroup(g.key); setAddDraft({ edge8_priority: "next" }); }}>
+          <button type="button" className="cbe-link cbe-add" onClick={() => { setAddGroup(g.key); setAddDraft({ edge8_priority: "next", ai_program_id: defaultProgramId ?? null }); }}>
             + Add item to {g.step_label || g.title}
           </button>
         ))}

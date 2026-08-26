@@ -209,6 +209,8 @@ export type RoadmapGroupInput = {
   step_label?: string;
   title: string;
   intro?: string;
+  // Optional AI Program tag. null/undefined = company-wide (the default).
+  ai_program_id?: string | null;
 };
 
 function slugify(title: string): string {
@@ -229,6 +231,9 @@ export async function createRoadmapGroup(
   if (!companyId) return { ok: false, error: "Pick a client first." };
   const title = input.title?.trim();
   if (!title) return { ok: false, error: "Give the group a title." };
+  if (input.ai_program_id && !(await programBelongs(companyId, input.ai_program_id))) {
+    return { ok: false, error: "Invalid AI Program." };
+  }
 
   // Unique key per company: slug of the title, suffixed on collision.
   const base = slugify(title);
@@ -248,6 +253,7 @@ export async function createRoadmapGroup(
     step_label: input.step_label?.trim() || null,
     title,
     intro: input.intro?.trim() || null,
+    ai_program_id: input.ai_program_id ?? null,
     sort_order: sortOrder,
   };
   const { data, error } = await companyOs.from(GROUPS_TABLE).insert(row).select("id").single();

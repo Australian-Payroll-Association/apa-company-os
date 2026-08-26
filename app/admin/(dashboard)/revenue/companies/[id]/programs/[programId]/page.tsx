@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { companyOs } from "@/lib/supabase";
-import { getProgramDetail } from "@/lib/hub/program";
+import { getProgramDetail, PR_PAGE_SIZE } from "@/lib/hub/program";
 import { getLiveCardItemIds } from "@/lib/admin/company-hub";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
@@ -49,8 +49,13 @@ export default async function ProgramDetailPage({
   params: { id: string; programId: string };
   searchParams: SearchParamsObj;
 }) {
+  // PR tab state from the URL: server-side search + pagination over the full
+  // PR set (the table's links/search preserve ?tab= so they land back here).
+  const prSearch = firstParam(searchParams.q) ?? "";
+  const prPageParam = Number(firstParam(searchParams.page)) || 1;
+
   const [detail, { data: companyRow }, { data: programRows }, { data: overviewRow }] = await Promise.all([
-    getProgramDetail(params.id, params.programId),
+    getProgramDetail(params.id, params.programId, { page: prPageParam, search: prSearch }),
     companyOs.from("companies").select("id, name").eq("id", params.id).maybeSingle(),
     companyOs.from("ai_programs").select("id, name").eq("company_id", params.id).order("created_at", { ascending: false }),
     companyOs.from("client_roadmap_overview").select("body").eq("company_id", params.id).maybeSingle(),
@@ -65,17 +70,6 @@ export default async function ProgramDetailPage({
   const basePath = `/admin/revenue/companies/${company.id}/programs/${detail.id}`;
 
   const liveCardItemIds = await getLiveCardItemIds(detail.roadmapItems.map((i) => i.id));
-
-  // Server-side ?q= filter for the PR table (title, author, number).
-  const q = (firstParam(searchParams.q) ?? "").trim().toLowerCase();
-  const filteredPrs = q
-    ? detail.pullRequests.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.author ?? "").toLowerCase().includes(q) ||
-          String(p.number ?? "").includes(q),
-      )
-    : detail.pullRequests;
 
   const prColumns: Column<ProgramPullRequest>[] = [
     {
@@ -109,6 +103,7 @@ export default async function ProgramDetailPage({
             programs={programOptions}
             showArchived={false}
             liveCardItemIds={liveCardItemIds}
+            defaultProgramId={detail.id}
           />
         </>
       ),
@@ -178,7 +173,7 @@ export default async function ProgramDetailPage({
     {
       key: "prs",
       label: "Pull Requests",
-      count: detail.pullRequests.length,
+      count: detail.prTotalAll,
       content: (
         <section className="admin-card admin-section-card">
           {!hasRepo ? (
@@ -186,14 +181,14 @@ export default async function ProgramDetailPage({
           ) : (
             <DataTable
               columns={prColumns}
-              rows={filteredPrs}
-              total={filteredPrs.length}
-              page={1}
-              pageSize={15}
+              rows={detail.pullRequests}
+              total={detail.prTotal}
+              page={detail.prPage}
+              pageSize={PR_PAGE_SIZE}
               basePath={basePath}
               searchParams={searchParams}
               searchPlaceholder="Search pull requests"
-              emptyText="No pull requests tracked yet."
+              emptyText={prSearch ? "No pull requests match this search." : "No pull requests tracked yet."}
             />
           )}
         </section>
@@ -266,7 +261,7 @@ export default async function ProgramDetailPage({
       </div>
 
       <div className="admin-card admin-section-card">
-        <Tabs tabs={tabs} initialKey={firstParam(searchParams.tab)} />
+        <Tabs tabs={tabs} initialKey={firstParam(searchParams.tab)} syncParam="tab" />
       </div>
     </div>
   );
