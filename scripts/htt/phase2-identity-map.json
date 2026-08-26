@@ -1,0 +1,34 @@
+{
+  "comment": "Human Token Tracker to edge8 identity map (Phase 2, 2026-08-26). Tracker project znnnxubopsbvpvtvrtne to edge8 wwchefrgkkxmhlkntufm. Evidence: tracker contributor_aliases git emails matched against company_os.people emails; company names matched 1:1. Two tracker members (Lan Anh, Anh Pham) resolve to the same person (Pham Thi Hoang Lan Anh, anh.pham@edge8.ai); NGUYEN DANG TRAC (the WHA-side member) is the same human as Trac Nguyen.",
+  "companies": {
+    "b8325345-a732-4b3f-a37d-a8160b24a277": { "name": "Edge8", "edge8_company_id": "6014551c-4868-40be-9bf5-5432d7e82ef1" },
+    "cd6a0a9f-4b76-4238-8b2d-25fcbea11c4b": { "name": "Work Healthy Australia", "edge8_company_id": "1787dc4b-a9f5-409d-a81b-e2cfdf75f95d" },
+    "30bc0196-1ac9-42fd-b638-c835c9282584": { "name": "EO Vietnam", "edge8_company_id": "09cd416c-06c4-487f-84d3-7f1ac7d2615c" },
+    "02b354b3-c88f-421d-b7bf-4f6fc20284ec": { "name": "Doxa (DOXA Talent)", "edge8_company_id": "8bdd0566-ed10-4c12-82c9-90fd8591b891" },
+    "a46337f3-8a33-4dbd-b22f-d6ff4b6bc4ef": { "name": "Australian Payroll Association", "edge8_company_id": "1750a8ca-93ea-4369-aca1-c55553a49073" }
+  },
+  "team_members": {
+    "3522e54f-cb64-47a6-aedd-86fb41bbe62e": { "name": "Khoi Le", "edge8_person_id": "02c0ed1e-7ac9-4e0e-aa55-b97c033748aa", "evidence": "alias khoi.le@edge8.ai = Le Tan Khoi" },
+    "2cf14c3b-7639-4a35-944c-d039848c5031": { "name": "Alex Nguyen", "edge8_person_id": "f80285e6-5c9e-431d-800d-a0c507265123", "evidence": "only Alex Nguyen in people (baohuy217@gmail.com); alias alex.nguyen@edge8.ai attaches here" },
+    "14dedf21-6a62-4fd6-b08b-77f1df915d65": { "name": "Ha Nguyen", "edge8_person_id": "822f9d57-ccc2-49fc-860c-35e53ed53b56", "evidence": "alias ha.nguyen@edge8.ai = team member Nguyen Xuan Ha" },
+    "78f2c244-67ff-46ca-a006-465b630c862b": { "name": "Lan Anh", "edge8_person_id": "68ed8db1-780b-4aa2-9c01-59437ba305b0", "evidence": "Pham Thi Hoang Lan Anh, anh.pham@edge8.ai" },
+    "9837a103-b044-4b96-b6aa-2753a2bb43a8": { "name": "Anh Pham", "edge8_person_id": "68ed8db1-780b-4aa2-9c01-59437ba305b0", "evidence": "same human as Lan Anh (anh.pham.e8@gmail.com); flagged in PR" },
+    "22660d50-bf04-4aa1-a169-931d288f3e9d": { "name": "Khang Nguyen", "edge8_person_id": "9e91e60a-dcc4-419c-8439-9ae533c6787b", "evidence": "alias khang.h.nguyen@talentedge.ai = Nguyen Hoang Khang (khang.h.nguyen@edge8.ai)" },
+    "d7d5cd9a-c129-4ae9-9104-0bd317ac4ab9": { "name": "Dave Hajdu", "edge8_person_id": "a8bf026f-8c20-49c5-8a55-6fc5c580af64", "evidence": "dave@edge8.ai employee row", "github_login": "dhajdu" },
+    "463759c5-1f78-40ca-80d8-a528f9a7074d": { "name": "Quan Chau", "edge8_person_id": "2ce48626-654c-4d6f-b2b4-3d65bfe2768f", "evidence": "team member Chau Dinh Trung Quan (quan@edge8.ai); qdchau@gmail.com attaches as git alias", "github_login": "quanchau8" },
+    "a158e39f-bba6-49e2-b954-dfa7675b2ae3": { "name": "Trac Nguyen", "edge8_person_id": "a8f901bd-6d9e-4c93-a4ff-ab410acda85c", "evidence": "alias trac.nguyen@edge8.ai = Nguyen Dang Trac", "github_login": "TracNg99" },
+    "89efe98a-1c11-48cf-b1dd-9cd53852e0c0": { "name": "Khoa Doan", "edge8_person_id": "6084bd5d-0ab8-4e22-9bf9-c5642056c1f9", "evidence": "khoa.doan@edge8.ai = Doan Ngoc Anh Khoa", "github_login": "dnakhoa" },
+    "2abb7e2c-43d4-495a-80f2-b2b60a0b858b": { "name": "(luke-dinh)", "edge8_person_id": "f4b93fcc-e22c-4505-85de-f94b40d56a50", "evidence": "luke.dinh@edge8.ai = Loc Dinh", "github_login": "luke-dinh" },
+    "7d812b66-7a86-4e4f-9667-c0c680904699": { "name": "NGUYEN DANG TRAC (WHA)", "edge8_person_id": "a8f901bd-6d9e-4c93-a4ff-ab410acda85c", "evidence": "same human as Trac Nguyen" },
+    "5458feb3-b1fe-4103-bbc8-75887b2d8e57": { "name": "Quang Van", "edge8_person_id": "4249892d-d410-43ed-aad7-4b0020c45f21", "evidence": "alias quang.van@edge8.ai = Van Thanh Quang (not the quang.van@edge.ai typo row)" },
+    "9106c644-e4aa-4123-87b5-019b8dabfd23": { "name": "Jasper Le", "edge8_person_id": "e6bd6337-901f-4ef5-8d19-1f3144d8c4ed", "evidence": "jasper.le@edge8.ai = Le Dinh Ngoc" }
+  },
+  "github_orgs": {
+    "comment": "Only unambiguous org-to-company mappings; personal accounts (dhajdu, drnilssen, maureenbirdsall, ronaldramosodoxa, noahgit1022, Edge8-Axl) deliberately left out since org_login is globally unique and one org maps to one company.",
+    "talentedgeai": "6014551c-4868-40be-9bf5-5432d7e82ef1",
+    "Work-Healthy-Australia": "1787dc4b-a9f5-409d-a81b-e2cfdf75f95d",
+    "Australian-Payroll-Association": "1750a8ca-93ea-4369-aca1-c55553a49073",
+    "tracy-infinite-leverage": "1750a8ca-93ea-4369-aca1-c55553a49073",
+    "EO-Vietnam": "09cd416c-06c4-487f-84d3-7f1ac7d2615c"
+  }
+}

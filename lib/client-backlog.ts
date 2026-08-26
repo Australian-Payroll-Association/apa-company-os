@@ -28,6 +28,8 @@ export type BacklogSource = (typeof BACKLOG_SOURCES)[number];
 export type RoadmapGroup = {
   id: string;
   company_id: string;
+  // NULL = company-wide; set = this section belongs to one AI Program.
+  ai_program_id: string | null;
   key: string;
   step_label: string | null;
   title: string;
@@ -37,7 +39,7 @@ export type RoadmapGroup = {
 };
 
 export const ROADMAP_GROUPS_SELECT =
-  "id, company_id, key, step_label, title, intro, sort_order, archived_at";
+  "id, company_id, ai_program_id, key, step_label, title, intro, sort_order, archived_at";
 
 // The classic Edge8 5-milestone roadmap, offered as a one-click starting point for a
 // new client. Not a constraint: any group can be renamed or archived after
@@ -93,6 +95,8 @@ export function groupRank(
 export type BacklogItem = {
   id: string;
   company_id: string;
+  // NULL = company-wide; set = this item belongs to one AI Program.
+  ai_program_id: string | null;
   group_key: string;
   ref: string | null;
   title: string;
@@ -115,7 +119,7 @@ export type BacklogItem = {
 };
 
 export const BACKLOG_SELECT =
-  "id, company_id, group_key, ref, title, who, today_state, build_desc, needs, " +
+  "id, company_id, ai_program_id, group_key, ref, title, who, today_state, build_desc, needs, " +
   "token_low, token_high, edge8_priority, client_priority, client_note, source, " +
   "status, sort_order, client_sort_order, archived_at, created_at, updated_at";
 

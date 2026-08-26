@@ -95,6 +95,7 @@ export default async function ClientBacklogPage({ searchParams }: { searchParams
           items={items}
           showArchived={showArchived}
           liveCardItemIds={liveCardItemIds}
+          programs={programs}
         />
         <section className="admin-card admin-section-card" style={{ marginTop: 18 }}>
           <h2 className="admin-card-title" style={{ marginBottom: 4 }}>Documents</h2>

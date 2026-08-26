@@ -264,7 +264,7 @@ export default async function CompanyDetailPage({
         key: "board",
         label: "Work Board",
         content: boardDetail ? (
-          <BoardView detail={boardDetail} canManage teamOptions={boardOptions.team} clientOptions={boardOptions.clients} viewerPersonId={viewerPersonId} />
+          <BoardView detail={boardDetail} canManage teamOptions={boardOptions.team} clientOptions={boardOptions.clients} programOptions={boardOptions.programs} viewerPersonId={viewerPersonId} />
         ) : (
           <section className="admin-card admin-section-card">
             <Empty text="This client has no active work board yet. Create one from Work Boards." />

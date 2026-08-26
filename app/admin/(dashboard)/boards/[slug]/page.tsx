@@ -50,6 +50,7 @@ export default async function BoardDetailPage({ params }: { params: { slug: stri
         canManage
         teamOptions={options.team}
         clientOptions={options.clients}
+        programOptions={options.programs}
         viewerPersonId={viewerPersonId}
       />
     </>

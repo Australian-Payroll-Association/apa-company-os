@@ -90,6 +90,7 @@ type GroupDraft = { step_label: string; title: string; intro: string };
 function itemToDraft(it: BacklogItem): Draft {
   return {
     group_key: it.group_key,
+    ai_program_id: it.ai_program_id,
     title: it.title,
     who: it.who ?? "",
     today_state: it.today_state ?? "",
@@ -105,6 +106,7 @@ function itemToDraft(it: BacklogItem): Draft {
 function draftToInput(d: Draft): BacklogItemInput {
   return {
     group_key: d.group_key ?? "",
+    ai_program_id: d.ai_program_id ?? null,
     title: d.title ?? "",
     who: d.who,
     today_state: d.today_state,
@@ -123,6 +125,7 @@ export function BacklogAdminEditor({
   items,
   showArchived,
   liveCardItemIds,
+  programs = [],
 }: {
   companyId: string;
   groups: RoadmapGroup[];
@@ -130,6 +133,8 @@ export function BacklogAdminEditor({
   showArchived: boolean;
   // Item ids that have a live (non-archived) board card linked to them.
   liveCardItemIds?: Set<string>;
+  // This company's AI Programs; when non-empty, items can be tagged to one.
+  programs?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -165,6 +170,8 @@ export function BacklogAdminEditor({
     return { step_label: d.step_label, title: d.title, intro: d.intro };
   }
 
+  const programName = new Map(programs.map((p) => [p.id, p.name]));
+
   function renderItem(it: BacklogItem) {
     const isEditing = editing === it.id;
     const d = drafts[it.id] ?? itemToDraft(it);
@@ -198,6 +205,9 @@ export function BacklogAdminEditor({
           {it.build_desc && <div><span className="k">Build: </span>{it.build_desc}</div>}
           <div className="cbe-chips">
             {(it.needs ?? []).map((n) => <span key={n} className="cbe-chip">{n}</span>)}
+            {it.ai_program_id && programName.has(it.ai_program_id) && (
+              <span className="cbe-chip tok">{programName.get(it.ai_program_id)}</span>
+            )}
             {liveCardItemIds?.has(it.id) && <span className="cbe-chip tok">on a board</span>}
             {tok && <span className="cbe-chip tok">est. {tok} Human Tokens</span>}
             {it.source === "client" && <span className="cbe-chip client">client proposed</span>}
@@ -227,6 +237,18 @@ export function BacklogAdminEditor({
                 {BACKLOG_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            {programs.length > 0 && (
+              <div>
+                <label>AI Program</label>
+                <select
+                  value={d.ai_program_id ?? ""}
+                  onChange={(e) => setD({ ai_program_id: e.target.value || null })}
+                >
+                  <option value="">Company-wide</option>
+                  {programs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label>Who</label>
               <input value={d.who ?? ""} onChange={(e) => setD({ who: e.target.value })} />

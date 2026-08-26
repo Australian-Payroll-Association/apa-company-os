@@ -27,4 +27,8 @@ export const supabase = createClient(
 // on the base `supabase` client (buckets are schema-independent).
 export const companyOs = supabase.schema("company_os");
 
+// Query builder scoped to the `htt` schema (Human Token Tracker: repos,
+// pull_requests, token_entries, man_hour_entries, token_allocations, ...).
+// Same service-role discipline as companyOs: server-only, callers scope every
+// read by the actor's companyScope.
 export const htt = supabase.schema("htt");
