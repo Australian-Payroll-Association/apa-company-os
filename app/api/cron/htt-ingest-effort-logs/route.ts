@@ -42,12 +42,19 @@ async function readRepoEffortLog(gh: GitHubClient, repo: string): Promise<Effort
 /** Idempotent persist keyed on session_id: delete any existing rows for these
  *  session_ids, then insert. Owner rows have a null person_id, so the
  *  (person, repo, day, kind) unique index cannot dedupe them; session_id is
- *  the durable key. */
+ *  the durable key. (Insert-before-delete is not possible: the fresh rows
+ *  would collide with the existing ones on (session_id, kind).) Both steps
+ *  check errors and throw; a failed insert after the delete surfaces as a 500
+ *  so the loss is visible and the next run re-ingests the same session_ids. */
 async function persistIdempotent(rows: TokenEntryBody[]): Promise<void> {
   if (rows.length === 0) return;
   const sessionIds = [...new Set(rows.map((r) => r.session_id))];
-  await htt.from("token_entries").delete().in("session_id", sessionIds);
-  await htt.from("token_entries").insert(rows.map((r) => ({ ...r, status: "recorded" })));
+  const { error: delErr } = await htt.from("token_entries").delete().in("session_id", sessionIds);
+  if (delErr) throw new Error(`effort-log delete failed: ${delErr.message}`);
+  const { error: insErr } = await htt
+    .from("token_entries")
+    .insert(rows.map((r) => ({ ...r, status: "recorded" })));
+  if (insErr) throw new Error(`effort-log insert failed: ${insErr.message}`);
 }
 
 // Vercel Cron invokes via GET with the Authorization: Bearer $CRON_SECRET header.
@@ -83,22 +90,29 @@ export async function GET(req: Request) {
     repos.map((p) => [p.repoId, buildOwnerEmailSet(identities, p.repoId)]),
   );
 
-  const summary = await ingestEffortLogs({
-    listRepos: async () => repos,
-    readEffortLog: async (repo) => {
-      const entry = repoByName.get(repo);
-      if (!entry) return [];
-      const entries = await readRepoEffortLog(gh, repo);
-      const ownerEmails = ownerEmailsByRepo.get(entry.repoId) ?? new Set<string>();
-      // OWNER-ONLY: Edge8 contributors are already captured via the normal
-      // telemetry path; ingesting their effort_log entries here would
-      // double-count them.
-      return entries.filter((e) => isOwnerEmail(e.contributor_email ?? null, ownerEmails));
-    },
-    persist: (rows) => persistIdempotent(rows),
-  });
+  try {
+    const summary = await ingestEffortLogs({
+      listRepos: async () => repos,
+      readEffortLog: async (repo) => {
+        const entry = repoByName.get(repo);
+        if (!entry) return [];
+        const entries = await readRepoEffortLog(gh, repo);
+        const ownerEmails = ownerEmailsByRepo.get(entry.repoId) ?? new Set<string>();
+        // OWNER-ONLY: Edge8 contributors are already captured via the normal
+        // telemetry path; ingesting their effort_log entries here would
+        // double-count them.
+        return entries.filter((e) => isOwnerEmail(e.contributor_email ?? null, ownerEmails));
+      },
+      persist: (rows) => persistIdempotent(rows),
+    });
 
-  return NextResponse.json({ ok: true, ...summary });
+    return NextResponse.json({ ok: true, ...summary });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
 }
 
 export const POST = GET; // manual trigger alias

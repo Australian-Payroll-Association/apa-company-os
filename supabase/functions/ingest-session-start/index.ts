@@ -86,15 +86,17 @@ Deno.serve(async (req) => {
   // single row at occurred_hour 0. NULL person is matched null-safely.
   // Non-atomic, but ingest is sequential; concurrent runs at worst converge to
   // greatest.
-  const sel = db
+  // NULL keys must use .is(): PostgREST's eq.null never matches a NULL column,
+  // so an .eq('repo_id', null) select would find nothing and re-insert
+  // duplicates on every ingest of a repo-less entry.
+  let sel = db
     .from('man_hour_entries')
     .select('id, hours')
     .eq('source', 'auto_session')
-    .eq('repo_id', repo_id ?? null)
     .eq('occurred_on', occurred_on);
-  const { data: existing } = person_id === null
-    ? await sel.is('person_id', null)
-    : await sel.eq('person_id', person_id);
+  sel = repo_id == null ? sel.is('repo_id', null) : sel.eq('repo_id', repo_id);
+  sel = person_id === null ? sel.is('person_id', null) : sel.eq('person_id', person_id);
+  const { data: existing } = await sel;
 
   const existingMax = (existing ?? []).reduce(
     (m: number, r: { hours: number | string }) => Math.max(m, Number(r.hours) || 0),

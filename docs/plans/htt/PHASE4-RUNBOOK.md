@@ -122,11 +122,12 @@ are listed here so the order is on paper. Run from a worktree that is
 1. **Apply the resolver migration** (adds three `htt.resolve_*` functions and
    widens one CHECK; touches no data):
    `supabase db query --linked -f supabase/migrations/20260826120000_htt_phase4_ingestion.sql`
-2. **Expose the `htt` schema to the API.** Supabase dashboard -> Project
-   Settings -> Data API -> Exposed schemas: add `htt` next to the existing
-   entries (`company_os` should already be there). Without this every
-   `htt`-schema query and RPC from the site and the edge functions returns
-   "schema must be one of the following".
+2. **Expose the `htt` schema to the API.** ALREADY DONE (2026-08-26): applied
+   in-database via `alter role authenticator set pgrst.db_schemas = 'public,
+   graphql_public, company_os, htt'` plus `notify pgrst, 'reload config'`, and
+   verified serving. Listed here only so the record of the change is on paper;
+   if the setting is ever edited from the dashboard, make sure `htt` stays in
+   the list.
 3. **Deploy the two edge functions** (they authenticate with `x-ingest-secret`,
    not a JWT, so JWT verification must be off):
    `supabase functions deploy ingest-session-start --no-verify-jwt`

@@ -52,11 +52,34 @@ async function readAppTokensFromGitHub(gh: GitHubClient, repo: string): Promise<
   }
 }
 
-// Idempotent persist via upsert on the partial unique index
-// token_entries_app_repo_day_source_uniq (repo_id, occurred_on, source) WHERE kind='app'.
-async function persistUpsert(rows: AppTokenRow[]): Promise<void> {
+// Idempotent persist. The only unique index covering app rows is PARTIAL
+// (token_entries_app_repo_day_source_uniq WHERE kind='app'), which Postgres
+// refuses as an ON CONFLICT arbiter without the predicate, so an upsert cannot
+// be used here. Instead: delete any existing kind='app' rows for the same
+// (repo_id, occurred_on, source) keys, then insert. Both steps check errors and
+// throw so the route reports a real failure instead of ok:true.
+async function persistDeleteInsert(rows: AppTokenRow[]): Promise<void> {
   if (rows.length === 0) return;
-  await htt.from("token_entries").upsert(rows, { onConflict: "repo_id,occurred_on,source" });
+  // Delete per repo (bounded key lists): app rows are one per (repo, day, source).
+  const byRepo = new Map<string, AppTokenRow[]>();
+  for (const r of rows) {
+    const bucket = byRepo.get(r.repo_id);
+    if (bucket) bucket.push(r);
+    else byRepo.set(r.repo_id, [r]);
+  }
+  for (const [repoId, repoRows] of byRepo) {
+    const days = [...new Set(repoRows.map((r) => r.occurred_on))];
+    const { error: delErr } = await htt
+      .from("token_entries")
+      .delete()
+      .eq("kind", "app")
+      .eq("repo_id", repoId)
+      .eq("source", "app")
+      .in("occurred_on", days);
+    if (delErr) throw new Error(`app-token delete failed for repo ${repoId}: ${delErr.message}`);
+  }
+  const { error: insErr } = await htt.from("token_entries").insert(rows);
+  if (insErr) throw new Error(`app-token insert failed: ${insErr.message}`);
 }
 
 export async function GET(req: Request) {
@@ -87,10 +110,17 @@ export async function GET(req: Request) {
   const handler = createHandler({
     listRepos: async () => repos,
     readAppTokens: (repo) => readAppTokensFromGitHub(gh, repo),
-    persist: (rows) => persistUpsert(rows),
+    persist: (rows) => persistDeleteInsert(rows),
   });
 
-  return handler(req);
+  try {
+    return await handler(req);
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
 }
 
 export const POST = GET; // manual trigger alias

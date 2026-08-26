@@ -17,8 +17,12 @@
 -- citext makes both comparisons case-insensitive. Not scoped to a company: an
 -- Edge8 person counts on any repo. SECURITY DEFINER so the ingestion role can
 -- resolve without direct table grants beyond its own.
+-- citext lives in the `extensions` schema on this project, so the ::citext
+-- casts need it pinned into search_path (repo precedent:
+-- 20260711120000_events_core.sql). Tables stay schema-qualified.
 create or replace function htt.resolve_contributor(p_email text)
-returns uuid language sql stable security definer set search_path = '' as $$
+returns uuid language sql stable security definer
+set search_path = extensions, pg_catalog as $$
   select coalesce(
     (select pge.person_id
        from company_os.person_git_emails pge
@@ -49,7 +53,8 @@ grant execute on function htt.resolve_team_member(text) to service_role;
 -- with "could not choose the best candidate function" on ambiguous overloads.
 -- order by created_at keeps the answer deterministic.
 create or replace function htt.resolve_team_member_by_login(p_github_login text)
-returns uuid language sql stable security definer set search_path = '' as $$
+returns uuid language sql stable security definer
+set search_path = extensions, pg_catalog as $$
   select p.id
   from company_os.people p
   where p.github_login = p_github_login::citext
