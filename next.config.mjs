@@ -9,6 +9,17 @@ const nextConfig = {
     // actions; the framework default of 1 MB silently rejected files the app
     // itself allows up to 10 MB.
     serverActions: { bodySizeLimit: "10mb" },
+    // The dynamic [slug] OG image routes render at request time, and Vercel's
+    // file tracing does not bundle public/ into those lambdas, so the Manrope
+    // TTFs (and case-study photos) 500'd with ENOENT. Statically prerendered
+    // OG routes never hit this because they render at build time.
+    outputFileTracingIncludes: {
+      "/post/[slug]/opengraph-image": ["./public/fonts/manrope-og-*.ttf"],
+      "/case-studies/[slug]/opengraph-image": [
+        "./public/fonts/manrope-og-*.ttf",
+        "./public/case studies/images/**/*",
+      ],
+    },
   },
   async rewrites() {
     return [
