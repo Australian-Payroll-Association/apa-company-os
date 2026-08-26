@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "AI Program",
-  description: "Your AI program's roadmap, work board, progress, and documents.",
+  description: "Your AI program's overview, roadmap, work board, documents, and meetings.",
 };
 
 function fmtHours(n: number): string {
