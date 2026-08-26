@@ -151,7 +151,7 @@ export function IndividualGoalsEditor({
     };
   }
 
-  const goalForm = (onSubmit: (e: React.FormEvent) => void, label: string) => (
+  const goalForm = (onSubmit: (e: React.FormEvent) => void, label: string, onDelete?: () => void) => (
     <form className="admin-form" onSubmit={onSubmit}>
       <div className="admin-field">
         <label className="admin-label">The goal</label>
@@ -226,6 +226,11 @@ export function IndividualGoalsEditor({
         <button type="button" className="admin-btn" onClick={close} disabled={pending}>
           Cancel
         </button>
+        {onDelete && (
+          <button type="button" className="admin-btn admin-btn--danger" onClick={onDelete} disabled={pending}>
+            Delete goal
+          </button>
+        )}
       </div>
     </form>
   );
@@ -244,16 +249,37 @@ export function IndividualGoalsEditor({
     return `${g.currentValue ?? 0}/${g.targetValue}${unit}`;
   }
 
-  const goalRow = (g: CoachingGoal, gi: number) => (
-    <div key={g.id} className="edges-kr">
-      {editingId === g.id ? (
+  const goalRow = (g: CoachingGoal, gi: number) =>
+    editingId === g.id ? (
+      <div key={g.id} className="edges-kr">
         <div style={{ padding: "4px 0 10px" }}>
-          {goalForm((e) => {
-            e.preventDefault();
-            run(() => updateMemberGoal(g.id, inputOf()), "Goal saved.");
-          }, "Save goal")}
+          {goalForm(
+            (e) => {
+              e.preventDefault();
+              run(() => updateMemberGoal(g.id, inputOf()), "Goal saved.");
+            },
+            "Save goal",
+            () => {
+              if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
+            },
+          )}
         </div>
-      ) : (
+      </div>
+    ) : (
+      <div
+        key={g.id}
+        className="edges-kr edges-kr--click"
+        role="button"
+        tabIndex={0}
+        title="Click to edit"
+        onClick={() => openEdit(g)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openEdit(g);
+          }
+        }}
+      >
         <>
           <div className="edges-kr-row">
             <div className="edges-kr-title">
@@ -286,24 +312,9 @@ export function IndividualGoalsEditor({
           <div className="admin-cell-muted" style={{ fontSize: 12 }}>
             {g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}
           </div>
-          <div className="admin-form-actions" style={{ padding: "6px 0 8px" }}>
-            <button className="admin-btn admin-btn--sm" onClick={() => openEdit(g)} disabled={pending}>
-              Edit
-            </button>
-            <button
-              className="admin-btn admin-btn--sm"
-              onClick={() => {
-                if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
-              }}
-              disabled={pending}
-            >
-              Delete
-            </button>
-          </div>
         </>
-      )}
-    </div>
-  );
+      </div>
+    );
 
   const memberCard = (m: AdminMemberGoals) => (
     <div key={m.teamMemberId} className="admin-card" style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>

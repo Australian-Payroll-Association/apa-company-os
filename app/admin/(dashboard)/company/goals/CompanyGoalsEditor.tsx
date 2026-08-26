@@ -152,8 +152,30 @@ export function CompanyGoalsEditor({
               />
             </div>
           ) : (
-            o.krs.map((kr, ki) => (
-              <div key={kr.id} className="edges-kr">
+            o.krs.map((kr, ki) => {
+              // Collapsed rows are the click target: click (or Enter) opens the
+              // check-in, the most frequent action; Edit lives inside the panel.
+              const expanded =
+                (mode.kind === "edit-kr" || mode.kind === "checkin") && mode.id === kr.id;
+              return (
+              <div
+                key={kr.id}
+                className={`edges-kr${expanded ? "" : " edges-kr--click"}`}
+                role={expanded ? undefined : "button"}
+                tabIndex={expanded ? undefined : 0}
+                title={expanded ? undefined : "Click to check in"}
+                onClick={expanded ? undefined : () => setMode({ kind: "checkin", id: kr.id })}
+                onKeyDown={
+                  expanded
+                    ? undefined
+                    : (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setMode({ kind: "checkin", id: kr.id });
+                        }
+                      }
+                }
+              >
                 <div className="edges-kr-row">
                   <div className="edges-kr-title">
                     <span style={{ color: "var(--admin-faint)", fontWeight: 750, fontSize: 10, marginRight: 7 }}>
@@ -209,19 +231,16 @@ export function CompanyGoalsEditor({
                       onCancel={() => setMode({ kind: "none" })}
                       onSubmit={(current, status) => run(() => checkInKr(kr.id, { current_value: current, status }), "Checked in.")}
                     />
+                    <div className="admin-form-actions" style={{ padding: "6px 0 0" }}>
+                      <button className="admin-btn admin-btn--sm" onClick={() => setMode({ kind: "edit-kr", id: kr.id })} disabled={pending}>
+                        Edit key result
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="admin-form-actions" style={{ padding: "0 0 8px" }}>
-                    <button className="admin-btn admin-btn--sm" onClick={() => setMode({ kind: "checkin", id: kr.id })} disabled={pending}>
-                      Check in
-                    </button>
-                    <button className="admin-btn admin-btn--sm" onClick={() => setMode({ kind: "edit-kr", id: kr.id })} disabled={pending}>
-                      Edit
-                    </button>
-                  </div>
-                )}
+                ) : null}
               </div>
-            ))
+              );
+            })
           )}
 
           {/* Objective-level actions: edit the objective, or add a KR to it. */}
