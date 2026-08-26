@@ -26,3 +26,5 @@ export const supabase = createClient(
 // Site forms write here via the service-role key (bypasses RLS). Storage stays
 // on the base `supabase` client (buckets are schema-independent).
 export const companyOs = supabase.schema("company_os");
+
+export const htt = supabase.schema("htt");

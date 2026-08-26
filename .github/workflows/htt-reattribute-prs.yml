@@ -1,0 +1,84 @@
+# Re-run PR author resolution over ALREADY-STORED htt.pull_requests rows for
+# one repo. Ported from the Human Token Tracker's reattribute-prs.yml; the
+# endpoint is now edge8-web's /api/htt/backfill/ (trailing slash required) and
+# the input is the htt.repos.id uuid.
+#
+# It makes NO GitHub API calls. It reads stored pull_requests rows where
+# author_person_id is null, re-runs resolution over author_login, and writes
+# back only the rows that now resolve. Rows already attributed are never
+# touched.
+#
+# READ THIS BEFORE A NON-DRY RUN. Attributing historical PRs moves numbers on
+# LIVE client views. Dry run first, take the per-login counts to the operator,
+# get an explicit go-ahead, then run one repo at a time.
+#
+# Dry run (writes nothing, returns the counts):
+#   gh workflow run htt-reattribute-prs.yml -f repo_id=<uuid>
+#
+# Real run (requires typing the confirm string exactly):
+#   gh workflow run htt-reattribute-prs.yml -f repo_id=<uuid> -f dry_run=false -f confirm=REATTRIBUTE
+#
+# Requires the CRON_SECRET repository secret (same value as the Vercel env var).
+
+name: htt-reattribute-prs
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_id:
+        description: 'htt.repos.id (uuid) to re-attribute'
+        required: true
+        type: string
+      dry_run:
+        description: 'true = compute and report only, write nothing'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      confirm:
+        description: 'Type REATTRIBUTE to allow a non-dry run. Ignored when dry_run is true.'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  reattribute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard a non-dry run behind the confirm string
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ "$DRY_RUN" != "true" ] && [ "$CONFIRM" != "REATTRIBUTE" ]; then
+            echo "A non-dry run requires confirm=REATTRIBUTE. Refusing." >&2
+            exit 1
+          fi
+
+      - name: Call the re-attribution endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REPO_ID: ${{ inputs.repo_id }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repository secret is not set" >&2
+            exit 1
+          fi
+          payload=$(printf '{"repoId":"%s","mode":"reattribute","dryRun":%s}' \
+            "$REPO_ID" "$DRY_RUN")
+          # maxDuration on the route is 300s; allow for the full run plus TLS setup.
+          response=$(curl -sS --max-time 330 -w "\n%{http_code}" -X POST \
+            "https://www.edge8.ai/api/htt/backfill/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -1)
+          echo "HTTP $code"
+          echo "$body"
+          [ "$code" = "200" ]

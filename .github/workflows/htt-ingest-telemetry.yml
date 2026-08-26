@@ -1,0 +1,47 @@
+# Human Token Tracker ingestion, ported to edge8 (Phase 4).
+# Contributors commit telemetry/**/*.jsonl and registrations/*.json to THIS
+# repo's `telemetry` branch; this workflow processes registrations first, then
+# posts telemetry batches to https://www.edge8.ai/api/ingest/session/.
+#
+# NOTE: the schedule stays disabled until the Phase 4 cutover is complete
+# (secrets created, edge functions deployed, resolvers applied: see
+# docs/plans/htt/PHASE4-RUNBOOK.md). Re-enable the cron below at cutover.
+name: htt-ingest-telemetry
+on:
+  # schedule:
+  #   - cron: '0 1,13 * * *'        # twice daily; enable at cutover
+  workflow_dispatch:
+permissions:
+  contents: write   # process-registrations deletes processed files from the telemetry branch
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    # A cold backlog can hold thousands of entries at ~25/batch with sequential
+    # edge-function calls per entry. A partial run is harmless (inserts dedupe;
+    # the watermark only advances on full success) but a re-run starts from
+    # batch 1, so the timeout must cover the WHOLE backlog.
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Install dependencies
+        run: npm ci
+      # Registration requests are processed FIRST so that repos exist before
+      # telemetry entries arrive that might reference them.
+      - name: Process registrations
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/htt/process-registrations.mjs
+      - name: Ingest telemetry
+        env:
+          INGEST_URL: ${{ vars.INGEST_URL }}
+          INGEST_TRIGGER_SECRET: ${{ secrets.INGEST_TRIGGER_SECRET }}
+          # ingest-telemetry.mjs uses `gh api` (committer resolution) and
+          # `git push` (advancing the watermark tag); both need an auth token.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/htt/ingest-telemetry.mjs
