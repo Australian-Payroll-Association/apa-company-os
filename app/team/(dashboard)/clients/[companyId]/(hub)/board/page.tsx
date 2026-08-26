@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTeamMember } from "@/lib/team-auth";
-import { getClientBoardViewForActor, getActorClientCompanies } from "@/lib/team/clients";
+import { getClientBoardViewForActor, getActorClientCompanies, companyHasPrograms } from "@/lib/team/clients";
 import { isBoardMemberForActor } from "@/lib/team/boards";
 import { MyCardsStrip, type MyStripCard } from "./MyCardsStrip";
 import { Badge } from "@/components/admin/Badge";
@@ -34,13 +34,18 @@ export default async function TeamClientBoardTab({ params }: { params: { company
   const companies = await getActorClientCompanies(actor);
   if (!companies.some((c) => c.id === params.companyId)) notFound();
 
-  const board = await getClientBoardViewForActor(actor, params.companyId);
+  // With AI Programs present this tab is company-wide: only an untagged board
+  // qualifies; program boards render in their AI Program view.
+  const hasPrograms = await companyHasPrograms(params.companyId);
+  const board = await getClientBoardViewForActor(actor, params.companyId, { untaggedOnly: hasPrograms });
 
   if (!board) {
     return (
       <div className="admin-card admin-section-card" style={{ padding: 22 }}>
         <p className="admin-page-sub" style={{ margin: 0 }}>
-          This client has no active work board yet.
+          {hasPrograms
+            ? "No company-wide work board. Program boards live in their AI Program view."
+            : "This client has no active work board yet."}
         </p>
       </div>
     );

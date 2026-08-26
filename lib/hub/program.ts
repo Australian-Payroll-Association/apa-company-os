@@ -104,9 +104,11 @@ function ilikeTerm(input: string): string {
 // PostgREST caps a response at 1000 rows; page through so a repo with more
 // tracked entries than that still sums correctly (same pattern as
 // lib/portal/tokens.ts). Every factory MUST carry a total order ending on a
-// unique column (id) so pages never repeat or skip rows.
+// unique column (id) so pages never repeat or skip rows. Exported so the
+// other hub-grain consumers of the same capped tables (the admin hub home,
+// lib/team/clients.ts) page identically instead of re-deriving the pattern.
 const PAGE = 1000;
-async function fetchAll<T>(
+export async function fetchAll<T>(
   build: () => { range: (from: number, to: number) => PromiseLike<{ data: unknown }> },
 ): Promise<T[]> {
   const rows: T[] = [];

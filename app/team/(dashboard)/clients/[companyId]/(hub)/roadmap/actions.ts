@@ -27,7 +27,12 @@ export async function teamCreateRoadmapItem(
 ): Promise<Result & { id?: string }> {
   const actor = await requireTeamMember();
   const r = await createRoadmapItemForActor(actor, companyId, input);
-  if (r.ok) refresh(companyId);
+  if (r.ok) {
+    refresh(companyId);
+    if (input.ai_program_id) {
+      revalidatePath(`/team/clients/${companyId}/programs/${input.ai_program_id}`);
+    }
+  }
   return r;
 }
 

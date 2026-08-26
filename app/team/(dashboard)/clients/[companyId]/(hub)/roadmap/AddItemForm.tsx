@@ -7,9 +7,19 @@ import { teamCreateRoadmapItem } from "./actions";
 
 // Add a roadmap item from the hub. New items land at the end of the chosen
 // group as source=edge8 / status=accepted, with priority left to the admin
-// default; the server action re-checks the actor's assignment.
+// default; the server action re-checks the actor's assignment. programId
+// (optional) tags the new item to that AI Program, so items added from a
+// program view land on its roadmap; the server re-validates it.
 
-export function AddItemForm({ companyId, groups }: { companyId: string; groups: RoadmapGroup[] }) {
+export function AddItemForm({
+  companyId,
+  groups,
+  programId,
+}: {
+  companyId: string;
+  groups: RoadmapGroup[];
+  programId?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,6 +41,7 @@ export function AddItemForm({ companyId, groups }: { companyId: string; groups: 
       group_key: groupKey,
       title,
       build_desc: buildDesc,
+      ai_program_id: programId ?? null,
     });
     setBusy(false);
     if (!r.ok) {
