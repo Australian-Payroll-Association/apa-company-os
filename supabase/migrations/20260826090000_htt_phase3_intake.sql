@@ -1,4 +1,4 @@
--- NOT YET APPLIED; apply via supabase db query --linked before merge.
+-- Applied via Supabase Management API (supabase db query --linked, role postgres) on 2026-08-26.
 -- Human Token Tracker integration, Phase 3: two optional questions on the New
 -- Member Onboarding survey so contributor identity is captured at the source.
 --
