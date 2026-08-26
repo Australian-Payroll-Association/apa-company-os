@@ -1,7 +1,0 @@
-{
-  "$comment": "Human-token tracking config. Read by the session-ingest SessionStart/SessionEnd hooks to attribute this repo's Claude Code sessions. Non-secret (IDs only). Secrets (INGEST_SECRET, SUPABASE_URL, SUPABASE_ANON_KEY) live in machine env / ~/.claude/.env and are NEVER committed.",
-  "client_id": "b8325345-a732-4b3f-a37d-a8160b24a277",
-  "project_id": "0bfd54e7-a571-4cef-b152-fb7578b64550",
-  "primary_role": "developer",
-  "token_source": "pr_commit"
-}
