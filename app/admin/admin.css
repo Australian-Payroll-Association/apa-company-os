@@ -3853,7 +3853,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 .coach-okr-line.is-laddered { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); border-radius: 4px; padding-left: 4px; }
 .coach-okr-line .admin-badge { margin-left: 8px; }
 .edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: start; }
-.edges-fast-person { border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
+.edges-fast-person { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
 /* /team/company-goals · Team member goals: title + By member/By objective toggle. */
 .cg-panel-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 /* "By company objective" grouping: one block per objective, member-goal rows under it. */
@@ -3874,7 +3874,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
    minibtn actions pushed to the right edge of the row. */
 .edges-fast-goal-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .edges-fast-goal-head strong { font-size: 13px; }
-.edges-fast-goal-head .edges-minibtn:first-of-type { margin-left: auto; }
+.edges-fast-goal-actions { display: inline-flex; gap: 6px; margin-left: auto; }
 .edges-fast-goal .goals-bar { margin: 6px 0; }
 .edges-fast-goal .admin-cell-muted { font-size: 12px; }
 .coach-dash-hint { font-style: italic; margin-top: 2px; }
