@@ -1,72 +1,45 @@
-Do not make any changes until you have 95% confidence in what you need to build. Ask me follow-up questions until you reach that confidence.
+# edge8-web — CLAUDE.md
 
-Exception: operational runbooks in `.claude/skills/` (e.g. `crm-call-to-proposal`) are pre-approved. When a request matches one, execute it end to end without waiting for follow-up answers, then report. These flows are measured in minutes; do not spend time rediscovering what the skill already states.
+The Edge8 marketing site + internal OS (admin, team, client portal) at https://www.edge8.ai. Pre-rewrite instructions archived at `docs/archive/CLAUDE-md-pre-rewrite-2026-08-26.md`.
+
+Do not make changes until you have 95% confidence in what you need to build; ask follow-up questions until you get there. Exception: operational runbooks in `.claude/skills/` (crm-call-to-proposal, crm-lead, publish-doc) are pre-approved. When a request matches one, execute end to end without waiting, then report. Do not re-discover what the skill already states.
+
+## Map
+
+- **Design system**: `docs/product/edge8-design-system.md` (foundations, marketing site), `docs/product/edge8-design-system-data.md` (data layer: admin/team/portal), `docs/product/edge8-design-system-inventory.md` (known drift). Read the right layer before building any UI; check the inventory before "fixing" an inconsistency or adding a variant it already lists.
+- **Tokens**: `app/globals.css` `:root` (marketing: `--color-primary-blue #287BE8`, `--color-accent-mint #6FF2C1`, `--radius`, Manrope) and `app/admin/admin.css` (`--data-*` layer). Never introduce a raw hex, radius, shadow, or font family that isn't a token. `admin.css` is the shared OS shell: a change there hits `/admin`, `/team`, and `/portal` at once.
+- **Component reference**: `/admin/patterns` (file: `app/admin/(dashboard)/patterns/page.tsx`), the living reference. Copy from it rather than hand-rolling a new card, table, or chip.
+- **Stack**: Next.js 14 App Router, React 18, TypeScript, plain CSS (no Tailwind). Fonts: Manrope self-hosted from `public/fonts/`, weights 200-800; never a CDN or licensed font.
+- **Data**: Supabase (`supabase/migrations/`, 126 files; clients in `lib/supabase/`). Company OS CRM helpers: `lib/company-os.ts`, `scripts/crm/db.mjs`; verified IDs and table conventions live in `.claude/skills/crm-call-to-proposal/SKILL.md`, do not re-explore the schema. `app/proposals/page.tsx` and `company_os.deals` move together; proposals are static files in `public/proposals/` starting from `docs/templates/proposal-template.html`.
+- **Ship**: the local checkout is usually a WIP branch; never build on it. `git fetch`, `git worktree add` from `origin/main`, stage only your files by name, PR, merge when CI is green. CI runs `design-guardrails.yml` (`npm run check:design` + `scripts/check-crons.mjs`) and a warn-only authorship guard. Run `npm run check:design` before opening a PR; commit any new asset in the same PR (missing fonts/images fail silently). 13 Vercel crons in `vercel.json`.
+- **Verify**: diagnose against `origin/main`, and check live behavior with `curl` against https://www.edge8.ai/... (the in-app browser blocks edge8.ai by policy). Reply with the live URL.
 
 ## Brand rules (all pages, copy, commits)
 
-- "Edge8" is always written exactly like that. Never all caps. Watch for CSS `text-transform: uppercase` on eyebrows and labels; keep the brand name out of it.
+- "Edge8" is always written exactly like that, never all caps: watch CSS `text-transform: uppercase` on eyebrows and labels.
 - Never use em dashes anywhere. Use commas, colons, periods, or parentheses.
 
-## Design system
+<!-- BEGIN: AGENT-DELEGATION (managed by infiniteleverage skills — do not delete this block) -->
+## Agent delegation (auto-routing)
 
-One system, two layers. Read the relevant layer before building any UI; do not invent values.
+When you receive a request, **delegate to the right specialist agent** before doing the work yourself. The 8 agents and their triggers:
 
-- **Foundations** (marketing site): `docs/product/edge8-design-system.md`
-- **Data layer** (Edge8 OS: admin, team, client portal): `docs/product/edge8-design-system-data.md`
-- **Known drift** between the docs above and the code: `docs/product/edge8-design-system-inventory.md`. Check it before "fixing" an inconsistency, it may already be catalogued, and before adding a variant of something it lists.
-- Tokens live in `app/globals.css` `:root`. `app/admin/admin.css` re-roots onto them. The OS shell is shared: `/team` and `/portal` both import `admin.css` and render inside `.admin-shell`, so a change there hits all three views.
-- Living component reference: `/admin/patterns`. Copy from it rather than hand-rolling a new card, table, or chip.
-- Never introduce a raw hex, radius, shadow, or font family that isn't a token.
-- **Typeface is Manrope**, open source (SIL OFL 1.1) and self-hosted from `public/fonts/`. Never load fonts from a third-party CDN, and never add a licensed font. Weights 200 to 800 are all real (variable font); nothing above 800.
+| Agent | Delegate when the request involves… |
+|---|---|
+| **product-manager** | roadmap, vision, epics, daily plan, project-status.html, scope changes, approval triage, stakeholder updates, standup briefings |
+| **developer** | writing/changing code, fixing bugs, refactoring, scaffolding pages, API endpoints, Supabase migrations, env-vars wiring |
+| **qa** | testing, regression checks, browser matrix, accessibility, QA plans, "verify this works" |
+| **devops** | CI/CD, deployments, secret management, infra escalations, Vercel/GitHub workflow issues |
+| **designer** | UI mockups, brand application, image prompts, design system updates, visual reviews |
+| **writer** | blog drafts, social copy, SEO briefs, voice/tone, content briefs |
+| **web-publisher** | publishing markdown → Next.js components, updating `website/pages/blog/index.jsx`, image optimization, the publish workflow |
+| **email-marketer** | email drafts, sequences, broadcast campaigns, Brevo/Resend, CRM segmentation |
 
-### Building UI
-
-Every UI defect shipped so far came from writing new markup instead of reusing
-markup that already works. The rule is: copy a working thing, then change the
-words in it. In order, every time:
-
-1. **Copy the nearest shipped row, card, or table.** `/admin/patterns` first,
-   but it does not cover everything (list rows, for one). When it comes up
-   empty that is NOT permission to invent: open the closest live surface and
-   copy its markup. Say which file you copied in the PR body, e.g. "row copied
-   from the attention card in `app/portal/(dashboard)/page.tsx`".
-2. **No inline `style` for layout, ever.** `display`, `flex-direction`, `gap`,
-   `align-items`, `justify-content`, `width` do not belong in a `style={{}}`.
-   If a class does not lay out the way you want, you picked the wrong class or
-   you need a new one in `admin.css`. Inline styles lose to the class silently:
-   `.admin-list-aside` stacks its children, and an inline `display: flex`
-   beside it changes nothing, which is exactly how the time-off Approve and
-   Decline buttons shipped stacked on top of each other.
-3. **A new pattern is a new class in `admin.css`**, with a comment saying what
-   it is for, used by every surface that needs it. Never a one-off inline style
-   on one page. If two surfaces need the same treatment, they share the class.
-4. **Look at it before shipping.** Any new or changed UI gets rendered and
-   screenshotted at desktop AND 375px before the PR. For gated pages (`/portal`,
-   `/admin`, `/team`) build a throwaway route that renders the component with
-   fake data, screenshot that, then delete the route before committing. Never
-   ship UI you have not seen with your own eyes. "It typechecks and builds" is
-   not verification of a layout.
-5. **Anything actionable also belongs on the home screen.** If a surface asks
-   the user to decide something, it goes in the "Needs your attention" card on
-   `/portal` or `/team` home as well, linking through. A decision that only
-   exists on its own page is a decision nobody makes.
-
-### Guardrail
-
-`npm run check:design` verifies that every asset referenced in CSS/JSX exists in `public/`, that every `font-weight` used is backed by a real `@font-face`, and that a PR adds no new inline layout styles. It runs in CI on every PR (~0.3s, inside the job that already runs, no new job). Run it before opening one.
-
-The inline-layout check is a ratchet, not a sweep: the repo already has ~580 of these and cleaning them up is not the check's job, so it only refuses to let the per-file count grow. Baseline lives in `scripts/design/inline-layout-baseline.json`; regenerate with `npm run check:design -- --update-baseline` after a cleanup. If an inline layout style is genuinely unavoidable, put `layout-ok: <reason>` in a comment on that line.
-
-Any new asset (font, image, icon) referenced in code must be committed in the same PR. A missing file does not fail the build: fonts silently substitute and images silently 404, which is exactly how the missing SemiBold shipped unnoticed for months.
-
-## Sales ops (CRM + proposals)
-
-- Call transcript in, then: CRM updated, proposal live, /proposals views correct. Runbook: `.claude/skills/crm-call-to-proposal/SKILL.md`. It carries verified Company OS IDs, table conventions, and the DB helper `scripts/crm/db.mjs`. Do not re-explore the schema.
-- `app/proposals/page.tsx` (per-entry `status`) and `company_os.deals` move together: winning or losing a client updates both in the same session.
-- Proposal pages are static files in `public/proposals/`; new ones start from `docs/templates/proposal-template.html`.
-
-## Ship flow
-
-- The checkout is usually on a WIP branch with uncommitted changes. Never build on it: `git worktree add` a branch from `origin/main`, stage only your files by name, open a PR, merge when CI is green.
-- After merging, verify with `curl` against `https://www.edge8.ai/...` (the in-app browser blocks edge8.ai by policy) and reply with the live URL.
-- The local checkout is often many commits behind. Always diagnose against `origin/main` (fetch first), never the stale working copy.
+**Delegation rules:**
+1. Pick exactly **one** agent per turn — don't run two in parallel unless the operator explicitly says so.
+2. If a request spans agents (e.g., "write a blog *and* publish it"), call them **in sequence**: writer → designer → web-publisher.
+3. If unclear which agent fits, **ask the operator** before assuming.
+4. Cross-cutting engineering rules live in `.claude/rules/global-engineering.md` — every agent honors them.
+5. Project-level persona overrides for each agent live in `agents/<name>/context/persona.md` — read these on first invocation.
+6. Trigger phrases: `@product-manager`, `@developer`, etc. — but auto-route even without the `@` when intent is clear.
+<!-- END: AGENT-DELEGATION -->
