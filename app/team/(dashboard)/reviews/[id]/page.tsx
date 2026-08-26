@@ -10,7 +10,8 @@ import {
   DECISION_LABEL,
   type ReviewRow,
 } from "@/lib/reviews";
-import { finalizeReviewAction } from "../actions";
+import type { ReviewTranscriptSummary } from "@/lib/ai/review-summary";
+import { finalizeReviewAction, addReviewTranscriptAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,106 @@ function TextBlock({ label, value }: { label: string; value: string | null }) {
     <div style={{ marginTop: 12 }}>
       <div style={{ fontWeight: 700, fontSize: 13 }}>{label}</div>
       <p style={{ margin: "4px 0 0", fontSize: 13, whiteSpace: "pre-wrap" }}>{value}</p>
+    </div>
+  );
+}
+
+// The call-transcript card the reviewer sees: the current draft summary (if a
+// transcript has been added) plus the box to add or replace one. The transcript
+// and its summary live on the manager row's metadata.transcript_summary.
+function ReviewTranscriptCard({
+  reviewId,
+  summary,
+  locked,
+}: {
+  reviewId: string;
+  summary: ReviewTranscriptSummary | null;
+  locked: boolean;
+}) {
+  return (
+    <div className="admin-card" style={{ padding: "18px 20px", marginBottom: 16 }}>
+      <div className="admin-card-title">Call transcript</div>
+
+      {summary?.ai_status === "pending" && (
+        <p className="admin-hint" style={{ marginTop: 8 }}>
+          Summarizing the transcript. Refresh in a moment.
+        </p>
+      )}
+      {summary?.ai_status === "error" && (
+        <p style={{ marginTop: 8, fontSize: 13 }}>
+          <Badge tone="err">Summary failed</Badge>{" "}
+          {summary.ai_error ? <span>{summary.ai_error}</span> : null} Re-add the transcript to retry.
+        </p>
+      )}
+      {summary?.ai_status === "ready" && (
+        <div style={{ marginTop: 8 }}>
+          <Badge tone="neutral">Draft from call</Badge>
+          {summary.overview && (
+            <p style={{ margin: "8px 0 0", fontSize: 13, whiteSpace: "pre-wrap" }}>{summary.overview}</p>
+          )}
+          {summary.strengths.length > 0 && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 12 }}>Strengths</div>
+              <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }}>
+                {summary.strengths.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {summary.growth_areas.length > 0 && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 12 }}>Growth areas</div>
+              <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }}>
+                {summary.growth_areas.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {summary.dimensions.length > 0 && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 12 }}>By dimension</div>
+              <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }}>
+                {summary.dimensions.map((d) => (
+                  <li key={d.key}>
+                    <strong>{d.label}:</strong> {d.signal}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className="admin-hint" style={{ marginTop: 12 }}>
+            This is a draft aid, it is not part of the review until you fold it in.
+          </p>
+        </div>
+      )}
+
+      {!locked && (
+        <form
+          action={addReviewTranscriptAction}
+          className="admin-field"
+          style={{ marginTop: summary ? 16 : 8 }}
+        >
+          <input type="hidden" name="id" value={reviewId} />
+          <textarea
+            name="transcript"
+            rows={5}
+            placeholder="Paste the call transcript, or upload a file below."
+            className="admin-input"
+            style={{ fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+          />
+          <div className="admin-form-actions">
+            <input type="file" name="file" accept=".txt,.vtt,.srt,.md,.markdown,.docx" style={{ fontSize: 13 }} />
+            <button type="submit" className="admin-btn admin-btn--primary">
+              {summary ? "Replace transcript" : "Add transcript"}
+            </button>
+          </div>
+          <span className="admin-hint" style={{ margin: 0 }}>
+            .txt, .vtt, .srt, .md, or .docx (max 10 MB). We summarize it against the review dimensions.
+          </span>
+        </form>
+      )}
     </div>
   );
 }
@@ -158,6 +259,14 @@ export default async function ReviewDetailPage({
           )}
         </div>
       ))}
+
+      {detail.isReviewer && manager && (
+        <ReviewTranscriptCard
+          reviewId={detail.anchor.id}
+          summary={(manager.metadata.transcript_summary as ReviewTranscriptSummary | undefined) ?? null}
+          locked={manager.status === "finalized"}
+        />
+      )}
 
       {decision && (
         <div className="admin-card" style={{ padding: "18px 20px", marginBottom: 16 }}>
