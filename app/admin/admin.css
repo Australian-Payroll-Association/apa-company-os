@@ -4739,19 +4739,18 @@ a.ideas-share-card:hover {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   margin-bottom: 20px;
 }
-/* One AI Program card (a link to the program view). */
+/* One AI Program card (a link to the program view). Hover affordance mirrors
+   a.mp-kpi so the card reads as clickable. */
 .hub-program-card {
   display: flex;
   flex-direction: column;
   gap: 0;
   text-decoration: none;
+  transition: border-color var(--transition), transform var(--transition);
 }
-/* Empty state: dashed, non-interactive (programs are created from the client
-   portal or by Edge8; admin has no create surface yet). */
-.hub-program-card--new {
-  border: 1px dashed var(--admin-line-strong);
-  box-shadow: none;
-  gap: 4px;
+a.hub-program-card:hover {
+  border-color: var(--admin-accent);
+  transform: translateY(-1px);
 }
 .hub-program-head {
   display: flex;

@@ -13,8 +13,20 @@ import { getSurveyResponsesForCompany } from "@/lib/admin/surveys";
 import { getBoardBySlug, listBoardManageOptions } from "@/lib/boards/data";
 import { listDocumentsForCompanies } from "@/lib/client-documents";
 import { getCompanyHubTeam, getLiveCardItemIds } from "@/lib/admin/company-hub";
-import { listProgramSummaries, type ProgramSummary, type ProgramStatus } from "@/lib/hub/program";
-import { getTokenUsageForCompanies, type TokenUsage } from "@/lib/hub/tokens";
+import {
+  listProgramSummaries,
+  PROGRAM_SELECT,
+  type ProgramSummary,
+  type ProgramSummaryInputs,
+  type ProgramStatus,
+} from "@/lib/hub/program";
+import {
+  computeTokenUsage,
+  fetchDeliveryRaw,
+  getAllocatedTokensForCompanies,
+  getTokenBalanceForCompanies,
+  type TokenUsage,
+} from "@/lib/hub/tokens";
 import { BACKLOG_SELECT, ROADMAP_GROUPS_SELECT, type BacklogItem, type RoadmapGroup } from "@/lib/client-backlog";
 import { getAdminUser } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
@@ -238,9 +250,27 @@ export default async function CompanyDetailPage({
   // rows live in their program view. When no programs exist, the tabs behave
   // exactly as before.
   async function hubData(): Promise<{ tabs: TabDef[]; programs: ProgramSummary[]; usage: TokenUsage }> {
-    const [programSummaries, usage, boardRowsRes] = await Promise.all([
-      listProgramSummaries(company.id),
-      getTokenUsageForCompanies([company.id]),
+    // Wave 1: every query here depends only on the company id, and every
+    // dataset is fetched exactly once. The program summaries and the token
+    // usage are DERIVED from these rows below rather than re-fetching them.
+    const [
+      { data: programData },
+      delivery,
+      boardRowsRes,
+      balance,
+      allocatedTokens,
+      boardOptions,
+      admin,
+      itemRows,
+      groupRows,
+      overviewRow,
+      meetings,
+      invoices,
+      team,
+      documents,
+    ] = await Promise.all([
+      companyOs.from("ai_programs").select(PROGRAM_SELECT).eq("company_id", company.id).order("created_at", { ascending: false }),
+      fetchDeliveryRaw([company.id]),
       companyOs
         .from("boards")
         .select("id, slug, ai_program_id")
@@ -248,29 +278,27 @@ export default async function CompanyDetailPage({
         .eq("status", "active")
         .is("archived_at", null)
         .order("sort_order", { ascending: true }),
+      getTokenBalanceForCompanies([company.id]),
+      getAllocatedTokensForCompanies([company.id]),
+      listBoardManageOptions(),
+      getAdminUser(),
+      companyOs.from("client_backlog_items").select(BACKLOG_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
+      companyOs.from("client_roadmap_groups").select(ROADMAP_GROUPS_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
+      companyOs.from("client_roadmap_overview").select("body").eq("company_id", company.id).maybeSingle(),
+      getMeetingsForCompany(company.id),
+      getInvoicesForCompany(company.id),
+      getCompanyHubTeam(company.id),
+      listDocumentsForCompanies([company.id]),
     ]);
-    const hasPrograms = programSummaries.length > 0;
+
+    const programRowsFull = (programData ?? []) as ProgramSummaryInputs["programs"];
+    const hasPrograms = programRowsFull.length > 0;
     const hubBoards = (boardRowsRes.data ?? []) as Array<{ id: string; slug: string; ai_program_id: string | null }>;
     const untaggedBoards = hubBoards.filter((b) => !b.ai_program_id);
     // First active board (same "first active" convention as before); with
     // programs present, first active UNTAGGED board (program boards render in
     // their program view instead).
     const boardSlug = (hasPrograms ? untaggedBoards[0] : hubBoards[0])?.slug ?? null;
-
-    const [boardDetail, boardOptions, admin, itemRows, groupRows, overviewRow, meetings, invoices, team, documents, programRows] =
-      await Promise.all([
-        boardSlug ? getBoardBySlug(boardSlug) : Promise.resolve(null),
-        listBoardManageOptions(),
-        getAdminUser(),
-        companyOs.from("client_backlog_items").select(BACKLOG_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
-        companyOs.from("client_roadmap_groups").select(ROADMAP_GROUPS_SELECT).eq("company_id", company.id).is("archived_at", null).order("sort_order", { ascending: true }),
-        companyOs.from("client_roadmap_overview").select("body").eq("company_id", company.id).maybeSingle(),
-        getMeetingsForCompany(company.id),
-        getInvoicesForCompany(company.id),
-        getCompanyHubTeam(company.id),
-        listDocumentsForCompanies([company.id]),
-        companyOs.from("ai_programs").select("id, name").eq("company_id", company.id).order("created_at", { ascending: false }),
-      ]);
 
     const allItems = (itemRows.data ?? []) as unknown as BacklogItem[];
     const allGroups = (groupRows.data ?? []) as unknown as RoadmapGroup[];
@@ -282,21 +310,42 @@ export default async function CompanyDetailPage({
       : allGroups;
     const hubMeetings = hasPrograms ? meetings.filter((m) => !m.aiProgramId) : meetings;
     const hubDocuments = hasPrograms ? documents.filter((d) => !d.programId) : documents;
-    // Both tabs drop together only when NOTHING company-wide remains: every
-    // board and every roadmap item is program-tagged (zero data loss of
-    // access; each tagged row is reachable in its program view).
-    const dropCompanyWideTabs = hasPrograms && untaggedBoards.length === 0 && allItems.every((i) => !!i.ai_program_id);
+    // Both tabs drop together only when at least one row is program-tagged AND
+    // nothing company-wide remains (zero data loss of access; each tagged row
+    // is reachable in its program view). The tagged-row guard keeps a company
+    // with programs but no boards/items from vacuously losing the tabs, which
+    // hold the OverviewEditor and the place to start a company-wide roadmap.
+    const taggedBoardCount = hubBoards.length - untaggedBoards.length;
+    const taggedItemCount = allItems.length - roadmapItems.length;
+    const dropCompanyWideTabs =
+      hasPrograms &&
+      taggedBoardCount + taggedItemCount > 0 &&
+      untaggedBoards.length === 0 &&
+      roadmapItems.length === 0;
     const overviewBody = (overviewRow.data as { body: string } | null)?.body ?? "";
-    const liveCardItemIds = await getLiveCardItemIds(roadmapItems.map((i) => i.id));
 
-    // The admin's own person row, so cards freshly assigned to them wear "New".
-    let viewerPersonId: string | null = null;
-    if (admin) {
-      const { data: viewer } = await companyOs.from("people").select("id").eq("email", admin.email).is("archived_at", null).limit(1).maybeSingle();
-      viewerPersonId = (viewer as { id: string } | null)?.id ?? null;
-    }
+    // Wave 2: the only fetches that depend on wave 1 (board slug, repo ids,
+    // the admin's email, the filtered item ids).
+    const [programSummaries, boardDetail, liveCardItemIds, viewerRow] = await Promise.all([
+      listProgramSummaries(company.id, {
+        programs: programRowsFull,
+        delivery,
+        backlogRows: allItems,
+        boardRows: hubBoards,
+      }),
+      boardSlug ? getBoardBySlug(boardSlug) : Promise.resolve(null),
+      getLiveCardItemIds(roadmapItems.map((i) => i.id)),
+      // The admin's own person row, so cards freshly assigned to them wear "New".
+      admin
+        ? companyOs.from("people").select("id").eq("email", admin.email).is("archived_at", null).limit(1).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const viewerPersonId = (viewerRow.data as { id: string } | null)?.id ?? null;
 
-    const programOptions = (programRows.data ?? []) as ProgramOption[];
+    const plannedTokens = allItems.reduce((sum, i) => sum + Number(i.token_high ?? 0), 0);
+    const usage = computeTokenUsage({ balance, allocatedTokens, plannedTokens, delivery });
+
+    const programOptions: ProgramOption[] = programRowsFull.map((p) => ({ id: p.id, name: p.name }));
     const hubInvoices = invoices.map((r) => ({
       id: r.id,
       docNumber: r.doc_number,
@@ -443,7 +492,7 @@ export default async function CompanyDetailPage({
           <div className="mp-kpi-grid" style={{ marginBottom: 20 }}>
             <MetricCard label="Bought" value={hub.usage.boughtTokens.toLocaleString()} sub="Purchased + allocated tokens" />
             <MetricCard label="Delivered" value={fmtHours(hub.usage.deliveredHours)} sub="Hours of tracked work" />
-            <MetricCard label="Balance" value={hub.usage.balanceTokens.toLocaleString()} sub="Bought minus delivered" />
+            <MetricCard label="Balance" value={fmtHours(hub.usage.balanceTokens)} sub="Bought minus delivered" />
             <MetricCard label="Planned" value={hub.usage.plannedTokens.toLocaleString()} sub="Roadmap high estimates" />
             <MetricCard
               label="AI leverage"
@@ -455,20 +504,19 @@ export default async function CompanyDetailPage({
           <div className="hub-band-head">
             <h2 className="admin-card-title">AI Programs</h2>
           </div>
-          <div className="mp-kpi-grid hub-programs-grid">
-            {hub.programs.length === 0 ? (
-              <div className="admin-card admin-section-card hub-program-card hub-program-card--new">
-                <span className="admin-cell-strong" style={{ fontSize: 15 }}>New AI Program</span>
-                <span className="admin-cell-muted" style={{ fontSize: 12 }}>Created from the client portal or by Edge8</span>
-              </div>
-            ) : (
-              hub.programs.map((p) => {
+          {hub.programs.length === 0 ? (
+            <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
+              <Empty text="No AI Programs yet. Created from the client portal or by Edge8." />
+            </div>
+          ) : (
+            <div className="mp-kpi-grid hub-programs-grid">
+              {hub.programs.map((p) => {
                 const pct = p.roadmapTotal > 0 ? Math.round((p.roadmapDone / p.roadmapTotal) * 100) : 0;
                 return (
                   <Link
                     key={p.id}
                     href={`/admin/revenue/companies/${company.id}/programs/${p.id}`}
-                    className="admin-card admin-section-card is-clickable hub-program-card"
+                    className="admin-card admin-section-card hub-program-card"
                   >
                     <div className="hub-program-head">
                       <span className="admin-cell-strong" style={{ fontSize: 15 }}>{p.name}</span>
@@ -498,9 +546,9 @@ export default async function CompanyDetailPage({
                     </div>
                   </Link>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </>
       )}
 

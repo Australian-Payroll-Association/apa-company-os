@@ -49,22 +49,6 @@ export async function getCompanyRoadmap(companyId: string): Promise<CompanyRoadm
 
 export { PRIORITY_RANK, effectivePriority };
 
-// The slug of a company's board for the editable hub Board tab: the first
-// active board linked to the company (same "first active" convention as the
-// read-only client view). Null when the company has no active board.
-export async function getCompanyBoardSlug(companyId: string): Promise<string | null> {
-  const { data } = await companyOs
-    .from("boards")
-    .select("slug")
-    .eq("client_company_id", companyId)
-    .eq("status", "active")
-    .is("archived_at", null)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return (data as { slug: string } | null)?.slug ?? null;
-}
-
 // Item ids that already have a live (non-archived) board card, for the roadmap
 // editor's "on the board" markers.
 export async function getLiveCardItemIds(itemIds: string[]): Promise<Set<string>> {
