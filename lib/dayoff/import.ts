@@ -461,14 +461,32 @@ async function importEmployee(
     bumpCountedWarning(warnings, "employeeIntervals endpoint failed (Day Off-side HTTP 500; capture-only, no data impact)");
   }
 
-  // Requests across all three interval groups, deduped by LeaveRequestID.
+  // Requests across interval groups, deduped by LeaveRequestID. Groups 0/1/2
+  // are previous/current/next; anything older (the 2026 import could not reach
+  // 2024) is walked backwards from -1 until an interval comes back empty.
+  // Walking back EVERY run also keeps old external ids in the fetched set, so
+  // the deletion reconciliation below never tombstones history that merely
+  // aged out of a fixed window.
   const seen = new Map<number, DayoffRequest>();
-  for (const group of [0, 1, 2]) {
+  const fetchGroup = async (group: number): Promise<number> => {
     const res = await dayoffGet<DayoffRequestsList>(`/api/doc/employees/${e.EmployeeID}/leaveRequests`, {
       IntervalGroupOrderEnum: group,
     });
     await snap("/api/doc/employees/leaveRequests", { employee: e.EmployeeID, group }, res, String(e.EmployeeID));
-    for (const r of [...(res.Pending ?? []), ...(res.History ?? [])]) seen.set(r.LeaveRequestID, r);
+    const items = [...(res.Pending ?? []), ...(res.History ?? [])];
+    for (const r of items) seen.set(r.LeaveRequestID, r);
+    return items.length;
+  };
+  for (const group of [0, 1, 2]) await fetchGroup(group);
+  for (let group = -1; group >= -10; group--) {
+    try {
+      if ((await fetchGroup(group)) === 0) break;
+    } catch {
+      // Day Off rejecting a negative group means no older intervals exist (or
+      // the enum bottomed out) — history simply stops here.
+      bumpCountedWarning(warnings, "older interval group fetch failed (pre-window history unavailable)");
+      break;
+    }
   }
   report.requests.fetched += seen.size;
 
