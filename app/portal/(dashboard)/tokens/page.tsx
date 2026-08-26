@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requirePortalMember } from "@/lib/portal-auth";
 import { getTokenUsage, PACK_PRICE_CENTS, PACK_TOKENS } from "@/lib/portal/tokens";
 import { PageHead } from "@/components/admin/PageHead";
@@ -27,12 +28,16 @@ function fmtHours(n: number): string {
   return rounded.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 function fmtLeverage(l: number | null): string {
-  if (l === null) return "—";
+  if (l === null) return "n/a";
   return `${(Math.round(l * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 })}x`;
 }
 
 export default async function PortalTokensPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const actor = await requirePortalMember();
+  // Balances and delivery are company-scoped; a member with no company in
+  // scope has nothing to see here (the nav entitlement hides the link, but the
+  // route itself must gate too).
+  if (actor.companyScope.length === 0) redirect("/portal");
   const usage = await getTokenUsage(actor);
   const justPaid = firstParam(searchParams.status) === "success";
 

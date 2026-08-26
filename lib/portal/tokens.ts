@@ -106,7 +106,9 @@ const EMPTY_USAGE: TokenUsage = {
 
 // PostgREST caps a response at 1000 rows; page through so a company with more
 // tracked entries than that still sums correctly. Every caller passes a query
-// factory so each page gets a fresh builder with the same scope filters.
+// factory so each page gets a fresh builder with the same scope filters, and
+// every factory MUST carry a total order (ending on a unique column, id) so
+// pages never repeat or skip rows.
 const PAGE = 1000;
 async function fetchAll<T>(
   build: () => { range: (from: number, to: number) => PromiseLike<{ data: unknown }> },
@@ -134,25 +136,28 @@ export async function getTokenUsage(actor: PortalActor): Promise<TokenUsage> {
         .from("token_allocations")
         .select("company_id, tokens, seq")
         .in("company_id", scope)
-        .order("seq", { ascending: false }),
+        .order("seq", { ascending: false })
+        .order("id"),
     ),
     portalRead(actor, "client_backlog_items", "token_high").is("archived_at", null),
     fetchAll<{ id: string; name: string }>(() =>
-      htt.from("repos").select("id, name").in("company_id", scope).order("name"),
+      htt.from("repos").select("id, name").in("company_id", scope).order("name").order("id"),
     ),
     fetchAll<{ repo_id: string | null; hours: number }>(() =>
       htt
         .from("man_hour_entries")
         .select("repo_id, hours")
         .in("company_id", scope)
-        .neq("status", "excluded"),
+        .neq("status", "excluded")
+        .order("id"),
     ),
     fetchAll<{ repo_id: string | null; amount: number }>(() =>
       htt
         .from("token_entries")
         .select("repo_id, amount")
         .in("company_id", scope)
-        .in("kind", ["claude", "app"]),
+        .in("kind", ["claude", "app"])
+        .order("id"),
     ),
   ]);
 

@@ -56,16 +56,19 @@ export function splitBankDetails(raw: string): {
 }
 
 // GitHub logins arrive as whatever the new member typed: a bare login, an
-// @-handle, or a pasted profile URL. Reduce all of those to the bare login,
-// lowercased (the column is citext; lowercasing keeps the stored form uniform).
-// Conservative: anything after the login segment of a URL is dropped. Exported
-// for reuse by backfills.
-export function normalizeGithubLogin(raw: string): string {
+// @-handle, or a pasted profile URL (with or without a scheme). Reduce all of
+// those to the bare login, lowercased (the column is citext; lowercasing keeps
+// the stored form uniform). Anything after the login segment of a URL is
+// dropped, and anything that does not look like a GitHub login afterwards
+// (letters, digits, hyphens, max 39 chars) is rejected as null rather than
+// stored as junk. Exported for reuse by backfills.
+export function normalizeGithubLogin(raw: string): string | null {
   let v = raw.trim();
-  v = v.replace(/^https?:\/\/(www\.)?github\.com\//i, "");
+  v = v.replace(/^https?:\/\//i, "");
+  v = v.replace(/^(www\.)?github\.com\//i, "");
   v = v.replace(/^@/, "");
-  v = v.split(/[/?#]/)[0];
-  return v.trim().toLowerCase();
+  v = v.split(/[/?#]/)[0].trim().toLowerCase();
+  return /^[a-z0-9-]{1,39}$/.test(v) ? v : null;
 }
 
 type AnswerValue = string | string[] | number | boolean | null;
@@ -123,13 +126,16 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       }
     }
 
-    // GitHub username: written through the generic maps_to path above, but the
-    // raw answer may be a profile URL or @-handle; normalize to the bare login.
-    if (peoplePatch.github_login) {
-      const login = normalizeGithubLogin(peoplePatch.github_login);
-      if (login) peoplePatch.github_login = login;
-      else delete peoplePatch.github_login;
-    }
+    // GitHub username: bucketed through the generic maps_to path above, but
+    // pulled OUT of the combined people update. github_login is globally unique
+    // (people_github_login_key), so a colliding value inside the combined
+    // update would fail the whole write and destroy every other field; it gets
+    // its own guarded update in step 2b instead. Normalize a pasted profile
+    // URL / @-handle to the bare login (null when it is not a valid login).
+    const githubLogin = peoplePatch.github_login
+      ? normalizeGithubLogin(peoplePatch.github_login)
+      : null;
+    delete peoplePatch.github_login;
 
     // The selfie is a public profile photo, not restricted PII: pull it out of
     // the sensitive patch and promote it to the person's avatar after the writes.
@@ -165,6 +171,27 @@ export async function processOnboardingSubmission(input: OnboardingInput): Promi
       .update({ ...peoplePatch, metadata: mergedMetadata })
       .eq("id", personId);
     if (pErr) console.error("[onboarding] people update failed:", pErr.message);
+
+    // 2b) GitHub login, in its own update so a unique-index collision cannot
+    //     take down the rest of the submission. Mirror the git_email rule:
+    //     one login = one person, never steal a login someone else holds.
+    if (githubLogin) {
+      const { data: loginOwner } = await companyOs
+        .from("people")
+        .select("id")
+        .eq("github_login", githubLogin)
+        .neq("id", personId)
+        .maybeSingle();
+      if (loginOwner) {
+        console.error("[onboarding] github login already mapped to another person:", githubLogin);
+      } else {
+        const { error: glErr } = await companyOs
+          .from("people")
+          .update({ github_login: githubLogin })
+          .eq("id", personId);
+        if (glErr) console.error("[onboarding] github_login update failed:", glErr.message);
+      }
+    }
 
     // 3) Restricted PII + uploaded ID/selfie paths, in one upsert. Dates are
     //    already validated YYYY-MM-DD by the survey engine.
