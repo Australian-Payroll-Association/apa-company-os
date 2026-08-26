@@ -1,5 +1,6 @@
 import { requirePortalMember } from "@/lib/portal-auth";
 import {
+  getAssignedLeaveDirectory,
   getAssignedTimeOff,
   getLeaveDecisionQueue,
   isClientLeaveApprover,
@@ -7,11 +8,11 @@ import {
 } from "@/lib/portal/time-off";
 import { DecisionQueue } from "./DecisionQueue";
 import { PageHead } from "@/components/admin/PageHead";
-import { Badge, type BadgeTone } from "@/components/admin/Badge";
+import { Badge, statusTone as memberStatusTone, type BadgeTone } from "@/components/admin/Badge";
 import { ViewToggle } from "@/components/admin/ViewToggle";
 import { TimeOffCalendar, type CalendarEntry } from "@/components/admin/TimeOffCalendar";
-import { formatDate } from "@/lib/admin/format";
-import { LEAVE_TYPE_LABEL, type LeaveType } from "@/lib/admin/time-off";
+import { formatDate, humanize } from "@/lib/admin/format";
+import { formatLeaveBalance, LEAVE_TYPE_LABEL, type LeaveType } from "@/lib/admin/time-off";
 
 export const dynamic = "force-dynamic";
 
@@ -46,10 +47,11 @@ export default async function PortalTimeOffPage() {
   // isApprover is false for everyone not named as client manager on an active
   // placement, which is how the decision section, and the reasons in it, stay
   // invisible to the rest of the client team.
-  const [entries, decisionQueue, isApprover] = await Promise.all([
+  const [entries, decisionQueue, isApprover, directory] = await Promise.all([
     getAssignedTimeOff(actor),
     getLeaveDecisionQueue(actor),
     isClientLeaveApprover(actor),
+    getAssignedLeaveDirectory(actor),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -68,6 +70,62 @@ export default async function PortalTimeOffPage() {
     endDate: e.endDate,
     isHalfDay: e.isHalfDay,
   }));
+
+  const muted = <span className="admin-cell-muted">—</span>;
+
+  // Same table the admin History page shows, minus the profile links and the
+  // placeholder Hours column, scoped to this client's assigned staff.
+  const balancesView = (
+    <div className="admin-card admin-section-card">
+      <h2 className="admin-card-title">Policies &amp; balances</h2>
+      {directory.length === 0 ? (
+        <div className="admin-empty">No assigned team members.</div>
+      ) : (
+        <div className="admin-table-wrap">
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Approver</th>
+                  <th>Team</th>
+                  <th>Location</th>
+                  <th>Leave policy</th>
+                  <th>Work schedule</th>
+                  <th>Status</th>
+                  <th>Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {directory.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <span className="admin-cell-strong">{r.fullName || "Team member"}</span>
+                    </td>
+                    <td>{r.managerName || muted}</td>
+                    <td>{r.team || muted}</td>
+                    <td>{r.location || muted}</td>
+                    <td>{r.leavePolicy || muted}</td>
+                    <td>{r.workSchedule || muted}</td>
+                    <td>
+                      {r.status ? (
+                        <Badge tone={memberStatusTone(r.status)}>{humanize(r.status)}</Badge>
+                      ) : (
+                        muted
+                      )}
+                    </td>
+                    <td className="admin-cell-mono">
+                      {formatLeaveBalance(r.usedDays)} / {formatLeaveBalance(r.totalDays)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const calendarView = (
     <div className="admin-card admin-section-card">
@@ -171,6 +229,7 @@ export default async function PortalTimeOffPage() {
         views={[
           { key: "calendar", label: "Calendar", content: calendarView },
           { key: "list", label: "List", content: listView },
+          { key: "balances", label: "Balances", content: balancesView },
         ]}
       />
     </>

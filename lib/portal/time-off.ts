@@ -7,10 +7,15 @@
 // sees person, leave type, dates, half-day flag, and status ("who is out
 // when"), and NOTHING else. `reason` and `manager_note` are free text that can
 // hold medical/personal detail and must never be selected here, even to
-// discard client-side — don't add them to the select list. Balances,
-// entitlements, and leave policy are Time Off's admin-only siblings, not
-// selected either. Pending (`requested`) rows show as "pending" with no other
-// detail, so the select list is identical regardless of status.
+// discard client-side — don't add them to the select list. Pending
+// (`requested`) rows show as "pending" with no other detail, so the select
+// list is identical regardless of status.
+//
+// Relaxed per Dave, 2026-08-26: the admin History table's directory columns
+// (approver, team, location, leave policy, work schedule, balances) are now
+// client-visible for a client's OWN assigned staff — see
+// getAssignedLeaveDirectory below. The reason/manager_note line above is
+// unchanged and stays absolute.
 
 import { companyOs } from "@/lib/supabase";
 import type { PortalActor } from "@/lib/portal-auth";
@@ -76,6 +81,63 @@ export async function getAssignedTimeOff(actor: PortalActor): Promise<PortalTime
     startDate: r.start_date,
     endDate: r.end_date,
     isHalfDay: r.is_half_day,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Leave directory (per Dave, 2026-08-26): the same per-person table the admin
+// History page shows, scoped to the client's assigned staff. Column list is
+// still explicit — team_directory carries more than this (emails, employment
+// fields) and no /portal code may select it wholesale.
+// ---------------------------------------------------------------------------
+
+export type PortalLeaveDirectoryRow = {
+  id: string;
+  fullName: string | null;
+  managerName: string | null;
+  team: string | null;
+  location: string | null;
+  leavePolicy: string | null;
+  workSchedule: string | null;
+  status: string | null;
+  usedDays: number | string | null;
+  totalDays: number | string | null;
+};
+
+type LeaveDirectoryRow = {
+  id: string;
+  full_name: string | null;
+  manager_name: string | null;
+  team: string | null;
+  location: string | null;
+  leave_policy: string | null;
+  work_schedule: string | null;
+  status: string | null;
+  used_days: number | string | null;
+  total_days: number | string | null;
+};
+
+export async function getAssignedLeaveDirectory(actor: PortalActor): Promise<PortalLeaveDirectoryRow[]> {
+  const memberIds = await getAssignedTeamMemberIds(actor);
+  if (memberIds.length === 0) return [];
+
+  const { data } = await companyOs
+    .from("team_directory")
+    .select("id, full_name, manager_name, team, location, leave_policy, work_schedule, status, used_days, total_days")
+    .in("id", memberIds)
+    .order("full_name", { ascending: true });
+
+  return ((data ?? []) as LeaveDirectoryRow[]).map((r) => ({
+    id: r.id,
+    fullName: r.full_name,
+    managerName: r.manager_name,
+    team: r.team,
+    location: r.location,
+    leavePolicy: r.leave_policy,
+    workSchedule: r.work_schedule,
+    status: r.status,
+    usedDays: r.used_days,
+    totalDays: r.total_days,
   }));
 }
 
