@@ -7,3 +7,6 @@ out/
 
 # Local working assets (source photos, not served)
 context/
+
+# Project instructions are kept local, not version-controlled
+CLAUDE.md
