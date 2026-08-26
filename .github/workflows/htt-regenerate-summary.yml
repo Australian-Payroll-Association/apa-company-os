@@ -1,0 +1,45 @@
+# Regenerate ONE htt repo's executive summary on edge8.ai.
+# Ported from the Human Token Tracker's regenerate-summary.yml. The input is
+# now the repo's owner/name (edge8 companies have no slug), and the endpoint is
+# edge8-web's /api/cron/htt-refresh-summaries/ (trailing slash required).
+#
+# This is the only way a pinned summary changes ("updated only when prompted").
+# Fire it with:
+#   gh workflow run htt-regenerate-summary.yml -f repo=<owner/name>
+#
+# Requires the CRON_SECRET repository secret (same value as the Vercel env var).
+
+name: htt-regenerate-summary
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "GitHub repo (owner/name, matching htt.repos.github_repo)"
+        required: true
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the regeneration endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TARGET_REPO: ${{ inputs.repo }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repository secret is not set" >&2
+            exit 1
+          fi
+          payload=$(printf '{"repo":"%s"}' "$TARGET_REPO")
+          response=$(curl -sS -w "\n%{http_code}" -X POST \
+            "https://www.edge8.ai/api/cron/htt-refresh-summaries/" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -1)
+          echo "HTTP $code"
+          echo "$body"
+          [ "$code" = "200" ]

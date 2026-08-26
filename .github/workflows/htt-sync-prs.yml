@@ -1,0 +1,40 @@
+# Force a pull-request refresh for every tracked htt repo on edge8.ai.
+# Ported from the Human Token Tracker's sync-prs.yml; the endpoint is now
+# edge8-web's /api/cron/htt-sync-prs/ (trailing slash required: the site
+# builds with trailingSlash: true).
+#
+# The PR sync normally runs on the Vercel cron (see vercel.json). This is the
+# manual trigger for when a repo's pull requests are visibly stale.
+#
+# Fire it with:
+#   gh workflow run htt-sync-prs.yml
+#
+# Requires the CRON_SECRET repository secret (same value as the Vercel env var).
+
+name: htt-sync-prs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the PR sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repository secret is not set" >&2
+            exit 1
+          fi
+          # maxDuration on the route is 300s; allow for the full run plus TLS setup.
+          response=$(curl -sS --max-time 330 -w "\n%{http_code}" -X POST \
+            "https://www.edge8.ai/api/cron/htt-sync-prs/" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -1)
+          echo "HTTP $code"
+          echo "$body"
+          [ "$code" = "200" ]

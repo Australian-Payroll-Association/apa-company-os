@@ -59,8 +59,25 @@
     {
       "path": "/api/cron/idea-trends/",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/htt-sync-prs/",
+      "schedule": "10 2 * * *"
+    },
+    {
+      "path": "/api/cron/htt-ingest-effort-logs/",
+      "schedule": "10 3 * * *"
+    },
+    {
+      "path": "/api/cron/htt-refresh-summaries/",
+      "schedule": "10 4 * * *"
     }
   ],
+  "git": {
+    "deploymentEnabled": {
+      "telemetry": false
+    }
+  },
   "redirects": [
     {
       "source": "/workflows/one-on-one",
