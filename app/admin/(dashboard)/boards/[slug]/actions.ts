@@ -474,6 +474,29 @@ export async function updateBoard(
       }
     }
     updates.ai_program_id = programId;
+  } else if (patch.clientCompanyId !== undefined) {
+    // The client changed but no program key was sent: a stale ai_program_id
+    // must not keep pointing at the previous company's program (the FK does
+    // not enforce the company match, and this action is callable directly).
+    const { data: b } = await companyOs
+      .from("boards")
+      .select("ai_program_id")
+      .eq("id", boardId)
+      .maybeSingle();
+    const currentProgramId = (b as { ai_program_id: string | null } | null)?.ai_program_id ?? null;
+    if (currentProgramId) {
+      const newClientId = (updates.client_company_id ?? null) as string | null;
+      let keep = false;
+      if (newClientId) {
+        const { data: program } = await companyOs
+          .from("ai_programs")
+          .select("company_id")
+          .eq("id", currentProgramId)
+          .maybeSingle();
+        keep = ((program as { company_id: string } | null)?.company_id ?? null) === newClientId;
+      }
+      if (!keep) updates.ai_program_id = null;
+    }
   }
   if (Object.keys(updates).length === 0) return { ok: true };
   const { error } = await companyOs.from("boards").update(updates).eq("id", boardId);

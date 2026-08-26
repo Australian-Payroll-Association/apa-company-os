@@ -1,4 +1,4 @@
--- NOT YET APPLIED; apply via supabase db query --linked before merge
+-- Applied via Supabase Management API (supabase db query --linked, role postgres) on 2026-08-26.
 --
 -- HTT Phase 1: additive AI Program keys on the roadmap and boards tables.
 -- Adds a nullable ai_program_id to client_roadmap_overview, client_backlog_items,

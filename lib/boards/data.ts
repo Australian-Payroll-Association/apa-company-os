@@ -179,6 +179,11 @@ export async function listBoardManageOptions(): Promise<ManageOptions> {
   }
   team.sort((a, b) => a.name.localeCompare(b.name));
   const clients = (coRes.data ?? []) as { id: string; name: string }[];
+  // Surface a failed programs fetch rather than silently offering an empty
+  // picker (the settings drawer hides the AI Program select when this is []).
+  if (progRes.error) {
+    console.error("listBoardManageOptions: ai_programs fetch failed:", progRes.error.message);
+  }
   const programs = (progRes.data ?? []) as { id: string; name: string; company_id: string }[];
   return { team, clients, programs };
 }

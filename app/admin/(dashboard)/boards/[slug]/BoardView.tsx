@@ -189,13 +189,12 @@ export function BoardView({
 
   function saveSettings() {
     setBanner(null);
-    // Only send the program key when it actually changed, so an unrelated
-    // rename never clears an existing program tag.
-    const desiredProgramId =
-      clientPrograms.some((p) => p.id === boardProgramId) ? boardProgramId : "";
+    // Only send the program key when the user actually changed the select, so
+    // an unrelated rename never clears an existing program tag, even when the
+    // options list failed to load and the current program is not in it.
     const programPatch =
-      (desiredProgramId || null) !== (board.ai_program_id ?? null)
-        ? { aiProgramId: desiredProgramId || null }
+      boardProgramId !== (board.ai_program_id ?? "")
+        ? { aiProgramId: boardProgramId || null }
         : {};
     startSaving(async () => {
       const r = await updateBoard(
