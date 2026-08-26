@@ -189,6 +189,41 @@ export async function setMeetingPublished(id: string, published: boolean): Promi
   return { ok: true };
 }
 
+// Tag a meeting to one of its company's AI Programs, or clear the tag
+// (programId null = company-wide). The program must belong to the meeting's
+// own company, mirroring programBelongs in the client-roadmaps actions.
+export async function setMeetingProgram(id: string, programId: string | null): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const meeting = await loadMeeting(id);
+  if (!meeting) return { ok: false, error: "Meeting not found." };
+
+  if (programId) {
+    const { data: program } = await companyOs
+      .from("ai_programs")
+      .select("id")
+      .eq("id", programId)
+      .eq("company_id", meeting.company_id)
+      .maybeSingle();
+    if (!program) return { ok: false, error: "Invalid AI Program." };
+  }
+
+  const { error } = await companyOs
+    .from("meetings")
+    .update({ ai_program_id: programId, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "meetings",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { action: "set_program", ai_program_id: programId },
+  });
+  refresh(meeting.company_id, id);
+  return { ok: true };
+}
+
 // Hard delete: remove the row and its uploaded source file. Meeting notes are
 // often created by mistake (wrong transcript), and there is nothing worth
 // keeping, so this is a real delete rather than a soft archive. The audit_log
