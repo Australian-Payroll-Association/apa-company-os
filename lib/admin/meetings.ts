@@ -25,6 +25,9 @@ export type AdminMeetingRow = {
   aiStatus: AiStatus;
   publishedAt: string | null;
   createdAt: string;
+  // Optional AI Program tag; null = company-wide (the default).
+  aiProgramId: string | null;
+  aiProgramName: string | null;
 };
 
 export type AdminMeeting = AdminMeetingRow & {
@@ -35,7 +38,7 @@ export type AdminMeeting = AdminMeetingRow & {
 };
 
 const ROW_SELECT =
-  "id, company_id, started_at, title, attendees, ai_status, published_at, created_at, company:companies!company_id(name)";
+  "id, company_id, started_at, title, attendees, ai_status, published_at, created_at, ai_program_id, company:companies!company_id(name), ai_program:ai_programs!ai_program_id(name)";
 const FULL_SELECT = `${ROW_SELECT}, summary, ai_error, source_file_name, call_transcripts(transcript)`;
 
 type Row = {
@@ -47,7 +50,9 @@ type Row = {
   ai_status: AiStatus;
   published_at: string | null;
   created_at: string;
+  ai_program_id: string | null;
   company?: { name: string | null } | { name: string | null }[] | null;
+  ai_program?: { name: string | null } | { name: string | null }[] | null;
 };
 
 type FullRow = Row & {
@@ -75,17 +80,26 @@ function mapRow(r: Row): AdminMeetingRow {
     aiStatus: r.ai_status,
     publishedAt: r.published_at,
     createdAt: r.created_at,
+    aiProgramId: r.ai_program_id,
+    aiProgramName: one(r.ai_program)?.name ?? null,
   };
 }
 
-export async function getMeetingsForCompany(companyId: string): Promise<AdminMeetingRow[]> {
-  const { data } = await companyOs
+// `aiProgramId` narrows to meetings tagged to that program; omitted = all of
+// the company's meetings (today's behavior).
+export async function getMeetingsForCompany(
+  companyId: string,
+  aiProgramId?: string,
+): Promise<AdminMeetingRow[]> {
+  let q = companyOs
     .from("meetings")
     .select(ROW_SELECT)
     .is("archived_at", null)
     .eq("company_id", companyId)
     .order("started_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
+  if (aiProgramId) q = q.eq("ai_program_id", aiProgramId);
+  const { data } = await q;
   return ((data ?? []) as Row[]).map(mapRow);
 }
 
@@ -114,6 +128,8 @@ export type MeetingListParams = {
   search?: string;
   status?: "published" | "draft";
   company?: string;
+  // Narrow to meetings tagged to one AI Program; omitted = all.
+  aiProgramId?: string;
 };
 
 export type MeetingListResult = {
@@ -143,6 +159,7 @@ export async function listMeetings(params: MeetingListParams = {}): Promise<Meet
 
   q = q.not("company_id", "is", null); // client meetings only
   if (params.company) q = q.eq("company_id", params.company);
+  if (params.aiProgramId) q = q.eq("ai_program_id", params.aiProgramId);
   if (params.status === "published") q = q.not("published_at", "is", null);
   if (params.status === "draft") q = q.is("published_at", null);
 

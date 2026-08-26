@@ -29,7 +29,7 @@ import { HubTeamPanel } from "@/components/hub/HubTeamPanel";
 import { BoardView } from "@/app/admin/(dashboard)/boards/[slug]/BoardView";
 import { BacklogAdminEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/BacklogAdminEditor";
 import { OverviewEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/OverviewEditor";
-import { setMeetingPublished } from "@/app/admin/(dashboard)/revenue/meetings/actions";
+import { setMeetingPublished, setMeetingProgram } from "@/app/admin/(dashboard)/revenue/meetings/actions";
 import { companyOs } from "@/lib/supabase";
 import { firstParam, mergeQuery, type SearchParamsObj } from "@/lib/admin/url";
 import { CompanyDetailsCard } from "../CompanyDetailsCard";
@@ -298,7 +298,7 @@ export default async function CompanyDetailPage({
         count: meetings.length,
         content: (
           <section className="admin-card admin-section-card">
-            <MeetingsPanel meetings={meetings} publishAction={setMeetingPublished} />
+            <MeetingsPanel meetings={meetings} publishAction={setMeetingPublished} programAction={setMeetingProgram} programOptions={programOptions} />
           </section>
         ),
       },
