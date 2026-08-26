@@ -31,13 +31,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       description,
       url: canonical,
       type: 'article',
-      images: post.image ? [{ url: post.image }] : undefined,
+      // The branded 1200x630 card (opengraph-image.tsx in this segment), not
+      // the on-page hero: heroes are square-ish and crop badly in link previews.
+      images: [{ url: `/post/${post.slug}/opengraph-image`, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: post.image ? [post.image] : undefined,
+      images: [`/post/${post.slug}/opengraph-image`],
     },
   }
 }
