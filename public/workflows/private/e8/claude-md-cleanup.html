@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAUDE.md Cleanup</title>
+<style>
+  :root{
+    --dark:#101014; --body:#3d4148; --muted:#797c82; --blue:#287BE8; --mint:#1a9e74;
+    --tint:#EAEEF2; --border:#E6E6E6; --code-bg:#f4f6f9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; padding:48px 24px 80px; background:#fff; color:var(--body);
+    font-family:Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.65;}
+  main{max-width:780px; margin:0 auto;}
+  .eyebrow{color:var(--blue); font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin:0 0 10px;}
+  h1{color:var(--dark); font-size:clamp(28px,5vw,38px); font-weight:800; line-height:1.15; margin:0 0 8px;}
+  .meta{color:var(--muted); font-size:14px; margin:0 0 32px;}
+  h2{color:var(--dark); font-size:20px; font-weight:800; margin:44px 0 12px;}
+  h3{color:var(--dark); font-size:16px; font-weight:800; margin:26px 0 8px;}
+  p{margin:0 0 14px; max-width:70ch;}
+  code{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; font-size:.85em; background:var(--code-bg); padding:1px 5px; border-radius:5px;}
+  .prompt{background:var(--code-bg); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin:0 0 16px;
+    font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; font-size:13px; line-height:1.6; white-space:pre-wrap; color:var(--dark);}
+  .promptlabel{font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--mint); margin:0 0 6px;}
+  ul,ol{margin:0 0 16px; padding-left:20px;}
+  li{margin:0 0 8px;}
+  li::marker{color:var(--blue);}
+  .callout{background:var(--tint); border-radius:14px; padding:16px 20px; margin:0 0 16px; font-size:15px;}
+  .callout b{color:var(--dark);}
+  .foot{color:var(--muted); font-size:13px; border-top:1px solid var(--border); margin-top:48px; padding-top:16px;}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Edge8 · Engineering ops</p>
+  <h1>CLAUDE.md cleanup: diagnose and fix your own machine</h1>
+  <p class="meta">26 Aug 2026 · based on the cleanup of all 13 active projects on Dave's machine</p>
+
+  <p>We audited every project in <code>code-projects</code> and found the same rot patterns repeating. This brief covers what we found, then gives you two prompts to run against your own machine. You don't run anything in the terminal yourself: point Claude at your projects folder and paste the prompt.</p>
+
+  <h2>1. The problems we found</h2>
+  <ul>
+    <li><b>Stub files with no map.</b> Four projects had a 26-line <code>CLAUDE.md</code> that was nothing but an agent-delegation table. An agent opening the repo learned who to delegate to, but nothing about the stack, the database, or how to ship.</li>
+    <li><b>Essay files that had rotted.</b> One project had 325 lines including a 90-line folder tree that was badly wrong (it listed 7 pages; the site has about 90 routes). Long files rot fastest because nobody re-reads them.</li>
+    <li><b>Confidently wrong facts.</b> One file said "Pages Router" for an App Router app. One named the wrong GitHub repo. Two documented a retired database as if it were live. Delegation blocks referenced persona files that do not exist in that repo.</li>
+    <li><b>Missing files.</b> Two active projects had no <code>CLAUDE.md</code> at all, so every session started from zero.</li>
+    <li><b>Invented-system risk.</b> Several projects have no written design system. When the file does not say so explicitly, agents invent hexes and components on the fly.</li>
+    <li><b>Stale worktrees eating disk.</b> Seven orphaned worktree folders (about 5.5 GB) had been moved aside but were still registered in git. Stale copies under <code>.claude/worktrees/</code> also pollute search results in most repos.</li>
+    <li><b>Root clutter that misleads.</b> Stale root <code>.env.local</code> files (one cost a whole session), boilerplate READMEs, committed build artifacts.</li>
+  </ul>
+
+  <h2>2. Diagnose your machine</h2>
+  <p>Open Claude Code in your projects folder (<code>cd ~/code-projects && claude</code>, or open the folder in the desktop app). Use Opus or better. Paste this:</p>
+
+  <p class="promptlabel">Diagnosis prompt</p>
+  <div class="prompt">Audit every project in this folder for CLAUDE.md health. Read only, change nothing.
+
+For each project directory, report one line with a verdict (MISSING, STUB, ROTTED, or HEALTHY) and why:
+
+1. Does a CLAUDE.md exist? If not, mark MISSING.
+2. Does it OPEN with a map that answers all five: where the design system or style guide lives (or an explicit "none exists"), where tokens live (CSS vars, theme file, tailwind config), whether there is a component reference to copy from, what the stack is and where data comes from, and how the project ships (branch, PR, gates, deploy)? A file that is mostly an agent-delegation table with no map is a STUB.
+3. Verify the file against the repo, not against itself: check the router type and framework against package.json and the app directory, the repo name against git remote -v, the database against what the code connects to, and confirm every file path the file mentions actually exists. Wrong facts or dead references mean ROTTED.
+4. Flag length: under 30 lines is probably a stub, over 100 is probably an essay that will rot. 30 to 60 is the target.
+5. Also check git hygiene: run git worktree list in each repo and flag anything marked prunable, plus stale copies under .claude/worktrees/ and any stale root .env.local where the real one lives in a subfolder.
+
+Finish with a summary table and the list of projects that need the cleanup prompt.</div>
+
+  <h2>3. Clean up your machine</h2>
+  <p>For each project the diagnosis flagged, run this in the same session (or a fresh one in the projects folder):</p>
+
+  <p class="promptlabel">Cleanup prompt</p>
+  <div class="prompt">Rewrite the CLAUDE.md files flagged in the audit as map-first files. Rules:
+
+1. Archive first: copy the existing CLAUDE.md to docs/archive/CLAUDE-md-pre-rewrite-&lt;today&gt;.md inside the same repo before changing anything. Nothing is lost.
+2. Derive everything from the repo, not from memory: read package.json, the globals or theme CSS, the route tree, the README, and the last 15 git log entries before writing a word.
+3. Open with a map answering the five questions: design system location, token location, component reference, stack and data source, ship flow. Concrete file paths, not descriptions.
+4. Never invent a design system, token set, or convention. If none exists, write "no design system exists; globals.css is the truth" instead.
+5. After the map, keep only the load-bearing rules that have actually burned a session (wrong-database gotchas, auth boundaries, deploy rails). Point at docs for everything else. Target 30 to 60 lines.
+6. Scope every rule: no unscoped "never". Say where each rule applies.
+7. Preserve any managed AGENT-DELEGATION block byte-for-byte between its BEGIN and END markers, below the map.
+8. Prefer pointers over lists that rot: "enumerate domains with ls src/features" beats a hardcoded list.
+9. For stale worktrees: run git worktree prune, but before deleting any orphaned folder, check it for uncommitted work with git status and keep anything that has real changes for me to review.
+10. Leave everything uncommitted in the working tree and give me a one-line report per project. Do not commit, push, or open PRs unless I say so.</div>
+
+  <div class="callout"><b>The contract going forward:</b> the tree wins over any doc. When you notice a CLAUDE.md and the code disagree, fix the file in the same PR. <code>edge8-web/CLAUDE.md</code> is the reference copy of the standard.</div>
+
+  <p class="foot">Prepared 26 Aug 2026 from the code-projects cleanup session. Questions to Dave.</p>
+</main>
+</body>
+</html>

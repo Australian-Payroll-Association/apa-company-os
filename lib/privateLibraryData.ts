@@ -14,6 +14,13 @@ export type LibraryItem = {
 
 export const e8PrivateItems: LibraryItem[] = [
   {
+    category: 'workflow',
+    href: '/workflows/private/e8/claude-md-cleanup.html',
+    title: 'CLAUDE.md Cleanup: Diagnose and Fix Your Machine',
+    description:
+      'The problems found auditing all 13 active projects, plus two copy-paste Claude prompts: one to diagnose your own code-projects folder and one to rewrite every CLAUDE.md as a map-first file.',
+  },
+  {
     category: 'data',
     href: '/workflows/private/e8/talent-edge-acceptance-reports-2026.html',
     title: 'Talent Edge: Monthly Acceptance Reports 2026',
