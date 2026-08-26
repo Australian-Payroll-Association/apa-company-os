@@ -230,77 +230,145 @@ export function IndividualGoalsEditor({
     </form>
   );
 
+  // Same list anatomy as the Company goals tab: one card per member (the
+  // objective card), goal rows inside it (the KR rows), actions in the same
+  // positions. Members without an active goal collapse into one trailing card
+  // so the list stays dense.
+  const withGoals = members.filter((m) => m.goals.length > 0);
+  const withoutGoals = members.filter((m) => m.goals.length === 0);
+
+  function fmtGoal(g: CoachingGoal): string {
+    const unit = g.metricUnit ? ` ${g.metricUnit}` : "";
+    if (g.currentValue === null && g.targetValue === null) return "";
+    if (g.targetValue === null) return `${g.currentValue}${unit}`;
+    return `${g.currentValue ?? 0}/${g.targetValue}${unit}`;
+  }
+
+  const goalRow = (g: CoachingGoal, gi: number) => (
+    <div key={g.id} className="edges-kr">
+      {editingId === g.id ? (
+        <div style={{ padding: "4px 0 10px" }}>
+          {goalForm((e) => {
+            e.preventDefault();
+            run(() => updateMemberGoal(g.id, inputOf()), "Goal saved.");
+          }, "Save goal")}
+        </div>
+      ) : (
+        <>
+          <div className="edges-kr-row">
+            <div className="edges-kr-title">
+              <span style={{ color: "var(--admin-faint)", fontWeight: 750, fontSize: 10, marginRight: 7 }}>
+                G{gi + 1}
+              </span>
+              {g.title}
+              {g.status !== "active" && (
+                <span className={`admin-badge ${badgeTone(g.status)}`} style={{ marginLeft: 7 }}>
+                  {GOAL_STATUS_LABELS[g.status]}
+                </span>
+              )}
+            </div>
+            {(() => {
+              const pct = progressPct(g);
+              const val = fmtGoal(g);
+              return pct !== null || val ? (
+                <span className="edges-prog">
+                  <span className="edges-prog-bar">
+                    <i
+                      className={g.status === "achieved" ? "is-done" : ""}
+                      style={{ width: `${pct ?? 0}%` }}
+                    />
+                  </span>
+                  <span className="edges-prog-val">{val}</span>
+                </span>
+              ) : null;
+            })()}
+          </div>
+          <div className="admin-cell-muted" style={{ fontSize: 12 }}>
+            {g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}
+          </div>
+          <div className="admin-form-actions" style={{ padding: "6px 0 8px" }}>
+            <button className="admin-btn admin-btn--sm" onClick={() => openEdit(g)} disabled={pending}>
+              Edit
+            </button>
+            <button
+              className="admin-btn admin-btn--sm"
+              onClick={() => {
+                if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
+              }}
+              disabled={pending}
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const memberCard = (m: AdminMemberGoals) => (
+    <div key={m.teamMemberId} className="admin-card" style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
+      <div className="edges-ohead">
+        <h3>{m.name}</h3>
+        <span className="edges-ohead-note">
+          {m.goals.length} {m.goals.length === 1 ? "goal" : "goals"} ·{" "}
+          {m.goals.filter((g) => g.ladder).length} aligned
+        </span>
+      </div>
+
+      {m.goals.map((g, gi) => goalRow(g, gi))}
+
+      {addingFor === m.teamMemberId ? (
+        <div style={{ padding: 14, borderTop: "1px solid var(--admin-line)" }}>
+          {goalForm((e) => {
+            e.preventDefault();
+            run(() => addMemberGoal(m.teamMemberId, inputOf()), "Goal added.");
+          }, "Add goal")}
+        </div>
+      ) : (
+        <div className="admin-form-actions" style={{ padding: 12, borderTop: "1px solid var(--admin-line)" }}>
+          <button className="admin-btn admin-btn--sm" onClick={() => openAdd(m.teamMemberId)} disabled={pending}>
+            + Goal
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div>
       {banner && <div className={`admin-alert admin-alert--${banner.tone === "ok" ? "ok" : "err"}`}>{banner.text}</div>}
 
-      <div className="edges-fast-grid">
-          {members.map((m) => (
-          <div key={m.teamMemberId} className="edges-fast-person">
-            <div className="edges-fast-name edges-fast-name--action">
-              <span>{m.name}</span>
-              {addingFor !== m.teamMemberId && editingId === null && (
-                <button className="edges-minibtn" onClick={() => openAdd(m.teamMemberId)} disabled={pending}>
-                  + Goal
-                </button>
+      {withGoals.map(memberCard)}
+
+      {withoutGoals.length > 0 && (
+        <div className="admin-card" style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
+          <div className="edges-ohead">
+            <h3>No active goal yet</h3>
+            <span className="edges-ohead-note">
+              {withoutGoals.length} {withoutGoals.length === 1 ? "member" : "members"}
+            </span>
+          </div>
+          {withoutGoals.map((m) => (
+            <div key={m.teamMemberId} className="edges-kr">
+              {addingFor === m.teamMemberId ? (
+                <div style={{ padding: "4px 0 10px" }}>
+                  {goalForm((e) => {
+                    e.preventDefault();
+                    run(() => addMemberGoal(m.teamMemberId, inputOf()), "Goal added.");
+                  }, "Add goal")}
+                </div>
+              ) : (
+                <div className="edges-kr-row">
+                  <div className="edges-kr-title">{m.name}</div>
+                  <button className="admin-btn admin-btn--sm" onClick={() => openAdd(m.teamMemberId)} disabled={pending}>
+                    + Goal
+                  </button>
+                </div>
               )}
             </div>
-
-            {addingFor === m.teamMemberId &&
-              goalForm((e) => {
-                e.preventDefault();
-                run(() => addMemberGoal(m.teamMemberId, inputOf()), "Goal added.");
-              }, "Add goal")}
-
-            {m.goals.length === 0 && addingFor !== m.teamMemberId && (
-              <div className="admin-cell-muted">No active goal</div>
-            )}
-
-            {m.goals.map((g) => (
-              <div key={g.id} className="edges-fast-goal">
-                {editingId === g.id ? (
-                  goalForm((e) => {
-                    e.preventDefault();
-                    run(() => updateMemberGoal(g.id, inputOf()), "Goal saved.");
-                  }, "Save goal")
-                ) : (
-                  <>
-                    <div className="edges-fast-goal-head">
-                      <strong>{g.title}</strong>
-                      {g.status !== "active" && (
-                        <span className={`admin-badge ${badgeTone(g.status)}`}>{GOAL_STATUS_LABELS[g.status]}</span>
-                      )}
-                      <span className="edges-fast-goal-actions">
-                        <button className="edges-minibtn" onClick={() => openEdit(g)} disabled={pending}>
-                          Edit
-                        </button>
-                        <button
-                          className="edges-minibtn"
-                          onClick={() => {
-                            if (confirm(`Delete "${g.title}"?`)) run(() => deleteMemberGoal(g.id), "Goal deleted.");
-                          }}
-                          disabled={pending}
-                        >
-                          Delete
-                        </button>
-                      </span>
-                    </div>
-                    {(() => {
-                      const pct = progressPct(g);
-                      return pct !== null ? (
-                        <div className="goals-bar" aria-label={`${pct}% of target`}>
-                          <span style={{ width: `${pct}%` }} />
-                        </div>
-                      ) : null;
-                    })()}
-                    <div className="admin-cell-muted">{g.ladder ? `⇗ ${g.ladder.label}` : "No ladder yet"}</div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

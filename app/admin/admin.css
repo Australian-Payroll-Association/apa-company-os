@@ -3870,12 +3870,6 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 /* Name + inline action (admin individual-goals editor): title left, button right. */
 .edges-fast-name--action { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .edges-fast-goal { margin: 6px 0; font-size: 13px; }
-/* Admin individual-goals editor: goal title + optional status pill, inline
-   minibtn actions pushed to the right edge of the row. */
-.edges-fast-goal-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
-.edges-fast-goal-head strong { font-size: 13px; }
-.edges-fast-goal-actions { display: inline-flex; gap: 6px; margin-left: auto; }
-.edges-fast-goal .goals-bar { margin: 6px 0; }
 .edges-fast-goal .admin-cell-muted { font-size: 12px; }
 .coach-dash-hint { font-style: italic; margin-top: 2px; }
 .goal-comments { flex-basis: 100%; margin-top: 4px; }
