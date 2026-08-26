@@ -19,6 +19,8 @@ import {
   type RoadmapGroup,
 } from "@/lib/client-backlog";
 import { listDocumentsForCompanies, type ClientDocument } from "@/lib/client-documents";
+import { getMeetingsForCompany, type AdminMeetingRow } from "@/lib/admin/meetings";
+import { fetchDeliveryRaw, type DeliveryRaw } from "@/lib/hub/tokens";
 
 export type ProgramStatus = "draft" | "active" | "complete";
 
@@ -66,14 +68,6 @@ export type ProgramWeek = {
   hours: number;
 };
 
-// Placeholder until meetings carry a program tag; a parallel PR adds
-// meetings.ai_program_id. Typed now so the page shape does not change later.
-export type ProgramMeeting = {
-  id: string;
-  title: string;
-  heldAt: string | null;
-};
-
 export type ProgramDetail = ProgramSummary & {
   plannedTokens: number; // SUM(token_high) of the program's backlog items
   prsMergedLast30d: number;
@@ -86,7 +80,7 @@ export type ProgramDetail = ProgramSummary & {
   prTotalAll: number; // full count regardless of filter (tab badge)
   weeklyHours: ProgramWeek[]; // last 8 ISO weeks, oldest first
   documents: ClientDocument[];
-  meetings: ProgramMeeting[]; // TODO: populate once meetings.ai_program_id lands
+  meetings: AdminMeetingRow[]; // meetings tagged to this program (meetings.ai_program_id)
 };
 
 export type ProgramPrOptions = {
@@ -133,72 +127,30 @@ type ProgramRow = {
   repo_url: string | null;
 };
 
-type RepoRow = {
-  id: string;
-  ai_program_id: string;
-  live_url: string | null;
-  last_synced_at: string | null;
+// The select behind ProgramRow, exported so a surface that already needs the
+// full ai_programs rows (the hub home) can fetch them once and hand them in.
+export const PROGRAM_SELECT = "id, name, status, github_repo, repo_url";
+
+// Everything listProgramSummaries aggregates over, so a caller that already
+// fetched these datasets for its own rendering (the hub home fetches the full
+// backlog, board and delivery rows anyway) can pass them in and no dataset is
+// fetched twice per page load. Shapes are structural minimums; richer rows
+// (e.g. full BacklogItem) satisfy them.
+export type ProgramSummaryInputs = {
+  programs: ProgramRow[];
+  delivery: DeliveryRaw;
+  backlogRows: Array<{ ai_program_id: string | null; status: string }>; // active items
+  boardRows: Array<{ ai_program_id: string | null }>; // active boards
 };
 
-const leverageOf = (ai: number, hours: number): number | null => (hours > 0 ? ai / hours : null);
-
-function daysAgoIso(days: number): string {
-  return new Date(Date.now() - days * 86_400_000).toISOString();
-}
-
-export async function listProgramSummaries(companyId: string): Promise<ProgramSummary[]> {
-  const [{ data: programData }, { data: repoData }] = await Promise.all([
+export async function fetchProgramSummaryInputs(companyId: string): Promise<ProgramSummaryInputs> {
+  const [{ data: programData }, delivery, backlogRows, boardRows] = await Promise.all([
     companyOs
       .from("ai_programs")
-      .select("id, name, status, github_repo, repo_url")
+      .select(PROGRAM_SELECT)
       .eq("company_id", companyId)
       .order("created_at", { ascending: false }),
-    htt
-      .from("repos")
-      .select("id, ai_program_id, live_url, last_synced_at")
-      .eq("company_id", companyId),
-  ]);
-
-  const programs = (programData ?? []) as ProgramRow[];
-  if (programs.length === 0) return [];
-  const repos = (repoData ?? []) as RepoRow[];
-  const repoByProgram = new Map(repos.map((r) => [r.ai_program_id, r]));
-  const repoIds = repos.map((r) => r.id);
-  // Hoisted so every fetchAll page uses the same cutoff.
-  const mergedSince = daysAgoIso(7);
-
-  const [hourRows, aiRows, mergedRows, backlogRows, boardRows] = await Promise.all([
-    repoIds.length
-      ? fetchAll<{ repo_id: string | null; hours: number }>(() =>
-          htt
-            .from("man_hour_entries")
-            .select("repo_id, hours")
-            .eq("company_id", companyId)
-            .neq("status", "excluded")
-            .order("id"),
-        )
-      : Promise.resolve([] as { repo_id: string | null; hours: number }[]),
-    repoIds.length
-      ? fetchAll<{ repo_id: string | null; amount: number }>(() =>
-          htt
-            .from("token_entries")
-            .select("repo_id, amount")
-            .eq("company_id", companyId)
-            .in("kind", ["claude", "app"])
-            .order("id"),
-        )
-      : Promise.resolve([] as { repo_id: string | null; amount: number }[]),
-    repoIds.length
-      ? fetchAll<{ repo_id: string }>(() =>
-          htt
-            .from("pull_requests")
-            .select("repo_id")
-            .in("repo_id", repoIds)
-            .eq("state", "merged")
-            .gte("merged_at", mergedSince)
-            .order("id"),
-        )
-      : Promise.resolve([] as { repo_id: string }[]),
+    fetchDeliveryRaw([companyId]),
     fetchAll<{ ai_program_id: string | null; status: string }>(() =>
       companyOs
         .from("client_backlog_items")
@@ -217,6 +169,40 @@ export async function listProgramSummaries(companyId: string): Promise<ProgramSu
         .order("id"),
     ),
   ]);
+  return { programs: (programData ?? []) as ProgramRow[], delivery, backlogRows, boardRows };
+}
+
+function daysAgoIso(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
+const leverageOf = (ai: number, hours: number): number | null => (hours > 0 ? ai / hours : null);
+
+export async function listProgramSummaries(
+  companyId: string,
+  pre?: ProgramSummaryInputs,
+): Promise<ProgramSummary[]> {
+  const inputs = pre ?? (await fetchProgramSummaryInputs(companyId));
+  const { programs, backlogRows, boardRows } = inputs;
+  const { repos, hourRows, aiRows } = inputs.delivery;
+  if (programs.length === 0) return [];
+  const repoByProgram = new Map(repos.filter((r) => r.ai_program_id).map((r) => [r.ai_program_id as string, r]));
+  const repoIds = repos.map((r) => r.id);
+
+  // The only repo-dependent query; everything else arrives via the inputs.
+  // Cutoff hoisted so every fetchAll page uses the same value.
+  const mergedSince = daysAgoIso(7);
+  const mergedRows = repoIds.length
+    ? await fetchAll<{ repo_id: string }>(() =>
+        htt
+          .from("pull_requests")
+          .select("repo_id")
+          .in("repo_id", repoIds)
+          .eq("state", "merged")
+          .gte("merged_at", mergedSince)
+          .order("id"),
+      )
+    : [];
 
   const hoursByRepo = new Map<string, number>();
   for (const r of hourRows) {
@@ -383,6 +369,7 @@ export async function getProgramDetail(
     weekRows,
     merged30Rows,
     allDocuments,
+    meetings,
   ] = await Promise.all([
     companyOs
       .from("client_roadmap_groups")
@@ -431,6 +418,7 @@ export async function getProgramDetail(
         )
       : Promise.resolve([] as { id: string }[]),
     listDocumentsForCompanies([companyId]),
+    getMeetingsForCompany(companyId, programId),
   ]);
 
   const roadmapItems = (itemData ?? []) as unknown as BacklogItem[];
@@ -486,8 +474,6 @@ export async function getProgramDetail(
     prTotalAll: prPage.totalAll,
     weeklyHours: weekLabels.map((w) => ({ isoWeek: w, hours: hoursByWeek.get(w) ?? 0 })),
     documents: allDocuments.filter((d) => d.programId === programId),
-    // TODO: meetings have no program tag yet; populate from company_os.meetings
-    // once meetings.ai_program_id lands (parallel PR).
-    meetings: [],
+    meetings,
   };
 }

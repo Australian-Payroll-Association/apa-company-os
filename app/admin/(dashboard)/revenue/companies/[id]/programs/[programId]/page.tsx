@@ -10,6 +10,8 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { BarChart } from "@/components/admin/charts/BarChart";
 import { CompanyDocuments, type ProgramOption } from "@/components/admin/CompanyDocuments";
+import { MeetingsPanel } from "@/components/hub/MeetingsPanel";
+import { setMeetingPublished, setMeetingProgram } from "@/app/admin/(dashboard)/revenue/meetings/actions";
 import { BacklogAdminEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/BacklogAdminEditor";
 import { OverviewEditor } from "@/app/admin/(dashboard)/edges/client-roadmaps/OverviewEditor";
 import { formatDate } from "@/lib/admin/format";
@@ -205,6 +207,21 @@ export default async function ProgramDetailPage({
             documents={detail.documents}
             programs={programOptions}
             defaultProgramId={detail.id}
+          />
+        </section>
+      ),
+    },
+    {
+      key: "meetings",
+      label: "Meetings",
+      count: detail.meetings.length,
+      content: (
+        <section className="admin-card admin-section-card">
+          <MeetingsPanel
+            meetings={detail.meetings}
+            publishAction={setMeetingPublished}
+            programAction={setMeetingProgram}
+            programOptions={programOptions}
           />
         </section>
       ),
