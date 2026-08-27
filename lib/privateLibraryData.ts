@@ -32,7 +32,7 @@ export const e8PrivateItems: LibraryItem[] = [
     href: '/workflows/private/e8/data-atlas.html',
     title: 'Edge8 Data Atlas',
     description:
-      'Zoomable ERD of the live Edge8 Company Database: 202 tables across company_os, htt, and agents, grouped by the Four Offices, with every column, key, and the 358 foreign-key relationships. Click a table to trace what it connects to.',
+      'Indexed, zoomable map of the live Edge8 Company Database: 201 tables across company_os, htt, and agents, grouped by the Four Offices, with every column, key, and the 354 foreign-key relationships. Click a table for its full detail and references.',
   },
   {
     category: 'data',
