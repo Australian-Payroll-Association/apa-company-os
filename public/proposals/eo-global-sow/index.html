@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EO — Statements of Work</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#14181d;--paper:#f4f6f4;--surface:#ffffff;--surface-2:#fbfcfb;
+    --muted:#59646d;--faint:#8a949b;--line:#dde3e0;--line-strong:#c7cfcb;
+    --accent:#0f6e63;--accent-deep:#0a4f47;--accent-soft:#e2efeb;
+    --gold:#a9701c;--gold-soft:#f2e8d4;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 28px -18px rgba(20,24,29,.22);--radius:14px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(18px,4vw,44px) 88px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .cover{border:1px solid var(--line);background:radial-gradient(120% 120% at 100% 0%,var(--accent-soft) 0%,transparent 46%),var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(26px,4vw,46px);position:relative;overflow:hidden}
+  .cover::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:26px 26px;opacity:.14;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,transparent);mask-image:linear-gradient(180deg,transparent,#000 40%,transparent)}
+  .cover>*{position:relative}
+  .cover h1{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.03;letter-spacing:-.02em;text-wrap:balance;margin:14px 0 10px;max-width:20ch}
+  .cover .lede{font-size:clamp(15.5px,2.1vw,18px);color:var(--muted);max-width:64ch;margin:0}
+  .status-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.04em;padding:5px 11px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface-2);white-space:nowrap}
+  .chip.draft{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:var(--gold-soft)}
+  .toc{display:grid;grid-template-columns:1fr;gap:12px;margin:32px 0 4px}
+  .toc a{text-decoration:none;color:inherit;display:flex;gap:18px;align-items:flex-start;padding:20px 22px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+  .toc a:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .toc .n{font-family:"Archivo",sans-serif;font-weight:800;font-size:30px;color:var(--accent);line-height:1;min-width:44px}
+  .toc .body{flex:1}
+  .toc .t{font-family:"Archivo",sans-serif;font-weight:700;font-size:18px;line-height:1.2}
+  .toc .s{color:var(--muted);font-size:14px;margin-top:5px;max-width:70ch}
+  .toc .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .toc .pill{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.04em;padding:3px 9px;border-radius:999px;border:1px solid var(--line-strong);color:var(--faint);background:var(--surface-2)}
+  .toc .pill.on{color:var(--accent-deep);border-color:color-mix(in srgb,var(--accent) 35%,var(--line));background:var(--accent-soft)}
+  .toc .pill.tbd{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,var(--line));background:var(--gold-soft)}
+  .note{margin:24px 0 8px;padding:16px 20px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;color:var(--muted);font-size:14.5px}
+  .note strong{color:var(--ink);font-weight:600}
+  footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:var(--faint);font-size:13px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="cover">
+    <div class="eyebrow">Statements of Work · Edge8 for EO</div>
+    <h1>Four SOWs, scoped for sign-off</h1>
+    <p class="lede">The next block of build and support work, split into four statements of work. Read each on its own; hours are attached once scope is agreed, except where a phase is already estimated.</p>
+    <div class="status-row">
+      <span class="chip draft">DRAFT · for review</span>
+      <span class="chip">4 statements of work</span>
+      <span class="chip">HubSpot · Chargebee · Altai · Hivebrite · Eventbrite</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Statements of Work">
+    <a href="sow-1-hubspot-improvement.html">
+      <span class="n">01</span>
+      <span class="body">
+        <span class="t">HubSpot System Improvement</span>
+        <span class="s">A prioritised feature list to agree scope, then attach hours. Cleaner data, clearer reporting, less manual work.</span>
+        <span class="meta"><span class="pill">Scoping</span><span class="pill tbd">Hours TBD</span><span class="pill">v1.1</span></span>
+      </span>
+    </a>
+    <a href="sow-2-event-system.html">
+      <span class="n">02</span>
+      <span class="body">
+        <span class="t">Event System · Eventbrite → OneEO</span>
+        <span class="s">Build the bridge, prove it on a five-chapter beta, and coordinate the client rollout — one full-time person for about two months.</span>
+        <span class="meta"><span class="pill on">Estimated · ~320 h</span><span class="pill">1 FTE · ~2 months</span></span>
+      </span>
+    </a>
+    <a href="sow-3-global-approval.html">
+      <span class="n">03</span>
+      <span class="body">
+        <span class="t">Global Approval Flow</span>
+        <span class="s">The HubSpot-native global membership approval — intake, approval, Chargebee billing, and a member record in Altai. The piece the legacy migration depends on.</span>
+        <span class="meta"><span class="pill">Scoping</span><span class="pill tbd">Hours TBD</span></span>
+      </span>
+    </a>
+    <a href="sow-4-ongoing-support.html">
+      <span class="n">04</span>
+      <span class="body">
+        <span class="t">Ongoing Support &amp; Rollout</span>
+        <span class="s">A retained monthly team: roll out ~60 chapters, keep the platform healthy with fixes and minor improvements, and build the customer-feedback tracker.</span>
+        <span class="meta"><span class="pill">Retained team</span><span class="pill tbd">Rate TBD</span><span class="pill">~60 chapters</span></span>
+      </span>
+    </a>
+  </nav>
+
+  <div class="note">
+    <strong>How they fit together.</strong> SOW 2 builds the event integration and the shared rollout tracker; SOW 4 picks up where it ends — rolling the integration out to all chapters and building the feedback tracker into that same tracker, so everything stays visible in one place. SOW 1 and SOW 3 are independent workstreams on the HubSpot platform.
+  </div>
+
+  <footer>
+    <span>Statements of Work · Prepared by Edge8 for EO</span>
+    <span class="mono">draft · for review, not contracted</span>
+  </footer>
+</div>
+</body>
+</html>

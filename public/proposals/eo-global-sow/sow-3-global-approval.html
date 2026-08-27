@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SOW 3 — Global Approval Flow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#14181d;--paper:#f4f6f4;--surface:#ffffff;--surface-2:#fbfcfb;
+    --muted:#59646d;--faint:#8a949b;--line:#dde3e0;--line-strong:#c7cfcb;
+    --accent:#0f6e63;--accent-deep:#0a4f47;--accent-soft:#e2efeb;
+    --gold:#a9701c;--gold-soft:#f2e8d4;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 28px -18px rgba(20,24,29,.22);--radius:14px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(18px,4vw,44px) 88px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .cover{border:1px solid var(--line);background:radial-gradient(120% 120% at 100% 0%,var(--accent-soft) 0%,transparent 46%),var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(26px,4vw,46px);position:relative;overflow:hidden}
+  .cover::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:26px 26px;opacity:.14;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,transparent);mask-image:linear-gradient(180deg,transparent,#000 40%,transparent)}
+  .cover>*{position:relative}
+  .cover h1{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.03;letter-spacing:-.02em;text-wrap:balance;margin:14px 0 10px;max-width:20ch}
+  .cover .lede{font-size:clamp(15.5px,2.1vw,18px);color:var(--muted);max-width:64ch;margin:0}
+  .status-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.04em;padding:5px 11px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface-2);white-space:nowrap}
+  .chip.draft{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:var(--gold-soft)}
+  .chip.inc{color:var(--accent-deep);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft)}
+  .chip.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-right:7px;vertical-align:1px}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:24px}
+  .meta div{background:var(--surface);padding:13px 16px}
+  .meta dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+  .meta dd{margin:0;font-size:14.5px;font-weight:500}
+  .note{margin:20px 0 8px;padding:16px 20px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;color:var(--muted);font-size:14.5px}
+  .note strong{color:var(--ink);font-weight:600}
+  section.stream{margin-top:46px;scroll-margin-top:20px}
+  .s-head{display:flex;gap:16px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:6px;flex-wrap:wrap}
+  .s-head .num{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(24px,4vw,34px);color:var(--accent);line-height:.9;letter-spacing:-.02em}
+  .s-head h2{font-family:"Archivo",sans-serif;font-weight:700;font-size:clamp(20px,3.2vw,27px);letter-spacing:-.02em;margin:0;line-height:1.05;text-wrap:balance}
+  .s-head .tag{margin-left:auto;align-self:center}
+  .s-sub{color:var(--muted);font-size:15px;margin:12px 0 4px;max-width:72ch}
+  .block{margin-top:24px}
+  .block>h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-deep);font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .block>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+  p{margin:0 0 12px;max-width:72ch}
+  ul.clean{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  ul.clean.grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+  ul.clean li{position:relative;padding:10px 14px 10px 32px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-size:14.5px}
+  ul.clean li::before{content:"";position:absolute;left:13px;top:16px;width:8px;height:8px;border-radius:2px;background:var(--accent);transform:rotate(45deg)}
+  ul.clean li b{font-weight:600}
+  .flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:4px 0 6px;padding:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  .step{flex:1 1 150px;min-width:150px;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;padding:11px 12px;position:relative}
+  .step .k{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.08em}
+  .step .v{font-size:13px;font-weight:600;margin-top:4px;line-height:1.28}
+  .step .d{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.35}
+  .step .sys{display:inline-block;margin-top:7px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.04em;padding:2px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
+  .arrow{display:flex;align-items:center;color:var(--faint);font-weight:700;flex:0 0 auto}
+  @media (max-width:720px){.arrow{transform:rotate(90deg)}}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.split{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .panel h4{margin:0 0 10px;font-size:13px;font-family:"IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .panel ul{margin:0;padding-left:18px;display:grid;gap:6px}
+  .panel li{font-size:14px}
+  .panel.warn{border-color:color-mix(in srgb,var(--gold) 40%,var(--line));background:var(--gold-soft)}
+  .panel.warn h4{color:var(--gold)}
+  .tablewrap{overflow-x:auto}
+  table.est{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table.est th,table.est td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.est thead th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;background:var(--surface-2)}
+  table.est tbody tr:last-child td{border-bottom:none}
+  table.est td .sub{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+  table.est th.num,table.est td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  table.est td.num{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent)}
+  table.est tfoot td{border-top:2px solid var(--ink);border-bottom:none;background:var(--surface-2);font-weight:600}
+  table.est tfoot td:first-child{font-family:"Archivo",sans-serif;font-weight:700;font-size:15px}
+  table.est tfoot td.num{font-size:16px}
+  .tbd{color:var(--faint);font-family:"IBM Plex Mono",monospace;font-weight:500}
+  .callout{display:flex;gap:12px;padding:14px 16px;border-radius:10px;background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--gold) 40%,var(--line));font-size:14px;color:var(--ink)}
+  .callout .mono{font-weight:600;color:var(--gold)}
+  hr.soft{border:none;border-top:1px dashed var(--line-strong);margin:28px 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--faint);font-size:13px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+  a.link{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+  @media print{.cover,.card{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="cover">
+    <div class="eyebrow">Statement of Work 3 · Global Approval Flow</div>
+    <h1>Global membership approval, HubSpot to Altai</h1>
+    <p class="lede">Build the global membership approval flow that runs after chapter approval: a prospect enters through HubSpot, the global team approves, the member pays through Chargebee, and a member record is created in Altai. This is the piece the legacy migration depends on.</p>
+    <div class="status-row">
+      <span class="chip draft dot">DRAFT · scope for sign-off</span>
+      <span class="chip">HubSpot · Chargebee · Altai</span>
+      <span class="chip">Hours TBD</span>
+    </div>
+    <dl class="meta">
+      <div><dt>Prepared for</dt><dd>EO — Program sponsor</dd></div>
+      <div><dt>Prepared by</dt><dd>Edge8</dd></div>
+      <div><dt>Date</dt><dd>—</dd></div>
+      <div><dt>Status</dt><dd>Scoping</dd></div>
+      <div><dt>Commercials</dt><dd>Hours TBD</dd></div>
+    </dl>
+  </header>
+
+  <div class="note">
+    <strong>For clarity.</strong> The four-step <em>chapter</em> approval is effectively done. This SOW covers the four-step <em>global</em> approval — the part that isn't built and that moving off legacy depends on. Running it in HubSpot lets the global team manage any chapter from one place, whether or not that chapter has its own HubSpot instance.
+  </div>
+
+  <section class="stream" id="objective">
+    <div class="s-head"><span class="num">01</span><h2>Objective</h2></div>
+    <p class="s-sub">Replace the legacy submission path with a HubSpot-native global approval flow that ends in a paid member and a member record in Altai — the mechanism that retires legacy for global membership.</p>
+  </section>
+
+  <section class="stream" id="process">
+    <div class="s-head"><span class="num">02</span><h2>The process we'd build</h2></div>
+    <div class="flow" role="list">
+      <div class="step" role="listitem"><div class="k">1 · INTAKE</div><div class="v">Prospect enters</div><div class="d">Legacy form rebuilt as a HubSpot form; prospect lands in HubSpot</div><span class="sys">HubSpot</span></div>
+      <div class="arrow">→</div>
+      <div class="step" role="listitem"><div class="k">2 · APPROVE</div><div class="v">Global team says yes</div><div class="d">Workflow advances the prospect for any chapter</div><span class="sys">HubSpot</span></div>
+      <div class="arrow">→</div>
+      <div class="step" role="listitem"><div class="k">3 · PAY</div><div class="v">Member pays</div><div class="d">Integration triggers billing; payment captured</div><span class="sys">Chargebee</span></div>
+      <div class="arrow">→</div>
+      <div class="step" role="listitem"><div class="k">4 · CLOSE</div><div class="v">Closed Won</div><div class="d">Payment returns to HubSpot; deal moves to closed won</div><span class="sys">HubSpot</span></div>
+      <div class="arrow">→</div>
+      <div class="step" role="listitem"><div class="k">SYNC</div><div class="v">Member record created</div><div class="d">Created in the system of record</div><span class="sys">Altai</span></div>
+    </div>
+    <p style="margin-top:14px">The key build is <b>Step 1</b>: the form that feeds legacy today is rebuilt so intake lands in HubSpot regardless of whether the chapter runs its own instance. Everything downstream is workflow and integration.</p>
+  </section>
+
+  <section class="stream" id="scope">
+    <div class="s-head"><span class="num">03</span><h2>Scope &amp; effort</h2><span class="tag chip draft">HOURS TBD</span></div>
+    <p class="s-sub">Four buckets. Hours are attached once scope is confirmed.</p>
+    <div class="block">
+      <div class="tablewrap"><table class="est">
+        <thead><tr><th>Bucket</th><th class="num">Hours</th></tr></thead>
+        <tbody>
+          <tr><td>Legacy form → HubSpot form<span class="sub">Rebuild the submission form so it creates the prospect in HubSpot</span></td><td class="num tbd">—</td></tr>
+          <tr><td>Global approval workflow<span class="sub">The stage global uses to review and advance prospects across all chapters</span></td><td class="num tbd">—</td></tr>
+          <tr><td>Chargebee billing integration<span class="sub">Trigger billing on approval; capture the payment result</span></td><td class="num tbd">—</td></tr>
+          <tr><td>Close-the-loop sync<span class="sub">Move to Closed Won on payment; create the member record in Altai</span></td><td class="num tbd">—</td></tr>
+        </tbody>
+        <tfoot><tr><td>Total</td><td class="num tbd">—</td></tr></tfoot>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="stream" id="deliverables">
+    <div class="s-head"><span class="num">04</span><h2>Deliverables</h2></div>
+    <ul class="clean grid">
+      <li>HubSpot intake form replacing the legacy submission form.</li>
+      <li>Global approval workflow spanning branded and non-branded chapters.</li>
+      <li>Chargebee billing integration with payment-status handling.</li>
+      <li>Closed-Won automation and member-record creation in Altai.</li>
+    </ul>
+  </section>
+
+  <section class="stream" id="fineprint">
+    <div class="s-head"><span class="num">05</span><h2>Assumptions &amp; dependencies</h2></div>
+    <div class="split">
+      <div class="panel"><h4>Assumptions</h4><ul>
+        <li>Global approval runs in HubSpot for every chapter, on a HubSpot instance or not.</li>
+        <li>Intake is the legacy submission path, not HubSpot marketing.</li>
+        <li>Altai remains the member system of record.</li>
+      </ul></div>
+      <div class="panel warn"><h4>Dependencies / open</h4><ul>
+        <li>Written spec confirming scope for this phase.</li>
+        <li>Sequencing against the legacy-migration work.</li>
+        <li>Phase-one alignment on the 1EO interface.</li>
+        <li>Sits within the contract renewal / new SOW.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>SOW 3 · Global Approval Flow (HubSpot → Chargebee → Altai) · Prepared by Edge8 for EO</span>
+    <span class="mono">v0.1 · scope for sign-off</span>
+  </footer>
+</div>
+</body>
+</html>
