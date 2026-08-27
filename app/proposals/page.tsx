@@ -99,8 +99,8 @@ const PROPOSALS: Proposal[] = [
     client: "Accord Plumbing",
     kind: "AI & Data Proposal",
     summary:
-      "A staged plan to consolidate Accord Plumbing's data, automate reporting, and reduce what you spend on software and manual work, year over year.",
-    date: "June 2026",
+      "Version 2: the database foundation priced two ways (native Azure or Supabase/Vercel), with the invoice-verification platform built on top.",
+    date: "August 2026",
     href: "/proposals/accord-plumbing-proposal.html",
     status: "open",
   },

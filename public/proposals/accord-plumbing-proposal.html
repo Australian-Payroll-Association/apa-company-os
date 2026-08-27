@@ -4,17 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Accord Plumbing: AI & Data Proposal | Edge8</title>
-<meta name="description" content="A staged plan to consolidate Accord Plumbing's data, automate reporting, and reduce what you spend on software and manual work, year over year.">
+<meta name="description" content="Version 2: the database foundation for Accord Plumbing, priced two ways (your Azure or our Supabase/Vercel stack), with the invoice-verification platform built in.">
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Accord Plumbing: AI & Data Proposal | Edge8">
-<meta property="og:description" content="A staged plan to consolidate Accord Plumbing's data, automate reporting, and reduce what you spend on software and manual work, year over year.">
+<meta property="og:description" content="Version 2: the database foundation for Accord Plumbing, priced two ways (your Azure or our Supabase/Vercel stack), with the invoice-verification platform built in.">
 <meta property="og:image" content="https://www.edge8.ai/social.jpg">
 <meta property="og:url" content="https://www.edge8.ai/proposals/accord-plumbing-proposal.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Accord Plumbing: AI & Data Proposal | Edge8">
-<meta name="twitter:description" content="A staged plan to consolidate Accord Plumbing's data, automate reporting, and reduce what you spend on software and manual work, year over year.">
+<meta name="twitter:description" content="Version 2: the database foundation for Accord Plumbing, priced two ways (your Azure or our Supabase/Vercel stack), with the invoice-verification platform built in.">
 <meta name="twitter:image" content="https://www.edge8.ai/social.jpg">
 <style>
   :root{
@@ -229,98 +230,125 @@
 
   <header>
     <div class="eyebrow">Edge8 &nbsp;·&nbsp; Proposal</div>
-    <h1>From Scattered Tools to One Company Database</h1>
-    <p class="sub">A staged plan to consolidate Accord Plumbing's data, automate reporting, and reduce what you spend on software and manual work, year over year.</p>
+    <h1>Get the Database Right, Then Build Anything</h1>
+    <p class="sub">Version 2. You've proven you can build; the foundation is what's holding you back. We design and build your central database, wire in your systems, and rebuild the invoice-verification platform properly, priced two ways so you choose the environment.</p>
     <div class="meta">
-      <div><span>Prepared for</span>Ian, Accord Plumbing</div>
+      <div><span>Prepared for</span>Ian Vaughan, Accord Plumbing</div>
       <div><span>Prepared by</span>Dave Hajdu &amp; Quan Chau, Edge8</div>
-      <div><span>Date</span>10 June 2026</div>
-      <div><span>Status</span>For confirmation</div>
+      <div><span>Date</span>27 August 2026</div>
+      <div><span>Version</span>2, replaces June proposal</div>
     </div>
   </header>
 
   <section>
     <h2>What we heard</h2>
-    <h3>Your current setup</h3>
-    <p>You run a 50-person commercial plumbing business on a stack of separate tools that don't share one source of truth:</p>
-    <ul>
-      <li><strong>Simpro</strong> for operations: scheduling, labour and material cost capture, job budgets, and invoicing (plus the new "Lightning" AI add-on you're trialling).</li>
-      <li><strong>Xero</strong> for financials, overheads, and wages, fed from Simpro.</li>
-      <li><strong>Easy Bills</strong> to read supplier invoices from your accounts inbox, which still misreads enough that a part-time staffer matches them to jobs by hand.</li>
-      <li><strong>SharePoint</strong> for files. No central company database tying it together.</li>
-    </ul>
-    <p>The sharpest pain is reporting. Your financial controller and bookkeeper each spend roughly a week a month pulling data from Xero and Simpro to produce the P&amp;L and operations reports, and a monthly subcontractor spends about a week turning Simpro data into labour forecasts and a board report. The information exists, but it lives in too many places to answer a simple question quickly.</p>
+    <h3>You've been building, and it's working</h3>
+    <p>Since June you haven't waited. You built a quoting plugin for your estimator that turns a four-to-five-hour tender package into a twenty-minute one, and you prototyped an invoice-verification platform that checks supplier invoices against quotes and flags overcharges before a PM approves them. Both prove the point: the workflows are automatable, and you can build them.</p>
+    <p>Then you hit the wall every self-builder hits. The invoice platform sprawled across an Azure App Service, an Azure SQL database, a SQLite copy on your own laptop, Bluehost DNS, and GitHub, with the AI suggesting architecture as you went. Your words on our call: <strong>"I wanted to have that database structured right from the start... I need a little bit more direction, getting it done right."</strong></p>
+    <p>Meanwhile the data still lives in too many places: Simpro for operations, Xero for financials, EzzyBills for supplier invoices, SharePoint/365 for files, Basecamp for action items, Safety Culture for safety. Every automation you want to build has to fight that spread before it can do anything useful.</p>
   </section>
 
   <section>
     <h2>The cost of today</h2>
     <h3>What we believe this is costing you</h3>
-    <p>Before we talk about any solution, we want to agree on the baseline. Here is our estimate of your current annual spend. <strong>Please confirm or correct these figures</strong>, the whole proposal is built on getting this right.</p>
+    <p>The baseline from June still stands, now in US dollars so every number in this proposal reads in one currency. <strong>Please confirm or correct these figures</strong> whenever you're ready; the savings story is built on them.</p>
     <table class="cost-table">
       <thead>
-        <tr><th>Current cost</th><th class="num">Estimated / year (AUD)</th></tr>
+        <tr><th>Current cost</th><th class="num">Estimated / year (USD)</th></tr>
       </thead>
       <tbody>
         <tr>
           <td><span class="label">Simpro licences + AI add-on</span><span class="note">~15 app licences + ~7 office licences + the AI integration</span></td>
-          <td class="num">$35,000 – $40,000</td>
+          <td class="num">$23,000 – $26,500</td>
         </tr>
         <tr>
           <td><span class="label">Internal reporting labour</span><span class="note">Controller + bookkeeper, ~40+ hrs/month compiling reports by hand</span></td>
-          <td class="num">~$36,000</td>
+          <td class="num">~$24,000</td>
         </tr>
         <tr>
           <td><span class="label">Subcontractor board report</span><span class="note">Monthly labour-forecast and project board pack</span></td>
-          <td class="num">$15,000 – $18,000</td>
+          <td class="num">$10,000 – $12,000</td>
+        </tr>
+        <tr>
+          <td><span class="label">PM invoice cross-checking</span><span class="note">50-100 supplier invoices per job per month, each checked by hand against quotes 6-12 months old</span></td>
+          <td class="num">Hours per PM, every month</td>
         </tr>
         <tr class="total">
           <td>Estimated total carried every year</td>
-          <td class="num">~$75,000 – $90,000</td>
+          <td class="num">~$50,000 – $60,000+</td>
         </tr>
       </tbody>
     </table>
-    <p class="disclaimer">Figures are our best estimate from our conversation and use a conservative blended labour rate. We expect you to tighten these with us.</p>
+    <p class="disclaimer">Converted from the June AUD estimates at ~0.66 and using a conservative blended labour rate. We expect you to tighten these with us.</p>
   </section>
 
   <section>
     <h2>The opportunity</h2>
     <div class="callout">
-      <span class="tag">The question worth answering</span>
-      <p class="q">If we could deliver this for roughly <span class="hl">half of what you spend today</span>, and structure it so the difference lands <span class="hl">in your pocket year after year</span>, is that a project worth doing?</p>
+      <span class="tag">The deal, in one sentence</span>
+      <p class="q">We build the <span class="hl">foundation once, properly</span>: your central database, your systems wired in, and the invoice platform rebuilt on it. Then <span class="hl">you build anything you want on top</span>, with us behind you when you need us.</p>
     </div>
-    <p style="margin-top:24px;">If the answer is yes, the rest is a matter of sequencing. Below is how we'd stage the work so each step pays for itself before the next one begins. We don't price the build until we've confirmed the numbers above together, because the savings story has to be honest to be worth anything.</p>
+    <p style="margin-top:24px;">This is the division of labour you asked for on the call. Edge8 does the part where getting it wrong is expensive: the database design, the sync jobs, the environment. You keep doing the part you're clearly good at: building the workflows for your business, with Claude wired straight into clean data. Any module you'd rather not build, we quote as a fixed price.</p>
   </section>
 
   <section>
-    <h2>The path</h2>
-    <h3>Three phases, each a standalone win</h3>
+    <h2>The foundation build</h2>
+    <h3>What's in the box</h3>
 
     <div class="phase">
       <div class="num">1</div>
       <div class="body">
-        <div class="role">The foundation</div>
-        <h4>Consolidate the data &amp; automate reporting</h4>
-        <p>We build pipes from Simpro and Xero (via their APIs) into your first central company database, holding projects, people, tools, materials, and financials, all in one clean place. In parallel, we rebuild the reports your team produces by hand today, so a board pack or a P&amp;L becomes a question answered in minutes instead of a week of compiling. This is the hardest and most valuable step. On its own it removes the reporting drain.</p>
+        <div class="role">Map</div>
+        <h4>System map and database design</h4>
+        <p>We map every system holding your data (Simpro, Xero, EzzyBills, SharePoint/365, Basecamp, Safety Culture) and design your central company database around jobs, quotes, purchase orders, invoices, people, and financials. This is the step you asked us to get right, and it's where we spend the most care.</p>
       </div>
     </div>
 
     <div class="phase">
       <div class="num">2</div>
       <div class="body">
-        <div class="role">The rebuild</div>
-        <h4>Recreate your workflows off the database</h4>
-        <p>With clean data in place, we rebuild the workflows you actually use, such as cost capture, scheduling, and invoicing, running straight from your own database instead of inside Simpro or in spreadsheets. We replace one component at a time, in the order that gives you the most relief first, so nothing breaks and you stay in control of the pace.</p>
+        <div class="role">Sync</div>
+        <h4>Pipe the data in, on a schedule</h4>
+        <p>We build the sync jobs that pull Simpro jobs, POs and pricing, supplier invoices from your accounts inbox via EzzyBills, and Xero financials into the database automatically, twice a day, no laptop required. Everything you build afterwards reads from one clean place instead of five apps.</p>
       </div>
     </div>
 
     <div class="phase">
       <div class="num">3</div>
       <div class="body">
-        <div class="role">The replacement</div>
-        <h4>Retire Simpro</h4>
-        <p>Once the workflows you rely on are running on your own system and proven, we decommission Simpro and its licences. The recurring software fee comes off your books, and what remains is a small hosting cost. From here, your system is yours, tailored exactly how you want it, and cheap to run.</p>
+        <div class="role">Prove</div>
+        <h4>Invoice verification, rebuilt properly</h4>
+        <p>Your prototype becomes the real thing: every supplier invoice checked against the quote, the PO, or your price history, a review queue where PMs approve or flag in one click, and running totals that catch a PO the moment it would tip over budget. Your team logs in at your own address, and nothing depends on a laptop being on.</p>
       </div>
     </div>
+
+    <div class="phase">
+      <div class="num">4</div>
+      <div class="body">
+        <div class="role">Hand over</div>
+        <h4>Claude wired in, keys in your hand</h4>
+        <p>We connect Claude to your database and hand you a working setup for building your own modules on top, the way you built the quoting plugin. You get the documentation, the repo, and a walkthrough. From there you build, and we quote fixed prices for anything you'd rather hand to us, like automating the monthly subcontractor board report.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The investment</h2>
+    <h3>One build, two environments, your choice</h3>
+    <p>Same scope either way. The difference is where it lives and what it costs to build and run.</p>
+    <div class="options">
+      <div class="opt">
+        <h4>Option A: Supabase + Vercel</h4>
+        <div class="price">$10,000<small> USD, fixed</small></div>
+        <p>Our core stack: a Postgres database on Supabase with hosting on Vercel. Fastest to build, cheapest to run (roughly $70/month), and the same architecture Edge8 runs its own company on. Your data, your accounts, fully exportable Postgres. Our recommendation.</p>
+      </div>
+      <div class="opt">
+        <h4>Option B: Native Azure</h4>
+        <div class="price">$16,500<small> USD, fixed</small></div>
+        <p>The same foundation built where you already are: Azure SQL and Azure App Service in your own Microsoft tenant, alongside SharePoint and 365. More engineering hours in the Microsoft environment, hence the higher price, and modestly higher monthly running costs.</p>
+      </div>
+    </div>
+    <p class="disclaimer">Both prices are fixed for the full foundation scope above. Hosting runs in your own accounts either way; you own everything from day one.</p>
   </section>
 
   <section>
@@ -331,7 +359,7 @@
       <div class="opt">
         <h4>AI Officer Certification</h4>
         <div class="price">$99<small> / month per person</small></div>
-        <p>Put your most tech-forward people through our certification so they can build and maintain these systems themselves, and bring the AI Officer mindset into the business.</p>
+        <p>Put your most tech-forward people through our certification so they can build and maintain these systems themselves, and bring the AI Officer mindset into the business. EO member pricing available.</p>
       </div>
       <div class="opt">
         <h4>Fractional or full-time engineer</h4>
@@ -339,12 +367,13 @@
         <p>An Edge8 engineer who supports your system and keeps improving it, learning your business over time, automating more as you go. Part-time or full-time.</p>
       </div>
     </div>
+    <p style="margin-top:20px;">And the road you asked about is still the road: once your workflows run on your own database and prove themselves, retiring Simpro and its licence bill becomes a decision, not a dream. The foundation is step one of that path.</p>
   </section>
 
   <section>
     <div class="next-step">
       <h3>Next step</h3>
-      <p>One working session to confirm the cost figures above and scope Phase 1 together. You bring roughly five reports you'd most want to run on demand; we map how to pull the data and build them. From there we can put real numbers and a phased schedule in front of you.</p>
+      <p>Reply with your pick: Option A (Supabase + Vercel) or Option B (native Azure). We'll book the system-map working session the same week, and the first thing on the screen will be your invoice platform running on a proper foundation.</p>
     </div>
   </section>
 
