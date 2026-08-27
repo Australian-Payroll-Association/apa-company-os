@@ -46,6 +46,12 @@
   .idx-item .rc { margin-left: auto; font-size: 11px; color: var(--dim); }
   .idx-sub { padding: 1px 12px 3px 44px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--mono); }
   .idx-sub:hover { color: var(--mint); }
+  .off-group summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); user-select: none; }
+  .off-group summary::-webkit-details-marker { display: none; }
+  .off-group + .off-group { border-top: 1px solid var(--border); }
+  .off-group[open] > summary { color: var(--mint); }
+  .sub-group { margin: 0 0 8px; }
+  .sub-head { display: flex; align-items: center; gap: 6px; padding: 5px 12px 3px 22px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
   .no-results { padding: 16px; font-size: 13px; color: var(--muted); }
 
   /* ---- canvas ---- */
@@ -60,8 +66,10 @@
   #edges path.out { stroke: var(--blue); stroke-width: 2.5; }
   #edges path.in { stroke: var(--mint); stroke-width: 2.5; }
 
-  .dom-box { position: absolute; border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,0.015); }
-  .dom-title { position: absolute; top: 14px; left: 24px; font-size: 20px; font-weight: 800; letter-spacing: 0.02em; opacity: 0.9; pointer-events: none; }
+  .office-box { position: absolute; border: 1.5px solid; border-radius: 28px; }
+  .office-title { position: absolute; top: 20px; left: 32px; font-size: 32px; font-weight: 800; letter-spacing: 0.01em; opacity: 0.95; pointer-events: none; }
+  .dom-box { position: absolute; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.022); }
+  .dom-title { position: absolute; top: 12px; left: 18px; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.82; pointer-events: none; }
 
   .tcard { position: absolute; width: 250px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; }
   .tcard:hover { border-color: var(--border-hi); }
@@ -164,14 +172,19 @@ const DATA = {"domains":[{"n":"Revenue \u00b7 CRM & pipeline","color":"#E3AC4A",
 // ---------------- layout ----------------
 const CARD_W = 250, ROW_H = 20, HDR_H = 42, GAP = 26, PAD = 30, TITLE_H = 52, DGAP = 90;
 const pos = {};            // table -> {x, y, w, h, dom}
-const domBoxes = [];       // {x, y, w, h, name, color}
+const domBoxes = [];       // sub-domain boxes
+const officeBoxes = [];    // office super-boxes
 const domOf = {};
 DATA.domains.forEach((d, di) => d.tables.forEach(t => domOf[t] = di));
 
+const SUB_TITLE_H = 40, SUB_GAP = 46, OFF_TITLE_H = 64, OFF_PAD = 30, OFF_GAP = 130, OFF_TARGET_W = 1320;
+const officeName = n => n.split(' · ')[0];
+const subName = n => { const i = n.indexOf(' · '); return i < 0 ? n : n.slice(i + 3); };
 (function layout() {
-  const sized = DATA.domains.map(d => {
+  // 1. size every sub-domain box (card packing)
+  const sized = DATA.domains.map((d, di) => {
     const cards = d.tables.map(t => ({ t, h: HDR_H + DATA.tables[t].cols.length * ROW_H }));
-    const ncols = Math.max(1, Math.min(6, Math.ceil(Math.sqrt(cards.length * 1.6))));
+    const ncols = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(cards.length * 1.1))));
     const colH = new Array(ncols).fill(0);
     const placed = cards.map(c => {
       let ci = 0;
@@ -181,23 +194,48 @@ DATA.domains.forEach((d, di) => d.tables.forEach(t => domOf[t] = di));
       return p;
     });
     const w = ncols * CARD_W + (ncols - 1) * GAP + PAD * 2;
-    const h = TITLE_H + Math.max(...colH) - GAP + PAD;
-    return { d, placed, w, h };
+    const h = SUB_TITLE_H + Math.max(...colH) - GAP + PAD;
+    return { di, d, placed, w, h };
   });
 
-  const totalArea = sized.reduce((s, x) => s + (x.w + DGAP) * (x.h + DGAP), 0);
-  const targetW = Math.max(2400, Math.sqrt(totalArea) * 1.5);
-  let x = 0, y = 0, rowH = 0;
+  // 2. group sub-domains under their office (preserve order)
+  const offices = [], offIdx = {};
   for (const s of sized) {
-    if (x > 0 && x + s.w > targetW) { x = 0; y += rowH + DGAP; rowH = 0; }
-    domBoxes.push({ x, y, w: s.w, h: s.h, name: s.d.n, color: s.d.color });
-    for (const p of s.placed) {
-      pos[p.t] = { x: x + PAD + p.cx * (CARD_W + GAP), y: y + TITLE_H + p.cy, w: CARD_W, h: p.h, dom: DATA.domains.indexOf(s.d) };
+    const on = officeName(s.d.n);
+    if (!(on in offIdx)) { offIdx[on] = offices.length; offices.push({ name: on, color: s.d.color, subs: [] }); }
+    offices[offIdx[on]].subs.push(s);
+  }
+
+  // 3. lay out each office: pack its sub-domain boxes into rows
+  const laid = offices.map(off => {
+    let x = 0, y = 0, rowH = 0, innerW = 0;
+    const placements = [];
+    for (const s of off.subs) {
+      if (x > 0 && x + s.w > OFF_TARGET_W) { x = 0; y += rowH + SUB_GAP; rowH = 0; }
+      placements.push({ s, lx: x, ly: y });
+      x += s.w + SUB_GAP; rowH = Math.max(rowH, s.h); innerW = Math.max(innerW, x - SUB_GAP);
     }
-    x += s.w + DGAP; rowH = Math.max(rowH, s.h);
+    return { off, placements, w: innerW + OFF_PAD * 2, h: OFF_TITLE_H + y + rowH + OFF_PAD };
+  });
+
+  // 4. arrange office boxes into rows by area
+  const totalArea = laid.reduce((a, o) => a + (o.w + OFF_GAP) * (o.h + OFF_GAP), 0);
+  const targetW = Math.max(3200, Math.sqrt(totalArea) * 1.4);
+  let ox = 0, oy = 0, orowH = 0;
+  for (const o of laid) {
+    if (ox > 0 && ox + o.w > targetW) { ox = 0; oy += orowH + OFF_GAP; orowH = 0; }
+    officeBoxes.push({ x: ox, y: oy, w: o.w, h: o.h, name: o.off.name, color: o.off.color });
+    for (const pl of o.placements) {
+      const dbx = ox + OFF_PAD + pl.lx, dby = oy + OFF_TITLE_H + pl.ly;
+      domBoxes.push({ x: dbx, y: dby, w: pl.s.w, h: pl.s.h, name: subName(pl.s.d.n), color: pl.s.d.color });
+      for (const p of pl.s.placed) {
+        pos[p.t] = { x: dbx + PAD + p.cx * (CARD_W + GAP), y: dby + SUB_TITLE_H + p.cy, w: CARD_W, h: p.h, dom: pl.s.di };
+      }
+    }
+    ox += o.w + OFF_GAP; orowH = Math.max(orowH, o.h);
   }
 })();
-const WORLD = domBoxes.reduce((b, d) => ({ w: Math.max(b.w, d.x + d.w), h: Math.max(b.h, d.y + d.h) }), { w: 0, h: 0 });
+const WORLD = officeBoxes.reduce((b, d) => ({ w: Math.max(b.w, d.x + d.w), h: Math.max(b.h, d.y + d.h) }), { w: 0, h: 0 });
 
 // ---------------- render world ----------------
 const world = document.getElementById('world');
@@ -205,6 +243,10 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(
 const fmtRows = n => n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
 
 let html = '';
+for (const o of officeBoxes) {
+  html += '<div class="office-box" style="left:' + o.x + 'px;top:' + o.y + 'px;width:' + o.w + 'px;height:' + o.h + 'px;border-color:' + o.color + '55;background:' + o.color + '0d">'
+        + '<div class="office-title" style="color:' + o.color + '">' + esc(o.name) + '</div></div>';
+}
 for (const d of domBoxes) {
   html += '<div class="dom-box" style="left:' + d.x + 'px;top:' + d.y + 'px;width:' + d.w + 'px;height:' + d.h + 'px">'
         + '<div class="dom-title" style="color:' + d.color + '">' + esc(d.name) + '</div></div>';
@@ -393,21 +435,31 @@ const idx = document.getElementById('index');
 function buildIndex(q) {
   q = (q || '').trim().toLowerCase();
   document.body.classList.toggle('searching', !!q);
+  const offices = [], offIdx = {};
+  DATA.domains.forEach(d => {
+    const on = d.n.split(' · ')[0];
+    if (!(on in offIdx)) { offIdx[on] = offices.length; offices.push({ name: on, color: d.color, subs: [] }); }
+    offices[offIdx[on]].subs.push(d);
+  });
   let out = '', any = false;
-  for (const d of DATA.domains) {
-    let items = '';
-    for (const t of d.tables) {
-      const info = DATA.tables[t];
-      const nameHit = !q || t.toLowerCase().includes(q);
-      const colHits = q ? info.cols.filter(c => c[0].toLowerCase().includes(q)).slice(0, 6) : [];
-      const card = document.querySelector('.tcard[data-t="' + t + '"]');
-      if (card) card.classList.toggle('faded', !!q && !nameHit && !colHits.length);
-      if (!nameHit && !colHits.length) continue;
-      any = true;
-      items += '<div class="idx-item" data-t="' + esc(t) + '"><span>' + esc(t) + '</span><span class="rc">' + fmtRows(info.r) + '</span></div>';
-      for (const c of colHits) items += '<div class="idx-sub" data-t="' + esc(t) + '">· ' + esc(c[0]) + '</div>';
+  for (const off of offices) {
+    let offItems = '', offCount = 0;
+    for (const d of off.subs) {
+      let items = '';
+      for (const t of d.tables) {
+        const info = DATA.tables[t];
+        const nameHit = !q || t.toLowerCase().includes(q);
+        const colHits = q ? info.cols.filter(c => c[0].toLowerCase().includes(q)).slice(0, 6) : [];
+        const card = document.querySelector('.tcard[data-t="' + t + '"]');
+        if (card) card.classList.toggle('faded', !!q && !nameHit && !colHits.length);
+        if (!nameHit && !colHits.length) continue;
+        any = true; offCount++;
+        items += '<div class="idx-item" data-t="' + esc(t) + '"><span>' + esc(t) + '</span><span class="rc">' + fmtRows(info.r) + '</span></div>';
+        for (const c of colHits) items += '<div class="idx-sub" data-t="' + esc(t) + '">· ' + esc(c[0]) + '</div>';
+      }
+      if (items) offItems += '<div class="sub-group"><div class="sub-head">' + esc(d.n.split(' · ').slice(1).join(' · ')) + '<span class="dom-count">' + d.tables.length + '</span></div>' + items + '</div>';
     }
-    if (items) out += '<details class="dom-group" open><summary><span class="dom-dot" style="background:' + d.color + '"></span>' + esc(d.n) + '<span class="dom-count">' + d.tables.length + '</span></summary>' + items + '</details>';
+    if (offItems) out += '<details class="off-group" open><summary><span class="dom-dot" style="background:' + off.color + '"></span>' + esc(off.name) + '<span class="dom-count">' + offCount + '</span></summary>' + offItems + '</details>';
   }
   idx.innerHTML = any ? out : '<div class="no-results">No tables or columns match.</div>';
   idx.querySelectorAll('[data-t]').forEach(el => el.onclick = () => {
@@ -432,7 +484,7 @@ const mctx = mm.getContext('2d');
 function drawMinimap() {
   mctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   mctx.clearRect(0, 0, MMW, MMH);
-  for (const d of domBoxes) {
+  for (const d of officeBoxes) {
     mctx.fillStyle = d.color + '22';
     mctx.strokeStyle = d.color + '66';
     mctx.fillRect(d.x * mmScale, d.y * mmScale, d.w * mmScale, d.h * mmScale);
