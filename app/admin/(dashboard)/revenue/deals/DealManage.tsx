@@ -238,7 +238,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
             )}
           </div>
 
-          <div className="appdet-head-actions" style={{ flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+          <div className="appdet-head-actions deal-head-actions">
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1.05 }}>
                 {formatCents(deal.amountCents, currency)}
@@ -248,7 +248,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
                 {deal.probability != null && ` · ${formatCents(Math.round(weightedUsd), "usd")} weighted · ${deal.probability}%`}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <div className="deal-head-btns">
               <button
                 type="button"
                 className="admin-btn admin-btn--primary admin-btn--sm"
@@ -295,7 +295,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
       </div>
 
       {pendingWon && (
-        <div className="admin-alert" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="admin-alert deal-inline-row" style={{ marginBottom: 12 }}>
           <span>Final deal amount ({currency.toUpperCase()})</span>
           <input
             className="admin-input"
@@ -326,7 +326,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
       )}
 
       {pendingLost && (
-        <div className="admin-alert" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="admin-alert deal-inline-row" style={{ marginBottom: 12 }}>
           <span>Why was this deal lost?</span>
           <select className="admin-input" style={{ maxWidth: 200 }} value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
             <option value="">Pick a reason…</option>
@@ -501,7 +501,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
                 Waiting on your call. Accepting moves this into your owned pipeline.
               </p>
               {rejecting ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="deal-field-stack">
                   <select className="admin-input" aria-label="Reject reason" value={handoffReason} onChange={(e) => setHandoffReason(e.target.value)}>
                     <option value="">Why reject this handoff?</option>
                     {REJECT_REASONS.map(([v, l]) => (
@@ -510,7 +510,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
                       </option>
                     ))}
                   </select>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="deal-btn-row">
                     <button type="button" className="admin-btn admin-btn--danger admin-btn--sm" disabled={!handoffReason} onClick={rejectHandoff}>
                       Confirm reject
                     </button>
@@ -520,7 +520,7 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="deal-btn-row">
                   <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={acceptHandoff}>
                     Accept handoff
                   </button>

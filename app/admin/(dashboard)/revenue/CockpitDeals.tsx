@@ -158,8 +158,8 @@ export function CockpitDeals({
           <>
             <Link
               href={dealPath(selected.title || selected.personName || selected.companyName || "", selected.id)}
-              className="admin-btn admin-btn--sm"
-              style={{ marginBottom: 12, display: "inline-flex" }}
+              className="admin-btn admin-btn--sm deal-open-link"
+              style={{ marginBottom: 12 }}
             >
               Open full deal ↗
             </Link>
