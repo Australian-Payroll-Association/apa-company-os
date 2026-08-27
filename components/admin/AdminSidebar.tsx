@@ -224,6 +224,13 @@ const NAV: NavSection[] = [
           { label: "QuickBooks", href: "/admin/settings/quickbooks", ico: "⌁", enabled: true },
         ],
       },
+      {
+        subheading: "Automation",
+        superAdmin: true,
+        items: [
+          { label: "Agents", href: "/admin/settings/agents", ico: "⟳", enabled: true },
+        ],
+      },
     ],
   },
     ],
