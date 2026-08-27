@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, humanize } from "@/lib/admin/format";
+import { dealPath } from "@/lib/admin/slug";
 import type { KanbanColumn } from "@/components/admin/KanbanBoard";
 import type { DealCard, MoveOpts } from "./deals/DealsBoard";
 import { moveDealStage, decideHandoff } from "./deals/actions";
@@ -154,6 +156,13 @@ export function CockpitDeals({
       >
         {selected && (
           <>
+            <Link
+              href={dealPath(selected.title || selected.personName || selected.companyName || "", selected.id)}
+              className="admin-btn admin-btn--sm"
+              style={{ marginBottom: 12, display: "inline-flex" }}
+            >
+              Open full deal ↗
+            </Link>
             {banner && (
               <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
                 {banner}
