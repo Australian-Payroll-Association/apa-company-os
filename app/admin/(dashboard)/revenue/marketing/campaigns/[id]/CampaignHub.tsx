@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -21,7 +21,7 @@ import {
   type MarketingCampaignRow,
 } from "@/lib/admin/marketing-campaigns";
 import { CalendarBoard } from "../../calendar/CalendarBoard";
-import { moveEntry } from "../../calendar/actions";
+import { draftCampaignAssets, moveEntry } from "../../calendar/actions";
 import { addAssetToCampaign, generateSeoGeoPlan, updateCampaign } from "../actions";
 
 type Note = { tone: "ok" | "err"; text: string } | null;
@@ -68,8 +68,10 @@ export function CampaignHub({
   pillars: PillarOption[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState<Note>(null);
+  const [drafting, setDrafting] = useState(false);
   const [tab, setTab] = useState<Tab>("idea");
   const [editing, setEditing] = useState(false);
   const [ideaEditing, setIdeaEditing] = useState(false);
@@ -92,7 +94,8 @@ export function CampaignHub({
   const [newDate, setNewDate] = useState("");
 
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
-  const brandName = brands.find((b) => b.id === brandId)?.name ?? null;
+  const brand = brands.find((b) => b.id === brandId) ?? null;
+  const brandName = brand?.name ?? null;
   const pillarName = pillars.find((p) => p.id === pillarId)?.name ?? null;
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) {
@@ -146,6 +149,41 @@ export function CampaignHub({
       }
     });
   }
+
+  // The campaign's starting point: read the brand profile and draft one asset
+  // per active channel. Long-running (it writes real copy), so it has its own
+  // busy flag rather than sharing the transition used by the quick saves.
+  function draftAll() {
+    if (drafting) return;
+    setNote(null);
+    setDrafting(true);
+    draftCampaignAssets(campaign.id)
+      .then((r) => {
+        if (r.ok) {
+          setTab("assets");
+          setNote({
+            tone: "ok",
+            text: `Drafted ${r.channels.length} asset${r.channels.length === 1 ? "" : "s"}. Open each one to review and refine.`,
+          });
+          router.refresh();
+        } else {
+          setNote({ tone: "err", text: r.error });
+        }
+      })
+      .finally(() => setDrafting(false));
+  }
+
+  // Auto-draft once when the create form hands off with ?draft=1, then strip the
+  // flag so a refresh does not fire it again.
+  const autoFired = useRef(false);
+  useEffect(() => {
+    if (autoFired.current) return;
+    if (searchParams.get("draft") !== "1") return;
+    autoFired.current = true;
+    router.replace(`/admin/revenue/marketing/campaigns/${campaign.id}`, { scroll: false });
+    if (campaign.brandId && (campaign.idea ?? "").trim()) draftAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function openAsset(id: string) {
     router.push(`/admin/revenue/marketing/campaigns/${campaign.id}/assets/${id}`);
@@ -331,6 +369,35 @@ export function CampaignHub({
             </div>
           </div>
         )}
+      </section>
+
+      {/* Starting point: draft every asset from the brand's profile. */}
+      <section className="admin-card admin-section-card">
+        <div className="mcr-section-head">
+          <div>
+            <div className="admin-card-title">Draft the assets</div>
+            <p className="admin-page-sub" style={{ marginTop: 4, maxWidth: 640 }}>
+              {brand ? (
+                <>
+                  Reads the idea and{" "}
+                  <Link href={`/admin/revenue/marketing/brands/${brand.slug}`}>{brand.name}&apos;s brand profile</Link>{" "}
+                  (its voice, active channels, and styles), then drafts one asset per channel below.
+                  Nothing is sent; every piece lands as a draft to review.
+                </>
+              ) : (
+                <>Set a brand on this campaign (Edit above) so the writer knows the voice and which channels to produce.</>
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="admin-btn admin-btn--primary"
+            onClick={draftAll}
+            disabled={drafting || pending || !brandId || !(idea ?? "").trim()}
+          >
+            {drafting ? "Drafting all assets…" : entries.length > 0 ? "Re-draft all assets" : "Draft all assets with AI"}
+          </button>
+        </div>
       </section>
 
       {/* Tabs */}
@@ -562,7 +629,7 @@ function AssetsByChannel({
       )}
 
       {entries.length === 0 ? (
-        <div className="admin-empty">No assets yet. Add the first piece of content above.</div>
+        <div className="admin-empty">No assets yet. Use “Draft all assets with AI” above, or add one manually.</div>
       ) : view === "card" ? (
         <div className="mcr-lanes">
           {CHANNELS.map((ch) => {

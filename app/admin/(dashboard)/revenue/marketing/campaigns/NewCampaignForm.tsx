@@ -32,7 +32,10 @@ export function NewCampaignForm({ brands, pillars }: { brands: BrandOption[]; pi
         endsOn: endsOn || null,
       });
       if (result.ok) {
-        router.push(`/admin/revenue/marketing/campaigns/${result.id}`);
+        // With a brand set, land on the hub and auto-draft every asset from the
+        // brand's profile. Without one, just open the hub (nothing to draft yet).
+        const suffix = brandId ? "?draft=1" : "";
+        router.push(`/admin/revenue/marketing/campaigns/${result.id}${suffix}`);
       } else {
         setError(result.error);
       }

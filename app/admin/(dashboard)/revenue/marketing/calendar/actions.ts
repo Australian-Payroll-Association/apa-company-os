@@ -557,6 +557,147 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
   return { ok: true, entries: rows };
 }
 
+// The campaign's one-click starting point. Reads the campaign's idea and its
+// brand profile (the same voice, channels, and styles the Brands page edits),
+// asks the writer for the full channel set, and lands one drafted asset per
+// channel under the campaign. Assets are keyed by channel so re-running updates
+// them in place rather than piling up duplicates. Email also spawns a draft
+// broadcast, matching draftWithAI. Never sends anything.
+export async function draftCampaignAssets(
+  campaignId: string,
+): Promise<{ ok: true; channels: string[] } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  const { data: campData, error: campErr } = await companyOs
+    .from("marketing_campaigns")
+    .select("id, name, idea, objective, brand_id, pillar_id, starts_on")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (campErr) return { ok: false, error: campErr.message };
+  if (!campData) return { ok: false, error: "Campaign not found." };
+
+  const campaign = campData as {
+    id: string;
+    name: string;
+    idea: string | null;
+    objective: string | null;
+    brand_id: string | null;
+    pillar_id: string | null;
+    starts_on: string | null;
+  };
+  if (!campaign.brand_id) {
+    return { ok: false, error: "Set a brand on this campaign first, so the writer knows the voice and channels." };
+  }
+  if (!campaign.idea?.trim()) {
+    return { ok: false, error: "Write the campaign idea first; it is the brief the writer works from." };
+  }
+
+  // The idea is the brief; the goal and name sharpen it. The brand profile (its
+  // active channels, voice, and styles) decides which assets to produce.
+  const result = await writeForBrand({
+    brandId: campaign.brand_id,
+    sourceText: campaign.idea,
+    brief: campaign.objective || campaign.name,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  // Existing campaign assets keyed by channel, so re-running updates in place.
+  const { data: existingData } = await companyOs
+    .from("marketing_calendar")
+    .select("id, channel, broadcast_id")
+    .eq("campaign_id", campaignId);
+  const existingByChannel = new Map(
+    ((existingData ?? []) as { id: string; channel: string; broadcast_id: string | null }[]).map((e) => [
+      e.channel,
+      e,
+    ]),
+  );
+
+  const baseDate = campaign.starts_on ?? new Date().toISOString().slice(0, 10);
+
+  for (const out of result.outputs) {
+    const fields: Record<string, unknown> = { copy_md: out.bodyMd };
+    if (out.imageStyle) fields.image_style = out.imageStyle;
+    if (out.imageBriefMd) fields.image_brief_md = out.imageBriefMd;
+    if (out.channel === "blog") {
+      if (out.blogStyle) fields.blog_style = out.blogStyle;
+      if (out.seoMd) fields.seo_md = out.seoMd;
+    }
+    if (out.channel === "linkedin" || out.channel === "facebook") {
+      if (out.socialStyle) fields.social_style = out.socialStyle;
+    }
+
+    const title = out.title?.trim() || campaign.name;
+
+    let targetId: string;
+    let targetBroadcastId: string | null;
+    const existing = existingByChannel.get(out.channel);
+    if (existing) {
+      await companyOs.from("marketing_calendar").update({ title, ...fields }).eq("id", existing.id);
+      targetId = existing.id;
+      targetBroadcastId = existing.broadcast_id;
+    } else {
+      // Blog anchors the window; social and email stagger after it.
+      const offset = out.channel === "blog" ? 0 : DERIVATIVES.find((d) => d.channel === out.channel)?.offsetDays ?? 1;
+      const { data: created } = await companyOs
+        .from("marketing_calendar")
+        .insert({
+          title,
+          brand_id: campaign.brand_id,
+          pillar_id: campaign.pillar_id,
+          campaign_id: campaignId,
+          channel: out.channel,
+          status: "drafted",
+          publish_date: addDays(baseDate, offset),
+          created_by: admin.email,
+          ...fields,
+        })
+        .select("id")
+        .maybeSingle();
+      const createdId = (created as { id: string } | null)?.id ?? null;
+      if (!createdId) continue;
+      targetId = createdId;
+      targetBroadcastId = null;
+    }
+
+    // Email deliverables also drive a draft broadcast.
+    if (out.channel === "email") {
+      const subject = out.subject?.trim() || title;
+      const preheader = out.preheader?.trim() || null;
+      if (targetBroadcastId) {
+        await companyOs
+          .from("email_campaigns")
+          .update({ subject, preheader, body_md: out.bodyMd, updated_at: new Date().toISOString() })
+          .eq("id", targetBroadcastId)
+          .eq("status", "draft");
+      } else {
+        await createDraftBroadcastForEntry({
+          entryId: targetId,
+          name: title,
+          subject,
+          preheader,
+          bodyMd: out.bodyMd,
+          brandId: campaign.brand_id,
+          publishDate: baseDate,
+          createdBy: admin.email,
+        });
+      }
+    }
+  }
+
+  await recordAudit({
+    table: "marketing_campaigns",
+    recordId: campaignId,
+    operation: "bulk_update",
+    actor: admin.email,
+    context: { ai_drafted: result.outputs.map((o) => o.channel) },
+  });
+  refresh();
+  revalidatePath(`/admin/revenue/marketing/campaigns/${campaignId}`);
+
+  return { ok: true, channels: result.outputs.map((o) => o.channel) };
+}
+
 // Spawns a draft email campaign from an email-channel entry and links them, so
 // the calendar reflects the campaign's real send status from then on. The
 // entry's brand and publish date carry through; scheduling stays draft-editable
