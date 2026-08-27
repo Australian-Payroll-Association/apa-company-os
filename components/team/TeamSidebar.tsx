@@ -23,6 +23,7 @@ function companyGroup(): NavGroup {
       { label: "Org Chart", href: "/team/org", ico: "⌥", enabled: true },
       { label: "Directory", href: "/team/directory", ico: "☷", enabled: true },
       { label: "Gallery", href: "/team/gallery", ico: "▦", enabled: true },
+      { label: "Coaching Sessions", href: "/team/coaching-sessions", ico: "☰", enabled: true },
     ],
   };
 }
