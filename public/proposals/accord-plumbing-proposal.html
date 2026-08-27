@@ -245,29 +245,33 @@
     <h3>You've been building, and it's working</h3>
     <p>Since June you haven't waited. You built a quoting plugin for your estimator that turns a four-to-five-hour tender package into a twenty-minute one, and you prototyped an invoice-verification platform that checks supplier invoices against quotes and flags overcharges before a PM approves them. Both prove the point: the workflows are automatable, and you can build them.</p>
     <p>Then you hit the wall every self-builder hits. The invoice platform sprawled across an Azure App Service, an Azure SQL database, a SQLite copy on your own laptop, Bluehost DNS, and GitHub, with the AI suggesting architecture as you went. Your words on our call: <strong>"I wanted to have that database structured right from the start... I need a little bit more direction, getting it done right."</strong></p>
-    <p>Meanwhile the data still lives in too many places: Simpro for operations, Xero for financials, EzzyBills for supplier invoices, SharePoint/365 for files, Basecamp for action items, Safety Culture for safety. Every automation you want to build has to fight that spread before it can do anything useful.</p>
+    <p>Meanwhile the data still lives in too many places: Simpro for operations, Xero for financials, EzzyBills for supplier invoices, SharePoint/365 for files, Basecamp for action items, Safety Culture for safety.</p>
+    <div class="callout">
+      <span class="tag">The real blocker</span>
+      <p class="q">Every automation you want to build has to <span class="hl">fight that spread</span> before it can do anything useful.</p>
+    </div>
   </section>
 
   <section>
     <h2>The cost of today</h2>
     <h3>What we believe this is costing you</h3>
-    <p>The baseline from June still stands, now in US dollars so every number in this proposal reads in one currency. <strong>Please confirm or correct these figures</strong> whenever you're ready; the savings story is built on them.</p>
+    <p>The baseline from June still stands. <strong>Please confirm or correct these figures</strong> whenever you're ready; the savings story is built on them.</p>
     <table class="cost-table">
       <thead>
-        <tr><th>Current cost</th><th class="num">Estimated / year (USD)</th></tr>
+        <tr><th>Current cost</th><th class="num">Estimated / year (AUD)</th></tr>
       </thead>
       <tbody>
         <tr>
           <td><span class="label">Simpro licences + AI add-on</span><span class="note">~15 app licences + ~7 office licences + the AI integration</span></td>
-          <td class="num">$23,000 – $26,500</td>
+          <td class="num">$35,000 – $40,000</td>
         </tr>
         <tr>
           <td><span class="label">Internal reporting labour</span><span class="note">Controller + bookkeeper, ~40+ hrs/month compiling reports by hand</span></td>
-          <td class="num">~$24,000</td>
+          <td class="num">~$36,000</td>
         </tr>
         <tr>
           <td><span class="label">Subcontractor board report</span><span class="note">Monthly labour-forecast and project board pack</span></td>
-          <td class="num">$10,000 – $12,000</td>
+          <td class="num">$15,000 – $18,000</td>
         </tr>
         <tr>
           <td><span class="label">PM invoice cross-checking</span><span class="note">50-100 supplier invoices per job per month, each checked by hand against quotes 6-12 months old</span></td>
@@ -275,11 +279,11 @@
         </tr>
         <tr class="total">
           <td>Estimated total carried every year</td>
-          <td class="num">~$50,000 – $60,000+</td>
+          <td class="num">~$75,000 – $90,000+</td>
         </tr>
       </tbody>
     </table>
-    <p class="disclaimer">Converted from the June AUD estimates at ~0.66 and using a conservative blended labour rate. We expect you to tighten these with us.</p>
+    <p class="disclaimer">Figures are our best estimate from our conversations and use a conservative blended labour rate. We expect you to tighten these with us.</p>
   </section>
 
   <section>
@@ -308,8 +312,8 @@
       <div class="num">2</div>
       <div class="body">
         <div class="role">Sync</div>
-        <h4>Pipe the data in, on a schedule</h4>
-        <p>We build the sync jobs that pull Simpro jobs, POs and pricing, supplier invoices from your accounts inbox via EzzyBills, and Xero financials into the database automatically, twice a day, no laptop required. Everything you build afterwards reads from one clean place instead of five apps.</p>
+        <h4>Pipe the data in, daily</h4>
+        <p>We build the sync jobs that pull Simpro jobs, POs and pricing, supplier invoices from your accounts inbox via EzzyBills, and Xero financials into the database automatically, once a day, no laptop required. Everything you build afterwards reads from one clean place instead of five apps.</p>
       </div>
     </div>
 
@@ -333,22 +337,67 @@
   </section>
 
   <section>
+    <h2>The first workflows</h2>
+    <h3>What we'll build on top of the system</h3>
+    <p><span style="display:inline-block;background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 10px;border-radius:4px;">Drafts</span>&nbsp; These are working drafts from our call. We will perfect them together and move them into your new AI System.</p>
+    <p style="margin-top:18px;"><strong>Tender and quote builder.</strong> The workflow you already proved: your estimator drops the job files, Claude builds the tender pack with labour and cost curves, and a 4 to 5 hour job becomes a 20 minute one. On the new foundation it reads from the database instead of scattered folders.</p>
+    <div style="border:1px solid var(--mist);border-radius:10px;padding:20px;margin:0 0 24px;"><svg width="100%" viewBox="0 0 680 246" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Tender and quote workflow</title>
+<defs><marker id="arrowA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g><rect x="40" y="40" width="185" height="56" rx="4" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/><text x="132" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">Drop the job files</text><text x="132" y="82" text-anchor="middle" font-size="12" fill="#5F5E5A">Plans, specs, quote</text></g>
+<g><rect x="247" y="40" width="185" height="56" rx="4" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/><text x="339" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">Claude reads the job</text><text x="339" y="82" text-anchor="middle" font-size="12" fill="#534AB7">From the database</text></g>
+<g><rect x="454" y="40" width="185" height="56" rx="4" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/><text x="546" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">Context pulled in</text><text x="546" y="82" text-anchor="middle" font-size="12" fill="#534AB7">Past jobs, CVs, render</text></g>
+<line x1="227" y1="68" x2="243" y2="68" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowA)"/>
+<line x1="434" y1="68" x2="450" y2="68" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowA)"/>
+<path d="M546 96 V123 H132 V146" fill="none" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowA)"/>
+<g><rect x="40" y="150" width="185" height="56" rx="4" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/><text x="132" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">Tender pack built</text><text x="132" y="192" text-anchor="middle" font-size="12" fill="#534AB7">Labour and cost curves</text></g>
+<g><rect x="247" y="150" width="185" height="56" rx="4" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/><text x="339" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">Estimator reviews</text><text x="339" y="192" text-anchor="middle" font-size="12" fill="#5F5E5A">Fixes the rough edges</text></g>
+<g><rect x="454" y="150" width="185" height="56" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/><text x="546" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Done in 20 minutes</text><text x="546" y="192" text-anchor="middle" font-size="12" fill="#0F6E56">Was 4 to 5 hours</text></g>
+<line x1="227" y1="178" x2="243" y2="178" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowA)"/>
+<line x1="434" y1="178" x2="450" y2="178" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowA)"/>
+</svg></div>
+    <p><strong>Invoice verification.</strong> Every supplier invoice checked before a PM touches it: green matches the quote, amber has no quote and is priced from your history, red is overcharged. One click to approve, and only checked invoices flow to Xero.</p>
+    <div style="border:1px solid var(--mist);border-radius:10px;padding:20px;"><svg width="100%" viewBox="0 0 680 356" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Invoice verification workflow</title>
+<defs><marker id="arrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g><rect x="40" y="40" width="185" height="56" rx="4" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/><text x="132" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">Invoice arrives</text><text x="132" y="82" text-anchor="middle" font-size="12" fill="#5F5E5A">Supplier email inbox</text></g>
+<g><rect x="247" y="40" width="185" height="56" rx="4" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/><text x="339" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">EzzyBills reads it</text><text x="339" y="82" text-anchor="middle" font-size="12" fill="#5F5E5A">Job, PO, project manager</text></g>
+<g><rect x="454" y="40" width="185" height="56" rx="4" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/><text x="546" y="64" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">Claude checks price</text><text x="546" y="82" text-anchor="middle" font-size="12" fill="#534AB7">Quote, PO, history</text></g>
+<line x1="227" y1="68" x2="243" y2="68" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="434" y1="68" x2="450" y2="68" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="546" y1="96" x2="136" y2="146" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="546" y1="96" x2="339" y2="146" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="546" y1="96" x2="546" y2="146" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<g><rect x="40" y="150" width="185" height="56" rx="4" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/><text x="132" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#27500A">Matches the quote</text><text x="132" y="192" text-anchor="middle" font-size="12" fill="#3B6D11">Clean, ready to go</text></g>
+<g><rect x="247" y="150" width="185" height="56" rx="4" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/><text x="339" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#633806">No quote on file</text><text x="339" y="192" text-anchor="middle" font-size="12" fill="#854F0B">Priced from history</text></g>
+<g><rect x="454" y="150" width="185" height="56" rx="4" fill="#FCEBEB" stroke="#A32D2D" stroke-width="0.5"/><text x="546" y="174" text-anchor="middle" font-size="14" font-weight="500" fill="#791F1F">Overcharged</text><text x="546" y="192" text-anchor="middle" font-size="12" fill="#A32D2D">Above quoted value</text></g>
+<line x1="132" y1="206" x2="228" y2="256" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="339" y1="206" x2="235" y2="256" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<line x1="546" y1="206" x2="242" y2="256" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+<g><rect x="140" y="260" width="185" height="56" rx="4" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/><text x="232" y="284" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">PM review queue</text><text x="232" y="302" text-anchor="middle" font-size="12" fill="#5F5E5A">One click to approve</text></g>
+<g><rect x="365" y="260" width="185" height="56" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/><text x="457" y="284" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Xero and accounts</text><text x="457" y="302" text-anchor="middle" font-size="12" fill="#0F6E56">Only checked invoices</text></g>
+<line x1="327" y1="288" x2="361" y2="288" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrowB)"/>
+</svg></div>
+    <p class="disclaimer" style="margin-top:14px;">Purple boxes are Claude's work. Data syncs from Simpro, EzzyBills, and Xero once a day.</p>
+  </section>
+
+  <section>
     <h2>The investment</h2>
     <h3>One build, two environments, your choice</h3>
     <p>Same scope either way. The difference is where it lives and what it costs to build and run.</p>
     <div class="options">
       <div class="opt">
         <h4>Option A: Supabase + Vercel</h4>
-        <div class="price">$10,000<small> USD, fixed</small></div>
-        <p>Our core stack: a Postgres database on Supabase with hosting on Vercel. Fastest to build, cheapest to run (roughly $70/month), and the same architecture Edge8 runs its own company on. Your data, your accounts, fully exportable Postgres. Our recommendation.</p>
+        <div class="price">A$15,000<small> fixed</small></div>
+        <p>Our core stack: a Postgres database on Supabase with hosting on Vercel, built on top of AWS and hostable in Australia. It's the architecture we recommend for medium-sized companies, and the one Edge8 runs its own business on. Cheapest to build, cheapest to run (roughly A$100/month), and the easiest for you to maintain and extend yourself. Your data, your accounts, fully exportable Postgres. Our recommendation.</p>
       </div>
       <div class="opt">
         <h4>Option B: Native Azure</h4>
-        <div class="price">$16,500<small> USD, fixed</small></div>
-        <p>The same foundation built where you already are: Azure SQL and Azure App Service in your own Microsoft tenant, alongside SharePoint and 365. More engineering hours in the Microsoft environment, hence the higher price, and modestly higher monthly running costs.</p>
+        <div class="price">A$25,000<small> fixed</small></div>
+        <p>The same foundation built where you already are: Azure SQL and Azure App Service in your own Microsoft tenant, alongside SharePoint and 365. Azure is optimized for large enterprise, which is why it costs more here and after: expect ongoing running costs typically 50% to 75% higher than Option A, and a platform that is harder to maintain on your own.</p>
       </div>
     </div>
-    <p class="disclaimer">Both prices are fixed for the full foundation scope above. Hosting runs in your own accounts either way; you own everything from day one.</p>
+    <p class="disclaimer">Both prices are in AUD and fixed for the full foundation scope above. Hosting runs in your own accounts either way; you own everything from day one.</p>
   </section>
 
   <section>
@@ -358,13 +407,13 @@
     <div class="options">
       <div class="opt">
         <h4>AI Officer Certification</h4>
-        <div class="price">$99<small> / month per person</small></div>
-        <p>Put your most tech-forward people through our certification so they can build and maintain these systems themselves, and bring the AI Officer mindset into the business. EO member pricing available.</p>
+        <div class="price">A$150<small> / month per person</small></div>
+        <p>As much about the ongoing group coaching as the learning: join a community of builders like you, bring your real problems to the sessions, and keep your education current as the tools change. Your people stay capable long after the build is done. EO member pricing available.</p>
       </div>
       <div class="opt">
-        <h4>Fractional or full-time engineer</h4>
-        <div class="price">$2,000 – $4,000<small> / month</small></div>
-        <p>An Edge8 engineer who supports your system and keeps improving it, learning your business over time, automating more as you go. Part-time or full-time.</p>
+        <h4>Human Tokens or full time</h4>
+        <div class="price">A$3,000<small> per 40 tokens</small></div>
+        <p>Buy engineering capacity as you need it: 40 Human Tokens for A$3,000, work delivered on a 48 to 72 hour lead time. Or go full time with a dedicated Edge8 engineer at A$6,800 per month. Cancel anytime.</p>
       </div>
     </div>
     <p style="margin-top:20px;">And the road you asked about is still the road: once your workflows run on your own database and prove themselves, retiring Simpro and its licence bill becomes a decision, not a dream. The foundation is step one of that path.</p>
