@@ -3,430 +3,215 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EO Global, Proposed Next Automation Build</title>
+<title>EO Global · HubSpot v1.1 by Role</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,480;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#12172B;
-    --ink-soft:#3C4360;
-    --paper:#FBFAF7;
-    --panel:#FFFFFF;
-    --line:#E4E2DA;
-    --accent:#2F5FFF;
-    --accent-dim:#EAF0FF;
-    --amber:#B6791E;
-    --amber-bg:#FDF6E8;
-    --amber-line:#F0DDAE;
-    --built:#1D8A5B;
-    --built-bg:#EAF7F1;
+    --ink:#12172B;--ink-soft:#3C4360;--paper:#FBFAF7;--panel:#FFFFFF;--line:#E4E2DA;
+    --accent:#2F5FFF;--accent-dim:#EAF0FF;--amber:#B6791E;--amber-bg:#FDF6E8;--amber-line:#F0DDAE;
+    --built:#1D8A5B;--built-bg:#EAF7F1;
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Inter',sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  header{max-width:900px;margin:0 auto;padding:88px 32px 40px;}
+  .eyebrow{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:26px;}
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;}
+  h1{font-family:'Fraunces',serif;font-weight:480;font-optical-sizing:auto;font-size:clamp(38px,5.4vw,58px);line-height:1.04;letter-spacing:-0.015em;margin:0 0 22px;color:var(--ink);}
+  header .sub{font-size:18px;line-height:1.55;color:var(--ink-soft);max-width:620px;margin:0 0 28px;font-weight:400;}
+  .meta-row{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:#8A8F9E;border-top:1px solid var(--line);padding-top:20px;}
+  .meta-row span{font-weight:500;color:var(--ink-soft);}
 
-  /* ---------- Header ---------- */
-  header{
-    max-width:900px;
-    margin:0 auto;
-    padding:88px 32px 56px;
-  }
-  .eyebrow{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--accent);
-    font-weight:500;
-    margin-bottom:26px;
-  }
-  .eyebrow::before{
-    content:"";
-    width:7px;height:7px;
-    border-radius:50%;
-    background:var(--accent);
-    display:inline-block;
-  }
-  h1{
-    font-family:'Fraunces',serif;
-    font-weight:480;
-    font-optical-sizing:auto;
-    font-size:clamp(38px,5.4vw,58px);
-    line-height:1.04;
-    letter-spacing:-0.015em;
-    margin:0 0 22px;
-    color:var(--ink);
-  }
-  header .sub{
-    font-size:18px;
-    line-height:1.55;
-    color:var(--ink-soft);
-    max-width:600px;
-    margin:0 0 28px;
-    font-weight:400;
-  }
-  .meta-row{
-    display:flex;
-    gap:22px;
-    flex-wrap:wrap;
-    font-size:13px;
-    color:#8A8F9E;
-    border-top:1px solid var(--line);
-    padding-top:20px;
-  }
-  .meta-row span{ font-weight:500; color:var(--ink-soft); }
+  nav.rail{max-width:900px;margin:0 auto;padding:0 32px 8px;display:flex;gap:6px;overflow-x:auto;}
+  nav.rail a{flex:0 0 auto;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:8px 14px;white-space:nowrap;transition:all .15s ease;}
+  nav.rail a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 
-  /* ---------- Pipeline rail nav ---------- */
-  nav.rail{
-    max-width:900px;
-    margin:0 auto;
-    padding:0 32px 8px;
-    display:flex;
-    gap:6px;
-    overflow-x:auto;
-  }
-  nav.rail a{
-    flex:1 0 auto;
-    text-decoration:none;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--ink-soft);
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:100px;
-    padding:8px 14px;
-    white-space:nowrap;
-    transition:all .15s ease;
-  }
-  nav.rail a:hover{
-    border-color:var(--accent);
-    color:var(--accent);
-    background:var(--accent-dim);
-  }
+  .intro{max-width:820px;margin:36px auto 0;padding:0 32px;font-size:16px;line-height:1.7;color:var(--ink-soft);}
 
-  /* ---------- Intro ---------- */
-  .intro{
-    max-width:900px;
-    margin:40px auto 8px;
-    padding:0 32px;
-    font-size:16px;
-    line-height:1.7;
-    color:var(--ink-soft);
-    max-width:820px;
-  }
+  .band{max-width:900px;margin:24px auto 0;padding:0 32px;}
+  .callout{border-radius:10px;padding:18px 20px;font-size:14.5px;line-height:1.6;}
+  .callout .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:500;display:block;margin-bottom:6px;}
+  .callout.amber{background:var(--amber-bg);border:1px solid var(--amber-line);color:#6B5327;}
+  .callout.amber .lbl{color:var(--amber);}
+  .callout.amber b{color:#4d3c1c;}
+  .live{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .live .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--built);background:var(--built-bg);border:1px solid #BFE3D2;border-radius:100px;padding:4px 11px;}
+  .live .pre{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#8A8F9E;}
 
-  /* ---------- Flow list ---------- */
-  main{
-    max-width:900px;
-    margin:0 auto;
-    padding:48px 32px 40px;
-    position:relative;
-  }
-  .track{
-    position:absolute;
-    left:63px;
-    top:56px;
-    bottom:80px;
-    width:1px;
-    background:repeating-linear-gradient(to bottom, var(--line) 0 6px, transparent 6px 12px);
-  }
-  .flow{
-    display:grid;
-    grid-template-columns:64px 1fr;
-    gap:0 28px;
-    padding:36px 0;
-    position:relative;
-  }
-  .flow:first-child{ padding-top:0; }
-  .num{
-    width:64px;
-    height:64px;
-    border-radius:50%;
-    background:var(--panel);
-    border:1px solid var(--line);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:'Fraunces',serif;
-    font-size:24px;
-    font-weight:480;
-    color:var(--ink);
-    position:relative;
-    z-index:1;
-  }
-  .flow.built .num{
-    border-color:var(--built);
-    color:var(--built);
-    background:var(--built-bg);
-  }
-  .flow-title{
-    font-family:'Fraunces',serif;
-    font-weight:480;
-    font-size:26px;
-    letter-spacing:-0.01em;
-    margin:6px 0 10px;
-    color:var(--ink);
-  }
-  .transition{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    letter-spacing:0.05em;
-    color:#9AA0AF;
-    text-transform:uppercase;
-    margin-bottom:14px;
-  }
-  .transition .arrow{ color:var(--accent); margin:0 4px; }
-  .flow p{
-    font-size:15.5px;
-    line-height:1.7;
-    color:var(--ink-soft);
-    margin:0 0 14px;
-    max-width:640px;
-  }
-  .outcome{
-    display:flex;
-    gap:10px;
-    align-items:baseline;
-    font-size:14.5px;
-    line-height:1.6;
-    color:var(--ink);
-    background:var(--accent-dim);
-    border-left:2px solid var(--accent);
-    padding:12px 16px;
-    border-radius:0 6px 6px 0;
-    max-width:640px;
-  }
-  .outcome b{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color:var(--accent);
-    font-weight:500;
-    flex:none;
-  }
-  .scope{
-    margin-top:16px;
-    max-width:640px;
-    background:var(--amber-bg);
-    border:1px solid var(--amber-line);
-    border-radius:8px;
-    padding:14px 18px;
-  }
-  .scope .label{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color:var(--amber);
-    font-weight:500;
-    margin-bottom:6px;
-    display:block;
-  }
-  .scope p{
-    margin:0;
-    font-size:14px;
-    line-height:1.65;
-    color:#6B5327;
-  }
-  .built-tag{
-    display:inline-block;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color:var(--built);
-    background:var(--built-bg);
-    border:1px solid #BFE3D2;
-    padding:3px 9px;
-    border-radius:100px;
-    margin-left:10px;
-    vertical-align:middle;
-    font-weight:500;
-  }
+  main{max-width:900px;margin:0 auto;padding:20px 32px 24px;}
+  .role{padding-top:24px;}
+  .role h2{font-family:'Fraunces',serif;font-weight:480;font-size:clamp(26px,3.4vw,32px);letter-spacing:-0.01em;margin:28px 0 2px;color:var(--ink);}
+  .role .rdesc{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#9AA0AF;margin:0 0 22px;}
+  .feat{border-left:1px solid var(--line);padding:0 0 2px 24px;margin:0 0 24px;position:relative;}
+  .feat::before{content:"";position:absolute;left:-4px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  .feat .ft{font-family:'Fraunces',serif;font-weight:480;font-size:22px;letter-spacing:-0.01em;margin:0 0 9px;color:var(--ink);}
+  .feat p{font-size:15px;line-height:1.7;color:var(--ink-soft);margin:0 0 12px;max-width:640px;}
+  .outcome{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.6;color:var(--ink);background:var(--accent-dim);border-left:2px solid var(--accent);padding:11px 15px;border-radius:0 6px 6px 0;max-width:640px;}
+  .outcome b{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);font-weight:500;flex:none;}
 
-  /* ---------- Footer ---------- */
-  footer{
-    max-width:900px;
-    margin:0 auto;
-    padding:12px 32px 100px;
-  }
-  .next{
-    border-top:1px solid var(--line);
-    padding-top:32px;
-    display:grid;
-    grid-template-columns:auto 1fr;
-    gap:28px;
-    align-items:start;
-  }
-  .next .tag{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color:var(--ink);
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:6px 12px;
-    border-radius:100px;
-    white-space:nowrap;
-  }
-  .next p{
-    margin:0;
-    font-size:15.5px;
-    line-height:1.65;
-    color:var(--ink-soft);
-    max-width:560px;
-  }
+  hr.div{max-width:836px;margin:8px auto 0;border:none;border-top:1px solid var(--line);}
+
+  footer{max-width:900px;margin:0 auto;padding:8px 32px 100px;}
+  .out{margin-top:28px;}
+  .out h3{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#8A8F9E;font-weight:500;margin:0 0 10px;}
+  .out ul{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px;}
+  .out li{font-size:13px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:5px 13px;}
+  .next{border-top:1px solid var(--line);margin-top:32px;padding-top:32px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;}
+  .next .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:6px 12px;border-radius:100px;white-space:nowrap;}
+  .next p{margin:0;font-size:15.5px;line-height:1.65;color:var(--ink-soft);max-width:560px;}
 
   @media (max-width:640px){
-    header{ padding:56px 20px 40px; }
-    .intro{ padding:0 20px; }
-    main{ padding:32px 20px 24px; }
-    .track{ left:39px; }
-    .flow{ grid-template-columns:40px 1fr; gap:0 16px; }
-    .num{ width:40px;height:40px; font-size:16px; }
-    .flow-title{ font-size:21px; }
-    footer{ padding:12px 20px 72px; }
-    .next{ grid-template-columns:1fr; }
-    nav.rail{ padding:0 20px 8px; }
+    header{padding:56px 20px 32px;}
+    .intro,.band,main,footer{padding-left:20px;padding-right:20px;}
+    nav.rail{padding:0 20px 8px;}
+    .next{grid-template-columns:1fr;}
   }
-
-  @media print{
-    nav.rail{ display:none; }
-    body{ background:#fff; }
-    .flow{ break-inside:avoid; }
-  }
+  @media print{nav.rail{display:none;}body{background:#fff;}.feat,.role{break-inside:avoid;}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="eyebrow">EO Global &middot; HubSpot CRM Rollout</div>
-  <h1>Proposed Next<br>Automation Build</h1>
-  <p class="sub">Seven high-level flows recommended for the next phase of chapter and global automation, what changes for prospects and chapter staff, described without the technical build underneath.</p>
+  <div class="eyebrow">EO Global &middot; HubSpot CRM &middot; Version 1.1</div>
+  <h1>Version 1.1,<br>by chapter role</h1>
+  <p class="sub">The next set of pipeline flows and role views recommended for EO Global's HubSpot, grouped by the chapter role each one serves. It builds on v1.0 (new member and accelerator acquisition, already live) and is kept deliberately small: a feature list to read, agree, and start.</p>
   <div class="meta-row">
     <div>Prepared by <span>Edge8</span></div>
-    <div>Portal <span>47691066</span></div>
+    <div>Builds on <span>v1.0 (live)</span></div>
+    <div>Status <span>Draft for review</span></div>
   </div>
 </header>
 
+<div class="band">
+  <div class="live">
+    <span class="pre">Already live in v1.0:</span>
+    <span class="tag">New member acquisition</span>
+    <span class="tag">Accelerator acquisition</span>
+    <span class="tag">Lead routing &amp; nurture</span>
+  </div>
+</div>
+
+<p class="intro">v1.0 put new member and accelerator acquisition into HubSpot. v1.1 adds the flows and the role views that let each chapter role run their part from the same place, plus the few pieces that keep members and sponsors from slipping. None of it is a heavy build.</p>
+
+<div class="band">
+  <div class="callout amber">
+    <span class="lbl">Chapters not on HubSpot</span>
+    Not every chapter runs on HubSpot, and none are forced onto it. For those chapters, the global team <b>tracks each application's stage inside the global HubSpot and the chapter is notified as it moves</b>. Global gets full visibility; the chapter keeps working the way it does today. Moving a chapter fully onto HubSpot stays an option, never a requirement.
+  </div>
+</div>
+
 <nav class="rail">
-  <a href="#f1">01 Lead Routing</a>
-  <a href="#f2">02 Deal Creation</a>
-  <a href="#f3">03 Nurture</a>
-  <a href="#f4">04 Onboarding</a>
-  <a href="#f5">05 SAP Renewal</a>
-  <a href="#f6">06 Podcast</a>
-  <a href="#f7">07 Rise</a>
+  <a href="#cm">Chapter Manager</a>
+  <a href="#mc">Membership Chair</a>
+  <a href="#me">Member Engagement</a>
+  <a href="#mk">Marketing Chair</a>
+  <a href="#sap">SAP Chair</a>
+  <a href="#fc">Forum Chair</a>
 </nav>
 
-<p class="intro">The proposal below outlines the next set of automated flows recommended for EO Global's HubSpot instance. Each flow is described at the level of what changes for chapter staff and prospects, the underlying technical build will be scoped separately once each flow is confirmed.</p>
-
 <main>
-  <div class="track"></div>
 
-  <div class="flow" id="f1">
-    <div class="num">1</div>
-    <div>
-      <div class="flow-title">Lead Qualification &amp; Routing</div>
-      <div class="transition">New Lead <span class="arrow">&rarr;</span> Sales Qualified Lead</div>
-      <p>When a new lead engages with a chapter, HubSpot automatically scores their level of interest and readiness. As that score crosses defined thresholds, the lead is promoted from Lead &rarr; Marketing Qualified &rarr; Sales Qualified, and the right chapter staff member is notified to follow up immediately. The follow-up task is tailored to what information is already on file: a call task when a phone number is available, or a request for contact details when it isn't.</p>
-      <div class="outcome"><b>Outcome</b><span>No lead sits unactioned. Every qualified lead reaches a chapter staff member without anyone needing to monitor the pipeline manually.</span></div>
+  <section class="role" id="cm">
+    <h2>Chapter Manager</h2>
+    <div class="rdesc">Runs the system day to day</div>
+    <div class="feat">
+      <div class="ft">The Monday view</div>
+      <p>One screen showing who's new, who's stuck, and what needs the manager's attention across every pipeline. Today that picture is spread across tabs, email, and a spreadsheet.</p>
+      <div class="outcome"><b>Outcome</b><span>The chapter runs from one place, and nothing quietly stalls.</span></div>
     </div>
-  </div>
+    <div class="feat">
+      <div class="ft">Global intake, routed</div>
+      <p>Applications enter through the global intake form and land in the right pipeline (member, SAP, or accelerator) for the right chapter, already sorted. For chapters not on HubSpot, the same intake is tracked and notified per the note above.</p>
+      <div class="outcome"><b>Outcome</b><span>Nothing arrives unsorted; the manager works a clean queue.</span></div>
+    </div>
+  </section>
 
-  <div class="flow" id="f2">
-    <div class="num">2</div>
-    <div>
-      <div class="flow-title">Application &rarr; Deal Creation &amp; Pipeline Routing</div>
-      <div class="transition">Application Submitted <span class="arrow">&rarr;</span> Deal Created</div>
-      <p>When a prospect submits a membership application, HubSpot automatically creates the corresponding deal record and routes it into the correct pipeline, Member Acquisition or Accelerator Acquisition, based on the prospect's business revenue. No manual sorting is required by chapter staff, and every application is captured consistently regardless of which chapter it comes through.</p>
-      <div class="outcome"><b>Outcome</b><span>Every submitted application becomes a trackable deal in the right pipeline, automatically, the moment it's submitted.</span></div>
-    </div>
-  </div>
+  <hr class="div">
 
-  <div class="flow" id="f3">
-    <div class="num">3</div>
-    <div>
-      <div class="flow-title">Stage-Based Nurture Communications</div>
-      <div class="transition">Connect &amp; Qualify <span class="arrow">&rarr;</span> Formal Interview / Go&ndash;No-Go</div>
-      <p>As a prospect's application moves through each stage of chapter and global review, the right message is sent automatically, keeping the prospect informed and engaged without chapter staff needing to remember to follow up manually at every step.</p>
-      <div class="outcome"><b>Outcome</b><span>Consistent, timely communication with every prospect, regardless of chapter staff bandwidth.</span></div>
+  <section class="role" id="mc">
+    <h2>Membership Chair</h2>
+    <div class="rdesc">Qualifies and converts, owns renewals</div>
+    <div class="feat">
+      <div class="ft">Member renewal</div>
+      <p>Renewal reminders go out automatically, the chair gets a task for anyone who hasn't responded, and no renewal date passes unnoticed. Today it is sent by hand.</p>
+      <div class="outcome"><b>Outcome</b><span>Renewals run themselves; the chair handles only the exceptions.</span></div>
     </div>
-  </div>
+  </section>
 
-  <div class="flow" id="f4">
-    <div class="num">4</div>
-    <div>
-      <div class="flow-title">Member Onboarding Pipeline</div>
-      <div class="transition">Closed Won <span class="arrow">&rarr;</span> Active Onboarding</div>
-      <p>Once a deal closes as won, the new member is automatically handed into a dedicated Member Onboarding pipeline, a structured, staged track that guides the new member through their first weeks, rather than relying on chapter staff to remember a manual first-touch follow-up. This replaces ad-hoc welcome outreach with a consistent, no-gaps onboarding experience from day one of membership.</p>
-      <div class="outcome"><b>Outcome</b><span>Every new member gets the same high-quality onboarding experience, with visibility for chapter staff into where each new member stands in that journey.</span></div>
-      <div class="scope">
-        <span class="label">Scope note</span>
-        <p>The Member Onboarding Pipeline itself does not yet exist in the current build, this is new scope, not a reuse of an existing pipeline, and will need its own stage design as part of this build.</p>
-      </div>
-    </div>
-  </div>
+  <hr class="div">
 
-  <div class="flow" id="f5">
-    <div class="num">5</div>
-    <div>
-      <div class="flow-title">Strategic Alliance Partner (SAP) Renewal Pipeline &amp; Automation <span class="built-tag">Acquisition already built</span></div>
-      <div class="transition">Active Partner <span class="arrow">&rarr;</span> Renewal Window <span class="arrow">&rarr;</span> Renewed</div>
-      <p>The SAP Acquisition pipeline already exists in the global portal. The renewal side does not, this flow proposes building the SAP Renewal pipeline and the automation behind it: partner tier stays in sync automatically between the partner's company record and their deal, and a renewal reminder is triggered ahead of each partner's expiration date so no renewal is missed.</p>
-      <div class="outcome"><b>Outcome</b><span>Partner renewals are tracked with the same rigor as membership, with tier and renewal timing always current, closing the gap left by the acquisition-only build.</span></div>
-      <div class="scope">
-        <span class="label">Scope note</span>
-        <p>Unlike Flow 4, this is not automation added to an existing pipeline, the SAP Renewal pipeline itself is new scope and will need its own stage design, alongside the tier-sync and reminder automation described above.</p>
-      </div>
+  <section class="role" id="me">
+    <h2>Member Engagement</h2>
+    <div class="rdesc">Owns the new-member experience</div>
+    <div class="feat">
+      <div class="ft">New member onboarding</div>
+      <p>A new member enters a structured first-months journey the moment they join, then hands off cleanly to the global 90-day program. This is the one addition that applies to every chapter the same way.</p>
+      <div class="outcome"><b>Outcome</b><span>No cliff after the sale; every member gets the same start.</span></div>
     </div>
-  </div>
+  </section>
 
-  <div class="flow" id="f6">
-    <div class="num">6</div>
-    <div>
-      <div class="flow-title">Podcast Engagement Pipeline</div>
-      <div class="transition">Podcast Registration <span class="arrow">&rarr;</span> Prospect Record</div>
-      <p>When someone registers for an EO podcast, HubSpot automatically sends an acknowledgment and creates a prospect record, capturing engaged listeners as trackable leads from the moment they register, without chapter staff needing to manually follow up on registration lists.</p>
-      <div class="outcome"><b>Outcome</b><span>Podcast listeners become a captured, trackable audience the moment they engage, ready for chapter follow-up.</span></div>
-      <div class="scope">
-        <span class="label">Scope note</span>
-        <p>Before this is finalized, we'll confirm whether the podcast program runs globally across chapters or is specific to individual chapters, this determines whether the pipeline is built once at the global level or offered as a chapter-optional add-on.</p>
-      </div>
-    </div>
-  </div>
+  <hr class="div">
 
-  <div class="flow" id="f7">
-    <div class="num">7</div>
-    <div>
-      <div class="flow-title">Rise Program Follow-Up Pipeline</div>
-      <div class="transition">Rise Event Attended <span class="arrow">&rarr;</span> Membership Package Outreach</div>
-      <p>After a prospect attends a Rise event, HubSpot automatically runs a structured follow-up sequence introducing the membership package, keeping momentum from the event without relying on chapter staff to manually schedule follow-up outreach.</p>
-      <div class="outcome"><b>Outcome</b><span>Every Rise attendee receives timely, consistent follow-up while their interest is highest.</span></div>
-      <div class="scope">
-        <span class="label">Scope note</span>
-        <p>Before this is finalized, we'll confirm whether Rise runs as a global EO program (making this a standard pipeline across chapters) or is chapter-specific like the podcast program above, and whether Rise attendance should route into the existing Member or Accelerator Acquisition pipelines or remain standalone.</p>
-      </div>
+  <section class="role" id="mk">
+    <h2>Marketing Chair</h2>
+    <div class="rdesc">Fills the funnel and communicates out</div>
+    <div class="feat">
+      <div class="ft">Lead nurture campaigns</div>
+      <p>Automated nurture warms prospects by programme and chapter and hands them to the pipelines ready to work.</p>
+      <div class="outcome"><b>Outcome</b><span>The funnel stays fed without manual chasing.</span></div>
     </div>
-  </div>
+    <div class="feat">
+      <div class="ft">Communicate to the groups</div>
+      <p>Email members, moderators, and the board as defined groups, straight from HubSpot, without exporting lists to another tool. This is the area chapters are expected to grow into fastest.</p>
+      <div class="outcome"><b>Outcome</b><span>Chapter-wide communication from the same system that holds the data.</span></div>
+    </div>
+  </section>
+
+  <hr class="div">
+
+  <section class="role" id="sap">
+    <h2>SAP Chair</h2>
+    <div class="rdesc">Owns sponsor relationships</div>
+    <div class="feat">
+      <div class="ft">SAP, new and renewal</div>
+      <p>The sponsor pipeline at both ends: acquisition from lead through to active partner, and renewal reminders ahead of each partner's expiry with tier kept current.</p>
+      <div class="outcome"><b>Outcome</b><span>No sponsor quietly lapses, and the whole pipeline is visible.</span></div>
+    </div>
+  </section>
+
+  <hr class="div">
+
+  <section class="role" id="fc">
+    <h2>Forum Chair</h2>
+    <div class="rdesc">Owns forum placement and health</div>
+    <div class="feat">
+      <div class="ft">Forum view, synced from Altai</div>
+      <p>Forum rosters appear in HubSpot from the Altai sync (who is in which forum, current) without asking the site admin, and new-member placement happens here.</p>
+      <div class="outcome"><b>Outcome</b><span>Forums are managed where everything else already lives.</span></div>
+    </div>
+    <div class="feat">
+      <div class="ft">Communicate to moderators</div>
+      <p>Message forum moderators as a group for training confirmations, check-ins, and updates.</p>
+      <div class="outcome"><b>Outcome</b><span>Moderators stay in step without a separate mailing list.</span></div>
+    </div>
+  </section>
 
 </main>
 
 <footer>
+  <div class="out">
+    <h3>Not in v1.1 (revisit later)</h3>
+    <ul>
+      <li>Podcast pipeline</li>
+      <li>Rise event pipeline (APAC-specific)</li>
+      <li>Next Gen / Key Executive</li>
+      <li>Custom-object re-platform</li>
+    </ul>
+  </div>
   <div class="next">
     <span class="tag">Next step</span>
-    <p>Once the flows above are confirmed, each will be scoped into a detailed technical workflow specification for build.</p>
+    <p>Once the list is agreed, each flow is scoped into a short build spec. The set is intentionally small; the aim is a quick yes and a fast build.</p>
   </div>
 </footer>
 
