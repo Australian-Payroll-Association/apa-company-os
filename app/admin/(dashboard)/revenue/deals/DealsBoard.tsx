@@ -5,35 +5,26 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { KanbanBoard, type KanbanColumn } from "@/components/admin/KanbanBoard";
-import { DetailDrawer } from "@/components/admin/DetailDrawer";
 import { Badge, statusTone } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { useAutosave } from "@/components/admin/useAutosave";
 import { AutosaveIndicator } from "@/components/admin/AutosaveStatus";
 import { formatCents, formatDate, humanize } from "@/lib/admin/format";
+import { dealPath } from "@/lib/admin/slug";
 import {
-  addDealCommunication,
   archiveDeal,
   bulkArchiveDeals,
   bulkDeleteDeals,
   bulkUpdateDeals,
-  createReferrerForDeal,
   decideHandoff,
   deleteDeal,
   demoteDealToLead,
-  getDealCommunications,
   moveDealStage,
   reorderDeals,
   restoreDeal,
-  searchCompanies,
-  searchPeople,
-  setDealReferrer,
-  setDealReferrerCompany,
   updateDeal,
-  type Communication,
-  type CompanyHit,
-  type PersonHit,
 } from "./actions";
+import { DealCommunications, ReferrerCompanyField, ReferrerField } from "./DealFields";
 import { HANDOFF_COLUMN_ID } from "./constants";
 
 export type StageOption = { id: string; name: string };
@@ -176,7 +167,6 @@ export function DealsBoard({
 }) {
   const router = useRouter();
   const [cards, setCards] = useState<DealCard[]>(initialCards);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -231,24 +221,15 @@ export function DealsBoard({
   const listCards = showArchived ? archivedCards : activeCards;
   const stageLabelMap = new Map(columns.map((c) => [c.id, c.label]));
   const sortedListCards = listSort ? [...listCards].sort(makeDealComparator(listSort, stageLabelMap)) : listCards;
-  const selected = cards.find((c) => c.id === selectedId) ?? null;
 
   function sortList(key: string) {
     setListSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
   }
 
-  function patchCard(id: string, patch: Partial<DealCard>) {
-    setCards((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    router.refresh();
-  }
-  function removeCard(id: string) {
-    setCards((cs) => cs.filter((c) => c.id !== id));
-    setSelectedIds((s) => {
-      const next = new Set(s);
-      next.delete(id);
-      return next;
-    });
-    router.refresh();
+  // A board card or list row opens the deal's own full-page record (replaces the
+  // old side drawer). The label mirrors the card title fallback so the slug reads.
+  function openDeal(c: DealCard) {
+    router.push(dealPath(c.title || c.personName || c.companyName || "", c.id));
   }
 
   // Reorders `toColumnId`'s cards so `cardId` lands at `toIndex`, returning the
@@ -509,7 +490,7 @@ export function DealsBoard({
           cards={activeCards}
           onMove={move}
           onReorder={reorder}
-          onCardClick={(c) => setSelectedId(c.id)}
+          onCardClick={openDeal}
           renderCard={(c) => (
             <>
               <div className="sap-card-title">{c.title || c.personName || c.companyName || "(untitled deal)"}</div>
@@ -587,7 +568,7 @@ export function DealsBoard({
             selected={selectedIds}
             onToggle={toggleSelect}
             onToggleAll={toggleSelectAll}
-            onRowClick={(c) => setSelectedId(c.id)}
+            onRowClick={openDeal}
             sort={listSort}
             onSort={sortList}
             // Drag-to-reorder only makes sense against the natural priority
@@ -682,27 +663,6 @@ export function DealsBoard({
           }}
         />
       )}
-
-      <DetailDrawer
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        eyebrow={selected ? humanize(selected.status) : ""}
-        title={selected?.title || selected?.personName || "Deal"}
-      >
-        {selected && (
-          <DealDetail
-            card={selected}
-            stages={columns.filter((c) => c.id !== HANDOFF_COLUMN_ID)}
-            lostSet={lostSet}
-            wonSet={wonSet}
-            onChangeStage={applyMove}
-            onDecideHandoff={decide}
-            onPatch={(patch) => patchCard(selected.id, patch)}
-            onRemove={() => removeCard(selected.id)}
-            onClose={() => setSelectedId(null)}
-          />
-        )}
-      </DetailDrawer>
     </>
   );
 }
@@ -1274,472 +1234,8 @@ export function DealDetail({
   );
 }
 
-// The deal's referrer — the contact who sent the introduction. Type to search
-// existing contacts; if they're not in the CRM yet, add them (name + email) as
-// a real contact in one step. One referrer per deal.
-function ReferrerField({
-  dealId,
-  referrerId,
-  referrerName,
-  onChange,
-}: {
-  dealId: string;
-  referrerId: string | null;
-  referrerName: string | null;
-  onChange: (referrerId: string | null, referrerName: string | null) => void;
-}) {
-  const [mode, setMode] = useState<"idle" | "search" | "new">("idle");
-  const [term, setTerm] = useState("");
-  const [hits, setHits] = useState<PersonHit[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-
-  // Debounced typeahead, only while the search box is open.
-  useEffect(() => {
-    if (mode !== "search") return;
-    const q = term.trim();
-    if (q.length < 2) {
-      setHits([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const t = setTimeout(async () => {
-      const r = await searchPeople(q);
-      setHits(r);
-      setSearching(false);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [term, mode]);
-
-  function reset() {
-    setMode("idle");
-    setTerm("");
-    setHits([]);
-    setErr(null);
-    setNewName("");
-    setNewEmail("");
-  }
-
-  async function link(hit: PersonHit) {
-    setBusy(true);
-    setErr(null);
-    const r = await setDealReferrer(dealId, hit.id);
-    setBusy(false);
-    if (!r.ok) return setErr(r.error);
-    onChange(r.referrer?.id ?? null, r.referrer?.name ?? null);
-    reset();
-  }
-
-  async function clear() {
-    setBusy(true);
-    setErr(null);
-    const r = await setDealReferrer(dealId, null);
-    setBusy(false);
-    if (!r.ok) return setErr(r.error);
-    onChange(null, null);
-    reset();
-  }
-
-  async function createNew() {
-    setBusy(true);
-    setErr(null);
-    const r = await createReferrerForDeal(dealId, newName, newEmail);
-    setBusy(false);
-    if (!r.ok) return setErr(r.error);
-    onChange(r.referrer.id, r.referrer.name);
-    reset();
-  }
-
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div className="admin-label" style={{ marginBottom: 6 }}>
-        Referrer
-      </div>
-
-      {mode === "idle" &&
-        (referrerId ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <Link href={`/admin/contacts/${referrerId}`} className="admin-cell-strong">
-              {referrerName || "View contact"}
-            </Link>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")} disabled={busy}>
-              Change
-            </button>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={clear} disabled={busy}>
-              Remove
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")}>
-            Add referrer
-          </button>
-        ))}
-
-      {mode === "search" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input
-            className="admin-input"
-            autoFocus
-            placeholder="Search contacts by name or email…"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-          />
-          {term.trim().length >= 2 && (
-            <div
-              style={{
-                border: "1px solid var(--admin-line)",
-                borderRadius: 8,
-                overflow: "hidden",
-                maxHeight: 220,
-                overflowY: "auto",
-              }}
-            >
-              {searching ? (
-                <div className="admin-hint" style={{ padding: "8px 10px" }}>
-                  Searching…
-                </div>
-              ) : hits.length === 0 ? (
-                <div className="admin-hint" style={{ padding: "8px 10px" }}>
-                  No matching contacts. Add them as a new contact below.
-                </div>
-              ) : (
-                hits.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    onClick={() => link(h)}
-                    disabled={busy}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 2,
-                      width: "100%",
-                      padding: "8px 10px",
-                      background: "var(--admin-surface)",
-                      border: "none",
-                      borderBottom: "1px solid var(--admin-line-soft)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span className="admin-cell-strong">{h.name}</span>
-                    <span className="admin-cell-muted">{h.email}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              className="admin-btn admin-btn--sm"
-              onClick={() => {
-                setNewName(term.trim());
-                setNewEmail("");
-                setErr(null);
-                setMode("new");
-              }}
-            >
-              + Add new contact
-            </button>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={reset}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {mode === "new" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div className="admin-field">
-            <label className="admin-label">Name</label>
-            <input className="admin-input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Full name" />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label">Email</label>
-            <input className="admin-input" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={createNew} disabled={busy}>
-              {busy ? "Saving…" : "Create & link"}
-            </button>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")} disabled={busy}>
-              Back
-            </button>
-          </div>
-        </div>
-      )}
-
-      {err && (
-        <div className="admin-alert admin-alert--err" style={{ marginTop: 8 }}>
-          {err}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// The deal's referring company — the org that sent the introduction. Type to
-// search existing companies and pick one. Separate from the person referrer
-// above; companies are picked here, not created. One referring company per deal.
-function ReferrerCompanyField({
-  dealId,
-  referrerCompanyId,
-  referrerCompanyName,
-  onChange,
-}: {
-  dealId: string;
-  referrerCompanyId: string | null;
-  referrerCompanyName: string | null;
-  onChange: (referrerCompanyId: string | null, referrerCompanyName: string | null) => void;
-}) {
-  const [mode, setMode] = useState<"idle" | "search">("idle");
-  const [term, setTerm] = useState("");
-  const [hits, setHits] = useState<CompanyHit[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  // Debounced typeahead, only while the search box is open.
-  useEffect(() => {
-    if (mode !== "search") return;
-    const q = term.trim();
-    if (q.length < 2) {
-      setHits([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const t = setTimeout(async () => {
-      const r = await searchCompanies(q);
-      setHits(r);
-      setSearching(false);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [term, mode]);
-
-  function reset() {
-    setMode("idle");
-    setTerm("");
-    setHits([]);
-    setErr(null);
-  }
-
-  async function link(hit: CompanyHit) {
-    setBusy(true);
-    setErr(null);
-    const r = await setDealReferrerCompany(dealId, hit.id);
-    setBusy(false);
-    if (!r.ok) return setErr(r.error);
-    onChange(r.referrerCompany?.id ?? null, r.referrerCompany?.name ?? null);
-    reset();
-  }
-
-  async function clear() {
-    setBusy(true);
-    setErr(null);
-    const r = await setDealReferrerCompany(dealId, null);
-    setBusy(false);
-    if (!r.ok) return setErr(r.error);
-    onChange(null, null);
-    reset();
-  }
-
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div className="admin-label" style={{ marginBottom: 6 }}>
-        Referring company
-      </div>
-
-      {mode === "idle" &&
-        (referrerCompanyId ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <Link href={`/admin/revenue/companies/${referrerCompanyId}`} className="admin-cell-strong">
-              {referrerCompanyName || "View company"}
-            </Link>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")} disabled={busy}>
-              Change
-            </button>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={clear} disabled={busy}>
-              Remove
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="admin-btn admin-btn--sm" onClick={() => setMode("search")}>
-            Add referring company
-          </button>
-        ))}
-
-      {mode === "search" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input
-            className="admin-input"
-            autoFocus
-            placeholder="Search companies by name…"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-          />
-          {term.trim().length >= 2 && (
-            <div
-              style={{
-                border: "1px solid var(--admin-line)",
-                borderRadius: 8,
-                overflow: "hidden",
-                maxHeight: 220,
-                overflowY: "auto",
-              }}
-            >
-              {searching ? (
-                <div className="admin-hint" style={{ padding: "8px 10px" }}>
-                  Searching…
-                </div>
-              ) : hits.length === 0 ? (
-                <div className="admin-hint" style={{ padding: "8px 10px" }}>
-                  No matching companies.
-                </div>
-              ) : (
-                hits.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    onClick={() => link(h)}
-                    disabled={busy}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 2,
-                      width: "100%",
-                      padding: "8px 10px",
-                      background: "var(--admin-surface)",
-                      border: "none",
-                      borderBottom: "1px solid var(--admin-line-soft)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span className="admin-cell-strong">{h.name || "Unnamed company"}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" className="admin-btn admin-btn--sm" onClick={reset}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {err && (
-        <div className="admin-alert admin-alert--err" style={{ marginTop: 8 }}>
-          {err}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// A deal's communication log. Free-text entries append to the shared activity
-// log (interactions), newest first. Automatic stage-change rows are filtered out
-// server-side so this reads as a human conversation history.
-function DealCommunications({ dealId }: { dealId: string }) {
-  const [items, setItems] = useState<Communication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [body, setBody] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveErr, setSaveErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    setLoading(true);
-    setLoadErr(null);
-    getDealCommunications(dealId).then((r) => {
-      if (!live) return;
-      if (r.ok) setItems(r.items);
-      else setLoadErr(r.error);
-      setLoading(false);
-    });
-    return () => {
-      live = false;
-    };
-  }, [dealId]);
-
-  async function add() {
-    const text = body.trim();
-    if (!text) return;
-    setSaving(true);
-    setSaveErr(null);
-    const r = await addDealCommunication(dealId, text);
-    setSaving(false);
-    if (!r.ok) return setSaveErr(r.error);
-    setItems((cur) => [r.item, ...cur]);
-    setBody("");
-  }
-
-  return (
-    <div style={{ marginTop: 18 }}>
-      <div className="admin-label" style={{ marginBottom: 6 }}>
-        Communications
-      </div>
-
-      <div className="admin-field">
-        <textarea
-          className="admin-input"
-          rows={3}
-          placeholder="Log a call, email, or note…"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
-      </div>
-      <div className="admin-form-actions" style={{ marginBottom: 12 }}>
-        <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={add} disabled={saving || !body.trim()}>
-          {saving ? "Adding…" : "Add communication"}
-        </button>
-      </div>
-      {saveErr && (
-        <div className="admin-alert admin-alert--err" style={{ marginBottom: 12 }}>
-          {saveErr}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="admin-hint">Loading…</div>
-      ) : loadErr ? (
-        <div className="admin-alert admin-alert--err">{loadErr}</div>
-      ) : items.length === 0 ? (
-        <div className="admin-empty">No communications yet.</div>
-      ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-          {items.map((c) => (
-            <li
-              key={c.id}
-              style={{
-                borderLeft: "2px solid var(--admin-line-strong)",
-                paddingLeft: 10,
-              }}
-            >
-              <div className="admin-cell-muted" style={{ marginBottom: 2 }}>
-                {humanize(c.kind)} · {formatDate(c.occurredAt)}
-              </div>
-              <div style={{ whiteSpace: "pre-wrap" }}>{c.body || c.subject || "—"}</div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 // Non-drag alternative to the kanban: a flat table with multi-select. Row tap
-// opens the shared DealDetail drawer; the checkboxes drive the bulk action bar.
+// opens the deal's full-page record; the checkboxes drive the bulk action bar.
 //
 // Drag-to-reorder (reorderEnabled) only applies against the natural priority
 // order — the parent gates it off whenever a column sort or search is active.

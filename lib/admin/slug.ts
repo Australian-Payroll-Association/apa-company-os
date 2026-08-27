@@ -40,6 +40,19 @@ export function appPath(name: string | null | undefined, id: string): string {
   return `/admin/talent/applications/${appSlug(name, id)}`;
 }
 
+// Deals share the same name+short-code scheme. The "name" is the deal's own
+// label (title, else contact/company), folded the same way. Resolution on the
+// detail route reuses shortOf/shortCodeRange/isUuid below, exactly as
+// applications do — there is no slug column to maintain.
+export function dealSlug(label: string | null | undefined, id: string): string {
+  return [foldName(label || ""), shortCode(id)].filter(Boolean).join("-");
+}
+
+// The canonical deal detail path.
+export function dealPath(label: string | null | undefined, id: string): string {
+  return `/admin/revenue/deals/${dealSlug(label, id)}`;
+}
+
 // The trailing hyphen group of a slug — the candidate short code by construction.
 export function shortOf(slug: string): string {
   return slug.slice(slug.lastIndexOf("-") + 1).toLowerCase();
