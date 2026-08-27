@@ -2112,6 +2112,8 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   color: var(--admin-accent);
   background: var(--admin-accent-soft);
 }
+/* Wraps a row of chips inside a table cell (Settings → Agents). */
+.admin-chiplist { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 
 /* ─── Marketing campaign hub: assets-by-channel lanes ─ */
 .mcr-lanes {
