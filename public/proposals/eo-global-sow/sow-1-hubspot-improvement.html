@@ -1,194 +1,434 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>SOW 1 — HubSpot System Improvement</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EO Global — Proposed Next Automation Build</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,480;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#14181d;--paper:#f4f6f4;--surface:#ffffff;--surface-2:#fbfcfb;
-    --muted:#59646d;--faint:#8a949b;--line:#dde3e0;--line-strong:#c7cfcb;
-    --accent:#0f6e63;--accent-deep:#0a4f47;--accent-soft:#e2efeb;
-    --gold:#a9701c;--gold-soft:#f2e8d4;
-    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 28px -18px rgba(20,24,29,.22);--radius:14px;
+    --ink:#12172B;
+    --ink-soft:#3C4360;
+    --paper:#FBFAF7;
+    --panel:#FFFFFF;
+    --line:#E4E2DA;
+    --accent:#2F5FFF;
+    --accent-dim:#EAF0FF;
+    --amber:#B6791E;
+    --amber-bg:#FDF6E8;
+    --amber-line:#F0DDAE;
+    --built:#1D8A5B;
+    --built-bg:#EAF7F1;
   }
-  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
-    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
-    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
-  }}
-  :root[data-theme="dark"]{
-    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
-    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
-    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1040px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(18px,4vw,44px) 88px}
-  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
-  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
-  .cover{border:1px solid var(--line);background:radial-gradient(120% 120% at 100% 0%,var(--accent-soft) 0%,transparent 46%),var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(26px,4vw,46px);position:relative;overflow:hidden}
-  .cover::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:26px 26px;opacity:.14;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,transparent);mask-image:linear-gradient(180deg,transparent,#000 40%,transparent)}
-  .cover>*{position:relative}
-  .cover h1{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.03;letter-spacing:-.02em;text-wrap:balance;margin:14px 0 10px;max-width:20ch}
-  .cover .lede{font-size:clamp(15.5px,2.1vw,18px);color:var(--muted);max-width:64ch;margin:0}
-  .status-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
-  .chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.04em;padding:5px 11px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface-2);white-space:nowrap}
-  .chip.draft{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:var(--gold-soft)}
-  .chip.inc{color:var(--accent-deep);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft)}
-  .chip.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-right:7px;vertical-align:1px}
-  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:24px}
-  .meta div{background:var(--surface);padding:13px 16px}
-  .meta dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
-  .meta dd{margin:0;font-size:14.5px;font-weight:500}
-  .note{margin:20px 0 8px;padding:16px 20px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;color:var(--muted);font-size:14.5px}
-  .note strong{color:var(--ink);font-weight:600}
-  section.stream{margin-top:46px;scroll-margin-top:20px}
-  .s-head{display:flex;gap:16px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:6px;flex-wrap:wrap}
-  .s-head .num{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(24px,4vw,34px);color:var(--accent);line-height:.9;letter-spacing:-.02em}
-  .s-head h2{font-family:"Archivo",sans-serif;font-weight:700;font-size:clamp(20px,3.2vw,27px);letter-spacing:-.02em;margin:0;line-height:1.05;text-wrap:balance}
-  .s-head .tag{margin-left:auto;align-self:center}
-  .s-sub{color:var(--muted);font-size:15px;margin:12px 0 4px;max-width:70ch}
-  .block{margin-top:24px}
-  .block>h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-deep);font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:10px}
-  .block>h3::after{content:"";flex:1;height:1px;background:var(--line)}
-  p{margin:0 0 12px;max-width:72ch}
-  ul.clean{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-  ul.clean li{position:relative;padding:10px 14px 10px 32px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-size:14.5px}
-  ul.clean li::before{content:"";position:absolute;left:13px;top:16px;width:8px;height:8px;border-radius:2px;background:var(--accent);transform:rotate(45deg)}
-  ul.clean li b{font-weight:600}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:640px){.split{grid-template-columns:1fr}}
-  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-  .panel h4{margin:0 0 10px;font-size:13px;font-family:"IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
-  .panel ul{margin:0;padding-left:18px;display:grid;gap:6px}
-  .panel li{font-size:14px}
-  .panel.warn{border-color:color-mix(in srgb,var(--gold) 40%,var(--line));background:var(--gold-soft)}
-  .panel.warn h4{color:var(--gold)}
-  .tablewrap{overflow-x:auto}
-  table.est{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  table.est th,table.est td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
-  table.est thead th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;background:var(--surface-2)}
-  table.est tbody tr:last-child td{border-bottom:none}
-  table.est td .sub{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
-  table.est th.c,table.est td.c{text-align:center;white-space:nowrap}
-  table.est th.num,table.est td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-  table.est td.num,table.est td.c{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent)}
-  .prio{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;letter-spacing:.03em}
-  .prio.must{background:var(--accent-soft);color:var(--accent-deep)}
-  .prio.should{background:var(--gold-soft);color:var(--gold)}
-  .prio.could{background:var(--surface-2);color:var(--faint);border:1px solid var(--line)}
-  .tbd{color:var(--faint);font-family:"IBM Plex Mono",monospace;font-weight:500}
-  table.est .grouprow td{background:var(--surface-2);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);font-weight:600}
-  .callout{display:flex;gap:12px;padding:14px 16px;border-radius:10px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));font-size:14.5px;color:var(--accent-deep)}
-  .callout .mono{font-weight:600}
-  hr.soft{border:none;border-top:1px dashed var(--line-strong);margin:28px 0}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--faint);font-size:13px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
-  a.link{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
-  @media print{.cover,.card{box-shadow:none}}
+
+  /* ---------- Header ---------- */
+  header{
+    max-width:900px;
+    margin:0 auto;
+    padding:88px 32px 56px;
+  }
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:500;
+    margin-bottom:26px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;
+    border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:480;
+    font-optical-sizing:auto;
+    font-size:clamp(38px,5.4vw,58px);
+    line-height:1.04;
+    letter-spacing:-0.015em;
+    margin:0 0 22px;
+    color:var(--ink);
+  }
+  header .sub{
+    font-size:18px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    max-width:600px;
+    margin:0 0 28px;
+    font-weight:400;
+  }
+  .meta-row{
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    font-size:13px;
+    color:#8A8F9E;
+    border-top:1px solid var(--line);
+    padding-top:20px;
+  }
+  .meta-row span{ font-weight:500; color:var(--ink-soft); }
+
+  /* ---------- Pipeline rail nav ---------- */
+  nav.rail{
+    max-width:900px;
+    margin:0 auto;
+    padding:0 32px 8px;
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+  }
+  nav.rail a{
+    flex:1 0 auto;
+    text-decoration:none;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:100px;
+    padding:8px 14px;
+    white-space:nowrap;
+    transition:all .15s ease;
+  }
+  nav.rail a:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:var(--accent-dim);
+  }
+
+  /* ---------- Intro ---------- */
+  .intro{
+    max-width:900px;
+    margin:40px auto 8px;
+    padding:0 32px;
+    font-size:16px;
+    line-height:1.7;
+    color:var(--ink-soft);
+    max-width:820px;
+  }
+
+  /* ---------- Flow list ---------- */
+  main{
+    max-width:900px;
+    margin:0 auto;
+    padding:48px 32px 40px;
+    position:relative;
+  }
+  .track{
+    position:absolute;
+    left:63px;
+    top:56px;
+    bottom:80px;
+    width:1px;
+    background:repeating-linear-gradient(to bottom, var(--line) 0 6px, transparent 6px 12px);
+  }
+  .flow{
+    display:grid;
+    grid-template-columns:64px 1fr;
+    gap:0 28px;
+    padding:36px 0;
+    position:relative;
+  }
+  .flow:first-child{ padding-top:0; }
+  .num{
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Fraunces',serif;
+    font-size:24px;
+    font-weight:480;
+    color:var(--ink);
+    position:relative;
+    z-index:1;
+  }
+  .flow.built .num{
+    border-color:var(--built);
+    color:var(--built);
+    background:var(--built-bg);
+  }
+  .flow-title{
+    font-family:'Fraunces',serif;
+    font-weight:480;
+    font-size:26px;
+    letter-spacing:-0.01em;
+    margin:6px 0 10px;
+    color:var(--ink);
+  }
+  .transition{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:0.05em;
+    color:#9AA0AF;
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .transition .arrow{ color:var(--accent); margin:0 4px; }
+  .flow p{
+    font-size:15.5px;
+    line-height:1.7;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+    max-width:640px;
+  }
+  .outcome{
+    display:flex;
+    gap:10px;
+    align-items:baseline;
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--ink);
+    background:var(--accent-dim);
+    border-left:2px solid var(--accent);
+    padding:12px 16px;
+    border-radius:0 6px 6px 0;
+    max-width:640px;
+  }
+  .outcome b{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:500;
+    flex:none;
+  }
+  .scope{
+    margin-top:16px;
+    max-width:640px;
+    background:var(--amber-bg);
+    border:1px solid var(--amber-line);
+    border-radius:8px;
+    padding:14px 18px;
+  }
+  .scope .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--amber);
+    font-weight:500;
+    margin-bottom:6px;
+    display:block;
+  }
+  .scope p{
+    margin:0;
+    font-size:14px;
+    line-height:1.65;
+    color:#6B5327;
+  }
+  .built-tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--built);
+    background:var(--built-bg);
+    border:1px solid #BFE3D2;
+    padding:3px 9px;
+    border-radius:100px;
+    margin-left:10px;
+    vertical-align:middle;
+    font-weight:500;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    max-width:900px;
+    margin:0 auto;
+    padding:12px 32px 100px;
+  }
+  .next{
+    border-top:1px solid var(--line);
+    padding-top:32px;
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:28px;
+    align-items:start;
+  }
+  .next .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:6px 12px;
+    border-radius:100px;
+    white-space:nowrap;
+  }
+  .next p{
+    margin:0;
+    font-size:15.5px;
+    line-height:1.65;
+    color:var(--ink-soft);
+    max-width:560px;
+  }
+
+  @media (max-width:640px){
+    header{ padding:56px 20px 40px; }
+    .intro{ padding:0 20px; }
+    main{ padding:32px 20px 24px; }
+    .track{ left:39px; }
+    .flow{ grid-template-columns:40px 1fr; gap:0 16px; }
+    .num{ width:40px;height:40px; font-size:16px; }
+    .flow-title{ font-size:21px; }
+    footer{ padding:12px 20px 72px; }
+    .next{ grid-template-columns:1fr; }
+    nav.rail{ padding:0 20px 8px; }
+  }
+
+  @media print{
+    nav.rail{ display:none; }
+    body{ background:#fff; }
+    .flow{ break-inside:avoid; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <header class="cover">
-    <div class="eyebrow">Statement of Work 1 · HubSpot System Improvement</div>
-    <h1>Make HubSpot do more of the work</h1>
-    <p class="lede">A prioritised list of improvements to the HubSpot platform. The purpose of this document is to agree what is in scope — feature by feature — before hours and cost are attached. Nothing here is priced yet.</p>
-    <div class="status-row">
-      <span class="chip draft dot">DRAFT · scope for sign-off</span>
-      <span class="chip">v1.1</span>
-      <span class="chip">Platform: HubSpot</span>
+<header>
+  <div class="eyebrow">EO Global &middot; HubSpot CRM Rollout</div>
+  <h1>Proposed Next<br>Automation Build</h1>
+  <p class="sub">Seven high-level flows recommended for the next phase of chapter and global automation — what changes for prospects and chapter staff, described without the technical build underneath.</p>
+  <div class="meta-row">
+    <div>Prepared by <span>Edge8</span></div>
+    <div>Portal <span>47691066</span></div>
+  </div>
+</header>
+
+<nav class="rail">
+  <a href="#f1">01 Lead Routing</a>
+  <a href="#f2">02 Deal Creation</a>
+  <a href="#f3">03 Nurture</a>
+  <a href="#f4">04 Onboarding</a>
+  <a href="#f5">05 SAP Renewal</a>
+  <a href="#f6">06 Podcast</a>
+  <a href="#f7">07 Rise</a>
+</nav>
+
+<p class="intro">The proposal below outlines the next set of automated flows recommended for EO Global's HubSpot instance. Each flow is described at the level of what changes for chapter staff and prospects — the underlying technical build will be scoped separately once each flow is confirmed.</p>
+
+<main>
+  <div class="track"></div>
+
+  <div class="flow" id="f1">
+    <div class="num">1</div>
+    <div>
+      <div class="flow-title">Lead Qualification &amp; Routing</div>
+      <div class="transition">New Lead <span class="arrow">&rarr;</span> Sales Qualified Lead</div>
+      <p>When a new lead engages with a chapter, HubSpot automatically scores their level of interest and readiness. As that score crosses defined thresholds, the lead is promoted from Lead &rarr; Marketing Qualified &rarr; Sales Qualified — and the right chapter staff member is notified to follow up immediately. The follow-up task is tailored to what information is already on file: a call task when a phone number is available, or a request for contact details when it isn't.</p>
+      <div class="outcome"><b>Outcome</b><span>No lead sits unactioned. Every qualified lead reaches a chapter staff member without anyone needing to monitor the pipeline manually.</span></div>
     </div>
-    <dl class="meta">
-      <div><dt>Prepared for</dt><dd>EO — Program sponsor</dd></div>
-      <div><dt>Prepared by</dt><dd>Edge8</dd></div>
-      <div><dt>Date</dt><dd>—</dd></div>
-      <div><dt>Status</dt><dd>Scoping</dd></div>
-      <div><dt>Commercials</dt><dd>Hours TBD</dd></div>
-    </dl>
-  </header>
-
-  <div class="note">
-    <strong>How this works.</strong> Read the feature list, mark each line <em>in</em> or <em>out</em> and set its priority. Once the scope is agreed, Edge8 attaches an hours estimate to every in-scope line and the total becomes the contracted SOW. The list below is a starting point for that conversation, not a fixed commitment.
   </div>
 
-  <section class="stream" id="objective">
-    <div class="s-head"><span class="num">01</span><h2>Objective</h2></div>
-    <p class="s-sub">Improve the HubSpot instance so it runs more of the membership and chapter process reliably, with cleaner data and clearer reporting — reducing manual work for the global team.</p>
-  </section>
+  <div class="flow" id="f2">
+    <div class="num">2</div>
+    <div>
+      <div class="flow-title">Application &rarr; Deal Creation &amp; Pipeline Routing</div>
+      <div class="transition">Application Submitted <span class="arrow">&rarr;</span> Deal Created</div>
+      <p>When a prospect submits a membership application, HubSpot automatically creates the corresponding deal record and routes it into the correct pipeline — Member Acquisition or Accelerator Acquisition — based on the prospect's business revenue. No manual sorting is required by chapter staff, and every application is captured consistently regardless of which chapter it comes through.</p>
+      <div class="outcome"><b>Outcome</b><span>Every submitted application becomes a trackable deal in the right pipeline, automatically, the moment it's submitted.</span></div>
+    </div>
+  </div>
 
-  <section class="stream" id="features">
-    <div class="s-head"><span class="num">02</span><h2>Feature set — for scoping</h2><span class="tag chip draft">MARK IN / OUT</span></div>
-    <p class="s-sub">Grouped by area. Priority is a starting suggestion (Must / Should / Could). Hours are filled in after scope is agreed.</p>
-    <div class="block">
-      <div class="tablewrap">
-      <table class="est">
-        <thead><tr><th>Feature</th><th class="c">Priority</th><th class="num">Hours</th></tr></thead>
-        <tbody>
-          <tr class="grouprow"><td colspan="3">Pipelines &amp; stages</td></tr>
-          <tr><td>Clean up deal stages and pipeline definitions<span class="sub">Consistent stages across chapter and global flows</span></td><td class="c"><span class="prio must">Must</span></td><td class="num tbd">—</td></tr>
-          <tr><td>Correct tagging of edge cases<span class="sub">e.g. accelerator routed through a member flow</span></td><td class="c"><span class="prio should">Should</span></td><td class="num tbd">—</td></tr>
+  <div class="flow" id="f3">
+    <div class="num">3</div>
+    <div>
+      <div class="flow-title">Stage-Based Nurture Communications</div>
+      <div class="transition">Connect &amp; Qualify <span class="arrow">&rarr;</span> Formal Interview / Go&ndash;No-Go</div>
+      <p>As a prospect's application moves through each stage of chapter and global review, the right message is sent automatically — keeping the prospect informed and engaged without chapter staff needing to remember to follow up manually at every step.</p>
+      <div class="outcome"><b>Outcome</b><span>Consistent, timely communication with every prospect, regardless of chapter staff bandwidth.</span></div>
+    </div>
+  </div>
 
-          <tr class="grouprow"><td colspan="3">Reporting &amp; dashboards</td></tr>
-          <tr><td>Executive dashboard<span class="sub">Membership, pipeline and conversion at a glance</span></td><td class="c"><span class="prio must">Must</span></td><td class="num tbd">—</td></tr>
-          <tr><td>Chapter-level reporting views</td><td class="c"><span class="prio should">Should</span></td><td class="num tbd">—</td></tr>
-
-          <tr class="grouprow"><td colspan="3">Data hygiene</td></tr>
-          <tr><td>Deduplication and record clean-up</td><td class="c"><span class="prio must">Must</span></td><td class="num tbd">—</td></tr>
-          <tr><td>Required-field and validation rules</td><td class="c"><span class="prio should">Should</span></td><td class="num tbd">—</td></tr>
-
-          <tr class="grouprow"><td colspan="3">Automation &amp; workflows</td></tr>
-          <tr><td>Automate manual hand-offs in the current process</td><td class="c"><span class="prio must">Must</span></td><td class="num tbd">—</td></tr>
-          <tr><td>Notifications and task routing for the global team</td><td class="c"><span class="prio should">Should</span></td><td class="num tbd">—</td></tr>
-
-          <tr class="grouprow"><td colspan="3">Integrations</td></tr>
-          <tr><td>Tidy / harden existing integrations<span class="sub">Chargebee, Altai, chapter-interest intake</span></td><td class="c"><span class="prio should">Should</span></td><td class="num tbd">—</td></tr>
-
-          <tr class="grouprow"><td colspan="3">Access &amp; permissions</td></tr>
-          <tr><td>Roles, teams and record visibility</td><td class="c"><span class="prio could">Could</span></td><td class="num tbd">—</td></tr>
-        </tbody>
-      </table>
+  <div class="flow" id="f4">
+    <div class="num">4</div>
+    <div>
+      <div class="flow-title">Member Onboarding Pipeline</div>
+      <div class="transition">Closed Won <span class="arrow">&rarr;</span> Active Onboarding</div>
+      <p>Once a deal closes as won, the new member is automatically handed into a dedicated Member Onboarding pipeline — a structured, staged track that guides the new member through their first weeks, rather than relying on chapter staff to remember a manual first-touch follow-up. This replaces ad-hoc welcome outreach with a consistent, no-gaps onboarding experience from day one of membership.</p>
+      <div class="outcome"><b>Outcome</b><span>Every new member gets the same high-quality onboarding experience, with visibility for chapter staff into where each new member stands in that journey.</span></div>
+      <div class="scope">
+        <span class="label">Scope note</span>
+        <p>The Member Onboarding Pipeline itself does not yet exist in the current build — this is new scope, not a reuse of an existing pipeline, and will need its own stage design as part of this build.</p>
       </div>
-      <div class="callout" style="margin-top:14px"><span>⛊</span><span>The features above are <span class="mono">candidates to react to</span>, not a fixed list. Add, remove or re-prioritise freely — the point of this SOW is to reach an agreed set before we cost it.</span></div>
     </div>
-  </section>
+  </div>
 
-  <section class="stream" id="process">
-    <div class="s-head"><span class="num">03</span><h2>How we get to a number</h2></div>
-    <ul class="clean">
-      <li><b>Agree the list.</b> Confirm which features are in, and their priority.</li>
-      <li><b>Attach hours.</b> Edge8 estimates each in-scope line; total rolls up.</li>
-      <li><b>Sign off.</b> The agreed list with hours becomes the contracted SOW.</li>
-    </ul>
-  </section>
-
-  <section class="stream" id="fineprint">
-    <div class="s-head"><span class="num">04</span><h2>Assumptions &amp; dependencies</h2></div>
-    <div class="split">
-      <div class="panel"><h4>Assumptions</h4><ul>
-        <li>Work is on the existing HubSpot instance; no migration to a new platform.</li>
-        <li>Edge8 has admin access to the relevant HubSpot portal.</li>
-      </ul></div>
-      <div class="panel warn"><h4>Dependencies / open</h4><ul>
-        <li>Final feature list and priorities from the sponsor.</li>
-        <li>Sequencing against the Global Approval build (SOW 3).</li>
-        <li>Whether this rides in the contract renewal or a standalone line.</li>
-      </ul></div>
+  <div class="flow" id="f5">
+    <div class="num">5</div>
+    <div>
+      <div class="flow-title">Strategic Alliance Partner (SAP) Renewal Pipeline &amp; Automation <span class="built-tag">Acquisition already built</span></div>
+      <div class="transition">Active Partner <span class="arrow">&rarr;</span> Renewal Window <span class="arrow">&rarr;</span> Renewed</div>
+      <p>The SAP Acquisition pipeline already exists in the global portal. The renewal side does not — this flow proposes building the SAP Renewal pipeline and the automation behind it: partner tier stays in sync automatically between the partner's company record and their deal, and a renewal reminder is triggered ahead of each partner's expiration date so no renewal is missed.</p>
+      <div class="outcome"><b>Outcome</b><span>Partner renewals are tracked with the same rigor as membership, with tier and renewal timing always current, closing the gap left by the acquisition-only build.</span></div>
+      <div class="scope">
+        <span class="label">Scope note</span>
+        <p>Unlike Flow 4, this is not automation added to an existing pipeline — the SAP Renewal pipeline itself is new scope and will need its own stage design, alongside the tier-sync and reminder automation described above.</p>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <footer>
-    <span>SOW 1 · HubSpot System Improvement · Prepared by Edge8 for EO</span>
-    <span class="mono">v1.1 · scope for sign-off</span>
-  </footer>
-</div>
+  <div class="flow" id="f6">
+    <div class="num">6</div>
+    <div>
+      <div class="flow-title">Podcast Engagement Pipeline</div>
+      <div class="transition">Podcast Registration <span class="arrow">&rarr;</span> Prospect Record</div>
+      <p>When someone registers for an EO podcast, HubSpot automatically sends an acknowledgment and creates a prospect record — capturing engaged listeners as trackable leads from the moment they register, without chapter staff needing to manually follow up on registration lists.</p>
+      <div class="outcome"><b>Outcome</b><span>Podcast listeners become a captured, trackable audience the moment they engage, ready for chapter follow-up.</span></div>
+      <div class="scope">
+        <span class="label">Scope note</span>
+        <p>Before this is finalized, we'll confirm whether the podcast program runs globally across chapters or is specific to individual chapters — this determines whether the pipeline is built once at the global level or offered as a chapter-optional add-on.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow" id="f7">
+    <div class="num">7</div>
+    <div>
+      <div class="flow-title">Rise Program Follow-Up Pipeline</div>
+      <div class="transition">Rise Event Attended <span class="arrow">&rarr;</span> Membership Package Outreach</div>
+      <p>After a prospect attends a Rise event, HubSpot automatically runs a structured follow-up sequence introducing the membership package — keeping momentum from the event without relying on chapter staff to manually schedule follow-up outreach.</p>
+      <div class="outcome"><b>Outcome</b><span>Every Rise attendee receives timely, consistent follow-up while their interest is highest.</span></div>
+      <div class="scope">
+        <span class="label">Scope note</span>
+        <p>Before this is finalized, we'll confirm whether Rise runs as a global EO program (making this a standard pipeline across chapters) or is chapter-specific like the podcast program above, and whether Rise attendance should route into the existing Member or Accelerator Acquisition pipelines or remain standalone.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="next">
+    <span class="tag">Next step</span>
+    <p>Once the flows above are confirmed, each will be scoped into a detailed technical workflow specification for build.</p>
+  </div>
+</footer>
+
 </body>
 </html>
