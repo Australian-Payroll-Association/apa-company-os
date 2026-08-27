@@ -14,6 +14,15 @@ export const metadata: Metadata = {
 // status drives the Open / Won / Lost views on the page.
 const PROPOSALS: Proposal[] = [
   {
+    client: "EO Global",
+    kind: "Statements of Work · HubSpot, Events, Approval & Support",
+    summary:
+      "Four draft SOWs for the next block of build and support work: HubSpot platform improvements, the Eventbrite-to-OneEO event system, the global membership approval flow, and a retained team to roll out ~60 chapters and run continuous feedback.",
+    date: "August 2026",
+    href: "/proposals/eo-global-sow/",
+    status: "open",
+  },
+  {
     client: "Arca Wellness",
     kind: "1-Day Private Retreat",
     summary:

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SOW 4 — Ongoing Support &amp; Rollout</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#14181d;--paper:#f4f6f4;--surface:#ffffff;--surface-2:#fbfcfb;
+    --muted:#59646d;--faint:#8a949b;--line:#dde3e0;--line-strong:#c7cfcb;
+    --accent:#0f6e63;--accent-deep:#0a4f47;--accent-soft:#e2efeb;
+    --gold:#a9701c;--gold-soft:#f2e8d4;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 28px -18px rgba(20,24,29,.22);--radius:14px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --ink:#e9eeec;--paper:#0f1316;--surface:#161c20;--surface-2:#131a1e;
+    --muted:#9aa4a9;--faint:#6c767c;--line:#28322f;--line-strong:#37433f;
+    --accent:#3fb3a4;--accent-deep:#66c9bb;--accent-soft:#12312d;--gold:#d3a24e;--gold-soft:#2c2415;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -18px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(18px,4vw,44px) 88px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .cover{border:1px solid var(--line);background:radial-gradient(120% 120% at 100% 0%,var(--accent-soft) 0%,transparent 46%),var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(26px,4vw,46px);position:relative;overflow:hidden}
+  .cover::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:26px 26px;opacity:.14;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,transparent);mask-image:linear-gradient(180deg,transparent,#000 40%,transparent)}
+  .cover>*{position:relative}
+  .cover h1{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.03;letter-spacing:-.02em;text-wrap:balance;margin:14px 0 10px;max-width:20ch}
+  .cover .lede{font-size:clamp(15.5px,2.1vw,18px);color:var(--muted);max-width:64ch;margin:0}
+  .status-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+  .chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.04em;padding:5px 11px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface-2);white-space:nowrap}
+  .chip.draft{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:var(--gold-soft)}
+  .chip.inc{color:var(--accent-deep);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft)}
+  .chip.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-right:7px;vertical-align:1px}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:24px}
+  .meta div{background:var(--surface);padding:13px 16px}
+  .meta dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+  .meta dd{margin:0;font-size:14.5px;font-weight:500}
+  .note{margin:20px 0 8px;padding:16px 20px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;color:var(--muted);font-size:14.5px}
+  .note strong{color:var(--ink);font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:20px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+  .stat .l{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .stat .n{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(22px,3vw,28px);line-height:1.1;letter-spacing:-.02em}
+  .stat .d{font-size:13px;color:var(--muted);line-height:1.4}
+  section.stream{margin-top:46px;scroll-margin-top:20px}
+  .s-head{display:flex;gap:16px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:6px;flex-wrap:wrap}
+  .s-head .num{font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(24px,4vw,34px);color:var(--accent);line-height:.9;letter-spacing:-.02em}
+  .s-head h2{font-family:"Archivo",sans-serif;font-weight:700;font-size:clamp(20px,3.2vw,27px);letter-spacing:-.02em;margin:0;line-height:1.05;text-wrap:balance}
+  .s-head .tag{margin-left:auto;align-self:center}
+  .s-sub{color:var(--muted);font-size:15px;margin:12px 0 4px;max-width:72ch}
+  .block{margin-top:24px}
+  .block>h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-deep);font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .block>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+  p{margin:0 0 12px;max-width:72ch}
+  ul.clean{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  ul.clean.grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+  ul.clean li{position:relative;padding:10px 14px 10px 32px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-size:14.5px}
+  ul.clean li::before{content:"";position:absolute;left:13px;top:16px;width:8px;height:8px;border-radius:2px;background:var(--accent);transform:rotate(45deg)}
+  ul.clean li b{font-weight:600}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.split{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .panel h4{margin:0 0 10px;font-size:13px;font-family:"IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .panel ul{margin:0;padding-left:18px;display:grid;gap:6px}
+  .panel li{font-size:14px}
+  .panel.warn{border-color:color-mix(in srgb,var(--gold) 40%,var(--line));background:var(--gold-soft)}
+  .panel.warn h4{color:var(--gold)}
+  .panel.good{border-color:color-mix(in srgb,var(--accent) 30%,var(--line));background:var(--accent-soft)}
+  .panel.good h4{color:var(--accent-deep)}
+  .tablewrap{overflow-x:auto}
+  table.est{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table.est th,table.est td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.est thead th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;background:var(--surface-2)}
+  table.est tbody tr:last-child td{border-bottom:none}
+  table.est td .sub{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+  table.est th.num,table.est td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  table.est td.num{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent)}
+  table.est tfoot td{border-top:2px solid var(--ink);border-bottom:none;background:var(--surface-2);font-weight:600}
+  table.est tfoot td:first-child{font-family:"Archivo",sans-serif;font-weight:700;font-size:15px}
+  table.est tfoot td.num{font-size:16px}
+  .tbd{color:var(--faint);font-family:"IBM Plex Mono",monospace;font-weight:500}
+  .callout{display:flex;gap:12px;padding:14px 16px;border-radius:10px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));font-size:14.5px;color:var(--accent-deep)}
+  .callout .mono{font-weight:600}
+  hr.soft{border:none;border-top:1px dashed var(--line-strong);margin:28px 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--faint);font-size:13px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+  a.link{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+  @media print{.cover,.card,.stat{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="cover">
+    <div class="eyebrow">Statement of Work 4 · Ongoing Support &amp; Rollout</div>
+    <h1>A standing team to roll out and keep improving</h1>
+    <p class="lede">A retained team that rolls the event integration out to all ~60 chapters, keeps the platform healthy with bug fixes and minor improvements, and builds the customer-feedback tracker so we can measure what members think and keep improving the product. Priced as a team, not a pile of tickets.</p>
+    <div class="status-row">
+      <span class="chip draft dot">DRAFT · scope for sign-off</span>
+      <span class="chip">~60 chapters</span>
+      <span class="chip">Retained team · monthly</span>
+      <span class="chip">Rate TBD</span>
+    </div>
+    <dl class="meta">
+      <div><dt>Prepared for</dt><dd>EO — Program sponsor</dd></div>
+      <div><dt>Prepared by</dt><dd>Edge8</dd></div>
+      <div><dt>Date</dt><dd>—</dd></div>
+      <div><dt>Model</dt><dd>Retained team</dd></div>
+      <div><dt>Commercials</dt><dd>Monthly · TBD</dd></div>
+    </dl>
+  </header>
+
+  <div class="note">
+    <strong>Why a team, not a bulk order.</strong> Rollout, bug fixes and improvements don't arrive in a neat batch — they land continuously and unpredictably. A small standing team gives predictable monthly cost and a single group that already knows the system, instead of re-quoting every piece of work. It picks up where SOW 2 ends and runs against the same shared tracker.
+  </div>
+
+  <section class="stream" id="glance" style="margin-top:32px">
+    <div class="s-head"><span class="num">≡</span><h2>What the team covers</h2></div>
+    <div class="stats">
+      <div class="stat"><span class="l">Chapter rollout</span><span class="n">~60 chapters</span><span class="d">Onboard each chapter onto the event integration, one at a time.</span></div>
+      <div class="stat"><span class="l">Bug fixes</span><span class="n">Keep it healthy</span><span class="d">Fix breakages as platforms change or issues surface.</span></div>
+      <div class="stat"><span class="l">Minor improvements</span><span class="n">Small features</span><span class="d">Steady stream of small enhancements as chapters use it.</span></div>
+      <div class="stat"><span class="l">Feedback tracker</span><span class="n">Build &amp; run</span><span class="d">Quantify and qualify customer feedback; feed continuous improvement.</span></div>
+    </div>
+  </section>
+
+  <section class="stream" id="scope">
+    <div class="s-head"><span class="num">01</span><h2>Scope of the engagement</h2></div>
+
+    <div class="block"><h3>Chapter rollout</h3>
+      <ul class="clean grid">
+        <li><b>Onboard chapters onto the event integration</b> — take each chapter's access and configure the connection for them.</li>
+        <li><b>Coordinate and support go-live</b> — walk each chapter through it and confirm events land correctly.</li>
+        <li><b>Monitor connections</b> — watch the state of every connection through the shared tracker.</li>
+      </ul>
+    </div>
+
+    <div class="block"><h3>Bug fixes &amp; minor improvements</h3>
+      <ul class="clean grid">
+        <li><b>Bug fixes</b> — fix breakages when Eventbrite, Hivebrite or HubSpot change something.</li>
+        <li><b>Minor feature improvements</b> — small enhancements the team picks up within its capacity, prioritised with you.</li>
+      </ul>
+      <div class="callout" style="margin-top:12px"><span>⛊</span><span>Larger new features are scoped as their own SOW. This team handles the <span class="mono">continuous, small-and-steady</span> work.</span></div>
+    </div>
+
+    <div class="block"><h3>Customer-feedback tracker</h3>
+      <p style="color:var(--muted);font-size:14.5px">Build the owned feedback loop so insight comes from the customer, not internal guesswork — and so it can be measured and acted on continuously.</p>
+      <ul class="clean grid">
+        <li><b>Interview format &amp; playbook</b> — a standard structure anyone on the team can run.</li>
+        <li><b>Cadence &amp; surveys</b> — a tracked number of interviews per week, plus lightweight surveys, into one intake.</li>
+        <li><b>Single intake + usage data</b> — feedback captured where chapters already log interest, enriched with product usage.</li>
+        <li><b>Quantify &amp; qualify</b> — turn raw feedback into measurable signal on a regular readout.</li>
+        <li><b>One place</b> — lives in the shared rollout tracker from SOW 2, so rollout and feedback sit side by side.</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="soft">
+
+  <section class="stream" id="team">
+    <div class="s-head"><span class="num">02</span><h2>The team &amp; commercials</h2><span class="tag chip draft">RATE TBD</span></div>
+    <p class="s-sub">A small standing team on a monthly basis. Composition and allocation are set with you; the rate is filled in once agreed.</p>
+    <div class="block">
+      <div class="tablewrap"><table class="est">
+        <thead><tr><th>Role</th><th>Focus</th><th class="num">Allocation</th></tr></thead>
+        <tbody>
+          <tr><td>Rollout &amp; support lead</td><td>Chapter onboarding, coordination, monitoring</td><td class="num tbd">—</td></tr>
+          <tr><td>Engineer</td><td>Bug fixes, minor improvements, feedback tracker build</td><td class="num tbd">—</td></tr>
+          <tr><td>Part-time oversight</td><td>Prioritisation, reporting, sponsor check-ins</td><td class="num tbd">—</td></tr>
+        </tbody>
+        <tfoot><tr><td>Monthly team</td><td></td><td class="num tbd">—</td></tr></tfoot>
+      </table></div>
+      <div class="callout" style="margin-top:14px"><span>⛊</span><span>Billed monthly for the team's capacity. Work is prioritised with you each cycle — rollout, fixes, improvements and feedback all draw from the same standing capacity.</span></div>
+    </div>
+  </section>
+
+  <section class="stream" id="fineprint">
+    <div class="s-head"><span class="num">03</span><h2>Assumptions &amp; dependencies</h2></div>
+    <div class="split">
+      <div class="panel"><h4>Assumptions</h4><ul>
+        <li>Builds on the event integration delivered in SOW 2, after the go / no-go.</li>
+        <li>Chapters provide Eventbrite access; the team configures it for them.</li>
+        <li>Runs against the shared rollout tracker; the feedback tool lives there too.</li>
+      </ul></div>
+      <div class="panel warn"><h4>Dependencies / open</h4><ul>
+        <li>Team size, allocation and monthly rate to be agreed.</li>
+        <li>Rollout order and pace for the ~60 chapters.</li>
+        <li>How minor-improvement priorities are set each cycle.</li>
+        <li>Where the feedback intake lives, confirmed with the sponsor.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>SOW 4 · Ongoing Support &amp; Rollout · Prepared by Edge8 for EO</span>
+    <span class="mono">v0.1 · scope for sign-off</span>
+  </footer>
+</div>
+</body>
+</html>
