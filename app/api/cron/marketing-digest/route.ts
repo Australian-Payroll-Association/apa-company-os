@@ -47,7 +47,7 @@ export async function GET(req: Request) {
 
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, channel, publish_date, brands(name)")
     .in("channel", MANUAL_CHANNELS)
     .lte("publish_date", today)

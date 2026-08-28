@@ -55,7 +55,7 @@ export async function generateCampaignSeoGeo(campaignId: string): Promise<Result
 
     // The blog asset's copy is the best source for concrete keywords and facts.
     const { data: blog } = await companyOs
-      .from("marketing_calendar")
+      .from("marketing_content")
       .select("copy_md")
       .eq("campaign_id", campaignId)
       .eq("channel", "blog")

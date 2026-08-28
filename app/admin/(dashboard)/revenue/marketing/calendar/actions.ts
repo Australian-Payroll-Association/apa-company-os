@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/admin/audit";
 import { getBroadcastStats } from "@/lib/admin/broadcasts";
 import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
 import { generateEntryImage } from "@/lib/ai/brand-image";
+import { listAssetImages, setSelectedImage, type AssetImage } from "@/lib/admin/marketing-images";
 import { publishBlogAsset, revalidateBlog } from "@/lib/marketing/blog-publish";
 import {
   listEntries,
@@ -66,7 +67,7 @@ async function createDraftBroadcastForEntry(input: {
   const { data } = await companyOs.from("email_campaigns").insert(row).select("id").maybeSingle();
   const id = (data as { id: string } | null)?.id ?? null;
   if (id) {
-    await companyOs.from("marketing_calendar").update({ broadcast_id: id }).eq("id", input.entryId);
+    await companyOs.from("marketing_content").update({ broadcast_id: id }).eq("id", input.entryId);
   }
   return id;
 }
@@ -100,7 +101,7 @@ export async function createEntry(input: {
   }
 
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .insert({
       title,
       channel: input.channel,
@@ -117,7 +118,7 @@ export async function createEntry(input: {
 
   const id = (data as { id: string }).id;
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "insert",
     actor: admin.email,
@@ -145,6 +146,7 @@ export async function updateEntry(
     imageType?: string | null;
     seoMd?: string | null;
     imageBriefMd?: string | null;
+    bodyHtml?: string | null;
   },
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
@@ -177,13 +179,14 @@ export async function updateEntry(
   if (patch.imageType !== undefined) update.image_type = patch.imageType || null;
   if (patch.seoMd !== undefined) update.seo_md = patch.seoMd || null;
   if (patch.imageBriefMd !== undefined) update.image_brief_md = patch.imageBriefMd || null;
+  if (patch.bodyHtml !== undefined) update.body_html = patch.bodyHtml || null;
   if (Object.keys(update).length === 0) return { ok: true };
 
-  const { error } = await companyOs.from("marketing_calendar").update(update).eq("id", id);
+  const { error } = await companyOs.from("marketing_content").update(update).eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "update",
     actor: admin.email,
@@ -206,7 +209,7 @@ export async function moveEntry(
   // If this is a published blog asset moving OUT of published (unpublish), we
   // need its slug to revalidate the public surfaces after the change.
   const { data: before } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("channel, status, slug")
     .eq("id", id)
     .maybeSingle();
@@ -214,7 +217,7 @@ export async function moveEntry(
   const update: Record<string, unknown> = { status };
   if (sortOrder !== undefined && Number.isFinite(sortOrder)) update.sort_order = sortOrder;
 
-  const { error } = await companyOs.from("marketing_calendar").update(update).eq("id", id);
+  const { error } = await companyOs.from("marketing_content").update(update).eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   const prev = before as { channel: string; status: string; slug: string | null } | null;
@@ -223,7 +226,7 @@ export async function moveEntry(
   }
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "update",
     actor: admin.email,
@@ -252,13 +255,13 @@ export async function publishBlogEntry(
 export async function markPosted(id: string, url: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const { error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({ status: "published", posted_url: url.trim() || null })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "update",
     actor: admin.email,
@@ -283,30 +286,59 @@ export async function getEntryPerformance(broadcastId: string): Promise<EntryPer
   return { sent: s.sent, delivered: s.delivered, opened: s.opened, clicked: s.clicked };
 }
 
-// Generates an image for the entry from its brief + style + the brand palette,
-// stores it, and points image_url at it. Returns the URL for an optimistic patch.
-export async function generateImage(id: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+type ImagesResult = { ok: true; images: AssetImage[]; url: string } | { ok: false; error: string };
+
+// Generates an image for the entry from its brief + style + the brand palette.
+// Kept as a new selected version in the image library (marketing_asset_images);
+// image_url mirrors the selection. Returns the full version list for the drawer.
+export async function generateImage(id: string): Promise<ImagesResult> {
   const admin = await requireAdmin();
   const r = await generateEntryImage(id, { createdBy: admin.email });
   if (!r.ok) return r;
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "update",
     actor: admin.email,
     context: { image_generated: true },
   });
   refresh();
-  return r;
+  return { ok: true, url: r.url, images: await listAssetImages(id) };
+}
+
+// The image library (all kept versions) for one entry, newest first.
+export async function getEntryImages(id: string): Promise<AssetImage[]> {
+  await requireAdmin();
+  return listAssetImages(id);
+}
+
+// Make an earlier version the selected one (mirrors image_url). Returns the
+// refreshed list so the drawer reflects the new selection.
+export async function selectEntryImage(
+  id: string,
+  imageId: string,
+): Promise<ImagesResult> {
+  const admin = await requireAdmin();
+  const r = await setSelectedImage(id, imageId);
+  if (!r.ok) return r;
+  await recordAudit({
+    table: "marketing_content",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { image_selected: imageId },
+  });
+  refresh();
+  return { ok: true, url: r.url, images: await listAssetImages(id) };
 }
 
 export async function deleteEntry(id: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const { error } = await companyOs.from("marketing_calendar").delete().eq("id", id);
+  const { error } = await companyOs.from("marketing_content").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "delete",
     actor: admin.email,
@@ -372,7 +404,7 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
   const admin = await requireAdmin();
 
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, brand_id, channel, pillar_id, publish_date")
     .eq("id", id)
     .maybeSingle();
@@ -403,11 +435,11 @@ export async function repurposeEntry(id: string): Promise<RepurposeResult> {
 
   if (children.length === 0) return { ok: false, error: "Nothing to repurpose." };
 
-  const { error: insertError } = await companyOs.from("marketing_calendar").insert(children);
+  const { error: insertError } = await companyOs.from("marketing_content").insert(children);
   if (insertError) return { ok: false, error: insertError.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "bulk_update",
     actor: admin.email,
@@ -429,7 +461,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
   const admin = await requireAdmin();
 
   const { data: entryData, error: entryError } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, brand_id, channel, publish_date, asset_url, posted_url, broadcast_id")
     .eq("id", id)
     .maybeSingle();
@@ -461,7 +493,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
 
   // Existing children keyed by channel, so re-running updates in place.
   const { data: childData } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, channel, broadcast_id")
     .eq("parent_id", id);
   const childByChannel = new Map(
@@ -487,19 +519,19 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
     let targetId: string;
     let targetCampaignId: string | null;
     if (out.channel === entry.channel) {
-      await companyOs.from("marketing_calendar").update(fields).eq("id", entry.id);
+      await companyOs.from("marketing_content").update(fields).eq("id", entry.id);
       targetId = entry.id;
       targetCampaignId = entry.broadcast_id;
     } else {
       const existing = childByChannel.get(out.channel);
       if (existing) {
-        await companyOs.from("marketing_calendar").update(fields).eq("id", existing.id);
+        await companyOs.from("marketing_content").update(fields).eq("id", existing.id);
         targetId = existing.id;
         targetCampaignId = existing.broadcast_id;
       } else {
         const offset = DERIVATIVES.find((d) => d.channel === out.channel)?.offsetDays ?? 1;
         const { data: created } = await companyOs
-          .from("marketing_calendar")
+          .from("marketing_content")
           .insert({
             title: entry.title,
             brand_id: entry.brand_id,
@@ -544,7 +576,7 @@ export async function draftWithAI(id: string): Promise<RepurposeResult> {
   }
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "bulk_update",
     actor: admin.email,
@@ -603,7 +635,7 @@ export async function draftCampaignAssets(
 
   // Existing campaign assets keyed by channel, so re-running updates in place.
   const { data: existingData } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, channel, broadcast_id")
     .eq("campaign_id", campaignId);
   const existingByChannel = new Map(
@@ -633,14 +665,14 @@ export async function draftCampaignAssets(
     let targetBroadcastId: string | null;
     const existing = existingByChannel.get(out.channel);
     if (existing) {
-      await companyOs.from("marketing_calendar").update({ title, ...fields }).eq("id", existing.id);
+      await companyOs.from("marketing_content").update({ title, ...fields }).eq("id", existing.id);
       targetId = existing.id;
       targetBroadcastId = existing.broadcast_id;
     } else {
       // Blog anchors the window; social and email stagger after it.
       const offset = out.channel === "blog" ? 0 : DERIVATIVES.find((d) => d.channel === out.channel)?.offsetDays ?? 1;
       const { data: created } = await companyOs
-        .from("marketing_calendar")
+        .from("marketing_content")
         .insert({
           title,
           brand_id: campaign.brand_id,
@@ -706,7 +738,7 @@ export async function createBroadcastFromEntry(id: string): Promise<BroadcastRes
   const admin = await requireAdmin();
 
   const { data: entryData, error: entryError } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, channel, brand_id, broadcast_id, publish_date")
     .eq("id", id)
     .maybeSingle();

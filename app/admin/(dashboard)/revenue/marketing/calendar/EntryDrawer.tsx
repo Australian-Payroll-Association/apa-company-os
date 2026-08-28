@@ -12,6 +12,7 @@ import {
   type PillarOption,
 } from "@/lib/admin/marketing-calendar";
 import { BLOG_TYPES, IMAGE_STYLES, SOCIAL_STYLES, type StyleOption } from "@/lib/marketing/style-catalogues";
+import type { AssetImage } from "@/lib/admin/marketing-images";
 import { PublishEditorPanel } from "./PublishEditorPanel";
 import type { BrandStylePrefs } from "./CalendarClient";
 import {
@@ -21,6 +22,8 @@ import {
   repurposeEntry,
   draftWithAI,
   generateImage,
+  getEntryImages,
+  selectEntryImage,
   markPosted,
   publishBlogEntry,
   getEntryPerformance,
@@ -70,7 +73,10 @@ export function EntryDrawer({
   const [imageType, setImageType] = useState(entry.imageType ?? "");
   const [seoMd, setSeoMd] = useState(entry.seoMd ?? "");
   const [imageBriefMd, setImageBriefMd] = useState(entry.imageBriefMd ?? "");
-  const [imageUrl, setImageUrl] = useState(entry.imageUrl ?? "");
+  const [bodyHtml, setBodyHtml] = useState(entry.bodyHtml ?? "");
+  // The image library (all kept versions); the selected one is the entry's image.
+  const [images, setImages] = useState<AssetImage[]>([]);
+  const selectedImage = images.find((i) => i.isSelected) ?? images[0] ?? null;
   const [perf, setPerf] = useState<EntryPerformance | null>(null);
 
   // Delivery numbers for a linked broadcast, loaded once the drawer opens.
@@ -86,6 +92,18 @@ export function EntryDrawer({
       live = false;
     };
   }, [entry.broadcastId]);
+
+  // The entry's image versions, loaded when the drawer opens on a new entry.
+  useEffect(() => {
+    let live = true;
+    setImages([]);
+    getEntryImages(entry.id).then((imgs) => {
+      if (live) setImages(imgs);
+    });
+    return () => {
+      live = false;
+    };
+  }, [entry.id]);
 
   const parentChoices = allEntries.filter((e) => e.id !== entry.id);
   const brandPillars = brandId ? pillars.filter((p) => p.brandId === brandId) : [];
@@ -120,6 +138,7 @@ export function EntryDrawer({
         imageType: imageType || null,
         seoMd: seoMd || null,
         imageBriefMd: imageBriefMd || null,
+        bodyHtml: bodyHtml || null,
       });
       if (!r.ok) {
         setNote({ tone: "err", text: r.error });
@@ -144,6 +163,7 @@ export function EntryDrawer({
         imageType: imageType || null,
         seoMd: seoMd || null,
         imageBriefMd: imageBriefMd || null,
+        bodyHtml: bodyHtml || null,
       });
     });
   }
@@ -182,9 +202,22 @@ export function EntryDrawer({
         setNote({ tone: "err", text: r.error });
         return;
       }
-      setImageUrl(r.url);
+      setImages(r.images);
       onPatched(entry.id, { imageUrl: r.url });
       setNote({ tone: "ok", text: "Image generated." });
+    });
+  }
+
+  function selectImage(imageId: string) {
+    setNote(null);
+    startTransition(async () => {
+      const r = await selectEntryImage(entry.id, imageId);
+      if (!r.ok) {
+        setNote({ tone: "err", text: r.error });
+        return;
+      }
+      setImages(r.images);
+      onPatched(entry.id, { imageUrl: r.url });
     });
   }
 
@@ -335,6 +368,22 @@ export function EntryDrawer({
         </div>
 
         <div className="admin-field">
+          <label className="admin-label" htmlFor="e-html">HTML</label>
+          <textarea
+            id="e-html"
+            className="admin-textarea"
+            rows={8}
+            value={bodyHtml}
+            onChange={(e) => setBodyHtml(e.target.value)}
+            placeholder="The rendered email or content HTML. Reference images by their library URL below."
+            style={{ fontFamily: "var(--admin-mono, ui-monospace, monospace)", fontSize: 12 }}
+          />
+          <div className="admin-hint" style={{ marginTop: 2 }}>
+            The email or content body. Pull in images with their library URL (copy one from a version below).
+          </div>
+        </div>
+
+        <div className="admin-field">
           <label className="admin-label" htmlFor="e-asset">Asset URL</label>
           <input id="e-asset" className="admin-input" value={assetUrl} onChange={(e) => setAssetUrl(e.target.value)} placeholder="Image, doc, or link" />
         </div>
@@ -397,17 +446,42 @@ export function EntryDrawer({
           <textarea id="e-imgbrief" className="admin-textarea" rows={4} value={imageBriefMd} onChange={(e) => setImageBriefMd(e.target.value)} placeholder="Hero concept, palette, ratios…" />
           <div className="admin-form-actions" style={{ marginTop: 8 }}>
             <button type="button" className="admin-btn" disabled={pending} onClick={genImage}>
-              {pending ? "Generating…" : imageUrl ? "Regenerate image" : "Generate image"}
+              {pending ? "Generating…" : images.length > 0 ? "Generate another" : "Generate image"}
             </button>
           </div>
-          {imageUrl && (
-            <a href={imageUrl} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
+
+          {selectedImage && (
+            <a href={selectedImage.url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Generated" style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid var(--admin-border, #e5e7eb)" }} />
+              <img src={selectedImage.url} alt="Selected" style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid var(--admin-border, #e5e7eb)" }} />
             </a>
           )}
+
+          {images.length > 1 && (
+            <div className="mcr-thumbs" style={{ padding: "12px 0 0" }}>
+              {images.map((img, i) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  className={`mcr-thumb${img.isSelected ? " is-selected" : ""}`}
+                  disabled={pending || img.isSelected}
+                  onClick={() => selectImage(img.id)}
+                  title={img.isSelected ? "Selected" : `Use version ${images.length - i}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={`Version ${images.length - i}`} />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedImage && (
+            <div className="admin-hint" style={{ marginTop: 6, wordBreak: "break-all" }}>
+              Selected URL: {selectedImage.url}
+            </div>
+          )}
           <div className="admin-hint" style={{ marginTop: 6 }}>
-            Uses the image brief, the chosen image style, and the brand palette. Save the brief first if you just edited it.
+            Every generation is kept as a version. Uses the image brief, the chosen image style, and the brand palette. Save the brief first if you just edited it.
           </div>
         </div>
 

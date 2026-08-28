@@ -82,6 +82,7 @@ export type CalendarEntryRow = {
   seoMd: string | null;
   imageBriefMd: string | null;
   imageUrl: string | null;
+  bodyHtml: string | null;
   sortOrder: number;
   createdAt: string;
 };
@@ -108,6 +109,7 @@ type DbEntry = {
   seo_md: string | null;
   image_brief_md: string | null;
   image_url: string | null;
+  body_html: string | null;
   sort_order: number;
   created_at: string;
   brands: { name: string } | { name: string }[] | null;
@@ -119,7 +121,7 @@ type DbEntry = {
 // broadcast_id is the email-send link; campaign_id is the umbrella. Both embeds
 // are pinned to their FK explicitly so they stay unambiguous.
 const ENTRY_SELECT =
-  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, broadcast_id, campaign_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns!broadcast_id(status), marketing_campaigns!campaign_id(name)";
+  "id, title, brand_id, pillar_id, channel, status, publish_date, parent_id, broadcast_id, campaign_id, copy_md, asset_url, posted_url, notes, blog_style, social_style, image_style, image_type, seo_md, image_brief_md, image_url, body_html, sort_order, created_at, brands(name), marketing_pillars(name), email_campaigns!broadcast_id(status), marketing_campaigns!campaign_id(name)";
 
 function one<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v;
@@ -156,6 +158,7 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
     seoMd: row.seo_md,
     imageBriefMd: row.image_brief_md,
     imageUrl: row.image_url,
+    bodyHtml: row.body_html,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
   };
@@ -163,7 +166,7 @@ function mapEntry(row: DbEntry): CalendarEntryRow {
 
 export async function listEntries(): Promise<{ rows: CalendarEntryRow[]; error?: string }> {
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select(ENTRY_SELECT)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -174,7 +177,7 @@ export async function listEntries(): Promise<{ rows: CalendarEntryRow[]; error?:
 // A single calendar row (asset) with all its joined fields.
 export async function getEntry(id: string): Promise<CalendarEntryRow | null> {
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select(ENTRY_SELECT)
     .eq("id", id)
     .maybeSingle();
@@ -186,7 +189,7 @@ export async function getEntry(id: string): Promise<CalendarEntryRow | null> {
 // render the same board and month grid the global calendar uses.
 export async function listEntriesByCampaign(campaignId: string): Promise<CalendarEntryRow[]> {
   const { data } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select(ENTRY_SELECT)
     .eq("campaign_id", campaignId)
     .order("sort_order", { ascending: true })
@@ -219,7 +222,7 @@ export type PillarPerformance = {
 // if the count grows large.
 export async function getPillarPerformance(): Promise<PillarPerformance[]> {
   const { data } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("broadcast_id, campaign_id, marketing_pillars(name)")
     .eq("channel", "email")
     .not("broadcast_id", "is", null);

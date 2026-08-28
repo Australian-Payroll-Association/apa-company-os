@@ -90,7 +90,7 @@ const CONTENT_SELECT =
 export function makePublishEditorTools(assetId: string, actor: string) {
   async function load(): Promise<Row | null> {
     const { data } = await companyOs
-      .from("marketing_calendar")
+      .from("marketing_content")
       .select(CONTENT_SELECT)
       .eq("id", assetId)
       .maybeSingle();
@@ -111,7 +111,7 @@ export function makePublishEditorTools(assetId: string, actor: string) {
         // Same-brand published posts: the internal-link targets the agent may
         // use (checklist requires >=2 in-body links to related posts).
         const { data: siblings } = await companyOs
-          .from("marketing_calendar")
+          .from("marketing_content")
           .select("slug, title, brands!inner(slug)")
           .eq("channel", "blog")
           .eq("status", "published")
@@ -163,10 +163,10 @@ export function makePublishEditorTools(assetId: string, actor: string) {
         if (Object.keys(update).length === 0) {
           return { content: "No content provided to update.", isError: true };
         }
-        const { error } = await companyOs.from("marketing_calendar").update(update).eq("id", assetId);
+        const { error } = await companyOs.from("marketing_content").update(update).eq("id", assetId);
         if (error) return { content: error.message, isError: true };
         await recordAudit({
-          table: "marketing_calendar",
+          table: "marketing_content",
           recordId: assetId,
           operation: "update",
           actor: "publish-editor-agent",
@@ -211,7 +211,7 @@ export function makePublishEditorTools(assetId: string, actor: string) {
 
 async function isSlugTaken(slug: string, selfId: string): Promise<boolean> {
   const { data } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id")
     .eq("channel", "blog")
     .eq("slug", slug)

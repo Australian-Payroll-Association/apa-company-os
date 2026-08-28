@@ -148,7 +148,7 @@ export async function addAssetToCampaign(
 
   const c = campaign as { id: string; brand_id: string | null; pillar_id: string | null };
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .insert({
       title,
       channel: input.channel,
@@ -166,7 +166,7 @@ export async function addAssetToCampaign(
 
   const id = (data as { id: string }).id;
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "insert",
     actor: admin.email,

@@ -56,7 +56,7 @@ const getDbPostsList = unstable_cache(
       // brands!inner scopes rows to THIS site's brand — AIO (and any other
       // brand's) posts must never render on edge8.ai.
       const { data, error } = await companyOs
-        .from("marketing_calendar")
+        .from("marketing_content")
         .select(`${LIST_COLUMNS}, brands!inner(slug)`)
         .eq("channel", "blog")
         .eq("status", "published")
@@ -97,7 +97,7 @@ const getDbPostBySlug = (slug: string) =>
   unstable_cache(
     async (): Promise<Post | null> => {
       const { data, error } = await companyOs
-        .from("marketing_calendar")
+        .from("marketing_content")
         .select(`${LIST_COLUMNS}, copy_md, title_tag, meta_description, primary_keyword, brands!inner(slug)`)
         .eq("channel", "blog")
         .eq("status", "published")
