@@ -56,7 +56,6 @@ const NAV: NavSection[] = [
           { label: "Client Hubs", href: "/admin/client-hubs", ico: "▦", enabled: true },
           // Goals editing moved to the Company group below (single place; the
           // old /admin/edges/goals cascade board is unlinked but still routable).
-          { label: "Metrics", href: "/admin/edges/metrics", ico: "▲", enabled: true },
           { label: "Sync", href: "/admin/edges/sync", ico: "☰", enabled: true },
           { label: "Issues", href: "/admin/edges/issues", ico: "◉", enabled: true },
           { label: "Reviews", href: "/admin/edges/reviews", ico: "✓" },
