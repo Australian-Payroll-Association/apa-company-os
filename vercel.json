@@ -114,6 +114,16 @@
       "source": "/proposals/rentwest-how-it-works.html",
       "destination": "/proposals/national-housing-how-it-works.html",
       "permanent": true
+    },
+    {
+      "source": "/vietnam-adventure-info-form",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/vietnam-adventure-info-form/",
+      "destination": "/",
+      "permanent": true
     }
   ]
 }
