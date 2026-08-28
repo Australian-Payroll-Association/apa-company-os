@@ -61,12 +61,6 @@ export const LOCAL_CAPTURE = {
 type CronMeta = { name: string; description: string; content: string[]; apps: string[] };
 
 const CRON_META: Record<string, CronMeta> = {
-  "/api/trip-passport-cleanup/": {
-    name: "Trip passport cleanup",
-    description: "Deletes trip passport images 30 days after the trip, fulfilling the form's deletion promise. No-op until the cutoff passes.",
-    content: ["Trip passports"],
-    apps: ["Supabase"],
-  },
   "/api/cron/contractor-payments/": {
     name: "Contractor payments",
     description: "Rolls the previous month's accepted contractor work into payment requests, on the 1st.",
