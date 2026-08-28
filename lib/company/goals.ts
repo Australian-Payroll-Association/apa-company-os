@@ -51,7 +51,7 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
       .neq("employment_type", "contract"),
     companyOs
       .from("goals")
-      .select("coaching_profile_id, title, objective_id, key_result_id, metric_id")
+      .select("coaching_profile_id, title, objective_id, key_result_id")
       .eq("status", "active")
       .order("sort_order"),
   ]);
@@ -90,7 +90,6 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
     title: string;
     objective_id: string | null;
     key_result_id: string | null;
-    metric_id: string | null;
   };
   const many = <T,>(e: T | T[] | null): T[] => (Array.isArray(e) ? e : e ? [e] : []);
   const first = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? e[0] ?? null : e);
@@ -100,36 +99,16 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
   const krLabel = new Map(krs.map((kr) => [kr.id, kr.title] as const));
   const objLabel = new Map(objectives.map((o) => [o.id, o.title] as const));
 
-  // Metrics carry a name (for the ladder label) and an optional key_result_id
-  // so a metric-linked FAST goal can roll up to its company objective.
-  const metricIdList = teamGoals.map((g) => g.metric_id).filter((x): x is string => !!x);
-  const metricRows = metricIdList.length
-    ? ((await companyOs
-        .from("metrics")
-        .select("id, name, target, direction, key_result_id")
-        .in("id", metricIdList)).data as
-        | { id: string; name: string; target: number | null; direction: string; key_result_id: string | null }[]
-        | null) ?? []
-    : [];
-  const metricLabel = new Map(
-    metricRows.map((m) => [m.id, `${m.name}${m.target != null ? ` (target ${m.target}${m.direction === "down" ? " ↓" : " ↑"})` : ""}`] as const),
-  );
-  const metricKr = new Map(metricRows.map((m) => [m.id, m.key_result_id] as const));
-
   // Resolve a goal to the COMPANY objective it ultimately ladders to, or null.
-  // A KR resolves to its objective; a metric resolves via its KR; a lower-level
-  // objective rolls up through its parent KR. Anything that doesn't land on a
-  // company objective (no ladder, or an orphan) returns null.
+  // A KR resolves to its objective; a lower-level objective rolls up through its
+  // parent KR. Anything that doesn't land on a company objective (no ladder, or
+  // an orphan) returns null.
   const objById = new Map(objectives.map((o) => [o.id, o] as const));
   const krObjective = new Map(allKrs.map((kr) => [kr.id, kr.objective_id] as const));
   function resolveCompanyObjectiveId(g: TeamGoalRow): string | null {
     let objId: string | null = null;
     if (g.key_result_id) objId = krObjective.get(g.key_result_id) ?? null;
     else if (g.objective_id) objId = g.objective_id;
-    else if (g.metric_id) {
-      const krId = metricKr.get(g.metric_id) ?? null;
-      objId = krId ? krObjective.get(krId) ?? null : null;
-    }
     let guard = 0;
     while (objId && objById.get(objId) && objById.get(objId)!.level !== "company" && guard++ < 10) {
       const parentKr = objById.get(objId)!.parent_kr_id;
@@ -147,11 +126,11 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
       profileToMember.set(p.id, { teamMemberId: tm.id, name, avatarUrl: person?.avatar_url ?? null });
   }
 
-  // Members laddered to each KR (directly, or via a KR-linked metric), for the
-  // avatar stack on the KR row. One entry per member per KR.
+  // Members laddered to each KR, for the avatar stack on the KR row. One entry
+  // per member per KR.
   const ladderedByKr: Record<string, LadderedPerson[]> = {};
   for (const g of teamGoals) {
-    const krId = g.key_result_id ?? (g.metric_id ? metricKr.get(g.metric_id) ?? null : null);
+    const krId = g.key_result_id;
     const m = krId ? profileToMember.get(g.coaching_profile_id) : null;
     if (!krId || !m) continue;
     const list = (ladderedByKr[krId] ??= []);
@@ -166,11 +145,9 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
     if (!m) return [];
     const ladder = g.key_result_id
       ? krLabel.get(g.key_result_id) ?? null
-      : g.metric_id
-        ? metricLabel.get(g.metric_id) ?? null
-        : g.objective_id
-          ? objLabel.get(g.objective_id) ?? null
-          : null;
+      : g.objective_id
+        ? objLabel.get(g.objective_id) ?? null
+        : null;
     return [{ ...m, goalTitle: g.title, ladder, objId: resolveCompanyObjectiveId(g) }];
   });
 

@@ -268,8 +268,7 @@ const PROFILE_SELECT =
 
 export type EdgesLadder =
   | { kind: "objective"; id: string; label: string }
-  | { kind: "key_result"; id: string; label: string }
-  | { kind: "metric"; id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null };
+  | { kind: "key_result"; id: string; label: string };
 
 export type GoalComment = {
   id: string;
@@ -289,8 +288,7 @@ export type CoachingGoal = {
   sortOrder: number;
   comments: GoalComment[];
   // The member-authored measure (/team/goals). Null on goals that carry no
-  // number of their own — a goal laddered to a metric gets its target from
-  // the ladder instead.
+  // number of their own.
   metricUnit: string | null;
   startValue: number | null;
   targetValue: number | null;
@@ -334,32 +332,18 @@ export const OCEAN_DIMENSIONS = [
 ] as const;
 export type OceanDimensionKey = (typeof OCEAN_DIMENSIONS)[number];
 
-// Everything the ladder picker offers, plus latest weekly readings so a
-// metric-linked goal can show live progress. All three tables are small.
+// Everything the ladder picker offers: the company objectives and their key
+// results. Both tables are small.
 export type EdgesOptions = {
   objectives: { id: string; label: string }[];
   keyResults: { id: string; label: string; objectiveId: string | null }[];
-  metrics: { id: string; label: string; target: number | null; direction: "up" | "down"; latestValue: number | null }[];
 };
 
 export async function getEdgesLadderOptions(): Promise<EdgesOptions> {
-  const [objs, krs, mets] = await Promise.all([
+  const [objs, krs] = await Promise.all([
     companyOs.from("objectives").select("id, title, sort_order").order("sort_order"),
     companyOs.from("key_results").select("id, title, objective_id, sort_order").order("sort_order"),
-    companyOs.from("metrics").select("id, name, target, direction").order("name"),
   ]);
-  const metricRows = ((mets.data ?? []) as { id: string; name: string; target: number | null; direction: "up" | "down" }[]);
-  const latest = new Map<string, number>();
-  if (metricRows.length) {
-    const { data: readings } = await companyOs
-      .from("metric_readings")
-      .select("metric_id, week_start, value")
-      .in("metric_id", metricRows.map((m) => m.id))
-      .order("week_start", { ascending: false });
-    for (const r of (readings ?? []) as { metric_id: string; value: number }[]) {
-      if (!latest.has(r.metric_id)) latest.set(r.metric_id, r.value);
-    }
-  }
   return {
     objectives: ((objs.data ?? []) as { id: string; title: string }[]).map((o) => ({ id: o.id, label: o.title })),
     keyResults: ((krs.data ?? []) as { id: string; title: string; objective_id: string | null }[]).map((k) => ({
@@ -367,18 +351,13 @@ export async function getEdgesLadderOptions(): Promise<EdgesOptions> {
       label: k.title,
       objectiveId: k.objective_id,
     })),
-    metrics: metricRows.map((m) => ({
-      id: m.id,
-      label: m.name,
-      target: m.target,
-      direction: m.direction,
-      latestValue: latest.get(m.id) ?? null,
-    })),
   };
 }
 
+// Writes/picker ladder to a key result only, but a handful of legacy goals still
+// carry a direct objective_id: read and render those too.
 function resolveLadder(
-  r: { objective_id: string | null; key_result_id: string | null; metric_id: string | null },
+  r: { objective_id: string | null; key_result_id: string | null },
   edges: EdgesOptions,
 ): EdgesLadder | null {
   if (r.objective_id) {
@@ -389,22 +368,16 @@ function resolveLadder(
     const k = edges.keyResults.find((x) => x.id === r.key_result_id);
     return k ? { kind: "key_result", id: k.id, label: k.label } : null;
   }
-  if (r.metric_id) {
-    const m = edges.metrics.find((x) => x.id === r.metric_id);
-    return m
-      ? { kind: "metric", id: m.id, label: m.label, target: m.target, direction: m.direction, latestValue: m.latestValue }
-      : null;
-  }
   return null;
 }
 
 const GOAL_SELECT =
-  "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, metric_id, sort_order, " +
+  "id, coaching_profile_id, title, description_markdown, status, quarter_label, objective_id, key_result_id, sort_order, " +
   "metric_unit, start_value, target_value, current_value, due_date, created_by";
 const PRIORITY_SELECT =
-  "id, coaching_profile_id, title, detail_markdown, status, objective_id, key_result_id, metric_id, sort_order";
+  "id, coaching_profile_id, title, detail_markdown, status, objective_id, key_result_id, sort_order";
 
-type LadderRow = { objective_id: string | null; key_result_id: string | null; metric_id: string | null };
+type LadderRow = { objective_id: string | null; key_result_id: string | null };
 
 // PostgREST can hand numeric back as a string; keep the type honest.
 const num = (v: unknown): number | null =>
@@ -934,13 +907,12 @@ async function patchMeeting(meetingId: string, patch: Record<string, unknown>): 
 // Ladder input from the picker: at most one Edges target.
 export type LadderInput =
   | { kind: "none" }
-  | { kind: "objective" | "key_result" | "metric"; id: string };
+  | { kind: "objective" | "key_result"; id: string };
 
 function ladderColumns(ladder: LadderInput): Record<string, string | null> {
   return {
     objective_id: ladder.kind === "objective" ? ladder.id : null,
     key_result_id: ladder.kind === "key_result" ? ladder.id : null,
-    metric_id: ladder.kind === "metric" ? ladder.id : null,
   };
 }
 
@@ -2044,7 +2016,8 @@ export async function setTalkingPointAddressed(
 
 export type MyGoalInput = {
   title: string;
-  // Which company objective, key result, or metric this goal ladders to.
+  // Which company key result this goal ladders to (a few legacy goals still
+  // ladder to an objective directly).
   // { kind: "none" } is a deliberate "stands on its own", not a missing value.
   ladder: LadderInput;
   descriptionMarkdown: string | null;
@@ -2172,12 +2145,7 @@ function validateGoal(input: MyGoalInput): string | null {
 export async function ladderLabelFor(ladder: LadderInput): Promise<string | null> {
   if (ladder.kind === "none") return null;
   const edges = await getEdgesLadderOptions();
-  const pool =
-    ladder.kind === "objective"
-      ? edges.objectives
-      : ladder.kind === "key_result"
-        ? edges.keyResults
-        : edges.metrics;
+  const pool = ladder.kind === "objective" ? edges.objectives : edges.keyResults;
   return (pool as { id: string; label: string }[]).find((x) => x.id === ladder.id)?.label ?? null;
 }
 
