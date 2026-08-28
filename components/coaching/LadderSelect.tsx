@@ -1,9 +1,9 @@
 "use client";
 
-// The 8 Edges ladder picker: which company objective, key result, or
-// metric a goal hangs off. Shared by the coach page (CoachProfileView) and the
-// member's own page (/team/goals) so both offer the same company goals, in the
-// same shape, and write the same three columns.
+// The 8 Edges ladder picker: which company key result a goal hangs off. Shared
+// by the coach page (CoachProfileView) and the member's own page (/team/goals)
+// so both offer the same company goals, in the same shape. Objectives are only
+// grouping headers here; a goal ladders to a key result.
 //
 // The value encoding (ladderValue / parseLadder) lives in lib/coaching/ladder
 // so server components can use it: importing it from this client module hands
@@ -42,7 +42,6 @@ export function LadderSelect({
       <option value="">{emptyLabel}</option>
       {edges.objectives.map((o, i) => (
         <optgroup key={o.id} label={`O${i + 1}: ${o.label}`}>
-          <option value={`objective:${o.id}`}>The objective itself</option>
           {edges.keyResults
             .filter((k) => k.objectiveId === o.id)
             .map((k, j) => (
@@ -63,14 +62,6 @@ export function LadderSelect({
             ))}
         </optgroup>
       )}
-      <optgroup label="Metrics (KPIs)">
-        {edges.metrics.map((m) => (
-          <option key={m.id} value={`metric:${m.id}`}>
-            {m.label}
-            {m.target != null ? ` (target ${m.target}${m.direction === "down" ? " ↓" : " ↑"})` : ""}
-          </option>
-        ))}
-      </optgroup>
     </select>
   );
 }

@@ -164,9 +164,6 @@ export function MyCoachingView({
                 {g.ladder && (
                   <div className="admin-cell-muted">
                     Ladders to: {g.ladder.label}
-                    {g.ladder.kind === "metric" && g.ladder.latestValue != null && g.ladder.target != null
-                      ? `, latest ${g.ladder.latestValue} / target ${g.ladder.target}`
-                      : ""}
                   </div>
                 )}
                 <GoalComments goalId={g.id} comments={g.comments} />

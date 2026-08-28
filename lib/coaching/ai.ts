@@ -76,12 +76,12 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
   };
 }
 
-// FAST goals with their 8 Edges ladder, live metric readings included.
+// FAST goals with their 8 Edges ladder (the key result each hangs off).
 async function loadGoalsBlock(profileId: string): Promise<string> {
   const [{ data }, edges] = await Promise.all([
     companyOs
       .from("goals")
-      .select("title, status, quarter_label, objective_id, key_result_id, metric_id")
+      .select("title, status, quarter_label, objective_id, key_result_id")
       .eq("coaching_profile_id", profileId)
       .in("status", ["active", "draft"])
       .order("sort_order"),
@@ -93,7 +93,6 @@ async function loadGoalsBlock(profileId: string): Promise<string> {
     quarter_label: string | null;
     objective_id: string | null;
     key_result_id: string | null;
-    metric_id: string | null;
   }>;
   if (rows.length === 0) return "(no FAST goals set yet)";
   return rows
@@ -102,12 +101,6 @@ async function loadGoalsBlock(profileId: string): Promise<string> {
       if (g.key_result_id) {
         const k = edges.keyResults.find((x) => x.id === g.key_result_id);
         if (k) ladder = `, ladders to KR: ${k.label}`;
-      } else if (g.metric_id) {
-        const m = edges.metrics.find((x) => x.id === g.metric_id);
-        if (m)
-          ladder = `, ladders to KPI: ${m.label}${
-            m.target != null ? ` (target ${m.target}, ${m.direction}${m.latestValue != null ? `, latest ${m.latestValue}` : ""})` : ""
-          }`;
       } else if (g.objective_id) {
         const o = edges.objectives.find((x) => x.id === g.objective_id);
         if (o) ladder = `, ladders to objective: ${o.label}`;
@@ -317,7 +310,7 @@ const PREP_SYSTEM = `You prepare a leader for a biweekly 1-1 coaching conversati
 
 Produce Markdown with exactly these ## sections, in order:
 ## Recommended mode: the coach/mentor/direct split to aim for in this meeting (target 80/15/5), one sentence on why, grounded in the coach's recent mode history and this person's OCEAN wiring.
-## Focus areas: 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress; use the live ladder numbers when a goal is metric-linked. If the person raised talking points for this 1-1, treat them as their agenda: work them into the focus areas and name them explicitly.
+## Focus areas: 2-3 topics to prioritize, one-sentence rationale each. FAST means Frequent: the first focus is always their FAST goal progress, against the key result each goal ladders to. If the person raised talking points for this 1-1, treat them as their agenda: work them into the focus areas and name them explicitly.
 ## Coaching questions: 3-5 open-ended GROW questions tailored to this person right now, led by the goal question. They must reflect the coaching profile and the OCEAN read and sound like the coach, not a template.
 ## Context reminders: bullets: status of previous commitments, standing priorities to touch, personal context to handle with care, upcoming milestones, relevant company context.
 ## Retention check: one specific thing to listen for, tied to the person's current loose engagement root. If the root is "watching", the check is about forming a first confident read.
@@ -638,7 +631,7 @@ const TREND_SYSTEM = `You write a coaching trend report about one team member, f
 
 Produce Markdown with exactly these ## sections, in order:
 ## Growth trajectory: growing, plateauing, or struggling across these 1-1s, with specific evidence.
-## Goal progress: each FAST goal against its ladder target: moving, stalled, or blocked, with the numbers where the goal is metric-linked.
+## Goal progress: each FAST goal against the key result it ladders to: moving, stalled, or blocked, with the member's own measure numbers where the goal carries them.
 ## Recurring themes: topics and patterns that keep coming up across the meetings.
 ## Commitment follow-through: completed vs in progress vs dropped, and the pattern in what gets done.
 ## Mode trajectory: the coach's C/M/D splits across these 1-1s vs the 80/15/5 target: moving the right way or not, and what to change.

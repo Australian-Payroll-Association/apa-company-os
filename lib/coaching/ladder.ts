@@ -18,6 +18,6 @@ export function ladderValue(ladder: EdgesLadder | null): string {
 export function parseLadder(value: string): LadderInput {
   if (!value) return { kind: "none" };
   const [kind, id] = value.split(":");
-  if ((kind === "objective" || kind === "key_result" || kind === "metric") && id) return { kind, id };
+  if ((kind === "objective" || kind === "key_result") && id) return { kind, id };
   return { kind: "none" };
 }

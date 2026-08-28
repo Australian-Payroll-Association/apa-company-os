@@ -214,18 +214,6 @@ export function CoachProfileView({
 
 function LadderBadge({ ladder }: { ladder: EdgesLadder | null }) {
   if (!ladder) return <span className="admin-cell-muted">no ladder</span>;
-  if (ladder.kind === "metric") {
-    return (
-      <span className="admin-cell-muted">
-        ⇗ {ladder.label}
-        {ladder.latestValue != null && ladder.target != null
-          ? `, latest ${ladder.latestValue} / target ${ladder.target}`
-          : ladder.target != null
-            ? `, target ${ladder.target}`
-            : ""}
-      </span>
-    );
-  }
   return <span className="admin-cell-muted">⇗ {ladder.label}</span>;
 }
 
