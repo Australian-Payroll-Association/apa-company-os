@@ -356,17 +356,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       </section>
 
       <section className="admin-card admin-section-card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div className="admin-card-title">Year goals</div>
-        </div>
+        <div className="admin-card-title">Year goals</div>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
           The annual targets marketing drives, from the same source the Edges scoreboard reads.
         </p>

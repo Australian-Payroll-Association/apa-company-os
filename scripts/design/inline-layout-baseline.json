@@ -12,7 +12,6 @@
   "app/admin/(dashboard)/edges/client-roadmaps/CompanyPicker.tsx": 2,
   "app/admin/(dashboard)/edges/client-roadmaps/OverviewEditor.tsx": 2,
   "app/admin/(dashboard)/edges/issues/IssuesBoard.tsx": 3,
-  "app/admin/(dashboard)/edges/metrics/MetricsTable.tsx": 7,
   "app/admin/(dashboard)/edges/sync/page.tsx": 1,
   "app/admin/(dashboard)/operations/analytics/page.tsx": 2,
   "app/admin/(dashboard)/operations/contractor-payments/PaymentsShelf.tsx": 7,
