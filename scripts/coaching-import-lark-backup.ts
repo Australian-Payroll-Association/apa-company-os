@@ -723,15 +723,13 @@ async function main() {
     }
     const pid = profile.id;
 
-    // profile fields: next 1-1, retention root, legacy fast_goal columns
-    // (still read by the v1 UI until PR 4 lands).
+    // profile fields: next 1-1, retention root. The FAST goal itself lives as
+    // rows in company_os.goals (via coaching_profile_id), not on the profile.
     await companyOs
       .from("coaching_profiles")
       .update({
         next_one_on_one_on: seed.nextOneOnOne,
         retention_root: seed.retentionRoot,
-        fast_goal: seed.fastGoalLine,
-        fast_goal_status: "set",
         updated_at: new Date().toISOString(),
       })
       .eq("id", pid);
@@ -800,7 +798,7 @@ async function main() {
     // goals
     for (const goal of seed.goals) {
       const { data: existing } = await companyOs
-        .from("coaching_goals")
+        .from("goals")
         .select("id")
         .eq("coaching_profile_id", pid)
         .eq("title", goal.title)
@@ -820,7 +818,7 @@ async function main() {
       } else {
         skip.push(`${seed.label}: goal "${goal.title}" — no Eight Edges target (Lark retreat-attendees KR not in the Edges seed)`);
       }
-      const { error } = await companyOs.from("coaching_goals").insert({
+      const { error } = await companyOs.from("goals").insert({
         coaching_profile_id: pid,
         title: goal.title,
         status: goal.status,

@@ -108,7 +108,7 @@ as "active" unless the user asks about archived records.
 - leave_policies, leave_adjustments (delta_days balance changes), holidays,
   dayoff_snapshot (raw sync payloads from the Day Off provider — usually skip).
 - performance_reviews, goals, one_on_ones, skills, person_skills — HR
-  scaffolding, currently empty. (compensation holds real pay data and is
+  scaffolding, currently empty. (compensation_sensitive holds real pay data and is
   off-limits in both directions, same as people_sensitive.)
 
 ### Events, meetings, surveys, content

@@ -87,11 +87,11 @@ NULL as "active" unless asked about archived records.
   photos a person appears in. (A person's own avatar_url is a separate photo.)
 - company_profile — key/value company facts (label, content).
 - integration_sources — external system registry.
-- team_knowledge — the company handbook/FAQ knowledge base for this assistant:
+- company_information — the company handbook/FAQ knowledge base for this assistant:
   slug, title, category, body (markdown), tags (text[]), source, updated_at,
   archived_at. THIS is where policies, values, benefits, and how-we-work live.
   Search it for any "how do we..." / "what is our policy on..." question:
-  select slug, title, category, body from team_knowledge
+  select slug, title, category, body from company_information
   where archived_at is null
     and to_tsvector('english', title || ' ' || body) @@ plainto_tsquery('english', '<terms>')
   order by updated_at desc;
@@ -99,7 +99,7 @@ NULL as "active" unless asked about archived records.
   non-archived slugs+titles to see what exists.
 
 ## Off-limits (not readable — do not attempt)
-Payroll and compensation, people_sensitive (bank/ID/DOB), performance_reviews,
+Payroll and compensation_sensitive, people_sensitive (bank/ID/DOB), performance_reviews,
 one_on_ones, goals, recruiting & candidate data (applications, candidates,
 candidate_profile, job_requisitions and their salary figures), survey responses,
 meetings, document files, audit_log, and admin tables. A query touching these

@@ -3,9 +3,9 @@
 //
 // "Claude is the CMS": knowledge entries are authored as markdown files in
 // docs/team-knowledge/ (one file = one entry, with frontmatter), and this script
-// upserts them into company_os.team_knowledge by slug. Entries whose file has
+// upserts them into company_os.company_information by slug. Entries whose file has
 // been removed are archived (archived_at set), not deleted. The /team assistant
-// reads team_knowledge at answer time. Loads .env.local manually so
+// reads company_information at answer time. Loads .env.local manually so
 // lib/supabase.ts sees the env.
 //
 // Frontmatter (between --- fences at the top of the file):
@@ -88,7 +88,7 @@ async function main() {
   const now = new Date().toISOString();
   // Upsert each entry by slug (clearing any prior archive).
   for (const e of entries) {
-    const { error } = await companyOs.from("team_knowledge").upsert(
+    const { error } = await companyOs.from("company_information").upsert(
       {
         slug: e.slug,
         title: e.title,
@@ -107,7 +107,7 @@ async function main() {
 
   // Archive rows whose markdown file was removed.
   const liveSlugs = entries.map((e) => e.slug);
-  let staleQuery = companyOs.from("team_knowledge").select("slug").is("archived_at", null);
+  let staleQuery = companyOs.from("company_information").select("slug").is("archived_at", null);
   // Only exclude live slugs when there are any; an empty IN list is invalid SQL,
   // and with zero files every non-archived row is stale.
   if (liveSlugs.length > 0) {
@@ -117,7 +117,7 @@ async function main() {
   if (staleErr) throw new Error(`find stale: ${staleErr.message}`);
   for (const row of stale ?? []) {
     const { error } = await companyOs
-      .from("team_knowledge")
+      .from("company_information")
       .update({ archived_at: now })
       .eq("slug", (row as { slug: string }).slug);
     if (error) throw new Error(`archive ${(row as { slug: string }).slug}: ${error.message}`);

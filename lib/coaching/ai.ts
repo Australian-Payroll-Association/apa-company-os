@@ -80,7 +80,7 @@ async function loadProfileContext(profileId: string): Promise<ProfileContext | n
 async function loadGoalsBlock(profileId: string): Promise<string> {
   const [{ data }, edges] = await Promise.all([
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select("title, status, quarter_label, objective_id, key_result_id, metric_id")
       .eq("coaching_profile_id", profileId)
       .in("status", ["active", "draft"])

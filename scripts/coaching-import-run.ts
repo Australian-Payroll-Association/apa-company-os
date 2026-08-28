@@ -234,8 +234,6 @@ async function main() {
         .insert({
           team_member_id: teamMemberId,
           coach_id: coachId,
-          fast_goal: seed.fastGoal ?? null,
-          fast_goal_status: seed.fastGoal ? seed.fastGoalStatus ?? "draft" : "not_set",
           okrs_markdown: fileOf(seed.okrsFile),
           private_profile_markdown: fileOf(seed.profileFile),
           active: seed.active,

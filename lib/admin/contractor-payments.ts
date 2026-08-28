@@ -71,7 +71,7 @@ export async function rollupContractorPayments(period: string): Promise<RollupSu
       continue;
     }
     const { data: comps } = await companyOs
-      .from("compensation")
+      .from("compensation_sensitive")
       .select("comp_type, amount_cents, currency")
       .eq("team_member_id", tm.id)
       .in("comp_type", ["hourly", "overtime"])

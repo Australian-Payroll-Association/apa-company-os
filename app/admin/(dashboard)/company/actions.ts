@@ -141,7 +141,7 @@ export async function addMemberGoal(teamMemberId: string, input: MyGoalInput): P
   const res = await adminAddGoal(teamMemberId, input);
   if (!res.ok) return res;
   await recordAudit({
-    table: "coaching_goals",
+    table: "goals",
     recordId: teamMemberId,
     operation: "insert",
     actor: admin.email,
@@ -156,7 +156,7 @@ export async function updateMemberGoal(goalId: string, input: MyGoalInput): Prom
   const res = await adminUpdateGoal(goalId, input);
   if (!res.ok) return res;
   await recordAudit({
-    table: "coaching_goals",
+    table: "goals",
     recordId: goalId,
     operation: "update",
     actor: admin.email,
@@ -170,7 +170,7 @@ export async function deleteMemberGoal(goalId: string): Promise<Result> {
   const admin = await requireAdmin();
   const res = await adminDeleteGoal(goalId);
   if (!res.ok) return res;
-  await recordAudit({ table: "coaching_goals", recordId: goalId, operation: "delete", actor: admin.email });
+  await recordAudit({ table: "goals", recordId: goalId, operation: "delete", actor: admin.email });
   refreshGoals();
   return { ok: true };
 }

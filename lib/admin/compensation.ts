@@ -45,7 +45,7 @@ const SALARY_COLS =
 
 export async function getCurrentSalary(teamMemberId: string): Promise<SalaryRow | null> {
   const { data, error } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .select(SALARY_COLS)
     .eq("team_member_id", teamMemberId)
     .eq("comp_type", COMP_TYPE_SALARY)
@@ -62,7 +62,7 @@ export async function getCurrentSalary(teamMemberId: string): Promise<SalaryRow 
 
 export async function getSalaryHistory(teamMemberId: string): Promise<SalaryRow[]> {
   const { data, error } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .select(SALARY_COLS)
     .eq("team_member_id", teamMemberId)
     .eq("comp_type", COMP_TYPE_SALARY)
@@ -86,7 +86,7 @@ export async function saveSalaryChange(
   const now = new Date().toISOString();
 
   const { error: closeErr } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .update({ is_current: false, effective_to: input.effectiveFrom, updated_at: now })
     .eq("team_member_id", teamMemberId)
     .eq("comp_type", COMP_TYPE_SALARY)
@@ -94,7 +94,7 @@ export async function saveSalaryChange(
   if (closeErr) return { ok: false, error: closeErr.message };
 
   const { data, error } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .insert({
       team_member_id: teamMemberId,
       comp_type: COMP_TYPE_SALARY,

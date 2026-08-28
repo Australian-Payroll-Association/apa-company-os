@@ -15,7 +15,7 @@ import { sql } from '../crm/db.mjs';
 
 const statements = [
   `alter table company_os.coaching_profiles alter column coach_id drop not null`,
-  `alter table company_os.coaching_goals add column if not exists created_by uuid references company_os.team_members(id)`,
+  `alter table company_os.goals add column if not exists created_by uuid references company_os.team_members(id)`,
 ];
 
 for (const s of statements) await sql.unsafe(s);
