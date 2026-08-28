@@ -1,0 +1,31 @@
+name: Data dictionary gate
+
+# Fails a PR that creates a table without a data-dictionary entry and COMMENT ON
+# statements, and fails if the generated skill index is stale. This exists
+# because the database grew accidental duplicates (campaigns vs
+# marketing_campaigns, goals vs objectives) when tables were created without
+# checking what already existed. Rules live in docs/db/data-dictionary.md.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "docs/db/data-dictionary.md"
+      - "scripts/data-dictionary/**"
+      - ".claude/skills/data-dictionary/**"
+      - ".github/workflows/data-dictionary-gate.yml"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: New tables have dictionary entries and comments
+        run: node scripts/data-dictionary/check.mjs --base "origin/${{ github.base_ref }}"
+      - name: Generated skill index is fresh
+        run: node scripts/data-dictionary/generate.mjs --check
