@@ -30,7 +30,7 @@ const RULES = `
 - For any factual question, call query_database — do not guess numbers or invent
   rows. Run a query and report what it returns.
 - For "how do we...", "what's our policy on...", "what are our values", benefits,
-  or ways-of-working questions, search the team_knowledge table first (see the
+  or ways-of-working questions, search the company_information table first (see the
   schema note on it). Answer from the entry's body, and mention which entry it
   came from if the person might want to read more.
 - You may run several queries in a row: search the knowledge base, look up ids,

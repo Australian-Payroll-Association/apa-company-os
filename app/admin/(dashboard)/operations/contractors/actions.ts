@@ -79,7 +79,7 @@ export async function updateContractorRates(input: {
 
   // Supersede current contractor-rate rows...
   const { error: closeErr } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .update({ is_current: false, effective_to: today, updated_at: new Date().toISOString() })
     .eq("team_member_id", input.teamMemberId)
     .in("comp_type", ["hourly", "overtime", "billable"])
@@ -101,11 +101,11 @@ export async function updateContractorRates(input: {
     is_current: true,
     change_reason: reason,
   }));
-  const { error: insErr } = await companyOs.from("compensation").insert(rows);
+  const { error: insErr } = await companyOs.from("compensation_sensitive").insert(rows);
   if (insErr) return { ok: false, error: insErr.message };
 
   await recordAudit({
-    table: "compensation",
+    table: "compensation_sensitive",
     recordId: input.teamMemberId,
     operation: "update",
     actor: admin.email,

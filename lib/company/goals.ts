@@ -50,7 +50,7 @@ export async function getCompanyGoals(): Promise<CompanyGoals> {
       .eq("status", "active")
       .neq("employment_type", "contract"),
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select("coaching_profile_id, title, objective_id, key_result_id, metric_id")
       .eq("status", "active")
       .order("sort_order"),

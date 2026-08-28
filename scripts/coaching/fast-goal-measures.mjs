@@ -1,4 +1,4 @@
-// My FAST Goals: give coaching_goals the measure a member sets on their own
+// My FAST Goals: give goals the measure a member sets on their own
 // goal (the Specific half of FAST). The Edges ladder columns already on the
 // table carry a target when a goal hangs off a company metric; these carry it
 // when the goal is the member's own.
@@ -7,11 +7,11 @@
 import { sql } from '../crm/db.mjs';
 
 const statements = [
-  `alter table company_os.coaching_goals add column if not exists metric_unit text`,
-  `alter table company_os.coaching_goals add column if not exists start_value numeric`,
-  `alter table company_os.coaching_goals add column if not exists target_value numeric`,
-  `alter table company_os.coaching_goals add column if not exists current_value numeric`,
-  `alter table company_os.coaching_goals add column if not exists due_date date`,
+  `alter table company_os.goals add column if not exists metric_unit text`,
+  `alter table company_os.goals add column if not exists start_value numeric`,
+  `alter table company_os.goals add column if not exists target_value numeric`,
+  `alter table company_os.goals add column if not exists current_value numeric`,
+  `alter table company_os.goals add column if not exists due_date date`,
 ];
 
 for (const s of statements) await sql.unsafe(s);

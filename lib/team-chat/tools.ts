@@ -12,7 +12,7 @@ export const QUERY_TOOL: Anthropic.Tool = {
     "(schema company_os). Use this for every question about company data — " +
     "people, clients, companies, deals and pipeline, invoices, expenses and " +
     "finances, staff and org, time off, events, ideas — and for the company " +
-    "knowledge base (the team_knowledge table: policies, values, benefits, " +
+    "knowledge base (the company_information table: policies, values, benefits, " +
     "how-we-work). Also use it to introspect information_schema.columns when " +
     "unsure of a table's columns. You can only read an allow-listed set of " +
     "tables; payroll, compensation, sensitive personal data, recruiting data, " +

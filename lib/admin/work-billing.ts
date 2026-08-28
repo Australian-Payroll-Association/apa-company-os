@@ -88,7 +88,7 @@ async function billableRateCents(personId: string): Promise<number | null> {
     .maybeSingle();
   if (!tm) return null;
   const { data: comp } = await companyOs
-    .from("compensation")
+    .from("compensation_sensitive")
     .select("amount_cents")
     .eq("team_member_id", tm.id)
     .eq("comp_type", "billable")

@@ -1,0 +1,13 @@
+-- Rename company_os.team_knowledge -> company_os.company_information.
+--
+-- The table holds general company reference facts (slug/title/category/body/
+-- tags) surfaced to the /team assistant. "company_information" describes it
+-- better. Indexes, the GIN full-text index, RLS, the team_chatbot_reader
+-- SELECT policy, and grants all move with the table automatically.
+--
+-- DEPLOY COUPLING: the /team assistant runs literal SQL built from prompt
+-- strings that name this table (lib/team-chat/*), and scripts/sync-team-knowledge.ts
+-- calls .from("team_knowledge"). Apply this rename at the same time the code
+-- that references company_information deploys, or the assistant/sync break in
+-- the gap.
+alter table if exists company_os.team_knowledge rename to company_information;

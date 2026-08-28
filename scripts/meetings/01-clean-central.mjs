@@ -19,7 +19,7 @@ async function refCount(id) {
   const [r] = await sql`
     select
       (select count(*) from company_os.meeting_participants where meeting_id = ${id})
-      + (select count(*) from company_os.meeting_links where meeting_id = ${id})
+      + (select count(*) from company_os.meeting_associations where meeting_id = ${id})
       + (select count(*) from company_os.meeting_action_items where meeting_id = ${id})
       + (select count(*) from company_os.interviews where meeting_id = ${id})
       + (select count(*) from company_os.call_transcripts where meeting_id = ${id})

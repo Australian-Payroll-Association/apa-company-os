@@ -119,7 +119,7 @@ export async function saveSalaryChange(
   });
   if (!res.ok) return { ok: false, error: res.error };
   await recordAudit({
-    table: "compensation",
+    table: "compensation_sensitive",
     recordId: res.id,
     operation: "insert",
     actor: admin.email,

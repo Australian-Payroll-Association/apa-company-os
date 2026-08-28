@@ -44,7 +44,7 @@ export async function listContractors(
   >();
   if (includeRates && ids.length > 0) {
     const { data: comps, error: cErr } = await companyOs
-      .from("compensation")
+      .from("compensation_sensitive")
       .select("team_member_id, comp_type, amount_cents, currency")
       .in("team_member_id", ids)
       .in("comp_type", ["hourly", "overtime", "billable"])

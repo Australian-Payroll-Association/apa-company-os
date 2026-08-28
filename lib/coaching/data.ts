@@ -258,7 +258,7 @@ export type CoachRosterRow = {
 };
 
 const PROFILE_SELECT =
-  "id, team_member_id, coach_id, fast_goal, fast_goal_status, " +
+  "id, team_member_id, coach_id, " +
   "private_profile_markdown, cadence_days, next_one_on_one_on, retention_root, active, " +
   MEMBER_EMBED;
 
@@ -473,7 +473,7 @@ export async function addGoalComment(
   if (!text) return { ok: false, error: "Write the comment first." };
   if (text.length > 2000) return { ok: false, error: "Keep it under 2,000 characters." };
   const { data: goal } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .select("id")
     .eq("id", goalId)
     .maybeSingle();
@@ -574,7 +574,7 @@ export async function getCoachRoster(actor: TeamActor): Promise<CoachRosterRow[]
       .in("coaching_profile_id", ids)
       .order("sent_at", { ascending: false }),
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select("coaching_profile_id, title, status, sort_order")
       .in("coaching_profile_id", ids)
       .eq("status", "active")
@@ -850,7 +850,7 @@ export async function getCoachProfileDetail(
       .eq("coaching_profile_id", profileId)
       .order("period", { ascending: false }),
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select(GOAL_SELECT)
       .eq("coaching_profile_id", profileId)
       .order("sort_order")
@@ -962,7 +962,7 @@ async function canManageGoals(actor: TeamActor, profileId: string): Promise<bool
 async function goalProfileId(goalId: string): Promise<string | null> {
   if (!goalId) return null;
   const { data } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .select("coaching_profile_id")
     .eq("id", goalId)
     .maybeSingle();
@@ -991,7 +991,7 @@ export async function coachAddGoal(
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Write the goal first." };
   if (!(input.status in GOAL_STATUS_LABELS)) return { ok: false, error: "Bad status." };
-  const { error } = await companyOs.from("coaching_goals").insert({
+  const { error } = await companyOs.from("goals").insert({
     coaching_profile_id: profileId,
     created_by: actor.teamMemberId,
     title,
@@ -1004,7 +1004,7 @@ export async function coachAddGoal(
 
 async function assertCoachOwnsRow(
   actor: TeamActor,
-  table: "coaching_goals" | "coaching_priorities",
+  table: "goals" | "coaching_priorities",
   id: string,
 ): Promise<boolean> {
   if (!id) return false;
@@ -1043,7 +1043,7 @@ export async function coachUpdateGoal(
   }
   if (patch.quarterLabel !== undefined) update.quarter_label = patch.quarterLabel?.trim() || null;
   if (patch.ladder !== undefined) Object.assign(update, ladderColumns(patch.ladder));
-  const { error } = await companyOs.from("coaching_goals").update(update).eq("id", goalId);
+  const { error } = await companyOs.from("goals").update(update).eq("id", goalId);
   return error ? { ok: false, error: "Could not update the goal." } : { ok: true };
 }
 
@@ -1053,7 +1053,7 @@ export async function coachDeleteGoal(actor: TeamActor, goalId: string): Promise
   const profileId = await goalProfileId(goalId);
   if (!profileId || !(await canManageGoals(actor, profileId)))
     return { ok: false, error: "Not found." };
-  const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
+  const { error } = await companyOs.from("goals").delete().eq("id", goalId);
   return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }
 
@@ -1627,7 +1627,7 @@ export async function getMyCoaching(actor: TeamActor): Promise<MyCoaching | null
       .eq("coaching_profile_id", profileId)
       .order("sent_at", { ascending: false }),
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select(GOAL_SELECT)
       .eq("coaching_profile_id", profileId)
       .in("status", ["draft", "active", "achieved"])
@@ -1790,7 +1790,7 @@ export async function getTeamMemberActiveGoals(teamMemberId: string): Promise<Te
   if (!prof) return [];
   const [{ data }, edges] = await Promise.all([
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select(GOAL_SELECT)
       .eq("coaching_profile_id", (prof as { id: string }).id)
       .eq("status", "active")
@@ -2037,7 +2037,7 @@ export async function setTalkingPointAddressed(
 }
 
 // ---- member tier: my FAST goals (/team/goals) ------------------------------
-// The member writes the same coaching_goals rows the coach page reads, so a
+// The member writes the same goals rows the coach page reads, so a
 // goal set here shows up in the next 1-1 rather than in a parallel list. Scope
 // is the actor's OWN profile (team_member_id = actor.teamMemberId, from the
 // JWT-derived actor) — never coach_id, and never a client-supplied profile id.
@@ -2102,7 +2102,7 @@ export async function getMyGoals(actor: TeamActor): Promise<CoachingGoal[]> {
 
   const [goals, edges] = await Promise.all([
     companyOs
-      .from("coaching_goals")
+      .from("goals")
       .select(GOAL_SELECT)
       .eq("coaching_profile_id", (profile as { id: string }).id)
       .order("sort_order")
@@ -2122,7 +2122,7 @@ async function goalOwnership(
   const no = { mine: false, authored: false };
   if (!goalId) return no;
   const { data } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .select("id, created_by, coaching_profiles:coaching_profiles!coaching_profile_id(team_member_id)")
     .eq("id", goalId)
     .maybeSingle();
@@ -2189,7 +2189,7 @@ export async function myAddGoal(actor: TeamActor, input: MyGoalInput): Promise<R
   if (!profile.ok) return { ok: false, error: profile.error };
 
   const { error } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .insert({
       coaching_profile_id: profile.profileId,
       created_by: actor.teamMemberId,
@@ -2211,7 +2211,7 @@ export async function myUpdateGoal(
   if (invalid) return { ok: false, error: invalid };
 
   const { error } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .update({ ...goalColumns(input), updated_at: new Date().toISOString() })
     .eq("id", goalId);
   return error ? { ok: false, error: "Could not save the goal." } : { ok: true };
@@ -2229,7 +2229,7 @@ export async function myDeleteGoal(actor: TeamActor, goalId: string): Promise<Re
       error: "This goal was set for you, so only whoever set it can delete it. You can edit it or mark it dropped.",
     };
   }
-  const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
+  const { error } = await companyOs.from("goals").delete().eq("id", goalId);
   return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }
 
@@ -2315,7 +2315,7 @@ export async function getAdminRosterGoals(): Promise<{ members: AdminMemberGoals
   const profileIds = Array.from(profileToMember.keys());
   const goalsRes = profileIds.length
     ? await companyOs
-        .from("coaching_goals")
+        .from("goals")
         .select(GOAL_SELECT)
         .in("coaching_profile_id", profileIds)
         .order("sort_order")
@@ -2344,7 +2344,7 @@ export async function adminAddGoal(teamMemberId: string, input: MyGoalInput): Pr
   const profile = await getOrCreateProfileIdForMember(teamMemberId);
   if (!profile.ok) return { ok: false, error: profile.error };
 
-  const { error } = await companyOs.from("coaching_goals").insert({
+  const { error } = await companyOs.from("goals").insert({
     coaching_profile_id: profile.profileId,
     // created_by names the team member whose goal it is, matching a self-add:
     // the admin is the actor, but the goal belongs to the member.
@@ -2360,7 +2360,7 @@ export async function adminUpdateGoal(goalId: string, input: MyGoalInput): Promi
   if (invalid) return { ok: false, error: invalid };
 
   const { error } = await companyOs
-    .from("coaching_goals")
+    .from("goals")
     .update({ ...goalColumns(input), updated_at: new Date().toISOString() })
     .eq("id", goalId);
   return error ? { ok: false, error: "Could not save the goal." } : { ok: true };
@@ -2368,6 +2368,6 @@ export async function adminUpdateGoal(goalId: string, input: MyGoalInput): Promi
 
 export async function adminDeleteGoal(goalId: string): Promise<Result> {
   if (!goalId) return { ok: false, error: "Not found." };
-  const { error } = await companyOs.from("coaching_goals").delete().eq("id", goalId);
+  const { error } = await companyOs.from("goals").delete().eq("id", goalId);
   return error ? { ok: false, error: "Could not delete the goal." } : { ok: true };
 }
