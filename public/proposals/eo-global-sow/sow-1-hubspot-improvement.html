@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EO Global · HubSpot v1.1 by Role</title>
+<title>EO Global · HubSpot v1.1 in Priority Order</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,480;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#12172B;--ink-soft:#3C4360;--paper:#FBFAF7;--panel:#FFFFFF;--line:#E4E2DA;
     --accent:#2F5FFF;--accent-dim:#EAF0FF;--amber:#B6791E;--amber-bg:#FDF6E8;--amber-line:#F0DDAE;
-    --built:#1D8A5B;--built-bg:#EAF7F1;
+    --built:#1D8A5B;--built-bg:#EAF7F1;--grey:#9AA0AF;
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
@@ -19,7 +19,7 @@
   .eyebrow{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:26px;}
   .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;}
   h1{font-family:'Fraunces',serif;font-weight:480;font-optical-sizing:auto;font-size:clamp(38px,5.4vw,58px);line-height:1.04;letter-spacing:-0.015em;margin:0 0 22px;color:var(--ink);}
-  header .sub{font-size:18px;line-height:1.55;color:var(--ink-soft);max-width:620px;margin:0 0 28px;font-weight:400;}
+  header .sub{font-size:18px;line-height:1.55;color:var(--ink-soft);max-width:640px;margin:0 0 28px;font-weight:400;}
   .meta-row{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:#8A8F9E;border-top:1px solid var(--line);padding-top:20px;}
   .meta-row span{font-weight:500;color:var(--ink-soft);}
 
@@ -28,36 +28,41 @@
   nav.rail a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 
   .intro{max-width:820px;margin:36px auto 0;padding:0 32px;font-size:16px;line-height:1.7;color:var(--ink-soft);}
-
-  .band{max-width:900px;margin:24px auto 0;padding:0 32px;}
-  .callout{border-radius:10px;padding:18px 20px;font-size:14.5px;line-height:1.6;}
+  .band{max-width:900px;margin:22px auto 0;padding:0 32px;}
+  .callout{border-radius:10px;padding:16px 20px;font-size:14px;line-height:1.6;}
   .callout .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:500;display:block;margin-bottom:6px;}
   .callout.amber{background:var(--amber-bg);border:1px solid var(--amber-line);color:#6B5327;}
   .callout.amber .lbl{color:var(--amber);}
   .callout.amber b{color:#4d3c1c;}
-  .live{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .callout.grey{background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
+  .callout.grey .lbl{color:#8A8F9E;}
+  .live{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:22px;}
   .live .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--built);background:var(--built-bg);border:1px solid #BFE3D2;border-radius:100px;padding:4px 11px;}
   .live .pre{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#8A8F9E;}
 
-  main{max-width:900px;margin:0 auto;padding:20px 32px 24px;}
-  .role{padding-top:24px;}
-  .role h2{font-family:'Fraunces',serif;font-weight:480;font-size:clamp(26px,3.4vw,32px);letter-spacing:-0.01em;margin:28px 0 2px;color:var(--ink);}
-  .role .rdesc{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#9AA0AF;margin:0 0 22px;}
-  .feat{border-left:1px solid var(--line);padding:0 0 2px 24px;margin:0 0 24px;position:relative;}
-  .feat::before{content:"";position:absolute;left:-4px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
-  .feat .ft{font-family:'Fraunces',serif;font-weight:480;font-size:22px;letter-spacing:-0.01em;margin:0 0 9px;color:var(--ink);}
+  main{max-width:900px;margin:0 auto;padding:8px 32px 24px;}
+  .tier{padding-top:24px;}
+  .tier-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-bottom:12px;border-bottom:1px solid var(--line);}
+  .tier-head .pnum{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:100px;padding:5px 13px;white-space:nowrap;}
+  .tier-head.p3 .pnum{background:var(--grey);}
+  .tier-head .pname{font-family:'Fraunces',serif;font-weight:480;font-size:clamp(23px,3vw,29px);letter-spacing:-0.01em;color:var(--ink);}
+  .tier-sub{font-size:14.5px;color:var(--ink-soft);margin:14px 0 6px;max-width:660px;line-height:1.6;}
+
+  .feat{border-left:1px solid var(--line);padding:0 0 2px 24px;margin:24px 0;position:relative;}
+  .feat::before{content:"";position:absolute;left:-4px;top:8px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  .feat .ft{font-family:'Fraunces',serif;font-weight:480;font-size:22px;letter-spacing:-0.01em;margin:0 0 9px;color:var(--ink);display:flex;align-items:baseline;flex-wrap:wrap;gap:0 4px;}
+  .rtag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);background:var(--accent-dim);border-radius:100px;padding:3px 9px;margin-left:8px;white-space:nowrap;font-weight:500;position:relative;top:-2px;}
   .feat p{font-size:15px;line-height:1.7;color:var(--ink-soft);margin:0 0 12px;max-width:640px;}
   .outcome{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.6;color:var(--ink);background:var(--accent-dim);border-left:2px solid var(--accent);padding:11px 15px;border-radius:0 6px 6px 0;max-width:640px;}
   .outcome b{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);font-weight:500;flex:none;}
 
-  hr.div{max-width:836px;margin:8px auto 0;border:none;border-top:1px solid var(--line);}
+  .later{border-left:1px solid var(--line);padding:2px 0 2px 24px;margin:18px 0;position:relative;}
+  .later::before{content:"";position:absolute;left:-4px;top:9px;width:7px;height:7px;border-radius:50%;background:var(--grey);}
+  .later .lt{font-family:'Fraunces',serif;font-weight:480;font-size:18px;color:var(--ink);margin:0 0 4px;}
+  .later p{font-size:14px;line-height:1.6;color:var(--ink-soft);margin:0;max-width:640px;}
 
   footer{max-width:900px;margin:0 auto;padding:8px 32px 100px;}
-  .out{margin-top:28px;}
-  .out h3{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#8A8F9E;font-weight:500;margin:0 0 10px;}
-  .out ul{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px;}
-  .out li{font-size:13px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:5px 13px;}
-  .next{border-top:1px solid var(--line);margin-top:32px;padding-top:32px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;}
+  .next{border-top:1px solid var(--line);margin-top:36px;padding-top:32px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;}
   .next .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:6px 12px;border-radius:100px;white-space:nowrap;}
   .next p{margin:0;font-size:15.5px;line-height:1.65;color:var(--ink-soft);max-width:560px;}
 
@@ -67,169 +72,170 @@
     nav.rail{padding:0 20px 8px;}
     .next{grid-template-columns:1fr;}
   }
-  @media print{nav.rail{display:none;}body{background:#fff;}.feat,.role{break-inside:avoid;}}
+  @media print{nav.rail{display:none;}body{background:#fff;}.feat,.tier{break-inside:avoid;}}
 </style>
 </head>
 <body>
 
 <header>
   <div class="eyebrow">EO Global &middot; HubSpot CRM &middot; Version 1.1</div>
-  <h1>Version 1.1,<br>by chapter role</h1>
-  <p class="sub">The next set of pipeline flows and role views recommended for EO Global's HubSpot, grouped by the chapter role each one serves. It builds on v1.0 (new member and accelerator acquisition, already live) and is kept deliberately small: a feature list to read, agree, and start.</p>
+  <h1>Version 1.1,<br>in priority order</h1>
+  <p class="sub">The next set of HubSpot flows and role views, ranked. The top of the list is what lets EO retire the legacy CRM. Everything below it the team agreed is a light build, grouped by the chapter role each one serves.</p>
   <div class="meta-row">
     <div>Prepared by <span>Edge8</span></div>
     <div>Builds on <span>v1.0 (live)</span></div>
     <div>Status <span>Draft for review</span></div>
   </div>
-</header>
-
-<div class="band">
   <div class="live">
     <span class="pre">Already live in v1.0:</span>
     <span class="tag">New member acquisition</span>
     <span class="tag">Accelerator acquisition</span>
     <span class="tag">Lead routing &amp; nurture</span>
   </div>
-</div>
+</header>
 
-<p class="intro">v1.0 put new member and accelerator acquisition into HubSpot. v1.1 adds the flows and the role views that let each chapter role run their part from the same place, plus the few pieces that keep members and sponsors from slipping. None of it is a heavy build.</p>
+<p class="intro">Two things sit above everything else: getting member and accelerator applications all the way through to conversion inside HubSpot, so the legacy CRM can be switched off. That is Priority 1. Everything under it is agreed to be small, high-value work, ordered by the value the team voiced and tagged by the role it serves.</p>
 
 <div class="band">
   <div class="callout amber">
     <span class="lbl">Chapters not on HubSpot</span>
-    Not every chapter runs on HubSpot, and none are forced onto it. For those chapters, the global team <b>tracks each application's stage inside the global HubSpot and the chapter is notified as it moves</b>. Global gets full visibility; the chapter keeps working the way it does today. Moving a chapter fully onto HubSpot stays an option, never a requirement.
+    None are forced onto HubSpot. A global lead still routes and is tracked in HubSpot; if the chapter is not on HubSpot it gets a <b>notification</b>, works the applicant their own way, and the record syncs back once the chapter approves. Global keeps full visibility either way.
+  </div>
+</div>
+<div class="band">
+  <div class="callout grey">
+    <span class="lbl">Assumption &middot; one-way sync</span>
+    HubSpot syncs one way to Altai today; chapters do not edit synced member fields in HubSpot, they go through 1EO. This can change later, but it is where things stand for v1.1.
   </div>
 </div>
 
 <nav class="rail">
-  <a href="#cm">Chapter Manager</a>
-  <a href="#mc">Membership Chair</a>
-  <a href="#acc">Accelerator Chair</a>
-  <a href="#me">Member Engagement</a>
-  <a href="#mk">Marketing Chair</a>
-  <a href="#sap">SAP Chair</a>
-  <a href="#fc">Forum Chair</a>
+  <a href="#p1">P1 &middot; Retire the legacy CRM</a>
+  <a href="#p2">P2 &middot; Role features</a>
+  <a href="#p3">P3 &middot; Later</a>
 </nav>
 
 <main>
 
-  <section class="role" id="cm">
-    <h2>Chapter Manager</h2>
-    <div class="rdesc">Runs the system day to day</div>
+  <!-- PRIORITY 1 -->
+  <section class="tier" id="p1">
+    <div class="tier-head"><span class="pnum">Priority 1</span><span class="pname">Retire the legacy CRM</span></div>
+    <p class="tier-sub">Member and accelerator, application to conversion, end to end inside HubSpot and into Altai. These are the two flows that let EO sunset the legacy CRM, plus the pieces needed to stand them up cleanly. This is the priority; the rest waits behind it.</p>
+
     <div class="feat">
-      <div class="ft">The Monday view</div>
-      <p>One screen showing who's new, who's stuck, and what needs the manager's attention across every pipeline. Today that picture is spread across tabs, email, and a spreadsheet.</p>
-      <div class="outcome"><b>Outcome</b><span>The chapter runs from one place, and nothing quietly stalls.</span></div>
+      <div class="ft">Member application to conversion<span class="rtag">Membership Chair</span></div>
+      <p>A member's application runs the whole way inside HubSpot: submitted, chapter and global approval, payment, and created as a member in Altai. Today this still lives in the legacy CRM. Finishing it here is half of what lets EO switch that system off.</p>
+      <div class="outcome"><b>Outcome</b><span>Application to active member without the legacy CRM.</span></div>
     </div>
+
     <div class="feat">
-      <div class="ft">Global intake, routed</div>
-      <p>Applications enter through the global intake form and land in the right pipeline (member, SAP, or accelerator) for the right chapter, already sorted. For chapters not on HubSpot, the same intake is tracked and notified per the note above.</p>
-      <div class="outcome"><b>Outcome</b><span>Nothing arrives unsorted; the manager works a clean queue.</span></div>
+      <div class="ft">Accelerator application to conversion, with the Altai handoff<span class="rtag">Accelerator Chair</span></div>
+      <p>The same pipeline for entrepreneurs in the $250k to $1M band. The pipeline is already built; the missing piece is the handoff that submits an approved accelerator into Altai, exactly as members do. This is the other half of sunsetting the legacy CRM.</p>
+      <div class="outcome"><b>Outcome</b><span>Accelerator applicants convert and land in Altai, separated cleanly from members.</span></div>
     </div>
-  </section>
 
-  <hr class="div">
-
-  <section class="role" id="mc">
-    <h2>Membership Chair</h2>
-    <div class="rdesc">Qualifies and converts, owns renewals</div>
     <div class="feat">
-      <div class="ft">Member renewal</div>
-      <p>Renewal reminders go out automatically, the chair gets a task for anyone who hasn't responded, and no renewal date passes unnoticed. Today it is sent by hand.</p>
-      <div class="outcome"><b>Outcome</b><span>Renewals run themselves; the chair handles only the exceptions.</span></div>
+      <div class="ft">Usable intake form, embedded and automated<span class="rtag">Chapter Manager</span></div>
+      <p>The intake form finished to production quality, placed in the right chapter pages, collecting applicant data and creating the deal at the right stage automatically, assigned to the chapter and its staff owner.</p>
+      <div class="outcome"><b>Outcome</b><span>Applications enter as clean, owned deals from day one, no manual entry.</span></div>
     </div>
-  </section>
 
-  <hr class="div">
-
-  <section class="role" id="acc">
-    <h2>Accelerator Chair</h2>
-    <div class="rdesc">Owns accelerator acquisition and the handoff to membership</div>
     <div class="feat">
-      <div class="ft">Accelerator pipeline &amp; handoff</div>
-      <p>A prospect funnel for entrepreneurs in the $250k to $1M range, run like the member prospect funnel (prospect, qualified, applied, enrolled). When a participant graduates past $1M, they hand off automatically into the member prospect funnel, so the chapter never loses a graduate at the finish line.</p>
-      <div class="outcome"><b>Outcome</b><span>Accelerator growth feeds membership instead of leaking at graduation.</span></div>
+      <div class="ft">Pipeline clean-up and migration<span class="rtag">Setup</span></div>
+      <p>Move the accelerator (EOA) deals sitting in HubSpot today into the accelerator pipeline, and set the correct user types across both pipelines, so member and accelerator are properly separated before the flows go live.</p>
+      <div class="outcome"><b>Outcome</b><span>Both pipelines start clean and correctly typed.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">Chair visibility fix<span class="rtag">Chapter Manager</span></div>
+      <p>Make sure chairs can see the chapter's in-progress deals and create deals, a licensing and permission adjustment on the full licenses. Small, but it is blocking day-to-day use now.</p>
+      <div class="outcome"><b>Outcome</b><span>Chairs see the whole chapter picture and can act on it.</span></div>
     </div>
   </section>
 
-  <hr class="div">
+  <!-- PRIORITY 2 -->
+  <section class="tier" id="p2">
+    <div class="tier-head"><span class="pnum">Priority 2</span><span class="pname">Light-lift role features</span></div>
+    <p class="tier-sub">Agreed to be small builds with high value, most already built once at the regional level. Ordered roughly by the value the team voiced, and tagged by role.</p>
 
-  <section class="role" id="me">
-    <h2>Member Engagement</h2>
-    <div class="rdesc">Owns the new-member experience and executive programs</div>
     <div class="feat">
-      <div class="ft">New member onboarding</div>
-      <p>A new member enters a structured first-months journey the moment they join, then hands off cleanly to the global 90-day program. This is the one addition that applies to every chapter the same way.</p>
-      <div class="outcome"><b>Outcome</b><span>No cliff after the sale; every member gets the same start.</span></div>
+      <div class="ft">Chapter dashboard, the Monday view<span class="rtag">Chapter Manager</span></div>
+      <p>One screen of action items: stalled deals, people needing attention, meetings to set. The chapter manager comes in and sees what is happening across the chapter, the way the regional instance did.</p>
+      <div class="outcome"><b>Outcome</b><span>The chapter runs from one view; nothing stalls unseen.</span></div>
     </div>
+
     <div class="feat">
-      <div class="ft">Key Executive pipeline</div>
-      <p>Members enroll their executives into EO's Key Executive programs, and it runs as a standard sales pipeline (prospect, qualified, enrolled) owned by the chapter. Executive interest is captured and worked like any other deal instead of sitting in a member's inbox.</p>
-      <div class="outcome"><b>Outcome</b><span>A repeatable path from "my exec might be interested" to enrolled, tracked end to end.</span></div>
+      <div class="ft">Global intake, routed and notified<span class="rtag">Chapter Manager / Global</span></div>
+      <p>Global leads route to the right chapter. On HubSpot they land there; off HubSpot the record is still held and the chapter is notified, then syncs back on chapter approval. Global tracks every lead either way.</p>
+      <div class="outcome"><b>Outcome</b><span>Every global lead is routed and tracked, HubSpot chapter or not.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">Member renewal<span class="rtag">Membership Chair</span></div>
+      <p>A renewal deal board with the steps along the way: an early check-in survey, the reminder as dues come due, and the option to assign chapter dues so the finance chair sees the renewal value coming.</p>
+      <div class="outcome"><b>Outcome</b><span>Renewals are tracked and forecastable, not sent by hand.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">SAP, new and renewal<span class="rtag">SAP Chair</span></div>
+      <p>A sponsor prospect funnel, SAP nurture, and a renewal flow that follows the member-renewal pattern. When a new SAP chair comes in, the whole picture is already there. One of the highest-value adds from the regional build, used religiously in Vietnam.</p>
+      <div class="outcome"><b>Outcome</b><span>Sponsors acquired, nurtured, and renewed, with no loss of continuity between chairs.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">New member onboarding<span class="rtag">Member Engagement</span></div>
+      <p>A local onboarding flow that starts on payment and wraps around the global 30-day journey, with forum training folded in as part of onboarding rather than a separate track. Delivered with templates chapters can adapt, since this is the piece chapters customize most.</p>
+      <div class="outcome"><b>Outcome</b><span>A consistent first-months experience, customized per chapter, with no cliff after the sale.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">Key Executive pipeline<span class="rtag">Member Engagement</span></div>
+      <p>Members enroll their executives into a chapter program (a leadership program, a learning academy), sold at the company level with the executives captured as key-exec contacts. It runs as a standard sale-plus-onboarding deal flow and doubles as a revenue generator and a retention tool. Data model to be confirmed together.</p>
+      <div class="outcome"><b>Outcome</b><span>Executive programs run and communicated from HubSpot; members stay when their execs are engaged.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">Nurture campaigns<span class="rtag">Marketing Chair</span></div>
+      <p>Automated nurture for prospects stuck in the pipe and for members, so prospects are not left cold, which is where most chapters fall down today.</p>
+      <div class="outcome"><b>Outcome</b><span>Prospects and members get consistent touchpoints without manual chasing.</span></div>
+    </div>
+
+    <div class="feat">
+      <div class="ft">Forum view and moderator communication<span class="rtag">Forum Chair</span></div>
+      <p>A view-only forum board built from the Altai sync, given to chairs at no extra cost, plus the ability to email moderators as a group, one of the best ways to push chapter news, surveys, and event promotion.</p>
+      <div class="outcome"><b>Outcome</b><span>Forums are visible where everything else lives, and moderators are one message away.</span></div>
     </div>
   </section>
 
-  <hr class="div">
+  <!-- PRIORITY 3 -->
+  <section class="tier" id="p3">
+    <div class="tier-head p3"><span class="pnum">Priority 3</span><span class="pname">Later, or on request</span></div>
+    <p class="tier-sub">Valuable, but behind the above or dependent on a chapter asking for it.</p>
 
-  <section class="role" id="mk">
-    <h2>Marketing Chair</h2>
-    <div class="rdesc">Fills the funnel and communicates out</div>
-    <div class="feat">
-      <div class="ft">Lead nurture campaigns</div>
-      <p>Automated nurture warms prospects by programme and chapter and hands them to the pipelines ready to work.</p>
-      <div class="outcome"><b>Outcome</b><span>The funnel stays fed without manual chasing.</span></div>
+    <div class="later">
+      <div class="lt">Event prospect capture</div>
+      <p>Getting prospects from membership events into HubSpot, by import, a hosted landing page, or the Eventbrite sync in the Event SOW. Mostly a training and support question today; worth piloting alongside the event work.</p>
     </div>
-    <div class="feat">
-      <div class="ft">Communicate to the groups</div>
-      <p>Email members, moderators, and the board as defined groups, straight from HubSpot, without exporting lists to another tool. This is the area chapters are expected to grow into fastest.</p>
-      <div class="outcome"><b>Outcome</b><span>Chapter-wide communication from the same system that holds the data.</span></div>
+    <div class="later">
+      <div class="lt">Regional nurture view</div>
+      <p>Regional councils running nurture across a whole region's prospects, once they have visibility of the data.</p>
     </div>
-  </section>
-
-  <hr class="div">
-
-  <section class="role" id="sap">
-    <h2>SAP Chair</h2>
-    <div class="rdesc">Owns sponsor relationships</div>
-    <div class="feat">
-      <div class="ft">SAP, new and renewal</div>
-      <p>The sponsor pipeline at both ends: acquisition from lead through to active partner, and renewal reminders ahead of each partner's expiry with tier kept current.</p>
-      <div class="outcome"><b>Outcome</b><span>No sponsor quietly lapses, and the whole pipeline is visible.</span></div>
+    <div class="later">
+      <div class="lt">Ongoing member engagement</div>
+      <p>Year-two-and-beyond chapter communication pipes, the more advanced automations savvier chapters will want. Likely a later v1.3.</p>
     </div>
-  </section>
-
-  <hr class="div">
-
-  <section class="role" id="fc">
-    <h2>Forum Chair</h2>
-    <div class="rdesc">Owns forum placement and health</div>
-    <div class="feat">
-      <div class="ft">Forum view, synced from Altai</div>
-      <p>Forum rosters appear in HubSpot from the Altai sync (who is in which forum, current) without asking the site admin, and new-member placement happens here.</p>
-      <div class="outcome"><b>Outcome</b><span>Forums are managed where everything else already lives.</span></div>
-    </div>
-    <div class="feat">
-      <div class="ft">Communicate to moderators</div>
-      <p>Message forum moderators as a group for training confirmations, check-ins, and updates.</p>
-      <div class="outcome"><b>Outcome</b><span>Moderators stay in step without a separate mailing list.</span></div>
+    <div class="later">
+      <div class="lt">Next Gen and SLP</div>
+      <p>Capturing and communicating to these groups, added as chapters ask for it.</p>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <div class="out">
-    <h3>Not in v1.1 (revisit later)</h3>
-    <ul>
-      <li>Podcast pipeline</li>
-      <li>Rise event pipeline (APAC-specific)</li>
-      <li>Next Gen</li>
-      <li>Custom-object re-platform</li>
-    </ul>
-  </div>
   <div class="next">
     <span class="tag">Next step</span>
-    <p>Once the list is agreed, each flow is scoped into a short build spec. The set is intentionally small; the aim is a quick yes and a fast build.</p>
+    <p>Priority 1 goes first; it is what unblocks retiring the legacy CRM. The Priority 2 features are light builds, each scoped to a specific workflow or template before build. We will go deeper on the exact scope of the top items together over the next week.</p>
   </div>
 </footer>
 
