@@ -148,14 +148,17 @@ export default async function AgentsPage() {
 
       <section>
         <div className="admin-card-head" style={{ marginBottom: 12 }}>
-          <h2 className="admin-card-title">
-            Local <HostBadge host="laptop" label="Laptop" />
-          </h2>
-          <span className="admin-cell-muted">
-            Snapshot from {capture.path} on {capture.from}, {capture.at}
-          </span>
+          <h2 className="admin-card-title">Local</h2>
+          <span className="admin-cell-muted">Claude Desktop scheduled-tasks</span>
         </div>
-        <RoutineTable rows={local} />
+        {local.length === 0 ? (
+          <div className="admin-alert admin-alert--ok">
+            No local routines. The laptop was cleared on {capture.at}; nothing runs locally right
+            now. Re-establish these on the Mac mini and record them here.
+          </div>
+        ) : (
+          <RoutineTable rows={local} />
+        )}
       </section>
     </>
   );
