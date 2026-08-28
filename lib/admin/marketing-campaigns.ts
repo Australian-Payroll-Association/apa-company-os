@@ -114,7 +114,7 @@ export async function listCampaigns(): Promise<{ rows: MarketingCampaignRow[]; e
   if (error) return { rows: [], error: error.message };
 
   const { data: assetData } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("campaign_id, channel, status")
     .not("campaign_id", "is", null);
   const agg = aggregate((assetData ?? []) as { campaign_id: string | null; channel: string; status: string }[]);
@@ -132,7 +132,7 @@ export async function getCampaign(id: string): Promise<MarketingCampaignRow | nu
   if (error || !data) return null;
 
   const { data: assetData } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("campaign_id, channel, status")
     .eq("campaign_id", id);
   const agg = aggregate((assetData ?? []) as { campaign_id: string | null; channel: string; status: string }[]);
@@ -177,7 +177,7 @@ export type CampaignReport = {
 // one stats read per broadcast, fine at this volume.
 export async function getCampaignReport(campaignId: string): Promise<CampaignReport> {
   const { data } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, channel, status, broadcast_id, email_campaigns!broadcast_id(status)")
     .eq("campaign_id", campaignId);
 

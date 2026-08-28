@@ -34,7 +34,7 @@ type EntryRow = {
 
 async function loadEntry(entryId: string): Promise<{ ok: true; entry: EntryRow } | { ok: false; error: string }> {
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, brand_id, channel, copy_md, notes, blog_style, social_style, asset_url, posted_url")
     .eq("id", entryId)
     .maybeSingle();
@@ -130,7 +130,7 @@ export async function generateEntryCopy(
     const bodyMd = stripLeadingTitleHeading((parsed.body_md ?? "").trim(), entry.title);
     if (!bodyMd) return { ok: false, error: "The writer produced nothing usable." };
 
-    const { error } = await companyOs.from("marketing_calendar").update({ copy_md: bodyMd }).eq("id", entryId);
+    const { error } = await companyOs.from("marketing_content").update({ copy_md: bodyMd }).eq("id", entryId);
     if (error) return { ok: false, error: error.message };
     return { ok: true, bodyMd };
   } catch (err) {

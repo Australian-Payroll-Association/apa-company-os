@@ -29,13 +29,13 @@ export async function saveAssetCopy(
 ): Promise<CopyResult> {
   const admin = await requireAdmin();
   const { error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({ copy_md: copyMd || null })
     .eq("id", assetId);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: assetId,
     operation: "update",
     actor: admin.email,
@@ -57,13 +57,13 @@ export async function saveAssetBlogStyle(
     return { ok: false, error: "Unknown blog style." };
   }
   const { error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({ blog_style: blogStyle || null })
     .eq("id", assetId);
   if (error) return { ok: false, error: error.message };
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: assetId,
     operation: "update",
     actor: admin.email,

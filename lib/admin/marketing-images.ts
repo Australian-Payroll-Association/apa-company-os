@@ -1,8 +1,8 @@
 import { companyOs } from "@/lib/supabase";
 
-// Image version history for a calendar asset. Every generated or uploaded image
+// Image version history for a content asset. Every generated or uploaded image
 // is kept as a row here with the prompt that produced it; exactly one row per
-// entry is selected, and marketing_calendar.image_url mirrors the selected url so
+// entry is selected, and marketing_content.image_url mirrors the selected url so
 // existing reads keep working. A partial unique index enforces one selected row.
 
 export type AssetImage = {
@@ -65,7 +65,7 @@ async function selectAndMirror(entryId: string, imageId: string, url: string): P
   if (sel) return { ok: false, error: sel.message };
 
   const { error: mirror } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({ image_url: url })
     .eq("id", entryId);
   if (mirror) return { ok: false, error: mirror.message };
@@ -103,7 +103,7 @@ export async function recordAssetImage(input: {
   if (!data) return { ok: false, error: "Image version was not recorded." };
 
   const { error: mirror } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({ image_url: input.url })
     .eq("id", input.entryId);
   if (mirror) return { ok: false, error: mirror.message };

@@ -103,7 +103,7 @@ export function validateBlogForPublish(
 // DB blog row.
 async function isSlugTaken(slug: string, selfId: string): Promise<boolean> {
   const { data } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id")
     .eq("channel", "blog")
     .eq("slug", slug)
@@ -137,7 +137,7 @@ async function verifyLive(url: string): Promise<boolean> {
 }
 
 export async function publishBlogAsset(id: string, actor: string): Promise<PublishResult> {
-  const { data, error } = await companyOs.from("marketing_calendar").select(SELECT).eq("id", id).maybeSingle();
+  const { data, error } = await companyOs.from("marketing_content").select(SELECT).eq("id", id).maybeSingle();
   if (error) return { ok: false, errors: [error.message] };
   if (!data) return { ok: false, errors: ["Asset not found."] };
   const row = data as BlogRow;
@@ -166,7 +166,7 @@ export async function publishBlogAsset(id: string, actor: string): Promise<Publi
   const publishDate = row.publish_date ?? new Date().toISOString().slice(0, 10);
 
   const { error: upErr } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .update({
       status: "published",
       slug,
@@ -191,11 +191,11 @@ export async function publishBlogAsset(id: string, actor: string): Promise<Publi
 
   const verified = await verifyLive(liveUrl);
   if (verified) {
-    await companyOs.from("marketing_calendar").update({ posted_url: liveUrl }).eq("id", id);
+    await companyOs.from("marketing_content").update({ posted_url: liveUrl }).eq("id", id);
   }
 
   await recordAudit({
-    table: "marketing_calendar",
+    table: "marketing_content",
     recordId: id,
     operation: "update",
     actor,

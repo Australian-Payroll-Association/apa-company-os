@@ -36,7 +36,7 @@ type ImageInputs = { title: string; brief: string | null; styleLabel: string | n
 
 async function loadImageInputs(entryId: string): Promise<{ ok: true; inputs: ImageInputs } | { ok: false; error: string }> {
   const { data, error } = await companyOs
-    .from("marketing_calendar")
+    .from("marketing_content")
     .select("id, title, brand_id, image_brief_md, image_style")
     .eq("id", entryId)
     .maybeSingle();
