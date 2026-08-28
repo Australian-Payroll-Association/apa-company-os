@@ -125,13 +125,11 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       label: "Keynote attendees",
       value: attendees,
       target: KEYNOTE_ATTENDEES_GOAL,
-      href: "/admin/edges/metrics",
     },
     {
       label: "Documented workflows",
       value: workflows,
       target: DOCUMENTED_WORKFLOWS_GOAL,
-      href: "/admin/edges/metrics",
     },
   ];
 
@@ -358,20 +356,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Se
       </section>
 
       <section className="admin-card admin-section-card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div className="admin-card-title">Year goals</div>
-          <Link href="/admin/edges/metrics" className="admin-cell-muted">
-            Edges metrics
-          </Link>
-        </div>
+        <div className="admin-card-title">Year goals</div>
         <p className="admin-page-sub" style={{ marginTop: 4 }}>
           The annual targets marketing drives, from the same source the Edges scoreboard reads.
         </p>
