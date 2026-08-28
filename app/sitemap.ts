@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/about/', priority: 0.8, changeFrequency: 'monthly' },
     { path: '/contact/', priority: 0.9, changeFrequency: 'monthly' },
     { path: '/ai-programs/', priority: 0.9, changeFrequency: 'weekly' },
+    { path: '/8-edges-app/', priority: 0.9, changeFrequency: 'weekly' },
+    { path: '/8-edges-app/install/', priority: 0.7, changeFrequency: 'monthly' },
     { path: '/caio-leadership/', priority: 0.9, changeFrequency: 'monthly' },
     { path: '/global-staffing/', priority: 0.9, changeFrequency: 'monthly' },
     { path: '/training-and-certification/', priority: 0.9, changeFrequency: 'monthly' },
