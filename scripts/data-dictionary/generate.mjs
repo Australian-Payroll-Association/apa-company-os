@@ -71,6 +71,19 @@ if (entries.length === 0) {
   process.exit(1);
 }
 
+// Mined code-usage evidence (node scripts/data-dictionary/mine-usage.mjs).
+let USAGE_RAW = {};
+try { USAGE_RAW = JSON.parse(readFileSync("scripts/data-dictionary/column-usage.json", "utf8")); } catch {}
+// Compact for embedding: one file-path array, index lists per table/column.
+const fileIdx = new Map();
+const fid = (f) => { if (!fileIdx.has(f)) fileIdx.set(f, fileIdx.size); return fileIdx.get(f); };
+const USAGE = { files: [], tables: {} };
+for (const [t, u] of Object.entries(USAGE_RAW)) {
+  USAGE.tables[t] = { f: u.files.slice(0, 12).map(fid), c: {} };
+  for (const [c, fs] of Object.entries(u.cols)) USAGE.tables[t].c[c] = fs.slice(0, 6).map(fid);
+}
+USAGE.files = [...fileIdx.keys()];
+
 const q = (s) => s.replace(/'/g, "''");
 const tableComment = (e) => {
   const warn = e.status === "superseded" ? "SUPERSEDED - do not write here; see the data dictionary for the replacement. " : "";
@@ -118,8 +131,9 @@ for (const e of entries) {
 for (const [k, note] of Object.entries(ATLAS_STALE_NOTES)) {
   if (data.tables[k]) data.tables[k].c = note;
 }
+const usageKey = (t) => (t.startsWith("htt.") ? t : t.replace(/^company_os\./, ""));
 const dictJson = entries.map((e) => ({
-  t: e.table, k: data.tables[atlasKey(e.table)] ? atlasKey(e.table) : null,
+  t: e.table, k: data.tables[atlasKey(e.table)] ? atlasKey(e.table) : null, uk: usageKey(e.table),
   g: e.grain, b: e.bucket, ti: e.tier, s: e.status,
   o: e.origin, u: e.usage, re: e.reuse, dn: e.donot,
 }));
@@ -158,6 +172,7 @@ const tab = `${HSTART}
   .dict-colrow .cn.fk { color: var(--blue); }
   .dict-colrow .ct { font-family: var(--mono); color: var(--dim); font-size: 10.5px; }
   .dict-colrow .cd { color: var(--muted); flex: 1; min-width: 180px; }
+  .dict-colrow .cu { color: var(--dim); font-size: 10.5px; margin-left: 8px; }
 </style>
 <div id="dictpanel">
   <div id="dicthead">
@@ -168,6 +183,7 @@ const tab = `${HSTART}
 </div>
 <script>
 const DICT = ${JSON.stringify(dictJson)};
+const USAGE = ${JSON.stringify(USAGE)};
 (function(){
   const btn = document.createElement('button');
   btn.className = 'btn'; btn.id = 'dict-toggle'; btn.textContent = 'Dictionary';
@@ -185,6 +201,13 @@ const DICT = ${JSON.stringify(dictJson)};
     fx_rate: 'FX rate used for the USD normalization.', synced_at: 'Last sync from the external system of record.',
     external_id: 'Id of this record in the external system of record.', notes: 'Free-text notes.' };
   const colsOf = (e) => (e.k && DATA.tables[e.k] ? DATA.tables[e.k].cols : []);
+  const short = (f) => f.split('/').slice(-2).join('/');
+  const usedIn = (e, col) => {
+    const u = USAGE.tables[e.uk]; if (!u) return null;
+    const idxs = col ? u.c[col] : u.f;
+    if (!idxs || !idxs.length) return null;
+    return idxs.map(i => USAGE.files[i]);
+  };
   const colDesc = (c) => c[4] ? c[4] : (c[3] ? 'References ' + c[3] + '.' : (CONV[c[0]] || ''));
   function render(qs) {
     qs = (qs||'').toLowerCase();
@@ -205,6 +228,7 @@ const DICT = ${JSON.stringify(dictJson)};
           + (e.u ? '<div><b>Usage.</b> ' + esc2(e.u) + '</div>' : '')
           + (e.re ? '<div><b>Reuse.</b> ' + esc2(e.re) + '</div>' : '')
           + (e.dn ? '<div><b>Do not.</b> ' + esc2(e.dn) + '</div>' : '')
+          + usageHtml(e)
           + colHtml(e)
           + (e.k ? '<div class="dict-jump" data-k="' + esc2(e.k) + '">Show on the map →</div>' : '')
           + '</div></details>';
@@ -216,15 +240,22 @@ const DICT = ${JSON.stringify(dictJson)};
       if (typeof select === 'function') select(el.dataset.k);
     });
   }
+  function usageHtml(e) {
+    const uf = usedIn(e, null);
+    if (!uf) return '<div><b>Where used.</b> No direct references found in app code.</div>';
+    return '<div><b>Where used.</b> ' + esc2(uf.slice(0, 6).map(short).join(', ')) + (uf.length > 6 ? ' +' + (uf.length - 6) + ' more' : '') + ' <span title="' + esc2(uf.join(String.fromCharCode(10))) + '">(hover for full paths)</span></div>';
+  }
   function colHtml(e) {
     const cols = colsOf(e);
     if (!cols.length) return '';
     let h = '<div class="dict-cols"><div style="padding:6px 0 2px;"><b>Columns (' + cols.length + ').</b></div>';
     for (const c of cols) {
       const cls = (c[2] & 1) ? 'cn pk' : ((c[2] & 2) ? 'cn fk' : 'cn');
+      const uf = usedIn(e, c[0]);
+      const uHtml = uf ? '<span class="cu" title="' + esc2(uf.join(String.fromCharCode(10))) + '">used in ' + esc2(uf.slice(0,2).map(short).join(', ')) + (uf.length > 2 ? ' +' + (uf.length - 2) : '') + '</span>' : '';
       h += '<div class="dict-colrow"><span class="' + cls + '">' + esc2(c[0]) + '</span>'
         + '<span class="ct">' + esc2(c[1]) + ((c[2] & 4) ? '' : ' · nullable') + '</span>'
-        + '<span class="cd">' + esc2(colDesc(c)) + '</span></div>';
+        + '<span class="cd">' + esc2(colDesc(c)) + uHtml + '</span></div>';
     }
     return h + '</div>';
   }

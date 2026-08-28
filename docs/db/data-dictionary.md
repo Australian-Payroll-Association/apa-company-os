@@ -55,8 +55,41 @@ Usage: the hottest table in the database — 88 tables reference `people.id`; re
 Reuse: any feature that involves a human references `people.id`. Extend with columns only for attributes true of people in general; feature-specific person data gets its own table with a FK.
 Do not: store names/emails in other tables; add sensitive fields here (use `people_sensitive`).
 Columns:
-- auth_user_id: Login identity, FK to auth.users. Nullable — most people in this table never log in.
+- id: Primary key.
+- email: Case-insensitive email address; the main lookup and dedupe key across CRM, portal auth, and imports.
+- full_name: Full name as captured at source; inconsistent ordering (Vietnamese Family-Middle-Given vs Western Given-Family), so UI code prefers `display_name` via `personName()`.
+- first_name: Given-name part, when captured separately from `full_name`.
+- last_name: Family-name part, when captured separately from `full_name`.
+- preferred_name: The name the person actually goes by; preferred over `full_name` in greetings and lists.
+- phone: Contact phone number, free text.
+- avatar_url: URL of the person's profile photo served from the public avatars storage bucket (see `lib/avatars.ts`).
+- country: Country of residence, free text; backfilled by CRM heuristics scripts.
+- timezone: The person's timezone, captured on profile edits and Stripe checkout.
+- is_team_member: Flag marking the person as Edge8 staff, used to scope team lookups and exclude staff from marketing sends.
+- do_not_contact: Blunt CRM-wide "never contact this person at all" flag; both this and `marketing_consent` must pass before a marketing email sends.
+- owner_id: FK to people; the team member who owns this contact relationship in the CRM.
+- source: Free-text provenance label for how the row was created (e.g. `edge8.ai/careers`, `intake`, `dayoff`, import script names).
+- auth_user_id: Login identity, FK to auth.users; nullable because most people in this table never log in.
+- notes: Free-text CRM notes about the person.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- gender: Self-reported gender, shown on the team profile.
+- persona: Which kind of relationship this person is to Edge8. Valid values: [vendor, prospect, client, job_seeker, employee, student].
+- linkedin_url: Link to the person's LinkedIn profile.
+- city: City of residence, free text.
+- state_province: State or province of residence, free text.
 - metadata: JSONB escape hatch for experimental attributes; promote to real columns once stable.
+- archived_at: Soft-delete timestamp; null means the row is active.
+- archived_by: Free-text label (email) of who archived the row.
+- emergency_contact_name: Name of the staff member's emergency contact, collected during onboarding.
+- emergency_contact_phone: Phone number of the staff member's emergency contact.
+- lark_email: Company @edge8.ai Lark Mail address, recorded post-hire during onboarding.
+- graduated_from: Non-sensitive education field (school or program), shown on the team profile.
+- display_name: Canonical Given + Family rendering of the name the person goes by; the one name column safe to sort and abbreviate (see `lib/people-name.ts`).
+- marketing_consent: Newsletter consent state, separate axis from `do_not_contact`; `never_asked` is the honest default for imported addresses. Valid values: [subscribed, unsubscribed, never_asked].
+- marketing_consent_at: When the consent state last changed (subscribe/unsubscribe or backfill).
+- marketing_consent_source: Free-text label for where the consent state came from (e.g. unsubscribe link, backfill tag).
+- github_login: GitHub username (citext, unique when set); used by the human-token tracker to resolve PR authors to people.
 Evidence: rows 911 · reads 281,793 · inserts 1,048 (stamped 28 Aug 2026)
 
 ### company_os.companies
@@ -69,10 +102,25 @@ Usage: 29 tables reference it; 60,101 reads. Deals, invoices, HTT client mapping
 Reuse: any org-scoped feature references `companies.id`. `lifecycle_stage` distinguishes prospect / learner / client — extend its values rather than adding boolean flags.
 Do not: create per-feature "clients" or "accounts" tables; duplicate org names as text.
 Columns:
-- lifecycle_stage: The org's current relationship stage with Edge8; extend values rather than adding boolean flags.
-- client_types: Text array of relationship kinds an org can hold simultaneously.
-- is_ai_program: Whether this org is in an AI program engagement.
+- id: Primary key.
+- name: Company display name; also the upsert/match key when HTT registration scripts create tracker clients.
+- industry: Raw free-text industry as entered; kept untouched, with `industry_normalized` holding the taxonomy used by charts and filters.
+- size_band: Employee-count band, check-constrained. Valid values: [0-50, 51-250, 251-5000, 5000+].
+- country: Country the company operates from; free text, backfilled 2026-07-10.
 - owner_id: The person accountable for the relationship, FK to people.
+- notes: Internal free-text CRM notes; meeting-note fold-in scripts append here.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- priority: Manual account priority used to badge and filter the clients list. Valid values: [high, medium, low].
+- billing_address: Billing address free text; one of the client-editable fields in the portal profile page.
+- metadata: Free-form JSON side-car; known keys include `qbo_customer_ids` and `qbo_customer_ids_aio` (realm-aware QuickBooks customer mapping per legal entity) plus payment details merged by the Stripe webhook.
+- archived_at: Soft-archive timestamp; null means the row is active and every query filters on it.
+- archived_by: Email of the admin who archived the row; cleared on unarchive.
+- lifecycle_stage: The org's account-level relationship stage with Edge8, raise-only via code (never auto-demoted); extend values rather than adding boolean flags. Valid values: [none, subscriber, lead, mql, sql, opportunity, customer, evangelist].
+- industry_normalized: Fixed-taxonomy industry used by charts and filters, check-constrained. Valid values: [Technology & Software, Food & Beverage, Hospitality & Travel, Financial Services, Professional Services, Real Estate & Construction, Retail & Consumer Goods, Manufacturing, Healthcare & Wellness, Legal, Marketing & Media, Education, Logistics & Supply Chain, Energy, Other].
+- website_url: Canonical bare host (citext) consolidated from the old domain+website pair; the CRM match/search key for companies.
+- client_types: Text array of relationship kinds an org can hold simultaneously; Edge8-internal, never exposed to the portal.
+- is_ai_program: Whether this org is in an AI program engagement (true means tracker on, at least one repo); set by the HTT registration pipeline.
 Evidence: rows 256 · reads 60,101 · inserts 256 (stamped 28 Aug 2026)
 
 ### company_os.team_members
@@ -85,7 +133,27 @@ Usage: 32 tables reference it; 36,447 reads. Compensation, staff assignments, le
 Reuse: employment-scoped facts (comp, leave, assignments) FK here; person-scoped facts (qualifications, identity) FK to `people`.
 Do not: conflate with `people` — a team member is always also a person via `person_id`.
 Columns:
+- id: Primary key.
 - person_id: The human behind this employment, FK to people.
+- department_id: FK to departments; the org unit this employment belongs to.
+- position_id: FK to positions; the job position held.
+- manager_id: FK to team_members; the direct manager, used for probation reviews, coaching, and leave approval.
+- employee_number: Internal HR employee code, shown on the team profile.
+- employment_type: Contractual engagement type; `contract` rows form the contractor roster. Valid values: [full_time, part_time, contract, intern, temp, advisor].
+- work_location: Where the person works, free text.
+- status: Lifecycle state of the employment; most queries filter to `active`. Valid values: [candidate, pre_start, active, on_leave, notice, terminated, alumni].
+- start_date: First day of employment; anchor for onboarding cycles and tenure.
+- end_date: Last day of employment, set when the person leaves.
+- termination_reason: Why the employment ended. Valid values: [voluntary, involuntary, end_of_contract, redundancy, retirement, other].
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- leave_policy_id: FK to leave_policies; which time-off accrual policy applies, assigned during the Day Off import.
+- dayoff_employee_id: Employee id in the legacy Day Off app; provenance key that keeps the importer idempotent.
+- employment_stage: Onboarding and off-ramp stage; null means confirmed/regular. Valid values: [pre_boarding, probation, full_time, declined_offer, rescinded, failed_probation].
+- probation_ends_on: Date probation ends (defaults to Day 60 from start); drives the probation review window and can be extended.
+- contract_start_date: Official contract start date, set to the day after probation ends; the anchor for performance-review scheduling (falls back to `start_date`).
+- career_track: Whether the person grows as an individual contributor or a manager. Valid values: [ic, manager].
+- career_level: Level on the career ladder, used by performance reviews. Valid values: [junior, collaborator, senior, principal].
 Evidence: rows 64 · reads 36,447 · inserts 72 (stamped 28 Aug 2026)
 
 ### company_os.deals
@@ -98,11 +166,42 @@ Usage: pipeline views, forecasting, handoff into delivery, affiliate and referre
 Reuse: anything that means "potential money from a company" is a deal or a column on deals. New sales motions get a new `pipelines` row, not a new table.
 Do not: create parallel opportunity or quote tables; a future CPQ feature should FK to deals.
 Columns:
-- amount_cents: Deal value in minor units with currency; amount_usd_cents/fx_rate carry the normalized figure.
+- id: Primary key.
+- pipeline_id: FK to pipelines; the pipeline this deal moves through (code selects the oldest active pipeline as the default).
 - stage_id: Current pipeline stage, FK to pipeline_stages.
-- handoff_status: State of the sales-to-delivery handoff workflow.
-- referrer_id: Person who referred this deal, FK to people — the referral loop is load-bearing.
+- title: Short deal label, e.g. "<person name> - SDR handoff" for handoff-created deals.
+- person_id: FK to people; the primary contact on the deal.
+- company_id: FK to companies; the account the revenue belongs to.
+- amount_cents: Deal value in minor units with currency; amount_usd_cents/fx_rate carry the normalized figure.
+- currency: ISO currency code of amount_cents, stored lowercase (e.g. usd).
+- status: Deal outcome, derived from the stage on every move (is_won stage -> won, is_lost -> lost, else open). Valid values: [open, won, lost].
+- probability: Forecast percentage 0-100; entering the Contract Sent stage sets it to 90 once, later manual overrides stick.
+- owner_id: FK to people; the team member who owns/closes the deal.
+- affiliate_id: FK to affiliates; attributes the deal to a referral code.
+- source: Free-text origin tag of the deal, e.g. `sdr_handoff` or `portal_build_team`.
+- expected_close_date: Rep-entered date the deal is expected to close; used in pipeline forecasting views.
+- closed_at: When the deal was closed (won or lost).
+- metadata: Free-form JSON side-car; edges metrics read a `categories` array (e.g. `[{"name":"AI Program"}]`) from it.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- service_line_id: FK to service_lines; the business unit/offering the revenue belongs to.
+- next_step: Free-text next action the rep has committed to on this deal.
+- next_step_date: Date the next step is due.
+- handoff_status: State of the SDR-to-closer handoff contract; deals created from the lead queue start pending until the closer decides. Valid values: [pending, accepted, rejected].
+- handoff_rejected_reason: Why the closer rejected the handoff; required on reject. Valid values: [not_qualified, bad_fit, duplicate, bad_timing, other].
+- handoff_note: Optional free-text note the closer attaches to the accept/reject decision.
+- handoff_decided_at: When the closer accepted or rejected the handoff.
 - lost_reason: Why a lost deal was lost; filled on close-lost only.
+- archived_at: Soft-archive timestamp; null means active.
+- archived_by: Email of the admin who archived the deal.
+- amount_usd_cents: USD-normalized deal value in cents, computed from amount_cents via FX conversion; prefer this when aggregating across currencies.
+- fx_rate: Currency-to-USD rate used to compute amount_usd_cents; also upserted into the shared fx_rates table on save.
+- fx_rate_fetched_at: When the FX rate was fetched.
+- proposal_url: Link to the proposal document for this deal.
+- contract_url: Link to the contract document for this deal.
+- referrer_id: Person who referred this deal, FK to people - the referral loop is load-bearing.
+- position: Manual 0-based ordering of the deal within its stage on the board/list; backfilled from created_at desc at rollout.
+- referrer_company_id: Company that directly referred this deal (mirrors person referrer_id); attributes referred deals to a company affiliate, FK to companies.
 Evidence: rows 138 · reads 5,898 · inserts 191 (stamped 28 Aug 2026)
 
 ### htt.pull_requests
@@ -115,7 +214,23 @@ Usage: the mint engine derives `token_entries` from it; project summaries and cl
 Reuse: consume read-only; effort analytics build views over it.
 Do not: hand-correct rows (the `pr_attribution_overrides` correction table was dropped 27 Aug 2026 — recreate an overrides mechanism rather than editing raw rows); join clients by name (use `client_identities`).
 Columns:
-- repo_id: Source repository, FK to htt.repos.
+- id: Primary key.
+- repo_id: FK to htt.repos; the repository this PR belongs to.
+- github_pr_id: Global numeric GitHub PR id; the sync's upsert conflict key (unique).
+- number: PR number within the repo.
+- title: PR title from GitHub.
+- author_login: GitHub login of the PR author; the configured central service identity is substituted only when GitHub reports the author as unknown.
+- author_person_id: FK to people; the real human author, resolved from the PR body's author block email first, then the GitHub login; null counts as unattributed in sync runs.
+- url: GitHub web URL of the PR.
+- state: GitHub PR state. Valid values: [open, merged, closed].
+- status: Token-accounting verification state of the PR. Valid values: [tracked, verified, disputed, excluded].
+- opened_at: When the PR was opened on GitHub.
+- merged_at: When the PR was merged; null if not merged.
+- closed_at: When the PR was closed; null while open.
+- head_branch: PR head ref (branch name) from the GitHub API; joined against `token_entries.session_branch` on the same repo, using per-branch time windows, to attribute session tokens to this PR.
+- created_by: Audit label (text) of who or what created the row.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 5,230 · reads 7,011 · inserts 5,387 (stamped 28 Aug 2026)
 
 ### htt.token_entries
@@ -127,6 +242,23 @@ Origin: written by the mint engine from `pull_requests`; humans never insert dir
 Usage: the evidence behind renewal and referral conversations; wallet and burn reporting (UI vocabulary: burnt / allotted / unburnt only — never hours).
 Reuse: read-only for consumers; derived value metrics are views on top, not sibling tables.
 Do not: over-count under any tuning (under-count anomalies are acceptable, over-count never); introduce hours as a UI unit downstream.
+Columns:
+- id: Primary key.
+- company_id: FK to companies; denormalized owning company for fast filtering and burn rollups.
+- repo_id: FK to htt.repos; the repo the tokens were spent on; rows stay repo-scoped when no PR can be attributed.
+- pull_request_id: FK to htt.pull_requests; back-filled by the attribution pass that matches `session_branch` to a PR's `head_branch` within its time window; null means repo-scoped only.
+- person_id: FK to people; the real human contributor; null for owner/client effort and app rows.
+- kind: What the amount measures. Valid values: [human, claude, app].
+- amount: Token amount: raw model tokens for kind `claude`/`app`; centihours of active human effort (hours * 100) for kind `human`.
+- source: How the entry was produced. Valid values: [pr_commit, pr_review, planning, design, research, manual, session, app].
+- occurred_at: Instant the work or usage happened (session end for telemetry rows; noon UTC of the day for app rows).
+- occurred_on: Calendar day for per-day keyed rows (human effort and app tokens); part of the daily dedup indexes; null for per-session claude rows.
+- status: Review state of the entry. Valid values: [recorded, approved, disputed, excluded].
+- session_branch: Git branch the Claude Code session was on at SessionEnd; the exact correlation key used to back-fill `pull_request_id`; null rows stay repo-scoped.
+- session_id: Claude Code session id; idempotency key as (session_id, kind), with effort-log human rows suffixed `-h` so they never collide with the claude row.
+- created_by: Audit label (text) of who or what created the row.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 1,083 · reads 2,531 · inserts 1,762 (stamped 28 Aug 2026)
 
 ---
@@ -141,6 +273,28 @@ Status: active
 Origin: HR flows gated by canViewSensitive.
 Usage: super-admin people views only. RLS on, no policies, service-role only.
 Reuse: any new sensitive person attribute goes here, not on `people`.
+Columns:
+- person_id: Primary key and FK to people; one restricted legal/payroll PII row per person, readable only via the service-role client after `canViewSensitive()`.
+- date_of_birth: Date of birth, for HR/legal records.
+- national_id_number: Vietnamese national ID (CCCD) number.
+- national_id_issue_date: Issue date printed on the national ID.
+- national_id_issue_place: Issuing authority/place printed on the national ID.
+- permanent_address: Permanent (registered) address, as on legal documents.
+- current_address: Current residential address.
+- marital_status: Marital status, for HR records.
+- bank_name: Bank the salary is paid into, collected during onboarding.
+- bank_account_number: Salary bank account number.
+- bank_branch: Branch of the salary bank account.
+- tax_code: Personal income tax code.
+- social_insurance_number: Vietnamese social insurance number.
+- id_front_path: Storage path of the ID-card front image in the private `id-documents` bucket; served only via short-lived signed URLs.
+- id_back_path: Storage path of the ID-card back image in the private `id-documents` bucket.
+- id_selfie_path: Storage path of the ID-verification selfie in the private `id-documents` bucket, uploaded during onboarding.
+- notes: Free-text notes on the sensitive record; audit log records that it changed, never its value.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- place_of_birth: Place of birth, as on legal documents.
+- native_province: Native province (que quan), a standard Vietnamese HR field.
 Evidence: rows 31 · reads 677 · inserts 31 (stamped 28 Aug 2026)
 
 ### company_os.candidate_sensitive
@@ -152,6 +306,14 @@ Origin: recruiter flows gated by canViewSensitive; hardened 26 Aug 2026 and expl
 Usage: super-admin candidate views only. Zero rows today is deliberate: relocated for future writes.
 Reuse: any new sensitive candidate attribute goes here, mirroring the `people_sensitive` convention.
 Do not: put salary or PII on `candidate_profile` or `applications`; those are read broadly, including by the interview-panelist AI prompt.
+Columns:
+- person_id: Primary key and FK to people; one restricted candidate-salary row per candidate, gated on `canViewSensitive()` (super admins only).
+- salary_expectation_cents: Recruiter-entered structured salary expectation, in minor units of the currency; never written to the audit log.
+- salary_expectation_currency: Currency of the structured salary expectation.
+- ai_salary_expectation: Free-text salary expectation extracted by the AI resume screener; not editable in the recruiter form.
+- notes: Free-text sensitive notes on the candidate.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 0 · reads 5 · inserts 0 (stamped 28 Aug 2026)
 
 ### company_os.compensation_sensitive
@@ -163,9 +325,22 @@ Origin: HR comp-change flows with `approved_by` and `change_reason`; renamed fro
 Usage: admin comp views and contractor payment calculation, gated by canViewSensitive; blocked by name in the NL-to-SQL assistant block-lists.
 Reuse: comp history extends here (`effective_from`/`effective_to`, `is_current`); never store pay on `team_members` or `people`.
 Columns:
+- id: Primary key.
+- team_member_id: FK to team_members; whose pay arrangement this row is.
+- comp_type: What kind of pay the row records; `base_salary` rows are employee salaries, `hourly`/`overtime`/`billable` are contractor rates. Valid values: [base_salary, hourly, bonus, commission, equity, stipend, allowance, overtime, billable].
+- amount_cents: Generic amount in minor units of `currency`; for salary rows it mirrors `salary_usd_cents` so non-salary readers still see a value.
+- currency: ISO-ish currency code of `amount_cents` (e.g. `usd`).
+- pay_period: How often the amount is paid. Valid values: [annual, monthly, semi_monthly, biweekly, weekly, hourly, one_time].
 - effective_from: Start date of this comp arrangement; history is kept as rows, not overwrites.
+- effective_to: End date of the arrangement; a salary change closes the old row by setting this to the new row's `effective_from`.
 - is_current: Whether this is the active arrangement for the team member.
-- approved_by: Person who approved the change, FK to people.
+- change_reason: Free-text reason for the change (raise, promotion, correction).
+- approved_by: FK to team_members; approver of the change. Currently left null by app code - the approver is recorded in the audit log instead.
+- notes: Free-text notes on the arrangement.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- salary_vnd: Salary in whole VND; with `salary_usd_cents` this dual-currency pair is the record of truth for base salaries.
+- salary_usd_cents: Salary in USD cents, converted from VND at a fixed 25,500 VND/USD rate (not live fx).
 Evidence: rows 37 · reads 461 · inserts 37 (stamped 28 Aug 2026)
 
 ---
@@ -182,6 +357,32 @@ Status: active
 Origin: events admin flows.
 Usage: 5 tables reference it (registrations, agenda, P&L, talks, products); 4,054 reads — the events surface and public pages.
 Reuse: new event-scoped features FK to `events.id`; ticketing links via `products.event_id`.
+Columns:
+- id: Primary key.
+- slug: Unique URL slug identifying the event; also the join key for the products backfill from `cohort_slug`.
+- type: Kind of event. Valid values: [retreat, workshop, webinar, micro_session, dinner, private_trip, company_event].
+- status: Event lifecycle state; `register_for_event` only accepts registrations while `open`. Valid values: [draft, published, open, closed, completed, cancelled].
+- visibility: Who can see the event. Valid values: [public, private, internal].
+- title: Display title of the event.
+- blurb: Short teaser text for listings.
+- description: Long-form event description.
+- location: Free-text venue/city of the event.
+- starts_at: Event start instant.
+- ends_at: Event end instant.
+- timezone: IANA timezone the event runs in; defaults to `Asia/Ho_Chi_Minh`.
+- capacity: Total seat cap; `register_for_event` counts held seats as sum(1 + guest_count) and waitlists past this; null means uncapped.
+- cover_image_url: URL of the event's cover image (event-media storage bucket).
+- owner_person_id: FK to people; the internal owner responsible for the event.
+- landing_path: Site-relative path of the event's landing page; the portal links here instead of the default `/events/[slug]` page when set.
+- feedback_survey_id: FK to surveys; the post-event feedback survey, validated to exist before linking and used to send feedback requests.
+- notes: Internal admin notes on the event.
+- metadata: Free-form JSON (e.g. backfill markers); defaults to `{}`.
+- archived_at: When the event was archived out of admin lists; null while live.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- media: Ordered gallery JSON array of `{kind: image|video, url, caption}`; images live in the event-media bucket, videos are external URLs embedded by the public page.
+- attendee_count_override: Manual headcount for events measured without a registration list (keynotes, workshops); admin shows coalesce(this, active registrations + guests).
+- registered_count_override: Manual override for the admin "registered" count for headcount-measured events; null derives it from event_registrations.
 Evidence: rows 22 · reads 4,054 · inserts 22 (stamped 28 Aug 2026)
 
 ### company_os.event_registrations
@@ -192,6 +393,23 @@ Status: active
 Origin: public registration flows and admin entry.
 Usage: 10,349 reads — event pages, capacity checks, follow-up.
 Reuse: attendance-scoped facts extend here; the registrant is a `people` row.
+Columns:
+- id: Primary key.
+- order_id: FK to orders; the payment order behind a paid registration (set by the Stripe webhook flow); null for free/manual registrations.
+- product_id: FK to products; the ticket tier purchased, whose own `capacity` is enforced per tier at registration.
+- person_id: FK to people; the CRM person who registered.
+- attendee_name: Name of the attendee as entered at registration (may differ from the person record).
+- attendee_email: Attendee email (citext); part of the registration idempotency check per event and person.
+- status: Registration lifecycle state; legacy `confirmed` is read as `registered` and never rewritten, and `pending_payment`/`registered`/`attended`/`confirmed` hold seats. Valid values: [confirmed, refunded, pending_payment, registered, waitlisted, cancelled, attended, no_show].
+- created_at: Row creation time.
+- event_id: FK to events; the event this registration belongs to.
+- guest_count: Extra guests on this registration; each row holds 1 + guest_count seats against event and tier capacity.
+- waitlist_position: Position in the waitlist queue when the event was full at registration; null otherwise.
+- ticket_code: Unique 12-char Crockford base32 ticket code (crypto-random, no I/L/O/U), generated by `new_ticket_code()` and looked up by the `/t/[code]` ticket page.
+- checked_in_at: When the attendee was checked in at the door; set together with status `attended`, cleared when check-in is undone.
+- confirmation_sent_at: When the registration confirmation was sent; defined by the lifecycle migration but has no writer in the current codebase.
+- cancelled_at: When the registration was cancelled; null while active.
+- notes: Internal admin notes on the registration.
 Evidence: rows 14 · reads 10,349 · inserts 18 (stamped 28 Aug 2026)
 
 ### company_os.marketing_content
@@ -204,7 +422,42 @@ Usage: the marketing workspace (15,218 reads); images live in `marketing_asset_i
 Reuse: any new content type is a channel/status value here, not a new table — this is the one content table after the unused content_* system was dropped.
 Do not: recreate a separate calendar or content system; the 27 Aug cleanup removed six unused content tables.
 Columns:
-- body_html: Authored email/content HTML; references images by URL.
+- id: Primary key.
+- title: Title of the content piece.
+- brand_id: FK to brands; which identity (Edge8, AI Officer) the content publishes as.
+- pillar: Legacy free-text pillar label, superseded by `pillar_id` and left in place unwritten.
+- channel: Publishing channel for the piece. Valid values: [blog, email, linkedin, facebook].
+- status: Workflow state on the content kanban. Valid values: [idea, drafted, approved, scheduled, published, skipped].
+- publish_date: Planned publish date on the calendar.
+- parent_id: FK to marketing_content; the repurposing waterfall — a channel derivative points at its core asset (usually the blog post).
+- copy_md: The drafted content body in markdown.
+- asset_url: Source asset URL for the piece; distinct from `posted_url` (where it went live).
+- notes: Free-form working notes on the entry.
+- sort_order: Kanban rank within a status column; double precision so a drag between two cards is a midpoint write, not a column renumber.
+- created_by: Who created the entry.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- pillar_id: FK to marketing_pillars; the brand's controlled content pillar for reporting.
+- posted_url: The live URL after publishing — recorded manually for social posts, stamped with the blog URL by the publish flow.
+- blog_style: Blog style slug chosen from the brand's style catalogue (e.g. `thesis`, `case-study`).
+- image_type: How the visual is sourced. Valid values: [real, ai, mixed, none].
+- seo_md: The loose SEO deliverable in markdown (title tag, meta, slug, keywords); parsed once at blog publish into the normalized columns below, never re-parsed at render.
+- image_brief_md: The design brief for the visual (concept and palette).
+- image_style: Aesthetic style slug for the image (e.g. `pop-art`); distinct from `image_type`, which is the source.
+- social_style: Social post style slug (e.g. `hook-story`, `hot-take`).
+- image_url: URL of the rendered hero/social image in the public `marketing` storage bucket; mirror of the selected `marketing_asset_images` row.
+- broadcast_id: FK to email_campaigns; the actual email send linked to this entry, so the calendar shows true send status.
+- campaign_id: FK to marketing_campaigns; the umbrella campaign this asset belongs to (nullable — assets can exist without one).
+- slug: Public blog URL slug; unique among published blog entries via a partial index.
+- title_tag: SEO title tag, normalized from `seo_md` at publish time.
+- meta_description: SEO meta description for the public blog page.
+- excerpt: Short summary shown on blog listing cards.
+- primary_keyword: Primary SEO keyword for the post.
+- category: Blog category display name (e.g. `Innovation`).
+- category_slug: Blog category slug (e.g. `innovation`).
+- read_time: Precomputed `N min read` label, set at publish.
+- published_at: When the blog post went live.
+- body_html: The authored email/content HTML, which references image-library images by URL; added alongside the marketing_calendar to marketing_content rename.
 Evidence: rows 107 · reads 15,218 · inserts 120 (stamped 28 Aug 2026)
 
 ### company_os.affiliates
@@ -215,6 +468,21 @@ Status: active
 Origin: partnerships flows.
 Usage: 7 tables reference it; commission and payout records key to it.
 Reuse: partner-attribution features FK here; the person behind an affiliate is a `people` row.
+Columns:
+- id: Primary key.
+- code: Unique referral code (citext, e.g. WORKHEALTHY) the customer uses at checkout; policy since 2026-07-17 is one active code per person.
+- person_id: FK to people; the individual affiliate, or for a company affiliate the acting/portal contact who picks the redemption choice.
+- rate: Legacy default commission rate kept for the NOT NULL column (0.20 on insert); the realized rate is a per-commission redemption choice (0.20 work credit / 0.10 cash) on affiliate_commissions.
+- program_type: How the code compensates: commission accrues referral revenue, discount gives the buyer a price cut and earns nothing. Values seen in code: [commission, discount].
+- stripe_coupon_id: Stripe coupon backing the code's checkout discount, when one exists.
+- active: Whether the code is live; consolidation deactivates (never deletes) codes so history and commissions are preserved.
+- notes: Free-text admin notes; deactivations and referral context are appended here as an audit trail.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- company_id: The affiliate company when this is a company affiliate (the primary case); at least one of company_id/person_id is set, FK to companies.
+- code_discount: TODO(owner): purpose unclear from code.
+- code_commission: TODO(owner): purpose unclear from code.
+- referred_by: TODO(owner): purpose unclear from code.
 Evidence: rows 11 · reads 940 · inserts 12 (stamped 28 Aug 2026)
 
 ### Convert
@@ -228,6 +496,18 @@ Origin: website capture and CRM intake (the crm-lead skill writes here).
 Usage: CRM triage views (3,084 reads); converts into deals.
 Reuse: lead-stage attributes extend here; once qualified, the record's meaning moves to `deals`.
 Do not: revive `touchpoints` (dropped) — activity logging belongs on `interactions`.
+Columns:
+- id: Primary key.
+- person_id: FK to people, unique - one lead-satellite row per person actively being worked as a lead.
+- status: Where the person sits in the SDR working queue; active statuses are new/attempting/connected/meeting_booked. Valid values: [new, attempting, connected, meeting_booked, open_deal, unqualified, nurture].
+- sla_due_at: Speed-to-lead deadline; set to now + 4 hours (default) when the person is promoted to the queue, and drives queue ordering.
+- attempt_count: Number of contact attempts the SDR has logged against this lead.
+- disqualified_reason: Why the lead was unqualified; cleared when the person is re-promoted.
+- owner_id: FK to people; the SDR who owns working this lead.
+- source: Free-text acquisition channel of the lead row; carried from the promotion context.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- pinned_at: Manual boost above the SLA-ordered queue; null = not pinned, pinned leads sort by pinned_at desc ahead of SLA/age.
 Evidence: rows 46 · reads 3,084 · inserts 80 (stamped 28 Aug 2026)
 
 ### company_os.inquiries
@@ -238,6 +518,19 @@ Status: active
 Origin: public website forms.
 Usage: CRM intake triage (5,025 reads).
 Reuse: new public capture forms write here (or to `lead`), not to new tables. TODO(owner): the lead/inquiry split predates the current CRM — confirm which is canonical intake.
+Columns:
+- id: Primary key.
+- person_id: FK to people; who sent the inbound message (created/upserted by email on intake).
+- type: What kind of inbound this is; `consultation` (and other sales types) show on the sales board while non-sales types are filtered off it. Values seen in code: [consultation, retreat, general, trip, checkout, newsletter].
+- subject: Short subject line, e.g. "AI Audit Request" from the contact form or the portal work-request subject.
+- message: The inbound message body as submitted.
+- source: Origin channel of the inquiry, e.g. `edge8.ai` or `portal`.
+- source_site: Website domain the inquiry was submitted from, e.g. edge8.ai or infiniteleverage-8.com.
+- status: Four working funnel stages plus terminal exits; the Stripe webhook advances retreat inquiries to won on payment. Valid values: [new_lead, contacted, qualified, no_action, spam, won, archived].
+- deal_id: FK to deals; links the inquiry to the deal it produced.
+- affiliate_id: FK to affiliates; attribution of the inquiry to a referral code (no active writer in current code).
+- metadata: Free-form JSON side-car; the contact form stores company/team_size/name/email here, and the Stripe webhook merges payment details on won.
+- created_at: Row creation time.
 Evidence: rows 171 · reads 5,025 · inserts 317 (stamped 28 Aug 2026)
 
 ### company_os.interactions
@@ -248,6 +541,19 @@ Status: active
 Origin: CRM flows and the crm-lead skill.
 Usage: relationship timelines on people, companies, and deals (430+ rows, growing steadily).
 Reuse: THE activity log. Any "log a touch" feature writes here with `kind`; never create per-channel activity tables.
+Columns:
+- id: Primary key.
+- kind: Type of touchpoint on the shared activity log; automatic `status_change` rows are hidden from note threads, and a `interactions_kind_check` constraint limits values. Kinds written by code: [note, call, email, system, status_change].
+- subject: Short title of the touchpoint, e.g. the email subject or "Unsubscribed from marketing email".
+- body: Full touchpoint content - note text, call summary, or the sent email HTML.
+- occurred_at: When the touchpoint actually happened (drives timeline ordering, distinct from row creation).
+- owner_id: FK to people; the team member who owns/logged the touchpoint (not populated by current code paths).
+- person_id: FK to people; puts the entry on that contact's 360 timeline.
+- company_id: FK to companies; copied from the deal so notes also land on the company timeline.
+- subject_type: Polymorphic scope of the entry paired with subject_id; `deal` for deal communications, `application` for ATS notes. Values seen in code: [deal, application].
+- subject_id: UUID of the scoped record named by subject_type (deal id or application id).
+- metadata: Free-form JSON side-car recording provenance, e.g. `{source: "deal_drawer"}`, author_email/author_name, or email to-address and format.
+- created_at: Row creation time.
 Evidence: rows 439 · reads 1,570 · inserts 443 (stamped 28 Aug 2026)
 
 ### company_os.pipelines
@@ -257,6 +563,14 @@ Tier: 2 stage engine
 Status: active
 Origin: seeded; edited rarely.
 Usage: deals reference it; new sales motions add rows here.
+Columns:
+- id: Primary key.
+- slug: Stable machine identifier for the pipeline (the single live one is `default-sales`).
+- name: Human-readable pipeline name ("Default sales").
+- kind: Pipeline category label; not read by application code, which selects the oldest active pipeline instead.
+- active: Whether the pipeline is selectable; deal-creating flows pick the oldest active pipeline as the default.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 1 · reads 507 · inserts 1 (stamped 28 Aug 2026)
 
 ### company_os.pipeline_stages
@@ -266,6 +580,14 @@ Tier: 2 stage engine
 Status: active
 Origin: seeded with the pipeline; edited rarely.
 Usage: deals carry `stage_id`; stage funnels and boards read the ordering.
+Columns:
+- id: Primary key.
+- pipeline_id: FK to pipelines; the pipeline this stage belongs to.
+- name: Stage display name; the default sales pipeline runs New, Contacted, Discovery, Proposal, Contract Sent, Won, Lost.
+- position: 0-based ordering of the stage within its pipeline; the lowest position is where new handoff deals land.
+- is_won: Marks the terminal won stage; moving a deal into it sets deals.status to won.
+- is_lost: Marks the terminal lost stage; moving a deal into it sets deals.status to lost and requires a lost_reason.
+- created_at: Row creation time.
 Evidence: rows 7 · reads 1,085 · inserts 7 (stamped 28 Aug 2026)
 
 ### Deliver
@@ -278,6 +600,30 @@ Status: active
 Origin: work-management flows; stage moves are logged to `task_stage_log`.
 Usage: boards and sprint views (2,855 reads).
 Reuse: internal work items are tasks; client-facing roadmap work is `client_backlog_items`.
+Columns:
+- id: Primary key.
+- title: Card title shown on the board.
+- description: Longer free-text body of the card.
+- board_id: FK to boards; the task board the card lives on.
+- board_column_id: FK to board_columns; the kanban column the card currently sits in.
+- sprint_id: FK to sprints; the sprint the card is committed to, null for backlog; open cards can roll over when a sprint closes.
+- position: Float ordering of the card within its column (fractional inserts avoid renumbering).
+- assignee_id: FK to people; who the card is assigned to.
+- created_by: FK to people; who created the card.
+- status: Whether the card is finished; moving into a done column sets it. Valid values: [open, done].
+- priority: Card priority, defaulting to p3. Valid values: [p1, p2, p3].
+- due_date: Date the card is due; drives the board digest cron.
+- completed_at: Timestamp when the card was marked done; cleared if reopened.
+- internal: Internal-only flag; the client-facing board view hard-filters to `internal = false`.
+- subject_type: Polymorphic link slot - one link per card, a coaching commitment or a client roadmap item, never both. Valid values: [coaching_commitment, client_backlog_item].
+- subject_id: UUID of the linked subject row named by `subject_type`; moving a commitment-linked card to done marks the coaching commitment kept.
+- metadata: JSONB card extras, e.g. `assigned_at` stamp for the New chip and `source: 'agent'` for the AGENT badge.
+- archived_at: Soft-delete timestamp; null means the card is active.
+- archived_by: Free-text label of who archived the card.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- parent_task_id: FK to tasks; set on subtasks, making the card a checklist item under the parent card.
+- human_tokens: Human-token allotment estimated on the card (and on each subtask), the board's unit of work sizing.
 Evidence: rows 103 · reads 2,855 · inserts 103 (stamped 28 Aug 2026)
 
 ### company_os.client_backlog_items
@@ -288,6 +634,30 @@ Status: active
 Origin: delivery planning with clients.
 Usage: client roadmap surfaces (1,617 reads); groups via `client_roadmap_groups`.
 Reuse: client-facing delivery scope lives here, keyed to the client's company.
+Columns:
+- id: Primary key.
+- company_id: FK to companies; the client whose AI Program roadmap this item is on.
+- group_key: Roadmap section the item sits in, matching a `client_roadmap_groups.key` for the company; code validates the key against the company's own groups (the original hardcoded five-section check survives only as a seed template).
+- ref: Stable seed reference like `F1`/`R1` for Edge8-authored items, unique per company; null for client-proposed items.
+- title: The backlog item's name.
+- who: Which client people the item affects (free text, e.g. names or "Everyone").
+- today_state: How the work is done today — the manual process the item replaces.
+- build_desc: What Edge8 would build.
+- needs: Array of prerequisites (dependency refs like `F1`, API access, client inputs).
+- token_low: Low end of the human-token estimate for the build.
+- token_high: High end of the human-token estimate.
+- edge8_priority: Edge8's proposed priority; the client's `client_priority` wins when set. Valid values: [now, next, later, park].
+- client_priority: The client's own priority choice from the portal, overriding `edge8_priority` when set. Valid values: [now, next, later, park].
+- client_note: The client's comment on the item, written from the portal.
+- source: Who authored the item — Edge8 seeds or a client proposal awaiting acceptance. Valid values: [edge8, client].
+- status: Item lifecycle on the roadmap. Valid values: [proposed, accepted, active, shipped, parked].
+- sort_order: Edge8's ordering within a group; the admin views sort by it.
+- archived_at: When the item was archived (soft delete); null means live.
+- archived_by: Who archived the item.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- client_sort_order: The client's dragged ordering within a group; the portal orders by `coalesce(client_sort_order, sort_order)` so un-reordered groups fall back to Edge8's order.
+- ai_program_id: FK to ai_programs; null means company-wide, set means the item belongs to one AI Program (HTT Phase 1, backfilled only for single-program companies).
 Evidence: rows 43 · reads 1,617 · inserts 43 (stamped 28 Aug 2026)
 
 ### company_os.meetings
@@ -299,7 +669,35 @@ Origin: calendar sync and note flows; `meeting_notes` was folded in 28 Aug 2026 
 Usage: meeting views, action items, transcripts (via `call_transcripts`), and the polymorphic `meeting_associations` list of what a meeting is about.
 Reuse: anything meeting-shaped is a row here with a `source` value, not a new table.
 Columns:
-- source: Where this record came from; notes rows carry the folded meeting_notes content. TODO(owner) enumerate: Valid values: [calendar, notes, ...].
+- id: Primary key.
+- source: Where this record came from; `notes` rows carry the folded meeting_notes client-notes workflow, `review` rows are performance-review calls. Valid values: [lark, thoughtflow, manual, zoom, google, other, notes, coaching, review].
+- external_id: Identifier in the source system (e.g. the Zoom recording uuid); the idempotency key for importers.
+- title: Meeting title; for notes rows the AI summarizer fills it only when blank.
+- meeting_type: Canonical meeting taxonomy, coerced on every write by the `meetings_normalize_type` trigger so imports can never introduce a new type. Valid values: [Sales, 1-1, Leadership Sync, Vendor Call, General, Performance, Team Ceremony].
+- summary: Readable meeting summary (AI-generated Markdown for client notes); null when `summary_encrypted` is true.
+- summary_encrypted: When true the readable summary is absent and the text sits encrypted in `summary_ciphertext`; app writes always set it false.
+- summary_ciphertext: Encrypted summary text for rows imported with an encrypted summary; unreadable to the app and the NL-to-SQL assistant.
+- transcript_url: Link to the transcript in the source system.
+- recording_url: Link to the recording (Zoom share URL for zoom rows).
+- minutes_url: Link to the minutes document (e.g. Lark Minutes) in the source system.
+- owner_id: FK to people; the internal owner/host of the meeting.
+- started_at: When the meeting started; the canonical meeting date (notes rows store UTC midnight and surfaces show only the date part).
+- ended_at: When the meeting ended.
+- duration_seconds: Meeting length in seconds, from the source system.
+- metadata: JSONB side-channel: raw transcript stash for re-summarizing, `source_meeting_type` preserved by the taxonomy trigger, and importer bookkeeping.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- company_id: FK to companies; the client company the meeting is with - non-null is what makes a row a "client meeting" on the admin and portal surfaces.
+- attendees: Array of attendee names, entered by an admin or extracted from the transcript by the summarizer.
+- published_at: When the meeting summary was published to the client portal; null means draft (admin-only).
+- ai_status: State of the AI summary pipeline for the row. Valid values: [pending, ready, failed].
+- ai_error: Error message recorded when the AI summarizer fails (it never throws).
+- ai_model: Which Claude model produced the current summary.
+- source_file_path: Storage path of the uploaded transcript file; removed from storage when the meeting is deleted.
+- source_file_name: Original filename of the uploaded transcript, shown on the details page.
+- created_by: Email of the admin who created the row (text, not a FK).
+- archived_at: Soft-delete timestamp; null means the row is active.
+- ai_program_id: FK to ai_programs; optional AI Program tag scoping the meeting - null means company-wide (the default).
 Evidence: rows 336 · reads 1,664 · inserts 386 (stamped 28 Aug 2026)
 
 ### company_os.sprints
@@ -309,6 +707,22 @@ Tier: 2 stage engine
 Status: active
 Origin: work-management flows.
 Usage: task grouping and sprint views (973 reads).
+Columns:
+- id: Primary key.
+- board_id: FK to boards; the board this sprint belongs to.
+- name: Sprint name shown in the board header.
+- goal: The sprint goal, part of the sprint brief.
+- starts_on: First day of the sprint.
+- ends_on: Last day of the sprint.
+- status: Whether the sprint is running or finished; closing a sprint rolls open cards into the next one. Valid values: [active, closed].
+- closed_at: Timestamp when the sprint was closed.
+- sort_order: Ordering of sprints on a board; queries take the first active sprint in this order.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- meeting_id: FK to meetings; the attached sprint meeting whose transcript the brief is extracted from (attach first, then pull).
+- focus_improvement: Sprint-brief field: what to improve this sprint, editable and AI-draftable from the attached meeting.
+- going_well: Sprint-brief field: what is going well, editable and AI-draftable from the attached meeting.
+- meeting_summary: Sprint-brief field: this client's slice of the attached meeting, drafted by `extractSprintBrief` and saved only on explicit user action.
 Evidence: rows 9 · reads 973 · inserts 11 (stamped 28 Aug 2026)
 
 ### Measure
@@ -321,6 +735,24 @@ Status: active
 Origin: manual and scripted logging alongside the PR-based minting. TODO(owner): confirm current intake path.
 Usage: effort reporting next to token entries (656 reads).
 Reuse: hour-shaped effort evidence goes here; PR-shaped evidence is `pull_requests`. Hours never surface as a UI unit in the tracker.
+Columns:
+- id: Primary key.
+- person_id: FK to people; the contributor whose hours these are; nullable so non-registered, non-excluded contributors are kept rather than dropped.
+- company_id: FK to companies; denormalized owning company for per-day billing rollups.
+- repo_id: FK to htt.repos; the repo the hours were worked on.
+- primary_role: Free-text role label for the contributor on this entry; the session ingest writes null.
+- hours: De-overlapped human hours worked (numeric 6,2); the session ingest writes one row per day carrying the session's resolved hours, the canonical delivery-debit figure.
+- occurred_on: Calendar day the hours were worked; part of the auto-session dedup key.
+- occurred_hour: Clock hour of the entry, an integer 0-23; the session ingest pins it to 0 as a stable per-day slot for the (person, repo, day) dedup.
+- source: How the entry was recorded; `auto_session` rows are unique per (person, repo, day). Valid values: [auto_session, manual].
+- description: Free-text note describing the work.
+- rate_cents: Optional billing rate in cents applied to the hours.
+- currency: Currency code for `rate_cents`; defaults to `AUD`.
+- status: Billing lifecycle state. Valid values: [recorded, approved, invoiced, paid, excluded].
+- started_at: Precise client-provided git-pull instant that started the session; source of the duration metric (PR timestamp minus this); null for legacy rows and contributes 0.
+- created_by: Audit label (text) of who or what created the row.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 258 · reads 656 · inserts 536 (stamped 28 Aug 2026)
 
 ### htt.repos
@@ -330,6 +762,28 @@ Tier: 2 stage engine
 Status: active
 Origin: tracker admin; nightly sync reads the roster. The `human-tokens` service account must be a collaborator by username or sync 404s.
 Usage: 12 tables reference it; every PR and token entry keys to a repo.
+Columns:
+- id: Primary key.
+- ai_program_id: FK to company_os.ai_programs; the tracked repo is 1:1 (unique) with an AI program, its edge8-side identity.
+- company_id: FK to company_os.companies; denormalized owning-company scope used for RLS-style filtering and rollups.
+- slug: URL slug, unique per company when set; backfilled as kebab-case of `name` for slug-based repo lookups.
+- name: Display name of the tracked repo/engagement.
+- github_repo: GitHub `owner/name` the sync and telemetry ingest resolve against; unique when set.
+- github_repo_id: Numeric GitHub repository id from the API.
+- github_repo_aliases: Historical `owner/name` values (renames, org transfers) that telemetry ingest also matches, so a rename does not orphan past records; explicit per repo, never auto-enrolls.
+- roi_metric_name: Name of the repo's FAST-goal ROI metric.
+- roi_metric_unit: Unit of the ROI metric. Valid values: [count, money, percent].
+- roi_metric_baseline: ROI metric value before the engagement started.
+- roi_metric_target: ROI metric value the engagement aims for.
+- roi_metric_period: Reporting period of the ROI metric. Valid values: [monthly, quarterly, annual].
+- started_at: Engagement lifecycle start instant.
+- ended_at: Engagement lifecycle end instant.
+- status: Engagement lifecycle state. Valid values: [planned, active, ramping, paused, complete, archived].
+- last_synced_at: Most recent PR `updated_at` seen by the GitHub PR sync; advanced after each upsert batch.
+- live_url: Live site URL mirrored from the GitHub repo homepage field during PR sync; null when the repo has no homepage set.
+- created_by: Audit label (text) of who or what created the row; the tracker's auth.users linkage was dropped in the edge8 port.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 21 · reads 7,920 · inserts 23 (stamped 28 Aug 2026)
 
 ### htt.token_allocations
@@ -339,6 +793,13 @@ Tier: 2 stage engine
 Status: active
 Origin: tracker admin when an engagement is set up or topped up.
 Usage: wallet and burn-down reporting.
+Columns:
+- id: Primary key.
+- seq: Monotonic identity sequence; the table is append-only and the current allocation is the highest-seq row per company, unambiguous even when `set_at` ties.
+- company_id: FK to companies; the client company whose allotted token pack this row sets.
+- tokens: Allotted pack size in tokens (numeric so tenths are possible; UI shows whole); null on the latest row means the pack was removed.
+- set_by_email: Email of the Edge8-internal user who set the value, taken from the verified session, never typed input.
+- set_at: When this allocation row was recorded.
 Evidence: rows 8 · reads 73 · inserts 8 (stamped 28 Aug 2026)
 
 ### htt.client_identities
@@ -348,6 +809,13 @@ Tier: 2 stage engine
 Status: active
 Origin: tracker admin.
 Usage: attribution joins in the sync and reporting.
+Columns:
+- id: Primary key.
+- repo_id: FK to htt.repos; scope of the identity row; null applies the identity to every repo (global).
+- git_email: Client/owner git commit email; matched case-insensitively to exclude owner commits from attribution and to classify self-reported effort as owner work.
+- github_login: Client/owner GitHub login; matched case-insensitively against `pull_requests.author_login` to classify a PR as owner (client) rather than Edge8 work.
+- label: Human-readable label for the identity (who this email/login is).
+- created_at: Row creation time.
 Evidence: rows 20 · reads 52 · inserts 40 (stamped 28 Aug 2026)
 
 ### Collect
@@ -361,6 +829,26 @@ Origin: QBO sync only (`source`, `external_id`, `synced_at`, `lines` jsonb). Nev
 Usage: revenue views and AR aging via `balance_cents` (2,204 reads; heavily rewritten by sync).
 Reuse: invoice-shaped features read this mirror; changes to actual invoices happen in QuickBooks.
 Do not: write invoices here; build credit notes or dunning on the mirror.
+Columns:
+- id: Primary key.
+- company_id: FK to companies; the client the invoice bills, mapped from QuickBooks customer ids stored in `companies.metadata` (null when the QBO customer is unmapped, in which case `customer_name` identifies it).
+- source: Sync source system; currently always `quickbooks` (the table is a read-only QuickBooks mirror, QBO is the source of truth).
+- external_id: The bare QuickBooks invoice id within its realm; part of the `(source, entity, external_id)` upsert key the sync writes onto.
+- doc_number: Invoice document number as shown in QuickBooks.
+- txn_date: Invoice transaction date from QuickBooks.
+- due_date: Payment due date from QuickBooks; a positive balance past this date derives `overdue` status.
+- currency: Lowercase ISO currency code of the invoice, default `usd`.
+- amount_cents: Invoice total in minor units.
+- balance_cents: Outstanding balance in minor units; zero derives `paid` status.
+- status: Derived at sync time from the memo, balance, and due date, never stored back to QBO. Valid values: [paid, open, overdue, voided].
+- memo: QuickBooks private memo field; a `void` marker here derives `voided` status, and the column is never selected in the client portal (privacy hard line).
+- payment_link: Client-facing pay URL; always null today (no QuickBooks payment-link source is wired up), and the portal omits its Pay button when null.
+- lines: JSONB array of invoice line items (`description`, `quantity`, `rate`, `amount`, `item_name`) shown to clients in the portal.
+- synced_at: When the QuickBooks sync last upserted this row.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- customer_name: QuickBooks customer display name; identifies invoices whose customer has no mapped company.
+- entity: Which QuickBooks company (realm) the invoice comes from; part of the upsert key because QBO invoice ids are per-realm. Valid values: [edge8, aio].
 Evidence: rows 214 · reads 2,204 · inserts 217 (stamped 28 Aug 2026)
 
 ### company_os.orders
@@ -371,6 +859,28 @@ Status: active
 Origin: Stripe webhook flows (`stripe_session_id`, `stripe_payment_intent_id`).
 Usage: product sales reporting (3,682 reads).
 Reuse: one-off purchases are orders; recurring is `subscriptions`.
+Columns:
+- id: Primary key.
+- person_id: FK to people; the buyer.
+- product_id: FK to products; the product or event ticket tier purchased.
+- payment_method: How payment was taken: `stripe` for checkout orders (Stripe-driven flow), `manual` for admin-recorded roster payments, `offline_vn` in legacy data.
+- stripe_session_id: Stripe Checkout session id stamped at session-create time; the webhook resolves orders by it.
+- stripe_payment_intent_id: Stripe PaymentIntent id, written by the webhook when payment succeeds.
+- stripe_customer_id: Stripe Customer id; not written by any checkout flow in this codebase (carried over from the aio-website order schema).
+- amount_cents: Order total in minor units in the native currency.
+- tax_cents: Tax portion in minor units; written as 0 by the manual roster-payment action.
+- currency: Lowercase ISO currency code of the order.
+- status: Checkout lifecycle, flipped by the Stripe webhook guarded by current status (pending to paid or expired; an expired order can still flip to paid via payment recovery). Valid values: [pending, paid, expired, refunded].
+- seat_hold_expires_at: When the 30-minute Stripe Checkout seat hold for an event registration lapses.
+- refunded_cents: Refunded amount in minor units, shown on the admin orders list.
+- affiliate_id: FK to affiliates; attribution used to mint a commission ledger row when a commission-type code converts.
+- metadata: JSONB context stamped by the checkout flow (e.g. `type` of `event_registration` or `token_pack`, `registration_id`, `token_purchase_id`); the webhook deliberately never overwrites it.
+- created_at: Row creation time.
+- updated_at: Last modification time; doubles as paid-at on the webhook's status flip.
+- amount_usd_cents: USD-normalized total derived via FX at write time so cross-currency sums are safe; commission gross uses it when set.
+- stripe_fee_cents: Stripe processing fee in minor units; no reads or writes anywhere in this codebase (legacy aio-website column). TODO(owner): confirm whether anything still populates it.
+- fx_rate: Native-to-USD conversion rate; no reads or writes anywhere in this codebase (legacy aio-website column). TODO(owner): confirm whether anything still populates it.
+- vnd_amount: Order amount in Vietnamese dong; no reads or writes anywhere in this codebase (legacy aio-website column for `offline_vn` payments). TODO(owner): confirm whether anything still populates it.
 Evidence: rows 8 · reads 3,682 · inserts 17 (stamped 28 Aug 2026)
 
 ### company_os.subscriptions
@@ -380,6 +890,18 @@ Tier: 2 stage engine
 Status: waiting
 Origin: Stripe webhook flows; empty until the first recurring product sells.
 Usage: none yet; read by product surfaces (304 reads against empty).
+Columns:
+- id: Primary key.
+- person_id: FK to people; the subscriber.
+- product_id: FK to products; the recurring product subscribed to.
+- stripe_customer_id: Stripe Customer id behind the subscription (Stripe-driven table; currently an empty scaffold with no writer in this codebase).
+- stripe_subscription_id: Stripe Subscription id linking the row to the Stripe object.
+- status: Subscription lifecycle status, Stripe-shaped; no writer exists in this codebase yet.
+- current_period_end: End of the current Stripe billing period.
+- cancel_at_period_end: Whether the subscription is set to cancel at period end instead of renewing.
+- affiliate_id: FK to affiliates; attribution for the referral program.
+- created_at: Row creation time.
+- updated_at: Last modification time.
 Evidence: rows 0 · reads 304 · inserts 0 (stamped 28 Aug 2026)
 
 ### company_os.products
@@ -390,6 +912,31 @@ Status: active
 Origin: product admin flows.
 Usage: checkout, event ticketing, order joins (3,807 reads).
 Reuse: new sellables are rows with `type`/`tier`, not new tables.
+Columns:
+- id: Primary key.
+- type: Product kind; code writes `event` for event ticket tiers, and the `public_retreats` view treats `type = 'event'` rows grouped by `cohort_slug` as public retreats.
+- slug: Globally unique URL identifier; event tiers are namespaced under the parent event's slug with a numeric suffix on collision.
+- title: Display name of the product or ticket tier.
+- subtitle: Secondary display line under the title; not referenced anywhere in this codebase (legacy catalog field).
+- description: Longer description shown on admin product and event tier views.
+- date_start: Start date for retreat-style products; shown on the admin products list and in the Infinite Leverage confirmation email.
+- date_end: End date for retreat-style products.
+- location: Venue or city label for retreat-style products.
+- capacity: Per-tier seat cap, independent of the event's overall capacity.
+- cohort_slug: Groups tier products into one retreat cohort; the `public_retreats` view aggregates by it and survey responses are tagged with it.
+- tier: Tier identifier within an event or cohort (slugified title with underscores).
+- payment_method_local_vn: Whether local Vietnamese payment is offered for the product; not referenced anywhere in this codebase (legacy aio-website flag).
+- stripe_product_id: Mirrored Stripe Product id; not read by checkout in this codebase.
+- stripe_price_id: Mirrored Stripe Price id; deliberately unused by event checkout, which prices from `amount_cents` via inline `price_data` because mirrored ids may belong to another Stripe account (caio-coach).
+- amount_cents: Price in minor units in the native currency; 0 means a free tier that skips Stripe entirely.
+- currency: Lowercase ISO currency code of the price.
+- active: Whether the product or tier is currently purchasable; inactive tiers are hidden and rejected at registration.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+- service_line_id: FK to service_lines; categorizes the product under a business offering.
+- amount_usd_cents: USD-normalized price used for cross-currency display and sorting (admin products list, retreat "from" price).
+- event_id: FK to events; set on `type = 'event'` rows to mark the tier as belonging to that event.
+- sort_order: Display order of tiers within an event.
 Evidence: rows 28 · reads 3,807 · inserts 31 (stamped 28 Aug 2026)
 
 ### company_os.service_lines
@@ -399,6 +946,14 @@ Tier: 2 stage engine
 Status: active
 Origin: seeded; edited rarely.
 Usage: deal and product categorization (506 reads).
+Columns:
+- id: Primary key.
+- slug: Unique short identifier for the service line.
+- name: Display name of the service line (a business offering such as staffing or AI program, referenced by `deals.service_line_id` and `products.service_line_id`).
+- business_unit: Which business unit the service line belongs to; only surfaced through the NL-to-SQL schema docs, no direct app reads.
+- description: What the offering covers.
+- active: Whether the service line is currently offered.
+- created_at: Row creation time.
 Evidence: rows 8 · reads 506 · inserts 8 (stamped 28 Aug 2026)
 
 ### company_os.fx_rates
@@ -408,6 +963,10 @@ Tier: 2 stage engine
 Status: active
 Origin: rate refresh job. TODO(owner): confirm refresh cadence and source.
 Usage: FX normalization on deals and orders.
+Columns:
+- currency: Primary key; lowercase ISO currency code.
+- rate_to_usd: Multiplier converting one unit of the currency to USD, used to derive `*_usd_cents` reporting values; refreshed opportunistically from the Frankfurter API when event P&L lines and deals are saved.
+- updated_at: When the cached rate was last refreshed.
 Evidence: rows 3 · reads 178 · inserts 3 (stamped 28 Aug 2026)
 
 ---
