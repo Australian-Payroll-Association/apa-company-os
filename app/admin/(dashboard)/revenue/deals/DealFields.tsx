@@ -109,7 +109,7 @@ export function ReferrerField({
 
       {mode === "idle" &&
         (referrerId ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div className="deal-inline-row">
             <Link href={`/admin/contacts/${referrerId}`} className="admin-cell-strong">
               {referrerName || "View contact"}
             </Link>
@@ -127,7 +127,7 @@ export function ReferrerField({
         ))}
 
       {mode === "search" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="deal-field-stack">
           <input
             className="admin-input"
             autoFocus
@@ -160,19 +160,7 @@ export function ReferrerField({
                     type="button"
                     onClick={() => link(h)}
                     disabled={busy}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 2,
-                      width: "100%",
-                      padding: "8px 10px",
-                      background: "var(--admin-surface)",
-                      border: "none",
-                      borderBottom: "1px solid var(--admin-line-soft)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
+                    className="deal-option"
                   >
                     <span className="admin-cell-strong">{h.name}</span>
                     <span className="admin-cell-muted">{h.email}</span>
@@ -181,7 +169,7 @@ export function ReferrerField({
               )}
             </div>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="deal-btn-row">
             <button
               type="button"
               className="admin-btn admin-btn--sm"
@@ -202,7 +190,7 @@ export function ReferrerField({
       )}
 
       {mode === "new" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="deal-field-stack">
           <div className="admin-field">
             <label className="admin-label">Name</label>
             <input className="admin-input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Full name" />
@@ -211,7 +199,7 @@ export function ReferrerField({
             <label className="admin-label">Email</label>
             <input className="admin-input" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" />
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="deal-btn-row">
             <button type="button" className="admin-btn admin-btn--primary admin-btn--sm" onClick={createNew} disabled={busy}>
               {busy ? "Saving…" : "Create & link"}
             </button>
@@ -305,7 +293,7 @@ export function ReferrerCompanyField({
 
       {mode === "idle" &&
         (referrerCompanyId ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div className="deal-inline-row">
             <Link href={`/admin/revenue/companies/${referrerCompanyId}`} className="admin-cell-strong">
               {referrerCompanyName || "View company"}
             </Link>
@@ -323,7 +311,7 @@ export function ReferrerCompanyField({
         ))}
 
       {mode === "search" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="deal-field-stack">
           <input
             className="admin-input"
             autoFocus
@@ -356,19 +344,7 @@ export function ReferrerCompanyField({
                     type="button"
                     onClick={() => link(h)}
                     disabled={busy}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 2,
-                      width: "100%",
-                      padding: "8px 10px",
-                      background: "var(--admin-surface)",
-                      border: "none",
-                      borderBottom: "1px solid var(--admin-line-soft)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
+                    className="deal-option"
                   >
                     <span className="admin-cell-strong">{h.name || "Unnamed company"}</span>
                   </button>
@@ -376,7 +352,7 @@ export function ReferrerCompanyField({
               )}
             </div>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="deal-btn-row">
             <button type="button" className="admin-btn admin-btn--sm" onClick={reset}>
               Cancel
             </button>
@@ -464,7 +440,7 @@ export function DealCommunications({ dealId }: { dealId: string }) {
       ) : items.length === 0 ? (
         <div className="admin-empty">No communications yet.</div>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        <ul className="deal-comm-list">
           {items.map((c) => (
             <li
               key={c.id}

@@ -4853,3 +4853,44 @@ a.hub-program-card:hover {
   font-size: 12px;
   margin-bottom: 6px;
 }
+
+/* ─── Deal record (DealManage full page + shared DealFields) ─────────────────
+   Layout for the deal record fields and the full-page decision header, lifted
+   out of inline style props so the inline-layout ratchet in
+   scripts/design/check-assets.mjs stays at zero for these files. Modelled on the
+   shipped .appdet-* / .admin-field rows; every value sits on the type/space scale. */
+
+/* Referrer / referring-company idle row, and the inline won/lost confirm bar
+   (the latter also carries .admin-alert): label or link beside its controls. */
+.deal-inline-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Vertical stack for the search / new-contact panels and the reject-reason bar. */
+.deal-field-stack { display: flex; flex-direction: column; gap: 8px; }
+
+/* Button cluster inside a deal panel. */
+.deal-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* A single contact / company typeahead result. */
+.deal-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--admin-surface);
+  border: none;
+  border-bottom: 1px solid var(--admin-line-soft);
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Communication log entries, newest first. */
+.deal-comm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* Full-page header: money block stacked above a right-aligned decision cluster. */
+.appdet-head-actions.deal-head-actions { flex-direction: column; align-items: flex-end; gap: 12px; }
+.deal-head-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Cockpit drawer: "Open full deal" link acts as an inline button. */
+.deal-open-link { display: inline-flex; }
