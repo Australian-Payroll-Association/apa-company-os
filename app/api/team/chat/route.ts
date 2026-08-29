@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 // Multi-query loops can run past 60s; requires Vercel fluid compute.
 export const maxDuration = 300;
 
-const MODEL = process.env.CHATBOT_MODEL ?? "claude-opus-4-8";
+const MODEL = process.env.CHATBOT_MODEL ?? "claude-sonnet-5";
 const MAX_ITERATIONS = 8;
 const MAX_MESSAGES = 24;
 
@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
           const msgStream = client.messages.stream({
             model: MODEL,
             max_tokens: 4096,
+            output_config: { effort: "medium" },
             thinking: { type: "adaptive" },
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
             tools,

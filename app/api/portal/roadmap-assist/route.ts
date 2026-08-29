@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MODEL = process.env.CHATBOT_MODEL ?? "claude-opus-4-8";
+const MODEL = process.env.ROADMAP_ASSIST_MODEL ?? "claude-haiku-4-5";
 const MAX_MESSAGES = 20;
 
 export type RoadmapDraft = {

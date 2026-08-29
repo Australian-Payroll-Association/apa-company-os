@@ -9,7 +9,7 @@ import { AI_PANELIST_EMAIL, AI_PANELIST_NAME, DEFAULT_CRITERIA, recommendationTo
 // (what it confirmed, what is still open, questions for the next round). Mirrors
 // lib/resume-screen.ts. Best-effort: it must never throw.
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-opus-5";
 const TRANSCRIPT_BUCKET = "meeting-transcripts";
 
 type Ok = { ok: true };

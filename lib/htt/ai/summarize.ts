@@ -9,14 +9,14 @@ import { STYLE_CONTRACT, stripAiTells } from "./style";
  * reach this file.
  *
  * The ANTHROPIC_API_KEY env var accepts either key type, detected by prefix:
- * - sk-or-...  goes to OpenRouter (OpenAI-style API, model anthropic/claude-opus-4.8)
+ * - sk-or-...  goes to OpenRouter (OpenAI-style API, model anthropic/claude-haiku-4.5)
  * - anything else goes to the Anthropic API directly (official SDK)
  * Same Claude model either way; only the route differs. Fail-soft: any error
  * logs loudly and returns null, and the caller records a "failed" outcome.
  */
 
-const ANTHROPIC_MODEL = "claude-opus-4-8";
-const OPENROUTER_MODEL = "anthropic/claude-opus-4.8";
+const ANTHROPIC_MODEL = "claude-haiku-4-5";
+const OPENROUTER_MODEL = "anthropic/claude-haiku-4.5";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 export type Provider = "anthropic" | "openrouter";
@@ -74,10 +74,9 @@ async function generateViaAnthropic(system: string, userContent: string): Promis
   const client = new Anthropic();
   const response = await client.messages.create({
     model: ANTHROPIC_MODEL,
-    // Short outputs by prompt; headroom here so adaptive thinking can never
-    // eat the whole budget and truncate the text away.
+    // Short outputs by prompt; headroom so the text is never truncated.
+    // (Haiku 4.5 does not support adaptive thinking — no thinking param.)
     max_tokens: 2048,
-    thinking: { type: "adaptive" },
     system,
     messages: [{ role: "user", content: userContent }],
   });

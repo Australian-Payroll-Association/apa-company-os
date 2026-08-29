@@ -9,7 +9,7 @@ import { FAMILY_BY_KEY, type FamilyScreen, type RoleFamilyKey } from "@/lib/role
 // is stored at applications.metadata.family_screen — the per-req screen on
 // the ai_* columns is never touched. Never throws.
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-5";
 
 const FAMILY_SCHEMA = {
   type: "object",
@@ -120,7 +120,7 @@ async function runFamilyScreen(applicationId: string, familyKey: RoleFamilyKey):
     max_tokens: 8000,
     thinking: { type: "adaptive" },
     system: FAMILY_SYSTEM,
-    output_config: { format: { type: "json_schema", schema: FAMILY_SCHEMA } },
+    output_config: { effort: "medium", format: { type: "json_schema", schema: FAMILY_SCHEMA } },
     messages: [
       {
         role: "user",

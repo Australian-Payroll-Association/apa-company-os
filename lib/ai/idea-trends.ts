@@ -6,7 +6,7 @@ import { companyOs } from "@/lib/supabase";
 // contract as the other lib/ai helpers: returns null on any failure (no key, no
 // material, or an API error) so callers degrade gracefully.
 
-const MODEL = process.env.IDEAS_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.IDEAS_CLAUDE_MODEL || "claude-haiku-4-5";
 const LOOKBACK_DAYS = 60;
 const MAX_IDEAS = 80;
 const MIN_IDEAS = 3; // fewer than this, there is no trend to find

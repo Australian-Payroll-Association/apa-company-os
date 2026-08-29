@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const MODEL = process.env.CHATBOT_MODEL ?? "claude-opus-4-8";
+const MODEL = process.env.CHATBOT_MODEL ?? "claude-sonnet-5";
 const MAX_MESSAGES = 60;
 
 type SseEvent =
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         const msgStream = client.messages.stream({
           model: MODEL,
           max_tokens: 8192,
+          output_config: { effort: "medium" },
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
           messages,
         });

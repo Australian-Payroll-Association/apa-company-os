@@ -16,7 +16,7 @@ import { companyOs } from "@/lib/supabase";
 import { REVIEW_DIMENSIONS } from "@/lib/reviews";
 import { readReviewTranscript } from "@/lib/reviews/transcript";
 
-const MODEL = process.env.REVIEW_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.REVIEW_CLAUDE_MODEL || "claude-sonnet-5";
 const MAX_TRANSCRIPT_CHARS = 150_000;
 
 type Ok = { ok: true };
@@ -193,7 +193,7 @@ export async function summarizeReviewCall(reviewId: string): Promise<Ok | Err> {
       model: MODEL,
       max_tokens: 4000,
       system: SYSTEM,
-      output_config: { format: { type: "json_schema", schema: SUMMARY_SCHEMA } },
+      output_config: { effort: "medium", format: { type: "json_schema", schema: SUMMARY_SCHEMA } },
       messages: [
         {
           role: "user",

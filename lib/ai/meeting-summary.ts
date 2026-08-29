@@ -12,7 +12,7 @@ import { companyOs } from "@/lib/supabase";
 // row is still blank/empty, so an admin's manual value is never overwritten. The
 // summary is always (re)generated.
 
-const MODEL = process.env.MEETINGS_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.MEETINGS_CLAUDE_MODEL || "claude-haiku-4-5";
 
 // Keep the transcript within a sane token budget. Meetings rarely exceed this;
 // if one does, the tail is dropped and noted (summary of the bulk still lands).
