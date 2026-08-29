@@ -8,10 +8,11 @@ import { signOut } from "@/app/admin/(dashboard)/actions";
 // Nav is data-driven. `enabled: false` items render muted with a "soon" tag and
 // are not navigable — flip them to `true` (and build the route) as each phase
 // ships, so the shell always looks complete without dead 404 links.
-type NavItem = { label: string; href: string; ico: string; enabled?: boolean };
-// `superAdmin: true` restricts a subsection to super admins (Dave & Mai). It is
-// hidden for everyone else; the routes are gated server-side regardless (ATS
-// route layouts + action gates), so this is a nav convenience, not the boundary.
+type NavItem = { label: string; href: string; ico: string; enabled?: boolean; superAdmin?: boolean };
+// `superAdmin: true` restricts a subsection (or a top-level item) to super
+// admins (Dave & Mai). It is hidden for everyone else; the routes are gated
+// server-side regardless (ATS route layouts + action gates), so this is a nav
+// convenience, not the boundary.
 type NavSubsection = { subheading: string; items: NavItem[]; superAdmin?: boolean };
 type NavEntry = NavItem | NavSubsection;
 type NavGroup = { label: string | null; items: NavEntry[]; collapsible?: boolean };
@@ -223,14 +224,14 @@ const NAV: NavSection[] = [
           { label: "QuickBooks", href: "/admin/settings/quickbooks", ico: "⌁", enabled: true },
         ],
       },
-      {
-        subheading: "Automation",
-        superAdmin: true,
-        items: [
-          { label: "Agents", href: "/admin/settings/agents", ico: "⟳", enabled: true },
-        ],
-      },
     ],
+  },
+  // Agents sits at the top level of Workspace, a peer of Settings rather than
+  // buried under it. Still super-admin only (Dave & Mai); the route is gated
+  // server-side regardless.
+  {
+    label: null,
+    items: [{ label: "Agents", href: "/admin/settings/agents", ico: "⟳", enabled: true, superAdmin: true }],
   },
     ],
   },
@@ -533,7 +534,9 @@ export function AdminSidebar({
                   ? entry.superAdmin && !isSuperAdmin
                     ? null
                     : renderSubsection(entry, label)
-                  : renderItem(entry, false),
+                  : entry.superAdmin && !isSuperAdmin
+                    ? null
+                    : renderItem(entry, false),
               )}
             </div>
             );

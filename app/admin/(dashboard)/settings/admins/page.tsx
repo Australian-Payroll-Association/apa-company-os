@@ -1,6 +1,6 @@
 import { PageHead } from "@/components/admin/PageHead";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listAdmins } from "@/lib/admin/admins";
+import { listAdmins, listAdminEmployeeOptions } from "@/lib/admin/admins";
 import { AdminsManager } from "./AdminsManager";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminsPage() {
   const admin = await requireAdmin();
-  const { rows, error } = await listAdmins();
+  const [{ rows, error }, employeeOptions] = await Promise.all([
+    listAdmins(),
+    listAdminEmployeeOptions(),
+  ]);
 
   return (
     <>
@@ -24,7 +27,7 @@ export default async function AdminsPage() {
 
       {error && <div className="admin-alert admin-alert--err">{error}</div>}
 
-      <AdminsManager rows={rows} currentEmail={admin.email} />
+      <AdminsManager rows={rows} employees={employeeOptions} currentEmail={admin.email} />
     </>
   );
 }
