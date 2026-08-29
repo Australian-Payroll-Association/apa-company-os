@@ -97,6 +97,7 @@ export default function Nav() {
                   Resources <span className="dropdown-icon">▾</span>
                 </button>
                 <div className="dropdown">
+                  <Link href="/8-edges-app">8 Edges Operating System</Link>
                   <Link href="/blog">Blog</Link>
                   <Link href="/workflows">Workflows</Link>
                 </div>
@@ -135,6 +136,7 @@ export default function Nav() {
         <Link href="/ai-programs" onClick={() => setMenuOpen(false)}>AI Programs</Link>
         <Link href="/saigon-private" onClick={() => setMenuOpen(false)}>Retreat</Link>
         <MobileAccordion label="Resources" id="mobileResourcesAccordion">
+          <Link href="/8-edges-app" onClick={() => setMenuOpen(false)}>8 Edges Operating System</Link>
           <Link href="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
           <Link href="/workflows" onClick={() => setMenuOpen(false)}>Workflows</Link>
         </MobileAccordion>
