@@ -10,6 +10,11 @@ name: Sync code to 8edges
 #
 # Requires the SYNC_8EDGES_TOKEN repo secret: a fine-grained PAT with
 # Contents: Read and write on talentedgeai/8edges only.
+#
+# While the secret is not configured this workflow SKIPS with a notice instead
+# of failing — a scheduled local job (launchd: ai.edge8.sync-to-8edges on
+# Khoa's machine, ~/.local/bin/edge8-sync-to-8edges.sh) performs the same sync
+# every 30 minutes in the meantime. Both are idempotent and can coexist.
 
 on:
   push:
@@ -28,21 +33,27 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'talentedgeai/edge8-web'
     steps:
-      - name: Verify sync token is configured
+      - name: Check whether sync token is configured
+        id: token
         env:
           SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
         run: |
-          if [ -z "$SYNC_TOKEN" ]; then
-            echo "::error::SYNC_8EDGES_TOKEN secret is not set. Create a fine-grained PAT with Contents read/write on talentedgeai/8edges and add it as a repo secret."
-            exit 1
+          if [ -n "$SYNC_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SYNC_8EDGES_TOKEN is not set — skipping CI sync. The scheduled local job (launchd: ai.edge8.sync-to-8edges) keeps 8edges in sync. Add the secret (fine-grained PAT, Contents read/write on talentedgeai/8edges) to sync from CI on every push."
+            echo "Skipped: SYNC_8EDGES_TOKEN not configured; the scheduled local sync covers this." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Checkout edge8-web
+        if: steps.token.outputs.present == 'true'
         uses: actions/checkout@v4
         with:
           path: source
 
       - name: Clone 8edges
+        if: steps.token.outputs.present == 'true'
         env:
           SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
         run: |
@@ -50,6 +61,7 @@ jobs:
             "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8edges.git" target
 
       - name: Copy code updates (credentials and demo-owned files excluded)
+        if: steps.token.outputs.present == 'true'
         run: |
           EXCLUDES=(
             --exclude='.git/'
@@ -87,6 +99,7 @@ jobs:
           rsync -a --delete "${EXCLUDES[@]}" source/ target/
 
       - name: Commit and push to 8edges
+        if: steps.token.outputs.present == 'true'
         run: |
           cd target
           git config user.name "edge8-sync-bot"
