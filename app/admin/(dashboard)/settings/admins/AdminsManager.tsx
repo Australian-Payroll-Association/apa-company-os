@@ -1,31 +1,48 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { PersonSelect } from "@/components/admin/PersonSelect";
 import { formatDate } from "@/lib/admin/format";
-import type { AdminListRow } from "@/lib/admin/admins";
+import type { AdminEmployeeOption, AdminListRow } from "@/lib/admin/admins";
 import { addAdmin, deleteAdmin, resendAccessLink, updateAdmin } from "./actions";
 
 type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
+// Level maps directly onto admins.can_view_sensitive: Super Admins see wages +
+// PII, plain Admins do not.
+function LevelBadge({ superAdmin }: { superAdmin: boolean }) {
+  return superAdmin ? <Badge tone="pink">Super Admin</Badge> : <Badge>Admin</Badge>;
+}
+
 export function AdminsManager({
   rows,
+  employees,
   currentEmail,
 }: {
   rows: AdminListRow[];
+  employees: AdminEmployeeOption[];
   currentEmail: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
 
-  const [newEmail, setNewEmail] = useState("");
-  const [newName, setNewName] = useState("");
+  const [newPersonId, setNewPersonId] = useState("");
+  const [newSuperAdmin, setNewSuperAdmin] = useState(false);
 
   // Row being edited in the modal, with its draft field values.
-  const [editing, setEditing] = useState<{ id: string; email: string; name: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name: string; superAdmin: boolean } | null>(
+    null,
+  );
+
+  const employeeOptions = useMemo(
+    () => employees.map((e) => ({ value: e.personId, label: e.name })),
+    [employees],
+  );
+  const selectedEmployee = employees.find((e) => e.personId === newPersonId) ?? null;
 
   function run(fn: () => Promise<ActionResult>, fallbackOk: string, after?: () => void) {
     setBanner(null);
@@ -43,9 +60,10 @@ export function AdminsManager({
 
   function submitAdd(e: React.FormEvent) {
     e.preventDefault();
-    run(() => addAdmin(newEmail, newName), "Admin added.", () => {
-      setNewEmail("");
-      setNewName("");
+    if (!newPersonId) return;
+    run(() => addAdmin(newPersonId, newSuperAdmin), "Admin added.", () => {
+      setNewPersonId("");
+      setNewSuperAdmin(false);
     });
   }
 
@@ -53,7 +71,7 @@ export function AdminsManager({
     e.preventDefault();
     if (!editing) return;
     run(
-      () => updateAdmin(editing.id, { displayName: editing.name, email: editing.email }),
+      () => updateAdmin(editing.id, { displayName: editing.name, canViewSensitive: editing.superAdmin }),
       "Admin updated.",
       () => setEditing(null),
     );
@@ -75,34 +93,54 @@ export function AdminsManager({
         <h2 className="admin-card-title">Add an admin</h2>
         <form className="admin-form" onSubmit={submitAdd}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div className="admin-field" style={{ flex: "1 1 220px", marginBottom: 0 }}>
-              <label className="admin-label" htmlFor="adm-email">Email</label>
-              <input
-                id="adm-email"
-                className="admin-input"
-                type="email"
-                required
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
+            <div className="admin-field" style={{ flex: "1 1 260px", marginBottom: 0 }}>
+              <label className="admin-label" htmlFor="adm-person">Employee</label>
+              <PersonSelect
+                id="adm-person"
+                value={newPersonId}
+                onChange={setNewPersonId}
+                options={employeeOptions}
+                placeholder="Search an employee…"
+                ariaLabel="Employee to grant admin access"
+                disabled={pending || employeeOptions.length === 0}
               />
             </div>
-            <div className="admin-field" style={{ flex: "1 1 180px", marginBottom: 0 }}>
-              <label className="admin-label" htmlFor="adm-name">Name (optional)</label>
-              <input
-                id="adm-name"
-                className="admin-input"
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
+            <div className="admin-field" style={{ flex: "0 1 200px", marginBottom: 0 }}>
+              <label className="admin-label" htmlFor="adm-level">Level</label>
+              <select
+                id="adm-level"
+                className="admin-select"
+                value={newSuperAdmin ? "super" : "admin"}
+                onChange={(e) => setNewSuperAdmin(e.target.value === "super")}
+                disabled={pending}
+              >
+                <option value="admin">Admin</option>
+                <option value="super">Super Admin</option>
+              </select>
             </div>
-            <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
+            <button
+              type="submit"
+              className="admin-btn admin-btn--primary"
+              disabled={pending || !newPersonId}
+            >
               {pending ? "Working…" : "Add & send invite"}
             </button>
           </div>
         </form>
         <p className="admin-cell-muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 13 }}>
-          They get an email link to set their password, then full access to this console.
+          {employeeOptions.length === 0 ? (
+            "Every active employee already has admin access."
+          ) : selectedEmployee ? (
+            <>
+              Grants <strong>{selectedEmployee.name}</strong> ({selectedEmployee.email}) an email
+              link to set their password.{" "}
+              {newSuperAdmin
+                ? "Super Admins can view wages and PII."
+                : "Admins cannot view wages or PII."}
+            </>
+          ) : (
+            "Admins are granted to active employees. Super Admins also get access to sensitive data (wages, PII)."
+          )}
         </p>
       </div>
 
@@ -112,6 +150,7 @@ export function AdminsManager({
             <thead>
               <tr>
                 <th>Admin</th>
+                <th>Level</th>
                 <th>Login</th>
                 <th>Last sign-in</th>
                 <th>Added</th>
@@ -121,7 +160,7 @@ export function AdminsManager({
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <div className="admin-empty">No admins yet.</div>
                   </td>
                 </tr>
@@ -135,6 +174,11 @@ export function AdminsManager({
                         {r.displayName && <div className="admin-cell-muted">{r.email}</div>}
                         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                           {isSelf && <Badge tone="info">You</Badge>}
+                          {r.id && !r.personId && (
+                            <span title="This admin isn't linked to an employee record. New admins are added from the employee list.">
+                              <Badge tone="warn">Unlinked</Badge>
+                            </span>
+                          )}
                           {r.source !== "db" && (
                             <span title="Also granted by the ADMIN_ALLOWLIST env var — removing the row here won't revoke access until the env var changes too.">
                               <Badge>Env allowlist</Badge>
@@ -142,6 +186,7 @@ export function AdminsManager({
                           )}
                         </div>
                       </td>
+                      <td>{r.id ? <LevelBadge superAdmin={r.canViewSensitive} /> : <span className="admin-cell-muted">—</span>}</td>
                       <td>{loginStatus(r)}</td>
                       <td className="admin-cell-muted">
                         {r.lastSignInAt ? formatDate(r.lastSignInAt) : "—"}
@@ -157,7 +202,11 @@ export function AdminsManager({
                               className="admin-btn admin-btn--sm"
                               disabled={pending}
                               onClick={() =>
-                                setEditing({ id: r.id!, email: r.email, name: r.displayName ?? "" })
+                                setEditing({
+                                  id: r.id!,
+                                  name: r.displayName ?? "",
+                                  superAdmin: r.canViewSensitive,
+                                })
                               }
                             >
                               Edit
@@ -240,18 +289,18 @@ export function AdminsManager({
                 />
               </div>
               <div className="admin-field">
-                <label className="admin-label" htmlFor="edit-email">Email</label>
-                <input
-                  id="edit-email"
-                  className="admin-input"
-                  type="email"
-                  required
-                  value={editing.email}
-                  onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                />
+                <label className="admin-label" htmlFor="edit-level">Level</label>
+                <select
+                  id="edit-level"
+                  className="admin-select"
+                  value={editing.superAdmin ? "super" : "admin"}
+                  onChange={(e) => setEditing({ ...editing, superAdmin: e.target.value === "super" })}
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super">Super Admin</option>
+                </select>
                 <p className="admin-cell-muted" style={{ margin: "6px 0 0", fontSize: 12 }}>
-                  Changing the email also updates their login — they sign in with the new
-                  address afterwards.
+                  Super Admins can view and edit wages and PII. Plain Admins cannot.
                 </p>
               </div>
               <div className="admin-modal-actions">

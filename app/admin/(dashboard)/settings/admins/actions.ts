@@ -5,11 +5,9 @@ import { headers } from "next/headers";
 import { companyOs, supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { findAuthUser } from "@/lib/admin/admins";
+import { findAdminEmployee, findAuthUser } from "@/lib/admin/admins";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function refresh() {
   revalidatePath("/admin/settings/admins");
@@ -43,22 +41,30 @@ async function sendAccessEmail(email: string): Promise<Result> {
   return { ok: true, message: `Invite sent to ${email}.` };
 }
 
-export async function addAdmin(emailRaw: string, displayNameRaw: string): Promise<Result> {
+// Admins are granted to employees, never free-typed emails. The client sends
+// the chosen person's id and the level; email + name are re-resolved from the
+// people record server-side, and eligibility (on payroll, not a contractor,
+// not already an admin) is re-checked here — findAdminEmployee returns null
+// otherwise.
+export async function addAdmin(personId: string, canViewSensitive: boolean): Promise<Result> {
   const admin = await requireAdmin();
-  const email = emailRaw.trim().toLowerCase();
-  const displayName = displayNameRaw.trim() || null;
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email address." };
 
-  const { data: existing } = await companyOs
-    .from("admins")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-  if (existing) return { ok: false, error: `${email} is already an admin.` };
+  const employee = await findAdminEmployee(personId);
+  if (!employee) {
+    return { ok: false, error: "Pick an active employee from the list (contractors and current admins are excluded)." };
+  }
+  const email = employee.email; // already normalized lowercase
+  const displayName = employee.name;
 
   const { data: row, error } = await companyOs
     .from("admins")
-    .insert({ email, display_name: displayName, created_by: admin.email })
+    .insert({
+      email,
+      display_name: displayName,
+      person_id: personId,
+      can_view_sensitive: canViewSensitive,
+      created_by: admin.email,
+    })
     .select("id")
     .single();
   if (error) return { ok: false, error: error.message };
@@ -68,7 +74,7 @@ export async function addAdmin(emailRaw: string, displayNameRaw: string): Promis
     recordId: row.id,
     operation: "insert",
     actor: admin.email,
-    newData: { email, display_name: displayName },
+    newData: { email, display_name: displayName, person_id: personId, can_view_sensitive: canViewSensitive },
   });
 
   const sent = await sendAccessEmail(email);
@@ -83,51 +89,28 @@ export async function addAdmin(emailRaw: string, displayNameRaw: string): Promis
   return { ok: true, message: `${email} added. ${sent.message}` };
 }
 
+// Edits the display name and the level (Super Admin => can_view_sensitive).
+// Email is no longer editable here: it's the linked employee's login address,
+// kept in sync with the people record rather than typed by hand.
 export async function updateAdmin(
   id: string,
-  fields: { displayName: string; email: string },
+  fields: { displayName: string; canViewSensitive: boolean },
 ): Promise<Result> {
   const admin = await requireAdmin();
 
   const { data: row, error: rErr } = await companyOs
     .from("admins")
-    .select("id, email, display_name")
+    .select("id, email, display_name, can_view_sensitive")
     .eq("id", id)
     .maybeSingle();
   if (rErr || !row) return { ok: false, error: rErr?.message ?? "Admin not found." };
 
   const displayName = fields.displayName.trim() || null;
-  const email = fields.email.trim().toLowerCase();
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email address." };
-
-  const emailChanged = email !== row.email.toLowerCase();
-  if (emailChanged) {
-    if (row.email.toLowerCase() === admin.email) {
-      return { ok: false, error: "You can't change your own email — ask another admin." };
-    }
-    const { data: dup } = await companyOs
-      .from("admins")
-      .select("id")
-      .eq("email", email)
-      .neq("id", id)
-      .maybeSingle();
-    if (dup) return { ok: false, error: `${email} is already an admin.` };
-
-    // Keep the login identity in sync so the gate (session email vs admins row)
-    // doesn't split. email_confirm skips the confirmation round-trip.
-    const authUser = await findAuthUser(row.email);
-    if (authUser) {
-      const { error: aErr } = await supabase.auth.admin.updateUserById(authUser.userId, {
-        email,
-        email_confirm: true,
-      });
-      if (aErr) return { ok: false, error: `Login email update failed: ${aErr.message}` };
-    }
-  }
+  const canViewSensitive = fields.canViewSensitive;
 
   const { error } = await companyOs
     .from("admins")
-    .update({ email, display_name: displayName })
+    .update({ display_name: displayName, can_view_sensitive: canViewSensitive })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
@@ -136,8 +119,8 @@ export async function updateAdmin(
     recordId: id,
     operation: "update",
     actor: admin.email,
-    oldData: { email: row.email, display_name: row.display_name },
-    newData: { email, display_name: displayName },
+    oldData: { display_name: row.display_name, can_view_sensitive: row.can_view_sensitive },
+    newData: { display_name: displayName, can_view_sensitive: canViewSensitive },
   });
   refresh();
   return { ok: true, message: "Admin updated." };
