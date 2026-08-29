@@ -10,7 +10,7 @@ import { blogTypeLabel, socialStyleLabel } from "@/lib/marketing/style-catalogue
 // context. The brand voice is the fixed system prompt; the editable instruction
 // is the user message, so the UI can show and tweak it before generating.
 
-const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-sonnet-5";
 
 const CHANNEL_LABEL: Record<string, string> = {
   blog: "blog post",
@@ -118,7 +118,7 @@ export async function generateEntryCopy(
       model: MODEL,
       max_tokens: 4000,
       system: systemPrompt(profile),
-      output_config: { format: { type: "json_schema", schema: COPY_SCHEMA } },
+      output_config: { effort: "medium", format: { type: "json_schema", schema: COPY_SCHEMA } },
       messages: [{ role: "user", content: userMsg }],
     });
 

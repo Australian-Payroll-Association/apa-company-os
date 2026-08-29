@@ -161,6 +161,7 @@ Turn this into a product plan and classify it into one office.`;
     max_tokens: isLearning ? 2000 : 8000,
     system: isLearning ? LEARNING_SYSTEM : PLAN_SYSTEM,
     output_config: {
+      effort: "medium",
       format: { type: "json_schema", schema: isLearning ? LEARNING_SCHEMA : PLAN_SCHEMA },
     },
     messages: [{ role: "user", content: prompt }],

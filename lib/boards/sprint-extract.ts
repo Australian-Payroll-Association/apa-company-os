@@ -8,7 +8,7 @@ import { companyOs } from "@/lib/supabase";
 // client. The result is a DRAFT the user reviews in the sprint brief before
 // saving — nothing is written by this module.
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-haiku-4-5";
 
 // Transcripts can outgrow the context we want to spend; keep the newest text.
 const MAX_TRANSCRIPT_CHARS = 300_000;

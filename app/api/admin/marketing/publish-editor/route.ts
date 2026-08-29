@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-sonnet-5";
 const MAX_ITERATIONS = 16;
 
 type SseEvent =
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
           const msgStream = client.messages.stream({
             model: MODEL,
             max_tokens: 4096,
+            output_config: { effort: "medium" },
             system: [{ type: "text", text: PUBLISH_EDITOR_SYSTEM, cache_control: { type: "ephemeral" } }],
             tools,
             messages,

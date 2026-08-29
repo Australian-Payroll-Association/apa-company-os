@@ -18,7 +18,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { OPEN_COMMITMENT_STATUSES, getEdgesLadderOptions, saigonToday } from "@/lib/coaching/data";
 
-const MODEL = process.env.COACHING_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.COACHING_CLAUDE_MODEL || "claude-sonnet-5";
 
 // Input clamps: keep any one document from flooding the context window.
 const MAX_DOC_CHARS = 20_000;
@@ -295,6 +295,7 @@ async function textCompletion(system: string, user: string, maxTokens: number): 
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: maxTokens,
+    output_config: { effort: "medium" },
     system,
     messages: [{ role: "user", content: user }],
   });
@@ -494,7 +495,7 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
       model: MODEL,
       max_tokens: 8000,
       system: SUMMARY_SYSTEM,
-      output_config: { format: { type: "json_schema", schema: SUMMARY_SCHEMA } },
+      output_config: { effort: "medium", format: { type: "json_schema", schema: SUMMARY_SCHEMA } },
       messages: [
         {
           role: "user",

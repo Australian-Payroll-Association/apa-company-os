@@ -7,7 +7,7 @@ import { getBrandProfile, type BrandProfile } from "@/lib/admin/brand-profiles";
 // per-channel rules all come from the brand profile the admin edits. Same shape
 // as lib/ai/idea-plan.ts: never throws, no-ops without a key.
 
-const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-sonnet-5";
 
 export type WriterOutput = {
   channel: "email" | "linkedin" | "facebook" | "blog";
@@ -142,7 +142,7 @@ Draft the deliverables the content rules specify, re-purposed to this brand's le
       model: MODEL,
       max_tokens: 8000,
       system: systemPrompt(profile),
-      output_config: { format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
+      output_config: { effort: "medium", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
       messages: [{ role: "user", content: userMsg }],
     });
 

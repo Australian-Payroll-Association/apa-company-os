@@ -7,7 +7,7 @@ import { resumeContentBlock } from "@/lib/resume-screen";
 // always reviews before anything is saved. Distinct from the resume *screen*
 // (fit rating), which runs later against a job requisition.
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-haiku-4-5";
 
 export type ExtractedCandidate = {
   full_name: string | null;

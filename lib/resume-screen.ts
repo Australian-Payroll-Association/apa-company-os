@@ -8,7 +8,7 @@ import { setCandidateAiSalary } from "@/lib/admin/candidate-sensitive";
 // result onto the application (ai_* columns). Called via waitUntil() from the
 // apply route and from admin re-scan actions — it must never throw.
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-5";
 
 // Salary is deliberately NOT here: the AI still extracts it (SCREEN_SCHEMA
 // keeps the field), but it is stored on the restricted candidate_sensitive
@@ -185,7 +185,7 @@ async function runScreen(applicationId: string): Promise<Ok | Err> {
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     system: SCREEN_SYSTEM,
-    output_config: { format: { type: "json_schema", schema: SCREEN_SCHEMA } },
+    output_config: { effort: "medium", format: { type: "json_schema", schema: SCREEN_SCHEMA } },
     messages: [
       {
         role: "user",

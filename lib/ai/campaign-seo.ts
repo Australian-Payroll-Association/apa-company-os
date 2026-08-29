@@ -9,7 +9,7 @@ import { getBrandProfile } from "@/lib/admin/brand-profiles";
 // and question phrasings that get a page quoted by ChatGPT / Perplexity). Same
 // contract as the other writers: never throws, no-ops without a key.
 
-const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-opus-4-8";
+const MODEL = process.env.WRITER_CLAUDE_MODEL || "claude-sonnet-5";
 
 type Result = { ok: true; seoGeoMd: string } | { ok: false; error: string };
 
@@ -93,7 +93,7 @@ Write the Search / FAQ / GEO plan for this campaign.`;
       model: MODEL,
       max_tokens: 3000,
       system,
-      output_config: { format: { type: "json_schema", schema: SCHEMA } },
+      output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
       messages: [{ role: "user", content: userMsg }],
     });
 
