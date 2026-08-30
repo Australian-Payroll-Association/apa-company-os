@@ -74,6 +74,46 @@ export async function actorHoldsSeat(personId: string, interviewId: string): Pro
   return Boolean(data);
 }
 
+// Authorize an actor to file a scorecard on this interview, materialising their
+// seat if they are entitled to one but were never booked onto the panel. Mirrors
+// the kit read gate: a booked seat, a loop-step interviewer (meant to be seated),
+// the requisition's hiring manager, or an admin. Returns false for anyone else.
+// Inserting the seat here (rather than on read) keeps a hover/prefetch from
+// seating anyone, and guarantees the scorecard that follows is a real panel seat
+// that the rest of the panel sees and the board counts.
+export async function ensureKitSeat(actor: TeamActor, interviewId: string): Promise<boolean> {
+  if (await actorHoldsSeat(actor.personId, interviewId)) return true;
+
+  const { data: iv } = await companyOs
+    .from("interviews")
+    .select(
+      `loop_step_id,
+       applications:applications!application_id (
+         job_requisitions:job_requisitions!job_requisition_id ( hiring_manager_id )
+       ),
+       requisition_loop_steps:requisition_loop_steps!loop_step_id ( requisition_loop_interviewers ( interviewer_id ) )`,
+    )
+    .eq("id", interviewId)
+    .maybeSingle();
+  if (!iv) return false;
+
+  const app = one(iv.applications as Record<string, unknown> | Record<string, unknown>[] | null);
+  const req = one(app?.job_requisitions as Record<string, unknown> | Record<string, unknown>[] | null);
+  const step = one(iv.requisition_loop_steps as Record<string, unknown> | Record<string, unknown>[] | null);
+  const onLoop = ((step?.requisition_loop_interviewers ?? []) as Record<string, unknown>[]).some(
+    (li) => li.interviewer_id === actor.personId,
+  );
+  const isManager = actor.isAdmin || (req?.hiring_manager_id as string | null) === actor.personId;
+  if (!onLoop && !isManager) return false;
+
+  // Idempotent: swallow the unique-violation race where a parallel submit seated
+  // them first. Any other error means the seat is not there, so refuse the write.
+  const { error } = await companyOs
+    .from("interview_interviewers")
+    .insert({ interview_id: interviewId, interviewer_id: actor.personId, role: "interviewer" });
+  return !error || error.code === "23505";
+}
+
 function buildScorecard(sc: Record<string, unknown> | undefined): KitScorecard | null {
   if (!sc) return null;
   const scores = ((sc.scorecard_scores ?? []) as Record<string, unknown>[])
@@ -97,11 +137,11 @@ export async function getInterviewKit(actor: TeamActor, interviewId: string): Pr
   const { data: iv } = await companyOs
     .from("interviews")
     .select(
-      `id, title, scheduled_at, duration_minutes, mode, application_id,
-       requisition_loop_steps:requisition_loop_steps!loop_step_id ( name ),
+      `id, title, scheduled_at, duration_minutes, mode, application_id, loop_step_id,
+       requisition_loop_steps:requisition_loop_steps!loop_step_id ( name, requisition_loop_interviewers ( interviewer_id ) ),
        applications:applications!application_id (
          id, ai_rating, ai_summary,
-         job_requisitions:job_requisitions!job_requisition_id ( title ),
+         job_requisitions:job_requisitions!job_requisition_id ( title, hiring_manager_id ),
          people:people!person_id ( full_name, preferred_name, email )
        ),
        interview_interviewers ( interviewer_id, people!interviewer_id ( full_name, preferred_name, email, metadata ) ),
@@ -112,9 +152,23 @@ export async function getInterviewKit(actor: TeamActor, interviewId: string): Pr
     .maybeSingle();
   if (!iv) return null;
 
+  const app = one(iv.applications as Record<string, unknown> | Record<string, unknown>[] | null);
+  const req = one(app?.job_requisitions as Record<string, unknown> | Record<string, unknown>[] | null);
+  const step = one(iv.requisition_loop_steps as Record<string, unknown> | Record<string, unknown>[] | null);
+
   const seats = (iv.interview_interviewers ?? []) as Record<string, unknown>[];
+  // Who may open (and score) the kit. A booked seat is the usual way in, but a
+  // person named on the interview's loop step (they were meant to be seated) and
+  // the requisition's hiring manager, plus any admin, get in too. Blind-first is
+  // unchanged: they see the rest of the panel only after filing their own card,
+  // and the seat is materialised on submit (ensureKitSeat), so that card counts
+  // like any other. Without one of these, the page turns this null into a 404.
   const iAmSeated = seats.some((s) => s.interviewer_id === actor.personId);
-  if (!iAmSeated) return null; // access is by seat; the page turns this into a 404
+  const iAmOnLoop = ((step?.requisition_loop_interviewers ?? []) as Record<string, unknown>[]).some(
+    (li) => li.interviewer_id === actor.personId,
+  );
+  const iAmManager = actor.isAdmin || (req?.hiring_manager_id as string | null) === actor.personId;
+  if (!iAmSeated && !iAmOnLoop && !iAmManager) return null;
 
   const scByInterviewer = new Map<string, Record<string, unknown>>();
   for (const sc of (iv.interview_scorecards ?? []) as Record<string, unknown>[]) {
@@ -140,10 +194,6 @@ export async function getInterviewKit(actor: TeamActor, interviewId: string): Pr
       };
     })
     .sort((a, b) => Number(a.isAi) - Number(b.isAi) || a.name.localeCompare(b.name));
-
-  const app = one(iv.applications as Record<string, unknown> | Record<string, unknown>[] | null);
-  const req = one(app?.job_requisitions as Record<string, unknown> | Record<string, unknown>[] | null);
-  const step = one(iv.requisition_loop_steps as Record<string, unknown> | Record<string, unknown>[] | null);
 
   // Rubric for the form: reuse what this viewer scored last time if present,
   // otherwise the default criteria. Per-role rubrics are a later plan item.
