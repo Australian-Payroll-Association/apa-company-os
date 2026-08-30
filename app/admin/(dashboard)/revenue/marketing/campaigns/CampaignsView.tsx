@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
@@ -41,13 +41,24 @@ export function CampaignsView({
   const router = useRouter();
   const [view, setView] = useState<"list" | "calendar">("list");
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "start", dir: "desc" });
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
+
+  // Brands that actually have campaigns, so the filter never shows a dead option.
+  const brands = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const r of rows) if (r.brandId) seen.set(r.brandId, r.brandName ?? "Unnamed");
+    return [...seen].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
+  const brandRows = brandFilter ? rows.filter((r) => r.brandId === brandFilter) : rows;
+  const brandEntries = brandFilter ? entries.filter((e) => e.brandId === brandFilter) : entries;
 
   function onSort(key: SortKey) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "name" ? "asc" : "desc" }));
   }
   const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
 
-  const sorted = [...rows].sort((a, b) => {
+  const sorted = [...brandRows].sort((a, b) => {
     let d = 0;
     if (sort.key === "name") d = a.name.localeCompare(b.name);
     else if (sort.key === "status") d = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
@@ -69,7 +80,30 @@ export function CampaignsView({
 
   return (
     <>
-      <div className="mcr-toolbar-right">
+      <div className="mcr-toolbar" style={{ marginBottom: 14 }}>
+        {brands.length > 1 ? (
+          <div className="mcr-chip-row">
+            <button
+              type="button"
+              className={`admin-btn admin-btn--sm${brandFilter === null ? " admin-btn--primary" : ""}`}
+              onClick={() => setBrandFilter(null)}
+            >
+              All brands
+            </button>
+            {brands.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className={`admin-btn admin-btn--sm${brandFilter === b.id ? " admin-btn--primary" : ""}`}
+                onClick={() => setBrandFilter(b.id)}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="admin-viewtoggle" role="group" aria-label="Campaigns view">
           <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-pressed={view === "list"}>
             List
@@ -86,13 +120,13 @@ export function CampaignsView({
           <p className="admin-page-sub" style={{ marginTop: 4, marginBottom: 12 }}>
             Every campaign asset by publish date. Click one to open it.
           </p>
-          {entries.length === 0 ? (
+          {brandEntries.length === 0 ? (
             <div className="admin-empty">No dated assets yet.</div>
           ) : (
             <CalendarMonth
-              entries={entries}
+              entries={brandEntries}
               onSelect={(id) => {
-                const e = entries.find((x) => x.id === id);
+                const e = brandEntries.find((x) => x.id === id);
                 if (e?.campaignId) router.push(`/admin/revenue/marketing/campaigns/${e.campaignId}/assets/${id}`);
               }}
             />
