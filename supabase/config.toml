@@ -1,0 +1,29 @@
+project_id = "apa-company-os"
+
+# Exposed PostgREST schemas. A new Supabase project exposes only
+# `public, graphql_public`, so every companyOs.from(...) / htt.from(...) call in
+# the app fails with PGRST106 "Invalid schema: company_os" until these are added.
+# psql-based checks do NOT catch this: psql bypasses PostgREST entirely.
+[api]
+enabled = true
+schemas = ["public", "graphql_public", "company_os", "htt"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+# Step 6 auth URL configuration. The login forms call resetPasswordForEmail and
+# signInWithOtp with redirectTo: ${window.location.origin}/api/auth/callback, and
+# Supabase only honours redirect targets on this allow-list.
+[auth]
+enabled = true
+site_url = "https://apa-company-os.vercel.app"
+additional_redirect_urls = [
+  "https://apa-company-os.vercel.app/api/auth/callback",
+  "https://apa-company-os.vercel.app/**",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
