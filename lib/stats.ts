@@ -1,7 +1,6 @@
 import { companyOs } from '@/lib/supabase'
 import { listDocs } from '@/lib/docs'
 import { allWorkflows } from '@/lib/workflowsData'
-import { allPrivateItems } from '@/lib/privateLibraryData'
 
 // Year-goal source numbers, shared by the public /api/stats endpoint and the
 // admin Marketing overview so the two always report the same figure.
@@ -30,11 +29,10 @@ export async function getWorkshopAttendeesTotal(): Promise<number | null> {
 export async function getDocumentedWorkflowsTotal(): Promise<number | null> {
   try {
     const docs = await listDocs()
-    const docHrefs = new Set(docs.map((d) => `/workflows/private/e8/${d.slug}`))
-    const privateWorkflows = allPrivateItems.filter(
-      (i) => i.category === 'workflow' && !docHrefs.has(i.href)
-    )
-    return allWorkflows.length + privateWorkflows.length + docs.length
+    // The private library (lib/privateLibraryData) is client-confidential and is
+    // removed by the allowlist sync that generates this filtered snapshot, so it
+    // contributes nothing here. Upstream adds its workflow-category items.
+    return allWorkflows.length + docs.length
   } catch {
     return null
   }
