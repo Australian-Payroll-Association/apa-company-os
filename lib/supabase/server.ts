@@ -1,0 +1,31 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+// SSR Supabase client bound to the request's cookies. Used ONLY to read/refresh
+// the auth session (auth.getUser). All company_os CRM data access goes through
+// the service-role client in lib/supabase.ts — never this one.
+// Next 14: cookies() is synchronous (no await, unlike Next 15+).
+export function createSessionClient() {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, options as CookieOptions);
+            }
+          } catch {
+            // Called from a Server Component render, where cookies are read-only.
+            // The middleware refreshes the session cookie, so this is safe to ignore.
+          }
+        },
+      },
+    },
+  );
+}

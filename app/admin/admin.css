@@ -1,0 +1,4896 @@
+/* 8 Edges admin styles. Scoped under .admin-shell / .admin-auth / .admin-* / .sap-* / .mp-*
+   so nothing collides with the marketing site (globals.css). Loaded after
+   globals.css by both admin route-group layouts.
+
+   Design system: the Edge8 Data Layer, which extends the brand system for dense
+   surfaces (see docs/product/edge8-design-system-data.md). Manrope brand-wide,
+   a dense 13px scale, cool navy neutrals and overlay-only shadows, plus per-section
+   accent theming. The tokens below re-root onto the canonical brand tokens in
+   globals.css; the living reference renders at /admin/patterns. */
+
+/* Fonts: Manrope brand-wide, loaded once in globals.css. The data layer uses
+   no admin-only webfonts; numeric alignment uses tabular-nums, not a monospace. */
+
+/* :root is included so the token set still resolves for content portalled
+   straight to <body> (e.g. PreviewRow's DetailDrawer, escaping the <table>
+   it's triggered from), without it, vars fall back to unset and the drawer
+   renders with a transparent background. */
+:root,
+.admin-shell,
+.admin-auth {
+  /* Typography */
+  /* Manrope brand-wide. --font-display / --font-body are NOT overridden here,
+     so they inherit globals.css (Manrope) and every rule reading them follows.
+     The mono var now resolves to Manrope too; tabular-nums (.admin-cell-mono)
+     handles figure alignment. */
+  --admin-font-sans: var(--font-body);
+  --admin-font-mono: var(--font-body);
+
+  /* Accent (default blue). Per-section themes override --admin-accent only. */
+  --admin-accent: var(--color-primary-blue);
+  --admin-accent-strong: var(--color-primary-blue-hover); /* hover / pressed */
+  --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
+  --admin-accent-on-dark: var(--color-bg-primary); /* links on dark surfaces */
+  --admin-accent-on-dark-strong: var(--mint); /* hover */
+  --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
+
+  /* Office accents (badges, section themes), four brand steps, no off-brand hues.
+     Legacy names (green/pink/gold) retained to avoid a codebase-wide rename. */
+  --admin-accent-blue: var(--data-chart-1);   /* brand blue    */
+  --admin-accent-green: var(--data-chart-3);  /* deep blue     */
+  --admin-accent-pink: var(--data-chart-4);   /* near-black    */
+  --admin-accent-gold: var(--data-chart-5);   /* gray          */
+
+  /* Dark chrome (sidebar), brand near-black, not navy */
+  --admin-sidebar-bg: var(--color-primary-dark);
+  --admin-sidebar-strong: #ffffff;        /* office headers, the top-rank landmark */
+  --admin-sidebar-ink: #c4c7cc;
+  --admin-sidebar-muted: #7c8189;
+
+  /* Neutrals, re-rooted onto the data layer */
+  --admin-bg: var(--data-canvas);
+  --admin-surface: var(--data-surface);
+  --admin-surface-2: var(--data-surface-2); /* thead / zebra / insets */
+  --admin-ink: var(--data-ink);           /* primary text */
+  --admin-ink-2: var(--data-ink-2);       /* secondary text */
+  --admin-muted: var(--data-muted);       /* tertiary / labels */
+  --admin-faint: var(--data-faint);       /* disabled / hints */
+  --admin-line: var(--data-line);
+  --admin-line-soft: var(--data-line-soft);
+  --admin-line-strong: var(--data-line-strong);
+
+  /* Radii, re-rooted onto the data layer */
+  --admin-radius: var(--data-radius);     /* cards / surfaces */
+  --admin-radius-sm: var(--data-btn-radius); /* buttons / inputs (default) */
+  --admin-radius-xs: var(--data-radius-sm);  /* chips / small controls */
+  --admin-radius-pill: 9999px;            /* badges / avatars */
+
+  /* Shadows, overlay elevation from the data layer (resting cards stay flat) */
+  --admin-shadow: var(--data-elevation-1);
+  --admin-shadow-md: var(--data-elevation-2);
+  --admin-shadow-drawer: var(--data-elevation-drawer);
+  --admin-shadow-modal: var(--data-elevation-modal);
+
+  /* Status tokens, re-rooted onto the data layer */
+  --admin-ok-bg: var(--data-ok-bg); --admin-ok-ink: var(--data-ok-ink);
+  --admin-warn-bg: var(--data-warn-bg); --admin-warn-ink: var(--data-warn-ink);
+  --admin-err-bg: var(--data-err-bg); --admin-err-ink: var(--data-err-ink);
+  --admin-info-bg: var(--data-info-bg); --admin-info-ink: var(--data-info-ink);
+  --admin-pink-bg: #fbe6f1; --admin-pink-ink: #b03571;
+  --admin-muted-bg: var(--data-line-soft); --admin-muted-ink: #5c6178;
+}
+
+.admin-shell a,
+.admin-auth a {
+  color: var(--admin-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.admin-shell a:hover,
+.admin-auth a:hover {
+  color: var(--admin-accent-strong);
+}
+
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  font-family: var(--admin-font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Sidebar ─────────────────────────────────────── */
+.admin-sidebar a {
+  color: var(--admin-accent-on-dark);
+}
+.admin-sidebar a:hover {
+  color: var(--admin-accent-on-dark-strong);
+}
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 248px;
+  flex-shrink: 0;
+  height: 100vh;
+  height: 100dvh; /* dvh tracks mobile browser chrome, so the last nav items are not hidden behind Safari's bottom bar */
+  background: var(--admin-sidebar-bg);
+  color: var(--admin-sidebar-ink);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling the nav to its end must not chain to the page behind it */
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 16px 12px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: #fff;
+}
+.admin-brand-lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.admin-brand-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.admin-iconbtn {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--admin-sidebar-ink);
+  display: grid; place-items: center;
+  font-size: 14px; line-height: 1;
+  cursor: pointer;
+}
+.admin-iconbtn:hover { background: rgba(255, 255, 255, 0.12); }
+.admin-iconbtn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.admin-avatarbtn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  border: 0;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 11px; letter-spacing: 0.3px;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.admin-avatarbtn:hover { filter: brightness(1.1); }
+.admin-avatarbtn--lg { width: 34px; height: 34px; font-size: 13px; }
+.admin-avatarbtn img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.admin-brandbtn {
+  margin: 0 12px 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--admin-radius-sm);
+  color: var(--admin-sidebar-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: calc(100% - 24px);
+}
+.admin-brandbtn:hover { background: rgba(255, 255, 255, 0.1); }
+.admin-brandbtn-label { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.admin-brandbtn-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--admin-sidebar-muted); }
+.admin-brandmenu {
+  list-style: none;
+  margin: -4px 12px 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--admin-radius-sm);
+}
+.admin-brandmenu li > button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--admin-sidebar-ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.admin-brandmenu li > button:hover { background: rgba(255, 255, 255, 0.08); }
+.admin-brandmenu li > button[aria-current="true"] { color: #fff; font-weight: 600; }
+
+/* Overlay popover anchored below the brand row, absolute so opening it never
+   shifts the nav below (the old in-flow version pushed the whole nav down). */
+.admin-profilemenu {
+  position: absolute;
+  top: 52px;
+  left: 12px;
+  right: 12px;
+  z-index: 40;
+  padding: 8px;
+  background: #111e42;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: admin-profilemenu-in 0.14s ease-out;
+}
+/* Invisible click-catcher so tapping anywhere else dismisses the menu. */
+.admin-profilemenu-backdrop { position: fixed; inset: 0; z-index: 39; }
+@keyframes admin-profilemenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-profilemenu { animation: none; }
+}
+.admin-profilemenu-head { display: flex; align-items: center; gap: 9px; padding: 4px 6px 8px; }
+.admin-profilemenu-email { font-size: 12px; color: var(--admin-sidebar-muted); word-break: break-all; line-height: 1.3; }
+.admin-profilemenu-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--admin-sidebar-muted); padding: 6px 6px 4px;
+}
+.admin-profilemenu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px; border-radius: 6px;
+  font-size: 13px; color: var(--admin-sidebar-ink);
+  text-decoration: none;
+}
+a.admin-profilemenu-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.admin-profilemenu-item[aria-current="true"] { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.admin-profilemenu-item.is-disabled { opacity: 0.5; cursor: not-allowed; }
+.admin-profilemenu-ico { width: 16px; text-align: center; opacity: 0.85; }
+.admin-profilemenu-here {
+  margin-left: auto; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--admin-sidebar-muted);
+}
+.admin-profilemenu-sep { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 6px 4px; }
+.admin-profilemenu-signout { width: 100%; margin-top: 2px; }
+
+.admin-nav { flex: 1; padding: 4px 0 12px; }
+.admin-nav-group { padding: 4px 12px 2px; }
+/* Office label (L1), the top-rank landmark: brighter, heavier, sentence case. */
+.admin-nav-grouplabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--admin-sidebar-strong);
+  padding: 8px 8px 5px 6px;
+  user-select: none;
+}
+.admin-nav-grouptoggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-sidebar-strong);
+  text-align: left;
+  cursor: pointer;
+  padding: 8px 8px 5px 6px;
+  margin-top: 6px;
+}
+/* Accent bar anchors each office header. */
+.admin-nav-grouptoggle::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  height: 13px;
+  background: var(--admin-accent);
+  border-radius: 2px;
+}
+.admin-nav-grouptoggle:hover { color: #fff; }
+.admin-nav-caret {
+  margin-left: auto;
+  font-size: 9px;
+  opacity: 0.7;
+  transition: transform var(--transition);
+}
+.admin-nav-caret.is-collapsed { transform: rotate(-90deg); }
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border-radius: 8px;
+  color: var(--admin-sidebar-ink);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background var(--transition), color var(--transition);
+}
+.admin-nav-link:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.admin-nav-link.is-active { background: var(--admin-accent); color: #fff; font-weight: 600; }
+.admin-nav-ico { width: 17px; text-align: center; opacity: 0.85; font-size: 14px; }
+.admin-nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+/* Nested subsection heading inside a nav group (e.g. CRM under Revenue). */
+.admin-nav-subhead {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--admin-sidebar-muted);
+  padding: 8px 10px 2px 12px;
+  user-select: none;
+}
+/* Collapsible variant of the subsection heading (System-level toggle). */
+.admin-nav-subtoggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.admin-nav-subtoggle:hover { color: #fff; }
+/* Guide rail binds a system's features (L3) to their eyebrow (L2). */
+.admin-nav-railgroup {
+  margin-left: 16px;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+.admin-nav-link.is-sub { padding-left: 12px; }
+
+.admin-signout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--admin-sidebar-ink);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.admin-signout:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+/* ─── Main column ─────────────────────────────────── */
+/* Content width.
+
+   .admin-main used to have no max-width, so every page stretched to whatever
+   the viewport allowed and tables spread their columns thin on wide monitors.
+   Pages that cared compensated with their own inline maxWidth, which is how the
+   OS ended up with 17 different page widths and no default.
+
+   There are now three, and only three:
+     default          up to --os-content-max, for tables and dashboards
+     --narrow (880)   detail and reading pages; already the most-used value
+     --form   (640)   single-column forms
+
+   Content is centred, so capping does not leave the page hugging one edge. */
+:root { --os-content-max: 1440px; }
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 64px;
+  width: 100%;
+  max-width: calc(var(--os-content-max) + 64px);
+  margin-inline: auto;
+}
+/* Escape hatch for a genuinely edge-to-edge surface (a wide board or canvas).
+   Use it deliberately; it is not the default. */
+.admin-main--full { max-width: none; }
+
+/* Pages cannot style .admin-main, which the layout owns, so the two narrower
+   widths are classes a page puts on its own content wrapper. They replace the
+   inline maxWidth values that produced 19 different page widths. */
+.admin-content { max-width: 880px; }
+.admin-content--form { max-width: 640px; }
+.admin-mobilebar { display: none; }
+
+/* ─── Page header ─────────────────────────────────── */
+.admin-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+/* Row of controls in the page-head action slot (badge + Back-to button, etc.). */
+.admin-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--admin-muted);
+  margin-bottom: 4px;
+}
+.admin-page-title { font-family: var(--font-display); font-weight: 600; font-size: 26px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.admin-page-sub { color: var(--admin-muted); margin-top: 4px; font-size: 14px; overflow-wrap: anywhere; }
+
+/* ─── Buttons ─────────────────────────────────────── */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--admin-ink);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.admin-btn:hover { border-color: var(--admin-muted); }
+.admin-btn--primary { background: var(--admin-accent); border-color: var(--admin-accent); color: #fff; }
+.admin-btn--primary:hover { background: var(--admin-accent-strong); border-color: var(--admin-accent-strong); }
+.admin-btn--danger { color: var(--admin-err-ink); border-color: var(--admin-err-bg); }
+.admin-btn--danger:hover { background: var(--admin-err-bg); }
+.admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Anchors styled as buttons: `.admin-shell a` (0,1,1) outranks the plain
+   button classes (0,1,0), turning primary buttons accent-on-accent
+   (invisible). Restate each variant's color at anchor specificity, at rest
+   AND on hover, where `.admin-shell a:hover` (0,2,1) would otherwise repaint
+   the label link-hover blue (blue-on-accent, unreadable). */
+a.admin-btn { color: var(--admin-ink); }
+a.admin-btn--primary { color: #fff; }
+a.admin-btn--danger { color: var(--admin-err-ink); }
+a.admin-btn:hover { color: var(--admin-ink); }
+a.admin-btn--primary:hover { color: #fff; }
+a.admin-btn--danger:hover { color: var(--admin-err-ink); }
+
+/* ─── Charts ──────────────────────────────────────── */
+/* Categorical palette, fixed order, CVD-validated against the light surface.
+   Identity is never color-alone: legends carry label + count. */
+:root {
+  --admin-chart-1: var(--data-chart-1);
+  --admin-chart-2: var(--data-chart-2);
+  --admin-chart-3: var(--data-chart-3);
+  --admin-chart-4: var(--data-chart-4);
+  --admin-chart-5: var(--data-chart-5);
+  --admin-chart-6: var(--data-chart-6);
+  --admin-chart-7: var(--data-chart-7);
+  --admin-chart-8: var(--color-input-border);
+}
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .admin-summary-grid { grid-template-columns: 1fr; }
+}
+.admin-summary-grid .mp-kpi { min-width: 0; }
+.admin-chart-card { padding: 16px 18px; min-width: 0; }
+
+/* ─── Section band divider ──────────────────────────────────────────────────
+   A labeled rule that splits a single cockpit into stacked sections (e.g. the
+   Revenue cockpit's Sales / Marketing / Customer Success bands): the section
+   name on the left, a hairline across, and an optional note on the right. */
+.admin-band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 14px;
+}
+.admin-band-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--admin-ink);
+  white-space: nowrap;
+}
+.admin-band-rule { flex-grow: 1; height: 1px; background: var(--admin-line); }
+.admin-band-note { font-size: 11px; color: var(--admin-muted); white-space: nowrap; }
+.admin-band--muted .admin-band-label { color: var(--admin-muted); }
+
+/* ─── Company dashboard: the four office panels (2×2) ───────────────────────
+   Each office is one card: a header (accent dot + name + cockpit link), three
+   compact KPI tiles, and the office's goal-health chips pinned to the bottom. */
+.admin-office-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width: 880px) {
+  .admin-office-grid { grid-template-columns: 1fr; }
+}
+.admin-office-panel {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-office-head { display: flex; align-items: center; justify-content: space-between; }
+.admin-office-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.admin-office-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-accent); flex-shrink: 0; }
+.admin-office-panel--revenue .admin-office-dot { background: var(--admin-accent-blue); }
+.admin-office-panel--talent .admin-office-dot { background: var(--admin-accent-green); }
+.admin-office-panel--operations .admin-office-dot { background: var(--admin-accent-pink); }
+.admin-office-panel--innovation .admin-office-dot { background: var(--admin-accent-gold); }
+.admin-office-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--admin-ink);
+}
+.admin-office-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.admin-office-stat {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition);
+}
+a.admin-office-stat:hover { border-color: var(--admin-accent); }
+.admin-office-stat-label { font-size: 11px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.admin-office-stat-val {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--admin-ink);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.admin-office-stat-sub { font-size: 11px; color: var(--admin-muted); overflow-wrap: anywhere; }
+.admin-office-goals { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
+.admin-office-goals-label {
+  font-size: 11px;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 700;
+}
+
+/* Two-column card row for the office cockpits (e.g. pipeline + goals). Wraps to
+   one column when the cards can't both hold their minimum width. */
+.admin-cockpit-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+/* Headline stat pills above the chart columns (Companies / Active Deals / Clients). */
+.admin-summary-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.admin-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-surface);
+  text-decoration: none;
+  color: inherit;
+}
+a.admin-pill:hover { border-color: var(--admin-accent); }
+a.admin-pill:hover .admin-pill-val { color: var(--admin-accent); }
+.admin-pill-label { font-size: 13px; color: var(--admin-muted); }
+.admin-pill-val { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--admin-ink); font-variant-numeric: tabular-nums; }
+/* A pill holding a full sentence (a campaign goal) rather than a short scalar.
+   The display-font 600/16px value reads as a fat headline for prose, so text
+   pills drop to body font at a normal weight and let the value wrap. */
+.admin-pill--text { align-items: baseline; }
+.admin-pill--text .admin-pill-val { font-family: var(--font-body, inherit); font-weight: 500; font-size: 14px; line-height: 1.45; white-space: normal; }
+.admin-chart-card .mp-kpi-label { margin-bottom: 12px; }
+.admin-chart text { font-family: var(--font-body, inherit); }
+.admin-donut { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.admin-chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.admin-chart-legend li { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.admin-chart-swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.admin-chart-legend-label { color: var(--admin-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-chart-legend-count { color: var(--admin-ink); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+/* ─── Cards / metric tiles ────────────────────────── */
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+}
+.mp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+/* Fixed 2-up variant for a small, known set of action cards (e.g. the portal
+   Requests page's 4 options) rather than however many fit at the 212px floor. */
+.mp-kpi-grid--2up { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 640px) {
+  .mp-kpi-grid--2up { grid-template-columns: 1fr; }
+}
+/* Marketing > Books: card link, badge row at the card foot, embedded reader. */
+.book-card-link { display: block; text-decoration: none; color: inherit; }
+.book-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.book-reader-frame { display: block; width: 100%; height: 75vh; border: 0; }
+.mp-kpi {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  min-width: 0; /* grid items default to min-width:auto, which lets a long unbroken value (a one-word company name, an email) grow the box past its track instead of wrapping */
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.mp-kpi:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.mp-kpi-label { font-size: 12px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.mp-kpi-val { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin-top: 6px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.mp-kpi-note { font-size: 12px; color: var(--admin-muted); margin-top: 2px; overflow-wrap: anywhere; }
+
+/* ─── Route loading skeleton (loading.tsx boundaries) ─────
+   Instant feedback while force-dynamic pages render server-side; without it a
+   navigation (e.g. the Admin ↔ Team switcher) feels dead for the roundtrip. */
+.admin-skeleton-bar {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--admin-line-soft) 25%, var(--admin-line) 50%, var(--admin-line-soft) 75%);
+  background-size: 200% 100%;
+  animation: admin-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes admin-skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton-bar { animation: none; }
+}
+
+/* ─── Team portal glance strip ────────────────────────
+   One quiet, hairline-divided card for the employee's personal facts. Values
+   stay at body scale on purpose, this is a glance, not a dashboard KPI. */
+.team-glance {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  margin-bottom: 8px;
+}
+.team-glance-cell {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.team-glance-cell + .team-glance-cell { border-left: 1px solid var(--admin-line-soft); }
+.team-glance-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-muted);
+}
+.team-glance-value { font-size: 15px; font-weight: 500; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-glance-note { font-size: 12px; color: var(--admin-muted); }
+.team-glance-note a { color: var(--admin-accent); text-decoration: none; }
+.team-glance-note a:hover { text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 720px) {
+  .team-glance { flex-direction: column; }
+  .team-glance-cell + .team-glance-cell { border-left: 0; border-top: 1px solid var(--admin-line-soft); }
+}
+
+/* ─── Team home columns ───────────────────────────────
+   "Your clients" and "Recent tasks" sit side by side on desktop; either one
+   alone takes the full width, and they stack on narrow screens. */
+.team-home-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0 16px;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .team-home-cols { grid-template-columns: 1fr; }
+}
+
+/* ─── Team portal org chart ───────────────────────────
+   Classic top-down hierarchy: centered cards per level, hairline connectors
+   drawn with li/ul pseudo-elements (top rails + center drop lines). The whole
+   chart scrolls horizontally inside .team-org-wrap, wide levels are the
+   nature of org charts, the page never stretches. */
+.team-org-wrap { overflow-x: auto; padding: 4px 2px 16px; }
+.team-org,
+.team-org ul {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.team-org ul { position: relative; padding-top: 26px; }
+/* Stem dropping from a parent card to its children's rail. */
+.team-org ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 26px;
+  border-left: 1px solid var(--admin-line-strong);
+}
+.team-org li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 26px 7px 0;
+}
+/* Rails: ::before = left half of the top rail, ::after = right half plus this
+   node's own drop line down to its card. */
+.team-org li::before,
+.team-org li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 26px;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--admin-line-strong);
+}
+/* Outer edges of the rail stop at the first/last child; the last child keeps
+   its drop line via border-right on the left-half box. */
+.team-org li:first-child::before { border-top: 0; }
+.team-org li:last-child::after { border-top: 0; border-left: 0; }
+.team-org li:last-child::before { border-right: 1px solid var(--admin-line-strong); border-radius: 0 8px 0 0; }
+.team-org li:first-child::after { border-radius: 8px 0 0 0; }
+/* An only child needs no rail, the parent stem reaches its card directly. */
+.team-org li:only-child { padding-top: 0; }
+.team-org li:only-child::before,
+.team-org li:only-child::after { display: none; }
+/* Roots (top-level) hang from nothing. */
+.team-org > li { padding-top: 0; }
+.team-org > li::before,
+.team-org > li::after { display: none; }
+
+/* ── Stacked levels (3rd level and deeper) ──
+   Leaf teams render as a vertical ladder: the parent stem jogs left onto a
+   spine, and each card hangs off the spine on a short stub. Keeps the chart
+   narrow, one column per manager instead of one per person. */
+.team-org ul.is-stack {
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 14px;
+}
+.team-org ul.is-stack::before { height: 14px; }
+/* Jog from the parent's center stem across to the spine. */
+.team-org ul.is-stack::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 50%;
+  border-top: 1px solid var(--admin-line-strong);
+}
+.team-org .is-stack li {
+  align-items: flex-start;
+  padding: 10px 0 0 28px;
+}
+/* Spine segment spanning this row… */
+.team-org .is-stack li::before {
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  right: auto;
+  width: 0;
+  height: auto;
+  border: 0;
+  border-left: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* …and the stub from spine to card. */
+.team-org .is-stack li::after {
+  top: 32px;
+  left: 14px;
+  right: auto;
+  width: 14px;
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--admin-line-strong);
+  border-radius: 0;
+}
+/* Spine ends at the last card with a rounded elbow. */
+.team-org .is-stack li:last-child::before {
+  bottom: auto;
+  height: 32px;
+  width: 14px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  border-right: 0;
+  border-radius: 0 0 0 8px;
+}
+.team-org .is-stack li:last-child::after { display: none; }
+.team-org .is-stack li:only-child { padding-top: 10px; }
+.team-org .is-stack li:only-child::before,
+.team-org .is-stack li:only-child::after { display: block; }
+.team-org .is-stack li:only-child::after { display: none; }
+
+.team-org-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow);
+  padding: 10px 14px;
+  min-width: 150px;
+  max-width: 200px;
+}
+.team-org-card.is-root { border-color: var(--admin-accent); }
+/* Cards link to the member's profile, inherit ink, lift on hover. */
+a.team-org-card {
+  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.team-org-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.team-org-name { font-weight: 600; font-size: 13px; color: var(--admin-ink); overflow-wrap: anywhere; }
+.team-org-meta { font-size: 11px; color: var(--admin-muted); overflow-wrap: anywhere; line-height: 1.4; }
+/* Employment badges, blue for FTE, orange for contractor. */
+.team-org-badge {
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1px 8px;
+  border-radius: var(--admin-radius-pill);
+}
+.team-org-badge.is-fte { background: var(--admin-info-bg); color: var(--admin-info-ink); }
+.team-org-badge.is-contract { background: #fdeadb; color: #b05a14; }
+/* Open headcount: a dashed, unfilled seat under the hiring manager. */
+.team-org-badge.is-open { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.team-org-card.is-open-role {
+  border-style: dashed;
+  border-color: var(--admin-accent);
+  background: transparent;
+  box-shadow: none;
+}
+.team-org-unassigned { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ─── Team portal home hub ────────────────────────────
+   Card grid on /team home: every employee touchpoint, shipped or not. Live
+   items are links; unshipped ones render muted with a "Soon" pill so the page
+   shows the full destination from day one. */
+.team-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 16px;
+}
+/* One-row variant (home "Your workspace"): all cards on a single row on desktop,
+   smaller cards, wrapping to fewer columns on narrower screens. */
+.team-hub-grid--row {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.team-hub-grid--row .team-hub-card { padding: 13px 13px; gap: 6px; }
+.team-hub-grid--row .team-hub-title { font-size: 13px; }
+.team-hub-grid--row .team-hub-sub { font-size: 11px; }
+@media (max-width: 1100px) { .team-hub-grid--row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .team-hub-grid--row { grid-template-columns: repeat(2, 1fr); } }
+.team-hub-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.team-hub-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.team-hub-ico {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid; place-items: center;
+  font-size: 15px;
+}
+.team-hub-title {
+  font-weight: 600; font-size: 14px; color: var(--admin-ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.team-hub-sub { font-size: 12px; color: var(--admin-muted); line-height: 1.5; }
+/* Coming features: one quiet pill row (hover a pill for its description). */
+.team-soon-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.team-soon-pill {
+  font-size: 12px; font-weight: 500;
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg);
+  padding: 4px 12px; border-radius: var(--admin-radius-pill);
+  white-space: nowrap;
+}
+/* Section micro-label. Groups a run of cards under a small uppercase heading.
+   Used across all three OS surfaces: admin, the employee portal (/team) and the
+   client portal (/portal). It is the sanctioned exception to the no-uppercase
+   and no-tracking rules; see the Labels section of the Foundations doc.
+
+   Distinct from .admin-card-title, which titles a single card. If a card already
+   carries a title, it does not also need one of these directly above it. */
+.admin-section-label,
+.team-hub-heading {
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--admin-muted);
+  margin: 26px 0 12px;
+}
+
+
+/* ─── "Start here" first-use panel ────────────────────
+   Shown on /team home only while employment_stage is 'pre_boarding' or
+   'probation': the new hire's first-use surface. Required reading, newest
+   posts, the role-based tool kit, and the AIOlabz certification. */
+.team-start {
+  margin: 8px 0 6px;
+  padding: 22px;
+  border: 1px solid #dfe8fb;
+  border-radius: 18px;
+  background: var(--admin-accent-soft);
+  box-shadow: var(--admin-shadow);
+}
+.team-start-head { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 16px; }
+.team-start-badge {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px;
+  background: var(--admin-accent); color: #fff; display: grid; place-items: center; font-size: 16px;
+}
+.team-start-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--admin-ink); margin: 0; }
+.team-start-sub { font-size: 13px; color: var(--admin-muted); margin: 2px 0 0; }
+.ts-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--admin-accent); }
+.ts-kicker.light { color: #8fb4ff; }
+.team-start .team-hub-heading { margin: 20px 0 10px; }
+
+/* Featured required reading */
+.ts-featured {
+  display: flex; gap: 16px; align-items: stretch;
+  background: var(--admin-surface); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius); padding: 14px; text-decoration: none; color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.ts-featured:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.ts-featured-media { flex: 0 0 auto; line-height: 0; }
+.ts-featured-img { width: 224px; height: 126px; object-fit: cover; border-radius: 9px; }
+.ts-featured-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ts-featured-heading { font-size: 17px; font-weight: 650; color: var(--admin-ink); }
+.ts-featured-excerpt { font-size: 13px; color: var(--admin-muted); line-height: 1.5; }
+.ts-more { margin-top: auto; font-size: 13px; font-weight: 700; color: var(--admin-accent); }
+
+/* Recent posts */
+.ts-posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 11px; }
+.ts-post {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--admin-surface); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius); padding: 11px; text-decoration: none; color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.ts-post:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.ts-post-thumb { width: 58px; height: 58px; object-fit: cover; border-radius: 9px; flex: 0 0 auto; }
+.ts-post-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ts-post-heading {
+  font-size: 13px; font-weight: 600; color: var(--admin-ink); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ts-post-meta { font-size: 11px; color: var(--admin-muted); }
+
+/* Tool kit */
+.ts-tools-baseline { margin-bottom: 12px; }
+.ts-cap { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); margin-bottom: 7px; }
+.ts-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.ts-chip {
+  font-size: 12px; font-weight: 600; color: var(--admin-ink);
+  background: var(--admin-surface); border: 1px solid var(--admin-line);
+  padding: 5px 11px; border-radius: var(--admin-radius-pill);
+}
+.ts-tools-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.ts-role { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 12px 13px; }
+.ts-role.mine { border-color: var(--admin-accent); box-shadow: 0 0 0 1px var(--admin-accent) inset; }
+.ts-role-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--admin-ink); margin-bottom: 9px; }
+.ts-yours { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #fff; background: var(--admin-accent); padding: 2px 7px; border-radius: var(--admin-radius-pill); }
+.ts-note { font-size: 12px; color: var(--admin-muted); margin: 11px 2px 0; }
+
+/* Certification CTA */
+.ts-cta {
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  margin-top: 16px; padding: 18px 20px; border-radius: var(--admin-radius);
+  background: #0f1c33; color: #e7edf6;
+}
+.ts-cta-body { flex: 1 1 320px; min-width: 0; }
+.ts-cta-heading { display: block; font-size: 16px; font-weight: 650; color: #fff; margin: 4px 0 8px; }
+.ts-cta-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #c3cfe0; }
+.ts-cta-steps b { color: #fff; }
+.ts-cta-actions { display: flex; flex-direction: column; gap: 9px; flex: 0 0 auto; }
+.ts-btn {
+  display: inline-block; text-align: center; white-space: nowrap;
+  font-size: 13px; font-weight: 700; text-decoration: none; padding: 10px 18px; border-radius: 9px;
+  background: var(--admin-accent); color: #fff; border: 1px solid transparent; transition: background var(--transition);
+}
+/* Darken on hover, like every other primary button (.admin-btn--primary),
+   so white text clears WCAG AA (5.17:1) rather than lightening below it. */
+.ts-btn:hover { background: var(--admin-accent-strong); }
+.ts-btn.ghost { background: transparent; color: #cfe0fb; border-color: rgba(255,255,255,0.25); }
+.ts-btn.ghost:hover { border-color: rgba(255,255,255,0.5); background: transparent; }
+/* `.ts-btn` is always an anchor: `.admin-shell a` / `a:hover` (0,1,1 / 0,2,1)
+   outrank `.ts-btn` (0,1,0) and paint the label accent-blue on its own accent
+   background (invisible at rest, low-contrast on hover). Restate the color at
+   anchor specificity for both states; the ghost keeps its lighter blue. */
+a.ts-btn { color: #fff; }
+a.ts-btn:hover { color: #fff; }
+a.ts-btn.ghost,
+a.ts-btn.ghost:hover { color: #cfe0fb; }
+
+@media (max-width: 640px) {
+  .ts-featured { flex-direction: column; }
+  .ts-featured-img { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+  .ts-cta-actions { width: 100%; }
+  .ts-btn { width: 100%; }
+}
+
+/* ─── /team/strategy + /team/values ───────────────────
+   Company strategy and core values. Content lives in company_os
+   (strategies.body_md, core_values); the pages parse it into an accent hero,
+   statement cards, business-line cards, and the six-value grid. Mirrors the
+   "Start here" panel's accent-soft hero and the home hub's icon-chip cards. */
+.team-strat-hero {
+  margin: 8px 0 20px;
+  padding: 26px 28px;
+  border: 1px solid #dfe8fb;
+  border-radius: 18px;
+  background: var(--admin-accent-soft);
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.team-strat-hero-main { flex: 1 1 420px; min-width: 260px; }
+.team-strat-north {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--admin-ink);
+  margin: 8px 0 0;
+  max-width: 700px;
+}
+/* The overview paragraph runs longer than the one-line north star. */
+.team-strat-north--overview { font-size: 17px; font-weight: 600; line-height: 1.55; max-width: 840px; }
+.team-strat-hero-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.team-strat-themes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.team-strat-theme {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-surface);
+  border: 1px solid #dfe8fb;
+  color: var(--admin-muted);
+}
+.team-strat-theme.is-current {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+}
+.team-strat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.team-strat-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.team-strat-card .team-hub-ico { margin-bottom: 2px; }
+.team-strat-card-head { display: flex; align-items: center; justify-content: space-between; }
+.team-strat-card-label { font-weight: 600; font-size: 14px; color: var(--admin-ink); }
+.team-strat-card-body { font-size: 13px; color: var(--admin-ink-2); line-height: 1.6; }
+.team-strat-line-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--admin-faint);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 960px) { .team-strat-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .team-strat-hero { padding: 20px; }
+  .team-strat-hero-side { align-items: flex-start; }
+}
+
+.team-values-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.team-value-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.team-value-head { display: flex; align-items: center; gap: 10px; }
+.team-value-num {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.team-value-title { font-weight: 600; font-size: 14px; color: var(--admin-ink); }
+.team-value-body { font-size: 13px; color: var(--admin-ink-2); line-height: 1.6; }
+@media (max-width: 960px) { .team-values-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .team-values-grid { grid-template-columns: 1fr; } }
+
+/* ─── Avatar (upload widget + display) ────────────────── */
+.team-avatar-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+.team-avatar {
+  position: relative;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.5px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-avatar.is-editable { cursor: pointer; }
+.team-avatar.is-editable:hover .team-avatar-edit { opacity: 1; }
+.team-avatar-edit {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(4, 16, 45, 0.45);
+  color: #fff; font-size: 18px;
+  opacity: 0; transition: opacity var(--transition);
+}
+.team-avatar-err { font-size: 11px; color: var(--admin-err-ink); max-width: 160px; text-align: center; }
+
+/* ─── Directory name cell (avatar + name) ─────────────── */
+.dir-name { display: inline-flex; align-items: center; gap: 10px; }
+/* Name links to the member's profile, ink at rest, accent on hover. */
+a.dir-name { color: var(--admin-ink); }
+a.dir-name:hover { color: var(--admin-accent); }
+.dir-avatar {
+  width: 28px; height: 28px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  overflow: hidden;
+}
+.dir-avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* Directory: sort caret (faint until the column is active) + result count. */
+.team-dir-caret { font-size: 9px; opacity: 0.7; }
+.admin-th-sort:hover .team-dir-caret { opacity: 1; }
+.team-dir-count { margin-left: auto; font-size: 13px; color: var(--admin-muted); white-space: nowrap; }
+
+/* ─── /team/profile ───────────────────────────────────── */
+.team-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.team-profile-head-text { min-width: 0; flex: 1; }
+.team-profile-head-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.team-probation-chip {
+  font-size: 11px; font-weight: 600;
+  color: #854f0b; background: #faeeda;
+  padding: 3px 10px; border-radius: var(--admin-radius-pill);
+  white-space: nowrap;
+}
+
+/* Profile is one readable column, not a wall of side-by-side cards. Full page
+   width like every other /team page; the field grids inside keep it readable. */
+.team-profile-stack { display: flex; flex-direction: column; gap: 14px; }
+/* Spacing between cards comes from the flex gap alone; cancel the global
+   adjacent-card margin so every gap in the column is an even 14px. */
+.team-profile-stack .admin-section-card + .admin-section-card { margin-top: 0; }
+
+/* Field grids inside the editor: N-up on desktop (via --n), single on mobile. */
+.team-profile .admin-card-title { margin-bottom: 4px; }
+.tp-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.tp-row { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 12px; }
+.tp-row > .admin-field { margin: 0; min-width: 0; }
+.tp-fields > .admin-field { margin: 0; }
+@media (max-width: 640px) {
+  .tp-row { grid-template-columns: 1fr; }
+  .tp-row > .admin-field { grid-column: auto !important; }
+}
+
+.team-lock-title { display: flex; align-items: center; gap: 7px; }
+.team-lock { font-size: 12px; opacity: 0.6; }
+.team-profile-save { display: flex; justify-content: flex-end; margin-top: 2px; }
+
+.team-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.team-chip {
+  font-size: 12px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  padding: 3px 10px;
+  border-radius: var(--admin-radius-pill);
+}
+
+/* Chip input for hobbies: chips + an inline text field that adds on Enter. */
+.team-chipinput {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+  padding: 6px 8px; min-height: 40px; background: #fff;
+}
+.team-chip.is-editable { display: inline-flex; align-items: center; gap: 4px; }
+.team-chip-x { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.team-chipinput-field { flex: 1; min-width: 90px; border: 0; outline: none; font: inherit; font-size: 13px; background: transparent; padding: 3px 2px; }
+
+/* ID-card slots: two dashed drop targets, side by side. */
+.team-id-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.team-id-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-height: 96px; padding: 12px;
+  border: 1px dashed var(--admin-line-strong); border-radius: 10px;
+  background: #fff; cursor: pointer; color: var(--admin-muted);
+}
+.team-id-drop:hover { border-color: var(--admin-accent); }
+.team-id-drop.is-present { border-style: solid; padding: 8px; }
+.team-id-ico { font-size: 20px; }
+.team-id-thumb { max-height: 96px; max-width: 100%; border-radius: 6px; object-fit: cover; }
+.team-id-label { font-size: 12px; color: var(--admin-accent); font-weight: 500; }
+@media (max-width: 640px) { .team-id-slots { grid-template-columns: 1fr; } }
+
+/* ─── Gallery + home collage ──────────────────────────────
+   The home band alternates four photos (rounded rects, → gallery) with four
+   team faces (circles, → profile), centered on one axis so the rhythm reads
+   as a single composition; the gallery pages use a CSS-columns masonry. */
+.team-collage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.team-collage-photo {
+  position: relative;
+  width: 180px;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--admin-line-soft);
+}
+.team-collage-photo img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform var(--transition);
+}
+a.team-collage-photo:hover img { transform: scale(1.04); }
+.team-collage-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 12px 8px 5px;
+  font-size: 11px; font-weight: 600; color: #fff;
+  background: linear-gradient(transparent, rgba(4, 16, 45, 0.62));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.team-collage-avatar {
+  width: 72px; height: 72px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 700;
+  overflow: hidden;
+}
+/* Faces are links to profiles now, keep initials white, ring on hover. */
+a.team-collage-avatar { color: #fff; transition: box-shadow var(--transition); }
+a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 0 0 1.5px var(--admin-accent); }
+.team-collage-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Masonry photo wall (team browse), CSS columns keep it dependency-free. */
+.gallery-masonry { columns: 4 220px; column-gap: 12px; }
+.gallery-tile {
+  position: relative;
+  display: block;
+  break-inside: avoid;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--admin-line-soft);
+}
+.gallery-tile img { width: 100%; display: block; }
+.gallery-tile-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 22px 12px 9px;
+  font-size: 12px; font-weight: 600; color: #fff;
+  background: linear-gradient(transparent, rgba(4, 16, 45, 0.66));
+}
+
+.gallery-uploadbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
+/* Drag-and-drop uploader + per-file progress queue. */
+.gallery-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 30px 20px;
+  border: 2px dashed var(--admin-line-strong);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  color: var(--admin-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--transition), background var(--transition);
+}
+.gallery-drop:hover { border-color: var(--admin-accent); }
+.gallery-drop.is-drag { border-color: var(--admin-accent); background: var(--admin-accent-soft); color: var(--admin-accent-strong); }
+.gallery-drop-ico { font-size: 24px; }
+.gallery-drop-title { font-size: 14px; font-weight: 600; color: var(--admin-ink); }
+.gallery-drop-sub { font-size: 12px; }
+
+.gallery-queue { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.gallery-queue-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.gallery-queue-thumb { width: 42px; height: 42px; border-radius: 7px; object-fit: cover; flex: 0 0 auto; background: var(--admin-line-soft); }
+.gallery-queue-body { flex: 1; min-width: 0; }
+.gallery-queue-name { font-size: 13px; color: var(--admin-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+.gallery-queue-err { font-size: 12px; color: var(--admin-err-ink); }
+.gallery-bar { height: 5px; border-radius: 3px; background: var(--admin-line); overflow: hidden; }
+.gallery-bar-fill { height: 100%; background: var(--admin-accent); border-radius: 3px; transition: width 0.18s ease; }
+.gallery-bar-fill.is-done { background: var(--admin-ok-ink); }
+.gallery-queue-status { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--admin-muted); min-width: 34px; text-align: right; }
+.gallery-queue-status.is-done { color: var(--admin-ok-ink); }
+.gallery-queue-status.is-error { color: var(--admin-err-ink); }
+
+/* Admin management grid: image + caption + date + delete per card. */
+.gallery-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.gallery-admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--admin-shadow);
+}
+.gallery-admin-img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--admin-line-soft); }
+.gallery-admin-cap { border: 0; border-radius: 0; border-top: 1px solid var(--admin-line-soft); }
+.gallery-admin-row { display: flex; gap: 8px; padding: 8px; align-items: center; }
+.gallery-admin-row .admin-input { flex: 1; }
+.gallery-admin-tags { padding: 0 8px 10px; }
+
+/* Team tile: image links out; the tagger sits in-flow below it. */
+.gallery-tile-media { position: relative; display: block; }
+.gallery-tile-tags { padding: 8px 8px 6px; }
+
+/* Per-photo people tagger (shared by admin + team gallery). */
+.phototag { display: flex; flex-direction: column; gap: 6px; }
+.phototag-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.phototag-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 5px 2px 3px;
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  font-size: 12px; color: var(--admin-ink);
+  max-width: 100%;
+}
+.phototag-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.phototag-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--admin-line-soft); }
+.phototag-avatar--blank {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--admin-muted);
+}
+.phototag-x {
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 15px; line-height: 1; color: var(--admin-muted); padding: 0 1px;
+}
+.phototag-x:hover:not(:disabled) { color: var(--admin-err-ink); }
+.phototag-add {
+  border: 1px dashed var(--admin-line-strong); background: transparent;
+  border-radius: 999px; padding: 2px 9px;
+  font-size: 12px; color: var(--admin-muted); cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.phototag-add:hover:not(:disabled) { color: var(--admin-accent-strong); border-color: var(--admin-accent); }
+.phototag-picker {
+  border: 1px solid var(--admin-line); border-radius: 10px;
+  background: var(--admin-surface); padding: 6px; box-shadow: var(--admin-shadow);
+}
+.phototag-search { width: 100%; margin-bottom: 6px; }
+.phototag-results { display: flex; flex-direction: column; gap: 2px; max-height: 168px; overflow-y: auto; }
+.phototag-result {
+  display: flex; align-items: center; gap: 8px;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 5px 6px; border-radius: 7px; text-align: left;
+  font-size: 13px; color: var(--admin-ink);
+}
+.phototag-result:hover:not(:disabled) { background: var(--admin-accent-soft); }
+.phototag-none { padding: 6px; font-size: 12px; color: var(--admin-muted); }
+.phototag-err { font-size: 12px; color: var(--admin-err-ink); }
+.phototag :disabled { opacity: 0.55; cursor: default; }
+
+/* ─── Onboarding walkthrough ───────────────────────────── */
+.team-tour-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(4, 16, 45, 0.55);
+  animation: team-tour-fade 0.16s ease-out;
+}
+@keyframes team-tour-fade { from { opacity: 0; } to { opacity: 1; } }
+.team-tour-card {
+  width: 100%; max-width: 440px;
+  background: var(--admin-surface);
+  border-radius: 16px;
+  box-shadow: var(--admin-shadow-modal);
+  padding: 28px 26px 20px;
+  text-align: center;
+}
+.team-tour-ico {
+  width: 52px; height: 52px; margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--admin-accent-soft); color: var(--admin-accent);
+  display: grid; place-items: center; font-size: 24px;
+}
+.team-tour-title { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--admin-ink); margin: 0 0 8px; }
+.team-tour-body { color: var(--admin-ink-2); font-size: 14px; line-height: 1.55; margin: 0 auto 16px; max-width: 360px; }
+.team-tour-cta { display: inline-flex; margin-bottom: 6px; text-decoration: none; }
+.team-tour-dots { display: flex; justify-content: center; gap: 6px; margin: 16px 0; }
+.team-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--admin-line-strong); }
+.team-tour-dot.is-on { background: var(--admin-accent); }
+.team-tour-nav { display: flex; align-items: center; justify-content: space-between; }
+.team-tour-skip {
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 13px;
+  cursor: pointer; padding: 6px; min-width: 40px; text-align: left;
+}
+.team-tour-skip:hover { color: var(--admin-ink-2); }
+.team-tour-replay {
+  display: inline-flex; margin-top: 26px;
+  background: none; border: 0; color: var(--admin-muted); font: inherit; font-size: 12px;
+  cursor: pointer; padding: 0;
+}
+.team-tour-replay:hover { color: var(--admin-accent); }
+
+/* ─── Badges / pills ──────────────────────────────── */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--admin-muted-bg);
+  color: var(--admin-muted-ink);
+  white-space: nowrap;
+}
+.admin-badge--ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.admin-badge--warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.admin-badge--err { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.admin-badge--info { background: var(--admin-info-bg); color: var(--admin-info-ink); }
+.admin-badge--pink { background: var(--admin-pink-bg); color: var(--admin-pink-ink); }
+.admin-badge--dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ─── Tables ──────────────────────────────────────── */
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.admin-search {
+  flex: 1 1 auto;
+  min-width: 220px;
+  max-width: 360px;
+  height: 38px;
+  display: flex;
+  /* explicit: overrides the global `form { flex-direction: column }` in
+     globals.css, which otherwise stacks the icon on top of the input. */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+.admin-search:focus-within { border-color: var(--admin-accent); }
+.admin-search-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--admin-muted); }
+.admin-search input { flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline: 0; font: inherit; font-size: 14px; background: transparent; color: var(--admin-ink); }
+.admin-search-clear { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--admin-muted); cursor: pointer; }
+.admin-search-clear svg { width: 14px; height: 14px; }
+.admin-search-clear:hover { color: var(--admin-ink); }
+.admin-table-wrap {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  /* Horizontal scroll is the DEFAULT, not opt-in. ~20 hand-rolled tables render
+     directly inside this wrap without the inner .admin-table-scroll layer; under
+     the old `overflow: hidden` their trailing column (which is where the action
+     buttons live: Cancel leave, Approve, mark Done, invoice amounts) was clipped
+     off-screen on a phone with no way to reach it. overflow-y stays hidden so the
+     rounded corners still clip. DataTable's own inner scroll layer is unaffected. */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* Horizontal scroll for wide tables on narrow screens; the wrap keeps the
+   rounded corners, this inner layer scrolls so no columns get clipped. */
+.admin-table-scroll { overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  background: #fbfcfd;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--admin-line);
+  white-space: nowrap;
+}
+.admin-table thead th a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.admin-table thead th a:hover { color: var(--admin-ink); }
+.admin-table thead th button.admin-th-sort {
+  background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.admin-table thead th button.admin-th-sort:hover { color: var(--admin-ink); }
+.admin-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr { transition: background var(--transition); }
+.admin-table tbody tr:hover { background: #fafbfd; }
+/* Clickable rows open the record in the side car (DetailDrawer). Accent-tinted
+   hover signals interactivity; the focus ring keeps keyboard users oriented. */
+.admin-table tbody tr.is-clickable { cursor: pointer; }
+.admin-table tbody tr.is-clickable:hover { background: var(--admin-accent-soft); }
+.admin-table tbody tr.is-clickable:focus-visible { outline: 2px solid var(--admin-accent); outline-offset: -2px; }
+.admin-cell-strong { font-weight: 600; color: var(--admin-ink); }
+.admin-cell-muted { color: var(--admin-muted); }
+.admin-cell-mono { font-family: var(--admin-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.admin-empty { padding: 48px 16px; text-align: center; color: var(--admin-muted); }
+
+/* ─── Pagination ──────────────────────────────────── */
+/* Pagination bar under a card-view grid: its own panel, clear of the grid. */
+.admin-cards-pager { margin-top: 16px; }
+.admin-cards-pager .admin-pagination { border-top: 0; }
+
+.admin-pagination {
+  display: flex;
+  flex-wrap: wrap; /* on a phone the count + page-size chips + Prev/Next must drop to a second line, not clip Next off-screen */
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--admin-line-soft);
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.admin-pagination-controls { display: flex; gap: 6px; }
+.admin-pagebtn {
+  min-width: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+.admin-pagebtn:hover { border-color: var(--admin-muted); }
+.admin-pagebtn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+/* Page-size switcher (25/50/100) sits left of Prev/Next. */
+.admin-pagesize { display: inline-flex; gap: 6px; margin-right: 10px; }
+.admin-pagesize .admin-pagebtn[aria-current="true"] {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* ─── Detail drawer ───────────────────────────────── */
+.admin-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 41, 0.4);
+  z-index: 40;
+  animation: admin-fade 0.15s ease;
+}
+.admin-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(460px, 94vw);
+  background: var(--admin-surface);
+  z-index: 41;
+  box-shadow: -8px 0 30px rgba(16, 24, 40, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: admin-slide 0.2s ease;
+}
+.admin-drawer-head {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--admin-line);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-drawer-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.admin-drawer-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--admin-muted); }
+.admin-drawer-close { background: transparent; border: 0; font-size: 20px; line-height: 1; color: var(--admin-muted); cursor: pointer; padding: 2px 6px; }
+.admin-drawer-close:hover { color: var(--admin-ink); }
+.admin-drawer-body { padding: 18px 20px; overflow-y: auto; overscroll-behavior: contain; flex: 1; }
+@keyframes admin-slide { from { transform: translateX(20px); opacity: 0.6; } to { transform: translateX(0); opacity: 1; } }
+@keyframes admin-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─── Forms ───────────────────────────────────────── */
+.admin-form { display: flex; flex-direction: column; gap: 14px; }
+.admin-field { display: flex; flex-direction: column; gap: 5px; }
+.admin-label { font-size: 12px; font-weight: 600; color: var(--admin-ink); }
+.admin-hint { font-size: 12px; color: var(--admin-muted); }
+.admin-input, .admin-select, .admin-textarea {
+  width: 100%;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+}
+.admin-input:focus, .admin-select:focus, .admin-textarea:focus {
+  outline: 0;
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-focus-ring);
+}
+/* globals.css strips the native <select> arrow (appearance:none) and the combined
+   rule above then wipes any replacement via its `background` shorthand, so every
+   admin select rendered with no dropdown indicator. Redraw a caret from two
+   token-coloured gradients (same no-data-URI approach as the checkbox tick) and
+   reserve room for it. This rule follows the combined block, so background-image
+   wins by source order while background-color stays --admin-surface. */
+.admin-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--admin-muted) 50%),
+    linear-gradient(135deg, var(--admin-muted) 50%, transparent 50%);
+  background-position: right 15px center, right 10px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat, no-repeat;
+}
+.admin-textarea { min-height: 96px; resize: vertical; }
+.admin-form-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+
+/* searchable person picker (components/admin/PersonSelect) */
+.admin-personsel { position: relative; width: 100%; }
+.admin-personsel-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+  cursor: pointer;
+}
+.admin-personsel-trigger:focus-visible {
+  outline: 0;
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-focus-ring);
+}
+.admin-personsel-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+.admin-personsel-empty { color: var(--admin-muted); }
+.admin-personsel-caret { flex: 0 0 auto; width: 16px; height: 16px; color: var(--admin-muted); }
+.admin-personsel--compact .admin-personsel-trigger { padding: 5px 8px; font-size: 13px; }
+
+.admin-personsel-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-width: 320px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: var(--admin-shadow-md);
+  padding: 6px;
+}
+.admin-personsel-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: var(--admin-bg);
+}
+.admin-personsel-input:focus { outline: 0; border-color: var(--admin-accent); }
+.admin-personsel-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.admin-personsel-group {
+  padding: 8px 9px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--admin-muted);
+}
+.admin-personsel-option {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--admin-radius-xs);
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--admin-ink);
+  background: transparent;
+  cursor: pointer;
+}
+.admin-personsel-option.is-active { background: var(--admin-accent-soft); }
+.admin-personsel-option.is-selected { font-weight: 600; }
+.admin-personsel-none { padding: 10px 9px; font-size: 13px; color: var(--admin-muted); }
+
+/* password field eye toggle + auth helper links */
+.admin-input-wrap { position: relative; }
+.admin-input-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--admin-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.admin-input-eye:hover { color: var(--admin-ink); background: var(--admin-line-soft); }
+.admin-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.admin-auth-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: var(--admin-accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.admin-auth-link:hover { color: var(--admin-accent-strong); }
+
+/* key/value detail rows */
+.admin-kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13px; }
+.admin-kv dt { color: var(--admin-muted); }
+.admin-kv dd { color: var(--admin-ink); word-break: break-word; }
+
+/* inline-editable key/value rows (Team roster shelf) */
+.admin-kv--editable { gap: 2px 12px; align-items: center; }
+.admin-kv--editable dt { align-self: center; }
+.admin-kv-readonly { color: var(--admin-muted); padding: 6px 8px; }
+.admin-editable {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--admin-radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.admin-editable:hover { background: var(--admin-accent-soft); border-color: var(--admin-line); }
+.admin-editable:focus-visible { outline: 0; border-color: var(--admin-accent); box-shadow: var(--admin-focus-ring); }
+.admin-editable:disabled { cursor: default; opacity: 0.6; }
+.admin-editable-empty { color: var(--admin-muted); }
+.admin-kv--editable .admin-input, .admin-kv--editable .admin-select { padding: 6px 8px; font-size: 13px; }
+
+/* "New title…" inline form inside the shelf position picker */
+.admin-shelf-newpos { display: flex; flex-direction: column; gap: 6px; }
+.admin-shelf-newpos-check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--admin-ink); }
+.admin-shelf-newpos-actions { display: flex; gap: 6px; }
+
+/* rendered markdown (Ideas Backlog product plans) */
+.idea-plan { font-size: 13px; color: var(--admin-ink); line-height: 1.65; }
+.idea-plan h1, .idea-plan h2 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+.idea-plan h3, .idea-plan h4 { font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+.idea-plan p { margin: 0 0 10px; }
+.idea-plan ul, .idea-plan ol { margin: 0 0 10px 20px; padding: 0; }
+.idea-plan li { margin-bottom: 4px; }
+.idea-plan strong { font-weight: 600; }
+.idea-plan blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 10px; padding: 2px 12px; color: var(--admin-muted); }
+.idea-plan code { font-family: var(--admin-font-mono); font-size: 12px; }
+
+/* ─── Idea plan generation (PlanGenerating) ───────────
+   The ~20s wait after submitting an idea: a four-D step rail above a document
+   that writes itself. Stage timing lives in the component; everything here is
+   presentation. All motion is decorative and switched off under
+   prefers-reduced-motion (lines still appear per stage, which is discrete). */
+.idea-gen { padding: 28px 24px; text-align: center; }
+.idea-gen-steps {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 20px 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.idea-gen-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-faint);
+  transition: color var(--transition);
+}
+.idea-gen-step.is-done { color: var(--admin-muted); }
+.idea-gen-step.is-active { color: var(--admin-accent); }
+.idea-gen-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-line);
+  transition: background var(--transition);
+}
+.idea-gen-step.is-done .idea-gen-dot { background: var(--admin-accent); }
+.idea-gen-step.is-active .idea-gen-dot {
+  background: var(--admin-accent);
+  animation: idea-gen-pulse 1.4s ease-in-out infinite;
+}
+@keyframes idea-gen-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--admin-accent-soft); }
+  50% { box-shadow: 0 0 0 6px var(--admin-accent-soft); }
+}
+.idea-gen-doc {
+  max-width: 420px;
+  min-height: 208px; /* room for all 8 lines + caret, so the card doesn't grow per stage */
+  margin: 0 auto;
+  padding: 18px 20px;
+  text-align: left;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius);
+}
+.idea-gen-line {
+  display: block;
+  height: 10px;
+  margin-bottom: 9px;
+  border-radius: 5px;
+  background: var(--admin-line);
+  animation: idea-gen-line-in 0.5s ease-out;
+}
+.idea-gen-line.is-fresh {
+  background: linear-gradient(90deg, var(--admin-line) 25%, var(--admin-accent-soft) 50%, var(--admin-line) 75%);
+  background-size: 200% 100%;
+  animation: idea-gen-line-in 0.5s ease-out, admin-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes idea-gen-line-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.idea-gen-caret {
+  display: inline-block;
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--admin-accent);
+  vertical-align: text-bottom;
+  animation: idea-gen-blink 1s step-end infinite;
+}
+@keyframes idea-gen-blink {
+  50% { opacity: 0; }
+}
+.idea-gen-status {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .idea-gen-dot, .idea-gen-line, .idea-gen-line.is-fresh, .idea-gen-caret { animation: none; }
+}
+
+/* Idea backlog, build ideas and learnings side by side, stacking on narrow */
+.ideas-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 980px) { .ideas-columns { grid-template-columns: 1fr; } }
+.ideas-col-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; }
+.ideas-col-head h2 { font-size: 14px; font-weight: 600; color: var(--admin-ink); margin: 0; }
+.ideas-col-count { font-size: 12px; color: var(--admin-muted); font-family: var(--admin-font-mono); }
+
+/* rendered markdown (uploaded plan documents, onboarding plans)
+   Distinct from .idea-plan: an idea plan is a short AI-generated note, a plan
+   document runs to hundreds of lines with tables and checklists, so it needs
+   real heading hierarchy and separation to be readable rather than a wall. */
+.plan-doc { font-size: 14px; color: var(--admin-ink); line-height: 1.7; }
+.plan-doc > *:first-child { margin-top: 0; }
+.plan-doc h1 { font-size: 22px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.01em; }
+.plan-doc h2 { font-size: 18px; font-weight: 650; margin: 34px 0 10px; letter-spacing: -0.01em; }
+.plan-doc h3 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; }
+.plan-doc h4 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; color: var(--admin-muted); }
+.plan-doc p { margin: 0 0 12px; }
+.plan-doc ul, .plan-doc ol { margin: 0 0 14px 20px; padding: 0; }
+.plan-doc li { margin-bottom: 6px; }
+.plan-doc li > ul, .plan-doc li > ol { margin-top: 6px; }
+.plan-doc strong { font-weight: 650; }
+.plan-doc a { color: var(--admin-accent, #2563eb); text-decoration: underline; text-underline-offset: 2px; }
+.plan-doc blockquote { border-left: 3px solid var(--admin-line); margin: 0 0 14px; padding: 2px 14px; color: var(--admin-muted); }
+.plan-doc code { font-family: var(--admin-font-mono); font-size: 12px; background: var(--admin-tint, rgba(0,0,0,0.04)); padding: 1px 5px; border-radius: 4px; }
+
+/* `---` between sections is the document's own separator, so it carries the
+   spacing; headings deliberately don't also draw a rule or they double up. */
+.plan-doc hr { border: 0; border-top: 1px solid var(--admin-line); margin: 32px 0; }
+
+.plan-doc table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: 13px; }
+.plan-doc thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  border-bottom: 1px solid var(--admin-line);
+  padding: 0 12px 7px 0;
+}
+.plan-doc tbody td { border-bottom: 1px solid var(--admin-line); padding: 9px 12px 9px 0; vertical-align: top; }
+.plan-doc tbody tr:last-child td { border-bottom: 0; }
+.plan-doc th:last-child, .plan-doc td:last-child { padding-right: 0; }
+
+/* Task-list items carry their own checkbox, so drop the redundant bullet. */
+.plan-doc li:has(> input[type="checkbox"]) { list-style: none; margin-left: -20px; }
+.plan-doc input[type="checkbox"] { margin-right: 9px; vertical-align: baseline; accent-color: var(--admin-accent, #2563eb); }
+
+/* Wide tables scroll inside the card instead of pushing the page sideways. */
+.plan-doc { overflow-x: auto; }
+
+/* ─── Tabs ────────────────────────────────────────── */
+.admin-tabs {
+  /* globals.css ships `nav { position: fixed; top:0; ... }` for the marketing
+     navbar and it leaks in here; a bare <nav> would pin itself to the top of
+     the viewport over the sidebar. Opt out, these tabs are inline content. */
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--admin-line);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.admin-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  /* Inactive tabs were --admin-muted (tertiary) and near-invisible on the light
+     shell. Secondary ink at weight 500 keeps the whole row legible while the
+     accent underline still marks the active one. */
+  font-weight: 500;
+  color: var(--admin-ink-2);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.admin-tab:hover { color: var(--admin-ink); border-bottom-color: var(--admin-line); }
+.admin-tab.is-active { color: var(--admin-accent); border-bottom-color: var(--admin-accent); font-weight: 600; }
+
+/* ─── Chip ────────────────────────────────────────── */
+/* Compact label chip: channel tags and small labels in the marketing campaign
+   views. Token-only so it themes with the shell. */
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-surface);
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+.admin-chip--accent {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+}
+/* Wraps a row of chips inside a table cell (Settings → Agents). */
+.admin-chiplist { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
+/* ─── Marketing campaign hub: assets-by-channel lanes ─ */
+.mcr-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) { .mcr-lanes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .mcr-lanes { grid-template-columns: 1fr; } }
+.mcr-lane { padding: 12px; }
+.mcr-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mcr-asset {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface);
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.mcr-asset:last-child { margin-bottom: 0; }
+a.mcr-asset { display: block; text-decoration: none; }
+.mcr-asset-title { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--admin-ink); text-decoration: none; }
+a.mcr-asset-title:hover { color: var(--admin-accent); }
+.mcr-asset-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Card view: the selected asset image as a 16:9 cover above the title. */
+.mcr-asset-cover {
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: var(--admin-line-soft);
+}
+.mcr-asset-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mcr-asset-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.mcr-asset-date { font-size: 12px; color: var(--admin-muted); }
+/* Marketing campaign view layout helpers (kept in CSS per the design guardrail). */
+.mcr-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mcr-toolbar-actions { display: flex; align-items: center; gap: 10px; }
+.mcr-toolbar-right { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.mcr-section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.mcr-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.mcr-progress { display: flex; align-items: center; gap: 8px; }
+.mcr-progress-track { flex: 1; height: 8px; border-radius: 20px; background: var(--admin-line-soft); overflow: hidden; }
+.mcr-progress-fill { height: 100%; }
+.mcr-progress-num { font-size: 12px; min-width: 62px; text-align: right; }
+/* List view: a small square thumbnail in the image column. */
+.mcr-asset-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--admin-radius-sm);
+  object-fit: cover;
+  display: block;
+  background: var(--admin-line-soft);
+}
+
+/* The founder's idea, shown prominently on the campaign hub header. */
+.mcr-campaign-idea {
+  margin: 14px 0 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--admin-accent);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--admin-ink);
+  white-space: pre-wrap;
+  max-width: 70ch;
+}
+
+/* Campaign report: two-column split of email vs content. */
+.mcr-report-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .mcr-report-split { grid-template-columns: 1fr; } }
+.mcr-report-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+.mcr-report-row:last-child { border-bottom: none; }
+
+/* Asset content detail: text panel + image versions. */
+/* Sibling-asset strip on the content detail page: keeps the campaign context. */
+.mcr-sibling-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-muted-bg);
+}
+.mcr-sibling-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  margin-right: 2px;
+}
+a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accent); text-decoration: none; }
+
+.mcr-detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 820px) { .mcr-detail-grid { grid-template-columns: 1fr; } }
+.mcr-panel { padding: 0; overflow: hidden; }
+.mcr-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--admin-line);
+}
+.mcr-panel-title { font-family: var(--font-display); font-weight: 600; font-size: 13px; }
+.mcr-imgbox {
+  display: block;
+  margin: 16px;
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--admin-line);
+  background: var(--admin-muted-bg);
+}
+.mcr-imgbox img { display: block; width: 100%; height: auto; }
+.mcr-thumbs { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 12px; }
+.mcr-thumb {
+  width: 56px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--admin-muted-bg);
+}
+.mcr-thumb.is-selected { border: 2px solid var(--admin-accent); }
+.mcr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Inline style picker in the panel head: auto-width so it sits beside the
+   buttons rather than taking the .admin-select full-width default. */
+.mcr-style-select { width: auto; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+
+/* ── Full blog preview ─────────────────────────────────────────────────
+   Renders a blog asset the way /post/[slug] will publish it, inside the
+   admin. Marketing foundation tokens (globals.css) on purpose, not admin
+   tokens: the point is fidelity to the live site. The presentation family
+   follows the chosen blog style via the --{family} variants below. */
+.mcr-blogprev { background: var(--white); }
+.mcr-blogprev-cover img { display: block; width: 100%; height: auto; }
+.mcr-blogprev-inner { max-width: 680px; margin: 0 auto; padding: 28px 24px 40px; }
+.mcr-blogprev-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--grey-mid);
+}
+.mcr-blogprev-tag {
+  padding: 4px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--blue-glow);
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 12px;
+}
+.mcr-blogprev-eyebrow {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.mcr-blogprev-title {
+  margin: 0 0 24px;
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: clamp(26px, 3.2vw, 34px);
+  line-height: 1.15;
+  color: var(--dark);
+}
+/* Body typography mirrors .post-body on the live site. */
+.mcr-blogprev-body { font-size: 17px; line-height: 1.8; color: var(--body-text); }
+.mcr-blogprev-body h1, .mcr-blogprev-body h2, .mcr-blogprev-body h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--dark);
+  margin: 40px 0 16px;
+  line-height: 1.2;
+}
+.mcr-blogprev-body h2 { font-size: clamp(20px, 2.5vw, 26px); }
+.mcr-blogprev-body h3 { font-size: 19px; }
+.mcr-blogprev-body p { margin: 0 0 22px; }
+.mcr-blogprev-body strong { font-weight: 600; color: var(--dark); }
+.mcr-blogprev-body a { color: var(--blue); text-decoration: none; }
+.mcr-blogprev-body a:hover { color: var(--link-hover); }
+.mcr-blogprev-body ul, .mcr-blogprev-body ol { margin: 0 0 22px; padding-left: 26px; }
+.mcr-blogprev-body li { margin-bottom: 8px; }
+.mcr-blogprev-body blockquote {
+  margin: 28px 0;
+  padding: 4px 0 4px 20px;
+  border-left: 3px solid var(--blue);
+  color: var(--dark);
+}
+.mcr-blogprev-body blockquote p:last-child { margin-bottom: 0; }
+.mcr-blogprev-body code {
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--tint);
+  color: var(--dark);
+}
+.mcr-blogprev-body pre { overflow-x: auto; margin: 0 0 22px; padding: 16px; border-radius: 12px; background: var(--tint); }
+.mcr-blogprev-body pre code { padding: 0; background: none; }
+.mcr-blogprev-body img { max-width: 100%; height: auto; border-radius: 12px; }
+.mcr-blogprev-body hr { margin: 32px 0; border: 0; border-top: 1px solid var(--card-border); }
+.mcr-blogprev-body table { width: 100%; margin: 0 0 22px; border-collapse: collapse; font-size: 15px; }
+.mcr-blogprev-body th, .mcr-blogprev-body td { padding: 8px 12px; border: 1px solid var(--card-border); text-align: left; }
+.mcr-blogprev-body th { background: var(--tint); color: var(--dark); font-weight: 600; }
+
+/* Statement (thesis, manifesto, contrarian, warning): a bold claim up top.
+   Heavier display title behind a mint slab; blockquotes become pull quotes. */
+.mcr-blogprev--statement .mcr-blogprev-title {
+  font-weight: 800;
+  font-size: clamp(30px, 3.8vw, 42px);
+  line-height: 1.08;
+}
+.mcr-blogprev--statement .mcr-blogprev-title::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 6px;
+  margin-bottom: 18px;
+  background: var(--mint);
+}
+.mcr-blogprev--statement .mcr-blogprev-eyebrow { color: var(--dark); }
+.mcr-blogprev--statement .mcr-blogprev-body blockquote {
+  border-left-color: var(--mint);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.4;
+}
+
+/* Structured (listicle, framework, how-to, quick-win): numbered spine.
+   h2s get counter chips so the steps / list items read as a sequence. */
+.mcr-blogprev--structured .mcr-blogprev-body { counter-reset: mcr-step; }
+.mcr-blogprev--structured .mcr-blogprev-body h2 { counter-increment: mcr-step; display: flex; align-items: baseline; gap: 12px; }
+.mcr-blogprev--structured .mcr-blogprev-body h2::before {
+  content: counter(mcr-step, decimal-leading-zero);
+  flex: none;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--blue);
+}
+.mcr-blogprev--structured .mcr-blogprev-body ul li::marker,
+.mcr-blogprev--structured .mcr-blogprev-body ol li::marker { color: var(--blue); font-weight: 700; }
+
+/* Analytical (case study, research dive, trend, myth-buster): evidence-led.
+   Underlined section heads, blockquotes as findings callouts. */
+.mcr-blogprev--analytical .mcr-blogprev-body h2 { padding-bottom: 10px; border-bottom: 1px solid var(--card-border); }
+.mcr-blogprev--analytical .mcr-blogprev-body blockquote {
+  padding: 16px 20px;
+  border-left: 3px solid var(--blue);
+  border-radius: 0 12px 12px 0;
+  background: var(--tint);
+  color: var(--dark);
+}
+
+/* Narrative (story, open letter): reads like prose. Roomier line height,
+   lighter centered title, opening drop cap. */
+.mcr-blogprev--narrative .mcr-blogprev-title { font-weight: 500; text-align: center; }
+.mcr-blogprev--narrative .mcr-blogprev-meta { justify-content: center; }
+.mcr-blogprev--narrative .mcr-blogprev-eyebrow { text-align: center; }
+.mcr-blogprev--narrative .mcr-blogprev-body { line-height: 1.9; }
+.mcr-blogprev--narrative .mcr-blogprev-body > p:first-child::first-letter {
+  float: left;
+  padding-right: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 54px;
+  line-height: 0.85;
+  color: var(--dark);
+}
+
+/* Regenerate dialog (shared by image + text). */
+.mcr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 18, 22, 0.45);
+}
+.mcr-modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow-lg, 0 16px 48px rgba(0, 0, 0, 0.25));
+}
+.mcr-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--admin-line); }
+.mcr-modal-title { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.mcr-modal-body { padding: 16px; overflow-y: auto; }
+.mcr-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--admin-line); }
+
+/* ─── View toggle (segmented) ─────────────────────── */
+.admin-viewtoggle {
+  display: inline-flex;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  background: var(--admin-surface);
+}
+/* Anchors are styled alongside buttons so a URL-driven segmented control can be
+   a plain <Link> in a server component, instead of needing a client component
+   purely to get the right look. Same control, same rules, no JS. */
+.admin-viewtoggle button,
+.admin-viewtoggle a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--admin-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition);
+}
+.admin-viewtoggle button + button,
+.admin-viewtoggle a + a { border-left: 1px solid var(--admin-line); }
+.admin-viewtoggle button:hover,
+.admin-viewtoggle a:hover { color: var(--admin-ink); }
+.admin-viewtoggle button.is-active,
+.admin-viewtoggle a.is-active { background: var(--admin-accent); color: #fff; }
+
+/* ─── 360 detail layout + record lists ────────────── */
+/* Columns stretch to equal height rather than each stopping at its own
+   content. The left rail (edit form ending in a tall notes field) is usually
+   the taller column; with align-items:start the shorter right column left a
+   large slab of page background exposed below it. Stretching lets a
+   card-backed main column (e.g. the companies tabs card) fill that height as
+   one panel. Every left grid child and all but one right child are transparent
+   wrapper divs, so stretch is a no-op for them. */
+.admin-360 { display: grid; grid-template-columns: 308px 1fr; gap: 20px; align-items: stretch; }
+/* Wider fixed rail (used by the company record). Declared as a modifier, not an
+   inline style, so the ≤880px single-column collapse below still wins: an inline
+   grid-template-columns outranks the media query and pinned the main column to a
+   0px track on phones. */
+.admin-360--wide { grid-template-columns: 340px minmax(0, 1fr); }
+.admin-section-card { padding: 18px 20px; }
+.admin-section-card + .admin-section-card { margin-top: 16px; }
+/* The stack-spacing rule above targets vertically stacked section cards. As
+   grid items (e.g. .mp-kpi-grid) they are adjacent siblings too, so the margin
+   leaks in and shifts every card after the first down and shorter. Grid gap
+   handles spacing there, so zero it out. */
+.mp-kpi-grid .admin-section-card + .admin-section-card { margin-top: 0; }
+.admin-list { display: flex; flex-direction: column; }
+.admin-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+.admin-list-row:last-child { border-bottom: 0; }
+.admin-list-main { min-width: 0; }
+/* overflow-wrap: long unbroken strings (filenames, URLs) wrap instead of
+   escaping the card. */
+.admin-list-title { font-weight: 600; color: var(--admin-ink); overflow-wrap: anywhere; }
+.admin-list-title a { color: inherit; text-decoration: none; }
+.admin-list-title a:hover { color: var(--admin-accent); }
+.admin-list-sub { font-size: 12px; color: var(--admin-muted); margin-top: 1px; }
+.admin-list-aside { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+@media (max-width: 880px) { .admin-360 { grid-template-columns: 1fr; } }
+
+/* ─── Assigned staff card ──────────────────────────── */
+/* Narrow right-rail card: name + role + tag on the left, action buttons on the
+   right. Let the row wrap so the actions drop to their own line when space is
+   tight instead of the tag overflowing under the buttons. */
+.staff-assign-row { flex-wrap: wrap; }
+.staff-assign-row .admin-list-main { flex: 1 1 160px; }
+.staff-assign-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.staff-assign-actions { flex-direction: row; align-items: center; gap: 6px; }
+
+/* ─── Settings → Assume ───────────────────────────── */
+/* One aligned control cluster per row: the member picker and the button sit on
+   a single line (admin-list-aside stacks children, which is wrong here), and
+   the picker gets a fixed width so buttons line up down the whole list. */
+.assume-main { display: flex; align-items: center; gap: 12px; }
+.assume-main-text { min-width: 0; }
+.assume-logo {
+  width: 32px; height: 32px; flex: 0 0 auto;
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.assume-controls { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.assume-select { width: 230px; }
+@media (max-width: 640px) {
+  .assume-row { flex-wrap: wrap; }
+  /* Controls drop below the name, aligned with the text column (logo 32 + gap 12). */
+  .assume-controls { width: 100%; justify-content: flex-start; padding-left: 44px; }
+  .assume-select { flex: 1; min-width: 0; width: auto; }
+}
+
+/* ─── Shelf (drawer) sections ─────────────────────── */
+.admin-shelf-sections { display: flex; flex-direction: column; gap: 22px; }
+.admin-shelf-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  margin-bottom: 8px;
+}
+
+/* ─── Inline alerts ───────────────────────────────── */
+.admin-alert { padding: 10px 14px; border-radius: var(--admin-radius-sm); font-size: 13px; }
+.admin-alert--err { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.admin-alert--ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+
+/* ─── Toasts ──────────────────────────────────────── */
+.admin-toast-host {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-toast {
+  background: var(--admin-ink);
+  color: #fff;
+  padding: 11px 16px;
+  border-radius: var(--admin-radius-sm);
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.25);
+  animation: admin-slide 0.18s ease;
+  max-width: 360px;
+}
+.admin-toast--err { background: #991b1b; }
+.admin-toast--ok { background: #166534; }
+
+/* ─── Auth (login) ────────────────────────────────── */
+.admin-auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(900px 500px at 50% -10%, rgba(40, 123, 232, 0.16), transparent 70%),
+    var(--admin-bg);
+  padding: 24px;
+  font-family: var(--admin-font-sans);
+  font-size: 13px;
+  color: var(--admin-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.admin-auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: 0 10px 40px rgba(16, 24, 40, 0.1);
+  padding: 28px;
+}
+.admin-auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.admin-auth-sub { color: var(--admin-muted); font-size: 13px; margin-bottom: 20px; }
+.admin-auth .admin-form-actions { padding-top: 8px; }
+.admin-auth .admin-btn--primary { width: 100%; justify-content: center; padding: 11px; }
+
+/* ─── Kanban ──────────────────────────────────────── */
+.sap-kanban {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  align-items: stretch;
+}
+.sap-col {
+  /* Grow to share the row instead of leaving a dead gutter on wide screens. */
+  flex: 1 1 268px;
+  min-width: 252px;
+  max-width: 332px;
+  /* The well must read darker than the page canvas or the board dissolves
+     into it; derived from tokens so it tracks any future re-theme. */
+  background: color-mix(in srgb, var(--admin-line-strong) 40%, var(--admin-bg));
+  border: 1px solid var(--admin-line-strong);
+  border-radius: var(--admin-radius);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 210px);
+}
+.sap-col.is-over { background: var(--admin-accent-soft); border-color: var(--admin-accent); }
+.sap-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--admin-line-strong);
+}
+.sap-col-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-muted); flex-shrink: 0; }
+.sap-col-label { font-weight: 600; font-size: 13px; }
+.sap-col-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--admin-muted);
+  background: var(--admin-surface);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+.sap-col-body {
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  flex: 1;
+}
+.sap-col-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--admin-line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--admin-ink);
+}
+.sap-col-foot .sap-card-sub {
+  font-weight: 500;
+  color: var(--admin-muted);
+}
+.sap-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  cursor: pointer;
+  box-shadow: var(--admin-shadow);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.sap-card:hover {
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-shadow-md);
+  transform: translateY(-1px);
+}
+.sap-card.is-dragging { box-shadow: 0 10px 24px rgba(16, 24, 40, 0.18); border-color: var(--admin-accent); }
+/* A card freshly assigned to the viewer: accent edge without a layout shift. */
+.sap-card.is-new { box-shadow: inset 3px 0 0 var(--admin-accent), var(--admin-shadow); }
+.sap-card.is-new:hover { box-shadow: inset 3px 0 0 var(--admin-accent), var(--admin-shadow-md); }
+/* A toolbar select that is narrowing the board. */
+.admin-select.is-filtering {
+  border-color: var(--admin-accent);
+  background-color: var(--admin-accent-soft);
+}
+.sap-card-title { font-weight: 600; font-size: 13px; color: var(--admin-ink); }
+.sap-card-sub { font-size: 12px; color: var(--admin-muted); margin-top: 3px; }
+.sap-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.sap-card-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--admin-ink-2);
+  min-width: 0;
+}
+.sap-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* Hint shown in a column with no cards so it doesn't read as broken. */
+.sap-col-empty {
+  border: 1px dashed var(--admin-line-strong);
+  border-radius: 10px;
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+/* Ghost add-card control at the foot of a board column. */
+.sap-add-card {
+  margin: 0 10px 10px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.sap-add-card:hover { background: var(--admin-accent-soft); color: var(--admin-accent); }
+/* Read-only card (client portal): no click affordance, no hover lift. */
+.sap-card--static { cursor: default; }
+.sap-card--static:hover {
+  border-color: var(--admin-line);
+  box-shadow: var(--admin-shadow);
+  transform: none;
+}
+/* Overlapping member initials on the boards index. */
+/* Initials are text, so the chips sit side by side; an overlapped stack
+   would clip the second letter. */
+.board-avatar-stack { display: flex; align-items: center; gap: 4px; }
+.board-avatar-more {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--admin-muted);
+}
+/* Thin done-vs-open progress track on a board card. */
+.board-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--admin-line-soft);
+  overflow: hidden;
+}
+.board-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--admin-accent);
+}
+/* Role tag on cross-req boards, color + tint arrive inline per req. */
+.sap-role-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Handoff accept/reject controls sit on a draggable card face, keep tap
+   targets at the 44px WCAG 2.5.5 minimum so touch users can hit them. */
+.sap-card-handoff .admin-btn,
+.sap-card-handoff .admin-input { min-height: 44px; }
+
+/* ─── Lead queue (SDR workstation) ────────────────── */
+.lead-queue { display: flex; flex-direction: column; gap: 10px; }
+.lead-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+.lead-card.is-open { border-color: var(--admin-accent); box-shadow: 0 0 0 1px var(--admin-accent), var(--admin-shadow); }
+.lead-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.lead-head:hover { background: #fafbfd; }
+.lead-head-main { flex: 1 1 auto; min-width: 0; }
+.lead-name { font-weight: 600; font-size: 14px; color: var(--admin-ink); }
+.lead-sub {
+  font-size: 12px;
+  color: var(--admin-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lead-head-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.lead-attempt { font-size: 12px; color: var(--admin-muted); white-space: nowrap; }
+.lead-card.is-pinned { border-color: var(--admin-accent); }
+.lead-card.is-dragging { box-shadow: 0 10px 24px rgba(16, 24, 40, 0.18); border-color: var(--admin-accent); }
+.lead-drag-handle {
+  flex-shrink: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  cursor: grab;
+  padding: 4px 2px;
+  margin: -4px 0;
+}
+.lead-drag-handle:hover { color: var(--admin-accent); }
+.lead-zone-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  margin: 14px 0 6px 2px;
+}
+.lead-zone { min-height: 56px; border-radius: var(--admin-radius); transition: background var(--transition); }
+.lead-zone.is-drop-target { background: #e7edf9; }
+.lead-zone-empty {
+  border: 1px dashed var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.lead-pin-btn {
+  background: none;
+  border: 0;
+  padding: 4px;
+  margin: -4px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--admin-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.lead-pin-btn:hover { color: var(--admin-accent); background: var(--admin-accent-soft); }
+.lead-pin-btn.is-active { color: var(--admin-accent); }
+.lead-detail { padding: 14px 16px 16px; border-top: 1px solid var(--admin-line-soft); }
+.lead-meta-row {
+  display: flex;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.lead-inquiry {
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: var(--admin-muted-bg);
+  border-radius: var(--admin-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  white-space: pre-wrap;
+}
+.lead-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-muted);
+  margin-bottom: 8px;
+}
+.lead-gpct {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.lead-field { display: flex; flex-direction: column; gap: 4px; }
+.lead-field .admin-label { font-size: 12px; font-weight: 500; color: var(--admin-muted); }
+.lead-field .admin-input { font-size: 13px; padding: 8px 10px; }
+.lead-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.lead-note { flex: 1 1 220px; max-width: 340px; }
+.lead-select { flex: 0 0 auto; max-width: 200px; }
+@media (max-width: 760px) { .lead-gpct { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .lead-gpct { grid-template-columns: 1fr; } }
+
+/* ─── Responsive ──────────────────────────────────── */
+@media (max-width: 880px) {
+  /* The shell is a flex ROW on desktop (sidebar | main). Below 880px the sidebar
+     becomes a fixed slide-in drawer, so the row must stack to a column: the
+     mobile bar then sits ON TOP of the content instead of beside it. Without
+     this every /admin, /team, and /portal page rendered the mobile bar as a
+     broken full-height strip down the left edge. */
+  .admin-shell { flex-direction: column; }
+  /* 16px stops iOS Safari from auto-zooming the page whenever a control is
+     focused. Desktop keeps the denser 13-14px scale. */
+  .admin-input, .admin-select, .admin-textarea,
+  .admin-search input, .chatw-composer input,
+  .lead-field .admin-input, .admin-kv--editable .admin-input {
+    font-size: 16px;
+  }
+  .admin-sidebar {
+    position: fixed;
+    z-index: 50;
+    left: 0; top: 0;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  .admin-sidebar.is-open { transform: translateX(0); }
+  .admin-scrim {
+    position: fixed; inset: 0;
+    background: rgba(4, 16, 45, 0.4);
+    z-index: 49;
+  }
+  .admin-mobilebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--admin-surface);
+    border-bottom: 1px solid var(--admin-line);
+    padding: 12px 16px;
+    /* Full-bleed sticky bar at the top of the now-stacked shell. It previously
+       carried a negative margin tuned to .admin-main's desktop padding, which
+       hung the bar off both screen edges once the shell became a column. */
+    margin: 0 0 20px;
+  }
+  .admin-mobile-toggle {
+    background: transparent;
+    border: 1px solid var(--admin-line);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .admin-main { padding: 28px 16px 64px; }
+}
+
+/* ─── Touch pointers (WCAG 2.5.5 target size) ─────────
+   Fine-pointer (mouse) UIs reveal affordances on :hover and pack controls
+   tighter than a fingertip. On coarse pointers there is no hover and taps need
+   a ~44px target. Reveal the hover-only controls, and grow the touch area of the
+   daily-driver controls, mostly without changing their visual size (an invisible
+   ::after overlay expands the hit area for the small icon buttons). This mirrors
+   the one place the codebase already did this: .sap-card-handoff .admin-btn. */
+@media (pointer: coarse) {
+  /* Hover-revealed controls are unreachable on touch: always show them. */
+  .admin-editable-pencil,
+  .chatw-history-actions,
+  .team-avatar.is-editable .team-avatar-edit { opacity: 1; }
+  .admin-editable-pencil { padding: 8px; }
+
+  /* Buttons carrying the most-tapped actions → 44px tall. */
+  .admin-btn--sm { min-height: 44px; }
+  .admin-pagebtn { min-height: 44px; min-width: 44px; }
+  .admin-mobile-toggle { min-height: 44px; min-width: 44px; }
+  .admin-drawer-close {
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center; padding: 0;
+  }
+
+  /* Small icon controls: keep the visual size, expand the hit area to 44px with a
+     transparent centered ::after. .admin-input-eye is already position:absolute
+     (it contains its own ::after), the rest need a positioning context. */
+  .admin-search-clear,
+  .admin-avatarbtn,
+  .lead-pin-btn,
+  .team-chip-x,
+  .phototag-x { position: relative; }
+  .admin-search-clear::after,
+  .admin-input-eye::after,
+  .admin-avatarbtn::after,
+  .lead-pin-btn::after,
+  .team-chip-x::after,
+  .phototag-x::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
+  }
+}
+
+/* ─── Time Off ────────────────────────────────────── */
+.admin-timeoff .admin-card { padding: 18px 20px; }
+.admin-card-title { font-size: 15px; font-weight: 600; color: var(--admin-ink); margin: 0 0 14px; }
+/* Title on the left, a "See all" or action link on the right, for a card header. */
+.admin-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.admin-card-head .admin-card-title { margin-bottom: 0; }
+.admin-timeoff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+.admin-timeoff-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--admin-ink);
+  cursor: pointer;
+}
+.admin-timeoff-preview { align-self: center; font-size: 13px; color: var(--admin-muted); }
+.admin-timeoff-actions { display: flex; gap: 6px; justify-content: flex-end; }
+/* "Needs your attention/decision": the accent rail that marks a card as a
+   prompt to act rather than a report. Shared by the portal home attention card
+   and the time-off decision queue so the two read as one treatment. */
+.admin-card--attention { border-left: 3px solid var(--admin-accent); }
+.admin-btn--sm { padding: 5px 10px; font-size: 12px; }
+.admin-import-summary { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.admin-import-json {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--admin-muted-bg);
+  border-radius: var(--admin-radius-sm);
+  font-size: 12px;
+  max-height: 480px;
+  overflow: auto;
+}
+
+/* ─── Confirm modal ───────────────────────────────── */
+.admin-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 41, 0.5);
+  z-index: 70;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: admin-fade 0.15s ease;
+}
+.admin-modal {
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+  box-shadow: 0 20px 60px rgba(16, 24, 40, 0.28);
+  width: min(440px, 100%);
+  padding: 22px 24px 20px;
+}
+.admin-modal-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--admin-ink); }
+.admin-modal-body { font-size: 13px; color: var(--admin-muted); margin-top: 8px; line-height: 1.5; }
+.admin-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* ─── Danger zone ─────────────────────────────────── */
+.admin-danger-zone {
+  border: 1px solid var(--admin-err-bg);
+  border-radius: var(--admin-radius);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.admin-danger-zone-title { font-size: 12px; font-weight: 600; color: var(--admin-err-ink); text-transform: uppercase; letter-spacing: 0.5px; }
+.admin-danger-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.admin-danger-row-text { font-size: 12px; color: var(--admin-muted); max-width: 56ch; }
+
+/* ─── Bulk action bar ─────────────────────────────── */
+.admin-bulkbar {
+  position: sticky; bottom: 16px; z-index: 20;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--admin-ink); color: #fff;
+  border-radius: var(--admin-radius);
+  padding: 10px 14px;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.24);
+  margin-top: 14px;
+}
+.admin-bulkbar-count { font-weight: 600; font-size: 13px; }
+.admin-bulkbar .admin-btn { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); color: #fff; }
+.admin-bulkbar .admin-btn:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.32); }
+.admin-bulkbar .admin-btn--danger { background: rgba(220, 38, 38, 0.9); border-color: rgba(220, 38, 38, 0.95); color: #fff; }
+.admin-bulkbar .admin-btn--danger:hover { background: #dc2626; border-color: #dc2626; }
+.admin-bulkbar-spacer { flex: 1; }
+
+/* ─── Selectable table extras ─────────────────────── */
+.admin-table td.admin-cell-check, .admin-table th.admin-cell-check { width: 34px; text-align: center; padding-right: 0; }
+.admin-table tbody tr.is-selected { background: var(--admin-info-bg); }
+.admin-row-archived td:not(.admin-cell-check) { opacity: 0.5; }
+
+/* ─── Drag-to-reorder rows (deals list, priority order) ───────────────────── */
+/* Fixed layout keeps column widths stable once a row leaves flow while
+   dragging, without it the row's cells collapse to content width mid-drag. */
+.admin-table:has(.admin-cell-drag) { table-layout: fixed; }
+.admin-table td.admin-cell-drag, .admin-table th.admin-cell-drag { width: 28px; padding: 0 0 0 12px; }
+.admin-table td.admin-cell-drag {
+  color: var(--admin-muted);
+  cursor: grab;
+  text-align: center;
+  font-size: 14px;
+}
+.admin-table tbody tr.is-dragging {
+  background: var(--admin-surface);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.18);
+}
+.admin-table-group-row td {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-muted);
+  background: #fbfcfd;
+}
+
+/* Checkboxes: globals.css sets appearance:none on every input, which strips the
+   native checkmark. Restore a visible checked state for all admin checkboxes. */
+.admin-shell input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--admin-line);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  transition: background var(--transition), border-color var(--transition);
+}
+.admin-shell input[type="checkbox"]::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  transform-origin: center;
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transition: transform 0.12s ease;
+}
+.admin-shell input[type="checkbox"]:checked {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+}
+.admin-shell input[type="checkbox"]:checked::before { transform: scale(1); }
+.admin-shell input[type="checkbox"]:hover { border-color: var(--admin-muted); }
+.admin-shell input[type="checkbox"]:focus-visible { outline: 2px solid var(--admin-accent); outline-offset: 1px; }
+
+/* ─── Pattern library (/admin/patterns) scaffolding ───
+   Layout-only helpers for the living style-guide page. The specimens on that
+   page use the real .admin-* classes; these just arrange them. */
+.pat-section + .pat-section { margin-top: 20px; }
+.pat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.pat-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pat-stack { display: flex; flex-direction: column; gap: 14px; }
+.pat-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.pat-swatch { display: flex; flex-direction: column; gap: 6px; }
+.pat-swatch-chip {
+  height: 52px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid rgba(4, 16, 45, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+.pat-swatch-name { font-size: 12px; font-weight: 600; color: var(--admin-ink); }
+.pat-swatch-meta { font-family: var(--admin-font-mono); font-size: 11px; color: var(--admin-muted); }
+.pat-type-row { display: flex; align-items: baseline; gap: 14px; padding: 6px 0; border-bottom: 1px solid var(--admin-line-soft); }
+.pat-type-row:last-child { border-bottom: 0; }
+.pat-type-meta { font-family: var(--admin-font-mono); font-size: 11px; color: var(--admin-muted); flex: none; width: 108px; }
+.pat-caption { font-size: 12px; color: var(--admin-muted); margin-top: 8px; }
+.pat-radius-chip {
+  width: 100%; height: 56px;
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-accent);
+}
+.pat-shadow-chip {
+  width: 100%; height: 56px;
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+}
+.pat-toast-host { position: static; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* ─── Admin assistant (chat widget) ───────────────────── */
+.chatw-fab {
+  position: fixed;
+  right: 22px; bottom: 22px;
+  z-index: 39;
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--admin-radius-pill);
+  background: var(--admin-accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(40, 123, 232, 0.35);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.chatw-fab:hover { background: var(--admin-accent-strong); }
+.chatw-fab:active { transform: scale(0.96); }
+
+/* The panel reuses .admin-drawer (fixed right slide-in) but is a bit wider and
+   lays out as head / scrolling messages / pinned composer. */
+.chatw-panel { width: min(500px, 96vw); }
+.chatw-head-actions { display: flex; align-items: center; gap: 10px; }
+.chatw-newchat {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 4px 9px;
+  font-size: 12px; color: var(--admin-ink-2);
+  cursor: pointer;
+}
+.chatw-newchat:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+
+.chatw-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--admin-bg);
+}
+
+.chatw-empty { color: var(--admin-ink-2); font-size: 13px; line-height: 1.55; }
+.chatw-empty ul { margin: 8px 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.chatw-empty li { color: var(--admin-muted); }
+.chatw-empty-note { margin-top: 10px; font-size: 12px; color: var(--admin-faint); }
+
+.chatw-msg {
+  font-size: 13px; line-height: 1.55;
+  border-radius: var(--admin-radius);
+  padding: 10px 13px;
+  max-width: 92%;
+  word-wrap: break-word;
+}
+.chatw-msg--user {
+  align-self: flex-end;
+  background: var(--admin-accent);
+  color: #fff;
+  border-bottom-right-radius: var(--admin-radius-xs);
+  white-space: pre-wrap;
+}
+.chatw-msg--bot {
+  align-self: flex-start;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  border: 1px solid var(--admin-line);
+  border-bottom-left-radius: var(--admin-radius-xs);
+}
+.chatw-msg--bot p { margin: 0 0 8px; }
+.chatw-msg--bot p:last-child { margin-bottom: 0; }
+.chatw-msg--bot ul { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.chatw-msg--bot ul:last-child { margin-bottom: 0; }
+.chatw-msg--bot strong { font-weight: 600; }
+.chatw-msg--bot a {
+  color: var(--admin-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+.chatw-msg--bot a:hover { color: var(--admin-accent); }
+.assistant-photo {
+  display: block;
+  width: 100%;
+  max-width: 150px;
+  height: auto;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: 1px solid var(--admin-line);
+}
+.chatw-msg--bot code {
+  font-family: var(--admin-font-mono);
+  font-size: 12px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-xs);
+  padding: 1px 4px;
+}
+.chatw-msg--error {
+  align-self: flex-start;
+  background: #fdecec;
+  color: #a12622;
+  border: 1px solid #f4c7c4;
+  font-size: 13px;
+}
+
+.chatw-toolchip {
+  align-self: flex-start;
+  font-size: 11px;
+  color: var(--admin-muted);
+  font-family: var(--admin-font-mono);
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-pill);
+  padding: 3px 10px;
+}
+.chatw-typing { align-self: flex-start; font-size: 12px; color: var(--admin-muted); padding: 2px 4px; }
+
+/* Approval card for pending execute_write / send_email actions */
+.chatw-approval {
+  align-self: stretch;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface-2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chatw-approval-title { font-size: 13px; font-weight: 600; color: var(--admin-ink); }
+.chatw-approval-sql,
+.chatw-approval-email pre {
+  margin: 0;
+  font-family: var(--admin-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius-sm);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.chatw-approval-email { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--admin-ink); }
+.chatw-approval-email pre { font-family: inherit; }
+.chatw-approval-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  margin-right: 6px;
+}
+.chatw-approval-actions { display: flex; gap: 8px; }
+.chatw-approve,
+.chatw-decline {
+  height: 34px;
+  border-radius: var(--admin-radius-sm);
+  padding: 0 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chatw-approve { border: 0; background: var(--admin-accent); color: #fff; }
+.chatw-approve:hover:not(:disabled) { background: var(--admin-accent-strong); }
+.chatw-decline {
+  border: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+  color: var(--admin-ink-2);
+}
+.chatw-decline:hover:not(:disabled) { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-approve:disabled,
+.chatw-decline:disabled { opacity: 0.5; cursor: not-allowed; }
+.chatw-approval-status { font-size: 12px; font-weight: 600; }
+.chatw-approval-status--approved { color: var(--admin-accent-strong); }
+.chatw-approval-status--declined { color: var(--admin-muted); }
+
+.chatw-composer {
+  display: flex;
+  /* Beat marketing globals.css `form { flex-direction: column }`, which would
+     otherwise stack the field above a full-width Send button. */
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+}
+.chatw-composer input {
+  flex: 1 1 auto;
+  min-width: 0;             /* allow the field to shrink so Send always fits on the row */
+  width: auto;             /* counter globals.css `input { width: 100% }` (mobile) */
+  height: 40px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 0 12px;
+  font: inherit; font-size: 14px;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+}
+.chatw-composer input:focus { outline: none; border-color: var(--admin-accent); box-shadow: var(--admin-focus-ring); }
+.chatw-send {
+  flex: 0 0 auto;           /* fixed-size button, never stretch to full width */
+  height: 40px;
+  border: 0;
+  border-radius: var(--admin-radius-sm);
+  padding: 0 18px;
+  background: var(--admin-accent);
+  color: #fff; font-weight: 600; font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chatw-send:hover:not(:disabled) { background: var(--admin-accent-strong); }
+.chatw-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* History, the saved-conversation list; replaces the messages+composer area when
+   the History toggle is on. Shared by the admin and team widgets. */
+.chatw-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--admin-bg);
+}
+.chatw-history-note {
+  padding: 22px 20px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.chatw-history-note--error { color: #a12622; }
+.chatw-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chatw-history-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--admin-radius-sm);
+  padding: 4px 6px 4px 4px;
+}
+.chatw-history-row:hover { background: var(--admin-surface-2); }
+.chatw-history-row--active { background: var(--admin-surface-2); }
+.chatw-history-row--active .chatw-history-title { color: var(--admin-accent-strong); }
+.chatw-history-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
+  border: 0;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.chatw-history-open:disabled { cursor: default; opacity: 0.6; }
+.chatw-history-title {
+  font-size: 13px;
+  color: var(--admin-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chatw-history-time { font-size: 11px; color: var(--admin-faint); }
+.chatw-history-actions {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.chatw-history-row:hover .chatw-history-actions,
+.chatw-history-row:focus-within .chatw-history-actions { opacity: 1; }
+.chatw-history-icon {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--admin-ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chatw-history-icon:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-history-icon--danger:hover { border-color: #f4c7c4; color: #a12622; }
+.chatw-history-edit,
+.chatw-history-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 4px;
+}
+.chatw-history-confirm span { flex: 1 1 auto; font-size: 12px; color: var(--admin-ink-2); }
+.chatw-history-edit input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 30px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: var(--admin-surface);
+}
+.chatw-history-edit input:focus {
+  outline: none;
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-focus-ring);
+}
+
+/* History toggle button in the panel header, matches the New chat button. */
+.chatw-history-btn {
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-xs);
+  padding: 4px 9px;
+  font-size: 12px;
+  color: var(--admin-ink-2);
+  cursor: pointer;
+}
+.chatw-history-btn:hover { border-color: var(--admin-line-strong); color: var(--admin-ink); }
+.chatw-history-btn--active {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent-strong);
+}
+
+/* ---- Team Coaching Cycle (/team/coaching + /team/my-coaching) ------------- */
+
+.coach-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.coach-card {
+  display: block;
+  text-decoration: none;
+  color: var(--admin-ink);
+  padding: 16px 18px;
+  transition: border-color 0.15s ease;
+}
+.coach-card:hover { border-color: var(--admin-accent); }
+.coach-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.coach-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.coach-avatar--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-tint, #eef2f7);
+  color: var(--admin-ink-2);
+  font-weight: 600;
+}
+.coach-card-name { font-weight: 600; font-size: 14px; }
+.coach-card-role { font-size: 12px; color: var(--admin-ink-2); }
+.coach-card-flag { margin-left: auto; }
+.coach-card-goal {
+  margin-top: 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.coach-card-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--admin-ink-2);
+}
+.coach-attention { margin-top: 16px; padding: 16px 18px; }
+.coach-attention-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+}
+
+/* ─── Coach profile header (identity + vitals + quick actions) ─────────
+   Replaces the plain PageHead on /team/coaching/[profileId]. The vitals reuse
+   the .team-glance strip (a glance, not a KPI board); the action cluster is the
+   one client island. */
+.coach-hero { display: grid; gap: 14px; margin-bottom: 24px; }
+.coach-hero__back { justify-self: start; margin-bottom: 0; text-decoration: none; transition: color var(--transition); }
+.coach-hero__back:hover { color: var(--admin-ink); }
+.coach-hero__id {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.coach-hero__id-text { min-width: 0; flex: 1 1 auto; }
+.coach-hero__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--admin-ink);
+  overflow-wrap: anywhere;
+}
+.coach-hero__role { font-size: 13px; color: var(--admin-muted); margin-top: 4px; }
+.coach-hero__stats { margin-bottom: 0; }
+/* Six vitals, so the cells run a touch denser than the default glance strip, all six sit on one row on desktop and wrap evenly (not 5 + 1 orphan) below. */
+.coach-hero__stats .team-glance-cell { flex-basis: 150px; padding: 14px 16px; }
+/* The next-1-1 vital carries a hairline accent rail so the eye lands there first. */
+.coach-hero__cell--attn { box-shadow: inset 3px 0 0 var(--admin-accent); }
+.coach-hero__note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* Action cluster: buttons top-right, reveal panel beneath them. */
+.coach-hero__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.coach-hero__actionbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.coach-hero__msg { width: clamp(240px, 100%, 380px); text-align: left; }
+.coach-hero__panel {
+  width: clamp(240px, 100%, 380px);
+  padding: 14px 16px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+@media (max-width: 720px) {
+  .coach-hero__actions { align-items: stretch; }
+  .coach-hero__actionbtns { justify-content: flex-start; }
+  .coach-hero__msg,
+  .coach-hero__panel { width: 100%; }
+}
+
+/* Coach profile sub-nav: reuses .admin-tabs; the count pill flags how many
+   items sit behind a tab (open 1-1s, active goals). */
+.coach-tab-count {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--admin-muted-bg);
+  color: var(--admin-muted-ink);
+  border-radius: var(--admin-radius-pill);
+  padding: 0 6px;
+}
+.admin-tab.is-active .coach-tab-count { background: var(--admin-accent-soft); color: var(--admin-accent); }
+
+/* Carried-over callout: commitments still open from before the last 1-1. An
+   accent rail marks it as the thing to clear first on the next-1-1 tab. */
+.coach-carried { box-shadow: inset 3px 0 0 var(--admin-accent); }
+.coach-carried-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid var(--admin-line-soft);
+}
+.coach-carried-title { flex: 1 1 auto; min-width: 140px; }
+
+.coach-profile { display: grid; gap: 16px; margin-top: 16px; }
+.coach-section { padding: 18px 20px; }
+.coach-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.coach-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.coach-add-row .admin-input { flex: 0 1 auto; width: auto; min-width: 140px; }
+.coach-add-row .admin-input:first-child { flex: 1 1 220px; }
+.coach-log-form { margin-top: 12px; padding: 14px; border: 1px dashed var(--admin-line); border-radius: var(--admin-radius-xs); }
+
+.coach-commitment {
+  border-top: 1px solid var(--admin-line);
+  padding: 10px 0;
+  display: grid;
+  gap: 8px;
+}
+.coach-commitment.is-closed {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--admin-ink-2);
+  font-size: 13px;
+}
+.coach-commitment-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.coach-commitment-title { font-weight: 500; }
+.coach-commitment-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-commitment-controls .admin-input { width: auto; min-width: 150px; flex: 0 1 auto; }
+.coach-commitment-controls input.admin-input { flex: 1 1 220px; }
+.coach-closed { margin-top: 10px; font-size: 13px; }
+.coach-closed summary { cursor: pointer; color: var(--admin-ink-2); }
+
+/* Commitment stack: one draggable card per commitment, top = most important.
+   Shared by the coach page and /team/my-coaching (CommitmentStack.tsx). The
+   card rests flat per Foundations; only the lifted card carries elevation. */
+.coach-commit-stack { display: grid; gap: 10px; margin-top: 12px; }
+.coach-commit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+.coach-commit-card.is-dragging {
+  border-color: var(--admin-accent);
+  box-shadow: var(--admin-shadow);
+}
+.coach-commit-handle {
+  cursor: grab;
+  color: var(--admin-muted);
+  line-height: 1.4;
+  user-select: none;
+  flex: none;
+}
+.coach-commit-handle:active { cursor: grabbing; }
+.coach-commit-body { display: grid; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.coach-commit-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.coach-commit-edit { display: flex; gap: 8px; flex-wrap: wrap; }
+.coach-commit-edit .admin-input { width: auto; flex: 1 1 220px; min-width: 150px; }
+.coach-commit-edit input[type="date"].admin-input { flex: 0 1 auto; }
+
+.coach-meeting { border-top: 1px solid var(--admin-line); margin-top: 12px; }
+.coach-meeting-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 12px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.coach-meeting-caret { margin-left: auto; color: var(--admin-accent); font-weight: 600; }
+.coach-meeting-body { display: grid; gap: 16px; padding: 0 0 16px; }
+
+/* The next 1-1: lifted off the plain list so the prep you are about to walk
+   into the room with is the first thing the eye lands on. */
+.coach-meeting--next {
+  border-top: none;
+  border-left: 3px solid var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-radius: var(--admin-radius-sm);
+  padding: 0 14px;
+  margin-top: 16px;
+}
+.coach-meeting--next .coach-meeting-body { padding-bottom: 14px; }
+.coach-meeting-next-tag { text-transform: uppercase; letter-spacing: 0.04em; }
+.coach-block--prep {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 14px;
+}
+.coach-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.coach-block-actions { display: flex; gap: 8px; }
+.coach-summaries {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.coach-tier-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-ink-2);
+  margin-bottom: 6px;
+}
+.coach-transcript {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 12px;
+  background: var(--admin-tint, #f7f9fc);
+  border-radius: var(--admin-radius-xs);
+  padding: 12px;
+}
+.coach-block--danger { border-top: 1px dashed var(--admin-line); padding-top: 12px; }
+.coach-trend { border-top: 1px solid var(--admin-line); padding: 10px 0; font-size: 13px; }
+.coach-trend summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+
+/* v2: OCEAN editor, mode split, priorities */
+.coach-ocean-row { align-items: flex-start; }
+.coach-ocean-rating { flex: 0 0 180px; }
+.coach-ocean-evidence { flex: 1; }
+.coach-ocean-table td { vertical-align: top; }
+.coach-ocean-guidance { white-space: pre-wrap; }
+.coach-mode-row .admin-input { max-width: 90px; }
+.coach-priority-detail { flex-basis: 100%; margin: 2px 0 6px; font-size: 12px; }
+.mycoach-goal-row { border-top: 1px solid var(--admin-line); padding: 8px 0; }
+.mycoach-goal-row:first-of-type { border-top: 0; }
+.mycoach-goal .admin-badge { margin-left: 8px; }
+.mycoach-priorities { margin: 6px 0 0; padding-left: 18px; }
+.mycoach-priorities li { margin: 4px 0; }
+.coach-ocean-list { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 4px; }
+.coach-ocean-line { border-top: 1px solid var(--admin-line); padding: 7px 0; }
+.coach-ocean-line:first-child { border-top: 0; }
+.coach-ocean-line-head { display: flex; align-items: baseline; gap: 10px; }
+.coach-ocean-line-evidence { margin-top: 2px; font-size: 12px; }
+.coach-okr-tree { margin-top: 8px; }
+.coach-okr-objective { margin-bottom: 10px; }
+.coach-okr-objective ul { margin: 4px 0 0; padding-left: 20px; list-style: none; }
+.coach-okr-line { padding: 2px 0; }
+.coach-okr-line.is-laddered { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); border-radius: 4px; padding-left: 4px; }
+.coach-okr-line .admin-badge { margin-left: 8px; }
+.edges-fast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: start; }
+.edges-fast-person { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
+/* /team/company-goals · Team member goals: title + By member/By objective toggle. */
+.cg-panel-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+/* "By company objective" grouping: one block per objective, member-goal rows under it. */
+.cg-obj-list { display: flex; flex-direction: column; gap: 12px; }
+.cg-obj-group { border: 1px solid var(--admin-line); border-radius: 8px; padding: 10px 12px; }
+.cg-obj-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+.cg-obj-head h4 { font-size: 13px; font-weight: 700; margin: 0; flex: 1; min-width: 180px; color: var(--admin-ink); }
+.cg-obj-empty { padding: 4px 0; }
+.cg-obj-row { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--admin-line); font-size: 13px; }
+.cg-obj-person { font-weight: 600; min-width: 130px; }
+.cg-obj-goal { flex: 1; min-width: 160px; }
+.cg-obj-ladder { font-size: 12px; }
+.edges-fast-name { font-weight: 600; margin-bottom: 6px; }
+/* Name + inline action (admin individual-goals editor): title left, button right. */
+.edges-fast-name--action { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.edges-fast-goal { margin: 6px 0; font-size: 13px; }
+.edges-fast-goal .admin-cell-muted { font-size: 12px; }
+.coach-dash-hint { font-style: italic; margin-top: 2px; }
+.goal-comments { flex-basis: 100%; margin-top: 4px; }
+.goal-comments-toggle { background: none; border: 0; padding: 0; font-size: 12px; color: var(--admin-accent-strong); cursor: pointer; }
+.goal-comments-body { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--admin-line); }
+.goal-comment { margin: 6px 0; font-size: 13px; }
+.goal-comment-author { font-weight: 600; margin-right: 6px; }
+.goal-comment-date { font-size: 12px; }
+.goal-comment-text { white-space: pre-wrap; }
+.goal-manage-btns { margin-left: 8px; display: inline-flex; gap: 4px; }
+.coach-dash-table td { vertical-align: top; }
+.coach-dash-flag { display: inline-block; margin: 1px 4px 1px 0; }
+
+.mycoach-recap { border-top: 1px solid var(--admin-line); padding: 12px 0; }
+.mycoach-goal {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+/* ─── Ideas that Spark Solutions (/team/ideas) ───────── */
+/* Scoped to .ideas-page so it can't affect any other admin/team page that
+   reuses .admin-page-head / .admin-btn. */
+.ideas-page .admin-page-head { flex-wrap: nowrap; align-items: flex-start; }
+.ideas-page .admin-page-head > div:first-child { min-width: 0; }
+.ideas-page .admin-page-head > div:last-child { flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .ideas-page .admin-page-head { flex-wrap: wrap; }
+}
+
+.ideas-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 999px;
+  margin-bottom: 22px;
+}
+a.ideas-tab {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-muted);
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+a.ideas-tab:hover { color: var(--admin-ink); }
+a.ideas-tab--active {
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+/* Share: the primary, equal-weight entry cards (build vs. learning). */
+.ideas-share-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  max-width: 780px;
+  margin-bottom: 40px;
+}
+a.ideas-share-card {
+  display: block;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 24px 22px;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+a.ideas-share-card:hover {
+  border-color: var(--admin-accent);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+.ideas-share-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  margin-bottom: 14px;
+}
+.ideas-share-card h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--admin-ink);
+  margin: 0 0 6px;
+}
+.ideas-share-card p { font-size: 13px; color: var(--admin-muted); margin: 0; line-height: 1.5; }
+
+/* History: secondary, a muted section label, divider, everything smaller
+   in weight than the share cards above it. */
+.ideas-history { padding-top: 22px; border-top: 1px solid var(--admin-line-soft); }
+.ideas-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.ideas-history-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-muted);
+  margin: 0;
+}
+.ideas-history .ideas-tabs { margin-bottom: 0; }
+
+/* ── /team → My Equipment ──────────────────────────────────────────────────
+   Card per item the employee is holding. The media panel shows a real product
+   photo when equipment.image_url is set, and falls back to the drawn device
+   art (components/team/DeviceArt) so a card never renders as an empty box. */
+.team-eq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.team-eq-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.team-eq-card:hover { border-color: var(--admin-accent); transform: translateY(-1px); }
+.team-eq-media {
+  position: relative;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  min-height: 132px;
+}
+.team-eq-art { width: 96px; height: 86px; display: block; }
+.team-eq-photo { width: 100%; height: 104px; object-fit: contain; display: block; }
+.team-eq-tag {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  color: var(--admin-muted);
+}
+.team-eq-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.team-eq-name { font-size: 14px; font-weight: 600; color: var(--admin-ink); margin: 0; line-height: 1.3; }
+.team-eq-specs { font-size: 12px; color: var(--admin-muted); margin: 0; }
+.team-eq-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.team-eq-meta dt { color: var(--admin-muted); }
+.team-eq-meta dd { margin: 0; color: var(--admin-ink); }
+.team-eq-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.team-eq-type { font-size: 12px; color: var(--admin-muted); }
+.team-eq-empty {
+  display: flex; align-items: center; gap: 18px;
+  color: var(--admin-muted);
+  margin-bottom: 24px;
+}
+.team-eq-empty .team-eq-art { color: var(--admin-accent); flex: none; }
+.team-eq-empty p { margin: 0; font-size: 13px; line-height: 1.6; max-width: 52ch; }
+.team-eq-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .team-eq-columns { grid-template-columns: 1fr; } }
+.team-eq-heading { font-size: 14px; font-weight: 600; color: var(--admin-ink); margin: 0 0 6px; }
+.team-eq-lede { font-size: 12px; color: var(--admin-muted); line-height: 1.6; margin: 0 0 14px; }
+.team-eq-requests { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.team-eq-requests li { border-left: 2px solid var(--admin-line); padding-left: 12px; }
+.team-eq-req-top { display: flex; align-items: center; gap: 8px; }
+.team-eq-req-type { font-size: 13px; font-weight: 600; color: var(--admin-ink); }
+.team-eq-req-reason { font-size: 12px; color: var(--admin-ink); margin: 4px 0 0; line-height: 1.5; }
+.team-eq-req-date { font-size: 12px; color: var(--admin-muted); margin: 4px 0 0; }
+.team-eq-req-note { font-size: 12px; color: var(--admin-muted); margin: 4px 0 0; font-style: italic; }
+
+/* ── 8 Edges ─────────────────────────────────────────────────────────
+   Sidebar section labels + the Edges pages (Goals cascade, casting chips,
+   progress bars). Tokens only; hovers stay subtle per the house rule. */
+
+.admin-nav-sectlabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--admin-sidebar-muted);
+  padding: 16px 8px 4px 6px;
+  user-select: none;
+}
+.admin-nav > div:first-child .admin-nav-sectlabel { padding-top: 6px; }
+
+/* --- Client portal sidebar -------------------------------------------------
+   One left rail at 18px: the brand, the company label, every section header's
+   accent bar, and every item icon start on the same x. Scoped to
+   .portal-sidebar so the admin and team sidebars keep their own spacing.
+   The 12px group inset stays, so hover and active pills still sit inboard of
+   the rail; only the content inside them moves. */
+.portal-sidebar .admin-brand { padding-left: 18px; }
+.portal-sidebar .admin-nav-sectlabel { padding-left: 18px; }
+.portal-sidebar .admin-nav-grouptoggle { padding-left: 6px; }
+.portal-sidebar .admin-nav-link { padding-left: 6px; }
+
+/* Home outranks the items inside the sections, so it reads as a section
+   header: same accent bar, same type, no icon. It stays a link, so it also
+   carries the active pill the section headers never need. */
+.portal-sidebar .admin-nav-toplink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 5px 6px;
+  margin: 1px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--admin-sidebar-strong);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.portal-sidebar .admin-nav-toplink::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  height: 13px;
+  background: var(--admin-accent);
+  border-radius: 2px;
+}
+.portal-sidebar .admin-nav-toplink:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.portal-sidebar .admin-nav-toplink.is-active { background: var(--admin-accent); color: #fff; }
+/* On the accent pill a blue bar would vanish, so it flips to white. */
+.portal-sidebar .admin-nav-toplink.is-active::before { background: #fff; }
+
+.edges-strategy {
+  background: var(--admin-sidebar-bg);
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+}
+.edges-strategy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.edges-strategy-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--admin-accent-on-dark-strong);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.edges-strategy-link {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--admin-accent-on-dark-strong);
+  text-decoration: none;
+}
+.edges-strategy-link:hover { text-decoration: underline; }
+.edges-strategy-title { font-size: 14px; font-weight: 650; line-height: 1.5; color: #fff; margin: 0 0 8px; max-width: 880px; }
+.edges-strategy-body { font-size: 12px; line-height: 1.6; color: #d6d9de; margin: 0; max-width: 880px; }
+.edges-strategy-mini { font-size: 10px; color: #9aa0aa; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.edges-mixbar { width: 120px; height: 8px; border-radius: 999px; overflow: hidden; display: flex; }
+.edges-mixbar i { display: block; height: 100%; }
+
+.edges-sect { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 22px 0 10px; }
+.edges-sect h2 { font-size: 15px; font-weight: 700; margin: 0; color: var(--admin-ink); }
+.edges-sect-note { font-size: 11px; color: var(--admin-muted); }
+
+.edges-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+.edges-chip {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--admin-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.edges-chip b { color: var(--admin-ink); }
+.edges-dot { width: 7px; height: 7px; border-radius: 50%; }
+.edges-dot--ok { background: var(--data-pos, #12a06b); }
+.edges-dot--warn { background: #d97706; }
+.edges-dot--err { background: #dc2626; }
+
+.edges-ohead {
+  padding: 13px 18px 10px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--admin-line);
+  background: var(--admin-surface-2);
+}
+.edges-ohead h3 { font-size: 14px; font-weight: 750; flex: 1; min-width: 200px; margin: 0; color: var(--admin-ink); }
+.edges-ohead-note { font-size: 11px; color: var(--admin-muted); font-weight: 650; }
+
+.edges-ltag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+.edges-ltag--edge8 { background: var(--admin-accent-soft); color: var(--admin-accent); }
+.edges-ltag--aio { background: var(--admin-sidebar-bg); color: var(--admin-accent-on-dark-strong); }
+.edges-ltag--company { background: #e6f8f0; color: #0b7a55; }
+
+.edges-kr { padding: 10px 18px; border-top: 1px solid var(--admin-line); }
+/* Click-to-edit rows (company goals page): the whole row is the edit target. */
+.edges-kr--click { cursor: pointer; transition: background var(--transition); }
+.edges-kr--click:hover { background: var(--admin-surface-2); }
+.edges-kr--click:focus-visible { outline: 2px solid var(--admin-accent); outline-offset: -2px; }
+.edges-kr:first-of-type { border-top: 0; }
+.edges-kr-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.edges-kr-title { flex: 1; min-width: 220px; font-size: 12px; font-weight: 600; color: var(--admin-ink); }
+
+.edges-cast {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.edges-cast--human { background: var(--admin-surface-2); color: var(--admin-ink-2); border: 1px solid var(--admin-line-strong); }
+.edges-cast--ai { background: var(--admin-sidebar-bg); color: var(--admin-accent-on-dark-strong); }
+.edges-cast--blended { background: var(--admin-accent-soft); color: var(--admin-accent); }
+
+.edges-owner { display: flex; gap: 4px; flex-shrink: 0; }
+.edges-av {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--admin-sidebar-bg);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.edges-av--bot { background: #123326; color: var(--admin-accent-on-dark-strong); border-radius: 6px; }
+
+.edges-prog { width: 120px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.edges-prog-bar { flex: 1; height: 6px; background: var(--admin-bg); border-radius: 999px; overflow: hidden; }
+.edges-prog-bar i { display: block; height: 100%; border-radius: 999px; background: var(--admin-accent); }
+.edges-prog-bar i.is-done { background: var(--data-pos, #12a06b); }
+.edges-prog-bar i.is-risk { background: #d97706; }
+.edges-prog-val { font-size: 10px; font-weight: 750; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.edges-minibtn {
+  appearance: none;
+  border: 1px solid var(--admin-line-strong);
+  background: var(--admin-surface);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--admin-muted);
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.edges-minibtn:hover { color: var(--admin-ink); background: var(--admin-surface-2); }
+
+.edges-chain { margin: 10px 0 2px 12px; border-left: 2px solid var(--admin-line); padding-left: 14px; }
+.edges-node {
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  padding: 9px 12px;
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+.edges-node-level {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  color: var(--admin-accent);
+  display: block;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+.edges-node--executor .edges-node-level { color: #0b7a55; }
+.edges-node b { font-size: 12px; color: var(--admin-ink); }
+.edges-node-kr { margin-top: 3px; display: flex; gap: 7px; align-items: center; flex-wrap: wrap; color: var(--admin-ink-2); }
+
+/* Check-in panel: opens inline under the KR row. Compact left-aligned fields,
+   a segmented status control instead of a dropdown, actions on their own line. */
+.edges-checkin {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+}
+.edges-checkin-fields { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.edges-checkin-field { display: flex; flex-direction: column; gap: 5px; }
+.edges-checkin-field .admin-label { margin: 0; }
+.edges-checkin-input { width: 110px; font-variant-numeric: tabular-nums; }
+.edges-checkin-target {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--admin-muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+}
+.edges-checkin-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.edges-checkin-editlink {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-left: auto;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--admin-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.edges-checkin-editlink:hover { color: var(--admin-ink); }
+
+.edges-status-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 8px;
+}
+.edges-status-seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--admin-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition);
+}
+.edges-status-seg-btn:hover { color: var(--admin-ink); background: var(--admin-surface-2); }
+.edges-status-seg-btn.is-on.is-on_track,
+.edges-status-seg-btn.is-on.is-done { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.edges-status-seg-btn.is-on.is-at_risk { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.edges-status-seg-btn.is-on.is-off_track { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+
+/* Members whose FAST goals ladder up to a KR: photo avatars (initials as the
+   no-photo fallback), side by side like .board-avatar-stack, name on hover. */
+.edges-ladder { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.edges-ladder-av {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--admin-line-soft);
+  flex-shrink: 0;
+}
+.edges-ladder-av--txt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-line-strong);
+  color: var(--admin-ink-2);
+  font-size: 8px;
+  font-weight: 800;
+}
+.edges-ladder-more { font-size: 10px; font-weight: 700; color: var(--admin-muted); margin-left: 2px; }
+
+/* ─── My FAST Goals (/team/goals) ───────────────────── */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.goals-card { margin-bottom: 14px; }
+.goals-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.goals-card-head strong { font-size: 15px; }
+/* Progress from start to target. Only rendered when both numbers exist. */
+.goals-bar {
+  height: 6px;
+  margin: 10px 0;
+  border-radius: 999px;
+  background: var(--admin-surface-2);
+  overflow: hidden;
+}
+.goals-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--admin-accent);
+}
+
+/* ---- Interview loop (admin req page + /team/hiring) ---------------------- */
+/* One row per interview in the loop, numbered in running order. Resting cards
+   stay flat per Foundations; the number chip carries the only accent. */
+.loop-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--admin-line);
+}
+.loop-step-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--admin-radius-pill);
+  background: var(--admin-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.loop-step-body { flex: 1 1 auto; min-width: 0; display: grid; gap: 6px; }
+.loop-step-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.loop-step-people { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.loop-step-actions { display: flex; gap: 6px; flex-wrap: wrap; flex: none; }
+.loop-step-actions .admin-btn { padding: 4px 10px; font-size: 12px; }
+
+/* Read-only variant on /team/hiring: no controls, tighter. */
+.loop-step--read { padding: 8px 0; }
+.loop-step--read .loop-step-num { background: var(--admin-muted-bg); color: var(--admin-muted-ink); }
+.loop-step-booked { font-size: 13px; display: grid; gap: 3px; }
+
+/* ─── Hiring (manager view) ─────────────────────────
+   Treatment layered on the OS shell for /team/hiring and the interview kit.
+   Scoped to .hire-* so /admin and /portal are untouched. All values are shell
+   tokens (no raw hex, radius, or shadow). */
+
+/* Day strip: one booked interview the manager sits on. A left rail carries the
+   state colour so the day reads at a glance; the time sits in a tinted tile. */
+.hire-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-line);
+  border-left: 3px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.hire-slot + .hire-slot { margin-top: 8px; }
+.hire-slot:hover { box-shadow: var(--admin-shadow); border-color: var(--admin-muted); }
+.hire-slot--due { border-left-color: var(--admin-warn-ink); }
+.hire-slot--now { border-left-color: var(--admin-accent); }
+.hire-slot--next { border-left-color: var(--admin-accent); }
+.hire-slot--done { border-left-color: var(--admin-ok-ink); }
+.hire-slot-time {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--admin-muted-bg);
+  color: var(--admin-ink);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.hire-slot-body { flex: 1 1 auto; min-width: 0; }
+.hire-slot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hire-slot-name { font-weight: 600; font-size: 14px; }
+.hire-slot-meta { font-size: 13px; color: var(--admin-muted); margin-top: 3px; }
+.hire-slot-cta { margin-left: auto; flex: none; }
+
+/* Scorecard rubric: criterion rows read as one grouped table, not a stack of
+   loose fields. Label, a compact score select, then the evidence note. */
+.hire-criteria {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 2px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.hire-criterion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--admin-line);
+}
+.hire-criterion:first-child { border-top: 0; }
+.hire-criterion-label { flex: 0 0 150px; font-weight: 500; font-size: 14px; color: var(--admin-ink); }
+.hire-criterion-score { flex: 0 0 68px; }
+.hire-criterion-note { flex: 1 1 auto; min-width: 0; }
+
+/* Panel seats: the other scorecards, revealed side by side once you submit.
+   The AI panelist's card is softly tinted so it reads as the machine voice. */
+.hire-seat {
+  padding: 14px 16px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+.hire-seat--ai { background: var(--admin-info-bg); border-color: transparent; }
+.hire-seat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hire-seat-name { font-weight: 600; font-size: 14px; }
+.hire-seat-chips { display: inline-flex; gap: 6px; flex: none; }
+.hire-seat-body { margin-top: 8px; line-height: 1.6; }
+
+@media (max-width: 640px) {
+  .hire-criterion { flex-wrap: wrap; }
+  .hire-criterion-label { flex-basis: 100%; }
+  .hire-criterion-note { flex-basis: 100%; }
+}
+
+/* ─── Application detail: decision-first workspace ──────────────────────────
+   The recruiter's single application surface — a sticky decision header, a
+   clickable pipeline strip, and a two-pane body (judge on the left, facts on the
+   right). Scoped .appdet-*; every value is a token or on the type/space scale. */
+
+/* Sticky decision header: name, stage, rating, and the two real actions stay in
+   view while the body scrolls under it. */
+.appdet-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--admin-bg);
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--admin-line-strong);
+  margin-bottom: 16px;
+}
+.appdet-head-crumb { font-size: 12px; margin-bottom: 6px; }
+.appdet-head-row { display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap; }
+.appdet-head-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.appdet-head-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--admin-ink);
+}
+.appdet-head-meta { font-size: 13px; color: var(--admin-ink-2); }
+.appdet-head-meta strong { font-weight: 600; color: var(--admin-ink); }
+.appdet-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.appdet-saved { font-size: 12px; color: var(--admin-muted); }
+
+/* Kebab overflow (Archive / Restore) — no menu primitive exists in the OS, so
+   this mirrors the sidebar account flyout: absolute popover + full-screen
+   click-catcher to dismiss. */
+.appdet-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.appdet-iconbtn:hover { border-color: var(--admin-muted); }
+.appdet-iconbtn:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); }
+.appdet-menu-wrap { position: relative; }
+.appdet-menu-backdrop { position: fixed; inset: 0; z-index: 39; }
+.appdet-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: var(--admin-shadow-md);
+}
+.appdet-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--admin-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--admin-radius-xs);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.appdet-menu-item:hover { background: var(--admin-surface-2); }
+.appdet-menu-item--danger { color: var(--admin-err-ink); }
+
+/* Pipeline strip: done / current / upcoming stages, each clickable to move. */
+.appdet-pipe {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  overflow-x: auto;
+}
+.appdet-step { display: flex; align-items: center; flex: 1; min-width: 0; }
+.appdet-step-hit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--admin-radius-xs);
+  cursor: pointer;
+}
+.appdet-step-hit:disabled { cursor: default; }
+.appdet-step-hit:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); }
+.appdet-step-node {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+}
+.appdet-step--done .appdet-step-node { background: var(--admin-ink); color: var(--admin-surface); }
+.appdet-step--now .appdet-step-node { background: var(--admin-accent); color: var(--admin-surface); box-shadow: 0 0 0 4px var(--admin-accent-soft); }
+.appdet-step--todo .appdet-step-node { background: var(--admin-surface-2); color: var(--admin-muted); border: 1px solid var(--admin-line-strong); }
+.appdet-step-label { min-width: 0; white-space: nowrap; font-size: 12px; text-align: left; }
+.appdet-step--done .appdet-step-label { color: var(--admin-ink-2); font-weight: 600; }
+.appdet-step--now .appdet-step-label { color: var(--admin-ink); font-weight: 700; }
+.appdet-step--todo .appdet-step-label { color: var(--admin-muted); }
+.appdet-step-sub { display: block; font-size: 11px; font-weight: 500; color: var(--admin-muted); }
+.appdet-step-bar { flex: 1; height: 2px; min-width: 12px; margin: 0 10px; background: var(--admin-line-strong); }
+.appdet-step--done .appdet-step-bar { background: var(--admin-ink); }
+
+/* Two-pane body: judge on the left (min 0 so it can shrink), facts rail on the
+   right; single column on narrow / laptop widths. */
+.appdet-cols { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 16px; align-items: start; }
+.appdet-rail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.appdet-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 980px) {
+  .appdet-cols { grid-template-columns: 1fr; }
+}
+
+/* Inline-edit affordances shared by components/admin/InlineEdit.tsx, extending
+   the existing .admin-editable pattern with a saving / error note. */
+.admin-editable-row { display: inline-flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.admin-editable-row .admin-editable { min-width: 0; }
+.admin-editable--block { white-space: normal; }
+.admin-editable-note { font-size: 12px; flex-shrink: 0; }
+.admin-editable-note--err { color: var(--admin-err-ink); }
+.admin-editable-link { display: flex; flex: 1; align-items: center; gap: 4px; min-width: 0; padding: 6px 8px; }
+.admin-editable-link a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-editable-pencil {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--admin-muted);
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: var(--admin-radius-xs);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.admin-editable-link:hover .admin-editable-pencil { opacity: 1; }
+.admin-editable-pencil:hover { color: var(--admin-accent); }
+.admin-editable-pencil:focus-visible { opacity: 1; outline: 0; box-shadow: var(--admin-focus-ring); }
+
+/* AI screen points are full sentences, so they wrap as a list rather than
+   overflow the card as nowrap chips (which pushed the whole page sideways). */
+/* Big AI screen score, then the extracted points tinted by sentiment (a wrapping
+   echo of the mockup's green strength / amber concern chips). */
+.appdet-ai-score { font-size: 28px; font-weight: 700; line-height: 1; color: var(--admin-ink); font-variant-numeric: tabular-nums; }
+.appdet-ai-score span { margin-left: 2px; font-size: 14px; font-weight: 600; color: var(--admin-muted); }
+.appdet-ai-points { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.appdet-ai-point { overflow-wrap: anywhere; border-radius: var(--admin-radius-sm); padding: 7px 11px; font-size: 13px; }
+.appdet-ai-point strong { font-weight: 600; }
+.appdet-ai-point--pos { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.appdet-ai-point--neg { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+/* AI-screen fallback shown in a recruiter-override field until they set their own. */
+.admin-editable-fallback { color: var(--admin-muted); }
+.admin-editable-aitag { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--admin-ink-2); background: var(--admin-surface-2); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-pill); vertical-align: 1px; }
+/* Long rail values (email, url) stay inside the 312px rail. */
+.admin-kv--editable dd { min-width: 0; }
+.admin-kv--editable .admin-editable { overflow-wrap: anywhere; }
+
+/* HR assessment now sits in the main column beside the AI screen — give its
+   read-first body room so it reads as a real section, not a one-line field. */
+.appdet-assessment .admin-editable--block { min-height: 76px; max-width: 74ch; color: var(--admin-ink-2); }
+.appdet-assessment .admin-editable--block .admin-editable-empty { color: var(--admin-muted); }
+
+/* Clamp long AI-screen / HR-assessment content to a fixed height with a fade and
+   a Show more toggle (components/admin/Expandable.tsx). */
+.appdet-expand { position: relative; overflow: hidden; }
+.appdet-expand--clamped::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--admin-surface));
+  pointer-events: none;
+}
+.appdet-expand-toggle {
+  display: block;
+  margin-top: 8px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-accent);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.appdet-expand-toggle:hover { color: var(--admin-accent-strong); }
+.appdet-expand-toggle:focus-visible { outline: 0; box-shadow: var(--admin-focus-ring); border-radius: var(--admin-radius-xs); }
+
+/* ─── Time-off calendar ───────────────────────────── */
+.admin-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.admin-cal-month { font-size: 15px; font-weight: 700; color: var(--admin-ink); }
+.admin-cal-nav { display: flex; gap: 6px; }
+/* 7 columns don't fit a phone; scroll the grid inside its own container. */
+.admin-cal-scroll { overflow-x: auto; }
+.admin-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  min-width: 640px;
+  background: var(--admin-line);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+}
+.admin-cal-dow {
+  background: var(--admin-surface-2);
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+}
+.admin-cal-day {
+  background: var(--admin-surface);
+  min-height: 88px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.admin-cal-day.is-weekend,
+.admin-cal-day.is-blank { background: var(--admin-surface-2); }
+.admin-cal-date { font-size: 11px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.admin-cal-day.is-today .admin-cal-date { color: var(--admin-accent); font-weight: 700; }
+.admin-cal-chip {
+  display: block;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 1px 6px;
+  border-radius: var(--admin-radius-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-cal-chip.is-ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+/* Pending: outlined rather than solid, so an unapproved request reads as tentative. */
+.admin-cal-chip.is-warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); box-shadow: inset 0 0 0 1px currentColor; }
+.admin-cal-legend { display: flex; gap: 8px; margin-top: 10px; }
+.admin-cal-legend .admin-cal-chip { display: inline-block; }
+
+/* ─── Client Hub home: Human Tokens band + AI Program cards ─── */
+/* Section header row above a band on the hub home. */
+.hub-band-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.hub-band-head .admin-card-title { margin-bottom: 0; }
+/* Program card grid: same auto-fill sizing as the boards index cards view. */
+.hub-programs-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin-bottom: 20px;
+}
+/* One AI Program card (a link to the program view). Hover affordance mirrors
+   a.mp-kpi so the card reads as clickable. */
+.hub-program-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  text-decoration: none;
+  transition: border-color var(--transition), transform var(--transition);
+}
+a.hub-program-card:hover {
+  border-color: var(--admin-accent);
+  transform: translateY(-1px);
+}
+.hub-program-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* Roadmap done/total labels above the progress track. */
+.hub-program-progressrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+/* ─── Deal record (DealManage full page + shared DealFields) ─────────────────
+   Layout for the deal record fields and the full-page decision header, lifted
+   out of inline style props so the inline-layout ratchet in
+   scripts/design/check-assets.mjs stays at zero for these files. Modelled on the
+   shipped .appdet-* / .admin-field rows; every value sits on the type/space scale. */
+
+/* Referrer / referring-company idle row, and the inline won/lost confirm bar
+   (the latter also carries .admin-alert): label or link beside its controls. */
+.deal-inline-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Vertical stack for the search / new-contact panels and the reject-reason bar. */
+.deal-field-stack { display: flex; flex-direction: column; gap: 8px; }
+
+/* Button cluster inside a deal panel. */
+.deal-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* A single contact / company typeahead result. */
+.deal-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--admin-surface);
+  border: none;
+  border-bottom: 1px solid var(--admin-line-soft);
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Communication log entries, newest first. */
+.deal-comm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* Full-page header: money block stacked above a right-aligned decision cluster. */
+.appdet-head-actions.deal-head-actions { flex-direction: column; align-items: flex-end; gap: 12px; }
+.deal-head-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Cockpit drawer: "Open full deal" link acts as an inline button. */
+.deal-open-link { display: inline-flex; }
