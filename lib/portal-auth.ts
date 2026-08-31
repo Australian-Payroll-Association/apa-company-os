@@ -158,15 +158,13 @@ async function getActiveAssumeActor(adminEmail: string, adminAuthUserId: string)
 // running the whole thing twice. Mirrors getAdminUser().
 export const getPortalActor = cache(async (): Promise<GetActorResult> => {
   const supabase = createSessionClient();
-  // Local session read (no network hop). middleware.ts revalidates the JWT via
-  // auth.getUser() on every matched /portal request before this gate runs, so a
-  // forged/revoked cookie never reaches here; getSession() returns null once the
-  // token expires. Identity is matched on auth_user_id below. See getAdminUser()
-  // for the full rationale/coupling.
+  // Revalidates the JWT against GoTrue here rather than trusting middleware to
+  // have done it: the matcher does not cover /api, and both /api/portal routes
+  // call this gate. Identity is matched on auth_user_id below. See getAdminUser()
+  // for the full rationale.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabase.auth.getUser();
   const email = user?.email?.toLowerCase();
   if (!user || !email) return { actor: null, redirectTo: "/portal/login" };
 
