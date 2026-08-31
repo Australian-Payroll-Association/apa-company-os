@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import mammoth from "mammoth";
 import { supabase, companyOs } from "@/lib/supabase";
 import { setCandidateAiSalary } from "@/lib/admin/candidate-sensitive";
+import { readTextOutput } from "@/lib/ai/response";
 
 // AI resume screen: reads an application's resume + the job requisition,
 // asks Claude for a templated summary and a 0-5 fit rating, and writes the
@@ -202,15 +203,15 @@ async function runScreen(applicationId: string): Promise<Ok | Err> {
     ],
   });
 
-  if (response.stop_reason === "refusal") {
-    return markFailed(applicationId, "The model declined to screen this document.");
-  }
-  const textBlock = response.content.find(
-    (b): b is Anthropic.TextBlock => b.type === "text",
+  const out = readTextOutput(
+    "resume-screen",
+    MODEL,
+    response,
+    "The model declined to screen this document.",
   );
-  if (!textBlock) return markFailed(applicationId, "Model returned no text output.");
+  if (!out.ok) return markFailed(applicationId, out.error);
 
-  const parsed = JSON.parse(textBlock.text) as AiScreenSummary & {
+  const parsed = JSON.parse(out.text) as AiScreenSummary & {
     rating: number;
     salary_expectation: string;
   };

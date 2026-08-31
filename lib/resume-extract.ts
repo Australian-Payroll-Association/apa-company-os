@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { resumeContentBlock } from "@/lib/resume-screen";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Resume field extraction for the recruiter add-candidates intake: reads an
 // already-uploaded resume from the `resumes` bucket and asks Claude for the
@@ -78,13 +79,15 @@ export async function extractResumeFields(storagePath: string, mimeType: string 
       ],
     });
 
-    if (response.stop_reason === "refusal") {
-      return { ok: false, error: "The model declined to read this document." };
-    }
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return { ok: false, error: "Model returned no text output." };
+    const out = readTextOutput(
+      "resume-extract",
+      MODEL,
+      response,
+      "The model declined to read this document.",
+    );
+    if (!out.ok) return { ok: false, error: out.error };
 
-    const parsed = JSON.parse(textBlock.text) as ExtractedCandidate;
+    const parsed = JSON.parse(out.text) as ExtractedCandidate;
     const clean = (s: string | null) => (typeof s === "string" && s.trim() ? s.trim() : null);
     return {
       ok: true,

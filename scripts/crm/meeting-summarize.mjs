@@ -79,7 +79,11 @@ export async function summarizeTranscript(transcript) {
     body: JSON.stringify({
       model,
       max_tokens: 4000,
-      temperature: 0.2,
+      // No `temperature`: Sonnet 5 and Opus 5 removed the sampling parameters
+      // and reject them with a 400. It only ever survived here because
+      // OpenRouter strips unsupported params before forwarding — send it to
+      // Anthropic directly, or through a gateway that passes params through,
+      // and every call fails.
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: `${SYSTEM}\n\n${CONTRACT}` },

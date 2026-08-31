@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { STYLE_CONTRACT, stripAiTells } from "./style";
+import { readTextOutput } from "@/lib/ai/response";
 
 /**
  * Server-only model calls for the two repo summaries. Ported from the Human
@@ -80,14 +81,12 @@ async function generateViaAnthropic(system: string, userContent: string): Promis
     system,
     messages: [{ role: "user", content: userContent }],
   });
-  const text = response.content.find((b) => b.type === "text")?.text;
-  if (!text) {
-    console.error(
-      `[htt summaries] no text in response (stop_reason=${response.stop_reason}, blocks=${response.content.map((b) => b.type).join(",")})`,
-    );
+  const out = readTextOutput("htt-summarize", ANTHROPIC_MODEL, response);
+  if (!out.ok) {
+    console.error(`[htt summaries] ${out.error} (stop_reason=${response.stop_reason})`);
     return null;
   }
-  return text;
+  return out.text;
 }
 
 async function generateViaOpenRouter(

@@ -3,6 +3,7 @@ import { companyOs } from "@/lib/supabase";
 import { getBrandProfile } from "@/lib/admin/brand-profiles";
 import { systemPrompt } from "@/lib/ai/brand-writer";
 import { blogTypeLabel, socialStyleLabel } from "@/lib/marketing/style-catalogues";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Regenerates the copy for ONE calendar asset in its brand's voice, symmetric to
 // generateEntryImage. Unlike writeForBrand (which drafts the whole channel set),
@@ -122,11 +123,10 @@ export async function generateEntryCopy(
       messages: [{ role: "user", content: userMsg }],
     });
 
-    if (response.stop_reason === "refusal") return { ok: false, error: "The model declined to draft this." };
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return { ok: false, error: "Model returned no output." };
+    const out = readTextOutput("entry-copy", MODEL, response, "The model declined to draft this.");
+    if (!out.ok) return { ok: false, error: out.error };
 
-    const parsed = JSON.parse(textBlock.text) as { body_md?: string };
+    const parsed = JSON.parse(out.text) as { body_md?: string };
     const bodyMd = stripLeadingTitleHeading((parsed.body_md ?? "").trim(), entry.title);
     if (!bodyMd) return { ok: false, error: "The writer produced nothing usable." };
 

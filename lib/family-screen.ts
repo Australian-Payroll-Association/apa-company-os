@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import mammoth from "mammoth";
 import { supabase, companyOs } from "@/lib/supabase";
 import { FAMILY_BY_KEY, type FamilyScreen, type RoleFamilyKey } from "@/lib/role-families";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Family AI screen: rates one application's resume against a role-family
 // ideal profile (lib/role-families.ts) instead of a specific req's JD, so
@@ -135,11 +136,15 @@ async function runFamilyScreen(applicationId: string, familyKey: RoleFamilyKey):
     ],
   });
 
-  if (response.stop_reason === "refusal") return { ok: false, error: "The model declined to screen this document." };
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!textBlock) return { ok: false, error: "Model returned no text output." };
+  const out = readTextOutput(
+    "family-screen",
+    MODEL,
+    response,
+    "The model declined to screen this document.",
+  );
+  if (!out.ok) return { ok: false, error: out.error };
 
-  const parsed = JSON.parse(textBlock.text) as {
+  const parsed = JSON.parse(out.text) as {
     overview: string;
     strengths: string[];
     gaps: string[];

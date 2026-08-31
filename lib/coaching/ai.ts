@@ -17,6 +17,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { OPEN_COMMITMENT_STATUSES, getEdgesLadderOptions, saigonToday } from "@/lib/coaching/data";
+import { readTextOutput } from "@/lib/ai/response";
 
 const MODEL = process.env.COACHING_CLAUDE_MODEL || "claude-sonnet-5";
 
@@ -299,10 +300,9 @@ async function textCompletion(system: string, user: string, maxTokens: number): 
     system,
     messages: [{ role: "user", content: user }],
   });
-  if (response.stop_reason === "refusal") throw new Error("The model declined this request.");
-  const block = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!block?.text.trim()) throw new Error("Model returned no text output.");
-  return block.text.trim();
+  const out = readTextOutput("coaching-text", MODEL, response);
+  if (!out.ok) throw new Error(out.error);
+  return out.text.trim();
 }
 
 // ---- 1) prep (Friday before the meeting) ------------------------------------
@@ -503,10 +503,9 @@ export async function summarizeMeeting(meetingId: string): Promise<Ok | Err> {
         },
       ],
     });
-    if (response.stop_reason === "refusal") return fail("The model declined this transcript.");
-    const block = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!block) return fail("Model returned no output.");
-    const parsed = JSON.parse(block.text) as {
+    const out = readTextOutput("coaching-summary", MODEL, response, "The model declined this transcript.");
+    if (!out.ok) return fail(out.error);
+    const parsed = JSON.parse(out.text) as {
       summary_markdown: string;
       shared_summary_markdown: string;
       commitments: Array<{ title: string; owner: "coach" | "member"; due_on?: string }>;

@@ -16,6 +16,8 @@ import { getTeamActor } from "@/lib/team-auth";
 import { runReadOnlyQuery } from "@/lib/team-chat/db";
 import { chatbotTools } from "@/lib/team-chat/tools";
 import { buildSystemPrompt } from "@/lib/team-chat/system-prompt";
+import { withHistoryCache } from "@/lib/ai/cache";
+import { logAiUsage } from "@/lib/ai/response";
 import { upsertConversation } from "@/lib/assistant-history/store";
 import { deriveTitle } from "@/lib/assistant-history/title";
 
@@ -171,13 +173,14 @@ export async function POST(request: NextRequest) {
             thinking: { type: "adaptive" },
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
             tools,
-            messages,
+            messages: withHistoryCache(messages),
           });
           msgStream.on("text", (delta) => {
             send({ type: "text", text: delta });
             appendBotText(delta);
           });
           const msg = await msgStream.finalMessage();
+          logAiUsage("team-chat", MODEL, msg.usage);
 
           messages.push({ role: "assistant", content: msg.content });
           if (msg.stop_reason !== "tool_use") break;

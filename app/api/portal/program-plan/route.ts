@@ -10,6 +10,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalActor } from "@/lib/portal-auth";
 import { PROGRAM_PLAN_SYSTEM_PROMPT } from "@/lib/portal/program-plan-prompt";
+import { withHistoryCache } from "@/lib/ai/cache";
+import { logAiUsage } from "@/lib/ai/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,10 +73,11 @@ export async function POST(request: NextRequest) {
           max_tokens: 8192,
           output_config: { effort: "medium" },
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-          messages,
+          messages: withHistoryCache(messages),
         });
         msgStream.on("text", (delta) => send({ type: "text", text: delta }));
         const msg = await msgStream.finalMessage();
+        logAiUsage("program-plan", MODEL, msg.usage);
         messages.push({ role: "assistant", content: msg.content });
         send({ type: "done", messages: trimMessages(messages) });
       } catch (err) {
