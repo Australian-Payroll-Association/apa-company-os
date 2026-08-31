@@ -1,0 +1,116 @@
+name: Publish template
+
+# Selective, one-way publish of allowlisted paths to a PUBLIC template repo.
+#
+# This is deliberately NOT the mirror in mirror-to-8-edges-fork.yml. That one is
+# a 1-1 clone: every branch, full history, nothing filtered — which is correct
+# for a private backup and unsafe for anything public. The two must stay pointed
+# at different repos. A repo cannot be both.
+#
+# HOW IT DIFFERS FROM A MIRROR
+#
+#   - Deny by default. Only paths in .github/template-allowlist.txt are copied.
+#   - No upstream history. Each publish is ONE squashed commit on the template's
+#     own linear history. Upstream commits, branches, and blobs never reach it,
+#     so a file that was sensitive in 2026 and deleted later is not sitting in
+#     the published history waiting to be found.
+#   - Fail closed. build-template.sh re-scans the staged tree and aborts the run
+#     before any push if it finds credential- or person-shaped content.
+#   - main only. Feature branches are not published.
+#
+# Deletions propagate: the tree is rebuilt from scratch each run, so a path
+# removed from the allowlist (or from the repo) disappears downstream on the
+# next publish. It does NOT disappear from what was already published.
+#
+# Requires:
+#   TEMPLATE_REPO         vars entry, e.g. talentedgeai/claude-nextjs-building-blocks
+#   PUBLISH_TEMPLATE_TOKEN  fine-grained PAT scoped to that repo, Contents: RW
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and scan only; do not push'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-template
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository == 'talentedgeai/edge8-web'
+    steps:
+      - name: Verify configuration
+        env:
+          TOKEN: ${{ secrets.PUBLISH_TEMPLATE_TOKEN }}
+          TARGET: ${{ vars.TEMPLATE_REPO }}
+        run: |
+          if [ -z "$TARGET" ]; then
+            echo "::error::vars.TEMPLATE_REPO is not set (expected owner/repo of the PUBLIC template repo)."
+            exit 1
+          fi
+          if [ "$TARGET" = "talentedgeai/8-Edges-Fork" ]; then
+            echo "::error::TEMPLATE_REPO points at the full private mirror. That repo contains complete upstream history and must never be the public publish target."
+            exit 1
+          fi
+          if [ -z "$TOKEN" ] && [ "${{ inputs.dry_run }}" != "true" ]; then
+            echo "::error::PUBLISH_TEMPLATE_TOKEN is not set."
+            exit 1
+          fi
+
+      # Depth 1: the publish is a snapshot, so upstream history is not needed
+      # and deliberately not fetched.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Build and scan the template tree
+        run: |
+          chmod +x .github/scripts/build-template.sh
+          .github/scripts/build-template.sh "${RUNNER_TEMP}/template"
+
+      - name: Show what would be published
+        run: |
+          cd "${RUNNER_TEMP}/template"
+          echo '### Template contents' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find . -type f | sed 's#^\./##' | sort >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish
+        if: inputs.dry_run != true
+        env:
+          TOKEN: ${{ secrets.PUBLISH_TEMPLATE_TOKEN }}
+          TARGET: ${{ vars.TEMPLATE_REPO }}
+        run: |
+          set -o pipefail
+          cd "${RUNNER_TEMP}/template"
+
+          git init -q -b main
+          git config user.name  "edge8-template-bot"
+          git config user.email "noreply@edge8.ai"
+          git add -A
+          git commit -q -m "Sync from edge8-web @ ${GITHUB_SHA::8}
+
+          Published by .github/workflows/publish-template.yml from the paths in
+          .github/template-allowlist.txt. Upstream history is not included."
+
+          # Force-push a fresh single-commit history. The template repo is a
+          # published artifact, not a place to do work — anything committed
+          # directly there is overwritten by the next sync.
+          remote="https://x-access-token:${TOKEN}@github.com/${TARGET}.git"
+          if ! git push --force "$remote" main 2>push.log; then
+            sed -e "s#${TOKEN}#***#g" push.log >&2
+            echo "::error::Push to ${TARGET} failed. Check that PUBLISH_TEMPLATE_TOKEN grants Contents: Read and write on that repo."
+            exit 1
+          fi
+          echo "Published $(find . -type f | wc -l | tr -d ' ') files to ${TARGET} @ ${GITHUB_SHA::8}." \
+            | tee -a "$GITHUB_STEP_SUMMARY"

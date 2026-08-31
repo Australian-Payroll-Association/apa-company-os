@@ -1,0 +1,10 @@
+{
+  "name": "claude-nextjs-building-blocks",
+  "version": "1.0.0",
+  "description": "Response handling and prompt-cache helpers for the Anthropic SDK in Next.js",
+  "license": "MIT",
+  "type": "module",
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^0.111.0"
+  }
+}

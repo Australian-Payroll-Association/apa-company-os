@@ -1,0 +1,60 @@
+# Paths published to the public template repo.
+#
+# DENY BY DEFAULT. Nothing leaves this repo unless it is listed here. Adding a
+# line is a publishing decision — it makes that path, and every future change to
+# it, public forever. Removing a line stops future syncs but does NOT unpublish
+# what already went out.
+#
+# Syntax: one path per line, relative to the repo root.
+#   - a file            -> published as that file
+#   - a directory/      -> published recursively
+#   - blank / #comment  -> ignored
+# Globs are NOT expanded here: name a file or a directory. This is deliberate —
+# `lib/*.ts` would silently pick up whatever lands in lib/ next month.
+#
+# Every path is additionally re-scanned by .github/scripts/build-template.sh
+# before publish. The allowlist decides intent; the scanner is the backstop.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Nothing from the app's build config is published.
+#
+# tsconfig.json, next.config.mjs and .gitignore were listed here at first and
+# then removed: they are app-specific, not library-specific. next.config.mjs
+# describes resume-upload body limits and OG-image font tracing; .gitignore
+# names internal conventions. None of it is sensitive, none of it helps someone
+# adopting two files, and all of it describes a codebase the reader cannot see.
+# The template's own scaffolding lives in .github/template-overlay/ instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The AI infrastructure layer — the genuinely reusable part.
+#
+# These two carry no business content: response.ts is usage logging plus the
+# stop_reason guards, cache.ts is prompt-cache breakpoint placement. They are
+# the pieces another team would actually want.
+# ─────────────────────────────────────────────────────────────────────────────
+lib/ai/response.ts
+lib/ai/cache.ts
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NOT published, and why — so the reasoning survives the next person to edit
+# this file. Do not uncomment without deciding deliberately.
+#
+# scripts/                  Import/backup scripts carry production records,
+#                           including named-employee coaching content.
+# supabase/migrations/      Publishes the full internal schema, including the
+#                           candidate_sensitive / compensation_sensitive shape.
+# app/admin/, app/private/  Internal operations surfaces and per-client pages.
+# app/proposals/            Named client commercial material.
+# lib/coaching/, lib/ats/   Business logic over personal data.
+# lib/admin-chat/,          System prompts + tool schemas for the DB agents.
+#   lib/team-chat/          Publishing these hands an attacker the injection map.
+# lib/ai/brand-writer.ts,   Reusable in shape, but the system prompts encode the
+#   campaign-seo.ts,        house methodology. Business IP, not a secret —
+#   entry-copy.ts,          publish only if you actively want to give it away.
+#   coaching/ai.ts
+# .github/                  Workflows carry secret names and the sync topology.
+# package.json,             Dependency list is fine, but the file also names
+#   package-lock.json       private scripts; publish a template-authored one via
+#                           the overlay instead.
+# vercel.json               Cron topology + client redirect history.
