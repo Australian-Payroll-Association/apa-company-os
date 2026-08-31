@@ -63,6 +63,23 @@ jobs:
             exit 1
           }
 
+      - name: TEMP diagnostic — token reachability (status codes only)
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
+        run: |
+          api() { curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $SYNC_TOKEN" "$1"; }
+          echo "GET /user                -> $(api https://api.github.com/user)"
+          echo "GET /repos/../8-Edges-Fork -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork)"
+          echo "GET /repos/../8edges     -> $(api https://api.github.com/repos/talentedgeai/8edges)"
+          echo "GET /repos/../edge8-web  -> $(api https://api.github.com/repos/talentedgeai/edge8-web)"
+          case "$SYNC_TOKEN" in
+            github_pat_*) kind=fine-grained ;;
+            ghp_*) kind=classic ;;
+            gho_*) kind=oauth ;;
+            *) kind=unrecognized ;;
+          esac
+          echo "token kind: $kind, length: ${#SYNC_TOKEN}"
+
       - name: Mirror all branches and tags to 8-Edges-Fork
         env:
           SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
