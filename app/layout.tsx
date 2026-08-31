@@ -4,43 +4,29 @@ import './globals.css'
 import SiteFrame from '@/components/SiteFrame'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.edge8.ai'),
-  title: 'Edge8 | AI Leadership, Automation & Global Talent Solutions',
-  description: 'Edge8 helps organizations become Tech-Forward through AI Leadership, AI Programs, and Global Talent Staffing. Achieve 8x efficiency.',
+  metadataBase: new URL('https://apa-company-os.vercel.app'),
+  title: 'Australian Payroll Association — Company OS',
+  description:
+    "The internal operations platform for Australia's leading payroll training, consulting and advisory service.",
+  robots: { index: false, follow: false },
   openGraph: {
-    title: 'Edge8 | AI Leadership, Automation & Global Talent Solutions',
-    description: 'Edge8 helps organizations become Tech-Forward through AI Leadership, AI Programs, and Global Talent Staffing. Achieve 8x efficiency.',
-    url: 'https://www.edge8.ai',
-    siteName: 'Edge8',
+    title: 'Australian Payroll Association — Company OS',
+    description:
+      "The internal operations platform for Australia's leading payroll training, consulting and advisory service.",
+    url: 'https://apa-company-os.vercel.app',
+    siteName: 'Australian Payroll Association',
     type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Edge8 | AI Leadership, Automation & Global Talent Solutions',
-    description: 'Edge8 helps organizations become Tech-Forward through AI Leadership, AI Programs, and Global Talent Staffing. Achieve 8x efficiency.',
   },
 }
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Edge8',
-  alternateName: 'Edge8 AI',
-  url: 'https://www.edge8.ai',
-  logo: 'https://www.edge8.ai/logo.png',
+  name: 'Australian Payroll Association',
+  alternateName: 'APA',
+  url: 'https://austpayroll.com.au',
   description:
-    'Edge8 helps founders be Tech-Forward through AI Programs, fractional CAIO leadership, AI Officer Certification, and global AI talent staffing.',
-  founder: { '@type': 'Person', name: 'Dave Hajdu' },
-  sameAs: ['https://www.linkedin.com/company/edge8ai/'],
-  contactPoint: [
-    {
-      '@type': 'ContactPoint',
-      contactType: 'sales',
-      email: 'hello@edge8.ai',
-      areaServed: ['US', 'VN', 'SG', 'MY'],
-      availableLanguage: ['English'],
-    },
-  ],
+    "Australia's leading payroll training, consulting and advisory service.",
 }
 
 export default function RootLayout({

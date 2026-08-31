@@ -1,676 +1,294 @@
-'use client'
-
-import { useState, useEffect, useRef, useCallback } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
-import Script from 'next/script'
-import HeroStats from '@/components/HeroStats'
+import { Montserrat, Source_Sans_3 } from 'next/font/google'
 
-const testimonials = [
-  {
-    text: "I invited Dave to speak at the AI Summit in Sabah, and he was a natural on stage, bringing a fresh style the audience loved. We are looking forward to collaborating with the AI Officer Institute and Edge8 to bring their AI Certification Program to Malaysia and have signed an MOU to broaden the reach of our organization.",
-    name: 'Dato George Lim',
-    role: 'Founder & CEO, G&A GROUP & GA SPACE',
-    avatar: '/homepage/images/home-page-testimonials-Dato.jpg',
-  },
-  {
-    text: "We were lucky enough to have Dave Hajdu work with our forum to help understand how AI is automating tasks and exploding output across a wide range of applications. He was able to greatly expand our general knowledge of AI and demystify the challenges of implementation. I highly recommend Edge8.ai as a YPO resource.",
-    name: 'John VanNewkirk',
-    role: 'YPO Gold Seattle, Forum 6',
-    avatar: '/homepage/images/home-page-testimonials-John.jpg',
-  },
-  {
-    text: "I am very grateful to Dave Hajdu, who spoke to graduate students in our international business and public policy program during our visit to Vietnam about Negotiations and AI. He was extremely knowledgeable and engaging. Real-world experiences complemented our class discussions perfectly.",
-    name: 'Dr. Brooks Holtom',
-    role: 'Professor of Management, Georgetown',
-    avatar: '/homepage/images/home-page-testimonials-Dr Holtom.jpg',
-  },
-  {
-    text: "Love the new look and branding. The website looks so good. I'm deeply grateful. The brand interview really made me think about our positioning and business in ways I never expected.",
-    name: 'Dao Nguyen',
-    role: 'Founder, DN Legal',
-    avatar: '/homepage/images/home-page-testimonials-Dao Nguyen.jpg',
-  },
-  {
-    text: "I can't stop looking at the new website and brand book. With Edge8's help, we're finally presenting ourselves the way we've always wanted. The speed, the quality, and the care were all top-notch. Everything is just amazing. More than happy.",
-    name: 'Tuan Anh Le',
-    role: 'Managing Partner, DN Legal',
-    avatar: '/homepage/images/home-page-testimonials-Tuan Anh.jpg',
-  },
-  {
-    text: "Working with Edge8 has been a pleasure. When I launched Fab Four Academy, I needed support to build a strong brand and digital presence. Dave and the team stepped in and not only helped with the branding and digital presence, but showed us how to leverage AI to streamline our processes.",
-    name: 'Dan Absher',
-    role: 'CEO, Absher Construction Company',
-    avatar: '/homepage/images/home-page-testimonials-Dan Absher.jpg',
-  },
-]
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['300', '400', '600'],
+  variable: '--font-apa-display',
+  display: 'swap',
+})
 
-// Infinite carousel: 3 full copies — middle copy is "real", wrap-snap to middle when scrolling off edges
-const T_COUNT = testimonials.length
-const T_REAL_OFFSET = T_COUNT
-const extTestimonials = [...testimonials, ...testimonials, ...testimonials]
+const sourceSans = Source_Sans_3({
+  subsets: ['latin'],
+  weight: ['300', '400', '600'],
+  variable: '--font-apa-body',
+  display: 'swap',
+})
 
-// Video testimonials (YouTube). Order is shuffled on the client after mount so a
-// different clip leads the slider on every refresh.
-const videoTestimonials = [
-  { id: 'jRwrSYlaO4Q', name: 'James Murray', caption: 'How I Build Multiple Projects in 1 Day' },
-  { id: 'YSP6Xt0UEyk', name: 'Maureen Birdsall', caption: 'Infinite Leverage Stories' },
-  { id: 'wlJNxiEbYVA', name: 'Tracy Angwin', caption: 'Private Retreat' },
-]
-
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
+export const metadata: Metadata = {
+  title: 'Australian Payroll Association — Company OS',
+  description:
+    "The single sign-in for everyone who runs Australia's leading payroll training, consulting and advisory service.",
 }
 
-export default function HomePage() {
-  const [activeExtIdx, setActiveExtIdx] = useState(T_REAL_OFFSET)
-  const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
-  const viewportRef = useRef<HTMLDivElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isSnappingRef = useRef(false)
-
-  // Video testimonials: render source order on the server / first paint (so
-  // hydration matches), then shuffle after mount to randomize the lead clip.
-  const [videoOrder, setVideoOrder] = useState(videoTestimonials)
-  useEffect(() => {
-    setVideoOrder(shuffleArray(videoTestimonials))
-  }, [])
-
-  // currentTestimonial: real 0-(T_COUNT-1), derived from activeExtIdx
-  const currentTestimonial = ((activeExtIdx - T_REAL_OFFSET) % T_COUNT + T_COUNT) % T_COUNT
-
-  // Scroll reveal
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible')
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
-    )
-    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
-
-  // Stats counter — animates on scroll into view
-  // Testimonials scroll sync (infinite loop)
-  useEffect(() => {
-    const viewport = viewportRef.current
-    const track = trackRef.current
-    if (!viewport || !track) return
-
-    const cards = track.querySelectorAll<HTMLElement>('.t-card-real')
-    if (cards.length === 0) return
-
-    const updateActive = () => {
-      if (isSnappingRef.current) return
-      const cx = viewport.scrollLeft + viewport.offsetWidth / 2
-      let closest = 0, minDist = Infinity
-      cards.forEach((card, i) => {
-        const cardCx = card.offsetLeft + card.offsetWidth / 2
-        const dist = Math.abs(cx - cardCx)
-        if (dist < minDist) { minDist = dist; closest = i }
-      })
-      setActiveExtIdx(closest)
-
-      // Snap from edge copies back to middle copy (invisible)
-      if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
-      const targetIdx = closest < T_COUNT ? closest + T_COUNT
-        : closest >= T_COUNT * 2 ? closest - T_COUNT : -1
-      if (targetIdx >= 0) {
-        snapTimerRef.current = setTimeout(() => {
-          const pad = parseFloat(track.style.paddingLeft || '0')
-          isSnappingRef.current = true
-          // Disable snap briefly so the jump is invisible
-          viewport.style.scrollSnapType = 'none'
-          viewport.scrollLeft = cards[targetIdx].offsetLeft - pad
-          setActiveExtIdx(targetIdx)
-          requestAnimationFrame(() => {
-            viewport.style.scrollSnapType = ''
-            requestAnimationFrame(() => { isSnappingRef.current = false })
-          })
-        }, 50)
-      }
-    }
-
-    viewport.addEventListener('scroll', updateActive, { passive: true })
-
-    const setEdgePadding = () => {
-      if (!cards[T_REAL_OFFSET]) return
-      const cardW = cards[T_REAL_OFFSET].offsetWidth
-      const vw = viewport.offsetWidth
-      const pad = Math.max(0, (vw - cardW) / 2)
-      track.style.paddingLeft = `${pad}px`
-      track.style.paddingRight = `${pad}px`
-      viewport.scrollLeft = cards[T_REAL_OFFSET].offsetLeft - pad
-    }
-    setEdgePadding()
-
-    return () => {
-      viewport.removeEventListener('scroll', updateActive)
-      if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
-    }
-  }, [])
-
-  const scrollToTestimonial = useCallback((realIdx: number) => {
-    const viewport = viewportRef.current
-    const track = trackRef.current
-    if (!viewport || !track) return
-    const cards = track.querySelectorAll<HTMLElement>('.t-card-real')
-    const pad = parseFloat(track.style.paddingLeft || '0')
-
-    // Always scroll to middle copy equivalent
-    const extIdx = T_REAL_OFFSET + realIdx
-    if (cards[extIdx]) {
-      viewport.scrollTo({ left: cards[extIdx].offsetLeft - pad, behavior: 'smooth' })
-    }
-  }, [currentTestimonial])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormStatus('sending')
-    setTimeout(() => {
-      setFormStatus('sent')
-      ;(e.target as HTMLFormElement).reset()
-      setTimeout(() => setFormStatus('idle'), 3000)
-    }, 1200)
-  }
-
+// Single entry point into the APA operations platform. Self-contained: carries
+// its own APA/Payroll IQ palette + fonts rather than the Edge8 design system in
+// globals.css. The three doors route into the existing consoles.
+export default function EntryPage() {
   return (
-    <main>
-      {/* ═══ HERO ═══════════════════════════════════════════ */}
-      <section className="hero" id="hero">
-        <div className="hero-bg" />
-        <div className="hero-grid" />
-        <div className="container">
-          <div className="hero-content">
-            <div className="hero-eyebrow">Be Tech-Forward</div>
-            <h1 className="hero-headline">
-              It&apos;s Time to Stop Using AI<br />
-              and Start <span className="accent">Leading It</span>
-            </h1>
-            <p className="hero-sub">
-              Founders who <span className="accent">Lead AI</span> Build faster. Hire smarter. Ship more.
-            </p>
+    <main className={`apa-entry ${montserrat.variable} ${sourceSans.variable}`}>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      {/* ── Top bar ── */}
+      <header className="ae-topbar">
+        <div className="ae-wrap ae-topbar-inner">
+          <div className="ae-lockup">
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+              <path d="M4 26c0-9.4 5.6-16 13-16" stroke="#465778" strokeWidth="3.2" strokeLinecap="round" />
+              <path d="M12 26c0-6 3.4-10.4 8-10.4" stroke="#6b7993" strokeWidth="3.2" strokeLinecap="round" />
+              <rect x="22" y="6" width="8" height="8" rx="1.5" fill="#e4b744" />
+            </svg>
+            <span className="ae-lockup-text">
+              <span className="ae-lockup-name">Australian Payroll Association</span>
+              <span className="ae-lockup-sub">Company OS</span>
+            </span>
+          </div>
+          <nav className="ae-nav">
+            <a href="https://austpayroll.com.au/">Public site</a>
+            <a href="#pillars">About APA</a>
+            <a href="#entry">Consoles</a>
+            <Link href="/admin/login" className="ae-topbar-cta">Sign in</Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="ae-hero">
+        <div className="ae-wrap">
+          <span className="ae-eyebrow"><span className="ae-dot" />Internal operations platform</span>
+          <h1>Creating <span className="ae-accent">confidence</span> in how people get paid</h1>
+          <p className="ae-hero-sub">
+            The single sign-in for everyone who runs Australia&apos;s leading payroll training,
+            consulting and advisory service.
+          </p>
+          <div className="ae-hero-meta">
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ebc564" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.1 8 11 4.6-1.9 8-6 8-11V5l-8-3Z" /></svg>
+              RLS-secured Supabase
+            </span>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ebc564" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              One account, one door
+            </span>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ebc564" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m22 4-10 10.01-3-3" /></svg>
+              Compliant by design
+            </span>
           </div>
         </div>
       </section>
 
-      {/* ═══ HERO STATS STRIP ═══════════════════════════════ */}
-      <HeroStats />
+      {/* ── Entry doors ── */}
+      <section className="ae-entry" id="entry">
+        <div className="ae-wrap">
+          <div className="ae-entry-grid">
+            <div className="ae-door ae-door--primary">
+              <span className="ae-door-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" rx="1" /><rect x="12" y="8" width="3" height="10" rx="1" /><rect x="17" y="5" width="3" height="13" rx="1" /></svg>
+              </span>
+              <span className="ae-door-tag">APA staff</span>
+              <h3>Admin Console</h3>
+              <p>Run the association. Members, training cohorts, consulting engagements, recruitment and reporting — all in one place.</p>
+              <div className="ae-door-foot">
+                <Link href="/admin/login" className="ae-btn ae-btn--gold">Enter Admin Console →</Link>
+                <p className="ae-door-help">Staff access only. <Link href="/admin/login">Trouble signing in?</Link></p>
+              </div>
+            </div>
 
-      {/* ═══ THE SHIFT ════════════════════════════════════════ */}
-      <section className="shift section" id="shift">
-        <div className="container">
-          <div className="shift-header reveal">
-            <span className="section-label">What Changes</span>
-            <h2 className="section-title">What Happens When AI Agents Start Joining Your Team</h2>
-            <p className="section-sub" style={{ marginTop: 16 }}>
-              Adding ChatGPT to your tools is not the change. Hiring an AI agent that does a real job, every day, sitting next to your people, is the change. Here is what we have seen happen inside every company that crosses that line.
-            </p>
-          </div>
-          <div className="shift-grid">
-            <div className="shift-card reveal">
-              <div className="shift-icon">
-                <svg viewBox="0 0 24 24" fill="#287be8" width="36" height="36"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            <div className="ae-door">
+              <span className="ae-door-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              </span>
+              <span className="ae-door-tag">Internal team</span>
+              <h3>Team Workspace</h3>
+              <p>For APA trainers, consultants and helpdesk. Your assignments, member queries and day-to-day tools.</p>
+              <div className="ae-door-foot">
+                <Link href="/team/login" className="ae-btn ae-btn--navy">Enter Team Workspace →</Link>
+                <p className="ae-door-help">Invited team members. <Link href="/team/login">Get help</Link></p>
               </div>
-              <div className="shift-card-title">Leadership Has to Level Up</div>
-              <p className="shift-card-desc">Managing humans is one skill. Orchestrating humans and AI agents is another. The leaders who adapt fastest become the most valuable people in the company. The ones who do not get routed around.</p>
             </div>
-            <div className="shift-card reveal">
-              <div className="shift-icon">
-                <svg viewBox="0 0 24 24" fill="#287be8" width="36" height="36"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg>
-              </div>
-              <div className="shift-card-title">Everything Speeds Up</div>
-              <p className="shift-card-desc">Cycles that took weeks compress into days. Days compress into hours. Meetings, reporting, planning, all of it has to be rebuilt for the new pace.</p>
-            </div>
-            <div className="shift-card reveal">
-              <div className="shift-icon">
-                <svg viewBox="0 0 24 24" fill="#287be8" width="36" height="36"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-              </div>
-              <div className="shift-card-title">Hidden Mess Surfaces</div>
-              <p className="shift-card-desc">AI agents do not tolerate the workarounds your team has been quietly carrying for years. Bad data, broken handoffs, undocumented processes, all of it gets exposed. The cleanup is the real work.</p>
-            </div>
-          </div>
-          <div className="shift-payoff reveal">
-            <div className="shift-payoff-eyebrow">And Then</div>
-            <h3 className="shift-payoff-title">The magic happens.</h3>
-            <p className="shift-payoff-body">Your people get their time back. They stop chasing inboxes and start building the things only humans can build. Innovation becomes the default, not the exception. The company grows with fewer hires, smaller teams, and bigger output. That is what Tech-Forward looks like.</p>
-          </div>
-        </div>
-      </section>
 
-      {/* ═══ WHY AI ═══════════════════════════════════════════ */}
-      <section className="why-ai section" id="why">
-        <div className="container">
-          <div className="why-ai-inner">
-            <div className="why-left reveal">
-              <span className="section-label">The Problem</span>
-              <h2 className="section-title">Why Do I Need an AI Program?</h2>
-            </div>
-            <div className="why-right reveal">
-              <p><strong>Ad-hoc usage of AI is limiting you to minimal gains.</strong></p>
-              <p style={{ marginTop: 16 }}>Lack of focus traps your business in mediocrity, keeping you stuck in repetitive tasks, wasted resources, and missed opportunities. Without a structured AI Program, competitors will outpace you, innovation stalls, costs balloon, and growth suffers.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ PHOTO GALLERY ════════════════════════════════════ */}
-      <div className="photo-gallery">
-        <div className="photo-gallery-track">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8].map((n, i) => (
-            <div key={i} className="photo-gallery-slide">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/homepage/images/${n}.jpg`} alt={`Edge8 ${n}`} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-{/* ═══ TESTIMONIALS ═══════════════════════════════════ */}
-      <section className="testimonials section" id="testimonials">
-        <div className="container">
-          <div className="testimonials-header reveal">
-            <span className="section-label">Testimonials</span>
-            <h2 className="section-title">Trusted by Leaders Worldwide</h2>
-          </div>
-        </div>
-        <div className="container" style={{ overflow: 'visible' }}>
-          <div className="testimonials-viewport" ref={viewportRef}>
-            <div className="testimonials-track" ref={trackRef}>
-              {extTestimonials.map((t, i) => (
-                <div
-                  key={i}
-                  className={`testimonial-card t-card-real${i === activeExtIdx ? ' active' : ''}`}
-                >
-                  <span className="testimonial-quote">&ldquo;</span>
-                  <p className="testimonial-text">{t.text}</p>
-                  <div className="testimonial-person">
-                    <Image src={t.avatar} alt={t.name} width={52} height={52} className="testimonial-avatar" />
-                    <div>
-                      <div className="testimonial-name">{t.name}</div>
-                      <div className="testimonial-role">{t.role}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="testimonials-nav">
-            <div className="testimonials-dots">
-              {testimonials.map((_, i) => (
-                <button
-                  key={i}
-                  className={`testimonials-dot${i === currentTestimonial ? ' active' : ''}`}
-                  onClick={() => scrollToTestimonial(i)}
-                  aria-label={`Go to testimonial ${i + 1}`}
-                />
-              ))}
-            </div>
-            <div className="testimonials-arrows">
-              <button
-                className="testimonials-arrow"
-                id="testimonialPrev"
-                aria-label="Previous"
-                onClick={() => scrollToTestimonial((currentTestimonial - 1 + T_COUNT) % T_COUNT)}
-              >
-                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
-              </button>
-              <button
-                className="testimonials-arrow"
-                id="testimonialNext"
-                aria-label="Next"
-                onClick={() => scrollToTestimonial((currentTestimonial + 1) % T_COUNT)}
-              >
-                <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18" /></svg>
-              </button>
-            </div>
-          </div>
-          {/* ─── YouTube video slider ─── */}
-          <div className="yt-slider-wrap">
-            <div className="yt-viewport">
-              <div className="yt-track">
-                {videoOrder.map(v => (
-                  <div key={v.id} className="yt-card">
-                    <iframe src={`https://www.youtube.com/embed/${v.id}`} title={`${v.name} — ${v.caption}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" className="yt-iframe" />
-                    <div className="yt-caption">
-                      <span className="yt-name">{v.name}</span>
-                      <span className="yt-role">{v.caption}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="yt-nav">
-              <button className="testimonials-arrow" aria-label="Previous" onClick={() => { const v = document.querySelector('.yt-viewport') as HTMLElement; v?.scrollBy({ left: -440, behavior: 'smooth' }) }}>
-                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
-              </button>
-              <button className="testimonials-arrow" aria-label="Next" onClick={() => { const v = document.querySelector('.yt-viewport') as HTMLElement; v?.scrollBy({ left: 440, behavior: 'smooth' }) }}>
-                <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18" /></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ PARTNERS ════════════════════════════════════ */}
-      <PartnerMarquee />
-
-      {/* ═══ CORE SOLUTIONS ══════════════════════════════ */}
-      <section className="solutions section" id="solutions">
-        <div className="container">
-          <div className="solutions-header reveal">
-            <span className="section-label">Core Solutions</span>
-            <h2 className="section-title">We Empower Founders to <span className="accent">Lead AI</span></h2>
-            <p className="section-sub" style={{ marginTop: 16 }}>Empowering Organizations to use AI effectively through clear leadership, thoughtful implementation and strong global talent.</p>
-          </div>
-          <div className="solutions-rows">
-            {/* Row 1: image left, text right */}
-            <div className="solution-row reveal">
-              <div className="solution-row-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/homepage/images/home-page-solutions-teams.jpg" alt="Lead AI Agent Teams" />
-              </div>
-              <div className="solution-row-text">
-                <span className="solution-row-label">AI Agent Teams</span>
-                <h3 className="solution-row-title">Lead AI Agent Teams</h3>
-                <p className="solution-row-desc">We design, build, and deploy the AI agents that take repetitive work off your team. You become the manager of a workforce that does not sleep, does not forget, and does not quit.</p>
-                <a href="/ai-programs" className="solution-row-link">Learn more →</a>
-              </div>
-            </div>
-            {/* Row 2: text left, image right */}
-            <div className="solution-row solution-row--reverse reveal">
-              <div className="solution-row-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/homepage/images/home-page-solutions-global-talent.jpg" alt="Hire AI-Trained Global Talent" />
-              </div>
-              <div className="solution-row-text">
-                <span className="solution-row-label">Global Talent Network</span>
-                <h3 className="solution-row-title">Hire AI-Trained Global Talent</h3>
-                <p className="solution-row-desc">AI-trained engineers in Vietnam at 75% less than US rates, deployed in 3 weeks. AI Officers, Engineers, and Marketing Professionals — flexible models, immediate impact.</p>
-                <a href="/global-staffing" className="solution-row-link">Learn more →</a>
-              </div>
-            </div>
-            {/* Row 3: image left, text right */}
-            <div className="solution-row reveal">
-              <div className="solution-row-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/homepage/images/home-page-solutions-network-2.jpg" alt="Private AI Build Retreats in Saigon" />
-              </div>
-              <div className="solution-row-text">
-                <span className="solution-row-label">Private Retreats</span>
-                <h3 className="solution-row-title">Build in Saigon. Ship in Days.</h3>
-                <p className="solution-row-desc">Bring your team to Saigon for a fully private AI build retreat. Ship real apps, deploy AI agents, and leave with capabilities — not decks. Fully private, fully hands-on.</p>
-                <a href="/saigon-private" className="solution-row-link">Learn more →</a>
+            <div className="ae-door">
+              <span className="ae-door-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z" /><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5" /></svg>
+              </span>
+              <span className="ae-door-tag">Clients</span>
+              <h3>Client Portal</h3>
+              <p>For APA clients: your engagements, deliverables, training progress, reports and the payroll helpdesk.</p>
+              <div className="ae-door-foot">
+                <Link href="/portal/login" className="ae-btn ae-btn--navy">Enter Client Portal →</Link>
+                <p className="ae-door-help">New client? <a href="https://austpayroll.com.au/">Talk to APA</a></p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ AI PROGRAMS ════════════════════════════════ */}
-      <section className="case-studies section" id="case-studies">
-        <div className="container">
-          <div className="case-studies-header reveal">
-            <div>
-              <span className="section-label">AI Programs</span>
-              <h2 className="section-title">Businesses who have learned to <span className="accent">Lead AI</span> as a part of their teams</h2>
+      {/* ── Pillars ── */}
+      <section className="ae-pillars" id="pillars">
+        <div className="ae-wrap">
+          <div className="ae-pillars-head">
+            <span className="ae-section-label">What makes APA unique</span>
+            <h2>All we do is payroll — and we&apos;re really good at it</h2>
+            <p>The same expertise members rely on, now running the platform behind the scenes.</p>
+          </div>
+          <div className="ae-pillars-grid">
+            <div className="ae-pillar">
+              <div className="ae-pillar-mark">
+                <span className="ae-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6L12 2Z" /></svg></span>
+                <h4>Expertise</h4>
+              </div>
+              <p>Payroll is the whole business, not a sideline. Depth you won&apos;t find in a generic training vendor.</p>
             </div>
-            <Link href="/ai-programs" className="text-link">Full List of AI Programs →</Link>
-          </div>
-          <div className="case-studies-grid">
-            <Link href="/case-studies/kyungbang-ai-program" className="case-card reveal">
-              <Image src="/case studies/images/case studies-ai programs-Kyungbang.jpeg" alt="Kyungbang" width={400} height={533} />
-              <div className="case-overlay">
-                <span className="case-tag">Manufacturing</span>
-                <div className="case-name">Kyungbang</div>
+            <div className="ae-pillar">
+              <div className="ae-pillar-mark">
+                <span className="ae-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z" /></svg></span>
+                <h4>Advice</h4>
               </div>
-            </Link>
-            <Link href="/case-studies/veracity-ai-program" className="case-card reveal">
-              <Image src="/case studies/images/case studies-ai programs-Veracity.jpeg" alt="Veracity" width={400} height={533} />
-              <div className="case-overlay">
-                <span className="case-tag">AI Agents</span>
-                <div className="case-name">Veracity</div>
-              </div>
-            </Link>
-            <Link href="/case-studies/wink-hotels-travel-buddy" className="case-card reveal">
-              <Image src="/case studies/images/case studies-ai programs-Wink Hotels (Travel Buddy).jpeg" alt="Wink Hotels" width={400} height={533} />
-              <div className="case-overlay">
-                <span className="case-tag">AI Concierge</span>
-                <div className="case-name">Wink Hotels</div>
-              </div>
-            </Link>
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 48 }} className="reveal">
-            <Link href="/ai-programs" className="btn btn-primary">View Our Success Case Studies</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ MENTAL MODELS ════════════════════════════════ */}
-      <section className="mental section" id="mental">
-        <div className="container">
-          <div className="mental-header reveal">
-            <span className="section-label mental-label">Mental Models</span>
-            <h2 className="section-title mental-title">How We Think About Building With AI</h2>
-            <p className="section-sub mental-sub">Two ideas shape how we design every engagement. They are how we differ from the consultants who just talk about AI.</p>
-          </div>
-          <div className="mental-grid">
-            <div className="mental-card reveal">
-              <div className="mental-tag">Mental Model 01</div>
-              <div className="mental-claim">The Folder Is the Agent.</div>
-              <p className="mental-body">We obsess over the Claude environment. How agents and sub-agents are structured. How information is organized. How workflows are designed. What guardrails are in place. When the structure is right, the agent is right. When the structure is wrong, no prompt can save you. Most companies try to bolt AI onto chaos. We help you build the structure first, so the agent has somewhere to stand.</p>
+              <p>Unravelling the complexities of payroll — awards, super, STP Phase 2 — into answers you can act on.</p>
             </div>
-            <div className="mental-card reveal">
-              <div className="mental-tag">Mental Model 02</div>
-              <div className="mental-claim">CMS Is Dead. Claude Is the CMS.</div>
-              <p className="mental-body">Stop building inside the CMS. Start building inside the AI. For twenty years your content, your workflows, your knowledge sat trapped inside whatever CMS you happened to license. Every change required a developer. Every new use case required a new tool. We flip the relationship. Claude becomes the system of record, the content engine, and the workflow runner. The website is just the output. Your team stops working inside the tool and starts operating above it.</p>
+            <div className="ae-pillar">
+              <div className="ae-pillar-mark">
+                <span className="ae-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.1 8 11 4.6-1.9 8-6 8-11V5l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg></span>
+                <h4>Assurance</h4>
+              </div>
+              <p>Independent compliance reviews that deliver accuracy and peace of mind — certainty in every pay run.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ BLOG ════════════════════════════════════════ */}
-      <section className="blog section" id="blog">
-        <div className="container">
-          <div className="blog-header reveal">
-            <div>
-              <span className="section-label">Insights</span>
-              <h2 className="section-title">AI Is Driving Rapid Change</h2>
+      {/* ── Newsletter ── */}
+      <section className="ae-news">
+        <div className="ae-wrap">
+          <div className="ae-news-card">
+            <div className="ae-news-copy">
+              <h3>The latest payroll news, direct to your inbox</h3>
+              <p>Practical updates, compliance alerts and expert insights — free every week from APA.</p>
             </div>
-            <Link href="/blog" className="text-link">View All Posts →</Link>
-          </div>
-          <div className="blog-layout">
-            <Link href="/post/the-other-50-percent-of-leadership" className="blog-featured reveal">
-              <div className="blog-featured-visual">
-                <Image src="/blog/images/the-other-50-percent-of-leadership.webp" alt="The Other 50% of Leadership" width={600} height={338} />
-              </div>
-              <div className="blog-featured-body">
-                <h3 className="blog-featured-title">The Other 50% of Leadership</h3>
-                <p className="blog-excerpt">AI-era leadership now needs a second skill set: workflow design, information architecture, and writing instructions for AI. Here is how to build it.</p>
-                <span className="blog-more">Read Article →</span>
-              </div>
-            </Link>
-            <div className="blog-stack">
-              <Link href="/post/ai-program-vs-ai-tool" className="blog-item reveal">
-                <Image src="/blog/images/ai-program-vs-ai-tool.webp" alt="AI Program vs AI Tool" width={80} height={80} className="blog-item-thumb" />
-                <div className="blog-item-body">
-                  <h4 className="blog-item-title">AI Program vs AI Tool: I Built a Real One, and the Number Stung</h4>
-                  <p className="blog-item-excerpt">Most companies buy AI tools when they need an AI program built on their own data.</p>
-                </div>
-                <span className="blog-item-arrow">→</span>
-              </Link>
-              <Link href="/post/why-grok-4-s-success-proves-strategic-ai-planning-beats-first-mover-advantage" className="blog-item reveal">
-                <Image src="/blog/images/why-grok-4-s-success-proves-strategic-ai-planning-beats-first-mover-advantage.webp" alt="Why Grok 4's Success Proves Strategic AI Planning Beats First-Mover Advantage" width={80} height={80} className="blog-item-thumb" />
-                <div className="blog-item-body">
-                  <h4 className="blog-item-title">Why Grok 4&apos;s Success Proves Strategic AI Planning Beats First-Mover Advantage</h4>
-                  <p className="blog-item-excerpt">Grok 4&apos;s breakthrough validates a fundamental principle: strategic patience beats early market entry.</p>
-                </div>
-                <span className="blog-item-arrow">→</span>
-              </Link>
-              <Link href="/post/elon-musk-twitter-data-strategy-ai-play" className="blog-item reveal">
-                <Image src="/blog/images/elon-musk-twitter-data-strategy-ai-play.jpeg" alt="Elon Musk's Twitter Data Strategy: AI Lessons for Leaders" width={80} height={80} className="blog-item-thumb" />
-                <div className="blog-item-body">
-                  <h4 className="blog-item-title">Elon Musk&apos;s Twitter Data Strategy: AI Lessons for Leaders</h4>
-                  <p className="blog-item-excerpt">Musk didn&apos;t buy a social platform. He bought the world&apos;s largest human-curated index of the web.</p>
-                </div>
-                <span className="blog-item-arrow">→</span>
-              </Link>
-            </div>
+            <form className="ae-news-form" action="https://austpayroll.com.au/" method="get">
+              <input type="email" name="email" placeholder="you@company.com.au" aria-label="Email address" />
+              <button type="submit" className="ae-btn ae-btn--gold ae-btn--auto">Subscribe</button>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* ═══ HOW TO ENGAGE ═══════════════════════════════ */}
-      <section className="engage section" id="engage">
-        <div className="container">
-          <div className="engage-header reveal">
-            <span className="section-label">Engagement</span>
-            <h2 className="section-title">How to Engage With Us</h2>
-            <p className="section-sub" style={{ marginTop: 16 }}>Three ways to work with us. One pricing model. Transparent reporting every Friday.</p>
+      {/* ── Footer ── */}
+      <footer className="ae-footer">
+        <div className="ae-wrap ae-footer-inner">
+          <div className="ae-footer-links">
+            <a href="https://austpayroll.com.au/">Public site</a>
+            <a href="https://austpayroll.com.au/about-us">About us</a>
+            <a href="https://austpayroll.com.au/contact-us">Contact</a>
           </div>
-          <div className="engage-grid">
-            <div className="engage-card reveal">
-              <div className="engage-tag">Coach</div>
-              <div className="engage-title">Tell You How to Do It</div>
-              <p className="engage-desc">We map your highest-ROI AI use case, design the system, and hand you the blueprint. Your team builds it. We answer questions when they get stuck.</p>
-              <div className="engage-fit"><strong>Best for:</strong> teams with strong engineers who need direction, not labor.</div>
-            </div>
-            <div className="engage-card featured reveal">
-              <div className="engage-tag">Co-Build &middot; Most Popular</div>
-              <div className="engage-title">Do It With You</div>
-              <p className="engage-desc">We sit next to your team in the same repo, the same Slack, the same standup. You ship faster, and you keep the muscle in-house when we leave.</p>
-              <div className="engage-fit"><strong>Best for:</strong> founders who want to build the muscle while the work gets done.</div>
-            </div>
-            <div className="engage-card reveal">
-              <div className="engage-tag">Build</div>
-              <div className="engage-title">Do It For You</div>
-              <p className="engage-desc">We design, build, and run the AI program end to end. You stay focused on customers and revenue. We hand you the keys when it is shipped and working.</p>
-              <div className="engage-fit"><strong>Best for:</strong> founders who need it shipped. Yesterday.</div>
-            </div>
-          </div>
-
-          <div className="engage-pricing reveal">
-            <div className="engage-pricing-header">
-              <span className="section-label">Pricing</span>
-              <h3 className="engage-pricing-title">Simple. By the day, then by the hour.</h3>
-            </div>
-            <div className="engage-pricing-grid">
-              <Link href="/saigon-private" className="engage-price engage-price--link">
-                <div className="engage-price-num">$1,000</div>
-                <div className="engage-price-unit">per day</div>
-                <div className="engage-price-desc">Sprints run 3, 4, or 5 days. Pick the length that fits the scope. $3,000 to $5,000 total.</div>
-              </Link>
-              <div className="engage-price">
-                <div className="engage-price-num">$2,000</div>
-                <div className="engage-price-unit">= 40 human tokens</div>
-                <div className="engage-price-desc">After the sprint, buy a token pack when you need ongoing support. 1 human token = 1 hour of human work.</div>
-              </div>
-            </div>
-
-            <div className="engage-transparency">
-              <div className="engage-transparency-eyebrow">Every Friday you see</div>
-              <div className="engage-transparency-list">
-                <div className="engage-transparency-item"><strong>Pull Requests Shipped</strong><span>Every change pushed to your codebase.</span></div>
-                <div className="engage-transparency-item"><strong>Claude Tokens Used</strong><span>Exact AI compute consumed on your work.</span></div>
-                <div className="engage-transparency-item"><strong>Human Tokens Spent</strong><span>Exact hours your team paid for.</span></div>
-              </div>
-              <p className="engage-transparency-line">No mystery invoices. No surprise bills. The same transparency we ask of our AI agents, we hold ourselves to.</p>
-            </div>
-          </div>
+          <div className="ae-footer-meta">© 2026 Australian Payroll Association · Sydney NSW</div>
         </div>
-      </section>
-
-      {/* ═══ WHY CLAUDE ═══════════════════════════════════ */}
-      <section className="claude section" id="claude">
-        <div className="container">
-          <div className="claude-header reveal">
-            <span className="section-label">We Chose One</span>
-            <h2 className="section-title">Stop Chasing Tools. We Did.</h2>
-            <p className="section-sub" style={{ marginTop: 16 }}>You can spend all your time chasing models, framing it as research, and stay stuck on the hamster wheel. Just like you probably are right now. We chose Claude. We built our entire ecosystem around it. We have not looked back. Same stack on every client engagement. Same transparency every week: Claude tokens, human tokens, and every pull request tracked in GitHub.</p>
-          </div>
-
-          <div className="claude-stack reveal">
-            <span className="claude-stack-chip">Claude Code</span>
-            <span className="claude-stack-chip">Claude Co-Work</span>
-            <span className="claude-stack-chip">Team Accounts</span>
-            <span className="claude-stack-chip">Shared Projects</span>
-            <span className="claude-stack-chip">Claude Tokens</span>
-          </div>
-
-          <div className="claude-grid">
-            <div className="claude-card reveal">
-              <div className="claude-card-num">01</div>
-              <div className="claude-card-title">It writes production code without babysitting.</div>
-              <p className="claude-card-body">We tested everything. GPT, Gemini, the open-source flavor of the month. Claude is the only model that ships features we can put in front of clients without rewriting. Stop comparing benchmarks. Open Claude Code. Watch what happens.</p>
-            </div>
-            <div className="claude-card reveal">
-              <div className="claude-card-num">02</div>
-              <div className="claude-card-title">It tells you when it does not know.</div>
-              <p className="claude-card-body">Every other model lies to your face with full confidence. Claude refuses to make things up. That one trait has saved us from a hundred client embarrassments. Every benchmark on a leaderboard is downstream of this one behavior.</p>
-            </div>
-            <div className="claude-card reveal">
-              <div className="claude-card-num">03</div>
-              <div className="claude-card-title">Anthropic does not ship to chase headlines.</div>
-              <p className="claude-card-body">Most labs push a new model every 8 weeks and break everything you built. Anthropic ships when the work is done. The agent we shipped six months ago still runs the same way today. That is the difference between a vendor and a platform.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ CONTACT — TYPEFORM ══════════════════════════ */}
-      <section className="contact-blue section" id="contact">
-        <div className="container">
-          <div className="contact-blue-inner">
-            <div className="reveal">
-              <h2 className="section-title" style={{ marginBottom: 16 }}>Let&apos;s Lead AI Together</h2>
-              <p className="section-sub">Book a 30-minute call. We will talk through your business and email you your first AI Program plan within 88 minutes. Free, no pitch.</p>
-            </div>
-            <div className="contact-blue-cta reveal">
-              <a href="/contact" className="btn btn-contact">
-                Book a Conversation
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      </footer>
     </main>
   )
 }
 
-const partnerLogos = [
-  { src: '/homepage/images/home-page-partners-PHO24.png', alt: 'PHO24' },
-  { src: '/homepage/images/home-page-partners-veracity.png', alt: 'Veracity' },
-  { src: '/homepage/images/home-page-partners-vespa.png', alt: 'Vespa Adventures' },
-  { src: '/homepage/images/home-page-partners-EO.png', alt: 'EO' },
-  { src: '/homepage/images/home-page-partners-unlock venture partners.png', alt: 'Unlock Venture Partners' },
-  { src: '/homepage/images/home-page-partners-investmigrate.png', alt: 'InvestMigrate' },
-  { src: '/homepage/images/home-page-partners-abound health group.png', alt: 'Abound Health Group' },
-]
+const CSS = `
+  .apa-entry {
+    --ae-navy: #465778; --ae-navy-dark: #384660; --ae-navy-tint: #6b7993;
+    --ae-gold: #e4b744; --ae-gold-dark: #b89231; --ae-gold-tint: #ebc564; --ae-on-gold: #3a2f00;
+    --ae-ink: #333333; --ae-ink-muted: #5c6a85; --ae-page: #f5f6f9; --ae-border: #d1d5dd;
+    --ae-field: #f5f8fa; --ae-white: #ffffff;
+    --ae-shadow: 0 1px 3px rgba(72,96,138,0.08); --ae-lift: 0 10px 34px rgba(56,70,96,0.16);
+    --ae-display: var(--font-apa-display), system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ae-body: var(--font-apa-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family: var(--ae-body); color: var(--ae-ink); background: var(--ae-page); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .apa-entry * { box-sizing: border-box; }
+  .apa-entry a { color: inherit; text-decoration: none; }
+  .ae-wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 2rem; }
 
-function PartnerMarquee() {
-  const doubled = [...partnerLogos, ...partnerLogos]
-  return (
-    <section className="partners">
-      <div className="partners-viewport">
-        <div className="partners-track">
-          {doubled.map((logo, i) => (
-            <Image key={i} src={logo.src} alt={logo.alt} width={130} height={36} className="partner-logo" />
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
+  .ae-topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.92); backdrop-filter: saturate(1.1) blur(8px); border-bottom: 1px solid var(--ae-border); }
+  .ae-topbar-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .ae-lockup { display: flex; align-items: center; gap: 12px; }
+  .ae-lockup-text { display: flex; flex-direction: column; line-height: 1.1; }
+  .ae-lockup-name { font-family: var(--ae-display); font-weight: 600; font-size: 15px; color: var(--ae-navy); }
+  .ae-lockup-sub { font-size: 11px; color: var(--ae-ink-muted); letter-spacing: .02em; }
+  /* Reset the bare-element rules leaking from the Edge8 globals.css (nav{position:fixed}). */
+  .apa-entry .ae-nav { position: static; inset: auto; z-index: auto; background: none; backdrop-filter: none; display: flex; align-items: center; gap: 28px; }
+  .ae-nav a { font-size: 14px; color: var(--ae-ink-muted); }
+  .ae-nav a:hover { color: var(--ae-navy); }
+  .apa-entry .ae-topbar-cta { font-weight: 600; font-size: 14px; color: var(--ae-navy); border: 2px solid var(--ae-navy); padding: 8px 16px; border-radius: 8px; transition: all .15s; }
+  .ae-topbar-cta:hover { background: var(--ae-navy); color: var(--ae-white) !important; }
+
+  .ae-hero { position: relative; overflow: hidden; background: linear-gradient(135deg, var(--ae-navy) 0%, var(--ae-navy-tint) 100%); color: var(--ae-white); padding: 92px 0 108px; }
+  .ae-hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(560px 320px at 88% 12%, rgba(228,183,68,0.16), transparent 70%), radial-gradient(480px 300px at 6% 92%, rgba(255,255,255,0.06), transparent 70%); pointer-events: none; }
+  .ae-hero .ae-wrap { position: relative; z-index: 1; }
+  .ae-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ae-gold-tint); background: rgba(228,183,68,0.12); border: 1px solid rgba(228,183,68,0.32); padding: 6px 12px; border-radius: 999px; margin-bottom: 22px; }
+  .ae-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ae-gold); }
+  .ae-hero h1 { font-family: var(--ae-display); font-weight: 600; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -0.01em; max-width: 15ch; }
+  .ae-accent { color: var(--ae-gold-tint); }
+  .ae-hero-sub { margin-top: 22px; font-size: clamp(1.05rem, 2vw, 1.25rem); font-weight: 300; color: rgba(255,255,255,0.9); max-width: 44ch; }
+  .ae-hero-meta { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center; font-size: 14px; color: rgba(255,255,255,0.78); }
+  .ae-hero-meta span { display: inline-flex; align-items: center; gap: 8px; }
+
+  .ae-entry { margin-top: -64px; position: relative; z-index: 5; padding-bottom: 24px; }
+  .ae-entry-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .ae-door { background: var(--ae-white); border: 1px solid var(--ae-border); border-radius: 16px; padding: 28px 26px 24px; box-shadow: var(--ae-shadow); display: flex; flex-direction: column; transition: transform .18s, box-shadow .18s, border-color .18s; }
+  .ae-door:hover { transform: translateY(-4px); box-shadow: var(--ae-lift); border-color: var(--ae-navy-tint); }
+  .ae-door--primary { border-top: 3px solid var(--ae-gold); }
+  .ae-door-icon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 18px; background: rgba(70,87,120,0.08); color: var(--ae-navy); }
+  .ae-door--primary .ae-door-icon { background: rgba(228,183,68,0.14); color: var(--ae-gold-dark); }
+  .ae-door-tag { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ae-ink-muted); margin-bottom: 6px; }
+  .ae-door h3 { font-family: var(--ae-display); font-weight: 600; font-size: 20px; color: var(--ae-navy); }
+  .ae-door p { margin-top: 8px; font-size: 14.5px; color: var(--ae-ink-muted); flex: 1; }
+  .ae-door-foot { margin-top: 20px; }
+  .ae-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-family: var(--ae-body); font-weight: 600; font-size: 15px; padding: 11px 18px; border-radius: 8px; cursor: pointer; border: none; transition: background .15s, color .15s; }
+  .ae-btn--auto { width: auto; white-space: nowrap; }
+  /* Scoped under .apa-entry so the label colour beats the '.apa-entry a { color: inherit }' reset. */
+  .apa-entry .ae-btn--gold { background: var(--ae-gold); color: var(--ae-on-gold); }
+  .apa-entry .ae-btn--gold:hover { background: var(--ae-gold-dark); color: var(--ae-on-gold); }
+  .apa-entry .ae-btn--navy { background: var(--ae-navy); color: var(--ae-white); }
+  .apa-entry .ae-btn--navy:hover { background: var(--ae-navy-dark); color: var(--ae-white); }
+  .ae-door-help { margin-top: 12px; text-align: center; font-size: 13px; color: var(--ae-ink-muted); }
+  .ae-door-help a { color: var(--ae-navy); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+  .ae-pillars { padding: 70px 0 20px; }
+  .ae-pillars-head { text-align: center; max-width: 640px; margin: 0 auto 40px; }
+  .ae-section-label { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ae-gold-dark); }
+  .ae-pillars-head h2 { font-family: var(--ae-display); font-weight: 600; font-size: clamp(1.6rem, 3vw, 1.875rem); color: var(--ae-navy); margin-top: 10px; }
+  .ae-pillars-head p { margin-top: 12px; color: var(--ae-ink-muted); font-size: 16px; }
+  .ae-pillars-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .ae-pillar { background: var(--ae-white); border: 1px solid var(--ae-border); border-radius: 12px; padding: 26px 24px; }
+  .ae-pillar-mark { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .ae-ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(70,87,120,0.08); color: var(--ae-navy); }
+  .ae-pillar h4 { font-family: var(--ae-display); font-weight: 600; font-size: 18px; color: var(--ae-navy); }
+  .ae-pillar p { color: var(--ae-ink-muted); font-size: 14.5px; }
+
+  .ae-news { padding: 64px 0 78px; }
+  .ae-news-card { background: linear-gradient(135deg, var(--ae-navy) 0%, var(--ae-navy-dark) 100%); border-radius: 16px; padding: 44px 48px; color: var(--ae-white); display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; position: relative; overflow: hidden; }
+  .ae-news-card::after { content: ""; position: absolute; inset: 0; background: radial-gradient(420px 220px at 92% 20%, rgba(228,183,68,0.18), transparent 70%); pointer-events: none; }
+  .ae-news-copy { position: relative; z-index: 1; max-width: 52ch; }
+  .ae-news-copy h3 { font-family: var(--ae-display); font-weight: 600; font-size: 24px; }
+  .ae-news-copy p { margin-top: 8px; color: rgba(255,255,255,0.85); font-size: 15.5px; }
+  .ae-news-form { position: relative; z-index: 1; display: flex; flex-direction: row; gap: 10px; }
+  .ae-news-form input { font-family: var(--ae-body); font-size: 15px; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.95); color: var(--ae-ink); width: 240px; }
+  .ae-news-form input::placeholder { color: var(--ae-ink-muted); }
+
+  .ae-footer { background: var(--ae-navy-dark); color: rgba(255,255,255,0.7); padding: 40px 0; }
+  .ae-footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .ae-footer-links { display: flex; gap: 24px; flex-wrap: wrap; font-size: 14px; }
+  .ae-footer-links a:hover { color: var(--ae-white); }
+  .ae-footer-meta { font-size: 13px; color: rgba(255,255,255,0.5); }
+
+  @media (max-width: 900px) {
+    .ae-entry-grid, .ae-pillars-grid { grid-template-columns: 1fr; }
+    .ae-nav a:not(.ae-topbar-cta) { display: none; }
+    .ae-entry { margin-top: -48px; }
+  }
+  @media (max-width: 620px) {
+    .ae-wrap { padding: 0 1.25rem; }
+    .ae-hero { padding: 64px 0 96px; }
+    .ae-news-card { padding: 32px 26px; }
+    .ae-news-form { width: 100%; }
+    .ae-news-form input { flex: 1; width: auto; }
+  }
+`

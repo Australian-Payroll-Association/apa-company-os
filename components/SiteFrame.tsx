@@ -10,7 +10,9 @@ const BARE_ROUTES = ['/blueprints/team-onboarding', '/reserve', '/admin', '/team
 
 export default function SiteFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const bare = BARE_ROUTES.some((route) => pathname?.startsWith(route))
+  // The home route ('/') is the standalone APA entry point — it carries its own
+  // header/footer, so it renders bare (exact match, not a startsWith prefix).
+  const bare = pathname === '/' || BARE_ROUTES.some((route) => pathname?.startsWith(route))
 
   return (
     <>
