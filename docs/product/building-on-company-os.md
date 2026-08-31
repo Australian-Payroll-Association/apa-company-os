@@ -2,15 +2,37 @@
 
 **Australian Payroll Association, Engineering plan · Three builds, one schema**
 
-Three teams have three app ideas, and an existing app, Payroll IQ, runs on a database of its own. This is the case for building all three **on the company data structure we already have**, the method for doing it without creating islands, and how Payroll IQ folds into the same database.
+Three teams have three app ideas, and an existing app, Payroll IQ, runs on a database of its own. This is the case for building all three **on the company data structure we already have**, the method for doing it without building separate, duplicate systems, and how Payroll IQ folds into the same database.
 
 - **Who this is for:** the people building Report 360, the PM system & Beryl ROI.
 - **The database:** `company_os` · 136 tables, one schema.
-- **The one rule:** reference the spine, never re-create it.
+- **The one rule:** reference the shared database, never re-create it.
 
 ---
 
-## 1. Build on it, not beside it
+## Start here
+
+Getting set up to build your piece.
+
+**What you do**
+
+1. **Get access.** You need the GitHub org (ask Dave) and Claude Code. Node is already installed.
+2. **Get your task.** Check with the coordinator for what you're building, so nobody's work clashes.
+3. **Add the Supabase credentials.** Dave gives you the values. Save them in a file called `.env.local`. It stays on your machine and is never shared.
+4. **Tell Claude Code what you're building.** From here, Claude Code does the technical work; you review what it shows you.
+
+**What you ask Claude Code to do**
+
+- **Clone the repo:** https://github.com/Australian-Payroll-Association/apa-company-os
+- **Make a branch** for your work. Never work on `main`.
+- **Install and start the app** so you can see it in your browser, and get you a login if your part is behind sign-in.
+- **Reuse the existing tables** this plan lists; only add the new ones it calls for. Never rebuild what is already there.
+- **Put code in the right place:** pages in `app/`, shared code in `lib/`, database changes as a new file in `supabase/`. Never change live data.
+- **Open a Pull Request** into `main` when it works. Once approved and merged, it goes live automatically, with no manual deploy.
+
+---
+
+## 1. Use what's already built
 
 `company_os` is the single Postgres schema behind the APA platform, **136 tables** covering people, clients, deals, surveys, tasks, documents, invoices and pay. Three properties every new build should lean on, not re-invent:
 
@@ -18,21 +40,21 @@ Three teams have three app ideas, and an existing app, Payroll IQ, runs on a dat
 - **Locked down by default.** Row-level security denies the browser key everything; all reads flow through a service-role client behind server actions. Pay-adjacent data lives in `*_sensitive` tables gated by `can_view_sensitive`.
 - **Derived, not duplicated.** The schema already refuses to store a number it can compute, cost is a view over hours and rates, never a saved column.
 
-Two of the three ideas, the project system and the report engine, already have **70–80% of their spine sitting in this schema**. Building them here means one login, one permission model, and one place a client or a cost lives. Building them as separate apps means re-implementing all of that, then reconciling it forever.
+Two of the three ideas, the project system and the report engine, already have **70–80% of what they need already in the database**. Building them here means one login, one permission model, and one place a client or a cost lives. Building them as separate apps means re-implementing all of that, then reconciling it forever.
 
 ---
 
 ## 2. The method
 
-Six moves you run *before* writing a migration. Transferable to any feature on any shared schema.
+Six moves you run *before* writing a migration. Applies to any new feature, not just these three.
 
-1. **Start from the spine, not a blank schema.** Find the four anchors your feature hangs off: **identity**, **account**, **catalogue**, **money**. If your design invents any of them, stop.
+1. **Start from what's already there, not a blank database.** Find the four things your feature connects to: **identity**, **account**, **catalogue**, **money**. If your design invents any of them, stop.
    - In `company_os`: identity `people` · account `companies` · catalogue `service_lines` / `products` · money `compensation_sensitive` / `deals` / `invoices`.
-2. **Reference the spine, don't reproduce it.** A new table carries a `person_id` / `company_id` FK *into* the spine. The anti-pattern is a second `users`/`clients` table that drifts out of sync. (The Beryl plan nearly did this, sending leads only to HubSpot.)
+2. **Use the existing tables, don't copy them.** A new table carries a `person_id` / `company_id` FK *into* the shared database. The mistake to avoid is a second `users`/`clients` table that drifts out of sync. (The Beryl plan nearly did this, sending leads only to HubSpot.)
 3. **Put the variable shape in `jsonb`, not new columns.** `surveys.metadata`, `survey_fields.config`, `tasks.metadata`, `companies.metadata` already exist, per-team/per-feature variability lives there. That's how the PM plan gets "own types, one roof."
 4. **Derive money, never store it.** Compute cost/margin/totals in a **view** at read time. A stored cost column becomes a second truth the moment a rate changes. `project_cost` = Σ hours × the person's *current* rate from `compensation_sensitive`.
 5. **Inherit the permission model.** Reads go through the service-role client behind a server action; pay-/PII-adjacent data goes in a `*_sensitive` table gated by `can_view_sensitive`. The PM plan's "only leadership sees cost rates" is *already solved* by that gate.
-6. **Hang features off polymorphic attach points.** `documents(entity_type, entity_id)` and `tasks(subject_type, subject_id)` already point at whatever you name, attach a report, a file, or a task to any entity without altering a shared table.
+6. **Use the tables built to attach to anything.** `documents(entity_type, entity_id)` and `tasks(subject_type, subject_id)` already point at whatever you name, attach a report, a file, or a task to any entity without altering a shared table.
 
 ---
 
@@ -58,7 +80,7 @@ Every build reads from the same canonical tables. Link to these, seed into these
 
 ## 4. The three builds
 
-Same anatomy for each: what it **reuses** from the spine, what's genuinely **new**, the core data to pull in, derived views, and permissions.
+Same anatomy for each: what it **reuses** from the shared database, what's genuinely **new**, the core data to pull in, derived views, and permissions.
 
 ### Build A · Payroll 360 Report Engine, *medium, cleanest fit*
 
@@ -161,16 +183,16 @@ company_os isn't empty here, it has a Stripe-wired stack too, a different shape.
 | Tables | `products`, `orders`, `subscriptions`, `token_purchases` | `plans`, `seat_tiers`, `billing_entitlement`, `invoice_records` |
 | Sells | events, courses, token packs | training **seats** to an org, entitlement-gated |
 
-- **One Stripe account, one webhook owner, the real footgun.** Two apps, one DB, each with its own `/api/webhooks/stripe` is where split-brain lives. Consolidate to one account; each app's webhook handles only *its own* product/price ids.
+- **One Stripe account, one webhook owner, the main risk.** Two apps, one DB, each with its own `/api/webhooks/stripe` is where split-brain lives. Consolidate to one account; each app's webhook handles only *its own* product/price ids.
 - **Shared customer + catalogue** fall out of the identity merge: the Stripe customer lives on unified `people`/`companies` (a client org is one customer, not two); link PIQ's `plans`/`seat_tiers` to `products` + `service_lines` for one catalogue.
-- **Keep both engines:** PIQ's seat + entitlement billing is a capability company_os lacks; company_os's one-off orders stay. Both key off the unified spine.
+- **Keep both engines:** PIQ's seat + entitlement billing is a capability company_os lacks; company_os's one-off orders stay. Both key off the unified core tables.
 - **Reconcile the two invoice tables:** company_os `invoices` (QBO-synced AR) vs PIQ `invoice_records` (Stripe-side), set a clear record-of-truth per transaction type.
 
 ### 5.5 What it takes
 
 No data migration (no users, no clients). Design + rewiring, done before launch.
 
-- Build the unified spine additions: `learner_profiles`, the `users` view, `client_types` tagging; land PIQ's `public` + `app_security` schemas in the one project (its `public` schema is empty and already PostgREST-exposed).
+- Build the unified core tables additions: `learner_profiles`, the `users` view, `client_types` tagging; land PIQ's `public` + `app_security` schemas in the one project (its `public` schema is empty and already PostgREST-exposed).
 - Repoint PIQ's few write paths (signup, profile, role change) at the real tables; rewrite `app_security.is_admin()` / `is_learner()` to resolve via the unified model.
 - Consolidate to one Stripe account + webhook ownership; link catalogue.
 - Re-point PIQ's `website/` env at the central project, migrate storage buckets, add its domain to the project's auth redirect URLs, regenerate DB types.
