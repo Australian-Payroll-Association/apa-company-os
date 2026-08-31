@@ -63,37 +63,13 @@ jobs:
             exit 1
           }
 
-      - name: TEMP diagnostic — token reachability (status codes only)
-        env:
-          SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
-        run: |
-          api() { curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $SYNC_TOKEN" "$1"; }
-          echo "GET /user                -> $(api https://api.github.com/user)"
-          echo "GET /repos/../8-Edges-Fork -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork)"
-          echo "GET /repos/../8edges     -> $(api https://api.github.com/repos/talentedgeai/8edges)"
-          echo "GET /repos/../edge8-web  -> $(api https://api.github.com/repos/talentedgeai/edge8-web)"
-          case "$SYNC_TOKEN" in
-            github_pat_*) kind=fine-grained ;;
-            ghp_*) kind=classic ;;
-            gho_*) kind=oauth ;;
-            *) kind=unrecognized ;;
-          esac
-          echo "token kind: $kind, length: ${#SYNC_TOKEN}"
-          echo "GET commits (Contents:R) -> $(api 'https://api.github.com/repos/talentedgeai/8-Edges-Fork/commits?per_page=1')"
-          echo "GET contents/ root       -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/contents/)"
-          echo "GET git/refs/heads/main  -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/git/refs/heads/main)"
-          try() {
-            if git ls-remote "$2" >/dev/null 2>ls.log; then
-              echo "$1 -> OK"
-            else
-              echo "$1 -> FAIL: $(sed -e "s#${SYNC_TOKEN}#***#g" ls.log | tr '\n' ' ' | cut -c1-90)"
-            fi
-          }
-          try "A x-access-token, exact case " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
-          try "B x-access-token, lowercase  " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-edges-fork.git"
-          try "C token-as-username, exact   " "https://${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
-          try "D oauth2 username, exact     " "https://oauth2:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
-          try "E x-access-token on 8edges   " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8edges.git"
+      - name: Drop the checkout credential
+        # actions/checkout writes http.https://github.com/.extraheader into the
+        # local git config. That header wins over credentials in a push URL, so
+        # without this every push would authenticate as GITHUB_TOKEN — which has
+        # no access to the fork — and fail with a misleading "Repository not
+        # found". Fetching is already done by this point.
+        run: git config --local --unset-all http.https://github.com/.extraheader || true
 
       - name: Mirror all branches and tags to 8-Edges-Fork
         env:
