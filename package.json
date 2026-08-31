@@ -17,10 +17,9 @@
     "@supabase/supabase-js": "^2.106.2",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.7.5",
-    "gray-matter": "^4.0.3",
     "hast-util-sanitize": "^5.0.2",
     "mammoth": "^1.12.0",
-    "next": "14.2.29",
+    "next": "14.2.35",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "react": "^18",
@@ -37,5 +36,9 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "nanoid": "^3.3.18"
   }
 }
