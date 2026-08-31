@@ -52,26 +52,33 @@ export async function isAdminEmail(email: string | null | undefined): Promise<bo
 
 // Returns the signed-in admin, or null if not signed in / not allowlisted.
 //
-// Reads the session LOCALLY (getSession, no network hop). Authentication is
-// revalidated against GoTrue by middleware.ts, which runs auth.getUser() on
-// every matched /admin request (incl. RSC loads and server-action POSTs) and
-// bounces anything invalid to /admin/login BEFORE this gate runs — so a forged
-// or revoked cookie never reaches here. getSession() also returns null once the
-// JWT expires, so an expired cookie can't pass either. The authoritative
-// admins-table authorization check below is unchanged and still enforced here.
+// Revalidates the JWT against GoTrue on every call (auth.getUser, one network
+// hop). This gate does NOT delegate authentication to middleware.
 //
-// COUPLING: this trusts middleware for the network revalidation. If the
-// middleware matcher stops covering an /admin path, or getUser() is removed from
-// it, restore getUser() here.
+// It used to: it read the session locally with getSession() and relied on
+// middleware.ts having already run auth.getUser(). getSession() performs no
+// signature check — it decodes the cookie and returns whatever is in it — so
+// that arrangement was only ever as strong as the middleware matcher. The
+// matcher covers "/admin/:path*", "/team/:path*", "/portal/:path*" and does NOT
+// cover /api, yet eight /api routes call these gates (admin chat, team chat,
+// publish-editor, both QBO routes, the portal assistants, the conversation
+// store). On those routes nothing revalidated the cookie, so a forged one was
+// accepted — and lib/admin-chat/privileged.ts treats a single email address as
+// the write-privileged user.
+//
+// Verifying here instead of upstream makes the guarantee local to the gate: it
+// holds no matter which route calls it, and cannot be broken by editing a
+// matcher in another file. The authoritative admins-table authorization check
+// below is unchanged.
 //
 // Wrapped in React cache(): the admin layout, the page, and any server component
-// that calls requireAdmin() during one render share a single resolve.
+// that calls requireAdmin() during one render share a single resolve, so the
+// revalidation is one network hop per request, not one per caller.
 export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   const supabase = createSessionClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabase.auth.getUser();
   const email = user?.email?.toLowerCase();
   if (!user || !email || !(await isAdminEmail(email))) return null;
   return { id: user.id, email };
