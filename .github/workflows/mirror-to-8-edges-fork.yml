@@ -79,6 +79,13 @@ jobs:
             *) kind=unrecognized ;;
           esac
           echo "token kind: $kind, length: ${#SYNC_TOKEN}"
+          echo "GET contents/README      -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/contents/README.md)"
+          echo "GET git/refs/heads/main  -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/git/refs/heads/main)"
+          if git ls-remote "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git" >/dev/null 2>ls.log; then
+            echo "git ls-remote            -> OK (read works)"
+          else
+            echo "git ls-remote            -> FAILED: $(sed -e "s#${SYNC_TOKEN}#***#g" ls.log | tr '\n' ' ')"
+          fi
 
       - name: Mirror all branches and tags to 8-Edges-Fork
         env:
