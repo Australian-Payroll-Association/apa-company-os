@@ -82,11 +82,18 @@ jobs:
           echo "GET commits (Contents:R) -> $(api 'https://api.github.com/repos/talentedgeai/8-Edges-Fork/commits?per_page=1')"
           echo "GET contents/ root       -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/contents/)"
           echo "GET git/refs/heads/main  -> $(api https://api.github.com/repos/talentedgeai/8-Edges-Fork/git/refs/heads/main)"
-          if git ls-remote "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git" >/dev/null 2>ls.log; then
-            echo "git ls-remote            -> OK (read works)"
-          else
-            echo "git ls-remote            -> FAILED: $(sed -e "s#${SYNC_TOKEN}#***#g" ls.log | tr '\n' ' ')"
-          fi
+          try() {
+            if git ls-remote "$2" >/dev/null 2>ls.log; then
+              echo "$1 -> OK"
+            else
+              echo "$1 -> FAIL: $(sed -e "s#${SYNC_TOKEN}#***#g" ls.log | tr '\n' ' ' | cut -c1-90)"
+            fi
+          }
+          try "A x-access-token, exact case " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
+          try "B x-access-token, lowercase  " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-edges-fork.git"
+          try "C token-as-username, exact   " "https://${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
+          try "D oauth2 username, exact     " "https://oauth2:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
+          try "E x-access-token on 8edges   " "https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8edges.git"
 
       - name: Mirror all branches and tags to 8-Edges-Fork
         env:
