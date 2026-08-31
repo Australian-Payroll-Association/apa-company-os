@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Per-client extraction from a multi-client meeting. The weekly planning/retro
 // meeting covers several clients in one transcript; the meeting stays ONE
@@ -94,11 +95,15 @@ export async function extractSprintBrief(meetingId: string, clientName: string):
       ],
     });
 
-    if (response.stop_reason === "refusal") return { ok: false, error: "The model declined to read this transcript." };
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return { ok: false, error: "Model returned no output." };
+    const out = readTextOutput(
+      "sprint-extract",
+      MODEL,
+      response,
+      "The model declined to read this transcript.",
+    );
+    if (!out.ok) return { ok: false, error: out.error };
 
-    const parsed = JSON.parse(textBlock.text) as SprintBriefDraft;
+    const parsed = JSON.parse(out.text) as SprintBriefDraft;
     const clean = (s: string | null) => (typeof s === "string" && s.trim() ? s.trim() : null);
     return {
       ok: true,

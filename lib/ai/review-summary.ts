@@ -15,6 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { REVIEW_DIMENSIONS } from "@/lib/reviews";
 import { readReviewTranscript } from "@/lib/reviews/transcript";
+import { readTextOutput } from "@/lib/ai/response";
 
 const MODEL = process.env.REVIEW_CLAUDE_MODEL || "claude-sonnet-5";
 const MAX_TRANSCRIPT_CHARS = 150_000;
@@ -204,10 +205,9 @@ export async function summarizeReviewCall(reviewId: string): Promise<Ok | Err> {
         },
       ],
     });
-    if (response.stop_reason === "refusal") return fail("The model declined this transcript.");
-    const block = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!block) return fail("Model returned no output.");
-    const parsed = JSON.parse(block.text) as {
+    const out = readTextOutput("review-summary", MODEL, response, "The model declined this transcript.");
+    if (!out.ok) return fail(out.error);
+    const parsed = JSON.parse(out.text) as {
       overview: string;
       strengths: string[];
       growth_areas: string[];

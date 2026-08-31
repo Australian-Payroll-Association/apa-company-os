@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { getBrandProfile } from "@/lib/admin/brand-profiles";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Drafts the search + generative-engine plan for a campaign. Unlike the freeform
 // note it replaces, this produces three named sections the writer and the blog
@@ -97,10 +98,9 @@ Write the Search / FAQ / GEO plan for this campaign.`;
       messages: [{ role: "user", content: userMsg }],
     });
 
-    if (response.stop_reason === "refusal") return { ok: false, error: "The model declined to draft this." };
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return { ok: false, error: "Model returned no output." };
-    const parsed = JSON.parse(textBlock.text) as { seo_geo_md?: string };
+    const out = readTextOutput("campaign-seo", MODEL, response, "The model declined to draft this.");
+    if (!out.ok) return { ok: false, error: out.error };
+    const parsed = JSON.parse(out.text) as { seo_geo_md?: string };
     const seoGeoMd = (parsed.seo_geo_md ?? "").trim();
     if (!seoGeoMd) return { ok: false, error: "The strategist produced nothing usable." };
 

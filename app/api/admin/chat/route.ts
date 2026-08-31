@@ -23,6 +23,8 @@ import { runReadOnlyQuery } from "@/lib/admin-chat/db";
 import { chatbotTools, PRIVILEGED_TOOL_NAMES } from "@/lib/admin-chat/tools";
 import { buildSystemPrompt } from "@/lib/admin-chat/system-prompt";
 import { isPrivilegedChatUser } from "@/lib/admin-chat/privileged";
+import { withHistoryCache } from "@/lib/ai/cache";
+import { logAiUsage } from "@/lib/ai/response";
 import {
   performApprovedWrite,
   performApprovedEmail,
@@ -261,13 +263,14 @@ export async function POST(request: NextRequest) {
             thinking: { type: "adaptive" },
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
             tools,
-            messages,
+            messages: withHistoryCache(messages),
           });
           msgStream.on("text", (delta) => {
             send({ type: "text", text: delta });
             appendBotText(delta);
           });
           const msg = await msgStream.finalMessage();
+          logAiUsage("admin-chat", MODEL, msg.usage);
 
           messages.push({ role: "assistant", content: msg.content });
           if (msg.stop_reason !== "tool_use") break;

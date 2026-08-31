@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Summarize a client meeting transcript. Reads the transcript from
 // call_transcripts (for the source='notes' meetings row) and asks Claude for a
@@ -108,13 +109,15 @@ async function run(meetingId: string): Promise<Ok | Err> {
     messages: [{ role: "user", content: `Meeting transcript:\n\n${transcript}` }],
   });
 
-  if (response.stop_reason === "refusal") {
-    return markFailed(meetingId, "The model declined to summarize this transcript.");
-  }
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!textBlock) return markFailed(meetingId, "Model returned no text output.");
+  const out = readTextOutput(
+    "meeting-summary",
+    MODEL,
+    response,
+    "The model declined to summarize this transcript.",
+  );
+  if (!out.ok) return markFailed(meetingId, out.error);
 
-  const parsed = JSON.parse(textBlock.text) as {
+  const parsed = JSON.parse(out.text) as {
     title: string;
     summary_markdown: string;
     attendees: string[];

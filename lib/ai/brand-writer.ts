@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getBrandProfile, type BrandProfile } from "@/lib/admin/brand-profiles";
+import { readTextOutput } from "@/lib/ai/response";
 
 // The AI writer. Given a brand and a source (a blog post or a brief), it drafts
 // content by following the brand's own content_rules_md. Nothing about the
@@ -146,13 +147,15 @@ Draft the deliverables the content rules specify, re-purposed to this brand's le
       messages: [{ role: "user", content: userMsg }],
     });
 
-    if (response.stop_reason === "refusal") {
-      return { ok: false, error: "The model declined to draft this content." };
-    }
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return { ok: false, error: "Model returned no output." };
+    const out = readTextOutput(
+      "brand-writer",
+      MODEL,
+      response,
+      "The model declined to draft this content.",
+    );
+    if (!out.ok) return { ok: false, error: out.error };
 
-    const parsed = JSON.parse(textBlock.text) as {
+    const parsed = JSON.parse(out.text) as {
       outputs: {
         channel: string; title?: string; subject?: string; preheader?: string; body_md: string;
         blog_style?: string; social_style?: string; image_style?: string; seo_md?: string; image_brief_md?: string;

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Summarize the themes running across recently posted ideas and learnings, for
 // the "Trends across ideas" card on the Innovation cockpit. Same never-throws
@@ -73,10 +74,12 @@ export async function generateIdeaTrends(): Promise<IdeaTrends | null> {
         },
       ],
     });
-    if (response.stop_reason === "refusal") return null;
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-    if (!textBlock) return null;
-    const parsed = JSON.parse(textBlock.text) as { themes?: unknown };
+    const out = readTextOutput("idea-trends", MODEL, response);
+    if (!out.ok) {
+      console.error("idea-trends:", out.error);
+      return null;
+    }
+    const parsed = JSON.parse(out.text) as { themes?: unknown };
     const themes = (parsed.themes ?? []) as unknown[];
     const clean = themes.filter((t): t is string => typeof t === "string" && t.trim().length > 0).slice(0, 4);
     if (clean.length === 0) return null;

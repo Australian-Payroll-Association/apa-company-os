@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { companyOs } from "@/lib/supabase";
 import { IDEA_OFFICES } from "@/lib/ideas";
+import { readTextOutput } from "@/lib/ai/response";
 
 // Ideas Backlog generation, both kinds. Build ideas: reads the first four Ds
 // of the 5D framework, asks Claude — writing as Dan Shipper — for a product
@@ -167,13 +168,15 @@ Turn this into a product plan and classify it into one office.`;
     messages: [{ role: "user", content: prompt }],
   });
 
-  if (response.stop_reason === "refusal") {
-    return markFailed(ideaId, "The model declined to generate a plan for this idea.");
-  }
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!textBlock) return markFailed(ideaId, "Model returned no text output.");
+  const out = readTextOutput(
+    "idea-plan",
+    MODEL,
+    response,
+    "The model declined to generate a plan for this idea.",
+  );
+  if (!out.ok) return markFailed(ideaId, out.error);
 
-  const parsed = JSON.parse(textBlock.text) as {
+  const parsed = JSON.parse(out.text) as {
     office: string;
     plan_markdown?: string;
     summary_markdown?: string;

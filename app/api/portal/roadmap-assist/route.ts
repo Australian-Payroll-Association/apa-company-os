@@ -13,6 +13,7 @@ import { contributorCompanyScope } from "@/lib/portal/roles";
 import { getGroupsForActor } from "@/lib/portal/backlog";
 import { buildRoadmapAssistPrompt } from "@/lib/portal/roadmap-assist-prompt";
 import { isBacklogPriority } from "@/lib/client-backlog";
+import { readTextOutput } from "@/lib/ai/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,10 +90,12 @@ export async function POST(request: NextRequest) {
       system,
       messages,
     });
-    const text = msg.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+    const out = readTextOutput("roadmap-assist", MODEL, msg);
+    if (!out.ok) {
+      console.error("portal roadmap-assist:", out.error);
+      return NextResponse.json({ error: "The assistant hit a problem. Please try again." }, { status: 502 });
+    }
+    const text = out.text;
     const draft = parseDraft(text, groups.map((g) => g.key));
     const reply = draft ? text.replace(/```json[\s\S]*?```/, "").trim() : text.trim();
     return NextResponse.json({

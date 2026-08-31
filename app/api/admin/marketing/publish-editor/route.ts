@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAdminUser } from "@/lib/admin-auth";
 import { makePublishEditorTools } from "@/lib/marketing/publish-editor/tools";
 import { PUBLISH_EDITOR_SYSTEM } from "@/lib/marketing/publish-editor/system-prompt";
+import { withHistoryCache } from "@/lib/ai/cache";
+import { logAiUsage } from "@/lib/ai/response";
 
 // In-app loop runtime for the Publish Editor agent. A teammate hits this from the
 // admin with one assetId; the agent reviews, fixes, publishes, and reports over
@@ -59,10 +61,11 @@ export async function POST(request: NextRequest) {
             output_config: { effort: "medium" },
             system: [{ type: "text", text: PUBLISH_EDITOR_SYSTEM, cache_control: { type: "ephemeral" } }],
             tools,
-            messages,
+            messages: withHistoryCache(messages),
           });
           msgStream.on("text", (delta) => send({ type: "text", text: delta }));
           const msg = await msgStream.finalMessage();
+          logAiUsage("publish-editor", MODEL, msg.usage);
           messages.push({ role: "assistant", content: msg.content });
           if (msg.stop_reason !== "tool_use") break;
 

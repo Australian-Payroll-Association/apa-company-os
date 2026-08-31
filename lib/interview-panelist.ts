@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase, companyOs } from "@/lib/supabase";
 import { AI_PANELIST_EMAIL, AI_PANELIST_NAME, DEFAULT_CRITERIA, recommendationToDb } from "@/lib/admin/interview-panel";
+import { readTextOutput } from "@/lib/ai/response";
 
 // The AI interview panelist. Given one interview round with a transcript, it
 // reads the transcript against the job, the resume screen, prior rounds, and the
@@ -205,11 +206,15 @@ async function runPanelist(interviewId: string): Promise<Ok | Err> {
     messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
   });
 
-  if (response.stop_reason === "refusal") return { ok: false, error: "The model declined to score this interview." };
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!textBlock) return { ok: false, error: "Model returned no text output." };
+  const out = readTextOutput(
+    "interview-panelist",
+    MODEL,
+    response,
+    "The model declined to score this interview.",
+  );
+  if (!out.ok) return { ok: false, error: out.error };
 
-  const parsed = JSON.parse(textBlock.text) as PanelistOutput;
+  const parsed = JSON.parse(out.text) as PanelistOutput;
   return writeScorecard(interviewId, parsed);
 }
 
