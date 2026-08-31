@@ -84,6 +84,8 @@ Same anatomy for each: what it **reuses** from the shared database, what's genui
 
 ### Build A · Payroll 360 Report Engine, *medium, cleanest fit*
 
+**Full detail: [project-report-360.md](project-report-360.md)**
+
 A client survey becomes a structured, house-style compliance-report *draft*, consultants review and sharpen instead of writing from a blank page.
 
 - **Reuses:** `surveys`, `survey_fields`, `survey_responses`, `survey_answers`, `companies`, `people`, `person_companies`, `deals`, `service_lines`, `documents`, `assistant_conversations`. The survey engine *is* the intake tool; the 35-question Knowledge Assessment is just a scored survey.
@@ -97,6 +99,8 @@ A client survey becomes a structured, house-style compliance-report *draft*, con
 
 ### Build B · Unified Project System, *larger, biggest win*
 
+**Full detail: [project-unified-pm.md](project-unified-pm.md)**
+
 One system for ~24 people to replace Kantata, ClickUp & Infinity. The loop: create a project → log time → cost rolls up against budget.
 
 - **Reuses:** `boards`, `board_columns`, `board_members`, `sprints`, `tasks`, `task_comments`, `task_stage_log`, `staff_assignments`, `availability_blocks`, `people`, `team_members`, `compensation_sensitive`, `deals`, `invoices`, `expenses`. The board system already covers projects/tasks/sprints/allocation; the leadership-only cost-rate requirement is pre-solved by `compensation_sensitive`'s gate.
@@ -109,6 +113,8 @@ One system for ~24 people to replace Kantata, ClickUp & Infinity. The loop: crea
 - **Two things to get right:** adoption (build `time_entry` + a ≤10-second logging screen first); one source of truth for hours (reconcile `tasks.human_tokens` vs real `time_entry`).
 
 ### Build C · Beryl ROI Calculator, *small, days*
+
+**Full detail: [project-beryl-roi.md](project-beryl-roi.md)**
 
 A public, ungated calculator that turns a prospect's own query volume into a dollar figure, optional PDF becomes a lead.
 
