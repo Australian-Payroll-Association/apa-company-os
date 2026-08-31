@@ -6,14 +6,14 @@
 
 <style>
   :root{
-    --ground:#eceff5;
-    --surface:#ffffff;
-    --surface-2:#f4f6fa;
-    --ink:#28324a;
-    --ink-soft:#414c66;
-    --muted:#6a7488;
-    --line:#dbe0ea;
-    --line-soft:#e8ecf3;
+    --ground:#f5f6f9;        /* apa-page */
+    --surface:#ffffff;       /* apa-surface */
+    --surface-2:#eef1f6;
+    --ink:#333333;           /* apa-ink */
+    --ink-soft:#465066;
+    --muted:#5c6a85;         /* apa-ink-muted */
+    --line:#d1d5dd;          /* apa-border */
+    --line-soft:#e4e8ef;
     --navy:#465778;
     --navy-dark:#384660;
     --link:#425a86;
@@ -287,7 +287,7 @@
   <div class="top-inner">
     <div class="eyebrow">Australian Payroll Association <span class="dot"></span> Engineering plan <span class="dot"></span> Three builds, one schema</div>
     <h1>Building on <span class="m">company_os</span></h1>
-    <p class="lede">Three teams have three app ideas, and an existing app &mdash; Payroll IQ &mdash; runs on a database of its own. This is the case for building all three <b>on the company data structure we already have</b>, the method for doing it without creating islands, and how Payroll IQ folds into the same database.</p>
+    <p class="lede">Three teams have three app ideas, and an existing app, Payroll IQ, runs on a database of its own. This is the case for building all three <b>on the company data structure we already have</b>, the method for doing it without creating islands, and how Payroll IQ folds into the same database.</p>
     <div class="meta-row">
       <div><span class="k">Who this is for</span><span class="v">The people building Report&nbsp;360, the PM system &amp; Beryl ROI</span></div>
       <div><span class="k">The database</span><span class="v"><span class="m">company_os</span> &middot; 136 tables, one schema</span></div>
@@ -318,31 +318,31 @@
       <section class="blk" id="thesis">
         <div class="sec-head"><span class="n">01</span><div><h2>Build on it, not beside it</h2><p class="sub">What &ldquo;the company database&rdquo; is, and why a new app should extend it rather than start blank.</p></div></div>
         <div class="prose">
-          <p><span class="m" style="color:var(--navy);font-weight:600">company_os</span> is the single Postgres schema behind the APA platform &mdash; <strong>136 tables</strong> covering people, clients, deals, surveys, tasks, documents, invoices and pay. It has three properties every new build should lean on, not re-invent:</p>
+          <p><span class="m" style="color:var(--navy);font-weight:600">company_os</span> is the single Postgres schema behind the APA platform, <strong>136 tables</strong> covering people, clients, deals, surveys, tasks, documents, invoices and pay. It has three properties every new build should lean on, not re-invent:</p>
           <ul class="tick">
             <li><strong>One identity, one client list.</strong> Every human is a row in <code>people</code>; every client is a row in <code>companies</code>. Nothing else keys a person or a client.</li>
             <li><strong>Locked down by default.</strong> Row-level security denies the browser key everything; all reads flow through a service-role client behind server actions. Pay-adjacent data lives in <code>*_sensitive</code> tables gated by <code>can_view_sensitive</code>.</li>
-            <li><strong>Derived, not duplicated.</strong> The schema already refuses to store a number it can compute &mdash; cost is a view over hours and rates, never a saved column.</li>
+            <li><strong>Derived, not duplicated.</strong> The schema already refuses to store a number it can compute, cost is a view over hours and rates, never a saved column.</li>
           </ul>
-          <p style="margin-top:14px">Two of the three ideas &mdash; the project system and the report engine &mdash; already have <strong>70&ndash;80% of their spine sitting in this schema</strong>. Building them here means one login, one permission model, and one place a client or a cost lives. Building them as separate apps means re-implementing all of that, then reconciling it forever.</p>
+          <p style="margin-top:14px">Two of the three ideas, the project system and the report engine, already have <strong>70&ndash;80% of their spine sitting in this schema</strong>. Building them here means one login, one permission model, and one place a client or a cost lives. Building them as separate apps means re-implementing all of that, then reconciling it forever.</p>
         </div>
       </section>
 
       <!-- METHOD -->
       <section class="blk" id="method">
-        <div class="sec-head"><span class="n">02</span><div><h2>The method</h2><p class="sub">Six moves you run <em>before</em> writing a migration. This is the transferable part &mdash; it applies to any feature on any shared schema, not just these three.</p></div></div>
+        <div class="sec-head"><span class="n">02</span><div><h2>The method</h2><p class="sub">Six moves you run <em>before</em> writing a migration. This is the transferable part, it applies to any feature on any shared schema, not just these three.</p></div></div>
         <div class="method">
 
           <div class="rule"><span class="rn">1</span>
             <h4>Start from the spine, not a blank schema</h4>
-            <div class="r-body">Before you design a table, find the four anchors your feature will hang off: <strong>identity</strong>, <strong>account</strong>, <strong>catalogue</strong>, <strong>money</strong>. If your design invents any of them, stop &mdash; they already exist.</div>
+            <div class="r-body">Before you design a table, find the four anchors your feature will hang off: <strong>identity</strong>, <strong>account</strong>, <strong>catalogue</strong>, <strong>money</strong>. If your design invents any of them, stop, they already exist.</div>
             <div class="r-eg">In <span class="m">company_os</span>: identity <b>people</b> &middot; account <b>companies</b> &middot; catalogue <b>service_lines</b> / <b>products</b> &middot; money <b>compensation_sensitive</b> / <b>deals</b> / <b>invoices</b>.</div>
           </div>
 
           <div class="rule"><span class="rn">2</span>
             <h4>Reference the spine, don&rsquo;t reproduce it</h4>
             <div class="r-body">A new table carries a <code>person_id</code> or <code>company_id</code> foreign key <em>into</em> the spine. The anti-pattern is a second <code>users</code> or <code>clients</code> table that immediately starts drifting out of sync.</div>
-            <div class="r-eg">The Beryl plan nearly did this &mdash; sending leads only to HubSpot. A lead is a <b>person</b> + a <b>lead</b> row here already, with an owner and an SLA.</div>
+            <div class="r-eg">The Beryl plan nearly did this, sending leads only to HubSpot. A lead is a <b>person</b> + a <b>lead</b> row here already, with an owner and an SLA.</div>
           </div>
 
           <div class="rule"><span class="rn">3</span>
@@ -353,14 +353,14 @@
 
           <div class="rule"><span class="rn">4</span>
             <h4>Derive money, never store it</h4>
-            <div class="r-body">Cost, margin, totals &mdash; compute them in a <strong>view</strong> at read time. A stored cost column becomes a second truth the moment a rate changes, and every report built on it is quietly wrong.</div>
+            <div class="r-body">Cost, margin, totals, compute them in a <strong>view</strong> at read time. A stored cost column becomes a second truth the moment a rate changes, and every report built on it is quietly wrong.</div>
             <div class="r-eg"><span class="m">project_cost</span> = &Sigma; hours &times; the person&rsquo;s <b>current</b> rate from <b>compensation_sensitive</b>. The OS already works this way; the PM plan asks for the same rule.</div>
           </div>
 
           <div class="rule"><span class="rn">5</span>
             <h4>Inherit the permission model</h4>
             <div class="r-body">Don&rsquo;t invent auth. Reads go through the service-role client behind a server action; anything pay- or PII-adjacent goes in a <code>*_sensitive</code> table and is gated by the existing <code>can_view_sensitive</code> flag.</div>
-            <div class="r-eg">The PM plan&rsquo;s scariest requirement &mdash; &ldquo;only leadership sees cost rates&rdquo; &mdash; is <b>already solved</b> by that gate. You reuse it; you don&rsquo;t build it.</div>
+            <div class="r-eg">The PM plan&rsquo;s scariest requirement, &ldquo;only leadership sees cost rates&rdquo;, is <b>already solved</b> by that gate. You reuse it; you don&rsquo;t build it.</div>
           </div>
 
           <div class="rule"><span class="rn">6</span>
@@ -374,22 +374,22 @@
 
       <!-- CONTRACT -->
       <section class="blk" id="contract">
-        <div class="sec-head"><span class="n">03</span><div><h2>The core data to pull in</h2><p class="sub">Every build reads from the same handful of canonical tables. Treat this as the contract: link to these, seed into these &mdash; never keep your own copy.</p></div></div>
+        <div class="sec-head"><span class="n">03</span><div><h2>The core data to pull in</h2><p class="sub">Every build reads from the same handful of canonical tables. Treat this as the contract: link to these, seed into these, never keep your own copy.</p></div></div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Canonical entity</th><th>What it is</th><th>You read / link by</th><th>Never duplicate</th></tr></thead>
             <tbody>
-              <tr><td class="ent"><span class="m">people</span></td><td>Every human &mdash; staff, client contact, prospect. Has <span class="m">email</span>, <span class="m">auth_user_id</span>, <span class="m">is_team_member</span>.</td><td><span class="m">person_id</span></td><td class="no">a users / contacts table</td></tr>
+              <tr><td class="ent"><span class="m">people</span></td><td>Every human, staff, client contact, prospect. Has <span class="m">email</span>, <span class="m">auth_user_id</span>, <span class="m">is_team_member</span>.</td><td><span class="m">person_id</span></td><td class="no">a users / contacts table</td></tr>
               <tr><td class="ent"><span class="m">companies</span></td><td>The client account. <span class="m">industry</span>, <span class="m">size_band</span>, <span class="m">client_types[]</span>, <span class="m">lifecycle_stage</span>.</td><td><span class="m">company_id</span></td><td class="no">clients keyed by name string</td></tr>
-              <tr><td class="ent"><span class="m">person_companies</span></td><td>Who works where &mdash; contact &harr; employer, with <span class="m">role</span>, <span class="m">is_primary</span>.</td><td><span class="m">person_id + company_id</span></td><td class="no">an employer text field</td></tr>
-              <tr><td class="ent"><span class="m">service_lines</span></td><td>What APA sells: consulting, training, advisory &mdash; grouped by <span class="m">business_unit</span>.</td><td><span class="m">service_line_id</span></td><td class="no">a hardcoded product list</td></tr>
-              <tr><td class="ent"><span class="m">products</span></td><td>Sellable items with price &mdash; e.g. the Beryl subscription, courses. <span class="m">amount_cents</span>, <span class="m">stripe_*</span>.</td><td><span class="m">product slug / id</span></td><td class="no">a price hardcoded in the app</td></tr>
-              <tr><td class="ent"><span class="m">compensation_sensitive</span></td><td>The cost-rate source. <span class="m">amount_cents</span>, <span class="m">pay_period</span>, <span class="m">is_current</span> &mdash; permissioned.</td><td>the sensitive gate only</td><td class="no">a rate copied onto a project</td></tr>
+              <tr><td class="ent"><span class="m">person_companies</span></td><td>Who works where, contact &harr; employer, with <span class="m">role</span>, <span class="m">is_primary</span>.</td><td><span class="m">person_id + company_id</span></td><td class="no">an employer text field</td></tr>
+              <tr><td class="ent"><span class="m">service_lines</span></td><td>What APA sells: consulting, training, advisory, grouped by <span class="m">business_unit</span>.</td><td><span class="m">service_line_id</span></td><td class="no">a hardcoded product list</td></tr>
+              <tr><td class="ent"><span class="m">products</span></td><td>Sellable items with price, e.g. the Beryl subscription, courses. <span class="m">amount_cents</span>, <span class="m">stripe_*</span>.</td><td><span class="m">product slug / id</span></td><td class="no">a price hardcoded in the app</td></tr>
+              <tr><td class="ent"><span class="m">compensation_sensitive</span></td><td>The cost-rate source. <span class="m">amount_cents</span>, <span class="m">pay_period</span>, <span class="m">is_current</span>, permissioned.</td><td>the sensitive gate only</td><td class="no">a rate copied onto a project</td></tr>
               <tr><td class="ent"><span class="m">surveys</span> +&nbsp;fields<br>+&nbsp;responses +&nbsp;answers</td><td>The whole intake / assessment engine. Typed fields, per-field <span class="m">config</span>, one row per answer.</td><td><span class="m">survey_id</span> / <span class="m">response_id</span></td><td class="no">a bespoke form + answers table</td></tr>
               <tr><td class="ent"><span class="m">documents</span></td><td>Polymorphic file store. <span class="m">storage_path</span> + <span class="m">entity_type / entity_id</span> to attach to anything.</td><td><span class="m">entity_type + entity_id</span></td><td class="no">a feature-specific files table</td></tr>
               <tr><td class="ent"><span class="m">deals</span></td><td>An engagement / opportunity and its value. <span class="m">company_id</span>, <span class="m">amount_cents</span>, <span class="m">service_line_id</span>, stage.</td><td><span class="m">deal_id</span></td><td class="no">an engagements table</td></tr>
-              <tr><td class="ent"><span class="m">lead</span></td><td>Inbound with a workflow &mdash; <span class="m">status</span>, <span class="m">sla_due_at</span>, <span class="m">owner_id</span>, <span class="m">source</span>.</td><td><span class="m">person_id</span></td><td class="no">a leads spreadsheet / silo</td></tr>
-              <tr><td class="ent"><span class="m">assistant_conversations</span></td><td>Stored AI threads &mdash; reuse for any drafting / assist feature.</td><td><span class="m">id</span> + entity ref</td><td class="no">a new chat-history table</td></tr>
+              <tr><td class="ent"><span class="m">lead</span></td><td>Inbound with a workflow, <span class="m">status</span>, <span class="m">sla_due_at</span>, <span class="m">owner_id</span>, <span class="m">source</span>.</td><td><span class="m">person_id</span></td><td class="no">a leads spreadsheet / silo</td></tr>
+              <tr><td class="ent"><span class="m">assistant_conversations</span></td><td>Stored AI threads, reuse for any drafting / assist feature.</td><td><span class="m">id</span> + entity ref</td><td class="no">a new chat-history table</td></tr>
             </tbody>
           </table>
         </div>
@@ -407,7 +407,7 @@
             <div>
               <div class="lbl">Build A &middot; Office of the Future</div>
               <h3>Payroll 360 Report Engine</h3>
-              <p class="one">A client survey becomes a structured, house-style compliance-report <em>draft</em> &mdash; consultants review and sharpen instead of writing from a blank page.</p>
+              <p class="one">A client survey becomes a structured, house-style compliance-report <em>draft</em>, consultants review and sharpen instead of writing from a blank page.</p>
             </div>
             <span class="sizetag m">Medium &middot; cleanest fit</span>
           </div>
@@ -415,7 +415,7 @@
 
             <div class="brow">
               <div class="rk"><span class="swatch g"></span>Reuses from the spine</div>
-              <p>The survey engine <em>is</em> the intake tool, verbatim &mdash; the 35-question Knowledge Assessment is just a scored survey. Client, engagement, evidence pack and the AI draft are all existing tables.</p>
+              <p>The survey engine <em>is</em> the intake tool, verbatim, the 35-question Knowledge Assessment is just a scored survey. Client, engagement, evidence pack and the AI draft are all existing tables.</p>
               <div class="chip-row" style="margin-top:12px">
                 <span class="chip reuse">surveys</span><span class="chip reuse">survey_fields</span><span class="chip reuse">survey_responses</span><span class="chip reuse">survey_answers</span><span class="chip reuse">companies</span><span class="chip reuse">people</span><span class="chip reuse">person_companies</span><span class="chip reuse">deals</span><span class="chip reuse">service_lines</span><span class="chip reuse">documents</span><span class="chip reuse">assistant_conversations</span>
               </div>
@@ -431,11 +431,11 @@
                 <div class="tdef">
                   <div class="tname">report_section <span class="tag">new</span></div>
                   <div class="cols">report_id <span class="fk">&rarr; report</span>, position, kind <span class="c">context|observation|recommendation</span>,<br>body_html, source_refs <span class="c">jsonb</span>, is_placeholder <span class="c">bool</span></div>
-                  <div class="note">Placeholders double as the evidence checklist &mdash; a section that still needs a data extract flags itself.</div>
+                  <div class="note">Placeholders double as the evidence checklist, a section that still needs a data extract flags itself.</div>
                 </div>
                 <div class="tdef">
                   <div class="tname">assessment scores <span class="tag alt">new or on metadata</span></div>
-                  <div class="cols">response_id <span class="fk">&rarr; survey_responses</span>, competency, raw_score, benchmark <span class="c">&mdash; or fold onto survey_responses.metadata</span></div>
+                  <div class="cols">response_id <span class="fk">&rarr; survey_responses</span>, competency, raw_score, benchmark <span class="c">, or fold onto survey_responses.metadata</span></div>
                 </div>
               </div>
             </div>
@@ -445,7 +445,7 @@
               <ul class="tick">
                 <li>The client as a <strong>companies</strong> row + primary contact via <strong>people</strong> / <strong>person_companies</strong>.</li>
                 <li>The engagement as a <strong>deals</strong> row on the consulting <strong>service_line</strong>.</li>
-                <li>Both intake layers as <strong>surveys</strong> &mdash; the environment survey and the 35-Q assessment &mdash; with each field&rsquo;s competency and its client/consultant view held in <code>survey_fields.config</code>.</li>
+                <li>Both intake layers as <strong>surveys</strong>, the environment survey and the 35-Q assessment, with each field&rsquo;s competency and its client/consultant view held in <code>survey_fields.config</code>.</li>
                 <li>The data-and-evidence pack as <strong>documents</strong> attached to the report (<code>entity_type = 'report'</code>).</li>
                 <li>The 12-part house style + section template, seeded once as a config document the drafter reads.</li>
               </ul>
@@ -459,7 +459,7 @@
 
             <div class="callout">
               <div class="cl-k">Where the value lives</div>
-              <p>House-style fidelity and <strong>citations</strong>. The draft must cite its sources (the <code>*Source:</code> lines), so store evidence provenance on <code>documents</code> / answers &mdash; the AI cites, it never invents.</p>
+              <p>House-style fidelity and <strong>citations</strong>. The draft must cite its sources (the <code>*Source:</code> lines), so store evidence provenance on <code>documents</code> / answers, the AI cites, it never invents.</p>
             </div>
           </div>
         </div>
@@ -480,19 +480,19 @@
 
             <div class="brow">
               <div class="rk"><span class="swatch g"></span>Reuses from the spine</div>
-              <p>Projects, tasks, sprints and allocation already exist as the board system. Its scariest requirement &mdash; leadership-only cost rates &mdash; is pre-solved by <code>compensation_sensitive</code>&rsquo;s gate.</p>
+              <p>Projects, tasks, sprints and allocation already exist as the board system. Its scariest requirement, leadership-only cost rates, is pre-solved by <code>compensation_sensitive</code>&rsquo;s gate.</p>
               <div class="chip-row" style="margin-top:12px">
                 <span class="chip reuse">boards</span><span class="chip reuse">board_columns</span><span class="chip reuse">board_members</span><span class="chip reuse">sprints</span><span class="chip reuse">tasks</span><span class="chip reuse">task_comments</span><span class="chip reuse">task_stage_log</span><span class="chip reuse">staff_assignments</span><span class="chip reuse">availability_blocks</span><span class="chip reuse">people</span><span class="chip reuse">team_members</span><span class="chip reuse">compensation_sensitive</span><span class="chip reuse">deals</span><span class="chip reuse">invoices</span><span class="chip reuse">expenses</span>
               </div>
             </div>
 
             <div class="brow">
-              <div class="rk"><span class="swatch y"></span>New &mdash; and it&rsquo;s mostly one table</div>
+              <div class="rk"><span class="swatch y"></span>New, and it&rsquo;s mostly one table</div>
               <div class="schema">
                 <div class="tdef">
                   <div class="tname">time_entry <span class="tag">new &middot; the real gap</span></div>
                   <div class="cols">person_id <span class="fk">&rarr; people</span>, board_id <span class="fk">&rarr; boards</span>, task_id <span class="fk">&rarr; tasks</span> <span class="c">(nullable)</span>,<br>work_date, hours <span class="c">numeric</span>, note</div>
-                  <div class="note">There is no staff timesheet today &mdash; <span class="m">contractor_work_events</span> is contractor-only. This one table is the heart of the build.</div>
+                  <div class="note">There is no staff timesheet today, <span class="m">contractor_work_events</span> is contractor-only. This one table is the heart of the build.</div>
                 </div>
                 <div class="tdef">
                   <div class="tname">checklist_template + items <span class="tag">new</span></div>
@@ -508,8 +508,8 @@
             <div class="brow">
               <div class="rk">Core data to pull in</div>
               <ul class="tick">
-                <li>Staff are already <strong>people</strong> + <strong>team_members</strong> &mdash; nothing to import.</li>
-                <li>Each person&rsquo;s cost rate into <strong>compensation_sensitive</strong> (if not already recorded) &mdash; the one input the cost view needs.</li>
+                <li>Staff are already <strong>people</strong> + <strong>team_members</strong>, nothing to import.</li>
+                <li>Each person&rsquo;s cost rate into <strong>compensation_sensitive</strong> (if not already recorded), the one input the cost view needs.</li>
                 <li>Live projects from the three old tools migrated into <strong>boards</strong>, tagged by team &amp; project type, linked to the client via <code>boards.client_company_id</code>.</li>
                 <li>Budgets onto the board; actuals already flow from <strong>invoices</strong> / <strong>expenses</strong>.</li>
               </ul>
@@ -518,12 +518,12 @@
             <div class="brow">
               <div class="rk">Derived &amp; permissions</div>
               <p><strong>Views:</strong> <span class="m">project_cost</span> = &Sigma; <code>time_entry.hours</code> &times; current comp rate, per board &amp; team, against <code>budget_cents</code>; a workload view of allocated vs <code>weekly_capacity_hours</code> per person per week.</p>
-              <p><strong>Permissions:</strong> everyone logs time; only leadership reads <code>cost_rate</code> and <span class="m">project_cost</span> &mdash; reuse the existing sensitive gate. This is the plan&rsquo;s #1 risk, already handled.</p>
+              <p><strong>Permissions:</strong> everyone logs time; only leadership reads <code>cost_rate</code> and <span class="m">project_cost</span>, reuse the existing sensitive gate. This is the plan&rsquo;s #1 risk, already handled.</p>
             </div>
 
             <div class="callout">
               <div class="cl-k">Two things to get right</div>
-              <p><strong>Adoption:</strong> build <code>time_entry</code> + a &le;10-second logging screen first &mdash; slow logging means no logging, and then every cost number is wrong. <strong>One source of truth for hours:</strong> reconcile the existing <code>tasks.human_tokens</code> proxy against real <code>time_entry</code> &mdash; pick one.</p>
+              <p><strong>Adoption:</strong> build <code>time_entry</code> + a &le;10-second logging screen first, slow logging means no logging, and then every cost number is wrong. <strong>One source of truth for hours:</strong> reconcile the existing <code>tasks.human_tokens</code> proxy against real <code>time_entry</code>, pick one.</p>
             </div>
           </div>
         </div>
@@ -536,15 +536,15 @@
             <div>
               <div class="lbl">Build C &middot; Growth</div>
               <h3>Beryl ROI Calculator</h3>
-              <p class="one">A public, ungated calculator that turns a prospect&rsquo;s own query volume into a dollar figure &mdash; optional PDF becomes a lead.</p>
+              <p class="one">A public, ungated calculator that turns a prospect&rsquo;s own query volume into a dollar figure, optional PDF becomes a lead.</p>
             </div>
             <span class="sizetag s">Small &middot; days</span>
           </div>
           <div class="bbody">
 
             <div class="brow">
-              <div class="rk"><span class="swatch g"></span>Reuses from the spine <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">&mdash; optional, but recommended</span></div>
-              <p>By design this is mostly stateless. The one place it should plug in is capture: a PDF request is a <strong>person</strong> + a <strong>lead</strong> with an owner and SLA &mdash; richer than a bare HubSpot contact. And the price should come from the <strong>products</strong> row, not a constant.</p>
+              <div class="rk"><span class="swatch g"></span>Reuses from the spine <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">, optional, but recommended</span></div>
+              <p>By design this is mostly stateless. The one place it should plug in is capture: a PDF request is a <strong>person</strong> + a <strong>lead</strong> with an owner and SLA, richer than a bare HubSpot contact. And the price should come from the <strong>products</strong> row, not a constant.</p>
               <div class="chip-row" style="margin-top:12px">
                 <span class="chip reuse">products</span><span class="chip reuse">people</span><span class="chip reuse">lead</span><span class="chip reuse">deals</span><span class="chip reuse">companies</span>
               </div>
@@ -555,11 +555,11 @@
               <div class="schema">
                 <div class="tdef">
                   <div class="tname">roi_assumptions <span class="tag">new &middot; one editable row</span></div>
-                  <div class="cols">time_saved_min_low, time_saved_min_high, working_hours_year,<br>typical_queries, updated_by <span class="c">&mdash; tune with no redeploy</span></div>
+                  <div class="cols">time_saved_min_low, time_saved_min_high, working_hours_year,<br>typical_queries, updated_by <span class="c">, tune with no redeploy</span></div>
                 </div>
                 <div class="tdef">
                   <div class="tname">roi_usage_events <span class="tag">new &middot; anonymous</span></div>
-                  <div class="cols">team_size, queries_per_user, salary, result_low_cents, result_high_cents,<br>pdf_requested <span class="c">bool &mdash; no PII</span></div>
+                  <div class="cols">team_size, queries_per_user, salary, result_low_cents, result_high_cents,<br>pdf_requested <span class="c">bool, no PII</span></div>
                 </div>
               </div>
             </div>
@@ -567,21 +567,21 @@
             <div class="brow">
               <div class="rk">Core data to pull in</div>
               <ul class="tick">
-                <li>Beryl&rsquo;s <strong>price from the <span class="m">products</span> row</strong> &mdash; so &ldquo;$49.95&rdquo; changes in one place, not in code.</li>
+                <li>Beryl&rsquo;s <strong>price from the <span class="m">products</span> row</strong>, so &ldquo;$49.95&rdquo; changes in one place, not in code.</li>
                 <li>The two sign-off assumptions (time-saved range, typical queries) seeded into <strong>roi_assumptions</strong>.</li>
-                <li>Optional &mdash; the PDF lead written as <strong>people</strong> + <strong>lead</strong> (<code>source = 'roi_calculator'</code>), alongside or instead of HubSpot.</li>
+                <li>Optional, the PDF lead written as <strong>people</strong> + <strong>lead</strong> (<code>source = 'roi_calculator'</code>), alongside or instead of HubSpot.</li>
               </ul>
             </div>
 
             <div class="brow">
               <div class="rk">Derived &amp; permissions</div>
-              <p><strong>Views:</strong> a usage rollup &mdash; runs, PDF conversions, common team sizes &mdash; read straight off <code>roi_usage_events</code>.</p>
+              <p><strong>Views:</strong> a usage rollup, runs, PDF conversions, common team sizes, read straight off <code>roi_usage_events</code>.</p>
               <p><strong>Permissions:</strong> the public never touches <span class="m">company_os</span> directly. A server route returns only the assumptions row; usage-event and lead writes go through a service-role route. RLS-deny protects everything else.</p>
             </div>
 
             <div class="callout">
               <div class="cl-k">The decision to make</div>
-              <p>HubSpot or the native <code>lead</code> pipeline? The OS pipeline already has SLA, owner and source &mdash; recommend routing leads there (or both) so ROI inbound sits with every other lead instead of in a second CRM.</p>
+              <p>HubSpot or the native <code>lead</code> pipeline? The OS pipeline already has SLA, owner and source, recommend routing leads there (or both) so ROI inbound sits with every other lead instead of in a second CRM.</p>
             </div>
           </div>
         </div>
@@ -589,16 +589,16 @@
 
       <!-- PAYROLL IQ -->
       <section class="blk" id="payroll-iq">
-        <div class="sec-head"><span class="n">05</span><div><h2>Folding Payroll IQ into the same database</h2><p class="sub">The fourth track is different in kind &mdash; not a new feature, but an existing app with its own database. The same rule holds (one central DB), but here it means <em>combining</em> the tables that describe the same things, not parking two apps side by side.</p></div></div>
+        <div class="sec-head"><span class="n">05</span><div><h2>Folding Payroll IQ into the same database</h2><p class="sub">The fourth track is different in kind, not a new feature, but an existing app with its own database. The same rule holds (one central DB), but here it means <em>combining</em> the tables that describe the same things, not parking two apps side by side.</p></div></div>
 
         <div class="callout" style="border-left-color:var(--exists);margin-top:18px">
           <div class="cl-k" style="color:var(--exists)">Two facts that make this low-risk</div>
-          <p><strong>No users yet</strong> &mdash; identity consolidation is a <em>design</em>, not a migration: no rows to merge, no UUID surgery. <strong>No clients yet</strong> &mdash; no live tenants or transactions to move. What&rsquo;s left is schema design plus rewiring, done before anyone is on the platform.</p>
+          <p><strong>No users yet</strong>, identity consolidation is a <em>design</em>, not a migration: no rows to merge, no UUID surgery. <strong>No clients yet</strong>, no live tenants or transactions to move. What&rsquo;s left is schema design plus rewiring, done before anyone is on the platform.</p>
         </div>
 
         <!-- combine vs coexist -->
         <div class="subhead"><span class="sh-n">5.1</span> What combines, what coexists</div>
-        <p class="sh-sub">Merge the tables that describe the same real thing. Leave the rest alone &mdash; different schemas, no collisions.</p>
+        <p class="sh-sub">Merge the tables that describe the same real thing. Leave the rest alone, different schemas, no collisions.</p>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Concern</th><th>Payroll IQ (<span class="m">public</span>)</th><th>company_os</th><th>Verdict</th></tr></thead>
@@ -609,17 +609,17 @@
               <tr><td>Platform admin / staff</td><td><span class="m">role = 'admin'</span></td><td><span class="m">admins</span> / <span class="m">team_members</span></td><td><span class="chip merge">merge</span></td></tr>
               <tr><td>Billing customer</td><td>Stripe cust. per org</td><td>Stripe cust. on <span class="m">orders</span>/<span class="m">subscriptions</span></td><td><span class="chip merge">merge → people/companies</span></td></tr>
               <tr><td>Product catalogue</td><td><span class="m">plans</span>, <span class="m">seat_tiers</span></td><td><span class="m">products</span> (+ stripe ids)</td><td><span class="chip merge">one catalogue</span></td></tr>
-              <tr><td>Seat + entitlement billing</td><td><span class="m">seat_tiers</span>, <span class="m">billing_entitlement</span></td><td class="no">&mdash; none</td><td><span class="chip keep">keep &mdash; fills a gap</span></td></tr>
-              <tr><td>One-off product orders</td><td class="no">&mdash; none</td><td><span class="m">orders</span>, <span class="m">token_purchases</span></td><td><span class="chip keep">keep</span></td></tr>
-              <tr><td>Training content</td><td><span class="m">modules</span>, <span class="m">questions</span>, <span class="m">quiz_*</span>, mastery</td><td class="no">&mdash; none</td><td><span class="chip keep">keep in public</span></td></tr>
-              <tr><td>Everything else</td><td class="no">&mdash;</td><td>the other 130-odd tables</td><td><span class="chip keep">untouched</span></td></tr>
+              <tr><td>Seat + entitlement billing</td><td><span class="m">seat_tiers</span>, <span class="m">billing_entitlement</span></td><td class="no">none</td><td><span class="chip keep">keep, fills a gap</span></td></tr>
+              <tr><td>One-off product orders</td><td class="no">none</td><td><span class="m">orders</span>, <span class="m">token_purchases</span></td><td><span class="chip keep">keep</span></td></tr>
+              <tr><td>Training content</td><td><span class="m">modules</span>, <span class="m">questions</span>, <span class="m">quiz_*</span>, mastery</td><td class="no">none</td><td><span class="chip keep">keep in public</span></td></tr>
+              <tr><td>Everything else</td><td class="no">none</td><td>the other 130-odd tables</td><td><span class="chip keep">untouched</span></td></tr>
             </tbody>
           </table>
         </div>
 
         <!-- identity -->
         <div class="subhead"><span class="sh-n">5.2</span> Identity: one person, one row</div>
-        <p class="sh-sub"><span class="m">people</span> becomes the source of truth for every human. <span class="m">users</span> becomes a view over it &mdash; so Payroll IQ&rsquo;s code barely changes.</p>
+        <p class="sh-sub"><span class="m">people</span> becomes the source of truth for every human. <span class="m">users</span> becomes a view over it, so Payroll IQ&rsquo;s code barely changes.</p>
         <div class="schema">
           <div class="tdef">
             <div class="tname">public.users <span class="tag alt">now a VIEW</span></div>
@@ -628,31 +628,31 @@
           </div>
           <div class="tdef">
             <div class="tname">public.learner_profiles <span class="tag">new</span></div>
-            <div class="cols">person_id <span class="fk">&rarr; people</span>, content_track, weekly_minutes, diagnostic_completed_at,<br>preferences, status <span class="c">&mdash; the training-only attributes that don&rsquo;t belong on the shared person</span></div>
+            <div class="cols">person_id <span class="fk">&rarr; people</span>, content_track, weekly_minutes, diagnostic_completed_at,<br>preferences, status <span class="c">, the training-only attributes that don&rsquo;t belong on the shared person</span></div>
           </div>
         </div>
         <div class="callout">
           <div class="cl-k">The one structural bridge</div>
-          <p>Payroll IQ <strong>conflates person and login</strong> (<span class="m">users.id = auth.uid()</span>); company_os separates them (a <span class="m">people</span> row may have no login yet). The bridge: set <span class="m">people.auth_user_id = auth.users.id</span> and leave every PIQ <code>learner_id</code> column as the auth uid &mdash; so all 13 of them, and their <code>auth.uid()</code> RLS, don&rsquo;t change at all.</p>
+          <p>Payroll IQ <strong>conflates person and login</strong> (<span class="m">users.id = auth.uid()</span>); company_os separates them (a <span class="m">people</span> row may have no login yet). The bridge: set <span class="m">people.auth_user_id = auth.users.id</span> and leave every PIQ <code>learner_id</code> column as the auth uid, so all 13 of them, and their <code>auth.uid()</code> RLS, don&rsquo;t change at all.</p>
         </div>
 
         <!-- client model -->
         <div class="subhead"><span class="sh-n">5.3</span> The client model: one company, many employees</div>
-        <p class="sh-sub">A client org has many employees; each may &mdash; or may not yet &mdash; have a login. This is exactly what the spine is shaped for.</p>
+        <p class="sh-sub">A client org has many employees; each may, or may not yet, have a login. This is exactly what the spine is shaped for.</p>
         <div class="tenant">
           <div class="tnode"><span class="tn-t">companies</span><span class="tn-d">the client org &middot; <b>client_types[]</b> can be both training &amp; consulting</span></div>
-          <div class="tedge"><span>1 &mdash;&lt; many &middot; role: manager | learner</span></div>
+          <div class="tedge"><span>one &rarr; many &middot; role: manager | learner</span></div>
           <div class="tnode"><span class="tn-t">person_companies</span><span class="tn-d">the membership &middot; role lives here, per (person, company) &middot; is_primary</span></div>
-          <div class="tedge"><span>&mdash;</span></div>
+          <div class="tedge"><span>&darr;</span></div>
           <div class="tnode"><span class="tn-t">people</span><span class="tn-d">one row per employee &middot; <b>auth_user_id = login (optional)</b></span></div>
-          <div class="tedge"><span>1 &mdash; 1</span></div>
+          <div class="tedge"><span>one &rarr; one</span></div>
           <div class="tnode alt"><span class="tn-t">learner_profiles</span><span class="tn-d">training attributes (public schema)</span></div>
         </div>
         <ul class="tick">
-          <li><strong>Role lives on the membership, not the person.</strong> &ldquo;Manager <em>of</em> company X&rdquo; is a per-<span class="m">person_companies</span> fact &mdash; not a global attribute. One person can be a manager at one org and a learner at another.</li>
+          <li><strong>Role lives on the membership, not the person.</strong> &ldquo;Manager <em>of</em> company X&rdquo; is a per-<span class="m">person_companies</span> fact, not a global attribute. One person can be a manager at one org and a learner at another.</li>
           <li><strong>An employee can exist before a login.</strong> A manager adds 40 staff as <span class="m">people</span> + <span class="m">person_companies</span> today; each gets <span class="m">auth_user_id</span> only on accepting the invite. Seat-billing can then count <em>provisioned</em> vs <em>activated</em>.</li>
-          <li><strong>One company, many service lines.</strong> <span class="m">client_types[]</span> lets the same org be a training client and a consulting client &mdash; one client record across all of APA.</li>
-          <li><strong>Many-to-many is allowed</strong> &mdash; a person may belong to more than one client company; the <span class="m">users</span> view exposes the <code>is_primary</code> membership as <code>org_id</code> so Payroll IQ&rsquo;s manager-scoped RLS is unchanged.</li>
+          <li><strong>One company, many service lines.</strong> <span class="m">client_types[]</span> lets the same org be a training client and a consulting client, one client record across all of APA.</li>
+          <li><strong>Many-to-many is allowed</strong>, a person may belong to more than one client company; the <span class="m">users</span> view exposes the <code>is_primary</code> membership as <code>org_id</code> so Payroll IQ&rsquo;s manager-scoped RLS is unchanged.</li>
         </ul>
         <div class="callout">
           <div class="cl-k">Invite flow</div>
@@ -661,7 +661,7 @@
 
         <!-- commerce -->
         <div class="subhead"><span class="sh-n">5.4</span> Commerce: one Stripe account, two engines</div>
-        <p class="sh-sub">company_os isn&rsquo;t empty here &mdash; it has a Stripe-wired stack too, a different shape. They model different sales, so combining means reconciling, not deleting.</p>
+        <p class="sh-sub">company_os isn&rsquo;t empty here, it has a Stripe-wired stack too, a different shape. They model different sales, so combining means reconciling, not deleting.</p>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th></th><th>company_os</th><th>Payroll IQ</th></tr></thead>
@@ -673,10 +673,10 @@
           </table>
         </div>
         <ul class="tick">
-          <li><strong>One Stripe account, one webhook owner &mdash; the real footgun.</strong> Two apps, one DB, each with its own <code>/api/webhooks/stripe</code> is where split-brain lives. Consolidate to one account; each app&rsquo;s webhook handles only <em>its own</em> product/price ids.</li>
+          <li><strong>One Stripe account, one webhook owner, the real footgun.</strong> Two apps, one DB, each with its own <code>/api/webhooks/stripe</code> is where split-brain lives. Consolidate to one account; each app&rsquo;s webhook handles only <em>its own</em> product/price ids.</li>
           <li><strong>Shared customer + catalogue</strong> fall out of the identity merge: the Stripe customer lives on unified <span class="m">people</span>/<span class="m">companies</span> (a client org is one customer, not two); link PIQ&rsquo;s <span class="m">plans</span>/<span class="m">seat_tiers</span> to <span class="m">products</span> + <span class="m">service_lines</span> for one catalogue.</li>
           <li><strong>Keep both engines:</strong> PIQ&rsquo;s seat + entitlement billing is a capability company_os lacks; company_os&rsquo;s one-off orders stay. Both key off the unified spine.</li>
-          <li><strong>Reconcile the two invoice tables:</strong> company_os <span class="m">invoices</span> is QBO-synced AR; PIQ <span class="m">invoice_records</span> is Stripe-side &mdash; set a clear record-of-truth per transaction type.</li>
+          <li><strong>Reconcile the two invoice tables:</strong> company_os <span class="m">invoices</span> is QBO-synced AR; PIQ <span class="m">invoice_records</span> is Stripe-side, set a clear record-of-truth per transaction type.</li>
         </ul>
 
         <!-- what it takes -->
@@ -691,36 +691,36 @@
         </ul>
         <div class="callout">
           <div class="cl-k">Effort</div>
-          <p>~1&ndash;2 weeks &mdash; dominated by the <span class="m">users</span>-view / write-path rework and the Stripe reconciliation, <em>not</em> data movement. The no-users, no-clients window is the moment to do it.</p>
+          <p>~1&ndash;2 weeks, dominated by the <span class="m">users</span>-view / write-path rework and the Stripe reconciliation, <em>not</em> data movement. The no-users, no-clients window is the moment to do it.</p>
         </div>
       </section>
 
       <!-- SEQUENCE -->
       <section class="blk" id="sequence">
-        <div class="sec-head"><span class="n">06</span><div><h2>Sequence &amp; sign-offs</h2><p class="sub">A recommended order, and the handful of decisions that are data or policy &mdash; not code &mdash; and shouldn&rsquo;t block the build.</p></div></div>
+        <div class="sec-head"><span class="n">06</span><div><h2>Sequence &amp; sign-offs</h2><p class="sub">A recommended order, and the handful of decisions that are data or policy, not code, and shouldn&rsquo;t block the build.</p></div></div>
 
         <div class="seq">
-          <div class="step"><span class="ord">1</span><div><h4>Beryl ROI &mdash; ship in parallel, any time</h4><div class="why">Smallest, isolated, two tables. Proves the &ldquo;new tables + service route on top of the shared schema&rdquo; pattern with the least risk.</div></div><span class="sizetag s">days</span></div>
-          <div class="step"><span class="ord">2</span><div><h4>Report 360 &mdash; highest reuse, clearest payoff</h4><div class="why">The intake engine already exists; net-new is the report model, scoring and drafting prompt. Direct hours saved for consulting.</div></div><span class="sizetag m">medium</span></div>
-          <div class="step"><span class="ord">3</span><div><h4>Unified PM &mdash; the consolidation play</h4><div class="why">Biggest win and biggest change. Start with <code>time_entry</code> + fast logging, pilot Consulting, then roll to other teams.</div></div><span class="sizetag l">larger</span></div>
-          <div class="step"><span class="ord">&#9655;</span><div><h4>Payroll IQ merge &mdash; separate track</h4><div class="why">Independent of the three builds. No users or clients yet, so it&rsquo;s design + rewiring &mdash; and this pre-launch window is the moment to do it.</div></div><span class="sizetag m">~1&ndash;2 wks</span></div>
+          <div class="step"><span class="ord">1</span><div><h4>Beryl ROI, ship in parallel, any time</h4><div class="why">Smallest, isolated, two tables. Proves the &ldquo;new tables + service route on top of the shared schema&rdquo; pattern with the least risk.</div></div><span class="sizetag s">days</span></div>
+          <div class="step"><span class="ord">2</span><div><h4>Report 360, highest reuse, clearest payoff</h4><div class="why">The intake engine already exists; net-new is the report model, scoring and drafting prompt. Direct hours saved for consulting.</div></div><span class="sizetag m">medium</span></div>
+          <div class="step"><span class="ord">3</span><div><h4>Unified PM, the consolidation play</h4><div class="why">Biggest win and biggest change. Start with <code>time_entry</code> + fast logging, pilot Consulting, then roll to other teams.</div></div><span class="sizetag l">larger</span></div>
+          <div class="step"><span class="ord">&#9655;</span><div><h4>Payroll IQ merge, separate track</h4><div class="why">Independent of the three builds. No users or clients yet, so it&rsquo;s design + rewiring, and this pre-launch window is the moment to do it.</div></div><span class="sizetag m">~1&ndash;2 wks</span></div>
         </div>
 
         <div class="settle">
           <div class="s"><span class="flag data">Data</span><div class="body"><b>Beryl assumptions.</b> Time-saved per query (20&ndash;45 min) and typical queries per user need sign-off before the page claims &ldquo;based on our data.&rdquo; Ship as editable rows with honest labels.</div></div>
           <div class="s"><span class="flag data">Data</span><div class="body"><b>Assessment rubric.</b> The 6-competency scoring + benchmark for the Knowledge Assessment must be agreed before scores print on a client report.</div></div>
-          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Who is &ldquo;leadership&rdquo;.</b> The cost-rate gate needs a definition of who may read rates and <span class="m">project_cost</span>. Uses the existing <code>can_view_sensitive</code> flag &mdash; a config choice, not a build.</div></div>
+          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Who is &ldquo;leadership&rdquo;.</b> The cost-rate gate needs a definition of who may read rates and <span class="m">project_cost</span>. Uses the existing <code>can_view_sensitive</code> flag, a config choice, not a build.</div></div>
           <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Hours, one source of truth.</b> Reconcile <code>tasks.human_tokens</code> with the new <code>time_entry</code> so cost is computed from one place.</div></div>
-          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Beryl leads: HubSpot or native.</b> Pick where ROI inbound lands &mdash; the OS <code>lead</code> pipeline is right there and unifies with the rest.</div></div>
+          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Beryl leads: HubSpot or native.</b> Pick where ROI inbound lands, the OS <code>lead</code> pipeline is right there and unifies with the rest.</div></div>
           <div class="s"><span class="flag ok">Decided</span><div class="body"><b>Payroll IQ tenancy: many-to-many.</b> A person may belong to more than one client company; the <code>users</code> view exposes the <code>is_primary</code> membership as <code>org_id</code> for back-compat.</div></div>
-          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>One Stripe account + webhook ownership.</b> Two apps on one DB must not run two blind Stripe webhooks &mdash; consolidate the account and split event ownership by product/price id.</div></div>
-          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Invoice record-of-truth.</b> company_os <code>invoices</code> (QBO-synced AR) vs Payroll IQ <code>invoice_records</code> (Stripe-side) &mdash; set which owns which transaction type.</div></div>
+          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>One Stripe account + webhook ownership.</b> Two apps on one DB must not run two blind Stripe webhooks, consolidate the account and split event ownership by product/price id.</div></div>
+          <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Invoice record-of-truth.</b> company_os <code>invoices</code> (QBO-synced AR) vs Payroll IQ <code>invoice_records</code> (Stripe-side), set which owns which transaction type.</div></div>
         </div>
       </section>
 
       <footer>
         <span>Building on <span class="m">company_os</span> &middot; APA engineering plan</span>
-        <span>Report 360 &middot; Unified PM &middot; Beryl ROI &mdash; one schema</span>
+        <span>Report 360 &middot; Unified PM &middot; Beryl ROI, one schema</span>
       </footer>
 
     </main>
