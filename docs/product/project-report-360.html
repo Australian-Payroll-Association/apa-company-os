@@ -1,0 +1,161 @@
+<title>Payroll 360 Report Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="apa-plan.css">
+
+<header class="top">
+  <div class="top-inner">
+    <div class="eyebrow">Australian Payroll Association <span class="dot"></span> Project detail <span class="dot"></span> <a href="building-on-company-os.html">Master plan</a></div>
+    <h1>Payroll 360 Report Engine</h1>
+    <p class="lede">Turn a client&rsquo;s survey of their own payroll environment into a structured, house-style compliance report <b>draft</b>, so consultants review and sharpen instead of writing every report from a blank page.</p>
+    <div class="meta-row">
+      <div><span class="k">Day-one user</span><span class="v">Consultants</span></div>
+      <div><span class="k">The one action</span><span class="v">Client answers, consultant gets a draft</span></div>
+      <div><span class="k">Size</span><span class="v">Medium (cleanest fit)</span></div>
+      <div><span class="k">Builds on</span><span class="v"><span class="m">company_os</span> &middot; surveys, documents</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <main>
+
+    <div class="backbar">
+      <div class="bt">This is one of three projects in the <b>Building on company_os</b> master plan.</div>
+      <a href="building-on-company-os.html">Back to the master plan &rarr;</a>
+    </div>
+
+    <!-- 1 -->
+    <section class="blk" id="what">
+      <div class="sec-head"><span class="n">01</span><div><h2>The problem</h2><p class="sub">The report is the product, and we build every one by hand.</p></div></div>
+      <div class="prose">
+        <p>A finished Payroll 360 report runs to fifteen or more pages with a fixed twelve-part structure and a strict house style: a first-person-plural voice, a Context, Observations, Recommendations rhythm in every sub-section, cited sources, and calibrated confidence language. Producing that is skilled work, but most of the hours go into transcribing, formatting and re-structuring, not into judgement. That is the bottleneck.</p>
+        <ul class="tick">
+          <li><strong>Every report starts from nothing.</strong> The workshop captures a rich discussion, but turning it into structured observations and recommendations is manual and slow.</li>
+          <li><strong>Consultant time goes into typing, not analysis.</strong> Days of drafting pull senior people away from the analysis clients actually value.</li>
+          <li><strong>Reports drift.</strong> Structure, tone and depth vary by whoever wrote them. The house style lives in people&rsquo;s heads, not in the process.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="blk" id="layers">
+      <div class="sec-head"><span class="n">02</span><div><h2>Three inputs, we only collect one</h2><p class="sub">A report is built from three input layers. Today we gather one well and the rest ad hoc.</p></div></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Input layer</th><th>What it is</th><th>Today</th></tr></thead>
+          <tbody>
+            <tr><td class="ent">Workshop discussion</td><td>Process, who does what, and controls: the narrative sections.</td><td>Well covered</td></tr>
+            <tr><td class="ent">Data &amp; evidence pack</td><td>The extracts we analyse: employee lists, pay-calculation reports, code lists, contracts, leave data. Every dollar figure and ID comes from here.</td><td class="no">Gathered ad hoc</td></tr>
+            <tr><td class="ent">Payroll Knowledge Assessment</td><td>The 35-question, six-competency test that produces the People-section scores and benchmark.</td><td class="no">Not collected</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <div class="cl-k">The finding</div>
+        <p>Feed the drafter all three layers and it can build a complete report. Feed it the workshop only and it drafts the narrative cleanly, then inserts clearly-marked placeholders wherever a data table or score is needed, which double as the evidence checklist for the engagement. Either way, the consultant reviews a draft; they never start from a blank page.</p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="blk" id="how">
+      <div class="sec-head"><span class="n">03</span><div><h2>How it works</h2><p class="sub">One pipeline collects the inputs in order and hands the consultant a first draft in house style.</p></div></div>
+      <div class="seq">
+        <div class="step"><span class="ord">1</span><div><h4>Client answers the survey</h4><div class="why">The client completes a plain-language survey of their payroll environment and the knowledge assessment. The data-and-evidence pack is requested alongside it.</div></div></div>
+        <div class="step"><span class="ord">2</span><div><h4>Consultant reviews the answers</h4><div class="why">The consultant reviews each response, sets status, priority and owner, and ticks off the evidence received. Judgement stays with the expert.</div></div></div>
+        <div class="step"><span class="ord">3</span><div><h4>Claude drafts the report</h4><div class="why">The reviewed answers become a proper Context, Observations, Recommendations draft in APA house style: structured, cited, calibrated.</div></div></div>
+        <div class="step"><span class="ord">4</span><div><h4>Consultant sharpens and signs off</h4><div class="why">The consultant fixes figures, adds insight, removes placeholders, then it goes to the client.</div></div></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="blk" id="data">
+      <div class="sec-head"><span class="n">04</span><div><h2>On company_os</h2><p class="sub">The survey engine is the intake tool already. The client, the engagement, the evidence pack and the AI drafting are all existing tables.</p></div></div>
+
+      <div class="subhead"><span class="sh-n">use</span> Existing tables it uses</div>
+      <div class="chip-row">
+        <span class="chip reuse">surveys</span><span class="chip reuse">survey_fields</span><span class="chip reuse">survey_responses</span><span class="chip reuse">survey_answers</span><span class="chip reuse">companies</span><span class="chip reuse">people</span><span class="chip reuse">person_companies</span><span class="chip reuse">deals</span><span class="chip reuse">service_lines</span><span class="chip reuse">documents</span><span class="chip reuse">assistant_conversations</span>
+      </div>
+      <div class="callout">
+        <div class="cl-k">Why this is the cleanest fit</div>
+        <p>The 35-question Knowledge Assessment is just a scored survey. The environment survey is just a survey. Both already have a home: typed fields, per-field config, one row per answer.</p>
+      </div>
+
+      <div class="subhead"><span class="sh-n">new</span> New tables to add</div>
+      <div class="schema">
+        <div class="tdef">
+          <div class="tname">report <span class="tag">new</span></div>
+          <div class="cols">company_id <span class="fk">&rarr; companies</span>, deal_id <span class="fk">&rarr; deals</span>, environment_response_id <span class="fk">&rarr; survey_responses</span>,<br>assessment_response_id <span class="fk">&rarr; survey_responses</span>, status <span class="c">draft|review|sent</span>, house_style_version, created_by</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">report_section <span class="tag">new</span></div>
+          <div class="cols">report_id <span class="fk">&rarr; report</span>, position, kind <span class="c">context|observation|recommendation</span>,<br>body_html, source_refs <span class="c">jsonb</span>, is_placeholder <span class="c">bool</span></div>
+          <div class="note">A section that still needs a data extract flags itself, so placeholders double as the evidence checklist.</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">assessment scores <span class="tag alt">new or on metadata</span></div>
+          <div class="cols">response_id <span class="fk">&rarr; survey_responses</span>, competency, raw_score, benchmark</div>
+        </div>
+      </div>
+
+      <div class="subhead"><span class="sh-n">pull</span> Core data to pull in</div>
+      <ul class="tick">
+        <li>The client as a <strong>companies</strong> row, with the primary contact through <strong>people</strong> and <strong>person_companies</strong>.</li>
+        <li>The engagement as a <strong>deals</strong> row on the consulting <strong>service_line</strong>.</li>
+        <li>Both intake layers as <strong>surveys</strong> (the environment survey and the 35-question assessment), with each field&rsquo;s competency and its client-or-consultant view held in <code>survey_fields.config</code>.</li>
+        <li>The data-and-evidence pack as <strong>documents</strong> attached to the report.</li>
+        <li>The twelve-part house style and section template, seeded once as a config the drafter reads.</li>
+      </ul>
+
+      <div class="subhead"><span class="sh-n">how</span> Views &amp; permissions</div>
+      <ul class="tick">
+        <li><strong>report_coverage view:</strong> sections against required inputs, showing what is still a placeholder.</li>
+        <li><strong>assessment profile:</strong> scores by competency against the benchmark.</li>
+        <li><strong>Permissions:</strong> reports are internal (consultant and admin). The client only ever touches their own survey through the existing survey path. No new sign-in surface.</li>
+      </ul>
+      <div class="callout">
+        <div class="cl-k">Where the value lives</div>
+        <p>House-style fidelity and citations. The draft must cite its sources, so store where each figure came from on the documents and answers. The AI cites, it never invents.</p>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="blk" id="build">
+      <div class="sec-head"><span class="n">05</span><div><h2>The build</h2><p class="sub">The pipeline already runs end to end as a prototype (intake tool, coverage map, a drafted report). Turning it into practice is four steps.</p></div></div>
+      <div class="seq">
+        <div class="step"><span class="ord">1</span><div><h4>Run one live engagement</h4><div class="why">Pick a real Payroll 360 client, collect all three layers with the tool, and draft the report end to end.</div></div></div>
+        <div class="step"><span class="ord">2</span><div><h4>Finalise the data-request list</h4><div class="why">Lock the extracts the report needs into a single checklist issued at the start of the engagement.</div></div></div>
+        <div class="step"><span class="ord">3</span><div><h4>Fold in the knowledge assessment</h4><div class="why">Wire the 35-question test into the intake so the People-section scores flow straight through.</div></div></div>
+        <div class="step"><span class="ord">4</span><div><h4>Measure the saving</h4><div class="why">Compare consultant hours on the piloted report against a hand-built one. That number is the business case.</div></div></div>
+      </div>
+      <div class="mini-label">What good looks like</div>
+      <ul class="check win">
+        <li>Turnaround drops from days of drafting to hours of review.</li>
+        <li>Senior time moves to judgement, not transcribing and formatting.</li>
+        <li>Every report is consistent by design, because the house style lives in the process.</li>
+        <li>Inputs are complete up front, with placeholders flagging anything still outstanding.</li>
+      </ul>
+    </section>
+
+    <!-- 6 -->
+    <section class="blk" id="signoffs">
+      <div class="sec-head"><span class="n">06</span><div><h2>To settle</h2><p class="sub">Both are content decisions, not code.</p></div></div>
+      <div class="settle">
+        <div class="s"><span class="flag data">Data</span><div class="body"><b>Assessment rubric.</b> The six-competency scoring and the benchmark for the Knowledge Assessment must be agreed before scores print on a client report.</div></div>
+        <div class="s"><span class="flag data">Data</span><div class="body"><b>The data-request list.</b> Lock the exact extracts the report needs into one checklist, so drafting never stalls waiting on inputs nobody formally asked for.</div></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="fl">
+        <a href="building-on-company-os.html">Master plan</a>
+        <a href="project-beryl-roi.html">Beryl ROI Calculator</a>
+        <a href="project-unified-pm.html">Unified Project System</a>
+      </div>
+      Payroll 360 Report Engine &middot; project detail &middot; Australian Payroll Association
+    </footer>
+
+  </main>
+</div>

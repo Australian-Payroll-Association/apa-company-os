@@ -1,0 +1,141 @@
+<title>Unified Project System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="apa-plan.css">
+
+<header class="top">
+  <div class="top-inner">
+    <div class="eyebrow">Australian Payroll Association <span class="dot"></span> Project detail <span class="dot"></span> <a href="building-on-company-os.html">Master plan</a></div>
+    <h1>Unified Project System</h1>
+    <p class="lede">One system for the whole company (about 24 people, three teams) to replace <b>Kantata, ClickUp and Infinity</b>. It follows every project from start to finish and answers three questions at any moment.</p>
+    <div class="meta-row">
+      <div><span class="k">Day-one user</span><span class="v">The whole team</span></div>
+      <div><span class="k">The one action</span><span class="v">Log a day in under 10 seconds</span></div>
+      <div><span class="k">Size</span><span class="v">Larger (biggest win)</span></div>
+      <div><span class="k">Builds on</span><span class="v"><span class="m">company_os</span> &middot; boards, tasks, pay</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <main>
+
+    <div class="backbar">
+      <div class="bt">This is one of three projects in the <b>Building on company_os</b> master plan.</div>
+      <a href="building-on-company-os.html">Back to the master plan &rarr;</a>
+    </div>
+
+    <!-- 1 -->
+    <section class="blk" id="what">
+      <div class="sec-head"><span class="n">01</span><div><h2>What it is</h2><p class="sub">Three questions, answered at any moment.</p></div></div>
+      <div class="prose">
+        <ul class="tick">
+          <li><strong>What are we working on?</strong> Projects and their stage.</li>
+          <li><strong>Where are our people?</strong> Who is on what, and their workload.</li>
+          <li><strong>What is each job costing us?</strong> Hours logged times each person&rsquo;s cost rate, against budget.</li>
+        </ul>
+        <p style="margin-top:14px">Everything hangs off one loop: <strong>create a project, log time, cost rolls up against budget.</strong> Each team keeps its own project types and fields under one roof, rather than one forced structure.</p>
+      </div>
+      <div class="callout">
+        <div class="cl-k">The rule that keeps costs honest</div>
+        <p>Never store cost on a row. Work out <code>hours &times; current rate</code> when you read it. Storing it creates two truths and breaks the moment a rate changes.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="blk" id="how">
+      <div class="sec-head"><span class="n">02</span><div><h2>How it works</h2><p class="sub">Five parts, built in this order. The timesheet comes first because everything else depends on the hours being logged.</p></div></div>
+      <div class="seq">
+        <div class="step"><span class="ord">1</span><div><h4>My timesheet</h4><div class="why">Build first and best. If logging is slow, people will not do it, and every cost number goes wrong. Target: log a day in under 10 seconds.</div></div><span class="sizetag m">first</span></div>
+        <div class="step"><span class="ord">2</span><div><h4>Cost dashboard</h4><div class="why">Cost per project and per team, budget against actual. Leadership only.</div></div></div>
+        <div class="step"><span class="ord">3</span><div><h4>Project board</h4><div class="why">Projects by stage. Filter by team, owner and status.</div></div></div>
+        <div class="step"><span class="ord">4</span><div><h4>Project detail</h4><div class="why">Fields, tasks and checklist, hours, cost-to-date against budget, people allocated.</div></div></div>
+        <div class="step"><span class="ord">5</span><div><h4>Staff allocation</h4><div class="why">Who is on what this week and next, against each person&rsquo;s capacity.</div></div></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="blk" id="data">
+      <div class="sec-head"><span class="n">03</span><div><h2>On company_os</h2><p class="sub">Most of this already exists. The board system covers projects, tasks and allocation, and the pay data is already there and already locked down.</p></div></div>
+
+      <div class="subhead"><span class="sh-n">use</span> Existing tables it uses</div>
+      <div class="chip-row">
+        <span class="chip reuse">boards</span><span class="chip reuse">board_columns</span><span class="chip reuse">board_members</span><span class="chip reuse">sprints</span><span class="chip reuse">tasks</span><span class="chip reuse">task_comments</span><span class="chip reuse">task_stage_log</span><span class="chip reuse">staff_assignments</span><span class="chip reuse">availability_blocks</span><span class="chip reuse">people</span><span class="chip reuse">team_members</span><span class="chip reuse">compensation_sensitive</span><span class="chip reuse">deals</span><span class="chip reuse">invoices</span><span class="chip reuse">expenses</span>
+      </div>
+      <div class="callout">
+        <div class="cl-k">The requirement that is already solved</div>
+        <p>&ldquo;Only leadership sees cost rates.&rdquo; Pay data lives in <code>compensation_sensitive</code>, already gated by the <code>can_view_sensitive</code> permission. You reuse that gate, you do not build it.</p>
+      </div>
+
+      <div class="subhead"><span class="sh-n">new</span> New, and it is mostly one table</div>
+      <div class="schema">
+        <div class="tdef">
+          <div class="tname">time_entry <span class="tag">new &middot; the real gap</span></div>
+          <div class="cols">person_id <span class="fk">&rarr; people</span>, board_id <span class="fk">&rarr; boards</span>, task_id <span class="fk">&rarr; tasks</span> <span class="c">(optional)</span>,<br>work_date, hours <span class="c">numeric</span>, note</div>
+          <div class="note">There is no staff timesheet today (the contractor table is contractor-only). This one table is the heart of the build.</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">checklist_template + items <span class="tag">new</span></div>
+          <div class="cols">per team: recurring-task checklists seeded onto a board</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">column adds <span class="tag alt">extend, don&rsquo;t fork</span></div>
+          <div class="cols">people.<b>weekly_capacity_hours</b> &middot; boards.<b>team</b> / <b>project_type</b> / <b>budget_cents</b></div>
+        </div>
+      </div>
+
+      <div class="subhead"><span class="sh-n">pull</span> Core data to pull in</div>
+      <ul class="tick">
+        <li>Staff are already <strong>people</strong> and <strong>team_members</strong>. Nothing to import.</li>
+        <li>Each person&rsquo;s cost rate into <strong>compensation_sensitive</strong>, if not already recorded. This is the one input the cost view needs.</li>
+        <li>Live projects from the three old tools moved into <strong>boards</strong>, tagged by team and type, linked to the client through <code>boards.client_company_id</code>.</li>
+        <li>Budgets onto the board. Actuals already flow from <strong>invoices</strong> and <strong>expenses</strong>.</li>
+      </ul>
+
+      <div class="subhead"><span class="sh-n">how</span> Views &amp; permissions</div>
+      <ul class="tick">
+        <li><strong>project_cost view:</strong> sum of <code>time_entry.hours</code> times the current cost rate, per board and team, against <code>budget_cents</code>.</li>
+        <li><strong>workload view:</strong> allocated hours against <code>weekly_capacity_hours</code>, per person per week.</li>
+        <li><strong>Permissions:</strong> everyone logs time; only leadership reads cost rates and project cost, through the existing pay-data gate.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="blk" id="phasing">
+      <div class="sec-head"><span class="n">04</span><div><h2>Rollout</h2><p class="sub">One team at a time. Do not switch off an old tool until its team runs fully on the new one.</p></div></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Phase</th><th>Build</th><th>Move on when</th></tr></thead>
+          <tbody>
+            <tr><td class="ent">1 &middot; Real for one team</td><td>Timesheet, recurring-task checklists, allocation and workload view, cost dashboard, cost-rate permissions.</td><td>Consulting logs 100% of hours here for two weeks, and leadership reads cost from the dashboard, not a spreadsheet.</td></tr>
+            <tr><td class="ent">2 &middot; Other teams</td><td>Marketing and Events, then Design: their project types, fields and checklists. Move their live projects in.</td><td>Each team&rsquo;s projects live in the system with their own templates.</td></tr>
+            <tr><td class="ent">3 &middot; Retire the old tools</td><td>Reporting, full permissions, finance links, training, and switch-off of Kantata, ClickUp and Infinity.</td><td>A tool is switched off only after its team runs fully on the new system.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose">Pilot team: <strong>Consulting</strong>, where cost and hours matter most and the value proves fastest.</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="blk" id="signoffs">
+      <div class="sec-head"><span class="n">05</span><div><h2>Decisions to settle</h2><p class="sub">Policy and definitions, not code. Settle them early so nothing gets built twice.</p></div></div>
+      <div class="settle">
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Who is &ldquo;leadership&rdquo;.</b> The cost gate needs a list of who may read rates and project cost. Uses the existing <code>can_view_sensitive</code> permission, so it is a setting, not a build.</div></div>
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>One source of truth for hours.</b> The tasks table already has an hours proxy; reconcile it with the new <code>time_entry</code> so cost is worked out from one place.</div></div>
+        <div class="s"><span class="flag data">Watch</span><div class="body"><b>Adoption is make or break.</b> Build the timesheet and the fast logging screen first. Slow logging means no logging, and then every cost number is wrong.</div></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="fl">
+        <a href="building-on-company-os.html">Master plan</a>
+        <a href="project-beryl-roi.html">Beryl ROI Calculator</a>
+        <a href="project-report-360.html">Payroll 360 Report Engine</a>
+      </div>
+      Unified Project System &middot; project detail &middot; Australian Payroll Association
+    </footer>
+
+  </main>
+</div>

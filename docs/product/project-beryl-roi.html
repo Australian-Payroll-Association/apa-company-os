@@ -1,0 +1,253 @@
+<title>Beryl ROI Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="apa-plan.css">
+
+<header class="top">
+  <div class="top-inner">
+    <div class="eyebrow">Australian Payroll Association <span class="dot"></span> Project detail <span class="dot"></span> <a href="building-on-company-os.html">Master plan</a></div>
+    <h1>Beryl ROI Calculator</h1>
+    <p class="lede">A public calculator that turns a prospect&rsquo;s own query volume into a dollar figure, so <b>$49.95 a month stops feeling like a cost</b> and starts looking like an obvious trade for the hours it buys back.</p>
+    <div class="meta-row">
+      <div><span class="k">Day-one user</span><span class="v">Prospects &amp; managers</span></div>
+      <div><span class="k">The one action</span><span class="v">Enter numbers, see savings</span></div>
+      <div><span class="k">Size</span><span class="v">Small (days)</span></div>
+      <div><span class="k">Builds on</span><span class="v"><span class="m">company_os</span> &middot; products, lead</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <main>
+
+    <div class="backbar">
+      <div class="bt">This is one of three projects in the <b>Building on company_os</b> master plan.</div>
+      <a href="building-on-company-os.html">Back to the master plan &rarr;</a>
+    </div>
+
+    <!-- 1 -->
+    <section class="blk" id="what">
+      <div class="sec-head"><span class="n">01</span><div><h2>What it is</h2><p class="sub">Make the trade visible so the decision makes itself.</p></div></div>
+      <div class="prose">
+        <p>A prospect is looking at Beryl at $49.95 a month, thinking &ldquo;is this worth it?&rdquo;, and today they cannot do the maths, so they stall. This tool replaces the stall with &ldquo;that is $50 to save my team 14 hours a month, obviously yes&rdquo;, then hands them a manager-ready PDF to get the purchase approved.</p>
+      </div>
+      <div class="cols2">
+        <div class="card">
+          <div class="mini-label">What we build</div>
+          <ul class="tick">
+            <li>An ungated savings range on screen. The number is always free.</li>
+            <li>An optional manager-ready PDF (this is the value exchange).</li>
+            <li>Editable assumptions, tunable without a new release.</li>
+            <li>Anonymous usage tracking, for the signal.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="mini-label">What we skip</div>
+          <ul class="tick">
+            <li>No gate on the number. Zero friction to the value.</li>
+            <li>No login, no accounts.</li>
+            <li>No per-customer bespoke modelling. One defensible model.</li>
+            <li>No hardcoded price. It reads Beryl&rsquo;s price from the database.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="blk" id="how">
+      <div class="sec-head"><span class="n">02</span><div><h2>How it works</h2><p class="sub">Three actors. The number is never gated; the capture only ever attaches to the PDF.</p></div></div>
+
+      <div class="flow">
+        <h4>The prospect</h4>
+        <div class="who">self-serve, on the public site</div>
+        <div class="flowsteps">
+          <div class="flowstep"><span class="fn">1</span><span class="ft">Lands on the page. No sign-up, no wall. Inputs pre-filled with a typical-usage benchmark.</span></div>
+          <div class="flowstep"><span class="fn">2</span><span class="ft">Enters their numbers: team size, queries per person, their salary.</span></div>
+          <div class="flowstep"><span class="fn">3</span><span class="ft">Sees the range: monthly and annual savings, low to high, with the $49.95 cost beside it.</span></div>
+          <div class="flowstep"><span class="fn">4</span><span class="ft">Optionally enters name and work email to unlock a branded PDF.</span></div>
+          <div class="flowstep"><span class="fn">5</span><span class="ft">Shares the PDF with their manager to support the approval.</span></div>
+        </div>
+      </div>
+
+      <div class="flow">
+        <h4>The system</h4>
+        <div class="who">what happens under the hood, secrets stay server-side</div>
+        <div class="flowsteps">
+          <div class="flowstep"><span class="fn">1</span><span class="ft">Reads the editable assumptions row for the defaults.</span></div>
+          <div class="flowstep"><span class="fn">2</span><span class="ft">Calculates the range from the prospect&rsquo;s inputs, instantly in the browser.</span></div>
+          <div class="flowstep"><span class="fn">3</span><span class="ft">Logs one anonymous usage row: inputs and result, no personal data.</span></div>
+          <div class="flowstep"><span class="fn">4</span><span class="ft">On request, renders the branded PDF from their numbers.</span></div>
+          <div class="flowstep"><span class="fn">5</span><span class="ft">On request, records the lead, deduped by email.</span></div>
+        </div>
+      </div>
+
+      <div class="flow">
+        <h4>The APA team</h4>
+        <div class="who">tune the model and read the signal, no code</div>
+        <div class="flowsteps">
+          <div class="flowstep"><span class="fn">1</span><span class="ft">Edits the assumptions (time-saved range, hourly basis, benchmark) in one place.</span></div>
+          <div class="flowstep"><span class="fn">2</span><span class="ft">The numbers update on the next page load, with no new release.</span></div>
+          <div class="flowstep"><span class="fn">3</span><span class="ft">Reads usage: total runs, PDF conversions, common team sizes and query volumes.</span></div>
+          <div class="flowstep"><span class="fn">4</span><span class="ft">Works the leads every PDF request creates.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="blk" id="numbers">
+      <div class="sec-head"><span class="n">03</span><div><h2>The numbers</h2><p class="sub">One multiplication chain, no black box. A manager can follow every step.</p></div></div>
+
+      <div class="cols2">
+        <div class="card">
+          <div class="mini-label">Inputs (the prospect enters)</div>
+          <ul class="tick">
+            <li><strong>Team size</strong>, the number of Beryl users.</li>
+            <li><strong>Queries per person per month</strong>, pre-filled benchmark, editable.</li>
+            <li><strong>Annual salary per person</strong>, or a default if skipped.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="mini-label">Assumptions (editable, needs sign-off)</div>
+          <ul class="tick">
+            <li><strong>Time saved per query</strong>, 20 to 45 minutes.</li>
+            <li><strong>Working hours per year</strong>, 1,800.</li>
+            <li><strong>Beryl price</strong>, read from the product record.</li>
+            <li><strong>Typical queries</strong>, the benchmark.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mini-label">The formula, shown as a range (conservative to optimistic)</div>
+      <div class="formula">
+<span class="k">total_queries</span> = team_size &times; queries_per_person<br>
+<span class="k">hourly_rate</span>   = annual_salary &divide; 1,800  <span class="c">(or override)</span><br>
+<span class="k">saving_low</span>    = total_queries &times; (20&divide;60) &times; hourly_rate<br>
+<span class="k">saving_high</span>   = total_queries &times; (45&divide;60) &times; hourly_rate<br>
+<span class="k">annual</span>        = monthly_saving &times; 12<br>
+<span class="k">beryl_cost</span>    = price &times; team_size<br>
+<span class="k">net_benefit</span>   = monthly_saving &minus; beryl_cost<br>
+<span class="k">roi_multiple</span>  = monthly_saving &divide; beryl_cost
+      </div>
+
+      <div class="mini-label">Worked example: 5 users, 20 queries each, $75k salary</div>
+      <div class="tbl-wrap">
+        <table>
+          <tbody>
+            <tr><td>Hourly rate</td><td class="num">$41.67</td></tr>
+            <tr><td>Total queries per month</td><td class="num">100</td></tr>
+            <tr><td>Monthly saving</td><td class="num">$1,389 to $3,125</td></tr>
+            <tr><td>Annual saving</td><td class="num">$16.7k to $37.5k</td></tr>
+            <tr><td>Beryl cost per month</td><td class="num">$249.75</td></tr>
+            <tr><td>Net benefit per month</td><td class="num">$1,140 to $2,875</td></tr>
+            <tr><td>ROI multiple</td><td class="num">5.6&times; to 12.5&times;</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <div class="cl-k">Keeping it honest</div>
+        <p>&ldquo;Time saved per query&rdquo; is the average time a payroll or HR person spends self-resolving one question without Beryl (reading the award or policy, or lodging and chasing a ticket), across an easy-to-hard mix. It is an assumption pending validation against Beryl helpdesk data, not a fact, and the page says so until it is signed off.</p>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="blk" id="data">
+      <div class="sec-head"><span class="n">04</span><div><h2>On company_os</h2><p class="sub">Mostly stateless by design. Two small new tables, and it borrows the price and the leads from the database.</p></div></div>
+
+      <div class="subhead"><span class="sh-n">use</span> Existing tables it uses</div>
+      <div class="chip-row">
+        <span class="chip reuse">products</span><span class="chip reuse">people</span><span class="chip reuse">lead</span><span class="chip reuse">deals</span><span class="chip reuse">companies</span>
+      </div>
+
+      <div class="subhead"><span class="sh-n">new</span> New tables to add</div>
+      <div class="schema">
+        <div class="tdef">
+          <div class="tname">roi_assumptions <span class="tag">new &middot; one editable row</span></div>
+          <div class="cols">time_saved_min_low, time_saved_min_high, working_hours_year,<br>typical_queries, updated_by <span class="c">(tune with no new release)</span></div>
+        </div>
+        <div class="tdef">
+          <div class="tname">roi_usage_events <span class="tag">new &middot; anonymous</span></div>
+          <div class="cols">team_size, queries_per_user, salary, result_low_cents, result_high_cents,<br>pdf_requested <span class="c">bool, no personal data</span></div>
+        </div>
+      </div>
+
+      <div class="subhead"><span class="sh-n">pull</span> Core data to pull in</div>
+      <ul class="tick">
+        <li>Beryl&rsquo;s <strong>price from the <span class="m">products</span> record</strong>, so &ldquo;$49.95&rdquo; changes in one place, not in code.</li>
+        <li>The two sign-off assumptions seeded into <strong>roi_assumptions</strong>.</li>
+        <li>Each PDF request written as a <strong>person</strong> plus a <strong>lead</strong> (<code>source = 'roi_calculator'</code>), deduped by email.</li>
+      </ul>
+
+      <div class="subhead"><span class="sh-n">how</span> Views &amp; permissions</div>
+      <ul class="tick">
+        <li><strong>View:</strong> a usage rollup off <code>roi_usage_events</code> (runs, PDF conversions, common team sizes).</li>
+        <li><strong>Permissions:</strong> the public never touches the database directly. One server route returns only the assumptions row; usage and lead writes go through a service-role route. Everything else stays locked down.</li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section class="blk" id="build">
+      <div class="sec-head"><span class="n">05</span><div><h2>The build</h2><p class="sub">Two steps. Each has a goal, a checkable Definition of Done, and measurable Success Criteria.</p></div></div>
+
+      <div class="subhead"><span class="sh-n">B1</span> Prove the loop: the ungated number, live</div>
+      <p class="prose" style="margin-top:6px">A stranger opens the calculator on the live site, enters team size, query volume and salary, and instantly sees their own monthly and annual savings as a range, with no sign-up.</p>
+      <div class="mini-label">Definition of done</div>
+      <ul class="check">
+        <li>The page is live on the real domain, not a laptop.</li>
+        <li>Inputs return a monthly and annual saving as a low-to-high range.</li>
+        <li>The range comes from <code>roi_assumptions</code>, not hardcoded.</li>
+        <li>Usable end to end with no login, no email, no gate.</li>
+        <li>The price shows beside the saving, so the trade is clear.</li>
+      </ul>
+      <div class="mini-label">Success criteria</div>
+      <ul class="check win">
+        <li>A first-time user reaches a number in under 30 seconds, with no instructions.</li>
+        <li>Changing inputs moves the number the way a hand calculation would.</li>
+        <li>Editing the assumptions row changes the defaults with no new release.</li>
+        <li>The result reads as &ldquo;$50 buys back X hours&rdquo; to someone new to Beryl.</li>
+      </ul>
+
+      <div class="subhead" style="margin-top:26px"><span class="sh-n">B2</span> Make it real: PDF, lead capture and the usage signal</div>
+      <p class="prose" style="margin-top:6px">Turn the working calculator into something APA can put in front of prospects with confidence: on brand, honest about its assumptions, capturing leads through the PDF, and quietly measuring its own use.</p>
+      <div class="mini-label">Definition of done</div>
+      <ul class="check">
+        <li>Matches the APA look: Montserrat and Source Sans, brand colours, no gradients.</li>
+        <li>Result shown as a clear range: hours and dollars, monthly and annual, cost beside.</li>
+        <li>A plain &ldquo;how we work this out&rdquo; note states the assumptions.</li>
+        <li>Optional PDF (name and work email; company optional).</li>
+        <li>Requesting the PDF creates or updates a lead, deduped by email.</li>
+        <li>Every run writes one anonymous <code>roi_usage_events</code> row, with the PDF flagged.</li>
+        <li>Readable and usable on a phone.</li>
+      </ul>
+      <div class="mini-label">Success criteria</div>
+      <ul class="check win">
+        <li>You can answer &ldquo;how many runs, how many PDFs, what team sizes&rdquo; from the tool.</li>
+        <li>Everything a prospect or manager sees matches the signed-off assumptions.</li>
+        <li>The PDF stands alone in the manager&rsquo;s inbox: their numbers, the trade, the method.</li>
+        <li>Every PDF request lands as a workable lead.</li>
+        <li>Sales and renewals stop building one-off ROI cases by hand.</li>
+      </ul>
+    </section>
+
+    <!-- 6 -->
+    <section class="blk" id="signoffs">
+      <div class="sec-head"><span class="n">06</span><div><h2>Before external launch</h2><p class="sub">Two figures block confident promotion, not the build. Both are editable data, not code.</p></div></div>
+      <div class="settle">
+        <div class="s"><span class="flag data">Data</span><div class="body"><b>Typical queries per person per month.</b> Work it out as total Beryl queries divided by active users divided by months live, not over the whole member base. Median preferred. Ships as a placeholder; drop the real figure into the assumptions row when ready.</div></div>
+        <div class="s"><span class="flag data">Data</span><div class="body"><b>Time saved per query (20 to 45 min).</b> Validate against Beryl helpdesk data before the page claims &ldquo;based on our data.&rdquo; Ships as an editable assumption with an honest label.</div></div>
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Where leads land.</b> The <code>lead</code> pipeline (with owner and SLA) or HubSpot, or both. Recommended: the native pipeline, so ROI leads sit with every other inbound.</div></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="fl">
+        <a href="building-on-company-os.html">Master plan</a>
+        <a href="project-unified-pm.html">Unified Project System</a>
+        <a href="project-report-360.html">Payroll 360 Report Engine</a>
+      </div>
+      Beryl ROI Calculator &middot; project detail &middot; Australian Payroll Association
+    </footer>
+
+  </main>
+</div>
