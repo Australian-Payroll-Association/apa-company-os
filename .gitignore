@@ -10,3 +10,6 @@ context/
 
 # Project instructions are kept local, not version-controlled
 CLAUDE.md
+
+# Claude Code worktrees are local scratch checkouts, never committed
+.claude/worktrees/
