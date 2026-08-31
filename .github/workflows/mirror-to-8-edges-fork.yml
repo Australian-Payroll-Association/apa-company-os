@@ -1,0 +1,95 @@
+name: Mirror to 8-Edges-Fork
+
+# Keeps talentedgeai/8-Edges-Fork a 1-1 clone of this repo: every branch, every
+# commit, full history. The fork is overwritten to match — it is a mirror, not a
+# place to do work. Branches deleted here are deleted there (--prune).
+#
+# Unlike the previous 8edges sync, nothing is filtered out: this is a complete
+# clone. Real secrets are never in git (.env.local is gitignored), so the mirror
+# carries no live credentials.
+#
+# Actions are DISABLED on the fork so the mirrored workflows (telemetry crons,
+# guards) never fire from the clone. If Actions are ever re-enabled there, the
+# mirrored workflows will start running against production endpoints.
+#
+# Requires the SYNC_8EDGES_TOKEN repo secret: a fine-grained PAT scoped to
+# talentedgeai/8-Edges-Fork with Contents: Read and write AND Workflows: Read
+# and write (the latter is required to push .github/workflows/ files).
+# The source repo is read with the built-in GITHUB_TOKEN, so the PAT needs no
+# access to edge8-web itself.
+
+on:
+  push:
+    branches: ['**']
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-to-8-edges-fork
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    if: github.repository == 'talentedgeai/edge8-web'
+    steps:
+      - name: Verify sync token is configured
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
+        run: |
+          if [ -z "$SYNC_TOKEN" ]; then
+            echo "::error::SYNC_8EDGES_TOKEN is not set. Create a fine-grained PAT scoped to talentedgeai/8-Edges-Fork with Contents and Workflows both Read and write, and add it as a repo secret."
+            exit 1
+          fi
+
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every branch
+        run: |
+          git fetch --quiet --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          # origin/HEAD is a symbolic ref, not a branch — pushing it would
+          # create a junk branch called "HEAD" on the fork. Delete it with
+          # symbolic-ref: `update-ref -d` dereferences and would delete the
+          # branch it points at (main), which --prune then removes downstream.
+          git symbolic-ref --delete refs/remotes/origin/HEAD 2>/dev/null || true
+          git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null || {
+            echo "::error::origin/main is missing after ref cleanup; refusing to mirror."
+            exit 1
+          }
+
+      - name: Drop the checkout credential
+        # actions/checkout writes http.https://github.com/.extraheader into the
+        # local git config. That header wins over credentials in a push URL, so
+        # without this every push would authenticate as GITHUB_TOKEN — which has
+        # no access to the fork — and fail with a misleading "Repository not
+        # found". Fetching is already done by this point.
+        run: git config --local --unset-all http.https://github.com/.extraheader || true
+
+      - name: Mirror all branches and tags to 8-Edges-Fork
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_8EDGES_TOKEN }}
+        run: |
+          set -o pipefail
+          remote="https://x-access-token:${SYNC_TOKEN}@github.com/talentedgeai/8-Edges-Fork.git"
+
+          if ! git push --force --prune "$remote" \
+                 'refs/remotes/origin/*:refs/heads/*' \
+                 'refs/tags/*:refs/tags/*' 2>push.log; then
+            sed -e "s#${SYNC_TOKEN}#***#g" push.log >&2
+            if grep -q 'workflow.*scope\|refusing to allow' push.log; then
+              echo "::error::Push rejected: the PAT lacks the Workflows permission needed to update .github/workflows/ files. Edit the token and set Workflows to Read and write."
+            elif grep -qi '403\|not found\|permission' push.log; then
+              echo "::error::Push rejected: the PAT cannot write to talentedgeai/8-Edges-Fork. Check that the token's repository access includes that repo with Contents: Read and write."
+            fi
+            exit 1
+          fi
+          sed -e "s#${SYNC_TOKEN}#***#g" push.log
+
+          branches=$(git for-each-ref --format='%(refname)' refs/remotes/origin | grep -cv 'HEAD$' || true)
+          echo "Mirrored ${branches} branches at ${GITHUB_SHA::8} to 8-Edges-Fork." | tee -a "$GITHUB_STEP_SUMMARY"
