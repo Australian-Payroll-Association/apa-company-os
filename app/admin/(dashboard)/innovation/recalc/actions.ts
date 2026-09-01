@@ -6,7 +6,7 @@ import { requireAdmin, canViewSensitive } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { parseWorkbook } from "@/lib/recalc/parse-workbook";
 import { runRecalculation } from "@/lib/recalc/engine";
-import { getDefaultRuleSet } from "@/lib/recalc/rule-sets";
+import { getDefaultRuleSet, getRuleSet } from "@/lib/recalc/rule-sets";
 import { createRun, completeRun, failRun } from "@/lib/recalc/runs";
 
 export type RunFormResult = { ok: true } | { ok: false; error: string };
@@ -31,7 +31,8 @@ export async function uploadAndRun(_prev: RunFormResult | null, formData: FormDa
     return { ok: false, error: "Choose the pay review data gathering workbook (.xlsx)." };
   }
 
-  const ruleSet = await getDefaultRuleSet();
+  const ruleSetId = ((formData.get("rule_set_id") as string | null) ?? "").trim();
+  const ruleSet = ruleSetId ? await getRuleSet(ruleSetId) : await getDefaultRuleSet();
   if (!ruleSet) {
     return { ok: false, error: "No interpretation rule set found — seed one in company_os.recalc_rule_sets first." };
   }

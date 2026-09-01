@@ -12,6 +12,18 @@ export function formatCents(cents: number | string | null | undefined, currency 
   }).format(n / 100);
 }
 
+// Accounting notation: negatives in parentheses instead of a leading minus,
+// e.g. -30000 -> "($300)". Reuses formatCents for the actual number/currency
+// formatting — only wraps the sign presentation, doesn't touch the shared
+// formatter (which other pages rely on reading as "-$X").
+export function formatVarianceCents(cents: number | string | null | undefined, currency = "usd"): string {
+  if (cents === null || cents === undefined || cents === "") return "—";
+  const n = typeof cents === "string" ? Number(cents) : cents;
+  if (!Number.isFinite(n)) return "—";
+  const formatted = formatCents(Math.abs(n), currency);
+  return n < 0 ? `(${formatted})` : formatted;
+}
+
 // Whole VND (NOT cents). VND is a zero-decimal currency; salary_vnd stores the
 // actual dong amount, so it must not go through formatCents (which divides by
 // 100). e.g. 45000000 -> "₫45,000,000".
