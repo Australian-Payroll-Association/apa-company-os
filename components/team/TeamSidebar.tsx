@@ -51,6 +51,7 @@ function myWorkGroup(hasClients: boolean): NavGroup {
     label: "My Work",
     items: [
       { label: "Work Boards", href: "/team/my-work-boards", ico: "☑", enabled: true },
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
       ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
     ],
