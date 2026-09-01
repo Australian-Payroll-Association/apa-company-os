@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Badge } from "@/components/admin/Badge";
 import { formatCents, formatDate } from "@/lib/admin/format";
 import type { VarianceRow } from "@/lib/recalc/types";
@@ -47,15 +47,30 @@ function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defa
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="tsheet-daygroup-head"
-        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit" }}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          background: "var(--admin-surface)",
+          border: "1px solid var(--admin-line)",
+          borderRadius: "var(--admin-radius-sm)",
+          padding: "12px 14px",
+          cursor: "pointer",
+          font: "inherit",
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 14,
+          color: "var(--admin-ink)",
+        }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span aria-hidden style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s", color: "var(--admin-muted)" }}>
             ▸
           </span>
           {group.employeeId}
-          <span className="tsheet-daygroup-total" style={{ fontWeight: 400 }}>
+          <span style={{ fontWeight: 400, fontSize: 13, color: "var(--admin-muted)", fontFamily: "inherit" }}>
             {group.rows.length} line{group.rows.length === 1 ? "" : "s"}
           </span>
         </span>
@@ -68,22 +83,54 @@ function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defa
         )}
       </button>
       {open && (
-        <div className="tsheet-rowlist" style={{ marginTop: 8, marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 110px 110px 110px",
+              gap: 14,
+              padding: "0 14px",
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.3,
+              color: "var(--admin-muted)",
+            }}
+          >
+            <span>Component</span>
+            <span style={{ textAlign: "right" }}>Expected</span>
+            <span style={{ textAlign: "right" }}>Actual</span>
+            <span style={{ textAlign: "right" }}>Variance</span>
+          </div>
           {group.rows.map((v, i) => (
-            <div className="tsheet-row" key={i} style={{ gridTemplateColumns: "1fr auto auto auto" }}>
-              <div className="tsheet-row-main">
-                <span className="tsheet-row-project">{v.component.replace(/_/g, " ")}</span>
-                <span className="tsheet-row-client">
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 110px 110px 110px",
+                gap: 14,
+                alignItems: "center",
+                padding: "11px 14px",
+                background: "var(--admin-surface)",
+                border: "1px solid var(--admin-line)",
+                borderRadius: "var(--admin-radius-sm)",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                <span style={{ fontWeight: 600, color: "var(--admin-ink)" }}>{v.component.replace(/_/g, " ")}</span>
+                <span style={{ fontSize: 12, color: "var(--admin-muted)" }}>
                   {formatDate(v.periodStart)} – {formatDate(v.periodEnd)}
                 </span>
               </div>
-              <span className="tsheet-row-hours">{formatCents(v.expectedCents)}</span>
-              <span className="tsheet-row-hours">{formatCents(v.actualCents)}</span>
-              {v.flagged ? (
-                <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatCents(v.varianceCents)}</Badge>
-              ) : (
-                <span className="tsheet-row-hours">{formatCents(v.varianceCents)}</span>
-              )}
+              <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatCents(v.expectedCents)}</span>
+              <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatCents(v.actualCents)}</span>
+              <span style={{ textAlign: "right" }}>
+                {v.flagged ? (
+                  <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatCents(v.varianceCents)}</Badge>
+                ) : (
+                  <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatCents(v.varianceCents)}</span>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -98,24 +145,26 @@ export function VarianceExplorer({ variances }: { variances: VarianceRow[] }) {
   const visible = flaggedOnly ? groups.filter((g) => g.flaggedCount > 0) : groups;
   const flaggedEmployeeCount = groups.filter((g) => g.flaggedCount > 0).length;
 
+  const emptyStyle: CSSProperties = { color: "var(--admin-muted)", fontSize: 14, padding: "24px 0", textAlign: "center" };
+
   if (variances.length === 0) {
-    return <p className="tsheet-empty">No overlapping employee/pay-period data between the workbook's tabs.</p>;
+    return <p style={emptyStyle}>No overlapping employee/pay-period data between the workbook's tabs.</p>;
   }
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, fontFamily: "var(--font-display)" }}>
-          By employee <span className="admin-cell-muted" style={{ fontWeight: 400 }}>({groups.length})</span>
+        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, fontFamily: "var(--font-display)", color: "var(--admin-ink)" }}>
+          By employee <span style={{ fontWeight: 400, color: "var(--admin-muted)" }}>({groups.length})</span>
         </h2>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", color: "var(--admin-ink)" }}>
           <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />
           Flagged only ({flaggedEmployeeCount})
         </label>
       </div>
-      <div className="tsheet-entries" style={{ marginTop: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {visible.length === 0 ? (
-          <p className="tsheet-empty">No flagged employees — nothing to show.</p>
+          <p style={emptyStyle}>No flagged employees — nothing to show.</p>
         ) : (
           visible.map((g) => <EmployeeGroupBlock key={g.employeeId} group={g} defaultOpen={g.flaggedCount > 0} />)
         )}
