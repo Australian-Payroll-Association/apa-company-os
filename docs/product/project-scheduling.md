@@ -86,3 +86,32 @@ Every new table enables RLS and mirrors the `staff_assignments` policy/grant pat
 - **Capacity source** — `consultant_load` defaults to 38h/week; swap for `people.weekly_capacity_hours` when the Unified Project System adds it.
 - **Budget unit** — `boards.budget_hours` (here, for estimate variance) vs `boards.budget_cents` (Unified PM, for cost). Confirm both are wanted.
 - **Tentative-entry rule** — finalise the exact pipeline stage with Adriana.
+
+---
+
+## 6. Handoff — what shipped (1 September 2026)
+
+All four phases are **built, merged, and deployed to production**. Migrations `00`–`05` are applied to the live database. What remains is data and sign-off (section 5), not code.
+
+### Live surfaces
+
+| Surface | Route | Ships in |
+|---|---|---|
+| My timesheet (team self-service) | `/team/timesheet` | PR #13 |
+| Resourcing schedule grid | `/admin/operations/scheduling` | PR #14 |
+| What-if toggle (committed vs win-all-tentative) | `/admin/operations/scheduling?view=expected` | PR #19 |
+| Capability matrix | `/admin/operations/scheduling/capability` | PR #16 |
+| Early-warning flags (overwork + over-budget) | on the schedule page | PR #16 |
+| Project slip + client requests | `/admin/operations/scheduling/slip` | PR #19 |
+
+### Schema in production
+`time_entry`, `capability`, `client_requests` (new); `staff_assignments` and `boards` extended; views `consultant_load`, `deal_forecast_load`, `project_slip`, `estimate_variance`, `project_budget_health`. DDL: [`supabase/features/scheduling/`](../../supabase/features/scheduling/README.md).
+
+### Known limitations carried into production
+- **Capacity is a flat 38h/week.** Part-time staff read as over-utilised until `people.weekly_capacity_hours` exists (see section 5). Marked `-- CAPACITY` in `05-views.sql`.
+- **Capability work types are provisional** (`lib/scheduling.ts`) — swap for the Kantata export.
+- **`estimate_variance` per project-type is inert** — nothing populates `boards.metadata->>'project_type'` yet; the view is correct per project.
+- **Auth accounts are seeded, not real.** A demo team-member account (`kylie@austpayroll.com.au`) and one seed project (**Logan Meats — Payroll Review**) exist to give each surface live data. Real consulting data comes from the Kantata mirror.
+
+### Adoption gates still ahead (the charter's exit tests)
+Code shipped ≠ in use. Each phase's real-world exit test (section 4) — Adriana running a full weekly scheduling pass in-system, consulting logging 100% of hours for two weeks, a slip modelled in-system — is the bar that closes the project.
