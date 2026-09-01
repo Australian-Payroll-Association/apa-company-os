@@ -80,7 +80,7 @@ export function TrainingWindow({
           disabled={pending}
           onClick={() => run(() => setTrainingWindow(id, { from: fromValue, to: toValue }))}
         >
-          Save window
+          Save window &amp; pull
         </button>
         <button
           type="button"
@@ -94,8 +94,8 @@ export function TrainingWindow({
 
       <p className="admin-page-sub" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
         {usingFallback
-          ? `Using the default window, ${fallbackFrom} to ${fallbackTo} (the edition period plus six weeks). Set dates above to override it.`
-          : "Reads Virtual Classroom courses from austpayroll.com.au/training."}
+          ? `Using the default window, ${fallbackFrom} to ${fallbackTo} (the edition period plus six weeks). Set dates above to override it, and saving pulls the courses in.`
+          : "Reads Virtual Classroom courses from austpayroll.com.au/training. Saving the window pulls them in."}
       </p>
 
       {msg && (

@@ -323,8 +323,23 @@ export async function setTrainingWindow(
     actor: admin.email,
     context: { training_from: from, training_to: to },
   });
+
+  // Saving the window IS the request to fill it — a separate button press to
+  // see the result of the dates you just set is a step with no decision in it.
+  // A failed pull does not fail the save: the window is stored either way, and
+  // the message says which half worked so it can be retried with the button.
+  const pulled = await syncTrainingForEdition(id);
   refresh(id);
-  return { ok: true, message: "Training window saved." };
+  if (!pulled.ok) {
+    return { ok: true, message: `Window saved, but the pull failed: ${pulled.error}` };
+  }
+  if (pulled.found === 0) {
+    return { ok: true, message: "Window saved. No Virtual Classroom courses on the site in that range." };
+  }
+  return {
+    ok: true,
+    message: `Window saved — ${pulled.found} course${pulled.found === 1 ? "" : "s"} in range, ${pulled.added} added, ${pulled.updated} already here.`,
+  };
 }
 
 // Reads austpayroll.com.au/training and materialises the Virtual Classroom

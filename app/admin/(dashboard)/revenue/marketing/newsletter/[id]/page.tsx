@@ -9,6 +9,7 @@ import { EDITION_STATUS_LABEL, SECTION_META, SECTION_TYPES, describeDetails } fr
 import { EditionControls, IncludeToggle } from "./EditionControls";
 import { AddSubmissionForm } from "./AddSubmissionForm";
 import { TrainingWindow } from "./TrainingWindow";
+import { TrainingTable } from "./TrainingTable";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,10 @@ export default async function EditionPage({ params }: { params: { id: string } }
                   ? "Nothing yet — pull from the training site above, or add a course by hand."
                   : "Nothing submitted yet."}
               </p>
+            ) : type === "training" ? (
+              // Training is the one section the newsletter renders as a table,
+              // so it is curated as one too.
+              <TrainingTable items={items} />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
                 {items.map((item) => (
