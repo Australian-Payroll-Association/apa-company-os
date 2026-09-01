@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getEditionDetail } from "@/lib/admin/newsletter";
+import { getEditionDetail, trainingWindow } from "@/lib/admin/newsletter";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { EDITION_STATUS_LABEL, SECTION_META, SECTION_TYPES } from "@/lib/newsletter";
 import { EditionControls, IncludeToggle } from "./EditionControls";
 import { AddSubmissionForm } from "./AddSubmissionForm";
+import { TrainingWindow } from "./TrainingWindow";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function EditionPage({ params }: { params: { id: string } }
   if (!detail) notFound();
 
   const { edition, bySection, tallies, contributors, includedCount } = detail;
+  const trainWindow = trainingWindow(edition);
   const short = tallies.filter((t) => t.short);
 
   const statusTone: BadgeTone =
@@ -67,6 +69,16 @@ export default async function EditionPage({ params }: { params: { id: string } }
 
         <div style={{ marginTop: 14 }}>
           <AddSubmissionForm editionId={edition.id} />
+        </div>
+
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--admin-line, rgba(128,128,128,0.25))" }}>
+          <TrainingWindow
+            id={edition.id}
+            from={edition.trainingFrom}
+            to={edition.trainingTo}
+            fallbackFrom={trainWindow.from.toISOString().slice(0, 10)}
+            fallbackTo={trainWindow.to.toISOString().slice(0, 10)}
+          />
         </div>
       </div>
 

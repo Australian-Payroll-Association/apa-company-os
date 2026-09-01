@@ -123,7 +123,14 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   training: {
     label: "Upcoming training",
-    hint: "One course per submission, as it appears in the table: course name, date with start and finish times and timezone, and delivery (e.g. Virtual Classroom). Mark it NEW! if it is. Published events are pulled in automatically — add anything not in the calendar yet.",
+    hint: "One course per submission — course name, the date as it should read, and the delivery format. Virtual Classroom courses inside the training window are pulled from austpayroll.com.au/training automatically; add anything the site doesn't carry.",
+    titleLabel: "Course",
+    bodyLabel: "Description",
+    linkLabel: "Course page link",
+    fields: [
+      { key: "date", label: "Date", type: "text", placeholder: "September 3rd" },
+      { key: "format", label: "Delivery", type: "text", placeholder: "Virtual Classroom" },
+    ],
     target: null,
     source: "events",
     needsLink: false,
