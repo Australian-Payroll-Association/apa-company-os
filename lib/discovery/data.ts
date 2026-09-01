@@ -43,6 +43,7 @@ export type EngagementRow = {
   status: string;
   overview: EngagementOverview;
   team_members: TeamMember[];
+  consultant_email: string | null;
   consultant: { full_name: string | null; email: string } | null;
 };
 
@@ -64,7 +65,7 @@ export async function loadEngagementByToken(token: string | undefined | null): P
   if (!token || token.length < 8) return null;
   const { data, error } = await discoveryDb
     .from("discovery_engagements")
-    .select("id, client_name, status, overview, team_members, consultant:people!consultant_person_id(full_name, email)")
+    .select("id, client_name, status, overview, team_members, consultant_email, consultant:people!consultant_person_id(full_name, email)")
     .eq("access_token", token)
     .maybeSingle();
   if (error || !data) return null;
