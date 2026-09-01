@@ -15100,11 +15100,16 @@ CREATE TABLE "company_os"."discovery_engagements" (
     "created_by" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "client_email" "text",
+    "client_contact_name" "text",
+    "consultant_email" "text",
     CONSTRAINT "discovery_engagements_status_check" CHECK (("status" = ANY (ARRAY['not_started'::"text", 'in_progress'::"text", 'submitted'::"text", 'under_review'::"text", 'report_drafted'::"text", 'completed'::"text"])))
 );
 
 COMMENT ON COLUMN "company_os"."discovery_engagements"."access_token" IS 'The client-facing link credential — no Supabase Auth session, matches contractor_work_requests.access_token. Never expose other engagements'' rows given only a token.';
 COMMENT ON COLUMN "company_os"."discovery_engagements"."overview" IS 'Systems in use + employing entities, from the Overview & Demographics tab.';
+COMMENT ON COLUMN "company_os"."discovery_engagements"."client_email" IS 'Who the discovery link invite is sent to. Set at creation; the invite can be resent to this address.';
+COMMENT ON COLUMN "company_os"."discovery_engagements"."consultant_email" IS 'Sender/reply-to for the client invite and recipient for the submission alert, typed per engagement. Falls back to the default system sender when blank.';
 
 CREATE TABLE "company_os"."discovery_responses" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,

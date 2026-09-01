@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { discoveryDb } from "@/lib/discovery/data";
+import { discoveryDb, normalizeOverview, type EngagementOverview, type TeamMember } from "@/lib/discovery/data";
+import { computeProgress } from "@/lib/discovery/progress";
 import { PageHead } from "@/components/admin/PageHead";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
@@ -20,6 +21,8 @@ type EngagementListRow = {
   access_token: string;
   created_at: string;
   submitted_at: string | null;
+  overview: Partial<EngagementOverview> | null;
+  team_members: TeamMember[] | null;
   consultant: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
@@ -56,11 +59,12 @@ const STATUS_PRIORITY: Record<string, number> = {
   completed: 5,
 };
 const NEEDS_REVIEW = new Set(["submitted", "report_drafted"]);
+const NOT_YET_SUBMITTED = new Set(["not_started", "in_progress"]);
 
 export default async function DiscoveryListPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const { data, error } = await discoveryDb
     .from("discovery_engagements")
-    .select("id, client_name, status, access_token, created_at, submitted_at, consultant:people!consultant_person_id(full_name)");
+    .select("id, client_name, status, access_token, created_at, submitted_at, overview, team_members, consultant:people!consultant_person_id(full_name)");
 
   const rows = ((data ?? []) as unknown as EngagementListRow[]).sort((a, b) => {
     const pa = STATUS_PRIORITY[a.status] ?? 99;
@@ -69,6 +73,25 @@ export default async function DiscoveryListPage({ searchParams }: { searchParams
     return (b.submitted_at ?? b.created_at).localeCompare(a.submitted_at ?? a.created_at);
   });
   const needsReviewCount = rows.filter((r) => NEEDS_REVIEW.has(r.status)).length;
+
+  // One batched query for every row's responses rather than N+1 — fine at the
+  // low volumes this list runs at (see DataTable usage below: no real
+  // pagination either, for the same reason).
+  const preSubmissionIds = rows.filter((r) => NOT_YET_SUBMITTED.has(r.status)).map((r) => r.id);
+  const { data: allResponses } = preSubmissionIds.length
+    ? await discoveryDb.from("discovery_responses").select("engagement_id, question_id, options, text").in("engagement_id", preSubmissionIds)
+    : { data: [] as { engagement_id: string; question_id: string; options: string[]; text: string | null }[] };
+  const responsesByEngagement = new Map<string, { question_id: string; options: string[]; text: string | null }[]>();
+  (allResponses ?? []).forEach((r) => {
+    const list = responsesByEngagement.get(r.engagement_id) ?? [];
+    list.push(r);
+    responsesByEngagement.set(r.engagement_id, list);
+  });
+  const progressById = new Map(
+    rows
+      .filter((r) => NOT_YET_SUBMITTED.has(r.status))
+      .map((r) => [r.id, computeProgress(normalizeOverview(r.overview), r.team_members ?? [], responsesByEngagement.get(r.id) ?? [])] as const),
+  );
 
   const columns: Column<EngagementListRow>[] = [
     {
@@ -84,6 +107,22 @@ export default async function DiscoveryListPage({ searchParams }: { searchParams
       key: "status",
       header: "Status",
       cell: (r) => <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{STATUS_LABEL[r.status] ?? r.status}</Badge>,
+    },
+    {
+      key: "progress",
+      header: "Progress",
+      cell: (r) => {
+        const p = progressById.get(r.id);
+        if (!p) return <span className="admin-cell-muted">—</span>;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 100 }}>
+            <div style={{ flex: 1, height: 6, borderRadius: 3, background: "var(--admin-line, #e2e5ea)", overflow: "hidden" }}>
+              <div style={{ width: `${p.pct}%`, height: "100%", background: "var(--admin-accent)", borderRadius: 3 }} />
+            </div>
+            <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>{p.pct}%</span>
+          </div>
+        );
+      },
     },
     {
       key: "consultant",

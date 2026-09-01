@@ -110,6 +110,7 @@ export async function submitEngagement(token: string): Promise<Result> {
     clientName: eng.client_name,
     consultantEmail: eng.consultant?.email ?? null,
     consultantName: eng.consultant?.full_name ?? null,
+    extraNotifyEmail: eng.consultant_email,
     reviewUrl: `${getSiteOrigin()}/admin/discovery/${eng.id}`,
   });
 
