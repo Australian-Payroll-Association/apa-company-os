@@ -24,9 +24,10 @@ const nextConfig = {
         "./public/case studies/images/**/*",
       ],
       // The Beryl ROI PDF (pdfkit, via @react-pdf/renderer) loads its built-in
-      // fonts by a dynamic require Next's tracer can't follow, so force the
-      // standard-font files into the lambda or the route 500s in production.
-      "/api/roi/pdf": ["./node_modules/pdfkit/js/standard-fonts/*"],
+      // fonts and glyph tables by dynamic requires Next's tracer can't follow,
+      // so force pdfkit's whole js tree into the lambda or the route 500s in
+      // production (missing standard-fonts + chunks/*).
+      "/api/roi/pdf": ["./node_modules/pdfkit/js/**/*"],
     },
   },
   async headers() {
