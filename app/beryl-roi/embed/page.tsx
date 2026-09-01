@@ -107,14 +107,6 @@ export default function BerylRoiEmbed() {
       <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap" />
 
-      <div className="head">
-        <h1>What is Beryl worth to your team?</h1>
-        <p className="sub">
-          Enter your numbers to see the time and money Beryl buys back, against its
-          {' '}{loaded ? formatCents(loaded.price.amountCents, currency, { exact: true }) : '$49.95'} per user monthly cost.
-        </p>
-      </div>
-
       {loadError && <p className="err">The calculator couldn&rsquo;t load. Please refresh the page.</p>}
 
       <div className="grid">
@@ -162,10 +154,10 @@ export default function BerylRoiEmbed() {
       {result && (
         <div className="pdf">
           {pdfStatus === 'done' ? (
-            <p className="done">✓ Your manager-ready PDF is downloading. Check your downloads folder.</p>
+            <p className="done">✓ Your manager ready PDF is downloading. Check your downloads folder.</p>
           ) : !showForm ? (
             <button type="button" className="cta" onClick={() => setShowForm(true)}>
-              Get a manager-ready PDF of this estimate
+              Get a manager ready PDF of this estimate
             </button>
           ) : (
             <form onSubmit={requestPdf} className="capture">
@@ -213,62 +205,58 @@ export default function BerylRoiEmbed() {
         .beryl { --blue:#48608a; --blue-d:#2a3850; --gold:#F0BD18; --ink:#3a3839;
           --muted:#6b7484; --line:#dde2ea; --surface:#fff; --ground:#f6f8fb; --good:#2f7d5b;
           font-family:"Source Sans 3", system-ui, -apple-system, sans-serif; color:var(--ink);
-          max-width:760px; margin:0 auto; padding:8px; }
+          font-size:18px; max-width:720px; margin:0 auto; padding:8px; }
         .beryl *, .beryl *::before, .beryl *::after { box-sizing:border-box; }
-        .head { margin-bottom:20px; }
-        h1 { font-family:"Montserrat",sans-serif; color:var(--blue-d); font-size:1.65rem;
-          line-height:1.12; letter-spacing:-.02em; margin:0 0 8px; text-wrap:balance; }
-        .sub { font-size:1.02rem; color:var(--muted); margin:0; max-width:52ch; }
         .err { color:#a4382f; font-weight:600; }
         .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
         @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
-        .inputs { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; }
+        .inputs { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
         label { display:block; }
-        .inputs label + label { margin-top:16px; }
-        .lbl { display:block; font-family:"Montserrat",sans-serif; font-weight:600; font-size:.9rem; color:var(--blue-d); margin-bottom:6px; }
+        .inputs label + label { margin-top:18px; }
+        .lbl { display:block; font-family:"Montserrat",sans-serif; font-weight:600; font-size:1rem; color:var(--blue-d); margin-bottom:7px; }
         .lbl em { color:var(--muted); font-style:normal; font-weight:500; }
-        input { width:100%; padding:11px 13px; font-size:1rem; font-family:inherit;
+        input { width:100%; padding:12px 14px; font-size:1.1rem; font-family:inherit;
           border:1px solid #cfd6e0; border-radius:9px; background:var(--ground); color:var(--blue-d); }
         input:focus { outline:2px solid var(--blue); outline-offset:1px; border-color:var(--blue); }
-        small { display:block; color:var(--muted); font-size:.82rem; margin-top:5px; line-height:1.4; }
-        .result { background:var(--blue-d); border-radius:14px; padding:22px; color:#eaf0f8; }
-        .placeholder { color:#aab6c8; margin:0; }
-        .headline { border-bottom:1px solid rgba(255,255,255,.14); padding-bottom:14px; margin-bottom:14px; }
-        .cap { display:block; font-family:"Montserrat",sans-serif; font-size:.68rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
-        .big { display:block; font-family:"Montserrat",sans-serif; font-size:2.1rem; font-weight:700; color:#fff; line-height:1; font-variant-numeric:tabular-nums; }
-        .per { display:block; margin-top:6px; font-size:.92rem; color:#c7d3e6; font-variant-numeric:tabular-nums; }
+        small { display:block; color:var(--muted); font-size:.9rem; margin-top:6px; line-height:1.45; }
+        .result { background:var(--blue-d); border-radius:14px; padding:24px; color:#eaf0f8; }
+        .placeholder { color:#aab6c8; margin:0; font-size:1.05rem; }
+        .headline { border-bottom:1px solid rgba(255,255,255,.14); padding-bottom:16px; margin-bottom:16px; }
+        .cap { display:block; font-family:"Montserrat",sans-serif; font-size:.74rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); margin-bottom:7px; }
+        .big { display:block; font-family:"Montserrat",sans-serif; font-size:2.6rem; font-weight:700; color:#fff; line-height:1; font-variant-numeric:tabular-nums; }
+        .per { display:block; margin-top:7px; font-size:1.05rem; color:#c7d3e6; font-variant-numeric:tabular-nums; }
         dl { margin:0; }
-        dl > div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.10); }
+        dl > div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.10); }
         dl > div:last-child { border-bottom:0; }
-        dt { color:#b9c5d8; font-size:.9rem; }
-        dd { margin:0; font-family:"Montserrat",sans-serif; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
+        dt { color:#b9c5d8; font-size:1rem; }
+        dd { margin:0; font-size:1.05rem; font-family:"Montserrat",sans-serif; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
         .net dd { color:#7fe0b0; }
-        .pdf { margin-top:16px; }
-        .cta { font-family:"Montserrat",sans-serif; font-weight:600; font-size:.98rem; color:#fff; background:var(--blue);
-          border:0; border-radius:10px; padding:13px 20px; cursor:pointer; width:100%; }
-        .cta:hover { background:#3f5479; }
+        .pdf { margin-top:18px; }
+        .cta { font-family:"Montserrat",sans-serif; font-weight:700; font-size:1.1rem; color:var(--blue-d); background:var(--gold);
+          border:0; border-radius:10px; padding:15px 22px; cursor:pointer; width:100%; }
+        .cta:hover { background:#e0ad0c; }
         .cta:disabled { opacity:.55; cursor:default; }
-        .cta:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+        .cta:focus-visible { outline:2px solid var(--blue-d); outline-offset:2px; }
         .capture { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin-top:4px; }
         .frow { display:flex; gap:12px; }
         .frow + .frow { margin-top:12px; }
         @media (max-width:520px){ .frow { flex-direction:column; gap:12px; } }
         .capture label { flex:1; }
-        .capture label span { display:block; font-family:"Montserrat",sans-serif; font-weight:600; font-size:.8rem; color:var(--blue-d); margin-bottom:5px; }
-        .consent { color:var(--muted); font-size:.82rem; line-height:1.45; margin:14px 0 12px; }
+        .capture label span { display:block; font-family:"Montserrat",sans-serif; font-weight:600; font-size:.88rem; color:var(--blue-d); margin-bottom:6px; }
+        .consent { color:var(--muted); font-size:.9rem; line-height:1.5; margin:14px 0 12px; }
         .factions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
         .factions .cta { width:auto; }
-        .ferr { color:#a4382f; font-size:.86rem; }
-        .done { background:#e6f2ec; border:1px solid #bfe0cd; color:var(--good); border-radius:12px; padding:14px 16px; margin:0; font-weight:600; }
-        .method { margin-top:16px; }
+        .ferr { color:#a4382f; font-size:.92rem; }
+        .done { background:#e6f2ec; border:1px solid #bfe0cd; color:var(--good); border-radius:12px; padding:16px 18px; margin:0; font-weight:600; font-size:1.05rem; }
+        .method { margin-top:18px; }
         .method > button { width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--ground);
-          border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-family:"Montserrat",sans-serif; font-weight:600;
-          font-size:.92rem; color:var(--blue-d); cursor:pointer; }
+          border:1px solid var(--line); border-radius:10px; padding:13px 18px; font-family:"Montserrat",sans-serif; font-weight:600;
+          font-size:1rem; color:var(--blue-d); cursor:pointer; }
         .method > button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
-        .chev { color:var(--blue); font-size:1.1rem; line-height:1; }
-        .method-body { padding:14px 16px 2px; }
-        .method-body p { font-size:.92rem; color:var(--ink); line-height:1.55; margin:0 0 10px; }
-        .fine { color:var(--muted); font-size:.84rem; }
+        .chev { color:var(--blue); font-size:1.2rem; line-height:1; }
+        .method-body { padding:15px 18px 2px; }
+        .method-body p { font-size:1rem; color:var(--ink); line-height:1.6; margin:0 0 10px; }
+        .fine { color:var(--muted); font-size:.9rem; }
       `}</style>
       <style jsx global>{`html, body { background:transparent; margin:0; }`}</style>
     </div>
