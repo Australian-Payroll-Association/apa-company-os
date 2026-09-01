@@ -212,6 +212,10 @@ const NAV: NavSection[] = [
         superAdmin: true,
         items: [{ label: "Recalculation", href: "/admin/innovation/recalc", ico: "⇄", enabled: true }],
       },
+      {
+        subheading: "Payroll 360",
+        items: [{ label: "Discovery", href: "/admin/discovery", ico: "☰", enabled: true }],
+      },
     ],
   },
     ],
