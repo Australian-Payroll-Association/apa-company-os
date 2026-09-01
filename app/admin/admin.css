@@ -4895,3 +4895,94 @@ a.hub-program-card:hover {
 
 /* Cockpit drawer: "Open full deal" link acts as an inline button. */
 .deal-open-link { display: inline-flex; }
+
+/* ─── Timesheet (/team/timesheet) — Phase 0 of Improved Scheduling & Tracking ───
+   The under-10-second logging surface. Reuses admin tokens; loaded on /team
+   because the team dashboard imports this stylesheet. */
+.tsheet-weeknav { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.tsheet-daychips {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  .tsheet-daychips { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(92px, 1fr); overflow-x: auto; }
+}
+.tsheet-daychip {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  padding: 10px 12px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+  cursor: pointer; text-align: left; transition: border-color var(--transition), background var(--transition);
+}
+.tsheet-daychip:hover { border-color: var(--admin-accent); }
+.tsheet-daychip.is-selected { border-color: var(--admin-accent); background: var(--admin-accent-soft); }
+.tsheet-daychip.is-today .tsheet-daychip-label::after { content: " •"; color: var(--admin-accent); }
+.tsheet-daychip-label { font-size: 12px; font-weight: 600; color: var(--admin-ink); font-family: var(--font-display); }
+.tsheet-daychip-total { font-size: 13px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+
+.tsheet-form {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr 2.4fr auto;
+  gap: 12px; align-items: end;
+  padding: 16px 18px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); margin-bottom: 8px;
+}
+@media (max-width: 860px) { .tsheet-form { grid-template-columns: 1fr 1fr; } .tsheet-form-note { grid-column: 1 / -1; } .tsheet-form-submit { grid-column: 1 / -1; } }
+.tsheet-form-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tsheet-form-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
+.tsheet-form-field select,
+.tsheet-form-field input[type="text"],
+.tsheet-form-field input[type="number"] {
+  width: 100%; padding: 9px 11px; font: inherit; color: var(--admin-ink);
+  background: var(--admin-bg); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+}
+.tsheet-form-field input:focus, .tsheet-form-field select:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+.tsheet-form-submit .admin-btn { width: 100%; }
+
+.tsheet-toggle {
+  padding: 9px 12px; font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg);
+  border: 1px solid transparent; border-radius: var(--admin-radius-sm); white-space: nowrap;
+}
+.tsheet-toggle.is-on { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+.tsheet-toggle--sm { padding: 6px 9px; font-size: 12px; }
+
+.tsheet-error { margin: 12px 0 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
+
+.tsheet-entries { margin-top: 26px; display: flex; flex-direction: column; gap: 18px; }
+.tsheet-empty { color: var(--admin-muted); font-size: 15px; padding: 24px 0; text-align: center; }
+
+.tsheet-daygroup-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--admin-ink);
+  padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--admin-line-soft);
+}
+.tsheet-daygroup-total { color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.tsheet-rowlist { display: flex; flex-direction: column; gap: 8px; }
+
+.tsheet-row {
+  display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center;
+  padding: 11px 14px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+}
+.tsheet-row--editing { grid-template-columns: 1.4fr 0.7fr auto 1.6fr auto; }
+@media (max-width: 720px) { .tsheet-row, .tsheet-row--editing { grid-template-columns: 1fr auto; row-gap: 8px; } }
+.tsheet-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tsheet-row-project { font-weight: 600; color: var(--admin-ink); }
+.tsheet-row-client { font-size: 12px; color: var(--admin-muted); }
+.tsheet-row-note { font-size: 13px; color: var(--admin-muted); overflow-wrap: anywhere; }
+.tsheet-row-hours { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--admin-ink); white-space: nowrap; }
+.tsheet-row-hoursinput { width: 84px; padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+.tsheet-row-noteinput { padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); min-width: 0; }
+.tsheet-row-actions { display: flex; gap: 6px; }
+
+.tsheet-pill {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+  padding: 3px 9px; border-radius: var(--admin-radius-pill);
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg); white-space: nowrap;
+}
+.tsheet-pill.is-billable { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }

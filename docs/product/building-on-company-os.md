@@ -101,6 +101,8 @@ A client survey becomes a structured, house-style compliance-report *draft*, con
 
 **Full detail: [project-unified-pm.md](project-unified-pm.md)**
 
+**Companion layer: [Improved Scheduling & Tracking](project-scheduling.md)** — the consulting team's resourcing, capability matrix and slip-tracking, riding on this build's `time_entry`.
+
 One system for ~24 people to replace Kantata, ClickUp & Infinity. The loop: create a project → log time → cost rolls up against budget.
 
 - **Reuses:** `boards`, `board_columns`, `board_members`, `sprints`, `tasks`, `task_comments`, `task_stage_log`, `staff_assignments`, `availability_blocks`, `people`, `team_members`, `compensation_sensitive`, `deals`, `invoices`, `expenses`. The board system already covers projects/tasks/sprints/allocation; the leadership-only cost-rate requirement is pre-solved by `compensation_sensitive`'s gate.
