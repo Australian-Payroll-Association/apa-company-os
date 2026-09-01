@@ -94,7 +94,7 @@ export function ProposeAssist({ onDraft }: { onDraft: (draft: RoadmapDraft) => v
                 lineHeight: 1.5,
                 padding: "6px 9px",
                 borderRadius: 8,
-                background: m.role === "user" ? "rgba(40,123,232,.08)" : "#fff",
+                background: m.role === "user" ? "rgba(70,87,120,.08)" : "#fff",
                 border: m.role === "user" ? "none" : "1px solid #EAEEF2",
                 justifySelf: m.role === "user" ? "end" : "start",
                 maxWidth: "90%",

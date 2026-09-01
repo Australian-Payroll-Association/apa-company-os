@@ -141,7 +141,7 @@ export default function TrainingAndCertificationPage() {
       <section className="section">
         <div className="container">
           <div className="track-record reveal">
-            <span className="section-label" style={{ color: 'var(--mint)', background: 'rgba(111,242,193,0.12)', border: '1px solid rgba(111,242,193,0.35)' }}>Track Record</span>
+            <span className="section-label" style={{ color: 'var(--mint)', background: 'rgba(230,183,61,0.12)', border: '1px solid rgba(230,183,61,0.35)' }}>Track Record</span>
             <h2 className="section-title" style={{ color: '#fff', marginBottom: 0 }}>Proven Results Across Southeast Asia &amp; North America</h2>
             <div className="track-record-grid">
               {[

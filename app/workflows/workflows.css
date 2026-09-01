@@ -74,8 +74,8 @@
   border-radius: 40px;
   padding: 4px 12px;
 }
-.wf-cat-talent { background: rgba(40, 123, 232, 0.12); color: var(--blue); }
-.wf-cat-operations { background: rgba(111, 242, 193, 0.25); color: #0E8A5F; }
+.wf-cat-talent { background: rgba(70, 87, 120, 0.12); color: var(--blue); }
+.wf-cat-operations { background: rgba(230, 183, 61, 0.25); color: #0E8A5F; }
 .wf-cat-revenue { background: rgba(232, 155, 40, 0.14); color: var(--wf-amber); }
 .wf-cat-innovation { background: rgba(122, 92, 250, 0.12); color: #7A5CFA; }
 
@@ -90,9 +90,9 @@
   white-space: nowrap;
 }
 .wf-actor::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.wf-actor-ai { background: rgba(40, 123, 232, 0.12); color: var(--blue); }
+.wf-actor-ai { background: rgba(70, 87, 120, 0.12); color: var(--blue); }
 .wf-actor-human { background: rgba(16, 16, 20, 0.08); color: var(--dark); }
-.wf-actor-system { background: rgba(111, 242, 193, 0.28); color: #0E8A5F; }
+.wf-actor-system { background: rgba(230, 183, 61, 0.28); color: #0E8A5F; }
 .wf-actor-contractor { background: rgba(122, 92, 250, 0.12); color: #7A5CFA; }
 
 /* ─── INDEX CARD GRID ──────────────────────────────── */
@@ -315,7 +315,7 @@
   border-radius: 12px;
 }
 .wf-lane-label-admin { background: rgba(16, 16, 20, 0.06); color: var(--dark); }
-.wf-lane-label-system { background: rgba(111, 242, 193, 0.28); color: #0E8A5F; }
+.wf-lane-label-system { background: rgba(230, 183, 61, 0.28); color: #0E8A5F; }
 .wf-lane-label-contractor { background: rgba(122, 92, 250, 0.1); color: #7A5CFA; }
 .wf-lanes {
   display: grid;
@@ -420,7 +420,7 @@
 .wf-table td { padding: 14px 20px; border-top: 1px solid var(--card-border); color: var(--body-text); line-height: 1.5; vertical-align: top; }
 .wf-table td:first-child { color: var(--dark); font-weight: 600; white-space: nowrap; }
 .wf-tag { display: inline-flex; font-size: 12px; font-weight: 600; border-radius: 40px; padding: 3px 11px; white-space: nowrap; }
-.wf-tag-expense { background: rgba(40, 123, 232, 0.12); color: var(--blue); }
+.wf-tag-expense { background: rgba(70, 87, 120, 0.12); color: var(--blue); }
 .wf-tag-pass { background: rgba(232, 155, 40, 0.14); color: var(--wf-amber); }
 .wf-tag-never { background: rgba(229, 72, 77, 0.1); color: var(--wf-red); }
 
@@ -466,9 +466,9 @@
   padding: 3px 10px;
   white-space: nowrap;
 }
-.wf-assign-machine { background: rgba(40, 123, 232, 0.12); color: var(--blue); }
+.wf-assign-machine { background: rgba(70, 87, 120, 0.12); color: var(--blue); }
 .wf-assign-human { background: rgba(16, 16, 20, 0.08); color: var(--dark); }
-.wf-assign-both { background: rgba(111, 242, 193, 0.28); color: #0E8A5F; }
+.wf-assign-both { background: rgba(230, 183, 61, 0.28); color: #0E8A5F; }
 .wf-element-desc { font-size: 13px; color: var(--body-text); line-height: 1.55; }
 
 /* ─── STAGE GATES (method page) ────────────────────── */
@@ -489,7 +489,7 @@
 }
 .wf-stage strong { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--dark); }
 .wf-stage span { font-size: 12px; color: var(--grey-mid); }
-.wf-stage-active { border-color: var(--blue); background: rgba(40, 123, 232, 0.06); }
+.wf-stage-active { border-color: var(--blue); background: rgba(70, 87, 120, 0.06); }
 .wf-stage-arrow { font-size: 18px; color: var(--grey-light); }
 
 /* ─── FRAMEWORKS CTA (method page) ─────────────────── */

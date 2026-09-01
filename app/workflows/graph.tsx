@@ -137,7 +137,7 @@ function NodeShape({ n }: { n: GraphNode }) {
       ]
         .map((p) => p.join(','))
         .join(' ')
-      shape = <polygon points={pts} style={{ fill: 'rgba(40, 123, 232, 0.06)', stroke: 'var(--blue)', strokeWidth: 1.5 }} />
+      shape = <polygon points={pts} style={{ fill: 'rgba(70, 87, 120, 0.06)', stroke: 'var(--blue)', strokeWidth: 1.5 }} />
       break
     }
     case 'wait':
@@ -276,7 +276,7 @@ export function WorkflowGraph({ graph, caption }: { graph: WorkflowGraphDef; cap
 }
 
 const LEGEND_SWATCH: Record<string, CSSProperties> = {
-  decision: { background: 'rgba(40, 123, 232, 0.06)', border: '1.5px solid var(--blue)' },
+  decision: { background: 'rgba(70, 87, 120, 0.06)', border: '1.5px solid var(--blue)' },
   write: { background: 'rgba(47, 191, 113, 0.08)', border: '1.5px solid var(--wf-green)' },
   action: { background: 'var(--white)', border: '1.5px solid var(--input-border)' },
   wait: { background: 'rgba(232, 155, 40, 0.08)', border: '1.5px dashed var(--wf-amber)', borderRadius: 9 },
