@@ -2565,6 +2565,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 .admin-alert { padding: 10px 14px; border-radius: var(--admin-radius-sm); font-size: 13px; }
 .admin-alert--err { background: var(--admin-err-bg); color: var(--admin-err-ink); }
 .admin-alert--ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.admin-alert--warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
 
 /* ─── Toasts ──────────────────────────────────────── */
 .admin-toast-host {
