@@ -151,6 +151,7 @@ const NAV: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
+      { label: "Scheduling", href: "/admin/operations/scheduling", ico: "◷", enabled: true },
       {
         subheading: "Time Off",
         items: [

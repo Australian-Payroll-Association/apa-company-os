@@ -64,6 +64,12 @@ export function formatDayLabel(iso: string): string {
   return `${WEEKDAY_LONG[dow]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+/** "1 Sep" — a compact week-column header (the Monday). */
+export function formatWeekShort(iso: string): string {
+  const d = fromISODate(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
 /** "1 – 7 Sep 2026" for a week header. */
 export function formatWeekRange(mondayISO: string): string {
   const days = weekDays(mondayISO);
