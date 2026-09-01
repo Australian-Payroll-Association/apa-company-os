@@ -10,6 +10,13 @@ import { BarChart } from "@/components/admin/charts/BarChart";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { formatCents, formatDate, timeAgo } from "@/lib/admin/format";
 import { compactUsd, vsPrior, monthsThisYear, MS_DAY } from "@/lib/admin/dashboard-helpers";
+import {
+  firstCallCompliance,
+  timeInStageMs,
+  isStalled,
+  humanDuration,
+  type SlaInquiry,
+} from "@/lib/admin/sla";
 import { getSurveyScore } from "@/lib/admin/survey-scores";
 import { getAnalyticsOverview } from "@/lib/admin/vercel-analytics";
 import { getAudienceBreakdown, getDeliverability } from "@/lib/admin/marketing";
@@ -147,6 +154,7 @@ type DealRow = {
   lost_reason: string | null;
   probability: number | null;
   person_id: string | null;
+  created_at: string | null;
   updated_at: string | null;
   referrer_id: string | null;
   referrer_company_id: string | null;
@@ -206,7 +214,7 @@ export default async function SalesCockpitPage() {
   let dealsQuery = companyOs
     .from("deals")
     .select(
-      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, updated_at, referrer_id, referrer_company_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email), referrer_company:companies!referrer_company_id(name)",
+      "id, title, stage_id, amount_cents, amount_usd_cents, currency, owner_id, status, source, expected_close_date, next_step, next_step_date, proposal_url, contract_url, handoff_status, lost_reason, probability, person_id, created_at, updated_at, referrer_id, referrer_company_id, people!person_id(full_name, email), companies!company_id(name), referrer:people!referrer_id(full_name, email), referrer_company:companies!referrer_company_id(name)",
     )
     .eq("status", "open")
     .is("archived_at", null)
@@ -232,6 +240,8 @@ export default async function SalesCockpitPage() {
     funnelDealsRes,
     newLeadsRes,
     inq30Res,
+    slaInqRes,
+    stageChangesRes,
     clientScore,
     audience,
     delivery,
@@ -274,6 +284,25 @@ export default async function SalesCockpitPage() {
       .select("id", { count: "exact", head: true })
       .not("type", "in", NON_SALES_INQUIRY_TYPES)
       .gte("created_at", iso30),
+    // Front Door 24h first-call SLA (E8): sales inquiries created across the
+    // current + prior 30d windows. metadata.first_contacted_at is the stamp the
+    // intake actions write on first reaching 'contacted'-or-later; compliance is
+    // measured from go-live forward, so the tile labels its window.
+    companyOs
+      .from("inquiries")
+      .select("id, created_at, status, metadata, people(full_name, email)")
+      .not("type", "in", NON_SALES_INQUIRY_TYPES)
+      .gte("created_at", iso60)
+      .limit(1000),
+    // Latest stage-change per deal for time-in-stage / stalled (E8). Newest
+    // first, so the first row seen per subject_id is that deal's most recent move.
+    companyOs
+      .from("interactions")
+      .select("subject_id, occurred_at")
+      .eq("kind", "status_change")
+      .eq("subject_type", "deal")
+      .order("occurred_at", { ascending: false })
+      .limit(2000),
     getSurveyScore("ai-capability-pulse"),
     // Marketing (DB-derived; analytics is streamed separately in MarketingSection).
     getAudienceBreakdown(),
@@ -297,6 +326,63 @@ export default async function SalesCockpitPage() {
     }));
   const inquiries = (inqRes.data as InquiryRow[] | null) ?? [];
   const slaOverdue = overdueRes.count ?? 0;
+
+  // ── Front Door 24h first-call SLA (E8) ──
+  // A separate metric from the 4h speed-to-lead SLA above; both render as their
+  // own labelled tiles and are never merged. Compliance is measured over the
+  // rolling 30d window (vs the prior 30d), from go-live forward.
+  type SlaInqRaw = {
+    id: string;
+    created_at: string;
+    status: string | null;
+    metadata: unknown;
+    people: Embedded<{ full_name: string | null; email: string }>;
+  };
+  const toSlaInquiry = (r: SlaInqRaw): SlaInquiry => {
+    const p = one(r.people);
+    const meta = r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : {};
+    const fc = meta.first_contacted_at;
+    return {
+      id: r.id,
+      createdAt: r.created_at,
+      firstContactedAt: typeof fc === "string" ? fc : null,
+      status: r.status,
+      name: p?.full_name ?? null,
+      email: p?.email ?? null,
+    };
+  };
+  const slaInquiriesAll = ((slaInqRes.data as SlaInqRaw[] | null) ?? []).map(toSlaInquiry);
+  const firstCallCurrent = firstCallCompliance(slaInquiriesAll.filter((i) => i.createdAt >= iso30));
+  const firstCallPrior = firstCallCompliance(
+    slaInquiriesAll.filter((i) => i.createdAt >= iso60 && i.createdAt < iso30),
+  );
+  // Points delta vs the prior window (pct is null when a window is empty).
+  const firstCallDelta =
+    firstCallCurrent.pct != null && firstCallPrior.pct != null
+      ? Math.round((firstCallCurrent.pct - firstCallPrior.pct) * 10) / 10
+      : null;
+  const firstCallArrow = firstCallDelta == null ? "" : firstCallDelta > 0 ? "▲ " : firstCallDelta < 0 ? "▼ " : "＝ ";
+  const firstCallSub =
+    firstCallCurrent.total === 0
+      ? "no sales inquiries · 30d"
+      : `${firstCallCurrent.breached} breached · ${
+          firstCallDelta == null ? "30d since go-live" : `${firstCallArrow}${Math.abs(firstCallDelta)}pts vs prior 30d`
+        }`;
+
+  // Newest stage-change per deal (E8 time-in-stage / stalled). The query is
+  // ordered newest-first, so the first occurrence per subject_id is the latest.
+  const lastStageChange = new Map<string, string>();
+  for (const r of (stageChangesRes.data as { subject_id: string | null; occurred_at: string | null }[] | null) ?? []) {
+    if (r.subject_id && r.occurred_at && !lastStageChange.has(r.subject_id)) {
+      lastStageChange.set(r.subject_id, r.occurred_at);
+    }
+  }
+  const nowMs = now.getTime();
+  // Time-in-stage per open deal. Anchor = latest logged stage change, or the
+  // deal's created_at as the documented interim fallback for deals with no
+  // status_change row yet (pre-instrumentation history).
+  const dealStageMs = (d: DealRow): number =>
+    timeInStageMs(lastStageChange.get(d.id) ?? d.created_at ?? nowIso, nowMs);
   const dealsClosed = ((wonRes.data as { amount_usd_cents: number | null }[] | null) ?? []).reduce(
     (s, d) => s + (d.amount_usd_cents ?? 0),
     0,
@@ -358,10 +444,17 @@ export default async function SalesCockpitPage() {
   const activeCampaigns = engine.activeCampaigns.map((c) => ({ id: c.id, title: c.name, status: String(c.status) }));
 
   const openPipeline = deals.reduce((s, d) => s + (d.amount_usd_cents ?? 0), 0);
+  // A deal needs attention when it has a missing field OR it is stalled (no
+  // stage change for 7+ days). Stalled-but-complete deals would otherwise die
+  // silently, so they surface here too.
   const needsAttention = deals
-    .map((d) => ({ d, gaps: dealGaps(d) }))
-    .filter((x) => x.gaps.length > 0)
+    .map((d) => {
+      const ms = dealStageMs(d);
+      return { d, gaps: dealGaps(d), stageMs: ms, stalled: isStalled(ms) };
+    })
+    .filter((x) => x.gaps.length > 0 || x.stalled)
     .sort((a, b) => (b.d.amount_usd_cents ?? 0) - (a.d.amount_usd_cents ?? 0));
+  const stalledCount = needsAttention.filter((x) => x.stalled).length;
 
   const firstStageId = stages[0]?.id ?? "";
   const dealStages: KanbanColumn[] = stages.map((s) => ({
@@ -412,7 +505,7 @@ export default async function SalesCockpitPage() {
     };
   });
 
-  const cockpitDeals = needsAttention.map(({ d, gaps }) => {
+  const cockpitDeals = needsAttention.map(({ d, gaps, stageMs, stalled }) => {
     const co = one(d.companies);
     const p = one(d.people);
     return {
@@ -422,6 +515,8 @@ export default async function SalesCockpitPage() {
       usd: d.amount_usd_cents,
       nextStep: d.next_step,
       gaps,
+      timeInStage: humanDuration(stageMs),
+      stalled,
     };
   });
 
@@ -456,6 +551,7 @@ export default async function SalesCockpitPage() {
         note={[
           needsAttention.length > 0 ? `${needsAttention.length} need attention` : "pipeline clean",
           slaOverdue > 0 ? `${slaOverdue} SLA overdue` : null,
+          stalledCount > 0 ? `${stalledCount} stalled` : null,
         ].filter(Boolean).join(" · ")}
       />
       <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
@@ -463,6 +559,24 @@ export default async function SalesCockpitPage() {
         <MetricCard label="New leads · 30d" value={newLeads30} sub={vsPrior(newLeads30, newLeadsPrev30)} href="/admin/revenue/leads" />
         <MetricCard label="Meetings booked" value={`${meetingsBooked} / ${WEEKLY_MEETINGS_GOAL}`} sub="this week vs goal" href="/admin/revenue/leads" />
         <MetricCard label="Conversion · 90d" value={`${conversion90}%`} sub="lead → won" />
+      </div>
+
+      {/* ── Two DISTINCT SLA tiles, side by side (E8) — the existing 4h
+          speed-to-lead RESPONSE SLA and the new 24h Front Door FIRST-CALL SLA.
+          Kept as separate, distinctly labelled tiles so they are never merged. ── */}
+      <div className="mp-kpi-grid" style={{ marginBottom: 16 }}>
+        <MetricCard
+          label="Speed-to-lead (4h response)"
+          value={slaOverdue}
+          sub={slaOverdue > 0 ? "leads past the 4h response SLA" : "all leads within the 4h SLA"}
+          href="/admin/revenue/leads"
+        />
+        <MetricCard
+          label="Front Door first call (24h)"
+          value={firstCallCurrent.pct != null ? `${firstCallCurrent.pct}%` : "—"}
+          sub={firstCallSub}
+          href="/admin/revenue/inquiries"
+        />
       </div>
       <div className="admin-summary-grid" style={{ marginBottom: 16 }}>
         <div className="admin-card admin-chart-card">
@@ -485,6 +599,46 @@ export default async function SalesCockpitPage() {
           lostStageIds={lostStageIds}
           wonStageIds={wonStageIds}
         />
+      </div>
+
+      {/* ── Front Door first-call breaches (E8): inquiries not contacted within
+          24h of arriving. Enough detail to action each one. ── */}
+      <div className="admin-card admin-section-card" style={{ marginBottom: 20 }}>
+        <h2 className="admin-card-title">First-call breaches · 24h</h2>
+        {firstCallCurrent.breaches.length === 0 ? (
+          <div className="admin-empty">
+            {firstCallCurrent.total === 0
+              ? "No sales inquiries in the last 30 days yet."
+              : "Every inquiry in the last 30 days had first contact within 24 hours."}
+          </div>
+        ) : (
+          <div className="admin-list">
+            {firstCallCurrent.breaches.slice(0, 10).map((b) => (
+              <div key={b.id} className="admin-list-row">
+                <div className="admin-list-main">
+                  <div className="admin-list-title">{b.name || b.email || "Unknown contact"}</div>
+                  <div className="admin-list-sub">
+                    arrived {formatDate(b.createdAt)}
+                    {b.email ? ` · ${b.email}` : ""}
+                  </div>
+                </div>
+                <div className="admin-list-aside">
+                  <Badge tone="err" dot>
+                    {b.hoursToContact == null ? "never contacted" : `contacted ${b.hoursToContact}h`}
+                  </Badge>
+                  <span className="admin-list-sub">{(b.status ?? "new_lead").replace(/_/g, " ")}</span>
+                </div>
+              </div>
+            ))}
+            {firstCallCurrent.breaches.length > 10 && (
+              <div style={{ paddingTop: 10 }}>
+                <Link href="/admin/revenue/inquiries" className="admin-auth-link">
+                  Open the inquiries board →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", alignItems: "start" }}>

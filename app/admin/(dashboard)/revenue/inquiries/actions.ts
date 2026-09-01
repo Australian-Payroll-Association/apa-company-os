@@ -13,6 +13,11 @@ type Result = { ok: true } | { ok: false; error: string };
 // also lands in the SDR lead queue.
 const STATUSES = new Set(["new_lead", "contacted", "no_action", "spam", "archived"]);
 
+// Statuses that mean the Front Door made first contact (or better). The first
+// time an inquiry reaches any of these, we stamp metadata.first_contacted_at —
+// the clock the 24h first-call SLA (E8) measures against inquiries.created_at.
+const CONTACTED_OR_LATER = new Set(["contacted", "qualified", "discovery_call", "proposal", "won"]);
+
 function refresh() {
   revalidatePath("/admin/revenue/inquiries");
   // The cockpit's "Inquiries to triage" card only shows new_lead; archiving or
@@ -20,10 +25,24 @@ function refresh() {
   revalidatePath("/admin/revenue");
 }
 
+// Stamp the first-contact time on the inquiry the first time it reaches
+// 'contacted'-or-later. Idempotent: a pre-existing stamp is never overwritten,
+// so the metric always reflects the *first* contact. jsonb merge — no schema
+// change. Returns the metadata to write, or null if nothing should change.
+async function firstContactStamp(id: string, toStatus: string): Promise<Record<string, unknown> | null> {
+  if (!CONTACTED_OR_LATER.has(toStatus)) return null;
+  const { data } = await companyOs.from("inquiries").select("metadata").eq("id", id).maybeSingle();
+  const meta = data?.metadata && typeof data.metadata === "object" ? (data.metadata as Record<string, unknown>) : {};
+  if (meta.first_contacted_at) return null; // already stamped — keep the original
+  return { ...meta, first_contacted_at: new Date().toISOString() };
+}
+
 export async function moveInquiryStatus(id: string, status: string): Promise<Result> {
   await requireAdmin();
   if (!STATUSES.has(status)) return { ok: false, error: "Invalid status." };
-  const { error } = await companyOs.from("inquiries").update({ status }).eq("id", id);
+  const metadata = await firstContactStamp(id, status);
+  const updates: Record<string, unknown> = metadata ? { status, metadata } : { status };
+  const { error } = await companyOs.from("inquiries").update(updates).eq("id", id);
   if (error) return { ok: false, error: error.message };
   refresh();
   return { ok: true };
@@ -57,9 +76,16 @@ export async function promoteInquiryToLead(id: string): Promise<Result> {
   });
   if (!promoted.ok) return promoted;
 
+  // Promotion to 'qualified' is a contacted-or-later transition — stamp the
+  // first-call clock here too (idempotent) so a promote-without-a-prior-
+  // 'contacted' step still records first contact.
+  const metadata = await firstContactStamp(id, "qualified");
+  const updates: Record<string, unknown> = metadata
+    ? { status: "qualified", metadata }
+    : { status: "qualified" };
   const { error: uErr } = await companyOs
     .from("inquiries")
-    .update({ status: "qualified" })
+    .update(updates)
     .eq("id", id);
   if (uErr) return { ok: false, error: uErr.message };
 
