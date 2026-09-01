@@ -19,6 +19,11 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
   const employeeCount = run.results ? new Set(run.results.variances.map((v) => v.employeeId)).size : 0;
   const noticeCount = run.results ? run.results.warnings.length + run.results.findings.length + run.results.notModeled.length : 0;
 
+  const flagged = run.results?.variances.filter((v) => v.flagged) ?? [];
+  const underpaidCount = flagged.filter((v) => v.varianceCents < 0).length;
+  const overpaidCount = flagged.filter((v) => v.varianceCents > 0).length;
+  const largest = flagged.length > 0 ? flagged.reduce((a, b) => (Math.abs(b.varianceCents) > Math.abs(a.varianceCents) ? b : a)) : null;
+
   return (
     <>
       <PageHead
@@ -53,14 +58,37 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
               value={formatCents(run.results.totals.varianceCents)}
               sub={run.results.totals.varianceCents === 0 ? "matches" : run.results.totals.varianceCents < 0 ? "underpaid" : "overpaid"}
             />
+            <MetricCard label="Total lines" value={String(run.results.variances.length)} sub={`across ${employeeCount} employees`} />
+            <MetricCard label="Underpaid / Overpaid" value={`${underpaidCount} / ${overpaidCount}`} sub="flagged lines" />
+            {largest && (
+              <MetricCard label="Largest single variance" value={formatCents(largest.varianceCents)} sub={`${largest.employeeId} · ${largest.component.replace(/_/g, " ")}`} />
+            )}
+            <MetricCard label="Rule set" value={run.ruleSetName ?? "—"} sub={formatDate(run.createdAt)} />
           </div>
 
           {noticeCount > 0 && (
-            <details className="admin-card" style={{ marginBottom: 20 }}>
-              <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+            <details
+              style={{
+                background: "var(--admin-surface)",
+                border: "1px solid var(--admin-line)",
+                borderRadius: "var(--admin-radius)",
+                padding: "14px 16px",
+                marginBottom: 20,
+              }}
+            >
+              <summary
+                style={{
+                  listStyle: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: "var(--admin-ink)",
+                  outline: "none",
+                }}
+              >
                 {noticeCount} notice{noticeCount === 1 ? "" : "s"} — warnings, compliance findings, and clauses not evaluated
               </summary>
-              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
                 {run.results.findings.length > 0 && (
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Compliance findings (not priced)</div>
