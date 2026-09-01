@@ -1,0 +1,346 @@
+/* Ported from report-writer/discovery_form.html — brand palette per
+   PROJECT_HANDOVER.md (navy #485F88, dark #29394D, teal #467D79). Trimmed to
+   the client-facing subset: no draft-bar/mode-switch/consultant-review
+   styles here, those belong to the admin side (Phase 3). */
+
+.page {
+  --navy: #485f88;
+  --dark: #29394d;
+  --teal: #467d79;
+  --grey: #808897;
+  --lgrey: #a0adc0;
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --line: #e2e5ea;
+  background: var(--bg);
+  color: var(--dark);
+  min-height: 100vh;
+  font-family: "Open Sans", sans-serif;
+}
+.shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 40px 24px 100px;
+}
+.eyebrow {
+  font-size: 13px;
+  color: var(--teal);
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.h1 {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--dark);
+  margin: 0 0 10px;
+}
+.intro {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--grey);
+  max-width: 640px;
+}
+.headerProgress {
+  margin-top: 20px;
+  max-width: 640px;
+}
+.headerProgressTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.headerProgressLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.headerProgressPct {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--teal);
+}
+.headerProgressTrack {
+  height: 8px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.headerProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--navy));
+  border-radius: 4px;
+  transition: width 0.35s ease;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-top: 24px;
+}
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; }
+}
+.sections {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sections button {
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  padding: 10px 12px;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--grey);
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
+}
+.sections button.active {
+  color: var(--navy);
+  border-left-color: var(--navy);
+  background: rgba(72, 95, 136, 0.07);
+}
+.count {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--lgrey);
+  margin-top: 2px;
+}
+.sections button.active .count { color: var(--teal); }
+.topicBlock {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.topicBlock h2 {
+  font-family: "Montserrat", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.subhead {
+  font-size: 12.5px;
+  color: var(--grey);
+  margin: -4px 0 16px;
+}
+.qRow { margin-bottom: 18px; }
+.qRow:last-child { margin-bottom: 0; }
+.qText {
+  font-size: 13.5px;
+  color: var(--dark);
+  margin: 0 0 8px;
+  line-height: 1.45;
+  max-width: 68ch;
+  font-weight: 600;
+}
+.textInput, .select {
+  width: 100%;
+  padding: 9px 12px;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13.5px;
+  color: var(--dark);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fcfcfd;
+}
+.textarea {
+  width: 100%;
+  min-height: 50px;
+  resize: vertical;
+  padding: 9px 12px;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13.5px;
+  color: var(--dark);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fcfcfd;
+}
+.textInput:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--navy);
+  background: #ffffff;
+}
+.filled { border-color: var(--teal) !important; }
+.optionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.optionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 12.5px;
+  color: var(--dark);
+  cursor: pointer;
+  background: #fcfcfd;
+  user-select: none;
+}
+/* The site-wide reset (app/globals.css) applies appearance:none plus text-input
+   padding/border/background to every <input>, which silently blanks out the
+   native radio/checkbox dot. Overridden here with an explicit small custom
+   indicator so "checked" is never communicated by border tint alone. */
+.optionChip input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  margin: 0;
+  border: 1.5px solid var(--lgrey);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+}
+.optionChip input:checked {
+  border-color: var(--navy);
+  background: var(--navy);
+}
+.optionChip input:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+.optionChip.checked {
+  border-color: var(--navy);
+  background: rgba(72, 95, 136, 0.12);
+  color: var(--navy);
+  font-weight: 600;
+}
+.extraLabel { font-size: 12px; color: var(--grey); margin: 4px 0 5px; }
+.fieldGroup { margin-bottom: 14px; }
+.fieldGroup:last-child { margin-bottom: 0; }
+.fieldLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 5px;
+  display: block;
+}
+.systemsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+}
+@media (max-width: 560px) {
+  .systemsGrid { grid-template-columns: 1fr; }
+}
+.entityRow {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1.6fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.entityRow:last-of-type { border-bottom: none; margin-bottom: 4px; padding-bottom: 0; }
+@media (max-width: 720px) {
+  .entityRow { grid-template-columns: 1fr; }
+}
+.teamRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 1.4fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.teamRow:last-of-type { border-bottom: none; margin-bottom: 4px; padding-bottom: 0; }
+@media (max-width: 900px) {
+  .teamRow { grid-template-columns: 1fr 1fr; }
+}
+.removeBtn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--grey);
+  border-radius: 4px;
+  padding: 9px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  height: fit-content;
+}
+.addBtn {
+  background: transparent;
+  border: 1px dashed var(--navy);
+  color: var(--navy);
+  border-radius: 5px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.footerBar {
+  position: sticky;
+  bottom: 0;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding: 16px 24px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+.footerStatus { font-size: 13px; color: var(--grey); }
+.footerStatus strong { color: var(--dark); }
+.btn {
+  font-family: "Open Sans", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 11px 20px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnPrimary { background: var(--navy); color: #fff; }
+.btnPrimary:hover:not(:disabled) { background: var(--dark); }
+.btnNav {
+  background: transparent;
+  color: var(--navy);
+  border: 1px solid var(--navy);
+  margin-left: 8px;
+}
+.notice {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px 24px;
+  font-size: 14px;
+  color: var(--dark);
+  line-height: 1.6;
+}
+.noticeOk { border-color: var(--teal); background: rgba(70, 125, 121, 0.06); }
+.saveStatus { font-size: 12px; color: var(--lgrey); }
