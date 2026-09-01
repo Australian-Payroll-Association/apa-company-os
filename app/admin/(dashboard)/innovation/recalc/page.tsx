@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Payroll recalculation",
-  description: "Proof of concept: recompute what a client should have been paid from their timesheet and pay data, and diff it against what they actually paid.",
+  description: "Recompute what a client should have been paid under MA000019 from their pay review data gathering workbook, and diff it against what they actually paid.",
 };
 
 function statusTone(status: string): BadgeTone {
@@ -39,14 +39,14 @@ export default async function RecalcPage() {
   return (
     <>
       <PageHead
-        eyebrow="Innovation · Proof of concept"
+        eyebrow="Innovation"
         title="Payroll recalculation"
-        sub="Upload a client's timesheet and pay data, recompute what they should have been paid against an interpretation rule set, and see the variance."
+        sub="Upload the pay review data gathering workbook, recompute what should have been paid under the active rule set, and see the variance."
       />
 
       <div className="admin-alert" style={{ marginBottom: 16 }}>
-        v1 proof of concept: CSV input only, one illustrative example rule set, not wired into Report 360 yet. See{" "}
-        <code>docs/product/project-recalc-module.md</code>.
+        Runs against MA000019 (Banking, Finance and Insurance Award 2020) — some clauses are simplified or not evaluated at all; see the run
+        results and <code>docs/product/project-recalc-module.md</code> for exactly which. Not yet wired into Report 360.
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 480px) 1fr", gap: 24, alignItems: "start" }}>
@@ -68,7 +68,7 @@ export default async function RecalcPage() {
                 {runs.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      <div className="admin-empty">No runs yet — upload both CSVs to run the engine.</div>
+                      <div className="admin-empty">No runs yet — upload a workbook to run the engine.</div>
                     </td>
                   </tr>
                 ) : (

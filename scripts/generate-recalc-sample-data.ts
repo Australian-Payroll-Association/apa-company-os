@@ -1,192 +1,177 @@
-// Generates a ~100-row dummy timesheet + pay data CSV pair, matched to the
-// templates in docs/product/project-recalc-module.md, for exercising the
-// recalculation engine end to end via the /admin/innovation/recalc UI.
-//
-// 8 employees x 2 fortnightly pay periods, priced against the seeded example
-// rule set in supabase/02-recalc.sql. Five discrepancies are deliberately
-// seeded into the pay data (see SEEDED_DISCREPANCIES below) so the variance
-// report has something real to catch; everyone else should net to ~$0.
+// Generates a synthetic "Pay Review data gathering" workbook (.xlsx, all 9
+// real DATA# tabs) against the real MA000019 rule set, with a handful of
+// deliberately seeded discrepancies across different clause categories so the
+// variance report has something real to catch when uploaded through
+// /admin/innovation/recalc.
 //
 // Run with: npx tsx scripts/generate-recalc-sample-data.ts
-// Writes scripts/recalc-sample-data/{timesheet,pay-data}.csv
+// Writes scripts/recalc-sample-data/pay-review-sample.xlsx
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import ExcelJS from "exceljs";
 import { runRecalculation } from "../lib/recalc/engine";
-import type { PayDataRow, PayComponent, RuleSet, TimesheetRow } from "../lib/recalc/types";
+import type { Allowance, CallbackShift, EmployeeDynamicAttrs, EmployeeStaticAttrs, PayDataRow, PayPeriod, PublicHoliday, RosteredShift, RuleSet, WorkbookData, WorkedShift } from "../lib/recalc/types";
+import ruleSetJson from "../lib/recalc/rule-sets/ma000019-2026-07-01.json";
 
-const RULE_SET: RuleSet = {
-  ordinary_hours_per_day: 7.6,
-  ordinary_hours_per_week: 38,
-  classifications: { level_1: { base_hourly_rate: 24.5 }, level_2: { base_hourly_rate: 26.1 } },
-  casual_loading_pct: 25,
-  overtime: {
-    daily_threshold_hours: 7.6,
-    tiers: [
-      { up_to_hours: 2, multiplier: 1.5 },
-      { up_to_hours: null, multiplier: 2.0 },
-    ],
-  },
-  penalty_multipliers: { saturday: 1.25, sunday: 1.5, public_holiday: 2.5 },
-  allowances: { meal_allowance_cents: 1750, meal_allowance_trigger_ot_hours: 1.5 },
-  public_holidays: ["2026-01-01", "2026-01-26"],
-  superannuation_pct: 11.5,
-};
+const ruleSet = ruleSetJson as unknown as RuleSet;
 
-type Employee = { id: string; name: string; classification: "level_1" | "level_2" };
-const EMPLOYEES: Employee[] = [
-  { id: "E01", name: "Alex Nguyen", classification: "level_1" },
-  { id: "E02", name: "Priya Singh", classification: "level_1" },
-  { id: "E03", name: "Sam Lee", classification: "level_2" },
-  { id: "E04", name: "Jo Park", classification: "level_1" },
-  { id: "E05", name: "Maria Silva", classification: "level_2" },
-  { id: "E06", name: "Chris Taylor", classification: "level_1" },
-  { id: "E07", name: "Dana Kim", classification: "level_2" },
-  { id: "E08", name: "Liam Chen", classification: "level_1" },
+const PERIOD: PayPeriod = { start: "2026-03-01", end: "2026-03-14" };
+const publicHolidays: PublicHoliday[] = [{ date: "2026-03-09", region: "VIC", name: "Labour Day (sample)" }];
+
+const staticAttrs: EmployeeStaticAttrs[] = [
+  "E01", "E02", "E03", "E04", "E05", "E06",
+].map((id) => ({ employeeId: id, dob: "1990-01-01", employmentStartDate: "2018-01-01", employmentTerminationDate: null }));
+
+const dynamicAttrs: EmployeeDynamicAttrs[] = [
+  { employeeId: "E01", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "full_time", award: "BFI", classification: "level_1", minContractHoursWeekly: null, isAboveAwardContractedRate: false, isShiftworker: false },
+  { employeeId: "E02", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "part_time", award: "BFI", classification: "level_2", minContractHoursWeekly: 20, isAboveAwardContractedRate: false, isShiftworker: false },
+  { employeeId: "E03", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "casual", award: "BFI", classification: "level_1", minContractHoursWeekly: null, isAboveAwardContractedRate: false, isShiftworker: false },
+  { employeeId: "E04", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "full_time", award: "BFI", classification: "level_2", minContractHoursWeekly: null, isAboveAwardContractedRate: false, isShiftworker: true },
+  { employeeId: "E05", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "full_time", award: "BFI", classification: "level_1", minContractHoursWeekly: null, isAboveAwardContractedRate: false, isShiftworker: false },
+  { employeeId: "E06", applicableFrom: "2020-01-01", applicableTo: "2030-01-01", employmentType: "full_time", award: "BFI", classification: "level_1", minContractHoursWeekly: null, isAboveAwardContractedRate: false, isShiftworker: false },
 ];
 
-// Two fortnightly pay periods, weekdays only for ordinary/OT shifts, with a
-// handful of weekend shifts sprinkled in for the penalty-rate path.
-const PERIODS = [
-  { start: "2026-03-01", end: "2026-03-14" }, // Sun 1 Mar - Sat 14 Mar 2026
-  { start: "2026-03-15", end: "2026-03-28" },
-];
-
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function datesInRange(start: string, end: string): string[] {
+function weekdays(weekStart: string, count: number): string[] {
   const out: string[] = [];
-  const d = new Date(`${start}T00:00:00Z`);
-  const endD = new Date(`${end}T00:00:00Z`);
-  while (d <= endD) {
-    out.push(isoDate(d));
+  const d = new Date(`${weekStart}T00:00:00Z`);
+  while (out.length < count) {
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) out.push(d.toISOString().slice(0, 10));
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return out;
 }
 
-const timesheetRows: TimesheetRow[] = [];
-let dayCounter = 0;
+const week1 = weekdays("2026-03-02", 5); // Mon-Fri, week 1
+const week2 = weekdays("2026-03-09", 5); // Mon-Fri, week 2 (includes the sample public holiday on the 9th)
 
-for (const period of PERIODS) {
-  const dates = datesInRange(period.start, period.end);
-  for (const emp of EMPLOYEES) {
-    for (const date of dates) {
-      const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-      dayCounter++;
-      if (dow === 0) continue; // Sunday off for everyone in this sample
-      if (dow === 6) {
-        // Roughly one Saturday shift per employee per period, for the penalty-rate path.
-        if (dayCounter % 8 === 0) {
-          timesheetRows.push({
-            employeeId: emp.id,
-            employeeName: emp.name,
-            classification: emp.classification,
-            workDate: date,
-            startTime: "09:00",
-            endTime: "15:00",
-            unpaidBreakMinutes: 0,
-          });
-        }
-        continue;
-      }
-      // Weekday: mostly a plain 8-hour day (7.5 net after a 30-min break, no
-      // OT), with the occasional longer day to exercise the overtime tiers.
-      const longDay = dayCounter % 6 === 0;
-      timesheetRows.push({
-        employeeId: emp.id,
-        employeeName: emp.name,
-        classification: emp.classification,
-        workDate: date,
-        startTime: "08:00",
-        endTime: longDay ? "18:00" : "16:00",
-        unpaidBreakMinutes: 30,
-      });
-    }
-  }
+const rosteredShifts: RosteredShift[] = [];
+const workedShifts: WorkedShift[] = [];
+const allowances: Allowance[] = [];
+const callbackShifts: CallbackShift[] = [];
+
+function addShift(employeeId: string, date: string, start: string, end: string, breakLengthHours = 0.5) {
+  rosteredShifts.push({ employeeId, date, start, end, breakStart: null, breakLengthHours });
+  workedShifts.push({ employeeId, date, start, end, breakStart: null, breakLengthHours, leave: null, location: "Sydney", region: "NSW" });
 }
 
-// Run the engine once to get the "true" expected pay data, then write it back
-// out as the pay-data CSV — deliberately corrupting a handful of rows so the
-// variance report has real discrepancies to surface.
-const zeroPayData: PayDataRow[] = EMPLOYEES.flatMap((emp) =>
-  PERIODS.map((p) => ({
-    employeeId: emp.id,
-    employeeName: emp.name,
-    payPeriodStart: p.start,
-    payPeriodEnd: p.end,
-    component: "ordinary" as PayComponent,
-    amountCents: 0,
-    hours: null,
-  })),
-);
-const expected = runRecalculation(timesheetRows, zeroPayData, RULE_SET);
+// E01: full-time day worker, 7.6h/day x 5 days x 2 weeks = ordinary only, no OT.
+for (const d of [...week1, ...week2]) addShift("E01", d, "08:00", "16:06");
+// E02: part-time, contracted 20h/week -> 4h/day x 5 days = 20h ordinary, no OT.
+for (const d of [...week1, ...week2]) addShift("E02", d, "09:00", "13:00", 0);
+// E03: casual, two short shifts (below minimum engagement) + one call-back.
+addShift("E03", week1[0], "10:00", "12:00");
+addShift("E03", week2[0], "10:00", "12:00");
+callbackShifts.push({ employeeId: "E03", date: week1[2], start: "20:00", end: "21:00", lengthHours: 1 });
+// E04: full-time shiftworker, afternoon shifts (finish 10pm) 4 days/week, plus the sample public holiday worked.
+for (const d of [week1[0], week1[1], week1[2], week1[3]]) addShift("E04", d, "14:00", "22:00");
+addShift("E04", "2026-03-09", "14:00", "22:00"); // public holiday
+// E05: full-time day worker, 4 worked days + 1 annual leave day (rostered as if worked).
+for (const d of [week1[0], week1[1], week1[2], week1[3]]) addShift("E05", d, "08:00", "16:06");
+addShift("E05", week1[4], "08:00", "16:06"); // rostered — but taken as leave below
+workedShifts[workedShifts.length - 1] = { ...workedShifts[workedShifts.length - 1], leave: "Annual Leave" };
+// E06: full-time day worker with a First Aid allowance for the whole period.
+for (const d of [...week1, ...week2]) addShift("E06", d, "08:00", "16:06");
+allowances.push({ employeeId: "E06", allowanceName: "First aid", from: PERIOD.start, to: PERIOD.end, higherDutiesLevel: null });
 
-// Build "actual" pay data as an exact copy of expected, per employee/period/component.
-type Key = string;
-const actual = new Map<Key, { employeeId: string; employeeName: string; payPeriodStart: string; payPeriodEnd: string; component: PayComponent; amountCents: number }>();
-for (const v of expected.variances) {
-  const key = `${v.employeeId}|${v.payPeriodStart}|${v.payPeriodEnd}|${v.component}`;
-  actual.set(key, {
-    employeeId: v.employeeId,
-    employeeName: v.employeeName,
-    payPeriodStart: v.payPeriodStart,
-    payPeriodEnd: v.payPeriodEnd,
-    component: v.component,
-    amountCents: v.expectedCents,
-  });
+const truthData: WorkbookData = {
+  staticAttrs,
+  dynamicAttrs,
+  payPeriods: [PERIOD],
+  publicHolidays,
+  payData: [],
+  rosteredShifts,
+  workedShifts,
+  allowances,
+  callbackShifts,
+};
+
+const truth = runRecalculation(truthData, ruleSet);
+if (truth.warnings.length > 0) {
+  console.warn("Warnings while computing ground truth (check the fixture data):");
+  truth.warnings.forEach((w) => console.warn(`  - ${w}`));
 }
 
-// Deliberately seeded discrepancies — documented so the demo is legible.
-const SEEDED_DISCREPANCIES: string[] = [];
+// Baseline: everyone gets paid exactly what's expected (zero variance) —
+// truthData had no payslip rows, so runRecalculation's `actualCents` is 0
+// everywhere until we set it here. Corruptions below then override specific rows.
+for (const row of truth.variances) row.actualCents = row.expectedCents;
 
-function corrupt(employeeId: string, period: (typeof PERIODS)[number], component: PayComponent, mutate: (cents: number) => number, note: string) {
-  const key = `${employeeId}|${period.start}|${period.end}|${component}`;
-  const row = actual.get(key);
-  if (!row) {
-    console.warn(`(skip) no ${component} row for ${employeeId} in ${period.start}..${period.end} to corrupt`);
-    return;
-  }
-  const before = row.amountCents;
-  row.amountCents = mutate(before);
-  SEEDED_DISCREPANCIES.push(`${employeeId} (${row.employeeName}), ${period.start}..${period.end}, ${component}: ${note} (expected ${(before / 100).toFixed(2)}, paid ${(row.amountCents / 100).toFixed(2)})`);
+// --- Seed discrepancies across different clause categories. ---
+const SEEDED: string[] = [];
+function corrupt(employeeId: string, component: string, mutate: (cents: number) => number, note: string) {
+  const row = truth.variances.find((v) => v.employeeId === employeeId && v.component === component);
+  if (!row) { console.warn(`(skip) no ${component} row for ${employeeId} to corrupt`); return; }
+  const before = row.expectedCents;
+  const after = mutate(before);
+  row.actualCents = after; // reuse the row's expected as "truth", write a different "actual"
+  SEEDED.push(`${employeeId}, ${component}: ${note} (expected ${(before / 100).toFixed(2)}, paid ${(after / 100).toFixed(2)})`);
 }
 
-corrupt("E01", PERIODS[0], "overtime", () => 0, "overtime dropped entirely from the pay run");
-corrupt("E04", PERIODS[0], "saturday_penalty", (c) => Math.round(c * (1 / 1.25)), "Saturday penalty paid at ordinary rate, not the 1.25x penalty");
-corrupt("E05", PERIODS[1], "ordinary", (c) => c - 5000, "ordinary pay short by $50 (data-entry error)");
-corrupt("E07", PERIODS[0], "superannuation", (c) => c + 2000, "superannuation over-paid by $20");
-corrupt("E02", PERIODS[1], "ordinary", (c) => c + 1500, "ordinary pay over by $15 (a real but immaterial rounding difference)");
+corrupt("E01", "ordinary", (c) => c - 5000, "ordinary pay short by $50 (data-entry error)");
+corrupt("E02", "ordinary", (c) => c + 1500, "ordinary pay over by $15 (rounding difference)");
+corrupt("E04", "afternoon_permanent", (c) => c - 8000, "afternoon shift loading paid at the non-permanent rate, not the permanent-shiftworker rate");
+corrupt("E05", "annual_leave_loading", (c) => Math.round(c * 0.5), "annual leave loading underpaid — paid roughly half of what's owed");
+corrupt("E06", "first_aid_allowance", (c) => c + 2059, "first aid allowance overpaid by one extra week (duplicate payment)");
 
-const payDataRows = Array.from(actual.values()).filter((r) => r.amountCents !== 0);
+// --- Build the actual payslip rows from the (possibly corrupted) variance rows. ---
+const payData: PayDataRow[] = truth.variances
+  .filter((v) => v.expectedCents !== 0 || v.actualCents !== 0)
+  .map((v) => ({ employeeId: v.employeeId, periodStart: v.periodStart, periodEnd: v.periodEnd, costCategory: v.component, amountCents: v.actualCents }));
 
-// --- Write CSVs ---
+// --- Write the workbook, matching the real template's tab/column/marker convention. ---
+const workbook = new ExcelJS.Workbook();
+
+function addTab(name: string, headers: string[], rows: (string | number)[][]) {
+  const ws = workbook.addWorksheet(name);
+  ws.addRow(["COMMENTS >>>", ...headers.map(() => "")]);
+  ws.addRow(["1st row of CSV >>>", ...headers]);
+  for (const row of rows) ws.addRow(["", ...row]);
+}
+
+addTab("DATA#employee static attributes", ["employee_identifier", "dob", "employment_start_date", "employment_termination_date"],
+  staticAttrs.map((s) => [s.employeeId, s.dob ?? "", s.employmentStartDate ?? "", s.employmentTerminationDate ?? ""]));
+
+addTab("DATA#employee dynamic attribute",
+  ["employee_identifier", "applicable_from", "applicable_to", "employment_type", "award", "ii_classification", "min_contract_hours_weekly", "is_above_award_contracted_rate", "is_employee_employed _as_a_shiftworker"],
+  dynamicAttrs.map((d) => [
+    d.employeeId, d.applicableFrom, d.applicableTo,
+    d.employmentType === "full_time" ? "Full Time" : d.employmentType === "part_time" ? "Part Time" : "Casual",
+    d.award, d.classification.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    d.minContractHoursWeekly ?? "", d.isAboveAwardContractedRate ? "y" : "", d.isShiftworker ? "shift" : "day",
+  ]));
+
+addTab("DATA#pay periods", ["applicable_from", "applicable_to"], [[PERIOD.start, PERIOD.end]]);
+
+addTab("DATA#public holidays", ["date", "public_holiday_start_time", "region", "public_holiday_name"],
+  publicHolidays.map((h) => [h.date, "", h.region, h.name]));
+
+addTab("DATA#payslip data", ["employee_identifier", "applicable_from", "applicable_to", "cost_category", "total_paid_no_oncosts"],
+  payData.map((p) => [p.employeeId, p.periodStart, p.periodEnd, p.costCategory, (p.amountCents / 100).toFixed(2)]));
+
+addTab("DATA#rostered shifts", ["employee_identifier", "rostered_date", "rostered_start", "rostered_end", "rostered_unpaid_break_start", "rostered_unpaid_break_length"],
+  rosteredShifts.map((r) => [r.employeeId, r.date, r.start, r.end, r.breakStart ?? "", r.breakLengthHours]));
+
+addTab("DATA#worked shifts", ["employee_identifier", "date", "pay_start", "pay_end", "break_start", "break_length", "leave", "location", "region"],
+  workedShifts.map((w) => [w.employeeId, w.date, w.start, w.end, w.breakStart ?? "", w.breakLengthHours, w.leave ?? "", w.location, w.region]));
+
+addTab("DATA#allowances", ["employee_identifier", "allowance_name", "applicable_from", "applicable_to", "For Higher Duties only"],
+  allowances.map((a) => [a.employeeId, a.allowanceName, a.from, a.to, a.higherDutiesLevel ?? ""]));
+
+addTab("DATA#callback shifts", ["employee_identifier", "date", "pay_start", "pay_end", "call back_ shift length"],
+  callbackShifts.map((c) => [c.employeeId, c.date, c.start, c.end, c.lengthHours]));
+
 const OUT_DIR = path.join(__dirname, "recalc-sample-data");
 mkdirSync(OUT_DIR, { recursive: true });
+const outPath = path.join(OUT_DIR, "pay-review-sample.xlsx");
 
-function toCsv(header: string[], rows: string[][]): string {
-  return [header, ...rows].map((r) => r.join(",")).join("\n") + "\n";
-}
-
-const timesheetCsv = toCsv(
-  ["employee_id", "employee_name", "classification", "work_date", "start_time", "end_time", "unpaid_break_minutes"],
-  timesheetRows.map((r) => [r.employeeId, r.employeeName, r.classification, r.workDate, r.startTime, r.endTime, String(r.unpaidBreakMinutes)]),
-);
-writeFileSync(path.join(OUT_DIR, "timesheet.csv"), timesheetCsv);
-
-const payDataCsv = toCsv(
-  ["employee_id", "employee_name", "pay_period_start", "pay_period_end", "component", "amount", "hours"],
-  payDataRows.map((r) => [r.employeeId, r.employeeName, r.payPeriodStart, r.payPeriodEnd, r.component, (r.amountCents / 100).toFixed(2), ""]),
-);
-writeFileSync(path.join(OUT_DIR, "pay-data.csv"), payDataCsv);
-
-writeFileSync(
-  path.join(OUT_DIR, "README.md"),
-  `# Recalc sample data\n\nGenerated by scripts/generate-recalc-sample-data.ts against the seeded example rule set (supabase/02-recalc.sql). ${timesheetRows.length} timesheet rows, ${payDataRows.length} pay data rows, ${EMPLOYEES.length} employees, ${PERIODS.length} pay periods.\n\nUpload both files at /admin/innovation/recalc. Everything nets to ~$0 EXCEPT these deliberately seeded discrepancies:\n\n${SEEDED_DISCREPANCIES.map((s) => `- ${s}`).join("\n")}\n`,
-);
-
-console.log(`Wrote ${timesheetRows.length} timesheet rows and ${payDataRows.length} pay data rows to ${OUT_DIR}`);
-console.log(`Seeded ${SEEDED_DISCREPANCIES.length} discrepancies:`);
-SEEDED_DISCREPANCIES.forEach((s) => console.log(`  - ${s}`));
+workbook.xlsx.writeFile(outPath).then(() => {
+  writeFileSync(
+    path.join(OUT_DIR, "README.md"),
+    `# Recalc sample workbook\n\nGenerated by scripts/generate-recalc-sample-data.ts against the seeded MA000019 rule set (supabase/03-recalc-ma000019-ruleset.sql). 6 employees (full-time/part-time/casual day workers, one shiftworker, one on leave, one with a First Aid allowance), one pay period, one sample public holiday.\n\nUpload pay-review-sample.xlsx at /admin/innovation/recalc. Everything nets to ~$0 EXCEPT these deliberately seeded discrepancies:\n\n${SEEDED.map((s) => `- ${s}`).join("\n")}\n`,
+  );
+  console.log(`Wrote ${outPath}`);
+  console.log(`Seeded ${SEEDED.length} discrepancies:`);
+  SEEDED.forEach((s) => console.log(`  - ${s}`));
+});

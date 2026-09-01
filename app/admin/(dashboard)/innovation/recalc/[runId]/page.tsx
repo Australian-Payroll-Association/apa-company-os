@@ -24,7 +24,7 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
           </Link>
         }
         title={run.label || run.id.slice(0, 8)}
-        sub={`${run.ruleSetName ?? "Unknown rule set"} · timesheet: ${run.timesheetFilename ?? "—"} · pay data: ${run.payDataFilename ?? "—"} · ${formatDate(run.createdAt)}`}
+        sub={`${run.ruleSetName ?? "Unknown rule set"} · workbook: ${run.workbookFilename ?? "—"} · ${formatDate(run.createdAt)}`}
       />
 
       {run.status === "error" && (
@@ -35,6 +35,17 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
 
       {run.results && (
         <>
+          {run.results.notModeled.length > 0 && (
+            <div className="admin-alert" style={{ marginBottom: 16 }}>
+              <strong>Not evaluated by this run</strong> (no data exists to compute these — see docs/product/project-recalc-module.md):
+              <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                {run.results.notModeled.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {run.results.warnings.length > 0 && (
             <div className="admin-alert" style={{ marginBottom: 16 }}>
               <strong>{run.results.warnings.length} warning(s):</strong>
@@ -43,6 +54,21 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
                   <li key={i}>{w}</li>
                 ))}
               </ul>
+              {run.results.warnings.length > 20 && <div className="admin-cell-muted">+{run.results.warnings.length - 20} more</div>}
+            </div>
+          )}
+
+          {run.results.findings.length > 0 && (
+            <div className="admin-alert admin-alert--err" style={{ marginBottom: 16 }}>
+              <strong>{run.results.findings.length} compliance finding(s)</strong> (not priced — see description):
+              <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                {run.results.findings.slice(0, 20).map((f, i) => (
+                  <li key={i}>
+                    {f.employeeId} · {formatDate(f.date)} · {f.description}
+                  </li>
+                ))}
+              </ul>
+              {run.results.findings.length > 20 && <div>+{run.results.findings.length - 20} more</div>}
             </div>
           )}
 
@@ -90,17 +116,17 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
                   {run.results.variances.length === 0 ? (
                     <tr>
                       <td colSpan={6}>
-                        <div className="admin-empty">No overlapping employee/pay-period data between the two files.</div>
+                        <div className="admin-empty">No overlapping employee/pay-period data between the workbook's tabs.</div>
                       </td>
                     </tr>
                   ) : (
                     run.results.variances.map((v, i) => (
                       <tr key={i}>
                         <td>
-                          <span className="admin-cell-strong">{v.employeeName || v.employeeId}</span>
+                          <span className="admin-cell-strong">{v.employeeId}</span>
                         </td>
                         <td>
-                          {formatDate(v.payPeriodStart)} – {formatDate(v.payPeriodEnd)}
+                          {formatDate(v.periodStart)} – {formatDate(v.periodEnd)}
                         </td>
                         <td>{v.component.replace(/_/g, " ")}</td>
                         <td>{formatCents(v.expectedCents)}</td>

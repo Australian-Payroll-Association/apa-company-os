@@ -1,88 +1,172 @@
-// Types for the payroll recalculation module (proof of concept). Client-safe
-// (no server-only imports) so both server actions and the results page can
-// import from here.
+// Types for the payroll recalculation module (v2 — real MA000019 award).
+// Client-safe (no server-only imports). Shapes mirror APA's real intake
+// workbook, "Pay Review data gathering template.xlsx" — see
+// docs/product/project-recalc-module.md for the full tab-by-tab mapping.
 
-// A rule set is data, not code: the award/EA's pay clauses expressed as a
-// JSONB config on company_os.recalc_rule_sets.rules. Kept intentionally
-// simple for v1 — see supabase/02-recalc.sql's seeded example. Every rule set
-// is a stand-in for a real client's award/agreement until an SME (a payroll
-// consultant) confirms it, never treat one as a certified interpretation.
-export type RuleSet = {
-  ordinary_hours_per_day: number;
-  ordinary_hours_per_week: number;
-  classifications: Record<string, { base_hourly_rate: number }>;
-  // Applied uniformly to every classification's rate for v1 — there is no
-  // employment-type (casual/permanent) field on the timesheet template yet,
-  // so the engine can't tell who is actually entitled to it.
-  casual_loading_pct: number;
-  overtime: {
-    daily_threshold_hours: number;
-    // Applied in order: the first tier covers hours up to `up_to_hours`
-    // (cumulative), the last tier should have `up_to_hours: null` to catch
-    // the remainder.
-    tiers: Array<{ up_to_hours: number | null; multiplier: number }>;
-  };
-  penalty_multipliers: {
-    saturday: number;
-    sunday: number;
-    public_holiday: number;
-  };
-  allowances: {
-    meal_allowance_cents: number;
-    meal_allowance_trigger_ot_hours: number;
-  };
-  public_holidays: string[]; // ISO dates, "YYYY-MM-DD"
-  superannuation_pct: number;
-};
+export type EmploymentType = "full_time" | "part_time" | "casual";
 
-export type DayType = "weekday" | "saturday" | "sunday" | "public_holiday";
-
-// One row per shift worked, from the timesheet CSV template.
-export type TimesheetRow = {
+// `DATA#employee static attributes` — lifetime facts, one row per employee.
+export type EmployeeStaticAttrs = {
   employeeId: string;
-  employeeName: string;
-  classification: string;
-  workDate: string; // "YYYY-MM-DD"
-  startTime: string; // "HH:MM", 24h
-  endTime: string; // "HH:MM", 24h — may be earlier than startTime for an overnight shift
-  unpaidBreakMinutes: number;
+  dob: string | null; // "YYYY-MM-DD"
+  employmentStartDate: string | null;
+  employmentTerminationDate: string | null;
 };
 
-export const PAY_COMPONENTS = [
-  "ordinary",
-  "overtime",
-  "saturday_penalty",
-  "sunday_penalty",
-  "public_holiday_penalty",
-  "meal_allowance",
-  "leave",
-  "superannuation",
-] as const;
+// `DATA#employee dynamic attribute` — time-bounded; an employee's
+// classification/type/shiftworker status can change over time, so every
+// lookup must resolve by date, not just by employeeId.
+export type EmployeeDynamicAttrs = {
+  employeeId: string;
+  applicableFrom: string;
+  applicableTo: string;
+  employmentType: EmploymentType;
+  award: string;
+  classification: string; // normalized, e.g. "level_1"
+  minContractHoursWeekly: number | null; // required for part-time OT baseline
+  isAboveAwardContractedRate: boolean; // reporting-only, no calculation impact
+  isShiftworker: boolean; // "shift" vs "day" in the source column
+};
 
-export type PayComponent = (typeof PAY_COMPONENTS)[number];
+// `DATA#pay periods` — canonical period boundaries.
+export type PayPeriod = { start: string; end: string };
 
-// One row per paid component per pay period, from the pay data CSV template —
-// what was actually paid, itemized (long format), not a wide payslip.
+// `DATA#public holidays` — real per-region calendar.
+export type PublicHoliday = { date: string; region: string; name: string };
+
+// `DATA#payslip data` — actual pay, itemized. `costCategory` is free text in
+// the real template (e.g. "ordinary", "overtime_1.5", "public_holiday_penalty").
 export type PayDataRow = {
   employeeId: string;
-  employeeName: string;
-  payPeriodStart: string; // "YYYY-MM-DD"
-  payPeriodEnd: string; // "YYYY-MM-DD"
-  component: PayComponent;
+  periodStart: string;
+  periodEnd: string;
+  costCategory: string;
   amountCents: number;
-  hours: number | null;
 };
+
+// `DATA#rostered shifts` — the plan. Break length is in HOURS in the real
+// template (not minutes, unlike v1's synthetic template).
+export type RosteredShift = {
+  employeeId: string;
+  date: string;
+  start: string; // "HH:MM"
+  end: string;
+  breakStart: string | null;
+  breakLengthHours: number;
+};
+
+// `DATA#worked shifts` — what actually happened. Distinct from rostered:
+// award correctness depends on comparing the two, not just paying rostered.
+// `leave` names the leave type on a non-work day (e.g. "Annual Leave",
+// "Public holiday not worked"); blank/null if this row is ordinary work.
+export type WorkedShift = {
+  employeeId: string;
+  date: string;
+  start: string;
+  end: string;
+  breakStart: string | null;
+  breakLengthHours: number;
+  leave: string | null;
+  location: string;
+  region: string;
+};
+
+// `DATA#allowances` — which employee gets First Aid / Stand-by / Higher
+// Duties / a vehicle allowance, and for which date range. Real records, not
+// an assumption: this is what makes those clauses computable at all.
+export type Allowance = {
+  employeeId: string;
+  allowanceName: string; // free text, matched case-insensitively against known kinds
+  from: string;
+  to: string;
+  higherDutiesLevel: string | null; // only for "Higher duties"
+};
+
+// `DATA#callback shifts` — actual recall-to-work blocks.
+export type CallbackShift = {
+  employeeId: string;
+  date: string;
+  start: string;
+  end: string;
+  lengthHours: number;
+};
+
+export type WorkbookData = {
+  staticAttrs: EmployeeStaticAttrs[];
+  dynamicAttrs: EmployeeDynamicAttrs[];
+  payPeriods: PayPeriod[];
+  publicHolidays: PublicHoliday[];
+  payData: PayDataRow[];
+  rosteredShifts: RosteredShift[];
+  workedShifts: WorkedShift[];
+  allowances: Allowance[];
+  callbackShifts: CallbackShift[];
+};
+
+// ---------------------------------------------------------------------------
+// Rule set (MA000019 shape) — generated by scripts/build-ma000019-ruleset.mjs
+// from APA's real award interpretation library. See
+// lib/recalc/rule-sets/ma000019-2026-07-01.json for the seeded instance.
+
+export type AgeBand = "adult" | "under_17" | "17" | "18" | "19" | "20";
+export type RateCategory = "standard" | "casual"; // standard covers both full_time and part_time
+
+export type RateEntry = {
+  weekly_cents?: number; // absent for casual (hourly only)
+  hourly_cents: number;
+  early_morning_cents: number;
+  afternoon_cents: number;
+  afternoon_permanent_cents: number;
+  night_cents: number;
+  night_permanent_cents: number;
+  sunday_cents: number;
+  public_holiday_cents: number;
+  overtime_first_3h_cents: number;
+  overtime_after_3h_cents: number;
+  overtime_saturday_outside_hours_cents: number;
+  break_lt_10h_cents?: number; // absent for casual
+  break_lt_8h_cents?: number;
+};
+
+export type RuleSetAllowance = { rate_text: string; amounts_cents: number[] };
+
+export type RuleSet = {
+  name: string;
+  effective_from: string;
+  source: string;
+  rates: Record<AgeBand, Record<RateCategory, Record<string, RateEntry>>>;
+  allowances: Record<string, RuleSetAllowance>;
+  clauses: {
+    ordinary_span: { weekday_start: string; weekday_end: string; weekday_late_end: string; saturday_start: string; saturday_end: string };
+    averaging_weeks_default: number;
+    casual_loading_pct: number;
+    casual_minimum_engagement_hours: number;
+    shift_definitions: { early_morning_start: string; early_morning_end: string; afternoon_end_start: string; afternoon_end_end: string; night_end_start: string; night_end_end: string };
+    meal_allowance: { trigger_ot_hours: number; trigger_finish_after: string; additional_trigger_ot_hours: number };
+    annual_leave_loading_pct: number;
+    superannuation_guarantee_pct: number;
+    not_modeled: string[];
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Engine output
 
 export type VarianceRow = {
   employeeId: string;
-  employeeName: string;
-  payPeriodStart: string;
-  payPeriodEnd: string;
-  component: PayComponent;
+  periodStart: string;
+  periodEnd: string;
+  component: string; // e.g. "ordinary", "overtime_1.5", "saturday_penalty", "first_aid_allowance"
   expectedCents: number;
   actualCents: number;
   varianceCents: number; // actual - expected
   flagged: boolean;
+};
+
+export type ComplianceFinding = {
+  employeeId: string;
+  date: string;
+  description: string;
 };
 
 export type RunTotals = {
@@ -92,12 +176,10 @@ export type RunTotals = {
   flaggedCount: number;
 };
 
-// The full computed output stored in company_os.recalc_runs.results.
 export type RunResults = {
   variances: VarianceRow[];
   totals: RunTotals;
-  // e.g. a timesheet day that fell outside every pay period on file for that
-  // employee, or a classification missing from the rule set — surfaced to the
-  // consultant rather than silently dropped or guessed at.
   warnings: string[];
+  findings: ComplianceFinding[]; // non-dollar compliance issues (e.g. missed unpaid meal break)
+  notModeled: string[]; // clauses this engine doesn't evaluate at all, from the rule set
 };

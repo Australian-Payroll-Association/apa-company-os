@@ -23,16 +23,16 @@ export function UploadForm() {
         <input id="label" name="label" type="text" placeholder="e.g. Acme Pty Ltd — pilot" />
       </div>
       <div className="admin-field">
-        <label className="admin-label" htmlFor="timesheet_file">
-          Timesheet CSV
+        <label className="admin-label" htmlFor="workbook_file">
+          Pay review data gathering workbook (.xlsx)
         </label>
-        <input id="timesheet_file" name="timesheet_file" type="file" accept=".csv,text/csv" required />
-      </div>
-      <div className="admin-field">
-        <label className="admin-label" htmlFor="pay_data_file">
-          Pay data CSV
-        </label>
-        <input id="pay_data_file" name="pay_data_file" type="file" accept=".csv,text/csv" required />
+        <input
+          id="workbook_file"
+          name="workbook_file"
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          required
+        />
       </div>
       <div>
         <SubmitButton />

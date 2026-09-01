@@ -9,8 +9,7 @@ export type RunRow = {
   label: string | null;
   ruleSetId: string;
   ruleSetName: string | null;
-  payDataFilename: string | null;
-  timesheetFilename: string | null;
+  workbookFilename: string | null;
   status: "uploaded" | "calculating" | "done" | "error";
   results: RunResults | null;
   errorMessage: string | null;
@@ -23,8 +22,10 @@ type Row = {
   label: string | null;
   rule_set_id: string;
   recalc_rule_sets: { name: string } | { name: string }[] | null;
+  // v2 uploads one real .xlsx workbook, not two CSVs — stored in the same
+  // `pay_data_filename` column the v1 schema already has, rather than adding
+  // a migration just to rename it. `timesheet_filename` is unused going forward.
   pay_data_filename: string | null;
-  timesheet_filename: string | null;
   status: RunRow["status"];
   results: RunResults | null;
   error_message: string | null;
@@ -39,8 +40,7 @@ function mapRow(r: Row): RunRow {
     label: r.label,
     ruleSetId: r.rule_set_id,
     ruleSetName: ruleSet?.name ?? null,
-    payDataFilename: r.pay_data_filename,
-    timesheetFilename: r.timesheet_filename,
+    workbookFilename: r.pay_data_filename,
     status: r.status,
     results: r.results,
     errorMessage: r.error_message,
@@ -50,7 +50,7 @@ function mapRow(r: Row): RunRow {
 }
 
 const COLS =
-  "id, label, rule_set_id, recalc_rule_sets(name), pay_data_filename, timesheet_filename, status, results, error_message, created_by, created_at";
+  "id, label, rule_set_id, recalc_rule_sets(name), pay_data_filename, status, results, error_message, created_by, created_at";
 
 export async function listRuns(): Promise<RunRow[]> {
   const { data, error } = await companyOs
@@ -77,8 +77,7 @@ export async function getRun(id: string): Promise<RunRow | null> {
 export async function createRun(input: {
   label: string | null;
   ruleSetId: string;
-  payDataFilename: string;
-  timesheetFilename: string;
+  workbookFilename: string;
   createdBy: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const { data, error } = await companyOs
@@ -86,8 +85,7 @@ export async function createRun(input: {
     .insert({
       label: input.label,
       rule_set_id: input.ruleSetId,
-      pay_data_filename: input.payDataFilename,
-      timesheet_filename: input.timesheetFilename,
+      pay_data_filename: input.workbookFilename,
       status: "calculating",
       created_by: input.createdBy,
     })

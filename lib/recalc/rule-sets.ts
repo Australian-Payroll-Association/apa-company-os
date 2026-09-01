@@ -30,10 +30,11 @@ export async function listRuleSets(): Promise<RuleSetRow[]> {
   return (data as Row[]).map(mapRow);
 }
 
-// v1 has exactly one seeded example rule set (see supabase/02-recalc.sql) and
-// no rule-set editor UI yet — the recalc page just runs against the most
-// recently created one. Revisit once real client rule sets exist to choose
-// between (Phase 2).
+// No rule-set editor/picker UI yet — the recalc page just runs against the
+// most recently created rule set (the real MA000019 rates, seeded after the
+// original illustrative example — see supabase/02-recalc.sql and
+// supabase/03-recalc-ma000019-ruleset.sql). Revisit once more than one real
+// award needs to be chosen between.
 export async function getDefaultRuleSet(): Promise<RuleSetRow | null> {
   const { data, error } = await companyOs
     .from("recalc_rule_sets")
