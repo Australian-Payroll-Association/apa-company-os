@@ -47,8 +47,11 @@ export type SectionMeta = {
   hint: string;
   // How many the edition wants before it is worth drafting. null = no target.
   target: number | null;
-  // 'team'   — a person types it
-  // 'events' — materialised from company_os.events, not offered on the form
+  // Where this section is normally filled from:
+  //   .team.   — someone types it
+  //   .events. — materialised from company_os.events by the auto-pull
+  // An events-backed section is STILL typeable. The calendar is often empty or
+  // behind, and a section nobody can fill is worse than one filled by hand.
   source: "team" | "events";
   needsLink: boolean;
 };
@@ -77,25 +80,30 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   training: {
     label: "Upcoming training",
-    hint: "Pulled automatically from published events in this edition's date range.",
+    hint: "Sessions running in this edition's dates. Published events are pulled in automatically — add any that aren't in the calendar yet, with the date, format and who it's for.",
     target: null,
     source: "events",
     needsLink: false,
   },
   webinar: {
     label: "Next webinar",
-    hint: "Pulled automatically from published webinar events in this edition's date range.",
+    hint: "Title, date, time and a two-line description of what attendees will get. Pulled from the calendar automatically when the event is published there — otherwise type it here.",
     target: 1,
     source: "events",
     needsLink: false,
   },
 };
 
-// Sections a person can submit against. The events-sourced ones are excluded:
-// offering them on the form is exactly the manual chasing this removes.
-export const CONTRIBUTABLE_SECTIONS = SECTION_TYPES.filter(
-  (t) => SECTION_META[t].source === "team",
-);
+// Every section can be typed into. The events-backed ones are ALSO auto-pulled,
+// but they are not withheld from the form.
+//
+// They were, briefly. The reasoning was that offering them re-introduced the
+// manual chasing this stage exists to remove — sound in principle, wrong in
+// fact: company_os.events is empty, so the pull returns nothing and there was
+// no way to get a webinar into an edition at all. A section nobody can fill is
+// worse than one filled by hand. Revisit only if the events calendar becomes
+// the reliable source of truth for training and webinars.
+export const CONTRIBUTABLE_SECTIONS = SECTION_TYPES;
 
 // Event types that feed each auto-pulled section, mapped to company_os.events.type.
 export const EVENT_TYPES_BY_SECTION: Partial<Record<SectionType, string[]>> = {
