@@ -1,355 +1,367 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { logTime, updateTimeEntry, deleteTimeEntry } from "./actions";
-import { formatDayLabel, formatHours, HOURS_STEP } from "@/lib/timesheet";
+import { setCell, deleteRow } from "./actions";
+import {
+  formatHoursMinutes,
+  formatWeekRange,
+  isWeekday,
+  fromISODate,
+  parseHours,
+} from "@/lib/timesheet";
 
 export type ProjectOption = { id: string; name: string; clientName: string | null };
-
-export type EntryRow = {
-  id: string;
-  workDate: string;
+export type TaskOption = { id: string; title: string; boardId: string };
+export type GridRow = {
+  key: string;
   boardId: string | null;
-  projectName: string;
-  clientName: string | null;
-  hours: number;
+  taskId: string | null;
   billable: boolean;
-  note: string | null;
+  projectLabel: string;
+  clientName: string | null;
+  taskLabel: string;
+  hours: Record<string, number>;
 };
 
 type Props = {
   weekStart: string;
   days: string[];
   today: string;
-  rows: EntryRow[];
+  dailyCapacity: number;
+  rows: GridRow[];
   projects: ProjectOption[];
+  tasks: TaskOption[];
   prevWeekHref: string;
   nextWeekHref: string;
   thisWeekHref: string;
 };
 
-function projectLabel(p: ProjectOption): string {
-  return p.clientName ? `${p.clientName} — ${p.name}` : p.name;
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function dayHeader(iso: string): string {
+  const d = fromISODate(iso);
+  return `${WD[d.getDay()]} ${d.getDate()}`;
 }
+const cellKey = (rowKey: string, date: string) => `${rowKey}|${date}`;
 
 export function Timesheet({
   weekStart,
   days,
   today,
+  dailyCapacity,
   rows,
   projects,
+  tasks,
   prevWeekHref,
   nextWeekHref,
   thisWeekHref,
 }: Props) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // The quick-entry form. Date defaults to today when the current week is in
-  // view, otherwise the first day of the week being viewed.
-  const defaultDate = days.includes(today) ? today : days[0];
-  const [date, setDate] = useState(defaultDate);
-  const [projectId, setProjectId] = useState("");
-  const [hours, setHours] = useState("");
-  const [billable, setBillable] = useState(true);
-  const [note, setNote] = useState("");
-  const hoursRef = useRef<HTMLInputElement>(null);
-
-  const dayTotals = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows) m.set(r.workDate, (m.get(r.workDate) ?? 0) + r.hours);
+  // Hours held locally (source of truth for the session), seeded from server.
+  const [hours, setHours] = useState<Record<string, number>>(() => {
+    const m: Record<string, number> = {};
+    for (const r of rows) for (const [d, h] of Object.entries(r.hours)) m[cellKey(r.key, d)] = h;
     return m;
-  }, [rows]);
+  });
+  // Draft rows added this session (project/task chosen, not yet persisted).
+  const [extraRows, setExtraRows] = useState<GridRow[]>([]);
+  const [editing, setEditing] = useState<{ key: string; date: string; value: string } | null>(null);
 
-  function submitLog() {
-    setError(null);
-    if (!hours.trim()) {
-      setError("Enter how many hours.");
-      hoursRef.current?.focus();
+  // Add-row controls
+  const [addProject, setAddProject] = useState<string>("");
+  const [addTask, setAddTask] = useState<string>("");
+  const [addBillable, setAddBillable] = useState(true);
+
+  const allRows = useMemo(() => {
+    const seen = new Set(rows.map((r) => r.key));
+    return [...rows, ...extraRows.filter((r) => !seen.has(r.key))];
+  }, [rows, extraRows]);
+
+  const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
+
+  const hoursFor = (rowKey: string, date: string) => hours[cellKey(rowKey, date)] ?? 0;
+
+  // ── Totals ─────────────────────────────────────────────────────────────
+  const perDay = useMemo(() => {
+    const bill: Record<string, number> = {};
+    const non: Record<string, number> = {};
+    for (const d of days) {
+      bill[d] = 0;
+      non[d] = 0;
+    }
+    for (const r of allRows) {
+      for (const d of days) {
+        const h = hoursFor(r.key, d);
+        if (!h) continue;
+        if (r.billable) bill[d] += h;
+        else non[d] += h;
+      }
+    }
+    return { bill, non };
+  }, [allRows, days, hours]);
+
+  const capacity = days.reduce((s, d) => s + (isWeekday(d) ? dailyCapacity : 0), 0);
+  const billableTotal = days.reduce((s, d) => s + perDay.bill[d], 0);
+  const nonBillableTotal = days.reduce((s, d) => s + perDay.non[d], 0);
+  const logged = billableTotal + nonBillableTotal;
+  const pct = (n: number) => (capacity > 0 ? Math.round((n / capacity) * 1000) / 10 : 0);
+
+  // ── Cell editing ───────────────────────────────────────────────────────
+  function openCell(rowKey: string, date: string) {
+    const h = hoursFor(rowKey, date);
+    setEditing({ key: rowKey, date, value: h ? String(h) : "" });
+  }
+
+  function commitCell(row: GridRow) {
+    if (!editing) return;
+    const { date, value } = editing;
+    const prev = hoursFor(row.key, date);
+    const parsed = value.trim() === "" ? { hours: 0 } : parseHours(value);
+    if ("error" in parsed) {
+      setError(parsed.error);
       return;
     }
+    const next = parsed.hours;
+    setEditing(null);
+    if (next === prev) return;
+    setHours((m) => ({ ...m, [cellKey(row.key, date)]: next }));
+    setError(null);
     startTransition(async () => {
-      const res = await logTime({
+      const res = await setCell({
+        boardId: row.boardId,
+        taskId: row.taskId,
+        billable: row.billable,
         workDate: date,
-        boardId: projectId || null,
-        hours,
-        billable,
-        note: note.trim() || undefined,
+        hours: next,
       });
       if (!res.ok) {
         setError(res.error);
-        return;
+        setHours((m) => ({ ...m, [cellKey(row.key, date)]: prev })); // revert
       }
-      // Keep date + project + billable for fast repeated logging; clear the
-      // per-entry fields and return focus to hours.
-      setHours("");
-      setNote("");
-      router.refresh();
-      hoursRef.current?.focus();
     });
   }
 
-  const hasProjects = projects.length > 0;
+  function removeRow(row: GridRow) {
+    setError(null);
+    setExtraRows((rs) => rs.filter((r) => r.key !== row.key));
+    setHours((m) => {
+      const copy = { ...m };
+      for (const d of days) delete copy[cellKey(row.key, d)];
+      return copy;
+    });
+    startTransition(async () => {
+      const res = await deleteRow({
+        boardId: row.boardId,
+        taskId: row.taskId,
+        billable: row.billable,
+        weekStart,
+      });
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  function addRow() {
+    setError(null);
+    const boardId = addProject || null;
+    const taskId = addTask || null;
+    if (addBillable && !boardId) {
+      setError("Billable time needs a project. Pick one, or switch to non-billable.");
+      return;
+    }
+    const key = `${boardId ?? ""}::${taskId ?? ""}::${addBillable ? "1" : "0"}`;
+    if (allRows.some((r) => r.key === key)) {
+      setAddProject("");
+      setAddTask("");
+      return; // already present
+    }
+    const proj = boardId ? projectById.get(boardId) : undefined;
+    const task = taskId ? tasks.find((t) => t.id === taskId) : undefined;
+    setExtraRows((rs) => [
+      ...rs,
+      {
+        key,
+        boardId,
+        taskId,
+        billable: addBillable,
+        projectLabel: proj ? proj.name : "Administration",
+        clientName: proj?.clientName ?? null,
+        taskLabel: task ? task.title : "General time",
+        hours: {},
+      },
+    ]);
+    setAddProject("");
+    setAddTask("");
+  }
+
+  const addTaskOptions = tasks.filter((t) => t.boardId === addProject);
 
   return (
-    <div className="tsheet">
-      {/* Week navigation */}
-      <div className="tsheet-weeknav">
-        <Link className="admin-btn admin-btn--sm" href={prevWeekHref} aria-label="Previous week">
-          ‹ Prev
-        </Link>
-        <Link className="admin-btn admin-btn--sm" href={thisWeekHref}>
-          This week
-        </Link>
-        <Link className="admin-btn admin-btn--sm" href={nextWeekHref} aria-label="Next week">
-          Next ›
-        </Link>
+    <div className="tg">
+      {/* Header */}
+      <div className="tg-top">
+        <div className="tg-title">
+          <h1>Timesheets</h1>
+          <div className="tg-weeknav">
+            <Link className="tg-navbtn" href={prevWeekHref} aria-label="Previous week">‹</Link>
+            <Link className="tg-navbtn" href={nextWeekHref} aria-label="Next week">›</Link>
+            <Link className="tg-navbtn tg-today" href={thisWeekHref}>Today</Link>
+            <span className="tg-range">{formatWeekRange(weekStart)}</span>
+          </div>
+        </div>
+        <div className="tg-you">You</div>
       </div>
 
-      {/* Day chips — click to target the quick-entry form at that day */}
-      <div className="tsheet-daychips" role="group" aria-label="Pick a day">
-        {days.map((d) => {
-          const total = dayTotals.get(d) ?? 0;
-          const isSel = d === date;
-          const isToday = d === today;
-          return (
-            <button
-              key={d}
-              type="button"
-              className={
-                "tsheet-daychip" +
-                (isSel ? " is-selected" : "") +
-                (isToday ? " is-today" : "")
-              }
-              onClick={() => setDate(d)}
-              aria-pressed={isSel}
-            >
-              <span className="tsheet-daychip-label">{formatDayLabel(d)}</span>
-              <span className="tsheet-daychip-total">{total ? `${formatHours(total)}h` : "—"}</span>
-            </button>
-          );
-        })}
+      {/* Summary stats */}
+      <div className="tg-stats">
+        <div><span className="tg-stat-k">Logged</span><span className="tg-stat-v">{formatHoursMinutes(logged)}</span></div>
+        <div><span className="tg-stat-k">Workweek</span><span className="tg-stat-v">{formatHoursMinutes(capacity)}</span></div>
+        <div><span className="tg-stat-k">Weekly Utilisation (Net)</span><span className="tg-stat-v">{pct(logged)}%</span></div>
       </div>
 
-      {/* Quick-entry form — the under-10-second logging path */}
-      <form
-        className="tsheet-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submitLog();
-        }}
-      >
-        <div className="tsheet-form-field tsheet-form-project">
-          <label htmlFor="ts-project">Project</label>
-          <select
-            id="ts-project"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            disabled={!hasProjects}
-          >
-            <option value="">{hasProjects ? "Internal / non-billable" : "No projects assigned"}</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {projectLabel(p)}
-              </option>
-            ))}
-          </select>
-        </div>
+      {error && <p className="tsheet-error" role="alert">{error}</p>}
 
-        <div className="tsheet-form-field tsheet-form-hours">
-          <label htmlFor="ts-hours">Hours</label>
-          <input
-            id="ts-hours"
-            ref={hoursRef}
-            type="number"
-            inputMode="decimal"
-            step={HOURS_STEP}
-            min={0}
-            max={24}
-            value={hours}
-            onChange={(e) => setHours(e.target.value)}
-            placeholder="0.0"
-            autoComplete="off"
-          />
-        </div>
+      <div className="tg-wrap">
+        <table className="tg-table">
+          <colgroup>
+            <col className="tg-c-proj" />
+            <col className="tg-c-task" />
+            {days.map((d) => <col key={d} className="tg-c-day" />)}
+            <col className="tg-c-total" />
+          </colgroup>
+          <thead>
+            <tr className="tg-cap">
+              <th colSpan={2} className="tg-cap-label">Capacity Breakdown</th>
+              {days.map((d) => (
+                <th key={d} className="tg-cap-cell">{isWeekday(d) ? formatHoursMinutes(dailyCapacity) : "--"}</th>
+              ))}
+              <th className="tg-cap-cell">{formatHoursMinutes(capacity)}</th>
+            </tr>
+            <tr className="tg-cap tg-cap-bill">
+              <th colSpan={2} className="tg-cap-label">Billable Utilisation/Wk <b>{pct(billableTotal)}%</b></th>
+              {days.map((d) => (
+                <th key={d} className="tg-cap-cell">{perDay.bill[d] ? formatHoursMinutes(perDay.bill[d]) : "--"}</th>
+              ))}
+              <th className="tg-cap-cell">{formatHoursMinutes(billableTotal)}</th>
+            </tr>
+            <tr className="tg-cap tg-cap-non">
+              <th colSpan={2} className="tg-cap-label">Non-Billable Utilisation <b>{pct(nonBillableTotal)}%</b></th>
+              {days.map((d) => (
+                <th key={d} className="tg-cap-cell">{perDay.non[d] ? formatHoursMinutes(perDay.non[d]) : "--"}</th>
+              ))}
+              <th className="tg-cap-cell">{formatHoursMinutes(nonBillableTotal)}</th>
+            </tr>
+            <tr className="tg-colhead">
+              <th>Project</th>
+              <th>Task</th>
+              {days.map((d) => (
+                <th key={d} className={d === today ? "is-today" : ""}>{dayHeader(d)}</th>
+              ))}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allRows.length === 0 && (
+              <tr>
+                <td colSpan={days.length + 3} className="tg-empty">
+                  No time logged this week. Add a project below to start.
+                </td>
+              </tr>
+            )}
+            {allRows.map((row) => {
+              const rowBill = days.reduce((s, d) => s + (row.billable ? hoursFor(row.key, d) : 0), 0);
+              const rowNon = days.reduce((s, d) => s + (!row.billable ? hoursFor(row.key, d) : 0), 0);
+              return (
+                <tr key={row.key}>
+                  <td className="tg-proj">
+                    <button className="tg-del" onClick={() => removeRow(row)} disabled={pending} aria-label="Remove row">×</button>
+                    <span className="tg-proj-name" title={row.clientName ? `${row.clientName} — ${row.projectLabel}` : row.projectLabel}>
+                      {row.clientName ? `${row.clientName} — ` : ""}{row.projectLabel}
+                    </span>
+                  </td>
+                  <td className="tg-task">
+                    <span className={`tg-dot ${row.billable ? "is-bill" : "is-non"}`} />
+                    <span className="tg-task-name">{row.taskLabel}</span>
+                  </td>
+                  {days.map((d) => {
+                    const isEd = editing && editing.key === row.key && editing.date === d;
+                    const h = hoursFor(row.key, d);
+                    return (
+                      <td key={d} className={`tg-cell${d === today ? " is-today" : ""}`}>
+                        {isEd ? (
+                          <input
+                            autoFocus
+                            className="tg-cell-input"
+                            inputMode="decimal"
+                            value={editing!.value}
+                            onChange={(e) => setEditing({ key: row.key, date: d, value: e.target.value })}
+                            onBlur={() => commitCell(row)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitCell(row);
+                              if (e.key === "Escape") setEditing(null);
+                            }}
+                          />
+                        ) : (
+                          <button
+                            className={`tg-cell-btn${h ? (row.billable ? " is-bill" : " is-non") : ""}`}
+                            onClick={() => openCell(row.key, d)}
+                            disabled={pending}
+                          >
+                            {h ? formatHoursMinutes(h) : ""}
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="tg-rowtotal">
+                    <span className="is-bill">{formatHoursMinutes(rowBill)}</span>
+                    <span className="is-non">{formatHoursMinutes(rowNon)}</span>
+                  </td>
+                </tr>
+              );
+            })}
 
-        <div className="tsheet-form-field tsheet-form-billable">
-          <label htmlFor="ts-billable">Billable</label>
-          <button
-            id="ts-billable"
-            type="button"
-            className={"tsheet-toggle" + (billable ? " is-on" : "")}
-            onClick={() => setBillable((b) => !b)}
-            aria-pressed={billable}
-          >
-            {billable ? "Billable" : "Non-billable"}
-          </button>
-        </div>
-
-        <div className="tsheet-form-field tsheet-form-note">
-          <label htmlFor="ts-note">Note (optional)</label>
-          <input
-            id="ts-note"
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What did you work on?"
-            autoComplete="off"
-            maxLength={500}
-          />
-        </div>
-
-        <div className="tsheet-form-field tsheet-form-submit">
-          <button type="submit" className="admin-btn admin-btn--primary" disabled={pending}>
-            {pending ? "Logging…" : "Log"}
-          </button>
-        </div>
-      </form>
-
-      {error && (
-        <p className="tsheet-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {/* Entries, grouped by day */}
-      <div className="tsheet-entries">
-        {rows.length === 0 ? (
-          <p className="tsheet-empty">No hours logged this week yet. Add your first entry above.</p>
-        ) : (
-          days
-            .map((d) => ({ day: d, entries: rows.filter((r) => r.workDate === d) }))
-            .filter((g) => g.entries.length > 0)
-            .map((g) => (
-              <div key={g.day} className="tsheet-daygroup">
-                <div className="tsheet-daygroup-head">
-                  <span>{formatDayLabel(g.day)}</span>
-                  <span className="tsheet-daygroup-total">
-                    {formatHours(g.entries.reduce((s, r) => s + r.hours, 0))}h
-                  </span>
-                </div>
-                <div className="tsheet-rowlist">
-                  {g.entries.map((r) => (
-                    <EntryLine key={r.id} row={r} pending={pending} startTransition={startTransition} onDone={() => { setError(null); router.refresh(); }} onError={setError} />
+            {/* Add-row control */}
+            <tr className="tg-addrow">
+              <td className="tg-proj">
+                <select value={addProject} onChange={(e) => { setAddProject(e.target.value); setAddTask(""); }} aria-label="Add project">
+                  <option value="">Administration (internal)</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.clientName ? `${p.clientName} — ${p.name}` : p.name}</option>
                   ))}
-                </div>
-              </div>
-            ))
-        )}
+                </select>
+              </td>
+              <td className="tg-task">
+                <select value={addTask} onChange={(e) => setAddTask(e.target.value)} disabled={!addProject || addTaskOptions.length === 0} aria-label="Add task">
+                  <option value="">General time</option>
+                  {addTaskOptions.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+                </select>
+              </td>
+              <td colSpan={days.length} className="tg-add-billable">
+                <button
+                  type="button"
+                  className={`tg-toggle${addBillable ? " is-on" : ""}`}
+                  onClick={() => setAddBillable((b) => !b)}
+                  aria-pressed={addBillable}
+                >
+                  {addBillable ? "Billable" : "Non-billable"}
+                </button>
+              </td>
+              <td className="tg-rowtotal">
+                <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" onClick={addRow} disabled={pending}>
+                  + Add
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-  );
-}
 
-function EntryLine({
-  row,
-  pending,
-  startTransition,
-  onDone,
-  onError,
-}: {
-  row: EntryRow;
-  pending: boolean;
-  startTransition: (cb: () => void) => void;
-  onDone: () => void;
-  onError: (msg: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [hours, setHours] = useState(String(row.hours));
-  const [billable, setBillable] = useState(row.billable);
-  const [note, setNote] = useState(row.note ?? "");
-
-  function save() {
-    startTransition(async () => {
-      const res = await updateTimeEntry({ id: row.id, hours, billable, note: note.trim() || undefined });
-      if (!res.ok) {
-        onError(res.error);
-        return;
-      }
-      setEditing(false);
-      onDone();
-    });
-  }
-
-  function remove() {
-    startTransition(async () => {
-      const res = await deleteTimeEntry({ id: row.id });
-      if (!res.ok) {
-        onError(res.error);
-        return;
-      }
-      onDone();
-    });
-  }
-
-  if (editing) {
-    return (
-      <div className="tsheet-row tsheet-row--editing">
-        <div className="tsheet-row-main">
-          <span className="tsheet-row-project">{row.projectName}</span>
-          {row.clientName && <span className="tsheet-row-client">{row.clientName}</span>}
-        </div>
-        <input
-          className="tsheet-row-hoursinput"
-          type="number"
-          step={HOURS_STEP}
-          min={0}
-          max={24}
-          value={hours}
-          onChange={(e) => setHours(e.target.value)}
-          aria-label="Hours"
-        />
-        <button
-          type="button"
-          className={"tsheet-toggle tsheet-toggle--sm" + (billable ? " is-on" : "")}
-          onClick={() => setBillable((b) => !b)}
-          aria-pressed={billable}
-        >
-          {billable ? "Billable" : "Non-bill."}
-        </button>
-        <input
-          className="tsheet-row-noteinput"
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Note"
-          maxLength={500}
-          aria-label="Note"
-        />
-        <div className="tsheet-row-actions">
-          <button type="button" className="admin-btn admin-btn--sm admin-btn--primary" onClick={save} disabled={pending}>
-            Save
-          </button>
-          <button type="button" className="admin-btn admin-btn--sm" onClick={() => setEditing(false)} disabled={pending}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tsheet-row">
-      <div className="tsheet-row-main">
-        <span className="tsheet-row-project">{row.projectName}</span>
-        {row.clientName && <span className="tsheet-row-client">{row.clientName}</span>}
-        {row.note && <span className="tsheet-row-note">{row.note}</span>}
-      </div>
-      <span className={"tsheet-pill" + (row.billable ? " is-billable" : "")}>
-        {row.billable ? "Billable" : "Internal"}
-      </span>
-      <span className="tsheet-row-hours">{formatHours(row.hours)}h</span>
-      <div className="tsheet-row-actions">
-        <button type="button" className="admin-btn admin-btn--sm" onClick={() => setEditing(true)} disabled={pending}>
-          Edit
-        </button>
-        <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={remove} disabled={pending}>
-          Delete
-        </button>
-      </div>
+      <p className="tg-foot">
+        Click a cell to log hours (decimal — <code>1.5</code> = 1h 30m). Billable time books to a project;
+        internal time goes under Administration. Capacity is a flat {formatHoursMinutes(dailyCapacity)}/weekday.
+      </p>
     </div>
   );
 }

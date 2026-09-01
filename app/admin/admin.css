@@ -4896,141 +4896,66 @@ a.hub-program-card:hover {
 /* Cockpit drawer: "Open full deal" link acts as an inline button. */
 .deal-open-link { display: inline-flex; }
 
-/* ─── Timesheet (/team/timesheet) — Phase 0 of Improved Scheduling & Tracking ───
-   The under-10-second logging surface. Reuses admin tokens; loaded on /team
-   because the team dashboard imports this stylesheet. */
-.tsheet-weeknav { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+/* ─── Timesheet grid (/team/timesheet) — weekly grid, Kantata-style ─── */
+.tg-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.tg-title h1 { font-family: var(--font-display); font-size: 24px; font-weight: 600; color: var(--admin-ink); margin: 0 0 8px; }
+.tg-weeknav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tg-navbtn { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 10px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-surface); color: var(--admin-ink); font-size: 15px; text-decoration: none; }
+.tg-navbtn:hover { border-color: var(--admin-accent); }
+.tg-today { font-size: 13px; font-weight: 600; }
+.tg-range { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--admin-ink); margin-left: 6px; }
+.tg-you { padding: 8px 14px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-surface); font-weight: 600; color: var(--admin-ink); }
 
-.tsheet-daychips {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
-}
-@media (max-width: 720px) {
-  .tsheet-daychips { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(92px, 1fr); overflow-x: auto; }
-}
-.tsheet-daychip {
-  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
-  padding: 10px 12px; background: var(--admin-surface);
-  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
-  cursor: pointer; text-align: left; transition: border-color var(--transition), background var(--transition);
-}
-.tsheet-daychip:hover { border-color: var(--admin-accent); }
-.tsheet-daychip.is-selected { border-color: var(--admin-accent); background: var(--admin-accent-soft); }
-.tsheet-daychip.is-today .tsheet-daychip-label::after { content: " •"; color: var(--admin-accent); }
-.tsheet-daychip-label { font-size: 12px; font-weight: 600; color: var(--admin-ink); font-family: var(--font-display); }
-.tsheet-daychip-total { font-size: 13px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.tg-stats { display: flex; gap: 36px; flex-wrap: wrap; padding: 10px 2px 16px; }
+.tg-stat-k { display: block; font-size: 12px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.tg-stat-v { display: block; font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--admin-ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
 
-.tsheet-form {
-  display: grid;
-  grid-template-columns: 2fr 0.8fr 1fr 2.4fr auto;
-  gap: 12px; align-items: end;
-  padding: 16px 18px; background: var(--admin-surface);
-  border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
-  box-shadow: var(--admin-shadow); margin-bottom: 8px;
-}
-@media (max-width: 860px) { .tsheet-form { grid-template-columns: 1fr 1fr; } .tsheet-form-note { grid-column: 1 / -1; } .tsheet-form-submit { grid-column: 1 / -1; } }
-.tsheet-form-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.tsheet-form-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
-.tsheet-form-field select,
-.tsheet-form-field input[type="text"],
-.tsheet-form-field input[type="number"] {
-  width: 100%; padding: 9px 11px; font: inherit; color: var(--admin-ink);
-  background: var(--admin-bg); border: 1px solid var(--admin-line);
-  border-radius: var(--admin-radius-sm);
-}
-.tsheet-form-field input:focus, .tsheet-form-field select:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
-.tsheet-form-submit .admin-btn { width: 100%; }
+.tg-wrap { overflow-x: auto; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); background: var(--admin-surface); }
+.tg-table { border-collapse: collapse; width: 100%; min-width: 940px; table-layout: fixed; font-size: 13px; }
+.tg-c-proj { width: 210px; } .tg-c-task { width: 200px; } .tg-c-day { width: 88px; } .tg-c-total { width: 98px; }
 
-.tsheet-toggle {
-  padding: 9px 12px; font: inherit; font-weight: 600; cursor: pointer;
-  color: var(--admin-muted-ink); background: var(--admin-muted-bg);
-  border: 1px solid transparent; border-radius: var(--admin-radius-sm); white-space: nowrap;
-}
-.tsheet-toggle.is-on { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
-.tsheet-toggle--sm { padding: 6px 9px; font-size: 12px; }
+.tg-cap th { background: var(--admin-bg); border-bottom: 1px solid var(--admin-line-soft); padding: 7px 10px; font-weight: 500; color: var(--admin-muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tg-cap-label { text-align: left !important; color: var(--admin-ink) !important; font-family: var(--admin-font-sans); font-weight: 600; }
+.tg-cap-bill .tg-cap-cell, .tg-cap-bill .tg-cap-label b { color: var(--admin-ok-ink); }
+.tg-cap-non .tg-cap-cell { color: var(--admin-muted); }
 
-.tsheet-error { margin: 12px 0 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
+.tg-colhead th { background: var(--admin-surface-2, var(--admin-bg)); border-bottom: 1px solid var(--admin-line); padding: 10px; font-family: var(--font-display); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); text-align: center; }
+.tg-colhead th:first-child, .tg-colhead th:nth-child(2) { text-align: left; }
+.tg-colhead th.is-today { color: var(--admin-accent); }
 
-.tsheet-entries { margin-top: 26px; display: flex; flex-direction: column; gap: 18px; }
-.tsheet-empty { color: var(--admin-muted); font-size: 15px; padding: 24px 0; text-align: center; }
+.tg-table td { border-bottom: 1px solid var(--admin-line-soft); border-right: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.tg-proj { padding: 8px 10px; white-space: nowrap; }
+.tg-del { border: 0; background: none; color: var(--admin-faint); cursor: pointer; font-size: 16px; margin-right: 6px; line-height: 1; }
+.tg-del:hover { color: var(--admin-err-ink); }
+.tg-proj-name { color: var(--admin-ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 168px; vertical-align: middle; }
+.tg-task { padding: 8px 10px; white-space: nowrap; }
+.tg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.tg-dot.is-bill { background: var(--admin-ok-ink); } .tg-dot.is-non { background: var(--admin-accent); }
+.tg-task-name { color: var(--admin-ink); }
 
-.tsheet-daygroup-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--admin-ink);
-  padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--admin-line-soft);
-}
-.tsheet-daygroup-total { color: var(--admin-muted); font-variant-numeric: tabular-nums; }
-.tsheet-rowlist { display: flex; flex-direction: column; gap: 8px; }
+.tg-cell { padding: 0; text-align: center; }
+.tg-cell.is-today { background: color-mix(in srgb, var(--admin-accent) 5%, transparent); }
+.tg-cell-btn { width: 100%; height: 44px; border: 0; background: none; cursor: pointer; font: inherit; font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.tg-cell-btn:hover { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); box-shadow: inset 0 0 0 1px var(--admin-line); }
+.tg-cell-btn.is-bill { color: var(--admin-ok-ink); font-weight: 600; }
+.tg-cell-btn.is-non { color: var(--admin-muted); }
+.tg-cell-input { width: 100%; height: 44px; border: 0; box-shadow: inset 0 0 0 2px var(--admin-accent); background: var(--admin-surface); text-align: center; font: inherit; font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.tg-cell-input:focus { outline: none; }
 
-.tsheet-row {
-  display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center;
-  padding: 11px 14px; background: var(--admin-surface);
-  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
-}
-.tsheet-row--editing { grid-template-columns: 1.4fr 0.7fr auto 1.6fr auto; }
-@media (max-width: 720px) { .tsheet-row, .tsheet-row--editing { grid-template-columns: 1fr auto; row-gap: 8px; } }
-.tsheet-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tsheet-row-project { font-weight: 600; color: var(--admin-ink); }
-.tsheet-row-client { font-size: 12px; color: var(--admin-muted); }
-.tsheet-row-note { font-size: 13px; color: var(--admin-muted); overflow-wrap: anywhere; }
-.tsheet-row-hours { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--admin-ink); white-space: nowrap; }
-.tsheet-row-hoursinput { width: 84px; padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
-.tsheet-row-noteinput { padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); min-width: 0; }
-.tsheet-row-actions { display: flex; gap: 6px; }
+.tg-rowtotal { padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.tg-rowtotal .is-bill { display: block; color: var(--admin-ok-ink); font-weight: 600; }
+.tg-rowtotal .is-non { display: block; color: var(--admin-muted); font-size: 12px; }
 
-.tsheet-pill {
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
-  padding: 3px 9px; border-radius: var(--admin-radius-pill);
-  color: var(--admin-muted-ink); background: var(--admin-muted-bg); white-space: nowrap;
-}
-.tsheet-pill.is-billable { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+.tg-empty { padding: 26px; text-align: center; color: var(--admin-muted); }
 
-/* ─── Scheduling (/admin/operations/scheduling) — Phase 1 resourcing grid ─── */
-.sched-empty { color: var(--admin-muted); font-size: 15px; padding: 40px 24px; text-align: center;
-  background: var(--admin-surface); border: 1px dashed var(--admin-line); border-radius: var(--admin-radius); }
+.tg-addrow td { background: var(--admin-bg); }
+.tg-addrow select { width: 100%; padding: 7px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-surface); color: var(--admin-ink); }
+.tg-add-billable { padding: 8px 10px !important; text-align: left; }
+.tg-toggle { padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--admin-muted-ink); background: var(--admin-muted-bg); border: 1px solid transparent; border-radius: var(--admin-radius-sm); }
+.tg-toggle.is-on { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
 
-.sched-legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 4px 0 16px; font-size: 12.5px; color: var(--admin-muted); }
-.sched-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.sched-legend-note { margin-left: auto; }
-.sched-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.06); }
-.sched-swatch.is-ok { background: var(--admin-ok-bg); }
-.sched-swatch.is-warn { background: var(--admin-warn-bg); }
-.sched-swatch.is-crit { background: var(--admin-err-bg); }
-.sched-swatch.is-empty { background: var(--admin-muted-bg); }
+.tg-foot { margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); max-width: 80ch; }
 
-.sched-tablewrap { overflow-x: auto; border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
-  box-shadow: var(--admin-shadow); background: var(--admin-surface); }
-.sched-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; font-size: 13px; }
-.sched-table thead th { position: sticky; top: 0; background: var(--admin-surface-2, var(--admin-bg)); z-index: 1;
-  font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--admin-muted);
-  text-align: center; padding: 10px 8px; border-bottom: 1px solid var(--admin-line); white-space: nowrap; }
-.sched-table thead th.is-current { color: var(--admin-ink); }
-.sched-name-h { text-align: left !important; }
-.sched-table td { padding: 0; border-bottom: 1px solid var(--admin-line-soft); }
-.sched-table tbody tr:last-child td { border-bottom: 0; }
-.sched-name { position: sticky; left: 0; background: var(--admin-surface); z-index: 1;
-  font-weight: 600; color: var(--admin-ink); padding: 10px 14px !important; white-space: nowrap;
-  border-right: 1px solid var(--admin-line); }
-
-.sched-cell { text-align: center; vertical-align: middle; height: 54px; padding: 6px 8px !important;
-  border-right: 1px solid var(--admin-line-soft); }
-.sched-cell.is-ok { background: var(--admin-ok-bg); }
-.sched-cell.is-warn { background: var(--admin-warn-bg); }
-.sched-cell.is-crit { background: var(--admin-err-bg); }
-.sched-cell.is-empty { background: transparent; }
-.sched-util { display: block; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--admin-ink);
-  font-variant-numeric: tabular-nums; line-height: 1.2; }
-.sched-cell.is-ok .sched-util { color: var(--admin-ok-ink); }
-.sched-cell.is-warn .sched-util { color: var(--admin-warn-ink); }
-.sched-cell.is-crit .sched-util { color: var(--admin-err-ink); }
-.sched-hrs { display: block; font-size: 11px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
-.sched-marks { display: inline-flex; gap: 5px; align-items: center; margin-top: 2px; font-size: 10.5px; }
-.sched-tent { color: var(--admin-info-ink, var(--admin-accent)); font-weight: 600; }
-.sched-leave { color: var(--admin-muted); }
-
-.sched-foot { margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); max-width: 78ch; }
 
 /* ─── Scheduling · early-warning flags (Phase 2) ─── */
 .sched-flags { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
@@ -5114,3 +5039,6 @@ a.hub-program-card:hover {
 .slip-badge.is-done { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
 .slip-req-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .slip-req-actions input[type="date"] { padding: 6px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); }
+
+/* Shared inline error banner — timesheet, capability matrix, client requests. */
+.tsheet-error { margin: 12px 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
