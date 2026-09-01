@@ -223,15 +223,6 @@ export async function addSubmissionAsAdmin(input: {
   const admin = await requireAdmin();
 
   if (!isSectionType(input.sectionType)) return { ok: false, error: "Pick a section." };
-  // Training and webinars come from the events calendar. Hand-adding them here
-  // would let the auto-pull overwrite or duplicate them.
-  if (SECTION_META[input.sectionType].source === "events") {
-    return {
-      ok: false,
-      error: `${SECTION_META[input.sectionType].label} comes from the events calendar — use "Pull training & webinars".`,
-    };
-  }
-
   const title = input.title.trim();
   const body = input.body.trim();
   if (!body) return { ok: false, error: "Add some detail — an empty item can't be drafted from." };

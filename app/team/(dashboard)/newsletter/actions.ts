@@ -8,7 +8,7 @@ import {
   teamInsertOwn,
   teamUpdateInScope,
 } from "@/lib/team/data";
-import { CONTRIBUTABLE_SECTIONS, SECTION_META, isSectionType } from "@/lib/newsletter";
+import { isSectionType } from "@/lib/newsletter";
 
 // Newsletter intake, contributor side. teamInsertOwn forces
 // person_id = actor.personId server-side, so a contribution can only ever be
@@ -54,15 +54,6 @@ export async function submitContribution(input: {
   if (!isSectionType(input.sectionType)) {
     return { ok: false, error: "Pick a section." };
   }
-  // Training and webinars come from the events calendar. Accepting them here
-  // would reintroduce exactly the manual chasing this stage removes.
-  if (!(CONTRIBUTABLE_SECTIONS as readonly string[]).includes(input.sectionType)) {
-    return {
-      ok: false,
-      error: `${SECTION_META[input.sectionType].label} is filled automatically from the events calendar.`,
-    };
-  }
-
   const title = input.title.trim();
   const body = input.body.trim();
   if (!body) return { ok: false, error: "Add some detail — an empty submission can't be drafted from." };
