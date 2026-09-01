@@ -2,31 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin, canViewSensitive } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { formatCents, formatDate } from "@/lib/admin/format";
 import { getRun } from "@/lib/recalc/runs";
 import { VarianceExplorer } from "../VarianceExplorer";
 
 export const dynamic = "force-dynamic";
-
-function StatTile({ label, value, tone }: { label: string; value: string; tone?: "err" | "ok" }) {
-  return (
-    <div className="admin-card" style={{ flex: "1 1 180px" }}>
-      <div className="admin-cell-muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.4 }}>
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 30,
-          fontWeight: 700,
-          marginTop: 4,
-          color: tone === "err" ? "var(--admin-err-ink)" : tone === "ok" ? "var(--admin-ok-ink)" : "var(--admin-ink)",
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 export default async function RecalcRunPage({ params }: { params: { runId: string } }) {
   const admin = await requireAdmin();
@@ -58,15 +39,19 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
 
       {run.results && (
         <>
-          <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-            <StatTile label="Employees affected" value={String(employeeCount)} />
-            <StatTile label="Flagged lines" value={String(run.results.totals.flaggedCount)} tone={run.results.totals.flaggedCount > 0 ? "err" : "ok"} />
-            <StatTile label="Expected total" value={formatCents(run.results.totals.expectedCents)} />
-            <StatTile label="Actual total" value={formatCents(run.results.totals.actualCents)} />
-            <StatTile
+          <div className="mp-kpi-grid">
+            <MetricCard label="Employees affected" value={String(employeeCount)} />
+            <MetricCard
+              label="Flagged lines"
+              value={String(run.results.totals.flaggedCount)}
+              sub={run.results.totals.flaggedCount > 0 ? "needs review" : "all clear"}
+            />
+            <MetricCard label="Expected total" value={formatCents(run.results.totals.expectedCents)} />
+            <MetricCard label="Actual total" value={formatCents(run.results.totals.actualCents)} />
+            <MetricCard
               label="Net variance"
               value={formatCents(run.results.totals.varianceCents)}
-              tone={run.results.totals.varianceCents === 0 ? "ok" : run.results.totals.varianceCents < 0 ? "err" : undefined}
+              sub={run.results.totals.varianceCents === 0 ? "matches" : run.results.totals.varianceCents < 0 ? "underpaid" : "overpaid"}
             />
           </div>
 
