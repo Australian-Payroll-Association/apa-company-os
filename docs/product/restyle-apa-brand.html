@@ -1,0 +1,208 @@
+<title>APA Company OS Restyle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root {
+    --navy: #465778;
+    --navy-deep: #2A3550;
+    --navy-hover: #394A66;
+    --steel: #A0AEC2;
+    --gold: #E6B73D;
+    --ink: #2A3550;
+    --body: #4A5160;
+    --canvas: #F5F6F9;
+    --card: #FFFFFF;
+    --line: #DDE3EC;
+    --display: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+    --text: 'Source Sans 3', 'Source Sans Pro', Georgia, sans-serif;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--body);
+    font-family: var(--text);
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 0 24px 96px; }
+  header.hero {
+    background: var(--navy);
+    color: #fff;
+    padding: 56px 0 48px;
+    margin-bottom: 48px;
+  }
+  header.hero .page { padding-bottom: 0; }
+  .eyebrow {
+    font-family: var(--display);
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: 40px; font-weight: 700; line-height: 1.15;
+    margin: 0 0 14px; text-wrap: balance; color: #fff;
+  }
+  .hero p { max-width: 62ch; color: #E4E9F2; margin: 0; }
+  .status {
+    display: inline-block; margin-top: 20px;
+    background: rgba(230,183,61,0.16); border: 1px solid var(--gold);
+    color: #F4D584; border-radius: 40px;
+    font-family: var(--display); font-size: 12.5px; font-weight: 600;
+    padding: 5px 16px; letter-spacing: 0.04em;
+  }
+  h2 {
+    font-family: var(--display);
+    font-size: 24px; font-weight: 700; color: var(--ink);
+    margin: 56px 0 12px; text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-size: 17px; font-weight: 600; color: var(--ink);
+    margin: 32px 0 8px;
+  }
+  p { max-width: 68ch; margin: 0 0 14px; }
+  code {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.86em; background: #EBEEF4; color: var(--navy-deep);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  ul { max-width: 68ch; padding-left: 22px; margin: 0 0 14px; }
+  li { margin-bottom: 6px; }
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 8px; }
+  .sw {
+    flex: 1 1 120px; min-width: 120px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden;
+  }
+  .sw .chip { height: 64px; }
+  .sw .meta { padding: 10px 12px; }
+  .sw .name { font-family: var(--display); font-size: 13px; font-weight: 600; color: var(--ink); }
+  .sw .hex { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--body); }
+
+  .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th {
+    font-family: var(--display); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--navy);
+    text-align: left; padding: 12px 16px; border-bottom: 2px solid var(--line);
+    background: #FAFBFD; white-space: nowrap;
+  }
+  td { padding: 11px 16px; border-bottom: 1px solid #EEF1F6; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+  .dot {
+    display: inline-block; width: 13px; height: 13px; border-radius: 4px;
+    vertical-align: -2px; margin-right: 7px; border: 1px solid rgba(0,0,0,0.12);
+  }
+  .before td:not(:first-child) .dot + code { }
+  .arrowcell { color: var(--steel); }
+
+  .callout {
+    background: var(--card); border-left: 4px solid var(--gold);
+    border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 20px 0;
+    box-shadow: 0 1px 2px rgba(42,53,80,0.05);
+  }
+  .callout p { margin: 0; }
+  .done { border-left-color: #3E8E68; }
+
+  .btnrow { display: flex; gap: 14px; flex-wrap: wrap; margin: 18px 0 6px; }
+  .demo-btn {
+    font-family: var(--display); font-weight: 600; font-size: 14.5px;
+    border-radius: 40px; padding: 11px 26px; border: none; cursor: default;
+  }
+  .demo-gold { background: var(--gold); color: var(--navy-deep); }
+  .demo-navy { background: var(--navy); color: #fff; }
+  .demo-old { background: #287BE8; color: #fff; opacity: 0.55; }
+  .btncap { font-size: 13px; color: var(--steel); font-style: italic; }
+
+  ol.rollout { max-width: 68ch; padding-left: 22px; counter-reset: none; }
+  footer.note { margin-top: 64px; font-size: 14px; color: var(--steel); border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+
+<header class="hero">
+  <div class="page">
+    <p class="eyebrow">Restyle proposal · 1 September 2026</p>
+    <h1>Putting the APA brand on the Company OS</h1>
+    <p>The OS still wears the Edge8 scaffold it was built from. The public site at austpayroll.com.au has a settled identity: navy, steel, gold, Montserrat. This maps that identity onto the OS as a token swap, not a redesign.</p>
+    <span class="status">Approved and implemented · 1 Sep 2026</span>
+  </div>
+</header>
+
+<div class="page">
+
+  <h2>The problem</h2>
+  <ul>
+    <li>The sign-in card, browser tab, and admin sidebar all say <strong>"8 Edges"</strong>.</li>
+    <li><code>public/logo.png</code> is the Edge8 wordmark. The nav, footer, and the ROI PDF all pull from it.</li>
+    <li>The palette is Edge8's bright blue <code>#287BE8</code> and mint <code>#6FF2C1</code>; the typeface is Manrope.</li>
+  </ul>
+
+  <h2>What the live site actually uses</h2>
+  <p>Sampled from austpayroll.com.au and the APA emblem file today.</p>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#465778"></div><div class="meta"><div class="name">Brand navy</div><div class="hex">#465778</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2A3550"></div><div class="meta"><div class="name">Navy ink</div><div class="hex">#2A3550</div></div></div>
+    <div class="sw"><div class="chip" style="background:#A0AEC2"></div><div class="meta"><div class="name">Steel blue</div><div class="hex">#A0AEC2</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E6B73D"></div><div class="meta"><div class="name">Gold</div><div class="hex">#E6B73D</div></div></div>
+    <div class="sw"><div class="chip" style="background:#F5F6F9; border-bottom:1px solid var(--line)"></div><div class="meta"><div class="name">Light canvas</div><div class="hex">#F5F6F9</div></div></div>
+  </div>
+  <p>Headings are Montserrat 600/700; body is Source Sans Pro. Every call-to-action is a gold pill with dark text. This page is set in exactly that system, so it doubles as the preview.</p>
+
+  <h2>Proposed restyles</h2>
+  <p>The OS reads nearly everything from canonical tokens in <code>app/globals.css</code>, and the admin re-roots onto those in <code>app/admin/admin.css</code>. Layout, spacing, the dense 13px data layer, radii, and elevation rules all stay exactly as they are.</p>
+
+  <h3>1 · Colour tokens</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Token</th><th>Now (Edge8)</th><th></th><th>Proposed (APA)</th></tr>
+    <tr><td><code>--color-primary-blue</code></td><td><span class="dot" style="background:#287BE8"></span><code>#287BE8</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#465778"></span><code>#465778</code> brand navy</td></tr>
+    <tr><td><code>--color-primary-blue-hover</code></td><td><span class="dot" style="background:#1D6AD4"></span><code>#1D6AD4</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#394A66"></span><code>#394A66</code> darkened navy</td></tr>
+    <tr><td><code>--color-accent-mint</code></td><td><span class="dot" style="background:#6FF2C1"></span><code>#6FF2C1</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#E6B73D"></span><code>#E6B73D</code> gold</td></tr>
+    <tr><td><code>--color-primary-dark</code></td><td><span class="dot" style="background:#101014"></span><code>#101014</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#2A3550"></span><code>#2A3550</code> navy ink</td></tr>
+    <tr><td><code>--color-text-body</code></td><td><span class="dot" style="background:#797c82"></span><code>#797C82</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#4A5160"></span><code>#4A5160</code> cool grey</td></tr>
+    <tr><td><code>--tint-deep</code></td><td><span class="dot" style="background:#D4DAE4"></span><code>#D4DAE4</code></td><td class="arrowcell">to</td><td><span class="dot" style="background:#C9D2E0"></span><code>#C9D2E0</code> steel-tinted</td></tr>
+  </table></div>
+  <p>The focus ring, blue glow, and info-status derivatives follow automatically or get re-derived from navy.</p>
+
+  <h3>2 · Typography</h3>
+  <p>Replace Manrope with Montserrat for display and Source Sans Pro for body, self-hosted woff2 exactly as Manrope is today. Both ship Vietnamese subsets, which the OS needs for people and client names. Source Sans Pro is distributed as "Source Sans 3" now; same design.</p>
+  <p>Montserrat runs wider than Manrope, so expect minor reflow in the sidebar and table headers. A cheaper fallback if that worries anyone: keep Manrope for the dense admin data layer and use Montserrat only for <code>--font-display</code>, so public pages read as APA while admin tables stay metric-identical.</p>
+
+  <h3>3 · Admin chrome</h3>
+  <ul>
+    <li>Sidebar from near-black to deep navy <code>#2A3550</code>, matching how the live site uses its navy bands. Muted sidebar text shifts to steel <code>#A0AEC2</code>.</li>
+    <li>Active nav item and section accents take gold where mint is used today.</li>
+    <li>Chart ramp becomes navy, gold, steel, navy ink, grey. Same five-step structure.</li>
+  </ul>
+  <div class="callout"><p><strong>One conflict to resolve:</strong> the current warning badge pair is gold-toned. With gold promoted to the accent, warnings should shift clearly amber-orange so a warning never reads as a highlight.</p></div>
+
+  <h3>4 · Naming and marks</h3>
+  <ul>
+    <li>"8 Edges" becomes "APA Company OS" in the sidebar header, sign-in card, and title template (<code>AdminSidebar.tsx</code>, <code>app/admin/(dashboard)/layout.tsx</code>).</li>
+    <li><code>public/logo.png</code> and <code>logo-white.png</code> replaced with the APA lockup. Re-check the nav, footer, and the ROI PDF route after the swap.</li>
+  </ul>
+
+  <h3>5 · Buttons</h3>
+  <p>The OS pill radius already matches the live site's buttons, so shape stays. Fill changes: gold with navy text for public-facing calls-to-action, navy for primary actions inside the admin, where gold would shout on every table row.</p>
+  <div class="btnrow">
+    <button class="demo-btn demo-gold">Public CTA · gold</button>
+    <button class="demo-btn demo-navy">Admin primary · navy</button>
+    <button class="demo-btn demo-old">Today · Edge8 blue</button>
+  </div>
+  <p class="btncap">Live samples, not screenshots.</p>
+
+  <h2>Already done</h2>
+  <div class="callout done"><p>The favicon set now uses the APA emblem: <code>app/icon.png</code>, <code>app/apple-icon.png</code> (white background for iOS), and <code>public/favicon.png</code>. Sitting uncommitted in the working tree.</p></div>
+
+  <h2>Rollout if approved</h2>
+  <ol class="rollout">
+    <li>Token swap in <code>app/globals.css</code> and the accent block of <code>app/admin/admin.css</code>.</li>
+    <li>Font files into <code>public/fonts</code>, <code>@font-face</code> blocks swapped.</li>
+    <li>String renames and logo asset swap.</li>
+    <li>Visual pass over /admin, the sign-in page, and the beryl-roi embed, which is styled inline and embedded on external pages.</li>
+  </ol>
+  <p>Roughly a day of work, one pull request, no schema or behaviour changes.</p>
+
+  <footer class="note">Companion markdown: docs/product/restyle-apa-brand.md · Colours sampled 1 Sep 2026 from austpayroll.com.au and APA_LOGO_Emblem.png</footer>
+</div>

@@ -8,7 +8,11 @@ import { signOut } from "@/app/admin/(dashboard)/actions";
 // Nav is data-driven. `enabled: false` items render muted with a "soon" tag and
 // are not navigable — flip them to `true` (and build the route) as each phase
 // ships, so the shell always looks complete without dead 404 links.
-type NavItem = { label: string; href: string; ico: string; enabled?: boolean; superAdmin?: boolean };
+type NavItem = { label: string; href: string; ico: string; enabled?: boolean; superAdmin?: boolean; needsTeamAccess?: boolean };
+// `needsTeamAccess: true` hides an item unless the admin also has a linked,
+// active team_members record (canSwitchToTeam, same gate as the Team view
+// switch). Without it a cross-app link into /team renders for admins whom
+// requireTeamMember() would just bounce straight back to /admin.
 // `superAdmin: true` restricts a subsection (or a top-level item) to super
 // admins (Dave & Mai). It is hidden for everyone else; the routes are gated
 // server-side regardless (ATS route layouts + action gates), so this is a nav
@@ -115,6 +119,8 @@ const NAV: NavSection[] = [
           { label: "Overview", href: "/admin/revenue/marketing", ico: "◑", enabled: true },
           { label: "Campaigns", href: "/admin/revenue/marketing/campaigns", ico: "◎", enabled: true },
           { label: "Broadcasts", href: "/admin/revenue/marketing/broadcasts", ico: "✉", enabled: true },
+          { label: "Newsletter", href: "/admin/revenue/marketing/newsletter", ico: "❧", enabled: true },
+          { label: "Beryl ROI", href: "/admin/revenue/marketing/beryl-roi", ico: "▤", enabled: true },
           { label: "Brands", href: "/admin/revenue/marketing/brands", ico: "◈", enabled: true },
           { label: "Books", href: "/admin/revenue/marketing/books", ico: "❒", enabled: true },
         ],
@@ -122,7 +128,7 @@ const NAV: NavSection[] = [
     ],
   },
   {
-    label: "Talent",
+    label: "Employees",
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/talent", ico: "◎", enabled: true },
@@ -150,6 +156,14 @@ const NAV: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
+      { label: "Scheduling", href: "/admin/operations/scheduling", ico: "☷", enabled: true },
+      { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
+      { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
+      // Live team timesheet — the personal logging surface for the scheduling
+      // build. Cross-app link into /team, so it only shows for admins with a
+      // linked team account; for anyone else requireTeamMember() bounces the
+      // click straight back to /admin, which reads as a broken link.
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true, needsTeamAccess: true },
       {
         subheading: "Time Off",
         items: [
@@ -198,6 +212,11 @@ const NAV: NavSection[] = [
       {
         subheading: "Ideas",
         items: [{ label: "Idea backlog", href: "/admin/innovation/ideas", ico: "✦", enabled: true }],
+      },
+      {
+        subheading: "Payroll Recalc",
+        superAdmin: true,
+        items: [{ label: "Recalculation", href: "/admin/innovation/recalc", ico: "⇄", enabled: true }],
       },
     ],
   },
@@ -375,7 +394,7 @@ export function AdminSidebar({
         >
           ☰
         </button>
-        <strong>8 Edges</strong>
+        <strong>APA Company OS</strong>
       </div>
 
       {navOpen && <div className="admin-scrim" onClick={() => setNavOpen(false)} />}
@@ -383,7 +402,7 @@ export function AdminSidebar({
       <nav className={`admin-sidebar${navOpen ? " is-open" : ""}`} aria-label="Admin">
         <div className="admin-brand">
           <span className="admin-brand-lead">
-            8 Edges
+            APA Company OS
           </span>
           <span className="admin-brand-actions">
             <button
@@ -534,7 +553,7 @@ export function AdminSidebar({
                   ? entry.superAdmin && !isSuperAdmin
                     ? null
                     : renderSubsection(entry, label)
-                  : entry.superAdmin && !isSuperAdmin
+                  : (entry.superAdmin && !isSuperAdmin) || (entry.needsTeamAccess && !canSwitchToTeam)
                     ? null
                     : renderItem(entry, false),
               )}

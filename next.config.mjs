@@ -21,6 +21,23 @@ const nextConfig = {
       ],
     },
   },
+  async headers() {
+    // The Beryl ROI widget is embedded via <iframe> on the APA HubSpot site.
+    // Restrict who may frame it to APA's own domains + HubSpot preview hosts.
+    const frameAncestors = {
+      key: 'Content-Security-Policy',
+      value:
+        "frame-ancestors 'self' https://austpayroll.com.au https://www.austpayroll.com.au https://*.hs-sites.com https://*.hubspotpagebuilder.com https://*.hubspot.com;",
+    }
+    // Always revalidate, so the embedded iframe never serves a stale widget
+    // after a redeploy (the browser/HubSpot won't hold an old cached copy).
+    const noCache = { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }
+    const embedHeaders = [frameAncestors, noCache]
+    return [
+      { source: '/beryl-roi/embed', headers: embedHeaders },
+      { source: '/beryl-roi/embed/', headers: embedHeaders },
+    ]
+  },
   async rewrites() {
     return [
       // The new-member onboarding form is a purpose-driven survey; serve it at a

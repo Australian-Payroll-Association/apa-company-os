@@ -98,6 +98,27 @@ export async function getMyBoardSummaries(actor: TeamActor): Promise<MyBoardSumm
   }));
 }
 
+export type BoardTaskOption = { id: string; title: string; boardId: string };
+
+// Open tasks on the given boards, for the timesheet's task picker and for
+// labelling task-attributed time entries. Callers MUST pass board ids the actor
+// is authorised for (e.g. from getMyBoardSummaries) — this only scopes to the ids.
+export async function getBoardTasks(boardIds: string[]): Promise<BoardTaskOption[]> {
+  if (boardIds.length === 0) return [];
+  const { data } = await companyOs
+    .from("tasks")
+    .select("id, title, board_id")
+    .in("board_id", boardIds)
+    .is("archived_at", null)
+    .neq("status", "done")
+    .order("position", { ascending: true });
+  return ((data ?? []) as { id: string; title: string; board_id: string }[]).map((t) => ({
+    id: t.id,
+    title: t.title,
+    boardId: t.board_id,
+  }));
+}
+
 // Whether the actor may write to a board (member or admin). Read-side helper
 // for UI gating; the write actions re-check via boardActorFor.
 export async function isBoardMemberForActor(actor: TeamActor, boardId: string): Promise<boolean> {

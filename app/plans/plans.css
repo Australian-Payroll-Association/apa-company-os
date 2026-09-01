@@ -14,7 +14,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 .brief-pill.is-primary { background: var(--mint); color: var(--dark); border-color: transparent; }
-.brief-pill.is-secondary { background: rgba(40, 123, 232, 0.9); color: #fff; border-color: transparent; }
+.brief-pill.is-secondary { background: rgba(70, 87, 120, 0.9); color: #fff; border-color: transparent; }
 
 /* D-section eyebrow number */
 .brief-d { display: inline-flex; align-items: center; gap: 8px; }
@@ -45,7 +45,7 @@
   width: 25px;
   height: 25px;
   border-radius: 7px;
-  background: rgba(111, 242, 193, 0.28);
+  background: rgba(230, 183, 61, 0.28);
   color: #0E8A5F;
   font-weight: 700;
   font-size: 13px;

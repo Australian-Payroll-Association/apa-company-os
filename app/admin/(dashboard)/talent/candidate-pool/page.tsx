@@ -122,7 +122,7 @@ export default async function CandidatePoolPage() {
   return (
     <>
       <PageHead
-        eyebrow="Talent"
+        eyebrow="Employees"
         title="Candidate Pool"
         sub={`${poolRows.length} candidates · ${screened} AI-screened · ${ROLE_FAMILIES.length} role families`}
       />

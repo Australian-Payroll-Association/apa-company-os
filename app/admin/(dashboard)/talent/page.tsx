@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata = {
-  title: "Talent cockpit",
-  description: "The Talent office in two bands: the team we have, and the hiring that grows it.",
+  title: "Employees cockpit",
+  description: "The Employees office in two bands: the team we have, and the hiring that grows it.",
 };
 
 type TeamRow = { status: string | null; start_date: string | null; end_date: string | null; departments: unknown };
@@ -123,8 +123,8 @@ export default async function TalentCockpitPage() {
   return (
     <>
       <PageHead
-        eyebrow="Four Offices · Talent"
-        title="Talent cockpit"
+        eyebrow="Four Offices · Employees"
+        title="Employees cockpit"
         sub="The team we have, and the hiring that grows it."
       />
 

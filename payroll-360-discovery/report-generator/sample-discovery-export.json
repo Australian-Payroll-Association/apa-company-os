@@ -1,0 +1,26 @@
+{
+  "client": "Meridian Logistics Pty Ltd",
+  "reviewPeriod": "August 2026",
+  "reportDate": "September 2026",
+  "overview": {
+    "systems": {
+      "payroll": "PayGlobal",
+      "ta": "Kronos",
+      "hris": "Employment Hero",
+      "finance": "Xero"
+    },
+    "entities": [
+      { "name": "Meridian Logistics Pty Ltd", "employees": "182", "payCycle": "Weekly", "awards": "Road Transport and Distribution Award" }
+    ]
+  },
+  "governanceAndControls": {
+    "segregationOfDuties": {
+      "question": "Describe how duties are segregated between processing, approving, and paying employees. Does any one person hold end-to-end access?",
+      "response": "The Payroll Officer can create, amend and approve changes to employee master data in PayGlobal, including bank details, without anyone else signing off. The same person also generates and releases the bank file. We don't have a segregation-of-duties matrix."
+    },
+    "payrollChecking": {
+      "question": "What reasonableness checks (exception or variance reporting) are performed each pay cycle?",
+      "response": "We review a gross pay variance report each pay cycle, comparing each employee's total gross pay to the prior period. We don't currently check individual pay components like tax, super or allowances separately."
+    }
+  }
+}

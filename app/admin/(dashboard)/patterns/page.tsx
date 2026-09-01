@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Pattern library",
 };
 
-// Living style guide for the 8 Edges admin design system. Renders every token
+// Living style guide for the APA Company OS admin design system. Renders every token
 // and component using the real .admin-* classes, so it tracks admin.css exactly
 // and serves as the QA reference for the redesign. Not linked in the sidebar nav
 // by design; reach it directly at /admin/patterns.
@@ -54,7 +54,7 @@ export default function PatternsPage() {
       <PageHead
         eyebrow="Design system"
         title="Pattern library"
-        sub="The living reference for the 8 Edges admin. Every token and component below renders the real admin.css classes, so this page tracks the system exactly."
+        sub="The living reference for the APA Company OS admin. Every token and component below renders the real admin.css classes, so this page tracks the system exactly."
         action={<button className="admin-btn admin-btn--primary" type="button">Primary action</button>}
       />
 
@@ -81,25 +81,25 @@ export default function PatternsPage() {
         {/* ─── Color ──────────────────────────────────── */}
         <Section title="Color — accent" sub="Default accent is blue. Per-section themes override --admin-accent only.">
           <div className="pat-swatches">
-            <Swatch name="Accent" value="#287be8" varName="--admin-accent" />
-            <Swatch name="Accent strong" value="#1d6ad4" varName="--admin-accent-strong" />
-            <Swatch name="Accent soft" value="#eaf2ff" varName="--admin-accent-soft" />
+            <Swatch name="Accent" value="#465778" varName="--admin-accent" />
+            <Swatch name="Accent strong" value="#394A66" varName="--admin-accent-strong" />
+            <Swatch name="Accent soft" value="#EDF0F5" varName="--admin-accent-soft" />
           </div>
         </Section>
 
         <Section title="Color — office accents" sub="Four brand steps for per-office themes and badges. Legacy var names kept.">
           <div className="pat-swatches">
-            <Swatch name="Blue" value="#287be8" varName="--admin-accent-blue" />
-            <Swatch name="Deep blue" value="#1d6ad4" varName="--admin-accent-green" />
-            <Swatch name="Near-black" value="#101014" varName="--admin-accent-pink" />
+            <Swatch name="Navy" value="#465778" varName="--admin-accent-blue" />
+            <Swatch name="Steel" value="#A0AEC2" varName="--admin-accent-green" />
+            <Swatch name="Navy ink" value="#2A3550" varName="--admin-accent-pink" />
             <Swatch name="Gray" value="#9ca3af" varName="--admin-accent-gold" />
           </div>
         </Section>
 
         <Section title="Color — neutrals">
           <div className="pat-swatches">
-            <Swatch name="Ink" value="#101014" varName="--admin-ink" />
-            <Swatch name="Ink 2" value="#797c82" varName="--admin-ink-2" />
+            <Swatch name="Ink" value="#2A3550" varName="--admin-ink" />
+            <Swatch name="Ink 2" value="#4A5160" varName="--admin-ink-2" />
             <Swatch name="Muted" value="#9ca3af" varName="--admin-muted" />
             <Swatch name="Faint" value="#bcc1c7" varName="--admin-faint" />
             <Swatch name="Line" value="#e6e6e6" varName="--admin-line" />
@@ -111,7 +111,7 @@ export default function PatternsPage() {
 
         <Section title="Color — sidebar chrome">
           <div className="pat-swatches">
-            <Swatch name="Sidebar bg" value="#101014" varName="--admin-sidebar-bg" />
+            <Swatch name="Sidebar bg" value="#2A3550" varName="--admin-sidebar-bg" />
             <Swatch name="Sidebar strong" value="#ffffff" varName="--admin-sidebar-strong" />
             <Swatch name="Sidebar ink" value="#c4c7cc" varName="--admin-sidebar-ink" />
             <Swatch name="Sidebar muted" value="#7c8189" varName="--admin-sidebar-muted" />

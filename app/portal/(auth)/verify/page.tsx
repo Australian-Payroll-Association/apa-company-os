@@ -58,7 +58,7 @@ export default function PortalVerify() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          8 Edges Client Portal
+          APA Client Portal
         </div>
         {state === "failed" ? (
           <>

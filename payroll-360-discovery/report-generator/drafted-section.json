@@ -1,0 +1,53 @@
+{
+  "sectionTitle": "Governance and Controls",
+  "sectionIntro": "During our review, a number of internal control processes and procedures were considered, with the below information summarising the findings and outlining any deficiencies in relevant internal controls identified.",
+  "topics": [
+    {
+      "heading": "Segregation of Duties",
+      "genericParagraphs": [
+        "Segregation of duties is necessary in the payroll function to reduce the risk of errors and fraud. Segregation of duties involves dividing responsibilities for handling payroll, as well as recording, authorising and approving transactions, among different people, so that no one person can control the payroll process from start to finish.",
+        "One of the key elements for segregation in payroll is the entry of new employees onto the system. Another key area is that authorising/approving the payroll should be conducted by someone other than the person who actually processes the payroll, and the authoriser should be unable to make changes to the payroll themselves. Once approved, the authorisation of the bank file should be conducted by another party, ensuring appropriate reconciliations have been conducted between the EFT amount and the payroll reports."
+      ],
+      "findingGroups": [
+        {
+          "label": null,
+          "intro": "At Meridian Logistics, the Payroll Officer currently holds combined access within PayGlobal to create, amend and approve changes to employee master data, including bank account details, without a second person's involvement. The same individual who processes the pay run also generates and releases the bank file.",
+          "bullets": []
+        }
+      ],
+      "summaryOfFindings": "We recommend documenting a segregation-of-duties matrix for the payroll function and introducing an independent review and approval step between payroll finalisation and bank file release, so that no single role can both amend payroll data and release payment without an independent check."
+    },
+    {
+      "heading": "Payroll Checking",
+      "genericParagraphs": [
+        "Reasonableness checks should be conducted as part of the standard pay run processing and these are what we would typically recommend to employers. The two main processes followed for reasonableness checks are exception reporting, where exceptions are generated and the payroll team examine each one and provide commentary as to the reason, and variance reporting, where variances between each employee's last pay and this pay are examined and commentary is provided."
+      ],
+      "findingGroups": [
+        {
+          "label": null,
+          "intro": "Meridian Logistics currently reviews a gross-pay variance report each pay cycle, comparing total gross pay to the prior period for each employee.",
+          "bullets": [
+            "Gross Pay Variance Report – compares total gross pay to the previous pay run"
+          ]
+        }
+      ],
+      "summaryOfFindings": "The current variance check only looks at gross pay. We recommend extending the variance review to a random sample of employees each pay cycle, with commentary on all pay components (PAYG, superannuation, and any award-based allowances), as these areas are commonly overlooked when checking is limited to gross or net pay variances."
+    }
+  ],
+  "keyActionItems": [
+    {
+      "category": "Governance and Controls",
+      "process": "Segregation of duties",
+      "weakness": "The Payroll Officer can create, amend and approve employee master data changes (including bank details) and also releases the bank file, with no independent second check.",
+      "recommendation": "Document a segregation-of-duties matrix and introduce an independent review/approval step between payroll finalisation and bank file release.",
+      "riskRating": "High"
+    },
+    {
+      "category": "Governance and Controls",
+      "process": "Payroll checking",
+      "weakness": "Variance checking is limited to gross pay, so errors in individual pay components (tax, super, allowances) are less likely to be caught.",
+      "recommendation": "Introduce a random sample variance check each pay cycle covering all pay components, not just gross pay.",
+      "riskRating": "Medium"
+    }
+  ]
+}

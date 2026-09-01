@@ -3,12 +3,12 @@
    globals.css by both admin route-group layouts.
 
    Design system: the Edge8 Data Layer, which extends the brand system for dense
-   surfaces (see docs/product/edge8-design-system-data.md). Manrope brand-wide,
+   surfaces (see docs/product/edge8-design-system-data.md). Montserrat display + Source Sans 3 body,
    a dense 13px scale, cool navy neutrals and overlay-only shadows, plus per-section
    accent theming. The tokens below re-root onto the canonical brand tokens in
    globals.css; the living reference renders at /admin/patterns. */
 
-/* Fonts: Manrope brand-wide, loaded once in globals.css. The data layer uses
+/* Fonts: Montserrat display + Source Sans 3 body, loaded once in globals.css. The data layer uses
    no admin-only webfonts; numeric alignment uses tabular-nums, not a monospace. */
 
 /* :root is included so the token set still resolves for content portalled
@@ -19,7 +19,7 @@
 .admin-shell,
 .admin-auth {
   /* Typography */
-  /* Manrope brand-wide. --font-display / --font-body are NOT overridden here,
+  /* Montserrat display + Source Sans 3 body. --font-display / --font-body are NOT overridden here,
      so they inherit globals.css (Manrope) and every rule reading them follows.
      The mono var now resolves to Manrope too; tabular-nums (.admin-cell-mono)
      handles figure alignment. */
@@ -29,10 +29,10 @@
   /* Accent (default blue). Per-section themes override --admin-accent only. */
   --admin-accent: var(--color-primary-blue);
   --admin-accent-strong: var(--color-primary-blue-hover); /* hover / pressed */
-  --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
+  --admin-accent-soft: #EDF0F5;           /* tinted accent surface */
   --admin-accent-on-dark: var(--color-bg-primary); /* links on dark surfaces */
   --admin-accent-on-dark-strong: var(--mint); /* hover */
-  --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
+  --admin-focus-ring: 0 0 0 3px rgba(70, 87, 120, 0.25);
 
   /* Office accents (badges, section themes), four brand steps, no off-brand hues.
      Legacy names (green/pink/gold) retained to avoid a codebase-wide rename. */
@@ -41,11 +41,11 @@
   --admin-accent-pink: var(--data-chart-4);   /* near-black    */
   --admin-accent-gold: var(--data-chart-5);   /* gray          */
 
-  /* Dark chrome (sidebar), brand near-black, not navy */
+  /* Dark chrome (sidebar), APA brand navy */
   --admin-sidebar-bg: var(--color-primary-dark);
   --admin-sidebar-strong: #ffffff;        /* office headers, the top-rank landmark */
-  --admin-sidebar-ink: #c4c7cc;
-  --admin-sidebar-muted: #7c8189;
+  --admin-sidebar-ink: #C3CCDA;
+  --admin-sidebar-muted: #8A97AD;
 
   /* Neutrals, re-rooted onto the data layer */
   --admin-bg: var(--data-canvas);
@@ -2565,6 +2565,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 .admin-alert { padding: 10px 14px; border-radius: var(--admin-radius-sm); font-size: 13px; }
 .admin-alert--err { background: var(--admin-err-bg); color: var(--admin-err-ink); }
 .admin-alert--ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.admin-alert--warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
 
 /* ─── Toasts ──────────────────────────────────────── */
 .admin-toast-host {
@@ -2594,7 +2595,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
   display: grid;
   place-items: center;
   background:
-    radial-gradient(900px 500px at 50% -10%, rgba(40, 123, 232, 0.16), transparent 70%),
+    radial-gradient(900px 500px at 50% -10%, rgba(70, 87, 120, 0.16), transparent 70%),
     var(--admin-bg);
   padding: 24px;
   font-family: var(--admin-font-sans);
@@ -3219,7 +3220,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
   background: var(--admin-accent);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(40, 123, 232, 0.35);
+  box-shadow: 0 6px 20px rgba(70, 87, 120, 0.35);
   transition: background 0.15s ease, transform 0.1s ease;
 }
 .chatw-fab:hover { background: var(--admin-accent-strong); }
@@ -4894,3 +4895,150 @@ a.hub-program-card:hover {
 
 /* Cockpit drawer: "Open full deal" link acts as an inline button. */
 .deal-open-link { display: inline-flex; }
+
+/* ─── Timesheet grid (/team/timesheet) — weekly grid, Kantata-style ─── */
+.tg-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.tg-title h1 { font-family: var(--font-display); font-size: 24px; font-weight: 600; color: var(--admin-ink); margin: 0 0 8px; }
+.tg-weeknav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tg-navbtn { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 10px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-surface); color: var(--admin-ink); font-size: 15px; text-decoration: none; }
+.tg-navbtn:hover { border-color: var(--admin-accent); }
+.tg-today { font-size: 13px; font-weight: 600; }
+.tg-range { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--admin-ink); margin-left: 6px; }
+.tg-you { padding: 8px 14px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-surface); font-weight: 600; color: var(--admin-ink); }
+
+.tg-stats { display: flex; gap: 36px; flex-wrap: wrap; padding: 10px 2px 16px; }
+.tg-stat-k { display: block; font-size: 12px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.tg-stat-v { display: block; font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--admin-ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+.tg-wrap { overflow-x: auto; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); background: var(--admin-surface); }
+.tg-table { border-collapse: collapse; width: 100%; min-width: 940px; table-layout: fixed; font-size: 13px; }
+.tg-c-proj { width: 210px; } .tg-c-task { width: 200px; } .tg-c-day { width: 88px; } .tg-c-total { width: 98px; }
+
+.tg-cap th { background: var(--admin-bg); border-bottom: 1px solid var(--admin-line-soft); padding: 7px 10px; font-weight: 500; color: var(--admin-muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tg-cap-label { text-align: left !important; color: var(--admin-ink) !important; font-family: var(--admin-font-sans); font-weight: 600; }
+.tg-cap-bill .tg-cap-cell, .tg-cap-bill .tg-cap-label b { color: var(--admin-ok-ink); }
+.tg-cap-non .tg-cap-cell { color: var(--admin-muted); }
+
+.tg-colhead th { background: var(--admin-surface-2, var(--admin-bg)); border-bottom: 1px solid var(--admin-line); padding: 10px; font-family: var(--font-display); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); text-align: center; }
+.tg-colhead th:first-child, .tg-colhead th:nth-child(2) { text-align: left; }
+.tg-colhead th.is-today { color: var(--admin-accent); }
+
+.tg-table td { border-bottom: 1px solid var(--admin-line-soft); border-right: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.tg-proj { padding: 8px 10px; white-space: nowrap; }
+.tg-del { border: 0; background: none; color: var(--admin-faint); cursor: pointer; font-size: 16px; margin-right: 6px; line-height: 1; }
+.tg-del:hover { color: var(--admin-err-ink); }
+.tg-proj-name { color: var(--admin-ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 168px; vertical-align: middle; }
+.tg-task { padding: 8px 10px; white-space: nowrap; }
+.tg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.tg-dot.is-bill { background: var(--admin-ok-ink); } .tg-dot.is-non { background: var(--admin-accent); }
+.tg-task-name { color: var(--admin-ink); }
+
+.tg-cell { padding: 0; text-align: center; }
+.tg-cell.is-today { background: color-mix(in srgb, var(--admin-accent) 5%, transparent); }
+.tg-cell-btn { width: 100%; height: 44px; border: 0; background: none; cursor: pointer; font: inherit; font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.tg-cell-btn:hover { background: color-mix(in srgb, var(--admin-accent) 8%, transparent); box-shadow: inset 0 0 0 1px var(--admin-line); }
+.tg-cell-btn.is-bill { color: var(--admin-ok-ink); font-weight: 600; }
+.tg-cell-btn.is-non { color: var(--admin-muted); }
+.tg-cell-input { width: 100%; height: 44px; border: 0; box-shadow: inset 0 0 0 2px var(--admin-accent); background: var(--admin-surface); text-align: center; font: inherit; font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.tg-cell-input:focus { outline: none; }
+
+.tg-rowtotal { padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.tg-rowtotal .is-bill { display: block; color: var(--admin-ok-ink); font-weight: 600; }
+.tg-rowtotal .is-non { display: block; color: var(--admin-muted); font-size: 12px; }
+
+.tg-empty { padding: 26px; text-align: center; color: var(--admin-muted); }
+
+.tg-addrow td { background: var(--admin-bg); }
+.tg-addrow select { width: 100%; padding: 7px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-surface); color: var(--admin-ink); }
+.tg-add-billable { padding: 8px 10px !important; text-align: left; }
+.tg-toggle { padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--admin-muted-ink); background: var(--admin-muted-bg); border: 1px solid transparent; border-radius: var(--admin-radius-sm); }
+.tg-toggle.is-on { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+
+.tg-foot { margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); max-width: 80ch; }
+
+
+/* ─── Scheduling · early-warning flags (Phase 2) ─── */
+.sched-flags { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); padding: 14px 18px; margin-bottom: 18px; }
+.sched-flags-head { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600;
+  font-size: 13px; color: var(--admin-ink); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+.sched-flags-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; border-radius: var(--admin-radius-pill); background: var(--admin-muted-bg); color: var(--admin-muted-ink);
+  font-size: 12px; font-family: var(--admin-font-sans); }
+.sched-flags-count.is-hot { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.sched-flags-clear { font-size: 13.5px; color: var(--admin-muted); margin: 0; }
+.sched-flags-list { display: flex; flex-direction: column; gap: 8px; }
+.sched-flag { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--admin-ink);
+  padding: 9px 12px; border-radius: var(--admin-radius-sm); }
+.sched-flag.is-crit { background: var(--admin-err-bg); }
+.sched-flag.is-warn { background: var(--admin-warn-bg); }
+.sched-flag-tag { flex: none; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--admin-radius-xs); background: rgba(0,0,0,0.06); }
+.sched-flag.is-crit .sched-flag-tag { color: var(--admin-err-ink); }
+.sched-flag.is-warn .sched-flag-tag { color: var(--admin-warn-ink); }
+
+/* ─── Capability matrix (Phase 2) ─── */
+.cap-wt-h { max-width: 92px; white-space: normal !important; line-height: 1.25; vertical-align: bottom; }
+.cap-cell { padding: 6px !important; border-right: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.cap-cell.is-ok { background: var(--admin-ok-bg); }
+.cap-cell.is-info { background: var(--admin-info-bg); }
+.cap-cell.is-warn { background: var(--admin-warn-bg); }
+.cap-cell.is-muted { background: var(--admin-muted-bg); }
+.cap-cell.is-empty { background: transparent; }
+.cap-cell-inner { display: flex; align-items: center; gap: 5px; }
+.cap-level { flex: 1; min-width: 74px; padding: 5px 6px; font: inherit; font-size: 12.5px; color: var(--admin-ink);
+  background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); }
+.cap-level:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+.cap-pref { flex: none; width: 24px; height: 24px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs);
+  background: var(--admin-surface); color: var(--admin-muted); cursor: pointer; font-size: 13px; line-height: 1; }
+.cap-pref.is-set { color: var(--admin-accent); border-color: var(--admin-accent); }
+.cap-key { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); }
+.cap-key span { display: inline-flex; align-items: center; gap: 6px; }
+.cap-key-note { margin-left: auto; }
+
+/* ─── Scheduling · what-if toggle (Phase 3) ─── */
+.sched-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 4px 0 16px; }
+.sched-toggle { display: inline-flex; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); overflow: hidden; }
+.sched-toggle a { padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: var(--admin-muted); text-decoration: none;
+  background: var(--admin-surface); border-right: 1px solid var(--admin-line); }
+.sched-toggle a:last-child { border-right: 0; }
+.sched-toggle a.is-on { background: var(--admin-accent); color: #fff; }
+.sched-controls .sched-legend { margin: 0; }
+
+/* ─── Project slip & client requests (Phase 3) ─── */
+.slip-table td { padding: 10px 14px !important; text-align: center; }
+.slip-table td.sched-name { text-align: left; }
+.slip-num { font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.slip-num.is-over { color: var(--admin-err-ink); font-weight: 600; }
+.slip-num.is-wait { color: var(--admin-warn-ink); font-weight: 600; }
+.slip-actions { text-align: right !important; }
+
+.slip-sla { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 18px; }
+.slip-sla label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; margin-bottom: 5px; }
+.slip-sla input { width: 100px; padding: 8px 10px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+
+.slip-add { display: grid; grid-template-columns: 2.2fr 0.9fr 1.6fr auto; gap: 12px; align-items: end;
+  padding: 16px 18px; background: var(--admin-surface); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); margin-bottom: 20px; }
+@media (max-width: 820px) { .slip-add { grid-template-columns: 1fr 1fr; } .slip-add-desc, .slip-add-note { grid-column: 1 / -1; } }
+.slip-add-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.slip-add-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
+.slip-add-field input { padding: 9px 11px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+
+.slip-reqs { display: flex; flex-direction: column; gap: 8px; }
+.slip-req { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  padding: 12px 16px; background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); }
+.slip-req.is-answered { opacity: 0.72; }
+.slip-req-main { min-width: 0; }
+.slip-req-desc { font-weight: 600; color: var(--admin-ink); }
+.slip-req-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; font-size: 12.5px; color: var(--admin-muted); }
+.slip-req-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 4px; }
+.slip-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--admin-radius-pill); }
+.slip-badge.is-open { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.slip-badge.is-breach { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.slip-badge.is-done { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.slip-req-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.slip-req-actions input[type="date"] { padding: 6px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); }
+
+/* Shared inline error banner — timesheet, capability matrix, client requests. */
+.tsheet-error { margin: 12px 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
