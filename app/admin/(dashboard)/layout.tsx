@@ -8,7 +8,7 @@ import { isPrivilegedChatUser } from "@/lib/admin-chat/privileged";
 import "../admin.css";
 
 export const metadata: Metadata = {
-  title: { template: "%s · 8 Edges", default: "8 Edges" },
+  title: { template: "%s · APA Company OS", default: "APA Company OS" },
   description: "Edge8 Company OS — the internal admin for contacts, revenue, talent, and operations.",
   robots: { index: false, follow: false },
 };

@@ -22,7 +22,7 @@ export default async function CareersPage() {
           <div className="careers-hero-inner reveal">
             <span
               className="section-label"
-              style={{ background: 'rgba(40,123,232,0.15)', color: 'rgba(255,255,255,0.75)' }}
+              style={{ background: 'rgba(70,87,120,0.15)', color: 'rgba(255,255,255,0.75)' }}
             >
               Join Edge8
             </span>
@@ -256,7 +256,7 @@ export default async function CareersPage() {
           <div className="careers-cta-inner reveal">
             <span
               className="section-label"
-              style={{ background: 'rgba(40,123,232,0.15)', color: 'rgba(255,255,255,0.7)' }}
+              style={{ background: 'rgba(70,87,120,0.15)', color: 'rgba(255,255,255,0.7)' }}
             >
               Stay Connected
             </span>

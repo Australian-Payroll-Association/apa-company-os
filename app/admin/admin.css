@@ -3,12 +3,12 @@
    globals.css by both admin route-group layouts.
 
    Design system: the Edge8 Data Layer, which extends the brand system for dense
-   surfaces (see docs/product/edge8-design-system-data.md). Manrope brand-wide,
+   surfaces (see docs/product/edge8-design-system-data.md). Montserrat display + Source Sans 3 body,
    a dense 13px scale, cool navy neutrals and overlay-only shadows, plus per-section
    accent theming. The tokens below re-root onto the canonical brand tokens in
    globals.css; the living reference renders at /admin/patterns. */
 
-/* Fonts: Manrope brand-wide, loaded once in globals.css. The data layer uses
+/* Fonts: Montserrat display + Source Sans 3 body, loaded once in globals.css. The data layer uses
    no admin-only webfonts; numeric alignment uses tabular-nums, not a monospace. */
 
 /* :root is included so the token set still resolves for content portalled
@@ -19,7 +19,7 @@
 .admin-shell,
 .admin-auth {
   /* Typography */
-  /* Manrope brand-wide. --font-display / --font-body are NOT overridden here,
+  /* Montserrat display + Source Sans 3 body. --font-display / --font-body are NOT overridden here,
      so they inherit globals.css (Manrope) and every rule reading them follows.
      The mono var now resolves to Manrope too; tabular-nums (.admin-cell-mono)
      handles figure alignment. */
@@ -29,10 +29,10 @@
   /* Accent (default blue). Per-section themes override --admin-accent only. */
   --admin-accent: var(--color-primary-blue);
   --admin-accent-strong: var(--color-primary-blue-hover); /* hover / pressed */
-  --admin-accent-soft: #eaf2ff;           /* tinted accent surface */
+  --admin-accent-soft: #EDF0F5;           /* tinted accent surface */
   --admin-accent-on-dark: var(--color-bg-primary); /* links on dark surfaces */
   --admin-accent-on-dark-strong: var(--mint); /* hover */
-  --admin-focus-ring: 0 0 0 3px rgba(40, 123, 232, 0.25);
+  --admin-focus-ring: 0 0 0 3px rgba(70, 87, 120, 0.25);
 
   /* Office accents (badges, section themes), four brand steps, no off-brand hues.
      Legacy names (green/pink/gold) retained to avoid a codebase-wide rename. */
@@ -41,11 +41,11 @@
   --admin-accent-pink: var(--data-chart-4);   /* near-black    */
   --admin-accent-gold: var(--data-chart-5);   /* gray          */
 
-  /* Dark chrome (sidebar), brand near-black, not navy */
+  /* Dark chrome (sidebar), APA brand navy */
   --admin-sidebar-bg: var(--color-primary-dark);
   --admin-sidebar-strong: #ffffff;        /* office headers, the top-rank landmark */
-  --admin-sidebar-ink: #c4c7cc;
-  --admin-sidebar-muted: #7c8189;
+  --admin-sidebar-ink: #C3CCDA;
+  --admin-sidebar-muted: #8A97AD;
 
   /* Neutrals, re-rooted onto the data layer */
   --admin-bg: var(--data-canvas);
@@ -2595,7 +2595,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
   display: grid;
   place-items: center;
   background:
-    radial-gradient(900px 500px at 50% -10%, rgba(40, 123, 232, 0.16), transparent 70%),
+    radial-gradient(900px 500px at 50% -10%, rgba(70, 87, 120, 0.16), transparent 70%),
     var(--admin-bg);
   padding: 24px;
   font-family: var(--admin-font-sans);
@@ -3220,7 +3220,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
   background: var(--admin-accent);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(40, 123, 232, 0.35);
+  box-shadow: 0 6px 20px rgba(70, 87, 120, 0.35);
   transition: background 0.15s ease, transform 0.1s ease;
 }
 .chatw-fab:hover { background: var(--admin-accent-strong); }

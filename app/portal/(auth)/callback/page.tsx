@@ -52,7 +52,7 @@ export default function PortalAuthCallback() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          8 Edges Client Portal
+          APA Client Portal
         </div>
         <p className="admin-auth-sub">
           {failed ? "That link was invalid or expired. Redirecting…" : "Signing you in…"}

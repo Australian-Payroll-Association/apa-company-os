@@ -10,7 +10,7 @@ export default function ResetPasswordPage() {
     <main className="admin-auth">
       <div className="admin-auth-card">
         <div className="admin-auth-brand">
-          8 Edges
+          APA Company OS
         </div>
         <p className="admin-auth-sub">Set a new password.</p>
         <Suspense>
