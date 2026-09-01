@@ -116,6 +116,7 @@ const NAV: NavSection[] = [
           { label: "Campaigns", href: "/admin/revenue/marketing/campaigns", ico: "◎", enabled: true },
           { label: "Broadcasts", href: "/admin/revenue/marketing/broadcasts", ico: "✉", enabled: true },
           { label: "Newsletter", href: "/admin/revenue/marketing/newsletter", ico: "❧", enabled: true },
+          { label: "Beryl ROI", href: "/admin/revenue/marketing/beryl-roi", ico: "▤", enabled: true },
           { label: "Brands", href: "/admin/revenue/marketing/brands", ico: "◈", enabled: true },
           { label: "Books", href: "/admin/revenue/marketing/books", ico: "❒", enabled: true },
         ],
