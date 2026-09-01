@@ -37,82 +37,55 @@ function groupByEmployee(rows: VarianceRow[]): EmployeeGroup[] {
   return groups;
 }
 
-function EmployeeRow({ group, defaultOpen }: { group: EmployeeGroup; defaultOpen: boolean }) {
+// Same visual language as the team timesheet's day-groups (.tsheet-daygroup-head
+// / .tsheet-rowlist / .tsheet-row) — a header row per employee, a row per line
+// item, rather than a bespoke card-and-table layout.
+function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="admin-card" style={{ padding: 0, overflow: "hidden" }}>
+    <div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          padding: "14px 16px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-          font: "inherit",
-        }}
+        className="tsheet-daygroup-head"
+        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit" }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span aria-hidden style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span aria-hidden style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s", color: "var(--admin-muted)" }}>
             ▸
           </span>
-          <span className="admin-cell-strong" style={{ fontSize: 15 }}>
-            {group.employeeId}
-          </span>
-          <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+          {group.employeeId}
+          <span className="tsheet-daygroup-total" style={{ fontWeight: 400 }}>
             {group.rows.length} line{group.rows.length === 1 ? "" : "s"}
           </span>
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {group.flaggedCount > 0 ? (
-            <Badge tone="err">
-              {group.flaggedCount} flagged · {formatCents(group.varianceCents)}
-            </Badge>
-          ) : (
-            <Badge tone="ok">matches</Badge>
-          )}
-        </span>
+        {group.flaggedCount > 0 ? (
+          <Badge tone="err">
+            {group.flaggedCount} flagged · {formatCents(group.varianceCents)}
+          </Badge>
+        ) : (
+          <Badge tone="ok">matches</Badge>
+        )}
       </button>
       {open && (
-        <div className="admin-table-wrap" style={{ borderTop: "1px solid var(--admin-line)" }}>
-          <div className="admin-table-scroll">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Pay period</th>
-                  <th>Component</th>
-                  <th>Expected</th>
-                  <th>Actual</th>
-                  <th>Variance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((v, i) => (
-                  <tr key={i}>
-                    <td>
-                      {formatDate(v.periodStart)} – {formatDate(v.periodEnd)}
-                    </td>
-                    <td>{v.component.replace(/_/g, " ")}</td>
-                    <td>{formatCents(v.expectedCents)}</td>
-                    <td>{formatCents(v.actualCents)}</td>
-                    <td>
-                      {v.flagged ? (
-                        <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatCents(v.varianceCents)}</Badge>
-                      ) : (
-                        formatCents(v.varianceCents)
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="tsheet-rowlist" style={{ marginTop: 8, marginBottom: 8 }}>
+          {group.rows.map((v, i) => (
+            <div className="tsheet-row" key={i} style={{ gridTemplateColumns: "1fr auto auto auto" }}>
+              <div className="tsheet-row-main">
+                <span className="tsheet-row-project">{v.component.replace(/_/g, " ")}</span>
+                <span className="tsheet-row-client">
+                  {formatDate(v.periodStart)} – {formatDate(v.periodEnd)}
+                </span>
+              </div>
+              <span className="tsheet-row-hours">{formatCents(v.expectedCents)}</span>
+              <span className="tsheet-row-hours">{formatCents(v.actualCents)}</span>
+              {v.flagged ? (
+                <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatCents(v.varianceCents)}</Badge>
+              ) : (
+                <span className="tsheet-row-hours">{formatCents(v.varianceCents)}</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -126,13 +99,13 @@ export function VarianceExplorer({ variances }: { variances: VarianceRow[] }) {
   const flaggedEmployeeCount = groups.filter((g) => g.flaggedCount > 0).length;
 
   if (variances.length === 0) {
-    return <div className="admin-empty">No overlapping employee/pay-period data between the workbook's tabs.</div>;
+    return <p className="tsheet-empty">No overlapping employee/pay-period data between the workbook's tabs.</p>;
   }
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, fontFamily: "var(--font-display)" }}>
           By employee <span className="admin-cell-muted" style={{ fontWeight: 400 }}>({groups.length})</span>
         </h2>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
@@ -140,11 +113,11 @@ export function VarianceExplorer({ variances }: { variances: VarianceRow[] }) {
           Flagged only ({flaggedEmployeeCount})
         </label>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="tsheet-entries" style={{ marginTop: 0 }}>
         {visible.length === 0 ? (
-          <div className="admin-empty">No flagged employees — nothing to show.</div>
+          <p className="tsheet-empty">No flagged employees — nothing to show.</p>
         ) : (
-          visible.map((g) => <EmployeeRow key={g.employeeId} group={g} defaultOpen={g.flaggedCount > 0} />)
+          visible.map((g) => <EmployeeGroupBlock key={g.employeeId} group={g} defaultOpen={g.flaggedCount > 0} />)
         )}
       </div>
     </div>
