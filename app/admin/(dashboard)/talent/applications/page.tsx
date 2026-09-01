@@ -166,7 +166,7 @@ export default async function ApplicationsPage() {
   return (
     <>
       <PageHead
-        eyebrow="Talent"
+        eyebrow="Employees"
         title="Applications"
         sub={`${activeRows.length.toLocaleString()} ${activeRows.length === 1 ? "application" : "applications"} to open job reqs`}
         action={
