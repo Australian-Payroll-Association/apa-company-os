@@ -44,13 +44,13 @@ export default async function RecalcPage() {
   const totalFlagged = runs.reduce((sum, r) => sum + (r.results?.totals.flaggedCount ?? 0), 0);
 
   return (
-    <>
+    <div className="admin-content">
       <PageHead
         eyebrow="Innovation"
         title="Payroll recalculation"
         sub="Recompute what should have been paid under the active rule set, and see the variance."
         action={
-          <a className="btn btn-secondary" href="/api/admin/recalc/template" download>
+          <a className="admin-btn" href="/api/admin/recalc/template" download>
             ⬇ Download blank template
           </a>
         }
@@ -151,6 +151,6 @@ export default async function RecalcPage() {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }
