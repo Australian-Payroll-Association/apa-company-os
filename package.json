@@ -20,6 +20,7 @@
     "hast-util-sanitize": "^5.0.2",
     "mammoth": "^1.12.0",
     "next": "14.2.35",
+    "papaparse": "^5.5.3",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "react": "^18",
@@ -32,9 +33,11 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/papaparse": "^5.3.16",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   },
   "overrides": {
