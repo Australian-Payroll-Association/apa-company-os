@@ -83,7 +83,7 @@ function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defa
         )}
       </button>
       {open && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8, marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, marginBottom: 4, paddingLeft: 10 }}>
           <div
             style={{
               display: "grid",
@@ -162,7 +162,7 @@ export function VarianceExplorer({ variances }: { variances: VarianceRow[] }) {
           Flagged only ({flaggedEmployeeCount})
         </label>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {visible.length === 0 ? (
           <p style={emptyStyle}>No flagged employees — nothing to show.</p>
         ) : (
