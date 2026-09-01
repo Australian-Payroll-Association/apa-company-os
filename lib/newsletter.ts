@@ -233,3 +233,15 @@ export function describeDetails(
     .filter((f) => details[f.key])
     .map((f) => ({ label: f.label, value: formatFieldValue(f, details[f.key]) }));
 }
+
+// A course's dates as one cell: "03/09/2026", or "03/09/2026 – 05/09/2026"
+// when it runs over more than a day. Empty string when no start date is set,
+// so the table can render a placeholder rather than a stray dash.
+export function trainingDateRange(details: Record<string, string>): string {
+  const field = (SECTION_META.training.fields ?? []).find((f) => f.key === "date_from");
+  if (!field) return "";
+  const from = details.date_from ? formatFieldValue(field, details.date_from) : "";
+  const to = details.date_to ? formatFieldValue(field, details.date_to) : "";
+  if (!from) return to;
+  return to && to !== from ? `${from} – ${to}` : from;
+}
