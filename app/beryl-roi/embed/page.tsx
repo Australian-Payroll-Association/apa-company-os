@@ -208,8 +208,9 @@ export default function BerylRoiEmbed() {
           font-size:18px; max-width:720px; margin:0 auto; padding:8px; }
         .beryl *, .beryl *::before, .beryl *::after { box-sizing:border-box; }
         .err { color:#a4382f; font-weight:600; }
-        .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
-        @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
+        /* Two columns whenever the embed has room (~500px+); stacks below that,
+           so it works across whatever width the HubSpot module gives the iframe. */
+        .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; align-items:stretch; }
         .inputs { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
         label { display:block; }
         .inputs label + label { margin-top:18px; }
