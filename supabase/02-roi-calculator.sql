@@ -13,7 +13,7 @@ create table if not exists "company_os"."roi_assumptions" (
   "id"                       uuid        not null default gen_random_uuid() primary key,
   "time_saved_min_minutes"   integer     not null default 20,
   "time_saved_max_minutes"   integer     not null default 45,
-  "working_hours_year"       integer     not null default 1800,
+  "working_hours_year"       integer     not null default 1976,
   "typical_queries_per_user" integer     not null default 15,
   "assumptions_signed_off"   boolean     not null default false,
   "updated_by"               text,
@@ -49,7 +49,7 @@ grant all on "company_os"."roi_usage_events" to "service_role";
 insert into "company_os"."roi_assumptions"
   (time_saved_min_minutes, time_saved_max_minutes, working_hours_year,
    typical_queries_per_user, assumptions_signed_off, updated_by)
-select 60, 60, 1800, 15, true, 'build-c-signoff'
+select 60, 60, 1976, 15, true, 'build-c-signoff'
 where not exists (select 1 from "company_os"."roi_assumptions");
 
 -- Beryl product: the single price source ($49.95 inc GST / user / month).
