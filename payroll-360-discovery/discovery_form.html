@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>360 Payroll Review — Discovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #485F88; --dark: #29394D; --teal: #467D79;
+    --grey: #808897; --lgrey: #A0ADC0; --bg: #F6F7F9; --card: #FFFFFF; --line: #E2E5EA;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Open Sans', sans-serif; color: var(--dark); }
+  .shell { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  header.top { margin-bottom: 32px; }
+  .eyebrow { font-size: 13px; color: var(--teal); font-weight: 600; margin: 0 0 6px; }
+  h1 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 28px; color: var(--dark); margin: 0 0 10px; }
+  .intro { font-size: 14.5px; line-height: 1.6; color: var(--grey); max-width: 640px; }
+  .header-progress { margin-top: 20px; max-width: 640px; }
+  .header-progress-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+  .header-progress-label { font-size: 13px; font-weight: 600; color: var(--dark); }
+  .header-progress-pct { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; color: var(--teal); }
+  .header-progress-track { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .header-progress-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--navy)); width: 0%; border-radius: 4px; transition: width 0.35s ease; }
+  .draft-bar {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; margin-top: 18px;
+    padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; max-width: 720px;
+  }
+  .draft-bar .field-group { margin-bottom: 0; flex: 1 1 200px; }
+  .draft-bar select#draftSelect { flex: 1 1 220px; }
+  .draft-bar-actions { display: flex; gap: 8px; }
+  .btn-small {
+    font-family: 'Open Sans', sans-serif; font-weight: 600; font-size: 12px; padding: 9px 12px;
+    border-radius: 4px; border: 1px solid var(--line); background: #FCFCFD; color: var(--dark); cursor: pointer; white-space: nowrap;
+  }
+  .btn-small:hover { border-color: var(--navy); color: var(--navy); }
+  .btn-small.danger:hover { border-color: #B3554A; color: #B3554A; }
+  .draft-meta { flex-basis: 100%; font-size: 11.5px; color: var(--lgrey); }
+  .mode-switch { flex-basis: 100%; display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .mode-switch .mode-active { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .flag-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; }
+  .flag-row label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--teal); cursor: pointer; }
+  .review-block { background: #FCFCFD; border: 1px dashed var(--teal); border-radius: 5px; padding: 12px 14px; margin: 0 0 14px; }
+  .review-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  @media (max-width: 720px) { .review-grid { grid-template-columns: 1fr 1fr; } }
+  .review-grid .field-group { margin-bottom: 0; }
+  .evidence-row { display: grid; grid-template-columns: 1fr 200px; gap: 10px; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .evidence-row:last-child { border-bottom: none; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+  nav.sections { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; }
+  nav.sections button {
+    text-align: left; background: none; border: none; border-left: 3px solid transparent; padding: 10px 12px;
+    font-family: 'Open Sans', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--grey);
+    cursor: pointer; border-radius: 0 4px 4px 0;
+  }
+  nav.sections button.active { color: var(--navy); border-left-color: var(--navy); background: rgba(72,95,136,0.07); }
+  nav.sections .count { display: block; font-weight: 400; font-size: 12px; color: var(--lgrey); margin-top: 2px; }
+  nav.sections button.active .count { color: var(--teal); }
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+  .topic-block { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 20px 24px; margin-bottom: 16px; }
+  .topic-block h2 {
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 600; color: var(--navy);
+    margin: 0 0 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .topic-block .subhead { font-size: 12.5px; color: var(--grey); margin: -4px 0 16px; }
+  .q-row { margin-bottom: 18px; }
+  .q-row:last-child { margin-bottom: 0; }
+  .q-text { font-size: 13.5px; color: var(--dark); margin: 0 0 8px; line-height: 1.45; max-width: 68ch; font-weight: 600; }
+  textarea, input[type=text], select {
+    width: 100%; padding: 9px 12px; font-family: 'Open Sans', sans-serif; font-size: 13.5px;
+    color: var(--dark); border: 1px solid var(--line); border-radius: 4px; background: #FCFCFD;
+  }
+  textarea { min-height: 50px; resize: vertical; }
+  textarea:focus, input[type=text]:focus, select:focus { outline: none; border-color: var(--navy); background: #FFFFFF; }
+  textarea.filled, .options-row.filled { border-color: var(--teal); }
+  .options-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .option-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px;
+    border: 1px solid var(--line); border-radius: 20px; font-size: 12.5px; color: var(--dark);
+    cursor: pointer; background: #FCFCFD; user-select: none;
+  }
+  .option-chip input { margin: 0; accent-color: var(--navy); cursor: pointer; }
+  .option-chip.checked { border-color: var(--navy); background: rgba(72,95,136,0.08); color: var(--navy); font-weight: 600; }
+  .extra-label { font-size: 12px; color: var(--grey); margin: 4px 0 5px; }
+  .field-group { margin-bottom: 14px; }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12.5px; font-weight: 600; color: var(--dark); margin-bottom: 5px; display: block; }
+  .systems-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  @media (max-width: 560px) { .systems-grid { grid-template-columns: 1fr; } }
+  .entity-row {
+    display: grid; grid-template-columns: 1.3fr 1fr 1fr 1.6fr auto; gap: 10px; align-items: end;
+    margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+  }
+  .entity-row:last-of-type { border-bottom: none; margin-bottom: 4px; padding-bottom: 0; }
+  .entity-row .field-group { margin-bottom: 0; }
+  @media (max-width: 720px) { .entity-row { grid-template-columns: 1fr; } }
+  .team-row {
+    display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 1.4fr auto; gap: 10px; align-items: end;
+    margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+  }
+  .team-row:last-of-type { border-bottom: none; margin-bottom: 4px; padding-bottom: 0; }
+  .team-row .field-group { margin-bottom: 0; }
+  @media (max-width: 900px) { .team-row { grid-template-columns: 1fr 1fr; } }
+  .remove-btn { background: none; border: 1px solid var(--line); color: var(--grey); border-radius: 4px; padding: 9px 10px; cursor: pointer; font-size: 12px; height: fit-content; }
+  .add-btn { background: transparent; border: 1px dashed var(--navy); color: var(--navy); border-radius: 5px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .footer-bar {
+    position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    margin-top: 24px; padding: 16px 24px; border-radius: 6px 6px 0 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+  }
+  .footer-status { font-size: 13px; color: var(--grey); }
+  .footer-status strong { color: var(--dark); }
+  .btn { font-family: 'Open Sans', sans-serif; font-weight: 600; font-size: 13.5px; padding: 11px 20px; border-radius: 5px; border: none; cursor: pointer; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: var(--dark); }
+  .btn-nav { background: transparent; color: var(--navy); border: 1px solid var(--navy); margin-left: 8px; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--dark); color: #fff;
+    padding: 10px 20px; border-radius: 5px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <p class="eyebrow">Australian Payroll Association</p>
+    <h1>360 Payroll Review — Discovery</h1>
+    <p class="intro">Start with the Overview tab — the systems and entities you enter there sharpen the questions in every later section. For questions with options, pick the closest fit and add detail if you need to.</p>
+    <div class="draft-bar" id="draftBar"></div>
+    <div class="header-progress">
+      <div class="header-progress-top">
+        <span class="header-progress-label" id="progressLabel">0 of 0 fields completed</span>
+        <span class="header-progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="header-progress-track"><div class="header-progress-fill" id="headerProgressFill"></div></div>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="sections" id="sectionNav"></nav>
+    <div id="panels"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Copied</div>
+
+<script>
+// Each question: { text, options?, mode?('single'|'multi'), extra?, audience? }
+// No options => plain free-text question; the textarea below the chips is always
+// available for detail either way. audience defaults to 'client' when omitted; set
+// audience: 'consultant' for anything the consultant determines from document/system
+// review rather than asking the client directly — none exist yet below.
+// Reusable option sets so common answer shapes aren't retyped on every
+// question. Referenced by array, never mutated by the render code.
+const YN = ["Yes", "No"];
+const YNP = ["Yes", "No", "Partially"];
+const YNU = ["Yes", "No", "Unsure"];
+const FREQ = ["Never", "Ad hoc / as needed", "Regularly scheduled"];
+const SATISFACTION = ["Very satisfied", "Somewhat satisfied", "Not satisfied"];
+const AUTOMATION = ["Fully automated", "Partially automated", "Fully manual"];
+const INTEGRATION = ["Fully integrated", "Partially integrated", "Not integrated"];
+const WHO_TEAMS = ["Payroll", "HR", "Finance", "IT", "Outsourced provider", "Shared / multiple teams"];
+const RARELY_OFTEN = ["Rarely / never", "Occasionally", "Frequently"];
+
+const REPORT_SECTIONS = [
+  {
+    section: "Overview & Systems",
+    topics: [
+      { topic: "Systems & Vendor Experience", questions: [
+        { text: "Do your vendors provide adequate levels of support and training that meet your business needs?", options: YNP, mode: "single" },
+        { text: "How quickly are issues resolved, and are you happy with your vendors' current levels of service?", options: SATISFACTION, mode: "single" },
+        { text: "In your opinion, do your systems remain fit for purpose and adequately manage and automate at least 90% of your requirements, or has your business outgrown the current platform?", options: ["Fit for purpose", "Outgrown in some areas", "Outgrown significantly"], mode: "single" },
+        { text: "How often is the payroll system configuration reviewed to ensure ongoing compliance? For example, how often are pay codes reviewed to ensure superannuation, STP2 reporting, leave and tax remain accurate?", options: FREQ, mode: "single" },
+        { text: "How often are leave balances reviewed to ensure accurate accruals and payment of leave entitlements?", options: FREQ, mode: "single" },
+        { text: "Do your systems allow for robust reporting capabilities to analyse payroll information and trends, and to support compliance reviews?", options: YNP, mode: "single" },
+        { text: "Which system would be seen as the source of truth?" },
+        { text: "Are the systems integrated?", options: INTEGRATION, mode: "single", extra: "If not fully integrated, what data needs to be double-handled?" },
+        { text: "Are any third-party programs used to interpret payroll data outside the payroll system for reporting purposes (e.g. Power BI, finance tools)?", options: YN, mode: "single" },
+        { text: "What are the current system challenges and pain points with the current process?" }
+      ]}
+    ]
+  },
+  {
+    section: "Payroll Processes & Policies",
+    topics: [
+      { topic: "Payroll Calendar & Processing", questions: [
+        { text: "Are there payroll cut-off dates for each pay period?", options: YN, mode: "single" },
+        { text: "Is there a payroll calendar detailing key dates for the payroll process?", options: YN, mode: "single" },
+        { text: "Is late data accepted and processed after the cut-off date?", options: YN, mode: "single" },
+        { text: "How often are \"out of cycle\" payments made?", options: RARELY_OFTEN, mode: "single", extra: "In what circumstances?" },
+        { text: "Are workflows in place to automatically notify the payroll team of actions to be undertaken (salary changes, one-off payments, new starters, terminations)?", options: AUTOMATION, mode: "single", extra: "If not automated, how are these communicated to payroll?" },
+        { text: "Are the payroll processes the same across each entity and country (if multiple payrolls are run)?", options: ["Yes, consistent", "No, they vary", "Not applicable — single entity/country"], mode: "single", extra: "If they vary, what are the key differences?" },
+        { text: "Is any part of the payroll process outsourced?", options: YN, mode: "single" }
+      ]},
+      { topic: "Onboarding (HR Team)", questions: [
+        { text: "On average, how many new starters occur in a pay period? Are there specific recruitment intake periods (e.g. traineeships, apprenticeships, graduate programs)?" },
+        { text: "How is the payroll team notified of a new starter?", options: ["Automated system notification", "Email", "Manual form / paperwork", "Verbal / informal"], mode: "multi" },
+        { text: "What documentation is provided to payroll?", options: ["Offer letter / contract", "Tax file declaration", "Super choice form", "Bank details form", "Fair Work Information Statement"], mode: "multi" },
+        { text: "Who inputs employee and remuneration data into the payroll system?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Is this checked by a secondary person?", options: YN, mode: "single", extra: "If so, what checks are performed, and by whom/which department?" },
+        { text: "Are employees provided with the Fair Work Information Statement (and, for casuals, the Casual Employment Information Statement) when they commence employment?", options: YN, mode: "single" },
+        { text: "Are employees provided a copy of the relevant award or EA when they start, and is training provided on award conditions and entitlements?", options: YNP, mode: "single", extra: "If not, how does the business ensure employees are aware of their employment conditions or where to look them up?" },
+        { text: "Are new starter checklists in place to compare remuneration in the offer letter to the amount entered into the payroll system, confirm employee location, super % and any salary sacrifice agreements?", options: YN, mode: "single" },
+        { text: "Can employees enter their own personal information as part of onboarding (e.g. bank details, super details, personal information)?", options: YNP, mode: "single", extra: "If so, what can they enter?" },
+        { text: "Is any onboarding information double-handled or manually entered into multiple systems?", options: YN, mode: "single", extra: "If yes, what information, and why does it need to be double-handled?" },
+        { text: "If timeclocks are used, how is the employee set up on the clocking device?", options: ["Interfaced automatically", "Manually set up", "Not applicable — no timeclocks"], mode: "single" }
+      ]},
+      { topic: "Terminations (HR Team)", questions: [
+        { text: "How is the payroll team notified of an employee termination?", options: ["Automated system notification", "Email", "Manual form / paperwork", "Verbal / informal"], mode: "multi" },
+        { text: "What information is provided to payroll to complete a termination or redundancy payment?" },
+        { text: "When are termination payments made?", options: ["Within the normal pay cycle", "Processed separately / out of cycle", "Depends on circumstances"], mode: "single" },
+        { text: "If payroll uses autopay, what controls ensure a terminated employee isn't missed and continues to be paid?" },
+        { text: "Are final termination payments checked and verified outside of the payroll operation?", options: YN, mode: "single", extra: "If so, by whom?" }
+      ]},
+      { topic: "Policies & Procedures (HR Team)", questions: [
+        { text: "How often are policies and procedures reviewed and updated?", options: FREQ, mode: "single", extra: "Who performs the reviews?" },
+        { text: "How are new policies implemented and communicated to the payroll team (e.g. a new leave type)?" },
+        { text: "Is there a disaster recovery or payroll continuance procedure in place?", options: YN, mode: "single", extra: "Please share it if not already provided." }
+      ]},
+      { topic: "Scheduling & Timekeeping", questions: [
+        { text: "How are rosters published for employees?", options: ["T&A system", "Posted in the workplace", "Both"], mode: "single" },
+        { text: "How are employees' contracted or agreed ordinary hours managed (where the industrial instrument requires this)?" },
+        { text: "How do employees complete their timesheets?", options: ["Clock in/off (system)", "Manual timesheets", "Combination"], mode: "single" },
+        { text: "Who is responsible for approving timesheets?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Is timesheet data automatically interfaced to the payroll system, or manually entered?", options: AUTOMATION, mode: "single" },
+        { text: "Are timesheets currently interpreted by a system?", options: YN, mode: "single", extra: "If so, which system is used?" },
+        { text: "If using T&A software with award interpretation, are there regular checks of timesheet results during the payroll process?", options: YNP, mode: "single" },
+        { text: "Are audits performed on clocking and approvals (e.g. changes to clockings, manually added shifts)?", options: YN, mode: "single", extra: "If yes, what type of reviews, and how often?" },
+        { text: "Does this process differ between different areas of the business?", options: YN, mode: "single" }
+      ]},
+      { topic: "Masterfile / Employee Changes", questions: [
+        { text: "How is the payroll team notified of a payroll-relevant change (e.g. pay increase, change in status or hours)?", options: ["Automated system notification", "Email", "Manual form / paperwork", "Verbal / informal"], mode: "multi" },
+        { text: "Who is responsible for making these changes in the payroll system?", options: WHO_TEAMS, mode: "multi" },
+        { text: "What documentation is provided to support the change?" },
+        { text: "Are changes checked by anyone else?", options: YN, mode: "single", extra: "If so, by whom?" },
+        { text: "How do employees update their own details (e.g. change of bank details, personal super contributions, address)?", options: ["Self-service (ESS)", "Request to HR/payroll", "Both, depending on the field"], mode: "single" },
+        { text: "Where a bank detail change is made via an ESS portal, are any additional verifications performed to validate the change?", options: YN, mode: "single" }
+      ]},
+      { topic: "Leave", questions: [
+        { text: "Is leave requested via an automated employee self-service (ESS) tool?", options: YN, mode: "single" },
+        { text: "Who approves employees' leave requests?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Are leave requests processed manually or via automatic interface to payroll?", options: AUTOMATION, mode: "single" },
+        { text: "Are any manual steps required in the leave management process (e.g. applying for, approving, submitting or processing leave)?", options: YN, mode: "single" },
+        { text: "Can employees go into negative leave balances?", options: YN, mode: "single" }
+      ]},
+      { topic: "Manual (Off-System) Processes", questions: [
+        { text: "Are any manual calculations undertaken by the payroll team as part of the payroll process?", options: YN, mode: "single", extra: "If so, please describe them and explain why they're manual." },
+        { text: "Are any of the following calculated manually?", options: ["Back pays", "Redundancies", "Long service leave", "None of these"], mode: "multi" },
+        { text: "Are there manual or repetitive calculations that could be automated within the payroll software or with a standard template (e.g. termination payments, bulk allowance/deduction uploads)?", options: YN, mode: "single" },
+        { text: "How are novated leases processed, if the organisation provides these?" },
+        { text: "What activities take the most time, and could they be improved with automation or optimisation?" }
+      ]},
+      { topic: "General Feedback", questions: [
+        { text: "What are the biggest challenges within the current payroll operation that, if improved or changed, would make your work better?" },
+        { text: "Are there any other areas or challenges you'd like to highlight?" }
+      ]}
+    ]
+  },
+  {
+    section: "Governance & Controls",
+    topics: [
+      { topic: "Interpretation of Industrial Instruments", questions: [
+        { text: "Who has responsibility for ensuring compliance with awards, agreements or employment contracts?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Who is responsible for ensuring pay rates and allowances are correct and kept up to date?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Is there a check on this from a secondary person outside of payroll?", options: YN, mode: "single" },
+        { text: "Who sets up and maintains the award interpretation within the time and attendance system, and how often is it reviewed against the industrial instruments?", options: WHO_TEAMS, mode: "multi", extra: "How often is it reviewed?" },
+        { text: "Are pay results from the T&A system reviewed in detail to ensure hours and payments are consistent with the industrial instruments?", options: YNP, mode: "single" },
+        { text: "If there are changes to the awards or industrial instruments, how are you notified of these changes?" }
+      ]},
+      { topic: "Payroll Checking Process", questions: [
+        { text: "What reports are prepared and checked during payroll processing?", options: ["Exception report", "Variance report", "Payroll register/details report", "None currently"], mode: "multi" },
+        { text: "Are these reports reviewed and verified by a secondary person?", options: YN, mode: "single", extra: "If so, by whom?" },
+        { text: "Is there a payroll details/register report that gets reviewed?", options: YN, mode: "single" },
+        { text: "How long does each payroll process take?" }
+      ]},
+      { topic: "Payroll Errors", questions: [
+        { text: "How many payroll queries or errors typically arise in an average pay process?" },
+        { text: "What are some of the most common errors within payroll?" },
+        { text: "What business practices are followed when a common error is found?" },
+        { text: "How are pay queries managed and tracked?", options: ["Email inbox", "Issues register / ticketing system", "Informal / not tracked"], mode: "single" }
+      ]},
+      { topic: "Segregation of Duties", questions: [
+        { text: "Is there a segregation-of-duties matrix (or similar document) that clearly defines roles and responsibilities within the payroll operation?", options: YN, mode: "single" },
+        { text: "Does the payroll team have access to update, change or amend employee data within the payroll system?", options: YNP, mode: "single", extra: "If so, what data can payroll amend (e.g. bank details, salary and benefits information)?" },
+        { text: "Does payroll have access to add new employees into the payroll system?", options: YN, mode: "single" },
+        { text: "Who undertakes the processing of payroll?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Does the payroll software maintain an audit log of all changes made (by which user and when)?", options: YN, mode: "single", extra: "Is this reviewed regularly?" },
+        { text: "Who approves payroll?", options: WHO_TEAMS, mode: "multi" },
+        { text: "What reports are provided to the approver?" },
+        { text: "Who creates and maintains access to the payroll systems, and how often is system access reviewed?", options: WHO_TEAMS, mode: "multi", extra: "How often is access reviewed?" },
+        { text: "Who creates the payroll bank file?", options: ["Payroll", "Finance", "Both / shared"], mode: "single" },
+        { text: "Between payroll being approved and the bank file being created, can employee data in the final report be changed?", options: YNU, mode: "single" },
+        { text: "Who uploads the bank file?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Who authorises the bank payment?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Are reconciliation processes undertaken once payroll is finalised?", options: YN, mode: "single", extra: "What is reconciled, by whom, and is it peer-checked?" },
+        { text: "How do employees receive their payslips and payment summaries?", options: ["Employee self-service portal", "Email", "Printed / physical", "Combination"], mode: "multi" },
+        { text: "Are additional monthly reports produced (e.g. leave, turnover, headcount)?", options: YN, mode: "single" },
+        { text: "How are payroll reports or sensitive information shared?", options: ["Email", "SharePoint / shared drive", "Other secure platform"], mode: "multi" },
+        { text: "If files are shared over email, is there any password protection on these reports?", options: YN, mode: "single" },
+        { text: "Who is responsible for setting up and maintaining new payroll codes in the system?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Who determines whether new payroll codes attract PAYG, super, payroll tax etc., and is this reviewed regularly?", options: WHO_TEAMS, mode: "multi", extra: "How often is this reviewed?" }
+      ]},
+      { topic: "Payroll Procedure Documentation", questions: [
+        { text: "Are there checklists and/or written procedures documenting the payroll process?", options: YN, mode: "single" },
+        { text: "How often are these reviewed?", options: FREQ, mode: "single", extra: "When was the last review performed?" },
+        { text: "Are any templates or off-system calculators used by the payroll team?", options: YN, mode: "single", extra: "If so, please share them if not already provided." }
+      ]},
+      { topic: "Payroll Data Security", questions: [
+        { text: "Do team members outside payroll have access to the payroll system?", options: YN, mode: "single", extra: "If so, who, and is this read-only access?" },
+        { text: "Is the payroll system on-premise, or a cloud-hosted (on-demand) solution?", options: ["On-premise", "Cloud-hosted", "Not sure"], mode: "single" },
+        { text: "Does the payroll software require additional verification when accessing it?", options: ["Password only", "Two-factor authentication", "Other additional verification"], mode: "single" },
+        { text: "Are regular reviews performed on the software provider's data security measures?", options: YN, mode: "single", extra: "If so, how often, and when was the last review?" },
+        { text: "How often are payroll software updates undertaken?", options: FREQ, mode: "single" },
+        { text: "Who updates tax tables, superannuation changes and legislative updates?", options: ["Software vendor (automatic)", "Internal team", "Both"], mode: "single", extra: "If done by the vendor, is this reviewed internally, and by whom?" },
+        { text: "How is employee information stored, and are backups taken in case systems are compromised or inaccessible?" },
+        { text: "Is payroll data regularly cleansed to remove records no longer legally required to be kept?", options: YN, mode: "single" }
+      ]},
+      { topic: "Audits and Reviews", questions: [
+        { text: "Are regular internal reviews or audits completed on employees across payroll and HR systems (including previously terminated employees)?", options: YN, mode: "single", extra: "By whom (ideally someone outside payroll)?" },
+        { text: "Are regular reviews performed to check the accuracy of employee data (e.g. rates, super, correct award applied, correct leave rules)?", options: YN, mode: "single" },
+        { text: "Who performs these reviews, how often, and are they peer-checked outside the payroll department?", options: WHO_TEAMS, mode: "multi", extra: "How often, and are they peer-checked?" },
+        { text: "Are any internal or external audits completed within the business?", options: YN, mode: "single", extra: "How often?" }
+      ]},
+      { topic: "Payroll Continuity and Disaster Recovery", questions: [
+        { text: "Does payroll have a disaster recovery plan in place?", options: YN, mode: "single", extra: "When was it last tested? Please share it if not already provided." },
+        { text: "If senior payroll team members were unexpectedly unavailable, could other people in the organisation execute the entire end-to-end payroll process confidently?", options: YNU, mode: "single" },
+        { text: "If the payroll team were unavailable, would employees still be able to be paid?", options: YNU, mode: "single" }
+      ]}
+    ]
+  },
+  {
+    section: "Compliance with Legislation",
+    topics: [
+      { topic: "General Compliance", questions: [
+        { text: "Does the payroll team support workers compensation calculations?", options: YN, mode: "single" },
+        { text: "Does the payroll team support the FBT process?", options: YN, mode: "single" }
+      ]},
+      { topic: "Award Interpretation", questions: [
+        { text: "Who updates and maintains work rules within the T&A software?", options: WHO_TEAMS, mode: "multi" },
+        { text: "How do changes to an employee's employment or working conditions get updated in their masterfile within T&A?" },
+        { text: "Who determines an employee's classification when they start, in terms of industrial instrument coverage and pay classification?", options: WHO_TEAMS, mode: "multi" },
+        { text: "How often is this reviewed where the classification involves time- or experience-based increases (e.g. SCHADS)?", options: FREQ, mode: "single" }
+      ]},
+      { topic: "Annualised Salaries", questions: [
+        { text: "Are any employees paid an annualised salary under an award?", options: YN, mode: "single", extra: "If so, which award(s)?" },
+        { text: "If yes, are annualised salary reconciliations performed?", options: YN, mode: "single", extra: "How, and how often? Please share an example if possible." },
+        { text: "Are any employees paid an annualised salary under a common law contract?", options: YN, mode: "single" },
+        { text: "If yes, are annualised salary reconciliations performed?", options: YN, mode: "single", extra: "How, and how often? Please share an example if possible." }
+      ]},
+      { topic: "Superannuation", questions: [
+        { text: "Who pays the superannuation, and how do you ensure it's paid on time?", options: WHO_TEAMS, mode: "multi", extra: "Are there procedures to ensure timely contributions to complying super funds?" },
+        { text: "Who determines what payments are subject to superannuation (Ordinary Time Earnings) and configures the wage codes?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Are there procedures to identify payments excluded from OTE, and the basis for each exclusion?", options: YN, mode: "single" },
+        { text: "Do you apply the Maximum Superannuation Contributions Base?", options: YNU, mode: "single", extra: "How is this monitored?" },
+        { text: "Has the company been required to lodge any superannuation guarantee charge statements in the past two years?", options: YN, mode: "single", extra: "If so, which quarters, and what caused the shortfall?" },
+        { text: "How do you identify any Reportable Employer Superannuation Contributions (RESC) that need to be reported?" },
+        { text: "What is the process when an employee doesn't provide their required super fund details (stapled super)?" },
+        { text: "Who pays the company's super, and how often?", options: WHO_TEAMS, mode: "multi", extra: "What clearing house facility processes the payments?" },
+        { text: "Are regular reconciliations performed on superannuation?", options: YN, mode: "single" }
+      ]},
+      { topic: "Payroll Tax", questions: [
+        { text: "Do you employ across multiple states, or have employees who work across multiple states?", options: YN, mode: "single" },
+        { text: "How are wages reported for employees who work across multiple states, or remotely in a different state?" },
+        { text: "Is the payroll team involved in payroll tax reporting?", options: YN, mode: "single", extra: "Are reports generated from the payroll system for this?" },
+        { text: "Is the payroll tax state used for reporting regularly reviewed?", options: YN, mode: "single" },
+        { text: "Are checks performed to ensure all relevant payroll elements are captured for accurate payroll tax reporting?", options: YN, mode: "single" },
+        { text: "Who determines what payments are subject to payroll tax and configures the wage code?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Are contractors captured in the monthly payroll tax report?", options: YN, mode: "single", extra: "If not, how are they captured and reconciled to the returns?" },
+        { text: "Where contractors are excluded from payroll tax, on what basis, and is this documented?", options: YNU, mode: "single", extra: "On what basis?" },
+        { text: "Does the payroll team calculate monthly payroll tax returns, or feed data to another group (e.g. finance)?", options: ["Payroll calculates directly", "Feeds data to another group", "Both, depending on jurisdiction"], mode: "single" }
+      ]},
+      { topic: "PAYG Withholding and Reporting", questions: [
+        { text: "Are employee expenses paid via payroll?", options: YN, mode: "single", extra: "What approvals are required?" },
+        { text: "Does the company make any payments from which it doesn't withhold PAYG (e.g. cents/km, travel or meal allowances, LAFHA)?", options: YN, mode: "single" },
+        { text: "Are there procedures to identify variations to normal PAYG withholding rates?", options: YN, mode: "single" },
+        { text: "Have payment summaries been issued to employees by 14 July each year?", options: YN, mode: "single" },
+        { text: "Who sets up STP in the system and determines allowance coding, and is this reviewed by anyone else?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Have there been any issues with STP reporting so far?", options: YN, mode: "single" },
+        { text: "Are any employees paid bonuses?", options: YN, mode: "single", extra: "What type (e.g. sign-on, performance, retention), and how frequently?" },
+        { text: "How is tax on bonuses calculated?", options: ["By the system", "Manually", "Not sure"], mode: "single" },
+        { text: "If an overpayment is made, what is the recovery process?", options: YN, mode: "single", extra: "Is there a written policy, and can you share examples of when this has occurred?" }
+      ]},
+      { topic: "Terminations", questions: [
+        { text: "Who calculates termination payments, including redundancy?", options: WHO_TEAMS, mode: "multi" },
+        { text: "Does the payroll system calculate termination payments (e.g. unused leave), or is this done via another calculator (e.g. a spreadsheet)?", options: ["Calculated by the payroll system", "Calculated via spreadsheet/other calculator", "Combination"], mode: "single" },
+        { text: "When are termination pays processed?", options: ["Out of cycle", "In the next pay run", "Depends on circumstances"], mode: "single" },
+        { text: "For redundancies, are manual calculations done outside the system?", options: YN, mode: "single", extra: "Is the notice period paid at the base rate, expected earnings, or an average of a prior period?" },
+        { text: "What is the process for paying a deceased employee, and are there specific timeframes that apply?" }
+      ]},
+      { topic: "Payslips", questions: [
+        { text: "How are payslips issued to current employees?", options: ["Employee self-service portal", "Email", "Printed / physical"], mode: "multi" },
+        { text: "How are payslips issued to terminated employees?", options: ["Same as current employees", "Different process", "Not provided after termination"], mode: "single", extra: "Do they retain ESS access to their final payslip?" }
+      ]}
+    ]
+  },
+  {
+    section: "Leave & Workers Compensation",
+    topics: [
+      { topic: "Leave", questions: [
+        { text: "Does the company provide more than 20 days' annual leave?", options: YN, mode: "single", extra: "If so, how many?" },
+        { text: "Does the company provide Purchased Annual Leave (PAL)?", options: YN, mode: "single" },
+        { text: "Are any additional leave programs administered beyond annual leave (e.g. non-accrued additional annual leave, Time Off in Lieu)?", options: YN, mode: "single" },
+        { text: "Is there a company leave policy covering entitlements to annual and other leave?", options: YN, mode: "single", extra: "Please share it if not already provided." },
+        { text: "Is there a company policy for cashing out annual leave?", options: YN, mode: "single", extra: "What rate of tax is applied?" },
+        { text: "Does the company offer any additional entitlements to personal leave beyond the NES?", options: YN, mode: "single" }
+      ]},
+      { topic: "Long Service Leave", questions: [
+        { text: "Is long service leave accrued in hours or weeks in the payroll system?", options: ["Hours", "Weeks"], mode: "single" },
+        { text: "Is LSL paid at the employee's base rate of pay, or are manual calculations done each time?", options: ["System-calculated base rate", "Manual calculation each time"], mode: "single" },
+        { text: "On termination, are final LSL entitlements reviewed against the employee's length of service, or are the system's amounts used as final?", options: ["Reviewed manually", "System amounts used as final"], mode: "single" },
+        { text: "When an employee takes LSL, or terminates with an LSL entitlement, are manual reconciliations performed, or are payments based on system-generated amounts?", options: ["Manual reconciliation", "System-generated amounts", "Combination"], mode: "single" },
+        { text: "Is LSL on termination paid in the next pay run, or as an out-of-cycle payment?", options: ["Next pay run", "Out-of-cycle payment", "Depends"], mode: "single" },
+        { text: "Are any standard templates used to manage LSL entitlements across different states that could be shared?", options: YN, mode: "single" }
+      ]},
+      { topic: "Workers Compensation", questions: [
+        { text: "Does the payroll team provide annual income figures for workers compensation insurance renewal?", options: YN, mode: "single", extra: "Who prepares next year's estimate?" },
+        { text: "Does the company have a definition of gross salaries and wages for each state?", options: YN, mode: "single" },
+        { text: "Who determines what payments are subject to workers compensation and configures the wage code?", options: WHO_TEAMS, mode: "multi" },
+        { text: "When was the last audit or review conducted by the relevant workers compensation authority or agent?" },
+        { text: "Do you have any employees currently receiving workers compensation?", options: YN, mode: "single" },
+        { text: "Are any top-up payments made by the employer?", options: YN, mode: "single" }
+      ]}
+    ]
+  },
+  {
+    section: "People",
+    topics: [
+      { topic: "Support and Training", questions: [
+        { text: "Are you required to complete payroll-specific training as part of your personal development plan?", options: YN, mode: "single" },
+        { text: "What payroll-related training courses have you completed in the past 12 months?" },
+        { text: "How are team members kept up to date with changes in legislation?" },
+        { text: "Are you a member of any payroll associations?", options: YN, mode: "single" },
+        { text: "Where do you go for payroll support or guidance on awards, EAs or legislation?" },
+        { text: "Do you subscribe to any industry websites to stay notified of legislative changes (e.g. ATO, Fair Work, state revenue office)?", options: YN, mode: "single" },
+        { text: "What training was provided on your current payroll systems, and how were you taught to use them?" }
+      ]},
+      { topic: "Resourcing", questions: [
+        { text: "How many people are in the payroll team (or FTEs)?" },
+        { text: "What backup exists in an emergency?" },
+        { text: "What are average hours worked per week, including any weekend or after-hours work?" },
+        { text: "Are resourcing levels adequate for the current payroll operation?", options: YN, mode: "single", extra: "If not, how many additional resources would be needed?" }
+      ]}
+    ]
+  }
+];
+
+// Every option-based question gets a trailing "Other" chip so the client
+// isn't ever forced into a poor-fit answer. Builds a fresh array per
+// question (rather than mutating in place) since many questions share the
+// same options constant (YN, YNP, etc.) by reference.
+REPORT_SECTIONS.forEach(s => s.topics.forEach(t => t.questions.forEach(q => {
+  if (q.options && !q.options.includes('Other')) q.options = [...q.options, 'Other'];
+})));
+
+let overview = {
+  systems: { payroll: '', ta: '', hris: '', finance: '' },
+  entities: [ { name: '', employees: '', payCycle: '', awards: '' } ]
+};
+// responses[id] = { options: [...], text: '' }
+let responses = {};
+// One row per payroll team member, rendered at the end of the People tab.
+let teamMembers = [ { name: '', position: '', yearsAtOrg: '', yearsPayroll: '', qualifications: '' } ];
+// Consultant-only triage on top of a response — reviews[id] only exists once
+// flagged. Client view never sees this; Consultant View is a mode toggle on
+// this same file (no real access control — that needs the hosting step).
+let reviews = {};
+// Layer 2 (Data & Evidence Pack) — consultant-tracked, not asked of the client
+// as questions. Starter list from the named categories in the report engine
+// plan; the full nine-extract list is still to be finalised.
+function blankEvidencePack() {
+  return [
+    { name: 'Employee list / headcount data', status: 'Not requested' },
+    { name: 'Pay-calculation reports (sampled pay runs)', status: 'Not requested' },
+    { name: 'Payroll code / configuration list', status: 'Not requested' },
+    { name: 'Employment contracts (sample)', status: 'Not requested' },
+    { name: 'Termination payment records', status: 'Not requested' },
+    { name: 'Leave balance / accrual data', status: 'Not requested' },
+  ];
+}
+let evidencePack = blankEvidencePack();
+let consultantMode = false;
+try { consultantMode = localStorage.getItem('discoveryConsultantMode') === '1'; } catch (e) {}
+let activeTab = 0;
+function tabCount() { return REPORT_SECTIONS.length + 1 + (consultantMode ? 1 : 0); }
+const EVIDENCE_TAB = () => REPORT_SECTIONS.length + 1;
+
+// Each saved review is keyed by its own id so the form can hold more than one
+// client's progress at once, in plain localStorage (this file has no backend).
+let clientName = '';
+let currentDraftId = null;
+const DRAFTS_KEY = 'discoveryDrafts';
+const LAST_DRAFT_KEY = 'discoveryLastDraftId';
+
+function blankOverview() {
+  return { systems: { payroll: '', ta: '', hris: '', finance: '' }, entities: [ { name: '', employees: '', payCycle: '', awards: '' } ] };
+}
+function blankTeamMembers() {
+  return [ { name: '', position: '', yearsAtOrg: '', yearsPayroll: '', qualifications: '' } ];
+}
+function loadDraftsMap() {
+  try { return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+function saveDraftsMap(map) {
+  try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(map)); }
+  catch (e) { /* storage unavailable (private browsing, quota, etc.) — export still works */ }
+}
+function newDraftId() {
+  return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function sortedDraftIds(map) {
+  return Object.keys(map).sort((a, b) => (map[b].updatedAt || '').localeCompare(map[a].updatedAt || ''));
+}
+function applyDraft(d) {
+  currentDraftId = d.id;
+  clientName = d.clientName || '';
+  overview = d.overview || blankOverview();
+  responses = d.responses || {};
+  teamMembers = (d.teamMembers && d.teamMembers.length) ? d.teamMembers : blankTeamMembers();
+  reviews = d.reviews || {};
+  evidencePack = (d.evidencePack && d.evidencePack.length) ? d.evidencePack : blankEvidencePack();
+  activeTab = 0;
+  try { localStorage.setItem(LAST_DRAFT_KEY, currentDraftId); } catch (e) {}
+}
+function startNewDraft(persist) {
+  currentDraftId = newDraftId();
+  clientName = '';
+  overview = blankOverview();
+  responses = {};
+  teamMembers = blankTeamMembers();
+  reviews = {};
+  evidencePack = blankEvidencePack();
+  activeTab = 0;
+  if (persist !== false) saveDraft();
+}
+function initDraftState() {
+  const map = loadDraftsMap();
+  let lastId = null;
+  try { lastId = localStorage.getItem(LAST_DRAFT_KEY); } catch (e) {}
+  if (lastId && map[lastId]) { applyDraft(map[lastId]); return; }
+  const ids = sortedDraftIds(map);
+  if (ids.length) { applyDraft(map[ids[0]]); return; }
+  startNewDraft(false);
+}
+function escapeAttr(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+function formatSavedAt(iso) {
+  if (!iso) return 'not saved yet';
+  const d = new Date(iso);
+  return 'saved ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+function renderDraftBar() {
+  const bar = document.getElementById('draftBar');
+  if (!bar) return;
+  const map = loadDraftsMap();
+  const ids = sortedDraftIds(map);
+  bar.innerHTML = `
+    <div class="field-group">
+      <label class="field-label">Client / engagement name</label>
+      <input type="text" id="clientNameInput" placeholder="e.g. Acme Pty Ltd" value="${escapeAttr(clientName)}">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Saved reviews on this device</label>
+      <select id="draftSelect">
+        ${ids.length ? '' : '<option value="">No other saved reviews</option>'}
+        ${ids.map(id => `<option value="${id}" ${id === currentDraftId ? 'selected' : ''}>${escapeAttr(map[id].clientName || 'Untitled review')} — ${formatSavedAt(map[id].updatedAt)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="draft-bar-actions">
+      <button type="button" class="btn-small" id="newDraftBtn">+ New review</button>
+      <button type="button" class="btn-small danger" id="deleteDraftBtn">Delete this review</button>
+    </div>
+    <div class="draft-meta">Saved automatically in this browser as you type — it will not follow you to another device or browser.</div>
+    <div class="mode-switch">
+      <button type="button" class="btn-small ${!consultantMode ? 'mode-active' : ''}" id="clientModeBtn">Client view</button>
+      <button type="button" class="btn-small ${consultantMode ? 'mode-active' : ''}" id="consultantModeBtn">Consultant view</button>
+      <span class="draft-meta" style="flex-basis:auto;">${consultantMode ? 'Findings, evidence tracking and the Evidence Pack tab are visible.' : 'Client-facing questions only.'}</span>
+    </div>
+  `;
+  document.getElementById('clientNameInput').oninput = (e) => { clientName = e.target.value; saveDraft(); };
+  document.getElementById('draftSelect').onchange = (e) => {
+    if (!e.target.value || e.target.value === currentDraftId) return;
+    applyDraft(map[e.target.value]);
+    render();
+  };
+  document.getElementById('newDraftBtn').onclick = () => { startNewDraft(); render(); };
+  document.getElementById('deleteDraftBtn').onclick = () => {
+    if (!confirm(`Delete the saved review for "${clientName || 'Untitled review'}"? This cannot be undone.`)) return;
+    const m = loadDraftsMap();
+    delete m[currentDraftId];
+    saveDraftsMap(m);
+    const remaining = sortedDraftIds(m);
+    if (remaining.length) applyDraft(m[remaining[0]]); else startNewDraft(false);
+    render();
+  };
+  const setMode = (on) => {
+    consultantMode = on;
+    try { localStorage.setItem('discoveryConsultantMode', on ? '1' : '0'); } catch (e) {}
+    if (activeTab >= tabCount()) activeTab = 0;
+    render();
+  };
+  document.getElementById('clientModeBtn').onclick = () => setMode(false);
+  document.getElementById('consultantModeBtn').onclick = () => setMode(true);
+}
+
+function fillTemplate(text) {
+  return text
+    .split('{payrollSystem}').join(overview.systems.payroll.trim() || 'your payroll system')
+    .split('{taSystem}').join(overview.systems.ta.trim() || 'your time and attendance system')
+    .split('{hrisSystem}').join(overview.systems.hris.trim() || 'your HRIS')
+    .split('{financeSystem}').join(overview.systems.finance.trim() || 'your finance system');
+}
+
+function qid(si, ti, qi) { return `s${si}_t${ti}_q${qi}`; }
+function getResp(id) { return responses[id] || { options: [], text: '' }; }
+function isAnswered(id) {
+  const r = getResp(id);
+  return (r.options && r.options.length > 0) || (r.text && r.text.trim().length > 0);
+}
+
+function teamMembersTotal() { return teamMembers.length * 5; }
+function teamMembersAnswered() {
+  let c = 0;
+  teamMembers.forEach(m => Object.values(m).forEach(v => { if (v.trim()) c++; }));
+  return c;
+}
+function totalQuestions() {
+  return REPORT_SECTIONS.reduce((sum, s) => sum + s.topics.reduce((s2, t) => s2 + t.questions.length, 0), 0) + teamMembersTotal();
+}
+function answeredCount() {
+  let c = 0;
+  REPORT_SECTIONS.forEach((s, si) => s.topics.forEach((t, ti) => t.questions.forEach((q, qi) => {
+    if (isAnswered(qid(si, ti, qi))) c++;
+  })));
+  return c + teamMembersAnswered();
+}
+function sectionAnswered(si) {
+  const s = REPORT_SECTIONS[si];
+  let count = 0, tot = 0;
+  s.topics.forEach((t, ti) => t.questions.forEach((q, qi) => {
+    tot++;
+    if (isAnswered(qid(si, ti, qi))) count++;
+  }));
+  if (s.section === 'People') { count += teamMembersAnswered(); tot += teamMembersTotal(); }
+  return { count, tot };
+}
+function overviewTotal() { return 4 + overview.entities.length * 4; }
+function overviewAnswered() {
+  let c = 0;
+  Object.values(overview.systems).forEach(v => { if (v.trim()) c++; });
+  overview.entities.forEach(e => Object.values(e).forEach(v => { if (v.trim()) c++; }));
+  return c;
+}
+
+function updateOverallProgress() {
+  const totalAll = totalQuestions() + overviewTotal();
+  const answeredAll = answeredCount() + overviewAnswered();
+  const pct = totalAll > 0 ? Math.round((answeredAll / totalAll) * 100) : 0;
+  const fill = document.getElementById('headerProgressFill');
+  const label = document.getElementById('progressLabel');
+  const pctEl = document.getElementById('progressPct');
+  if (fill) fill.style.width = pct + '%';
+  if (label) label.textContent = `${answeredAll} of ${totalAll} fields completed`;
+  if (pctEl) pctEl.textContent = pct + '%';
+  return { totalAll, answeredAll };
+}
+
+function renderNav() {
+  const nav = document.getElementById('sectionNav');
+  nav.innerHTML = '';
+  const ovBtn = document.createElement('button');
+  ovBtn.className = activeTab === 0 ? 'active' : '';
+  ovBtn.innerHTML = `Overview &amp; Demographics<span class="count">${overviewAnswered()} / ${overviewTotal()} completed</span>`;
+  ovBtn.onclick = () => { activeTab = 0; render(); };
+  nav.appendChild(ovBtn);
+
+  REPORT_SECTIONS.forEach((s, si) => {
+    const { count, tot } = sectionAnswered(si);
+    const btn = document.createElement('button');
+    btn.className = activeTab === si + 1 ? 'active' : '';
+    btn.innerHTML = `${s.section}<span class="count">${count} / ${tot} answered</span>`;
+    btn.onclick = () => { activeTab = si + 1; render(); };
+    nav.appendChild(btn);
+  });
+  if (consultantMode) {
+    const received = evidencePack.filter(e => e.status === 'Received').length;
+    const evBtn = document.createElement('button');
+    evBtn.className = activeTab === EVIDENCE_TAB() ? 'active' : '';
+    evBtn.innerHTML = `Evidence Pack<span class="count">${received} / ${evidencePack.length} received</span>`;
+    evBtn.onclick = () => { activeTab = EVIDENCE_TAB(); render(); };
+    nav.appendChild(evBtn);
+  }
+  updateOverallProgress();
+}
+
+function renderOverviewPanel() {
+  const panel = document.createElement('section');
+  panel.className = 'panel' + (activeTab === 0 ? ' active' : '');
+
+  const sysBlock = document.createElement('div');
+  sysBlock.className = 'topic-block';
+  sysBlock.innerHTML = `<h2>Systems in Use</h2><p class="subhead">These feed directly into the Overview &amp; Systems questions on the next tab — fill these in first.</p>`;
+  const grid = document.createElement('div');
+  grid.className = 'systems-grid';
+  [['payroll','Payroll System','e.g. Micropay, Attache, MYOB'],['ta','Time & Attendance System','e.g. Humanforce, Factory Track'],
+   ['hris','HRIS','e.g. Sage People, Employment Hero'],['finance','Finance System (optional)','e.g. Xero, NetSuite']].forEach(([key,label,hint]) => {
+    const fg = document.createElement('div'); fg.className = 'field-group';
+    const l = document.createElement('label'); l.className = 'field-label'; l.textContent = label;
+    const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = hint; inp.value = overview.systems[key];
+    inp.oninput = () => { overview.systems[key] = inp.value; refreshTemplatedQuestions(); renderNav(); saveDraft(); };
+    fg.appendChild(l); fg.appendChild(inp); grid.appendChild(fg);
+  });
+  sysBlock.appendChild(grid);
+  panel.appendChild(sysBlock);
+
+  const entBlock = document.createElement('div');
+  entBlock.className = 'topic-block';
+  entBlock.innerHTML = `<h2>Entities & Demographics</h2><p class="subhead">Add one row per employing entity or business unit.</p>`;
+  overview.entities.forEach((ent, i) => {
+    const row = document.createElement('div'); row.className = 'entity-row';
+    const nameFg = document.createElement('div'); nameFg.className = 'field-group';
+    nameFg.innerHTML = `<label class="field-label">Entity Name</label>`;
+    const nameInp = document.createElement('input'); nameInp.type = 'text'; nameInp.value = ent.name;
+    nameInp.oninput = () => { overview.entities[i].name = nameInp.value; renderNav(); saveDraft(); };
+    nameFg.appendChild(nameInp);
+
+    const empFg = document.createElement('div'); empFg.className = 'field-group';
+    empFg.innerHTML = `<label class="field-label">Employees</label>`;
+    const empInp = document.createElement('input'); empInp.type = 'text'; empInp.value = ent.employees;
+    empInp.oninput = () => { overview.entities[i].employees = empInp.value; renderNav(); saveDraft(); };
+    empFg.appendChild(empInp);
+
+    const cycleFg = document.createElement('div'); cycleFg.className = 'field-group';
+    cycleFg.innerHTML = `<label class="field-label">Pay Cycle</label>`;
+    const cycleSel = document.createElement('select');
+    ['', 'Weekly', 'Fortnightly', 'Monthly'].forEach(opt => {
+      const o = document.createElement('option'); o.value = opt; o.textContent = opt || 'Select...';
+      if (ent.payCycle === opt) o.selected = true; cycleSel.appendChild(o);
+    });
+    cycleSel.onchange = () => { overview.entities[i].payCycle = cycleSel.value; renderNav(); saveDraft(); };
+    cycleFg.appendChild(cycleSel);
+
+    const awardsFg = document.createElement('div'); awardsFg.className = 'field-group';
+    awardsFg.innerHTML = `<label class="field-label">Awards / Agreements</label>`;
+    const awardsInp = document.createElement('input'); awardsInp.type = 'text'; awardsInp.value = ent.awards;
+    awardsInp.oninput = () => { overview.entities[i].awards = awardsInp.value; renderNav(); saveDraft(); };
+    awardsFg.appendChild(awardsInp);
+
+    row.appendChild(nameFg); row.appendChild(empFg); row.appendChild(cycleFg); row.appendChild(awardsFg);
+    if (overview.entities.length > 1) {
+      const rmBtn = document.createElement('button'); rmBtn.className = 'remove-btn'; rmBtn.textContent = 'Remove';
+      rmBtn.onclick = () => { overview.entities.splice(i, 1); render(); saveDraft(); };
+      row.appendChild(rmBtn);
+    }
+    entBlock.appendChild(row);
+  });
+  const addBtn = document.createElement('button'); addBtn.className = 'add-btn'; addBtn.textContent = '+ Add another entity';
+  addBtn.onclick = () => { overview.entities.push({ name: '', employees: '', payCycle: '', awards: '' }); render(); saveDraft(); };
+  entBlock.appendChild(addBtn);
+  panel.appendChild(entBlock);
+  return panel;
+}
+
+function renderDataPanel(si) {
+  const s = REPORT_SECTIONS[si];
+  const panel = document.createElement('section');
+  panel.className = 'panel' + (activeTab === si + 1 ? ' active' : '');
+  s.topics.forEach((t, ti) => {
+    const block = document.createElement('div');
+    block.className = 'topic-block';
+    const h2 = document.createElement('h2'); h2.textContent = t.topic; block.appendChild(h2);
+    t.questions.forEach((q, qi) => {
+      const id = qid(si, ti, qi);
+      const row = document.createElement('div'); row.className = 'q-row';
+      const p = document.createElement('p'); p.className = 'q-text templated';
+      p.dataset.qtemplate = q.text; p.textContent = fillTemplate(q.text);
+      row.appendChild(p);
+
+      const resp = getResp(id);
+      let extraLabelEl = null;
+      function updateExtraLabel(r) {
+        if (!extraLabelEl) return;
+        extraLabelEl.textContent = (q.options && r.options.includes('Other')) ? 'Please specify' : (q.extra || 'Add any detail');
+      }
+
+      if (q.options) {
+        const optRow = document.createElement('div');
+        optRow.className = 'options-row' + (resp.options.length ? ' filled' : '');
+        q.options.forEach(opt => {
+          const chip = document.createElement('label');
+          chip.className = 'option-chip' + (resp.options.includes(opt) ? ' checked' : '');
+          const inp = document.createElement('input');
+          inp.type = q.mode === 'multi' ? 'checkbox' : 'radio';
+          inp.name = id;
+          inp.checked = resp.options.includes(opt);
+          inp.onclick = () => {
+            const r = getResp(id);
+            if (q.mode === 'multi') {
+              const idx = r.options.indexOf(opt);
+              if (idx >= 0) r.options.splice(idx, 1); else r.options.push(opt);
+            } else {
+              r.options = [opt];
+            }
+            responses[id] = r;
+            optRow.classList.toggle('filled', r.options.length > 0);
+            optRow.querySelectorAll('.option-chip').forEach(c => c.classList.remove('checked'));
+            chip.classList.toggle('checked', r.options.includes(opt));
+            if (q.mode !== 'multi') {
+              optRow.querySelectorAll('.option-chip').forEach((c, idx2) => {
+                c.classList.toggle('checked', q.options[idx2] === opt);
+              });
+            }
+            updateExtraLabel(r);
+            renderNav();
+            saveDraft();
+          };
+          const span = document.createElement('span'); span.textContent = opt;
+          chip.appendChild(inp); chip.appendChild(span);
+          optRow.appendChild(chip);
+        });
+        row.appendChild(optRow);
+      }
+
+      if (q.options) {
+        extraLabelEl = document.createElement('p'); extraLabelEl.className = 'extra-label';
+        updateExtraLabel(resp);
+        row.appendChild(extraLabelEl);
+      }
+      const ta = document.createElement('textarea');
+      ta.value = resp.text || '';
+      if (ta.value.trim()) ta.classList.add('filled');
+      ta.placeholder = q.options ? 'Your answer...' : 'Your answer...';
+      ta.oninput = () => {
+        const r = getResp(id);
+        r.text = ta.value;
+        responses[id] = r;
+        ta.classList.toggle('filled', ta.value.trim().length > 0);
+        renderNav();
+        saveDraft();
+      };
+      row.appendChild(ta);
+      if (consultantMode) row.appendChild(renderConsultantBlock(id));
+      block.appendChild(row);
+    });
+    panel.appendChild(block);
+  });
+  if (s.section === 'People') panel.appendChild(renderTeamMembersBlock());
+  return panel;
+}
+
+// Consultant-only triage on a single response: a "flag as finding" checkbox
+// that reveals Status/Priority/Owner/Target Date/Notes. Never rendered in
+// Client view. reviews[id] is only created once something is actually
+// touched, so untouched questions don't bloat the saved draft.
+function renderConsultantBlock(id) {
+  const existing = reviews[id];
+  const rev = existing || { flagged: false, status: 'Open', priority: 'Medium', owner: '', targetDate: '', notes: '' };
+  function ensureReview() {
+    if (!reviews[id]) reviews[id] = { flagged: false, status: 'Open', priority: 'Medium', owner: '', targetDate: '', notes: '' };
+    return reviews[id];
+  }
+
+  const container = document.createElement('div');
+  const flagRow = document.createElement('div'); flagRow.className = 'flag-row';
+  const flagLabel = document.createElement('label');
+  const flagCb = document.createElement('input'); flagCb.type = 'checkbox'; flagCb.checked = !!rev.flagged;
+  flagLabel.appendChild(flagCb);
+  const flagText = document.createElement('span'); flagText.textContent = 'Flag as a finding';
+  flagLabel.appendChild(flagText);
+  flagRow.appendChild(flagLabel);
+  container.appendChild(flagRow);
+
+  const reviewBlock = document.createElement('div');
+  reviewBlock.className = 'review-block';
+  reviewBlock.style.display = rev.flagged ? '' : 'none';
+
+  function buildFields() {
+    reviewBlock.innerHTML = '';
+    const r = reviews[id] || rev;
+    const mkField = (label, el) => {
+      const fg = document.createElement('div'); fg.className = 'field-group';
+      const l = document.createElement('label'); l.className = 'field-label'; l.textContent = label;
+      fg.appendChild(l); fg.appendChild(el); return fg;
+    };
+    const grid = document.createElement('div'); grid.className = 'review-grid';
+
+    const statusSel = document.createElement('select');
+    ['Open', 'In Progress', 'Resolved'].forEach((o) => {
+      const opt = document.createElement('option'); opt.value = o; opt.textContent = o;
+      if (r.status === o) opt.selected = true; statusSel.appendChild(opt);
+    });
+    statusSel.onchange = () => { ensureReview().status = statusSel.value; saveDraft(); };
+    grid.appendChild(mkField('Status', statusSel));
+
+    const prioSel = document.createElement('select');
+    ['High', 'Medium', 'Low'].forEach((o) => {
+      const opt = document.createElement('option'); opt.value = o; opt.textContent = o;
+      if (r.priority === o) opt.selected = true; prioSel.appendChild(opt);
+    });
+    prioSel.onchange = () => { ensureReview().priority = prioSel.value; saveDraft(); };
+    grid.appendChild(mkField('Priority', prioSel));
+
+    const ownerInp = document.createElement('input'); ownerInp.type = 'text'; ownerInp.value = r.owner; ownerInp.placeholder = 'e.g. Payroll Manager';
+    ownerInp.oninput = () => { ensureReview().owner = ownerInp.value; saveDraft(); };
+    grid.appendChild(mkField('Owner', ownerInp));
+
+    const dateInp = document.createElement('input'); dateInp.type = 'date'; dateInp.value = r.targetDate;
+    dateInp.oninput = () => { ensureReview().targetDate = dateInp.value; saveDraft(); };
+    grid.appendChild(mkField('Target Date', dateInp));
+
+    reviewBlock.appendChild(grid);
+
+    const notesLabel = document.createElement('label'); notesLabel.className = 'field-label'; notesLabel.textContent = 'Consultant notes (observation / recommendation)';
+    reviewBlock.appendChild(notesLabel);
+    const notesTa = document.createElement('textarea'); notesTa.value = r.notes; notesTa.placeholder = 'What did you find, and what should the client do about it?';
+    notesTa.oninput = () => { ensureReview().notes = notesTa.value; saveDraft(); };
+    reviewBlock.appendChild(notesTa);
+  }
+  buildFields();
+  container.appendChild(reviewBlock);
+
+  flagCb.onclick = () => {
+    ensureReview().flagged = flagCb.checked;
+    reviewBlock.style.display = flagCb.checked ? '' : 'none';
+    renderNav();
+    saveDraft();
+  };
+
+  return container;
+}
+
+// Layer 2 (Data & Evidence Pack) tracker — consultant-only tab. Starter list
+// only; the full nine-extract list from the report engine plan still needs
+// finalising, so items can be added or removed here per engagement.
+function renderEvidencePanel() {
+  const panel = document.createElement('section');
+  panel.className = 'panel' + (activeTab === EVIDENCE_TAB() ? ' active' : '');
+  const block = document.createElement('div');
+  block.className = 'topic-block';
+  block.innerHTML = `<h2>Data &amp; Evidence Pack</h2><p class="subhead">Track the extracts requested from the client alongside the workshop discussion — every dollar figure and employee ID in the final report traces back to one of these.</p>`;
+  evidencePack.forEach((item, i) => {
+    const row = document.createElement('div'); row.className = 'evidence-row';
+    const nameInp = document.createElement('input'); nameInp.type = 'text'; nameInp.value = item.name;
+    nameInp.oninput = () => { evidencePack[i].name = nameInp.value; saveDraft(); };
+    const statusSel = document.createElement('select');
+    ['Not requested', 'Requested', 'Received', 'Not applicable'].forEach((o) => {
+      const opt = document.createElement('option'); opt.value = o; opt.textContent = o;
+      if (item.status === o) opt.selected = true; statusSel.appendChild(opt);
+    });
+    statusSel.onchange = () => { evidencePack[i].status = statusSel.value; renderNav(); saveDraft(); };
+    row.appendChild(nameInp); row.appendChild(statusSel);
+    block.appendChild(row);
+  });
+  const addBtn = document.createElement('button'); addBtn.className = 'add-btn'; addBtn.textContent = '+ Add another item';
+  addBtn.onclick = () => { evidencePack.push({ name: '', status: 'Not requested' }); render(); saveDraft(); };
+  block.appendChild(addBtn);
+  panel.appendChild(block);
+  return panel;
+}
+
+// Repeatable per-person table (Name / Position / tenure / experience / quals),
+// mirroring the Entities block on the Overview tab — appended to the People
+// tab rather than modelled as flat questions, since it's a per-row record.
+function renderTeamMembersBlock() {
+  const block = document.createElement('div');
+  block.className = 'topic-block';
+  block.innerHTML = `<h2>Team Members</h2><p class="subhead">Add one row per payroll team member.</p>`;
+  const FIELDS = [
+    ['name', 'Name'], ['position', 'Position'], ['yearsAtOrg', 'Years at Organisation'],
+    ['yearsPayroll', 'Total Years Payroll Experience'], ['qualifications', 'Qualifications / Training'],
+  ];
+  teamMembers.forEach((member, i) => {
+    const row = document.createElement('div'); row.className = 'team-row';
+    FIELDS.forEach(([key, label]) => {
+      const fg = document.createElement('div'); fg.className = 'field-group';
+      fg.innerHTML = `<label class="field-label">${label}</label>`;
+      const inp = document.createElement('input'); inp.type = 'text'; inp.value = member[key];
+      inp.oninput = () => { teamMembers[i][key] = inp.value; saveDraft(); };
+      fg.appendChild(inp); row.appendChild(fg);
+    });
+    if (teamMembers.length > 1) {
+      const rmBtn = document.createElement('button'); rmBtn.className = 'remove-btn'; rmBtn.textContent = 'Remove';
+      rmBtn.onclick = () => { teamMembers.splice(i, 1); render(); saveDraft(); };
+      row.appendChild(rmBtn);
+    }
+    block.appendChild(row);
+  });
+  const addBtn = document.createElement('button'); addBtn.className = 'add-btn'; addBtn.textContent = '+ Add another team member';
+  addBtn.onclick = () => { teamMembers.push({ name: '', position: '', yearsAtOrg: '', yearsPayroll: '', qualifications: '' }); render(); saveDraft(); };
+  block.appendChild(addBtn);
+  return block;
+}
+
+function refreshTemplatedQuestions() {
+  document.querySelectorAll('.templated').forEach(el => { el.textContent = fillTemplate(el.dataset.qtemplate); });
+}
+
+function renderPanels() {
+  const wrap = document.getElementById('panels');
+  wrap.innerHTML = '';
+  wrap.appendChild(renderOverviewPanel());
+  REPORT_SECTIONS.forEach((s, si) => wrap.appendChild(renderDataPanel(si)));
+  if (consultantMode) wrap.appendChild(renderEvidencePanel());
+  const footer = document.createElement('div'); footer.className = 'footer-bar'; footer.id = 'footerBar';
+  wrap.appendChild(footer);
+  updateFooter();
+}
+
+function updateFooter() {
+  const footer = document.getElementById('footerBar');
+  if (!footer) return;
+  const { totalAll, answeredAll } = updateOverallProgress();
+  footer.innerHTML = `
+    <div class="footer-status"><strong>${answeredAll} of ${totalAll}</strong> fields completed</div>
+    <div>
+      ${activeTab > 0 ? '<button class="btn btn-nav" id="prevBtn">Back</button>' : ''}
+      ${activeTab < tabCount() - 1 ? '<button class="btn btn-nav" id="nextBtn">Next section</button>' : ''}
+      <button class="btn btn-nav" id="exportExcelBtn">Export to Excel</button>
+      <button class="btn btn-primary" id="exportBtn">Copy responses for report</button>
+    </div>
+  `;
+  const prev = document.getElementById('prevBtn'), next = document.getElementById('nextBtn'), exportBtn = document.getElementById('exportBtn'), exportExcelBtn = document.getElementById('exportExcelBtn');
+  if (prev) prev.onclick = () => { activeTab--; render(); };
+  if (next) next.onclick = () => { activeTab++; render(); };
+  if (exportBtn) exportBtn.onclick = exportResponses;
+  if (exportExcelBtn) exportExcelBtn.onclick = exportToExcel;
+}
+
+function exportResponses() {
+  let out = `360 PAYROLL REVIEW — DISCOVERY RESPONSES\n\n`;
+  out += `Client: ${clientName || '[Not provided]'}\n\n`;
+  out += `## Overview & Systems\n\n`;
+  out += `Payroll System: ${overview.systems.payroll || '[Not provided]'}\n`;
+  out += `Time & Attendance System: ${overview.systems.ta || '[Not provided]'}\n`;
+  out += `HRIS: ${overview.systems.hris || '[Not provided]'}\n`;
+  out += `Finance System: ${overview.systems.finance || '[Not provided]'}\n\n`;
+  out += `Entities:\n`;
+  overview.entities.forEach((e, i) => {
+    out += `  ${i + 1}. ${e.name || '[Unnamed entity]'} — ${e.employees || '[?]'} employees, ${e.payCycle || '[pay cycle not set]'} pay cycle, Awards/Agreements: ${e.awards || '[not provided]'}\n`;
+  });
+  out += `\n`;
+  REPORT_SECTIONS.forEach((s, si) => {
+    out += `## ${s.section}\n\n`;
+    s.topics.forEach((t, ti) => {
+      out += `### ${t.topic}\n`;
+      t.questions.forEach((q, qi) => {
+        const id = qid(si, ti, qi);
+        const r = getResp(id);
+        out += `Q: ${fillTemplate(q.text)}\n`;
+        if (q.options) out += `Selected: ${r.options.length ? r.options.join(', ') : '[None selected]'}\n`;
+        out += `${q.options ? 'Detail' : 'A'}: ${(r.text || '').trim() || '[Not answered]'}\n\n`;
+      });
+    });
+    if (s.section === 'People') {
+      out += `### Team Members\n`;
+      teamMembers.forEach((m, i) => {
+        out += `  ${i + 1}. ${m.name || '[Name not provided]'} — ${m.position || '[position not set]'}, ${m.yearsAtOrg || '?'} yrs at org, ${m.yearsPayroll || '?'} yrs payroll experience, Qualifications: ${m.qualifications || '[not provided]'}\n`;
+      });
+      out += `\n`;
+    }
+  });
+  if (consultantMode) {
+    const flagged = flaggedFindings();
+    out += `## Consultant Findings\n\n`;
+    if (!flagged.length) out += `No findings flagged yet.\n\n`;
+    flagged.forEach((f, i) => {
+      out += `${i + 1}. [${f.section} — ${f.topic}] ${f.question}\n`;
+      out += `   Client answer: ${f.answer || '[Not answered]'}\n`;
+      out += `   Status: ${f.review.status} | Priority: ${f.review.priority} | Owner: ${f.review.owner || '[not set]'} | Target date: ${f.review.targetDate || '[not set]'}\n`;
+      out += `   Notes: ${f.review.notes || '[none]'}\n\n`;
+    });
+    out += `## Data & Evidence Pack\n\n`;
+    evidencePack.forEach((item) => { out += `  - ${item.name || '[Unnamed item]'}: ${item.status}\n`; });
+    out += `\n`;
+  }
+  navigator.clipboard.writeText(out).then(() => showToast('Copied — paste into Claude to draft the report'));
+}
+
+// Walks every question looking for reviews[id].flagged, returning enough
+// context (section/topic/question text/the client's own answer) to stand
+// alone in an export without the reader needing the live form open.
+function flaggedFindings() {
+  const out = [];
+  REPORT_SECTIONS.forEach((s, si) => {
+    s.topics.forEach((t, ti) => {
+      t.questions.forEach((q, qi) => {
+        const id = qid(si, ti, qi);
+        const rev = reviews[id];
+        if (!rev || !rev.flagged) return;
+        const r = getResp(id);
+        out.push({
+          section: s.section, topic: t.topic, question: fillTemplate(q.text),
+          answer: (r.text || '').trim(), review: rev,
+        });
+      });
+    });
+  });
+  return out;
+}
+
+// Excel export -------------------------------------------------------------
+// Hand-built SpreadsheetML (the Excel 2003 XML workbook format) rather than a
+// bundled library, so the form stays a single dependency-free file. Excel
+// opens it natively; styling below uses the brand palette/fonts from the top
+// of this file. Output shape matches the association's existing "Discovery
+// Capture Sheet": one row per question, Sub-Topic / Discovery Question /
+// Response, one tab per report section.
+function xmlEscape(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function xlCell(text, styleId) {
+  return `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}><Data ss:Type="String">${xmlEscape(text)}</Data></Cell>`;
+}
+function xlRow(cells) {
+  return `<Row>${cells.join('')}</Row>`;
+}
+function xlSheetName(name) {
+  return name.replace(/[:\\/?*\[\]]/g, '-').slice(0, 31);
+}
+function responseText(id, hasOptions) {
+  const r = getResp(id);
+  if (!hasOptions) return (r.text || '').trim();
+  const opts = r.options.length ? r.options.join(', ') : '';
+  const detail = (r.text || '').trim();
+  if (opts && detail) return `Selected: ${opts}\nDetail: ${detail}`;
+  if (opts) return `Selected: ${opts}`;
+  return detail;
+}
+
+const XL_STYLES = `
+<Styles>
+  <Style ss:ID="sTitle"><Font ss:FontName="Montserrat" ss:Size="16" ss:Bold="1" ss:Color="#485F88"/></Style>
+  <Style ss:ID="sSub"><Font ss:FontName="Open Sans" ss:Size="10" ss:Color="#808897"/></Style>
+  <Style ss:ID="sHeader"><Font ss:FontName="Montserrat" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#485F88" ss:Pattern="Solid"/><Alignment ss:Vertical="Center" ss:WrapText="1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#29394D"/></Borders></Style>
+  <Style ss:ID="sLabel"><Font ss:FontName="Open Sans" ss:Size="10" ss:Bold="1" ss:Color="#29394D"/><Interior ss:Color="#F6F7F9" ss:Pattern="Solid"/><Alignment Vertical="Top" ss:WrapText="1"/></Style>
+  <Style ss:ID="sSubTopic"><Font ss:FontName="Montserrat" ss:Size="10" ss:Bold="1" ss:Color="#467D79"/><Alignment Vertical="Top" ss:WrapText="1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5EA"/></Borders></Style>
+  <Style ss:ID="sBody"><Font ss:FontName="Open Sans" ss:Size="10" ss:Color="#29394D"/><Alignment ss:Vertical="Top" ss:WrapText="1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5EA"/></Borders></Style>
+  <Style ss:ID="sResponse"><Font ss:FontName="Open Sans" ss:Size="10" ss:Color="#29394D"/><Alignment ss:Vertical="Top" ss:WrapText="1"/><Interior ss:Color="#FCFCFD" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5EA"/></Borders></Style>
+</Styles>`;
+
+function buildOverviewSheetXml() {
+  const rows = [];
+  rows.push(xlRow([xlCell('360 Payroll Review — Discovery Overview', 'sTitle')]));
+  rows.push(xlRow([xlCell(clientName || 'Untitled review', 'sSub')]));
+  rows.push(xlRow([]));
+  rows.push(xlRow([xlCell('Systems in Use', 'sHeader'), xlCell('', 'sHeader')]));
+  [['Payroll System', overview.systems.payroll], ['Time & Attendance System', overview.systems.ta], ['HRIS', overview.systems.hris], ['Finance System', overview.systems.finance]]
+    .forEach(([label, val]) => rows.push(xlRow([xlCell(label, 'sLabel'), xlCell(val || '', 'sBody')])));
+  rows.push(xlRow([]));
+  rows.push(xlRow([xlCell('Entity Name', 'sHeader'), xlCell('Employees', 'sHeader'), xlCell('Pay Cycle', 'sHeader'), xlCell('Awards / Agreements', 'sHeader')]));
+  overview.entities.forEach((e) => rows.push(xlRow([xlCell(e.name, 'sBody'), xlCell(e.employees, 'sBody'), xlCell(e.payCycle, 'sBody'), xlCell(e.awards, 'sBody')])));
+  return `<Worksheet ss:Name="Overview"><Table>
+    <Column ss:Width="180"/><Column ss:Width="140"/><Column ss:Width="140"/><Column ss:Width="220"/>
+    ${rows.join('')}
+  </Table></Worksheet>`;
+}
+
+function buildSectionSheetXml(section, si) {
+  const rows = [];
+  rows.push(xlRow([xlCell('Sub-Topic', 'sHeader'), xlCell('Discovery Question', 'sHeader'), xlCell('Response', 'sHeader')]));
+  section.topics.forEach((t, ti) => {
+    t.questions.forEach((q, qi) => {
+      const id = qid(si, ti, qi);
+      rows.push(xlRow([xlCell(t.topic, 'sSubTopic'), xlCell(fillTemplate(q.text), 'sBody'), xlCell(responseText(id, !!q.options), 'sResponse')]));
+    });
+  });
+  return `<Worksheet ss:Name="${xmlEscape(xlSheetName(section.section))}"><Table>
+    <Column ss:Width="150"/><Column ss:Width="320"/><Column ss:Width="320"/>
+    ${rows.join('')}
+  </Table></Worksheet>`;
+}
+
+function buildTeamMembersSheetXml() {
+  const rows = [];
+  rows.push(xlRow(['Name', 'Position', 'Years at Organisation', 'Total Years Payroll Experience', 'Qualifications / Training'].map((h) => xlCell(h, 'sHeader'))));
+  teamMembers.forEach((m) => {
+    rows.push(xlRow([xlCell(m.name, 'sBody'), xlCell(m.position, 'sBody'), xlCell(m.yearsAtOrg, 'sBody'), xlCell(m.yearsPayroll, 'sBody'), xlCell(m.qualifications, 'sResponse')]));
+  });
+  return `<Worksheet ss:Name="Team Members"><Table>
+    <Column ss:Width="150"/><Column ss:Width="150"/><Column ss:Width="130"/><Column ss:Width="130"/><Column ss:Width="220"/>
+    ${rows.join('')}
+  </Table></Worksheet>`;
+}
+
+function buildFindingsSheetXml() {
+  const rows = [];
+  rows.push(xlRow(['Section', 'Topic', 'Question', 'Client Answer', 'Status', 'Priority', 'Owner', 'Target Date', 'Consultant Notes'].map((h) => xlCell(h, 'sHeader'))));
+  flaggedFindings().forEach((f) => {
+    rows.push(xlRow([
+      xlCell(f.section, 'sSubTopic'), xlCell(f.topic, 'sBody'), xlCell(f.question, 'sBody'), xlCell(f.answer, 'sBody'),
+      xlCell(f.review.status, 'sBody'), xlCell(f.review.priority, 'sBody'), xlCell(f.review.owner, 'sBody'),
+      xlCell(f.review.targetDate, 'sBody'), xlCell(f.review.notes, 'sResponse'),
+    ]));
+  });
+  return `<Worksheet ss:Name="Findings"><Table>
+    <Column ss:Width="130"/><Column ss:Width="130"/><Column ss:Width="260"/><Column ss:Width="220"/>
+    <Column ss:Width="90"/><Column ss:Width="80"/><Column ss:Width="120"/><Column ss:Width="90"/><Column ss:Width="260"/>
+    ${rows.join('')}
+  </Table></Worksheet>`;
+}
+
+function buildEvidencePackSheetXml() {
+  const rows = [];
+  rows.push(xlRow(['Item', 'Status'].map((h) => xlCell(h, 'sHeader'))));
+  evidencePack.forEach((item) => { rows.push(xlRow([xlCell(item.name, 'sBody'), xlCell(item.status, 'sBody')])); });
+  return `<Worksheet ss:Name="Evidence Pack"><Table>
+    <Column ss:Width="320"/><Column ss:Width="140"/>
+    ${rows.join('')}
+  </Table></Worksheet>`;
+}
+
+function exportToExcel() {
+  const sheets = [
+    buildOverviewSheetXml(), ...REPORT_SECTIONS.map((s, si) => buildSectionSheetXml(s, si)), buildTeamMembersSheetXml(),
+    ...(consultantMode ? [buildFindingsSheetXml(), buildEvidencePackSheetXml()] : []),
+  ].join('');
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ ${XL_STYLES}
+ ${sheets}
+</Workbook>`;
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Discovery Capture - ${(clientName || 'Untitled review').replace(/[\\/:*?"<>|]/g, '-')}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Excel file downloaded');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+let saveTimeout;
+function saveDraft() {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    if (!currentDraftId) currentDraftId = newDraftId();
+    const map = loadDraftsMap();
+    map[currentDraftId] = { id: currentDraftId, clientName, overview, responses, teamMembers, reviews, evidencePack, updatedAt: new Date().toISOString() };
+    saveDraftsMap(map);
+    try { localStorage.setItem(LAST_DRAFT_KEY, currentDraftId); } catch (e) {}
+    renderDraftBar();
+  }, 500);
+}
+
+function render() { renderDraftBar(); renderNav(); renderPanels(); }
+
+initDraftState();
+render();
+</script>
+</body>
+</html>

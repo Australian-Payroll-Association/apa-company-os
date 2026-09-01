@@ -261,7 +261,7 @@ export default async function DashboardPage() {
         />
         <OfficePanel
           office="talent"
-          label="Talent"
+          label="Employees"
           snapshot={goals.byOffice.talent}
           quarterLabel={q}
           stats={[

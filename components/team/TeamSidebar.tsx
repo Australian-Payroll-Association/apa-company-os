@@ -51,6 +51,7 @@ function myWorkGroup(hasClients: boolean): NavGroup {
     label: "My Work",
     items: [
       { label: "Work Boards", href: "/team/my-work-boards", ico: "☑", enabled: true },
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
       ...(hasClients ? [{ label: "Clients", href: "/team/clients", ico: "◔", enabled: true }] : []),
       { label: "Time Off", href: "/team/time-off", ico: "☼", enabled: true },
     ],
@@ -67,6 +68,7 @@ function meGroup(): NavGroup {
       { label: "My FAST Goals", href: "/team/goals", ico: "◉", enabled: true },
       { label: "Reviews", href: "/team/reviews", ico: "★", enabled: true },
       { label: "Ideas", href: "/team/ideas", ico: "✦", enabled: true },
+      { label: "Newsletter", href: "/team/newsletter", ico: "✉", enabled: true },
       { label: "Profile", href: "/team/profile", ico: "☺", enabled: true },
       { label: "My Equipment", href: "/team/equipment", ico: "▤", enabled: true },
     ],

@@ -2565,6 +2565,7 @@ a.admin-chip:hover { border-color: var(--admin-accent); color: var(--admin-accen
 .admin-alert { padding: 10px 14px; border-radius: var(--admin-radius-sm); font-size: 13px; }
 .admin-alert--err { background: var(--admin-err-bg); color: var(--admin-err-ink); }
 .admin-alert--ok { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.admin-alert--warn { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
 
 /* ─── Toasts ──────────────────────────────────────── */
 .admin-toast-host {
@@ -4894,3 +4895,222 @@ a.hub-program-card:hover {
 
 /* Cockpit drawer: "Open full deal" link acts as an inline button. */
 .deal-open-link { display: inline-flex; }
+
+/* ─── Timesheet (/team/timesheet) — Phase 0 of Improved Scheduling & Tracking ───
+   The under-10-second logging surface. Reuses admin tokens; loaded on /team
+   because the team dashboard imports this stylesheet. */
+.tsheet-weeknav { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.tsheet-daychips {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  .tsheet-daychips { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(92px, 1fr); overflow-x: auto; }
+}
+.tsheet-daychip {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  padding: 10px 12px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+  cursor: pointer; text-align: left; transition: border-color var(--transition), background var(--transition);
+}
+.tsheet-daychip:hover { border-color: var(--admin-accent); }
+.tsheet-daychip.is-selected { border-color: var(--admin-accent); background: var(--admin-accent-soft); }
+.tsheet-daychip.is-today .tsheet-daychip-label::after { content: " •"; color: var(--admin-accent); }
+.tsheet-daychip-label { font-size: 12px; font-weight: 600; color: var(--admin-ink); font-family: var(--font-display); }
+.tsheet-daychip-total { font-size: 13px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+
+.tsheet-form {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr 2.4fr auto;
+  gap: 12px; align-items: end;
+  padding: 16px 18px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); margin-bottom: 8px;
+}
+@media (max-width: 860px) { .tsheet-form { grid-template-columns: 1fr 1fr; } .tsheet-form-note { grid-column: 1 / -1; } .tsheet-form-submit { grid-column: 1 / -1; } }
+.tsheet-form-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tsheet-form-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
+.tsheet-form-field select,
+.tsheet-form-field input[type="text"],
+.tsheet-form-field input[type="number"] {
+  width: 100%; padding: 9px 11px; font: inherit; color: var(--admin-ink);
+  background: var(--admin-bg); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+}
+.tsheet-form-field input:focus, .tsheet-form-field select:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+.tsheet-form-submit .admin-btn { width: 100%; }
+
+.tsheet-toggle {
+  padding: 9px 12px; font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg);
+  border: 1px solid transparent; border-radius: var(--admin-radius-sm); white-space: nowrap;
+}
+.tsheet-toggle.is-on { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+.tsheet-toggle--sm { padding: 6px 9px; font-size: 12px; }
+
+.tsheet-error { margin: 12px 0 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
+
+.tsheet-entries { margin-top: 26px; display: flex; flex-direction: column; gap: 18px; }
+.tsheet-empty { color: var(--admin-muted); font-size: 15px; padding: 24px 0; text-align: center; }
+
+.tsheet-daygroup-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--admin-ink);
+  padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--admin-line-soft);
+}
+.tsheet-daygroup-total { color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.tsheet-rowlist { display: flex; flex-direction: column; gap: 8px; }
+
+.tsheet-row {
+  display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center;
+  padding: 11px 14px; background: var(--admin-surface);
+  border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm);
+}
+.tsheet-row--editing { grid-template-columns: 1.4fr 0.7fr auto 1.6fr auto; }
+@media (max-width: 720px) { .tsheet-row, .tsheet-row--editing { grid-template-columns: 1fr auto; row-gap: 8px; } }
+.tsheet-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tsheet-row-project { font-weight: 600; color: var(--admin-ink); }
+.tsheet-row-client { font-size: 12px; color: var(--admin-muted); }
+.tsheet-row-note { font-size: 13px; color: var(--admin-muted); overflow-wrap: anywhere; }
+.tsheet-row-hours { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--admin-ink); white-space: nowrap; }
+.tsheet-row-hoursinput { width: 84px; padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+.tsheet-row-noteinput { padding: 7px 9px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); min-width: 0; }
+.tsheet-row-actions { display: flex; gap: 6px; }
+
+.tsheet-pill {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+  padding: 3px 9px; border-radius: var(--admin-radius-pill);
+  color: var(--admin-muted-ink); background: var(--admin-muted-bg); white-space: nowrap;
+}
+.tsheet-pill.is-billable { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+
+/* ─── Scheduling (/admin/operations/scheduling) — Phase 1 resourcing grid ─── */
+.sched-empty { color: var(--admin-muted); font-size: 15px; padding: 40px 24px; text-align: center;
+  background: var(--admin-surface); border: 1px dashed var(--admin-line); border-radius: var(--admin-radius); }
+
+.sched-legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 4px 0 16px; font-size: 12.5px; color: var(--admin-muted); }
+.sched-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sched-legend-note { margin-left: auto; }
+.sched-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.06); }
+.sched-swatch.is-ok { background: var(--admin-ok-bg); }
+.sched-swatch.is-warn { background: var(--admin-warn-bg); }
+.sched-swatch.is-crit { background: var(--admin-err-bg); }
+.sched-swatch.is-empty { background: var(--admin-muted-bg); }
+
+.sched-tablewrap { overflow-x: auto; border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); background: var(--admin-surface); }
+.sched-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; font-size: 13px; }
+.sched-table thead th { position: sticky; top: 0; background: var(--admin-surface-2, var(--admin-bg)); z-index: 1;
+  font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--admin-muted);
+  text-align: center; padding: 10px 8px; border-bottom: 1px solid var(--admin-line); white-space: nowrap; }
+.sched-table thead th.is-current { color: var(--admin-ink); }
+.sched-name-h { text-align: left !important; }
+.sched-table td { padding: 0; border-bottom: 1px solid var(--admin-line-soft); }
+.sched-table tbody tr:last-child td { border-bottom: 0; }
+.sched-name { position: sticky; left: 0; background: var(--admin-surface); z-index: 1;
+  font-weight: 600; color: var(--admin-ink); padding: 10px 14px !important; white-space: nowrap;
+  border-right: 1px solid var(--admin-line); }
+
+.sched-cell { text-align: center; vertical-align: middle; height: 54px; padding: 6px 8px !important;
+  border-right: 1px solid var(--admin-line-soft); }
+.sched-cell.is-ok { background: var(--admin-ok-bg); }
+.sched-cell.is-warn { background: var(--admin-warn-bg); }
+.sched-cell.is-crit { background: var(--admin-err-bg); }
+.sched-cell.is-empty { background: transparent; }
+.sched-util { display: block; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--admin-ink);
+  font-variant-numeric: tabular-nums; line-height: 1.2; }
+.sched-cell.is-ok .sched-util { color: var(--admin-ok-ink); }
+.sched-cell.is-warn .sched-util { color: var(--admin-warn-ink); }
+.sched-cell.is-crit .sched-util { color: var(--admin-err-ink); }
+.sched-hrs { display: block; font-size: 11px; color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+.sched-marks { display: inline-flex; gap: 5px; align-items: center; margin-top: 2px; font-size: 10.5px; }
+.sched-tent { color: var(--admin-info-ink, var(--admin-accent)); font-weight: 600; }
+.sched-leave { color: var(--admin-muted); }
+
+.sched-foot { margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); max-width: 78ch; }
+
+/* ─── Scheduling · early-warning flags (Phase 2) ─── */
+.sched-flags { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); padding: 14px 18px; margin-bottom: 18px; }
+.sched-flags-head { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600;
+  font-size: 13px; color: var(--admin-ink); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+.sched-flags-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; border-radius: var(--admin-radius-pill); background: var(--admin-muted-bg); color: var(--admin-muted-ink);
+  font-size: 12px; font-family: var(--admin-font-sans); }
+.sched-flags-count.is-hot { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.sched-flags-clear { font-size: 13.5px; color: var(--admin-muted); margin: 0; }
+.sched-flags-list { display: flex; flex-direction: column; gap: 8px; }
+.sched-flag { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--admin-ink);
+  padding: 9px 12px; border-radius: var(--admin-radius-sm); }
+.sched-flag.is-crit { background: var(--admin-err-bg); }
+.sched-flag.is-warn { background: var(--admin-warn-bg); }
+.sched-flag-tag { flex: none; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--admin-radius-xs); background: rgba(0,0,0,0.06); }
+.sched-flag.is-crit .sched-flag-tag { color: var(--admin-err-ink); }
+.sched-flag.is-warn .sched-flag-tag { color: var(--admin-warn-ink); }
+
+/* ─── Capability matrix (Phase 2) ─── */
+.cap-wt-h { max-width: 92px; white-space: normal !important; line-height: 1.25; vertical-align: bottom; }
+.cap-cell { padding: 6px !important; border-right: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.cap-cell.is-ok { background: var(--admin-ok-bg); }
+.cap-cell.is-info { background: var(--admin-info-bg); }
+.cap-cell.is-warn { background: var(--admin-warn-bg); }
+.cap-cell.is-muted { background: var(--admin-muted-bg); }
+.cap-cell.is-empty { background: transparent; }
+.cap-cell-inner { display: flex; align-items: center; gap: 5px; }
+.cap-level { flex: 1; min-width: 74px; padding: 5px 6px; font: inherit; font-size: 12.5px; color: var(--admin-ink);
+  background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); }
+.cap-level:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+.cap-pref { flex: none; width: 24px; height: 24px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs);
+  background: var(--admin-surface); color: var(--admin-muted); cursor: pointer; font-size: 13px; line-height: 1; }
+.cap-pref.is-set { color: var(--admin-accent); border-color: var(--admin-accent); }
+.cap-key { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); }
+.cap-key span { display: inline-flex; align-items: center; gap: 6px; }
+.cap-key-note { margin-left: auto; }
+
+/* ─── Scheduling · what-if toggle (Phase 3) ─── */
+.sched-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 4px 0 16px; }
+.sched-toggle { display: inline-flex; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); overflow: hidden; }
+.sched-toggle a { padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: var(--admin-muted); text-decoration: none;
+  background: var(--admin-surface); border-right: 1px solid var(--admin-line); }
+.sched-toggle a:last-child { border-right: 0; }
+.sched-toggle a.is-on { background: var(--admin-accent); color: #fff; }
+.sched-controls .sched-legend { margin: 0; }
+
+/* ─── Project slip & client requests (Phase 3) ─── */
+.slip-table td { padding: 10px 14px !important; text-align: center; }
+.slip-table td.sched-name { text-align: left; }
+.slip-num { font-variant-numeric: tabular-nums; color: var(--admin-ink); }
+.slip-num.is-over { color: var(--admin-err-ink); font-weight: 600; }
+.slip-num.is-wait { color: var(--admin-warn-ink); font-weight: 600; }
+.slip-actions { text-align: right !important; }
+
+.slip-sla { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 18px; }
+.slip-sla label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; margin-bottom: 5px; }
+.slip-sla input { width: 100px; padding: 8px 10px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+
+.slip-add { display: grid; grid-template-columns: 2.2fr 0.9fr 1.6fr auto; gap: 12px; align-items: end;
+  padding: 16px 18px; background: var(--admin-surface); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); margin-bottom: 20px; }
+@media (max-width: 820px) { .slip-add { grid-template-columns: 1fr 1fr; } .slip-add-desc, .slip-add-note { grid-column: 1 / -1; } }
+.slip-add-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.slip-add-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
+.slip-add-field input { padding: 9px 11px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+
+.slip-reqs { display: flex; flex-direction: column; gap: 8px; }
+.slip-req { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  padding: 12px 16px; background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); }
+.slip-req.is-answered { opacity: 0.72; }
+.slip-req-main { min-width: 0; }
+.slip-req-desc { font-weight: 600; color: var(--admin-ink); }
+.slip-req-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; font-size: 12.5px; color: var(--admin-muted); }
+.slip-req-note { font-size: 12.5px; color: var(--admin-muted); margin-top: 4px; }
+.slip-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--admin-radius-pill); }
+.slip-badge.is-open { background: var(--admin-warn-bg); color: var(--admin-warn-ink); }
+.slip-badge.is-breach { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.slip-badge.is-done { background: var(--admin-ok-bg); color: var(--admin-ok-ink); }
+.slip-req-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.slip-req-actions input[type="date"] { padding: 6px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); }

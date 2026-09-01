@@ -95,7 +95,7 @@ export default async function JobsPage() {
   return (
     <>
       <PageHead
-        eyebrow="Talent"
+        eyebrow="Employees"
         title="Job Reqs"
         sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "requisition" : "requisitions"}`}
       />

@@ -115,6 +115,8 @@ const NAV: NavSection[] = [
           { label: "Overview", href: "/admin/revenue/marketing", ico: "◑", enabled: true },
           { label: "Campaigns", href: "/admin/revenue/marketing/campaigns", ico: "◎", enabled: true },
           { label: "Broadcasts", href: "/admin/revenue/marketing/broadcasts", ico: "✉", enabled: true },
+          { label: "Newsletter", href: "/admin/revenue/marketing/newsletter", ico: "❧", enabled: true },
+          { label: "Beryl ROI", href: "/admin/revenue/marketing/beryl-roi", ico: "▤", enabled: true },
           { label: "Brands", href: "/admin/revenue/marketing/brands", ico: "◈", enabled: true },
           { label: "Books", href: "/admin/revenue/marketing/books", ico: "❒", enabled: true },
         ],
@@ -122,7 +124,7 @@ const NAV: NavSection[] = [
     ],
   },
   {
-    label: "Talent",
+    label: "Employees",
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/talent", ico: "◎", enabled: true },
@@ -150,6 +152,12 @@ const NAV: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
+      { label: "Scheduling", href: "/admin/operations/scheduling", ico: "☷", enabled: true },
+      { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
+      { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
+      // Live team timesheet — the personal logging surface for the scheduling
+      // build (needs a linked team account).
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
       {
         subheading: "Time Off",
         items: [
