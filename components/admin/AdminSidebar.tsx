@@ -116,6 +116,9 @@ const NAV: NavSection[] = [
           { label: "Campaigns", href: "/admin/revenue/marketing/campaigns", ico: "◎", enabled: true },
           { label: "Broadcasts", href: "/admin/revenue/marketing/broadcasts", ico: "✉", enabled: true },
           { label: "Newsletter", href: "/admin/revenue/marketing/newsletter", ico: "❧", enabled: true },
+          // Public lead-gen tool (Build C, B1). Lives outside /admin until the
+          // admin view under revenue/ ships.
+          { label: "ROI Calculator", href: "/beryl-roi", ico: "◭", enabled: true },
           { label: "Brands", href: "/admin/revenue/marketing/brands", ico: "◈", enabled: true },
           { label: "Books", href: "/admin/revenue/marketing/books", ico: "❒", enabled: true },
         ],
@@ -158,6 +161,15 @@ const NAV: NavSection[] = [
           { label: "Requests", href: "/admin/operations/time-off/requests", ico: "☼", enabled: true },
           { label: "Policies", href: "/admin/operations/time-off/policies", ico: "☑", enabled: true },
           { label: "Time Off History", href: "/admin/operations/time-off/history", ico: "☷", enabled: true },
+        ],
+      },
+      {
+        // Improved Scheduling & Tracking build. Timesheet opens the live team
+        // tool — the only surface shipped so far (needs a linked team account).
+        // The admin home (/admin/operations/scheduling) gets its link when built.
+        subheading: "Scheduling",
+        items: [
+          { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
         ],
       },
       {
