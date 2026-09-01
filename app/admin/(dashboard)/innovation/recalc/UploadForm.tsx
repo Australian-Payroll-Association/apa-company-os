@@ -23,13 +23,13 @@ export function UploadForm({ ruleSets }: { ruleSets: RuleSetOption[] }) {
         <label className="admin-label" htmlFor="label">
           Label (optional)
         </label>
-        <input id="label" name="label" type="text" placeholder="e.g. Acme Pty Ltd — pilot" />
+        <input id="label" name="label" type="text" placeholder="e.g. Acme Pty Ltd — pilot" className="admin-input" />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label className="admin-label" htmlFor="rule_set_id">
           Rule set
         </label>
-        <select id="rule_set_id" name="rule_set_id" defaultValue={ruleSets[0]?.id ?? ""} disabled={ruleSets.length === 0}>
+        <select id="rule_set_id" name="rule_set_id" className="admin-select" defaultValue={ruleSets[0]?.id ?? ""} disabled={ruleSets.length === 0}>
           {ruleSets.length === 0 ? (
             <option value="">No rule sets seeded</option>
           ) : (
