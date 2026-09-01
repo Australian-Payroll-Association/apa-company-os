@@ -5042,3 +5042,34 @@ a.hub-program-card:hover {
 
 /* Shared inline error banner — timesheet, capability matrix, client requests. */
 .tsheet-error { margin: 12px 0; color: var(--admin-err-ink); background: var(--admin-err-bg); padding: 9px 13px; border-radius: var(--admin-radius-sm); font-size: 14px; }
+
+/* ─── Allocations editor (/admin/operations/scheduling/allocations) ─── */
+.alloc-add { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  padding: 16px 18px; background: var(--admin-surface); border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); }
+.alloc-field { display: flex; flex-direction: column; gap: 5px; min-width: 120px; }
+.alloc-field.alloc-grow { flex: 1 1 200px; }
+.alloc-field.alloc-hours { min-width: 92px; }
+.alloc-field.alloc-submit { min-width: auto; }
+.alloc-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--admin-muted); font-weight: 600; }
+.alloc-field select, .alloc-field input { padding: 9px 10px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-sm); background: var(--admin-bg); color: var(--admin-ink); }
+.alloc-field select:focus, .alloc-field input:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+
+.alloc-statustoggle { padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-radius: var(--admin-radius-sm); white-space: nowrap; }
+.alloc-statustoggle.is-confirmed { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+.alloc-statustoggle.is-tentative { color: var(--admin-warn-ink); background: var(--admin-warn-bg); }
+.alloc-statustoggle--sm { padding: 6px 10px; font-size: 12px; }
+
+.alloc-table td { padding: 11px 14px !important; }
+.alloc-num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--admin-ink); }
+.alloc-client { color: var(--admin-muted); }
+.alloc-client::after { content: " — "; }
+.alloc-badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; padding: 3px 9px; border-radius: var(--admin-radius-pill); white-space: nowrap; }
+.alloc-badge.is-confirmed { color: var(--admin-ok-ink); background: var(--admin-ok-bg); }
+.alloc-badge.is-tentative { color: var(--admin-warn-ink); background: var(--admin-warn-bg); }
+.alloc-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.alloc-inline-num { width: 76px; padding: 6px 8px; font: inherit; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); }
+.alloc-inline-deal { padding: 6px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); max-width: 160px; }
+.alloc-period-edit { display: flex; gap: 6px; }
+.alloc-period-edit input { padding: 6px 8px; font: inherit; font-size: 12.5px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); background: var(--admin-bg); color: var(--admin-ink); }
+.alloc-editing { background: var(--admin-accent-soft); }

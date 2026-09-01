@@ -157,6 +157,7 @@ const NAV: NavSection[] = [
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
       { label: "Scheduling", href: "/admin/operations/scheduling", ico: "☷", enabled: true },
+      { label: "Allocations", href: "/admin/operations/scheduling/allocations", ico: "▦", enabled: true },
       { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
       { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
       // Live team timesheet — the personal logging surface for the scheduling
