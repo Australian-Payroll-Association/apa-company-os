@@ -2,11 +2,12 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { uploadAndRun, type RunFormResult } from "./actions";
+import { WorkbookDropzone } from "./WorkbookDropzone";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn btn-primary" disabled={pending}>
+    <button type="submit" className="btn btn-primary" disabled={pending} style={{ width: "100%" }}>
       {pending ? "Calculating…" : "Run recalculation"}
     </button>
   );
@@ -15,7 +16,7 @@ function SubmitButton() {
 export function UploadForm() {
   const [state, formAction] = useFormState<RunFormResult | null, FormData>(uploadAndRun, null);
   return (
-    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 480 }}>
+    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div className="admin-field">
         <label className="admin-label" htmlFor="label">
           Label (optional)
@@ -23,20 +24,10 @@ export function UploadForm() {
         <input id="label" name="label" type="text" placeholder="e.g. Acme Pty Ltd — pilot" />
       </div>
       <div className="admin-field">
-        <label className="admin-label" htmlFor="workbook_file">
-          Pay review data gathering workbook (.xlsx)
-        </label>
-        <input
-          id="workbook_file"
-          name="workbook_file"
-          type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          required
-        />
+        <label className="admin-label">Pay review data gathering workbook</label>
+        <WorkbookDropzone name="workbook_file" />
       </div>
-      <div>
-        <SubmitButton />
-      </div>
+      <SubmitButton />
       {state && !state.ok && (
         <div className="admin-alert admin-alert--err" role="alert">
           {state.error}
