@@ -155,6 +155,7 @@ const NAV: NavSection[] = [
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
       { label: "Scheduling", href: "/admin/operations/scheduling", ico: "☷", enabled: true },
+      { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
       // Live team timesheet — the personal logging surface for the scheduling
       // build (needs a linked team account).
       { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },

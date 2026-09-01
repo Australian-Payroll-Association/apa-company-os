@@ -5031,3 +5031,42 @@ a.hub-program-card:hover {
 .sched-leave { color: var(--admin-muted); }
 
 .sched-foot { margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); max-width: 78ch; }
+
+/* ─── Scheduling · early-warning flags (Phase 2) ─── */
+.sched-flags { background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow); padding: 14px 18px; margin-bottom: 18px; }
+.sched-flags-head { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600;
+  font-size: 13px; color: var(--admin-ink); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+.sched-flags-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; border-radius: var(--admin-radius-pill); background: var(--admin-muted-bg); color: var(--admin-muted-ink);
+  font-size: 12px; font-family: var(--admin-font-sans); }
+.sched-flags-count.is-hot { background: var(--admin-err-bg); color: var(--admin-err-ink); }
+.sched-flags-clear { font-size: 13.5px; color: var(--admin-muted); margin: 0; }
+.sched-flags-list { display: flex; flex-direction: column; gap: 8px; }
+.sched-flag { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--admin-ink);
+  padding: 9px 12px; border-radius: var(--admin-radius-sm); }
+.sched-flag.is-crit { background: var(--admin-err-bg); }
+.sched-flag.is-warn { background: var(--admin-warn-bg); }
+.sched-flag-tag { flex: none; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--admin-radius-xs); background: rgba(0,0,0,0.06); }
+.sched-flag.is-crit .sched-flag-tag { color: var(--admin-err-ink); }
+.sched-flag.is-warn .sched-flag-tag { color: var(--admin-warn-ink); }
+
+/* ─── Capability matrix (Phase 2) ─── */
+.cap-wt-h { max-width: 92px; white-space: normal !important; line-height: 1.25; vertical-align: bottom; }
+.cap-cell { padding: 6px !important; border-right: 1px solid var(--admin-line-soft); vertical-align: middle; }
+.cap-cell.is-ok { background: var(--admin-ok-bg); }
+.cap-cell.is-info { background: var(--admin-info-bg); }
+.cap-cell.is-warn { background: var(--admin-warn-bg); }
+.cap-cell.is-muted { background: var(--admin-muted-bg); }
+.cap-cell.is-empty { background: transparent; }
+.cap-cell-inner { display: flex; align-items: center; gap: 5px; }
+.cap-level { flex: 1; min-width: 74px; padding: 5px 6px; font: inherit; font-size: 12.5px; color: var(--admin-ink);
+  background: var(--admin-surface); border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs); }
+.cap-level:focus { outline: none; box-shadow: var(--admin-focus-ring); border-color: var(--admin-accent); }
+.cap-pref { flex: none; width: 24px; height: 24px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius-xs);
+  background: var(--admin-surface); color: var(--admin-muted); cursor: pointer; font-size: 13px; line-height: 1; }
+.cap-pref.is-set { color: var(--admin-accent); border-color: var(--admin-accent); }
+.cap-key { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 14px; font-size: 12.5px; color: var(--admin-muted); }
+.cap-key span { display: inline-flex; align-items: center; gap: 6px; }
+.cap-key-note { margin-left: auto; }
