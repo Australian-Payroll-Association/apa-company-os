@@ -5,7 +5,14 @@ import type { RoiAssumptions, BerylPrice } from '@/lib/roi'
 // Public, read-only. Returns the single editable assumptions row plus Beryl's
 // price from the products catalogue. The public never touches the DB directly —
 // this server route is the only exposure, and it returns no secrets.
+//
+// Never cache: the whole point of roi_assumptions is that an APA operator can
+// edit the row and see it reflected with no redeploy. force-dynamic alone left
+// the inner Supabase fetch in Next's Data Cache, serving stale values — so we
+// also pin revalidate=0 and force-no-store on every fetch this route makes.
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 export async function GET() {
   const [{ data: a, error: aErr }, { data: p, error: pErr }] = await Promise.all([
