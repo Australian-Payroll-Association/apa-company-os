@@ -154,24 +154,18 @@ const NAV: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
-      { label: "Scheduling", href: "/admin/operations/scheduling", ico: "◷", enabled: true },
+      { label: "Scheduling", href: "/admin/operations/scheduling", ico: "☷", enabled: true },
       { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
       { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
+      // Live team timesheet — the personal logging surface for the scheduling
+      // build (needs a linked team account).
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
       {
         subheading: "Time Off",
         items: [
           { label: "Requests", href: "/admin/operations/time-off/requests", ico: "☼", enabled: true },
           { label: "Policies", href: "/admin/operations/time-off/policies", ico: "☑", enabled: true },
           { label: "Time Off History", href: "/admin/operations/time-off/history", ico: "☷", enabled: true },
-        ],
-      },
-      {
-        // Improved Scheduling & Tracking build. Timesheet opens the live team
-        // tool — the only surface shipped so far (needs a linked team account).
-        // The admin home (/admin/operations/scheduling) gets its link when built.
-        subheading: "Scheduling",
-        items: [
-          { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
         ],
       },
       {
