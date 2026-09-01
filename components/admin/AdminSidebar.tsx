@@ -8,7 +8,11 @@ import { signOut } from "@/app/admin/(dashboard)/actions";
 // Nav is data-driven. `enabled: false` items render muted with a "soon" tag and
 // are not navigable — flip them to `true` (and build the route) as each phase
 // ships, so the shell always looks complete without dead 404 links.
-type NavItem = { label: string; href: string; ico: string; enabled?: boolean; superAdmin?: boolean };
+type NavItem = { label: string; href: string; ico: string; enabled?: boolean; superAdmin?: boolean; needsTeamAccess?: boolean };
+// `needsTeamAccess: true` hides an item unless the admin also has a linked,
+// active team_members record (canSwitchToTeam, same gate as the Team view
+// switch). Without it a cross-app link into /team renders for admins whom
+// requireTeamMember() would just bounce straight back to /admin.
 // `superAdmin: true` restricts a subsection (or a top-level item) to super
 // admins (Dave & Mai). It is hidden for everyone else; the routes are gated
 // server-side regardless (ATS route layouts + action gates), so this is a nav
@@ -156,8 +160,10 @@ const NAV: NavSection[] = [
       { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
       { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
       // Live team timesheet — the personal logging surface for the scheduling
-      // build (needs a linked team account).
-      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true },
+      // build. Cross-app link into /team, so it only shows for admins with a
+      // linked team account; for anyone else requireTeamMember() bounces the
+      // click straight back to /admin, which reads as a broken link.
+      { label: "Timesheet", href: "/team/timesheet", ico: "◷", enabled: true, needsTeamAccess: true },
       {
         subheading: "Time Off",
         items: [
@@ -547,7 +553,7 @@ export function AdminSidebar({
                   ? entry.superAdmin && !isSuperAdmin
                     ? null
                     : renderSubsection(entry, label)
-                  : entry.superAdmin && !isSuperAdmin
+                  : (entry.superAdmin && !isSuperAdmin) || (entry.needsTeamAccess && !canSwitchToTeam)
                     ? null
                     : renderItem(entry, false),
               )}
