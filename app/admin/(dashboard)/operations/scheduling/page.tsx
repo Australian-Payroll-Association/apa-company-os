@@ -150,9 +150,14 @@ export default async function SchedulingPage({
         title="Scheduling"
         sub="Team load across a rolling eight weeks — confirmed and tentative against a 38-hour week, leave subtracted."
         action={
-          <Link className="admin-btn admin-btn--sm" href="/admin/operations/scheduling/capability">
-            Capability matrix →
-          </Link>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link className="admin-btn admin-btn--sm admin-btn--primary" href="/admin/operations/scheduling/allocations">
+              + Allocations
+            </Link>
+            <Link className="admin-btn admin-btn--sm" href="/admin/operations/scheduling/capability">
+              Capability matrix →
+            </Link>
+          </div>
         }
       />
 
