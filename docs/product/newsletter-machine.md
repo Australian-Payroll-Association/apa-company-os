@@ -35,11 +35,14 @@ decision wins.
 - **Intake** — a bespoke editions module, not the surveys builder. Surveys are
   one-shot per respondent and cannot model contributions accumulating.
 - **Contributors** — APA staff through the `/team` portal.
-- **Training / webinars** — auto-pulled from `company_os.events`.
+- **Training / webinars** — training is read from austpayroll.com.au/training
+  (company_os.events is empty and always has been); both are also typeable.
 - **Cadence** — an admin opens each edition by hand. No cron opens one.
-- **Brand voice** — to be derived from past APA newsletters (not yet supplied).
-- **Section structure** — the real APA sections, to be supplied. The five in
-  `lib/newsletter.ts` today are the brainstorm's placeholder list.
+- **Brand voice** — to be derived from the July/August/September 2026 editions.
+- **Section structure** — derived from the July, August and September 2026
+  editions. Six sections: Article (repeatable), Members Portal, Compliance,
+  FAQ, Upcoming training, Members webinar. SECTION_TYPES order is the running
+  order of the newsletter.
 - **Draft output** — one full newsletter, not section-by-section.
 - **Review** — two signatures in sequence, plus reject-with-notes.
 - **Publish** — email broadcast only. No blog, no PDF. Members archive deferred.
@@ -70,7 +73,6 @@ still to be confirmed.
 
 ## Known gaps
 
-- Section structure is the brainstorm's placeholder, not APA's real one.
 - No brand voice profile yet, so Phase 2 cannot run.
 - `MARKETING_EMAIL_FROM` and `MARKETING_POSTAL_ADDRESS` are empty, and the Resend
   domain is unverified. All three block Phase 4.

@@ -8,7 +8,7 @@ import {
   teamInsertOwn,
   teamUpdateInScope,
 } from "@/lib/team/data";
-import { isSectionType } from "@/lib/newsletter";
+import { SECTION_META, isSectionType, type SectionType } from "@/lib/newsletter";
 
 // Newsletter intake, contributor side. teamInsertOwn forces
 // person_id = actor.personId server-side, so a contribution can only ever be
@@ -19,6 +19,7 @@ type Result = { ok: true; id?: string } | { ok: false; error: string };
 const MAX_TITLE = 200;
 const MAX_BODY = 5000;
 const MAX_URL = 500;
+const MAX_DETAIL = 200;
 
 function refresh() {
   revalidatePath("/team/newsletter");
@@ -42,12 +43,29 @@ function cleanLink(raw: string): string | null | { error: string } {
   return parsed.toString();
 }
 
+// Section-specific extras (a webinar's date and time). Only keys the section
+// actually declares are kept, so a crafted payload cannot smuggle arbitrary
+// data into the jsonb bag.
+function cleanDetails(
+  sectionType: SectionType,
+  details: Record<string, string> | undefined,
+): Record<string, string> {
+  const declared = SECTION_META[sectionType].fields ?? [];
+  const out: Record<string, string> = {};
+  for (const field of declared) {
+    const value = (details?.[field.key] ?? "").trim();
+    if (value) out[field.key] = value.slice(0, MAX_DETAIL);
+  }
+  return out;
+}
+
 export async function submitContribution(input: {
   editionId: string;
   sectionType: string;
   title: string;
   body: string;
   linkUrl: string;
+  details?: Record<string, string>;
 }): Promise<Result> {
   const actor = await requireTeamMember();
 
@@ -76,6 +94,7 @@ export async function submitContribution(input: {
     body,
     link_url: link,
     source: "team",
+    details: cleanDetails(input.sectionType, input.details),
   });
   if (error) return { ok: false, error };
 

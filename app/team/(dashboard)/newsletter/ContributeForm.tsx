@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitContribution } from "./actions";
 import { CONTRIBUTABLE_SECTIONS, SECTION_META, type SectionType } from "@/lib/newsletter";
+import { SectionFields } from "@/components/admin/SectionFields";
 
 // One section per submission. The hint under the picker is the part that does
 // the work: the whole reason intake exists is that things came back
@@ -16,6 +17,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [details, setDetails] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -26,7 +28,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
     setSaving(true);
     setError(null);
     setSent(null);
-    const result = await submitContribution({ editionId, sectionType, title, body, linkUrl });
+    const result = await submitContribution({ editionId, sectionType, title, body, linkUrl, details });
     setSaving(false);
     if (!result.ok) {
       setError(result.error);
@@ -35,6 +37,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
     setTitle("");
     setBody("");
     setLinkUrl("");
+    setDetails({});
     setSent(`Added to ${meta.label}. Add another whenever you like.`);
     router.refresh();
   }
@@ -55,7 +58,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
             id="nl-section"
             className="admin-select"
             value={sectionType}
-            onChange={(e) => setSectionType(e.target.value as SectionType)}
+            onChange={(e) => { setSectionType(e.target.value as SectionType); setDetails({}); }}
           >
             {CONTRIBUTABLE_SECTIONS.map((t) => (
               <option key={t} value={t}>
@@ -68,9 +71,11 @@ export function ContributeForm({ editionId }: { editionId: string }) {
           </p>
         </div>
 
+        <SectionFields sectionType={sectionType} values={details} onChange={(k, v) => setDetails((d) => ({ ...d, [k]: v }))} idPrefix="nl" />
+
         <div className="admin-field">
           <label className="admin-label" htmlFor="nl-title">
-            Heading <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
+            {meta.titleLabel ?? "Heading"} <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
           </label>
           <input
             id="nl-title"
@@ -84,7 +89,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="nl-body">
-            Detail
+            {meta.bodyLabel ?? "Detail"}
           </label>
           <textarea
             id="nl-body"
@@ -99,7 +104,7 @@ export function ContributeForm({ editionId }: { editionId: string }) {
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="nl-link">
-            Link <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
+            {meta.linkLabel ?? "Link"} <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
           </label>
           <input
             id="nl-link"

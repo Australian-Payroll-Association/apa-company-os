@@ -115,6 +115,14 @@ export default async function EditionPage({ params }: { params: { id: string } }
                         {item.title && (
                           <strong style={{ display: "block", marginBottom: 2 }}>{item.title}</strong>
                         )}
+                        {Object.keys(item.details).length > 0 && (
+                          <p className="admin-page-sub" style={{ margin: "0 0 4px" }}>
+                            {(SECTION_META[item.sectionType]?.fields ?? [])
+                              .filter((f) => item.details[f.key])
+                              .map((f) => `${f.label}: ${item.details[f.key]}`)
+                              .join("  ·  ")}
+                          </p>
+                        )}
                         <p
                           className="admin-page-sub"
                           style={{ margin: 0, whiteSpace: "pre-wrap" }}

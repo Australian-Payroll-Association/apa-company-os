@@ -219,6 +219,7 @@ export async function addSubmissionAsAdmin(input: {
   title: string;
   body: string;
   linkUrl: string;
+  details?: Record<string, string>;
 }): Promise<Result> {
   const admin = await requireAdmin();
 
@@ -264,6 +265,13 @@ export async function addSubmissionAsAdmin(input: {
       body,
       link_url: link || null,
       source: "team",
+      // Only the keys this section declares — the same filter the /team path
+      // applies, so a crafted payload cannot write arbitrary jsonb.
+      details: Object.fromEntries(
+        (SECTION_META[input.sectionType].fields ?? [])
+          .map((f) => [f.key, (input.details?.[f.key] ?? "").trim().slice(0, 200)])
+          .filter(([, v]) => v),
+      ),
     })
     .select("id")
     .maybeSingle();
