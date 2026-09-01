@@ -26,10 +26,15 @@ async function main() {
 
   const EXPECTED_FLAGGED = new Set([
     "E01|ordinary",
-    "E02|ordinary",
-    "E04|afternoon_permanent",
-    "E05|annual_leave_loading",
-    "E06|first_aid_allowance",
+    "E03|ordinary",
+    "E07|afternoon_permanent",
+    "E11|annual_leave_loading",
+    "E12|first_aid_allowance",
+    "E14|higher_duties_allowance",
+    "E17|overtime_saturday_outside_hours",
+    "E18|sunday_penalty",
+    "E19|public_holiday_penalty",
+    "E20|ordinary",
   ]);
 
   const flagged = result.variances.filter((v) => v.flagged);
