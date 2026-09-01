@@ -207,6 +207,11 @@ const NAV: NavSection[] = [
         subheading: "Ideas",
         items: [{ label: "Idea backlog", href: "/admin/innovation/ideas", ico: "✦", enabled: true }],
       },
+      {
+        subheading: "Payroll Recalc",
+        superAdmin: true,
+        items: [{ label: "Recalculation", href: "/admin/innovation/recalc", ico: "⇄", enabled: true }],
+      },
     ],
   },
     ],
