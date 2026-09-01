@@ -113,6 +113,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[beryl-roi] pdf route error:', err)
-    return NextResponse.json({ error: 'failed' }, { status: 500 })
+    // TEMP: ?debug=1 surfaces the real error to diagnose the Vercel-only 500.
+    const debug = new URL(req.url).searchParams.get('debug') === '1'
+    return NextResponse.json(
+      debug ? { error: 'failed', detail: String(err), stack: (err as Error)?.stack?.split('\n').slice(0, 6) } : { error: 'failed' },
+      { status: 500 },
+    )
   }
 }
