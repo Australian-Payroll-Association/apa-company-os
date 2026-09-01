@@ -39,6 +39,7 @@ type Cell = {
   tentative: number;
   forecast: number;
   util: number | null;
+  committedUtil: number | null;
 };
 
 const num = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -52,8 +53,16 @@ function band(util: number | null, confirmed: number): "empty" | "ok" | "warn" |
   return "ok";
 }
 
-export default async function SchedulingPage() {
+export default async function SchedulingPage({
+  searchParams,
+}: {
+  searchParams?: { view?: string };
+}) {
   await requireAdmin();
+
+  // What-if (Phase 3): "committed" colours by confirmed load; "expected" folds
+  // tentative (win-all-tentative) in. In-memory only — nothing is written.
+  const mode: "committed" | "expected" = searchParams?.view === "expected" ? "expected" : "committed";
 
   const [loadRes, forecastRes, budgetRes] = await Promise.all([
     companyOs
@@ -96,6 +105,7 @@ export default async function SchedulingPage() {
       tentative: num(r.tentative_hours),
       forecast: forecast.get(`${r.team_member_id}|${r.week_start}`) ?? 0,
       util: r.confirmed_utilisation_pct == null ? null : Number(r.confirmed_utilisation_pct),
+      committedUtil: r.committed_plus_tentative_pct == null ? null : Number(r.committed_plus_tentative_pct),
     });
   }
 
@@ -188,12 +198,25 @@ export default async function SchedulingPage() {
             )}
           </div>
 
-          <div className="sched-legend" aria-hidden="true">
-            <span><i className="sched-swatch is-ok" /> under 85%</span>
-            <span><i className="sched-swatch is-warn" /> 85–100%</span>
-            <span><i className="sched-swatch is-crit" /> over 100%</span>
-            <span><i className="sched-swatch is-empty" /> no load</span>
-            <span className="sched-legend-note">cells show confirmed util · <b>+Nt</b> tentative · <b>◔</b> leave</span>
+          <div className="sched-controls">
+            <div className="sched-toggle" role="group" aria-label="Scenario">
+              <Link className={mode === "committed" ? "is-on" : ""} href="/admin/operations/scheduling">
+                Committed
+              </Link>
+              <Link className={mode === "expected" ? "is-on" : ""} href="/admin/operations/scheduling?view=expected">
+                What-if: win all tentative
+              </Link>
+            </div>
+            <div className="sched-legend" aria-hidden="true">
+              <span><i className="sched-swatch is-ok" /> under 85%</span>
+              <span><i className="sched-swatch is-warn" /> 85–100%</span>
+              <span><i className="sched-swatch is-crit" /> over 100%</span>
+              <span className="sched-legend-note">
+                {mode === "expected"
+                  ? "cells show confirmed + tentative"
+                  : "cells show confirmed · +Nt tentative"} · ◔ leave
+              </span>
+            </div>
           </div>
 
           <div className="sched-tablewrap">
@@ -215,16 +238,19 @@ export default async function SchedulingPage() {
                     {weeks.map((w) => {
                       const c = cellOf.get(`${p.personId}|${w}`);
                       if (!c) return <td key={w} className="sched-cell is-empty" />;
-                      const b = band(c.util, c.confirmed);
+                      const cellUtil = mode === "expected" ? c.committedUtil : c.util;
+                      const cellHours = mode === "expected" ? c.confirmed + c.tentative : c.confirmed;
+                      const b = band(cellUtil, cellHours);
+                      const showTent = mode === "committed" && c.tentative > 0;
                       return (
                         <td key={w} className={`sched-cell is-${b}`}>
-                          <span className="sched-util">{c.confirmed > 0 && c.util != null ? `${Math.round(c.util)}%` : "—"}</span>
+                          <span className="sched-util">{cellHours > 0 && cellUtil != null ? `${Math.round(cellUtil)}%` : "—"}</span>
                           <span className="sched-hrs">
-                            {formatHours(c.confirmed)}/{formatHours(c.capacity)}
+                            {formatHours(cellHours)}/{formatHours(c.capacity)}
                           </span>
-                          {(c.tentative > 0 || c.leave > 0) && (
+                          {(showTent || c.leave > 0) && (
                             <span className="sched-marks">
-                              {c.tentative > 0 && <span className="sched-tent">+{formatHours(c.tentative)}t</span>}
+                              {showTent && <span className="sched-tent">+{formatHours(c.tentative)}t</span>}
                               {c.leave > 0 && <span className="sched-leave" title={`${formatHours(c.leave)}h leave`}>◔</span>}
                             </span>
                           )}
@@ -239,8 +265,8 @@ export default async function SchedulingPage() {
 
           <p className="sched-foot">
             Capacity is a flat 38h/week until <code>people.weekly_capacity_hours</code> lands (part-time
-            reads high). Tentative load and the deal-weighted forecast come from unconfirmed,
-            deal-linked allocations. Read-only in Phase&nbsp;1; what-if modelling is Phase&nbsp;3.
+            reads high). The <b>what-if</b> toggle folds in tentative, deal-linked work — in memory,
+            nothing is written. See also <Link href="/admin/operations/scheduling/slip">project slip &amp; client requests →</Link>.
           </p>
         </>
       )}

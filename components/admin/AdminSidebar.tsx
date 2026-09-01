@@ -156,6 +156,7 @@ const NAV: NavSection[] = [
       { label: "Cockpit", href: "/admin/operations", ico: "◎", enabled: true },
       { label: "Scheduling", href: "/admin/operations/scheduling", ico: "◷", enabled: true },
       { label: "Capability", href: "/admin/operations/scheduling/capability", ico: "◈", enabled: true },
+      { label: "Project Slip", href: "/admin/operations/scheduling/slip", ico: "◔", enabled: true },
       {
         subheading: "Time Off",
         items: [
