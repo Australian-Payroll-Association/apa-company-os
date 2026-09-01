@@ -30,6 +30,7 @@ import {
   updateDeal,
 } from "./actions";
 import { DealCommunications, ReferrerCompanyField, ReferrerField } from "./DealFields";
+import { PricingPanel } from "./PricingPanel";
 
 const CURRENCIES = ["usd", "eur", "gbp", "aud", "sgd", "vnd"];
 
@@ -475,6 +476,8 @@ export function DealManage({ deal, stages }: { deal: DealManageData; stages: Dea
               </dd>
             </dl>
           </section>
+
+          <PricingPanel dealId={deal.id} />
 
           <section className="admin-card admin-section-card">
             <div className="admin-section-label" style={{ marginBottom: 12 }}>Attribution</div>
