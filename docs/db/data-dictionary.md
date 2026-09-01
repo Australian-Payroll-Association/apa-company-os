@@ -529,7 +529,7 @@ Columns:
 - status: Four working funnel stages plus terminal exits; the Stripe webhook advances retreat inquiries to won on payment. Valid values: [new_lead, contacted, qualified, no_action, spam, won, archived].
 - deal_id: FK to deals; links the inquiry to the deal it produced.
 - affiliate_id: FK to affiliates; attribution of the inquiry to a referral code (no active writer in current code).
-- metadata: Free-form JSON side-car; the contact form stores company/team_size/name/email here, and the Stripe webhook merges payment details on won.
+- metadata: Free-form JSON side-car; the contact form stores company/team_size/name/email here, the Stripe webhook merges payment details on won, and the inquiry actions stamp `first_contacted_at` (ISO timestamp, written once) on the first move to contacted-or-later — the anchor for the Front Door 24h first-call SLA.
 - created_at: Row creation time.
 Evidence: rows 171 · reads 5,025 · inserts 317 (stamped 28 Aug 2026)
 
