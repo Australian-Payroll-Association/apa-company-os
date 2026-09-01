@@ -92,7 +92,11 @@ export type Component =
   | (ComponentBase & { type: "award_levels"; slots: number; table: { level: number; fee: PricePair }[] })
   // Stepped discrete fee by a count. minCount → warn if below; warnOverMax →
   // warn if above the last finite step (the "CHECK"/"CUSTOM" sentinels).
-  | (ComponentBase & { type: "stepped"; countKey: string; steps: Step[]; minCount?: number; warnOverMax?: boolean })
+  // required → this count DRIVES a base/major line: when its input is absent the
+  // price is NOT computable (the engine must not treat the missing base as $0);
+  // it warns with `requiredMessage` and drops the totals to null. This is
+  // distinct from a legitimately-zero or out-of-range count (which only warns).
+  | (ComponentBase & { type: "stepped"; countKey: string; steps: Step[]; minCount?: number; warnOverMax?: boolean; required?: boolean; requiredMessage?: string })
   // Cumulative tiers + each-additional (EBA core / state).
   | (ComponentBase & { type: "tiered_cumulative"; countKey: string; tiers: { count: number; fee: PricePair }[]; eachAdditional: PricePair })
   // Fixed fee selected by a named enum (Implementation process documentation).

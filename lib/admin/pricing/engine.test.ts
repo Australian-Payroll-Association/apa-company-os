@@ -214,6 +214,71 @@ describe("Super Review & LSL Review (§13) — identical engine", () => {
   });
 });
 
+describe("required base-driver guard (QA PR#55: missing base must not price as $0)", () => {
+  // STP2 base is driven by band_count. With it ABSENT the stepped base used to
+  // silently skip → $0 base → a dangerously under-priced deal. It must instead
+  // be NON-COMPUTABLE: null totals + a specific warning, and no base line.
+  it("STP2 with no band_count → non-computable (null totals) + specific warning, no $0 base", () => {
+    const r = priceService("stp2", {});
+    expect(r.memberCents).toBeNull();
+    expect(r.nonMemberCents).toBeNull();
+    expect(r.feeMemberCents).toBeNull();
+    expect(r.feeNonMemberCents).toBeNull();
+    expect(line(r, "base")).toBeUndefined();
+    expect(r.warnings.some((w) => /STP2 requires a pay-code ?\/ ?scope band count/i.test(w))).toBe(true);
+  });
+
+  // Same, even when other (non-base) scope is set: a missing base still poisons.
+  it("STP2 with scope toggles but no band_count → still non-computable", () => {
+    const r = priceService("stp2", { scope: { paycodes_review: true, superannuation: true } });
+    expect(r.memberCents).toBeNull();
+    expect(r.warnings.some((w) => /band count/i.test(w))).toBe(true);
+  });
+
+  // Regression: WITH band_count the pinned worked example is unchanged.
+  it("STP2 WITH band_count 250 → $2,400 base, computable (regression)", () => {
+    const r = priceService("stp2", { stepped: { band_count: 250 } });
+    expect(line(r, "base")?.memberCents).toBe(240_000);
+    expect(r.memberCents).toBe(240_000);
+    expect(r.warnings.length).toBe(0);
+  });
+
+  // Out-of-range (≥501) stays the EXISTING warn behaviour — it is not "missing",
+  // so it is NOT forced non-computable (don't over-warn / don't change scope).
+  it("STP2 band_count ≥501 → warns (out-of-range), NOT the missing-required path", () => {
+    const r = priceService("stp2", { stepped: { band_count: 600 } });
+    expect(r.warnings.some((w) => /out of the supported range/i.test(w))).toBe(true);
+    expect(r.warnings.some((w) => /requires a pay-code/i.test(w))).toBe(false);
+  });
+
+  // Tech Procurement: requirements-gathering + vendor-recommendation counts are
+  // REQUIRED. Absent → non-computable + specific warnings.
+  it("Tech Procurement with required scope missing → non-computable + warnings", () => {
+    const r = priceService("tech_procurement", { headcount: 1500 });
+    expect(r.memberCents).toBeNull();
+    expect(r.nonMemberCents).toBeNull();
+    expect(r.warnings.some((w) => /requirements-gathering scope/i.test(w))).toBe(true);
+    expect(r.warnings.some((w) => /vendor recommendations/i.test(w))).toBe(true);
+  });
+
+  // Regression: WITH both required counts present it prices as before, no guard warning.
+  it("Tech Procurement WITH required counts → computable, unchanged", () => {
+    const r = priceService("tech_procurement", { headcount: 1500, stepped: { req_gathering: 4, vendor_recs: 2 } });
+    expect(line(r, "base")?.memberCents).toBe(450_000); // 1500 × $3
+    expect(line(r, "stepped.req_gathering")?.memberCents).toBe(1_440_000);
+    expect(line(r, "stepped.vendor_recs")?.memberCents).toBe(1_440_000);
+    expect(r.memberCents).not.toBeNull();
+    expect(r.warnings.some((w) => /requires/i.test(w))).toBe(false);
+  });
+
+  // add_system is OPTIONAL (0 is a valid step) — absent must NOT trigger the guard.
+  it("Tech Procurement add_system absent does not force non-computable", () => {
+    const r = priceService("tech_procurement", { headcount: 1500, stepped: { req_gathering: 4, vendor_recs: 2 } });
+    expect(r.memberCents).not.toBeNull();
+    expect(r.warnings.some((w) => /additional system/i.test(w))).toBe(false);
+  });
+});
+
 describe("engine purity", () => {
   it("never throws on garbage input", () => {
     expect(() => priceService("payroll_360", { headcount: -5, stepped: { entities: 999 } })).not.toThrow();

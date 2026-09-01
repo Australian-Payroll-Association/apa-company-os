@@ -40,6 +40,10 @@ type State = {
   techNonMemberKnown: boolean;
   breakdown: LineItem[];
   warnings: string[];
+  // A REQUIRED base/major-line driver input was absent, so the quote is not
+  // computable. Mirrors the unverified path: totals drop to null + a warning,
+  // rather than silently pricing the missing base as $0.
+  nonComputable: boolean;
 };
 
 function addGroup(state: State, group: string, member: number, nonMember: number | null): void {
@@ -190,7 +194,16 @@ function applyComponent(state: State, c: Component): void {
     }
     case "stepped": {
       const count = inputs.stepped?.[c.countKey];
-      if (count == null || !Number.isFinite(count)) return;
+      if (count == null || !Number.isFinite(count)) {
+        // A required base/major-line driver is absent → NOT computable. Warn and
+        // poison the whole quote so the missing base is never priced as $0.
+        // (An OPTIONAL stepped add-on legitimately skips in silence, as before.)
+        if (c.required) {
+          state.warnings.push(c.requiredMessage ?? `"${c.label}" is required to price this service.`);
+          state.nonComputable = true;
+        }
+        return;
+      }
       if (c.minCount != null && count < c.minCount) {
         state.warnings.push(`"${c.label}" count ${count} is below the supported minimum (${c.minCount}) — needs review.`);
         return;
@@ -314,10 +327,20 @@ export function priceService(serviceKey: ServiceKey, inputs: PricingInputs): Pri
     techNonMemberKnown: true,
     breakdown: [],
     warnings: [],
+    nonComputable: false,
   };
 
   // 1. Components, in order (base, scope, units, tiers, factor lines…).
   for (const c of config.components) applyComponent(state, c);
+
+  // A required base/major-line driver was missing: the quote is NOT computable.
+  // Emit the breakdown + warnings but NO totals (all null), exactly like an
+  // unverified config — a $0/partial base must never be applied to a deal.
+  if (state.nonComputable) {
+    result.breakdown = state.breakdown;
+    result.warnings = state.warnings;
+    return result;
+  }
 
   // 2. %-modifier stack over this tab's OWN modifier-base groups.
   if (config.modifiers?.length && config.modifierBaseGroups?.length) {

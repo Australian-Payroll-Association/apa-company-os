@@ -34,6 +34,8 @@ export const techProcurement: ServiceConfig = {
       group: "counts",
       countKey: "req_gathering",
       minCount: 3, // <3 → "CHECK"
+      required: true, // drives a major line; absent → not computable
+      requiredMessage: "Tech Procurement requires the requirements-gathering scope (number of processes) to price.",
       steps: [
         { lt: 6, fee: pp(14400, 15600) }, // 3–5
         { lt: 9, fee: pp(18000, 19500) }, // 6–8
@@ -48,6 +50,8 @@ export const techProcurement: ServiceConfig = {
       group: "counts",
       countKey: "vendor_recs",
       minCount: 1, // <1 → "CHECK"
+      required: true, // drives a major line; absent → not computable
+      requiredMessage: "Tech Procurement requires the number of vendor recommendations to price.",
       steps: [
         { lt: 4, fee: pp(14400, 15600) }, // 1–3
         { lt: 7, fee: pp(18000, 19500) }, // 4–6
@@ -102,6 +106,8 @@ export const stp2: ServiceConfig = {
       label: "Base fee (pay-code / scope band)",
       group: "base",
       countKey: "band_count",
+      required: true, // THE base fee driver; absent → not computable (never $0 base)
+      requiredMessage: "STP2 requires a pay-code / scope band count to price.",
       steps: [
         { lt: 201, fee: pp(1200, 1300) },
         { lt: 301, fee: pp(2400, 2600) },

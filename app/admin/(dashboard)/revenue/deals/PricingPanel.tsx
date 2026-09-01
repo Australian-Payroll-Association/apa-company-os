@@ -25,7 +25,7 @@ type FieldSpec = {
   needsHeadcount: boolean;
   needsComplexity: boolean;
   toggles: { key: string; label: string }[];
-  numbers: { key: string; label: string; map: "units" | "stepped" | "tiers" }[];
+  numbers: { key: string; label: string; map: "units" | "stepped" | "tiers"; required?: boolean }[];
   selects: { key: string; label: string; options: string[] }[];
   months: { key: "recalcMonths" | "wageSafeMonths"; label: string }[];
   levels: { count: number } | null;
@@ -35,7 +35,7 @@ type FieldSpec = {
 // Derive the intake field set from a service config (no hard-coding per service).
 function deriveFields(config: ServiceConfig): FieldSpec {
   const toggles = new Map<string, string>();
-  const numbers = new Map<string, { label: string; map: "units" | "stepped" | "tiers" }>();
+  const numbers = new Map<string, { label: string; map: "units" | "stepped" | "tiers"; required?: boolean }>();
   const selects = new Map<string, string[]>();
   const months = new Map<"recalcMonths" | "wageSafeMonths", string>();
   let needsHeadcount = false;
@@ -62,7 +62,7 @@ function deriveFields(config: ServiceConfig): FieldSpec {
         levels = { count: c.slots };
         break;
       case "stepped":
-        numbers.set(c.countKey, { label: c.label, map: "stepped" });
+        numbers.set(c.countKey, { label: c.label, map: "stepped", required: c.required });
         break;
       case "tiered_cumulative":
         numbers.set(c.countKey, { label: c.label, map: "tiers" });
@@ -97,7 +97,7 @@ function deriveFields(config: ServiceConfig): FieldSpec {
     needsHeadcount,
     needsComplexity,
     toggles: [...toggles].map(([key, label]) => ({ key, label })),
-    numbers: [...numbers].map(([key, v]) => ({ key, label: v.label, map: v.map })),
+    numbers: [...numbers].map(([key, v]) => ({ key, label: v.label, map: v.map, required: v.required })),
     selects: [...selects].map(([key, options]) => ({ key, label: key.replace(/_/g, " "), options })),
     months: [...months].map(([key, label]) => ({ key, label })),
     levels,
@@ -139,11 +139,18 @@ export function PricingPanel({ dealId }: { dealId: string }) {
   }, [serviceKey, inputs]);
 
   const setField = useCallback((patch: Partial<PricingInputs>) => setInputs((prev) => ({ ...prev, ...patch })), []);
-  const setMapField = useCallback((map: "units" | "stepped" | "tiers", key: string, value: number) => {
+  const setMapField = useCallback((map: "units" | "stepped" | "tiers", key: string, value: number | undefined) => {
     setInputs((prev) => ({ ...prev, [map]: { ...(prev[map] ?? {}), [key]: value } }));
   }, []);
 
   const selected = result ? (isMember ? result.memberCents : result.nonMemberCents) : null;
+
+  // A required base-driver count that is not yet provided → the quote is not
+  // computable and must never be applied to the deal. (Empty required fields are
+  // kept `undefined`, not coerced to 0, so they can't price a bogus $0 base.)
+  const requiredMissing = fields.numbers.some(
+    (n) => n.required && (inputs[n.map] as Record<string, number> | undefined)?.[n.key] == null,
+  );
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) {
     setBusy(true);
@@ -208,12 +215,30 @@ export function PricingPanel({ dealId }: { dealId: string }) {
           </label>
         ))}
 
-        {fields.numbers.map((n) => (
-          <label key={n.key} style={{ display: "grid", gap: 4 }}>
-            <span className="admin-kv-key">{n.label}</span>
-            <input type="number" min={0} className="admin-input" value={(inputs[n.map] as Record<string, number> | undefined)?.[n.key] ?? ""} onChange={(e) => setMapField(n.map, n.key, e.target.value === "" ? 0 : Number(e.target.value))} />
-          </label>
-        ))}
+        {fields.numbers.map((n) => {
+          const val = (inputs[n.map] as Record<string, number> | undefined)?.[n.key];
+          const missing = n.required && val == null;
+          return (
+            <label key={n.key} style={{ display: "grid", gap: 4 }}>
+              <span className="admin-kv-key">
+                {n.label}
+                {n.required && <span style={{ color: "var(--admin-warn-line, #a67c00)" }}> *</span>}
+              </span>
+              <input
+                type="number"
+                min={0}
+                required={n.required}
+                aria-invalid={missing || undefined}
+                className="admin-input"
+                value={val ?? ""}
+                // Required drivers stay `undefined` when cleared (never coerced to 0)
+                // so a missing base can't be priced as $0; optional counts keep 0.
+                onChange={(e) => setMapField(n.map, n.key, e.target.value === "" ? (n.required ? undefined : 0) : Number(e.target.value))}
+              />
+              {missing && <span style={{ color: "var(--admin-warn-line, #a67c00)", fontSize: 12 }}>Required to price this service.</span>}
+            </label>
+          );
+        })}
 
         {fields.levels && (
           <div style={{ display: "grid", gap: 4 }}>
@@ -280,7 +305,7 @@ export function PricingPanel({ dealId }: { dealId: string }) {
 
       <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button className="admin-btn" disabled={busy} onClick={() => run(() => saveDealPricing(dealId, serviceKey, inputs, isMember), "Pricing saved.")}>Save pricing</button>
-        <button className="admin-btn admin-btn--primary" disabled={busy || selected == null} onClick={() => run(() => applyPricingToDeal(dealId), "Applied to deal value.")}>Use as deal value</button>
+        <button className="admin-btn admin-btn--primary" disabled={busy || selected == null || requiredMissing} onClick={() => run(() => applyPricingToDeal(dealId), "Applied to deal value.")}>Use as deal value</button>
         <button className="admin-btn" disabled={busy} onClick={() => setOvOpen((v) => !v)}>Override</button>
       </div>
 
