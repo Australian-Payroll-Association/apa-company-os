@@ -53,7 +53,7 @@ const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? (e[0] ?? nu
 // A freshly-created engagement stores overview as '{}' (the column default) —
 // normalize to the full shape the form expects rather than making every
 // caller (and every field access in the client component) null-check.
-function normalizeOverview(raw: Partial<EngagementOverview> | null | undefined): EngagementOverview {
+export function normalizeOverview(raw: Partial<EngagementOverview> | null | undefined): EngagementOverview {
   return {
     systems: { payroll: "", ta: "", hris: "", finance: "", ...(raw?.systems ?? {}) },
     entities: raw?.entities?.length ? raw.entities : [{ name: "", employees: "", payCycle: "", awards: "" }],
