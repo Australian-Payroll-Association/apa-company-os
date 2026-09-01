@@ -122,7 +122,7 @@ const NAV: NavSection[] = [
     ],
   },
   {
-    label: "Talent",
+    label: "Employees",
     collapsible: true,
     items: [
       { label: "Cockpit", href: "/admin/talent", ico: "◎", enabled: true },
