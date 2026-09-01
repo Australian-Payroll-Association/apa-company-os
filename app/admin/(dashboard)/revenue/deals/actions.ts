@@ -125,6 +125,19 @@ export async function moveDealStage(
     return { ok: false, error: "Marking a deal won needs the final deal amount." };
   }
 
+  // Capture the stage the deal is leaving so the status_change activity row
+  // (written after a successful move) records from → to. Read before the update
+  // since the update overwrites stage_id.
+  const { data: prior } = await companyOs
+    .from("deals")
+    .select("stage_id, pipeline_stages!stage_id(name)")
+    .eq("id", dealId)
+    .maybeSingle();
+  const priorStageId = (prior?.stage_id as string | null) ?? null;
+  const priorEmbed = prior?.pipeline_stages as { name: string | null } | { name: string | null }[] | null;
+  const priorStageName =
+    (Array.isArray(priorEmbed) ? priorEmbed[0]?.name : priorEmbed?.name) ?? null;
+
   const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";
   const closed_at = stage.is_won || stage.is_lost ? new Date().toISOString() : null;
 
@@ -162,6 +175,25 @@ export async function moveDealStage(
     .select("person_id, company_id")
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
+
+  // Record the stage move on the shared activity log as a 'status_change' row
+  // (hidden from the deal's note thread; see getDealCommunications). This is the
+  // per-deal time-in-stage / stalled clock (E8): time-in-stage derives from the
+  // most recent status_change.occurred_at for the deal. Only log a real change,
+  // and never let a logging hiccup fail the move (best-effort, mirrors FX).
+  if (priorStageId !== toStageId) {
+    const { error: logErr } = await companyOs.from("interactions").insert({
+      kind: "status_change",
+      subject: `Stage → ${stage.name}`,
+      person_id: deal?.person_id ?? null,
+      company_id: deal?.company_id ?? null,
+      subject_type: "deal",
+      subject_id: dealId,
+      occurred_at: new Date().toISOString(),
+      metadata: { from_stage: priorStageName, to_stage: stage.name, source: "move_deal_stage" },
+    });
+    if (logErr) console.error(`stage-change log failed for deal ${dealId}:`, logErr.message);
+  }
 
   if (stage.is_won || stage.is_lost) {
     await syncPersonAfterClose(dealId, deal?.person_id ?? null, stage.is_won);

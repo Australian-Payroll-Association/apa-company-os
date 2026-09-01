@@ -26,6 +26,10 @@ export type CockpitDeal = {
   usd: number | null;
   nextStep: string | null;
   gaps: string[];
+  // E8: human time since the deal's last stage change, and whether that gap is
+  // 7+ days (stalled).
+  timeInStage: string;
+  stalled: boolean;
 };
 
 // The cockpit's priority list. Clicking a deal opens it in the side car with the
@@ -91,7 +95,7 @@ export function CockpitDeals({
   if (deals.length === 0) {
     return (
       <div className="admin-empty">
-        Every open deal has an owner, a value, a next step, and a date. Nice.
+        Every open deal has an owner, a value, a next step, and a date — and none are stalled. Nice.
       </div>
     );
   }
@@ -104,6 +108,7 @@ export function CockpitDeals({
             <tr>
               <th>Deal</th>
               <th>Stage</th>
+              <th>In stage</th>
               <th style={{ textAlign: "right" }}>Value</th>
               <th>Missing</th>
               <th>Current next step</th>
@@ -127,6 +132,15 @@ export function CockpitDeals({
               >
                 <td className="admin-cell-strong">{d.title}</td>
                 <td className="admin-cell-muted">{d.stage}</td>
+                <td className="admin-cell-muted">
+                  {d.stalled ? (
+                    <Badge tone="err" dot>
+                      {d.timeInStage} · stalled
+                    </Badge>
+                  ) : (
+                    d.timeInStage
+                  )}
+                </td>
                 <td className="admin-cell-mono" style={{ textAlign: "right" }}>
                   {formatCents(d.usd)}
                 </td>
