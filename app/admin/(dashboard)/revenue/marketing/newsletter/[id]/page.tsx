@@ -5,7 +5,7 @@ import { getEditionDetail, trainingWindow } from "@/lib/admin/newsletter";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
-import { EDITION_STATUS_LABEL, SECTION_META, SECTION_TYPES } from "@/lib/newsletter";
+import { EDITION_STATUS_LABEL, SECTION_META, SECTION_TYPES, describeDetails } from "@/lib/newsletter";
 import { EditionControls, IncludeToggle } from "./EditionControls";
 import { AddSubmissionForm } from "./AddSubmissionForm";
 import { TrainingWindow } from "./TrainingWindow";
@@ -94,13 +94,13 @@ export default async function EditionPage({ params }: { params: { id: string } }
                 {meta.label}
               </h2>
               <Badge tone="neutral">{items.filter((i) => i.included).length} included</Badge>
-              {meta.source === "events" && <Badge tone="info">From events</Badge>}
+              {type === "training" && <Badge tone="info">Also pulled from the website</Badge>}
             </div>
 
             {items.length === 0 ? (
               <p className="admin-page-sub" style={{ marginTop: 8, marginBottom: 0 }}>
-                {meta.source === "events"
-                  ? "No published sessions fall in this edition's dates."
+                {type === "training"
+                  ? "Nothing yet — pull from the training site above, or add a course by hand."
                   : "Nothing submitted yet."}
               </p>
             ) : (
@@ -127,11 +127,10 @@ export default async function EditionPage({ params }: { params: { id: string } }
                         {item.title && (
                           <strong style={{ display: "block", marginBottom: 2 }}>{item.title}</strong>
                         )}
-                        {Object.keys(item.details).length > 0 && (
+                        {describeDetails(item.sectionType, item.details).length > 0 && (
                           <p className="admin-page-sub" style={{ margin: "0 0 4px" }}>
-                            {(SECTION_META[item.sectionType]?.fields ?? [])
-                              .filter((f) => item.details[f.key])
-                              .map((f) => `${f.label}: ${item.details[f.key]}`)
+                            {describeDetails(item.sectionType, item.details)
+                              .map((d) => `${d.label}: ${d.value}`)
                               .join("  ·  ")}
                           </p>
                         )}
@@ -152,9 +151,11 @@ export default async function EditionPage({ params }: { params: { id: string } }
                           className="admin-cell-muted"
                           style={{ margin: "6px 0 0", fontSize: 12 }}
                         >
-                          {item.source === "events"
-                            ? "Events calendar"
-                            : item.contributor ?? "Unknown contributor"}{" "}
+                          {item.source !== "events"
+                            ? item.contributor ?? "Unknown contributor"
+                            : item.sectionType === "training"
+                              ? "austpayroll.com.au/training"
+                              : "Events calendar"}{" "}
                           · {formatDate(item.createdAt)}
                         </p>
                       </div>

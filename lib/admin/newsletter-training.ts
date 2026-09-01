@@ -103,8 +103,12 @@ export function parseCourses(html: string): SiteCourse[] {
   return courses;
 }
 
+// A course whose date resolved inside the window. Narrowing is kept in the
+// type so callers do not have to re-assert it.
+export type DatedCourse = SiteCourse & { date: Date };
+
 export type FetchResult =
-  | { ok: true; courses: SiteCourse[] }
+  | { ok: true; courses: DatedCourse[] }
   | { ok: false; error: string };
 
 // Courses in the window, in date order. `no-store` because the point of
@@ -131,7 +135,7 @@ export async function fetchCoursesInWindow(from: Date, to: Date): Promise<FetchR
   const courses = parsed
     .filter((c) => c.format.toLowerCase().includes(CLASSROOM_FORMAT.toLowerCase()))
     .map((c) => ({ ...c, date: resolveCourseDate(c.dateLabel, from, to) }))
-    .filter((c): c is SiteCourse & { date: Date } => c.date !== null)
+    .filter((c): c is DatedCourse => c.date !== null)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   return { ok: true, courses };

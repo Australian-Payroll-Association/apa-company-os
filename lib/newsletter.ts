@@ -27,26 +27,19 @@ export const EDITION_STATUS_LABEL: Record<EditionStatus, string> = {
   cancelled: "Cancelled",
 };
 
-// APA's real member-update structure, taken from the September 2026 edition.
-// Order matters: it is the running order of the newsletter, and the contents
-// list at the top of an edition is generated from it.
+// APA's real member-update structure, taken from the July, August and
+// September 2026 editions.
 //
-// This replaced the brainstorm's placeholder five. Two corrections worth
-// keeping in mind if it is revised again: legislative and regulatory updates
-// are the bulk of an edition (the placeholder had them as generic "topic
-// ideas"), and "What's on the Members Portal" is a standing section that the
-// placeholder missed entirely.
-// This IS the running order. Both the August and September 2026 editions run
-// legislative items first, then member notices, then the portal, then
-// compliance, then the Q&A section, and close on training and the webinar. The
-// contents list at the top of an edition is generated from it, so reordering
-// this array reorders the newsletter.
-// "article" is deliberately one repeatable section rather than a set of typed
+// This IS the running order: all three editions run the month's articles
+// first, then the portal, then compliance, then the Q&A, and close on training
+// and the webinar. The contents list at the top of an edition is generated
+// from it, so reordering this array reorders the newsletter.
+//
+// "article" is deliberately ONE repeatable section rather than a set of typed
 // ones. The month's substantive items vary in number and kind — four ATO
 // rulings one month, a Fair Work reminder and a members' housekeeping notice
-// the next — and splitting them into fixed types (legislative / notice / …)
-// forced a taxonomy onto content that does not have one. Submit as many as the
-// edition needs; running order within the section is the editor's call.
+// the next — and splitting them into fixed types forced a taxonomy onto
+// content that does not have one. Submit as many as the edition needs.
 //
 // Ask Beryl is NOT a section: it is material inside the compliance piece.
 export const SECTION_TYPES = [
@@ -123,12 +116,17 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   training: {
     label: "Upcoming training",
-    hint: "One course per submission — course name, the date as it should read, and the delivery format. Virtual Classroom courses inside the training window are pulled from austpayroll.com.au/training automatically; add anything the site doesn't carry.",
+    hint: "One course per submission — course name, when it runs, and the delivery format. Leave the end date blank for a single-day course. Virtual Classroom courses inside the training window are pulled from austpayroll.com.au/training automatically; add anything the site does not carry.",
     titleLabel: "Course",
     bodyLabel: "Description",
     linkLabel: "Course page link",
+    // Two dates, because courses can run over more than one day. Stored as a
+    // date input (ISO) rather than free text so there is no dd/mm vs mm/dd
+    // ambiguity in the data; everything on screen is rendered dd/mm/yyyy by
+    // formatFieldValue. Leave "To" blank for a single-day course.
     fields: [
-      { key: "date", label: "Date", type: "text", placeholder: "September 3rd" },
+      { key: "date_from", label: "From date", type: "date" },
+      { key: "date_to", label: "End date", type: "date" },
       { key: "format", label: "Delivery", type: "text", placeholder: "Virtual Classroom" },
     ],
     target: null,
@@ -213,4 +211,25 @@ export function tallySections(
 // period start so this stays testable and timezone-stable.
 export function defaultEditionTitle(periodStart: Date): string {
   return periodStart.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+}
+
+// Render a details value for display. Date fields are stored ISO (yyyy-mm-dd)
+// so the data is unambiguous; APA reads dates dd/mm/yyyy, so that is what is
+// shown. Anything unparseable is returned as-is rather than swallowed — a
+// wrong-looking date on screen is better than a blank one.
+export function formatFieldValue(field: ExtraField, value: string): string {
+  if (field.type !== "date") return value;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : value;
+}
+
+// The declared fields of a section that actually have values, formatted for
+// display. Shared by the admin edition view so date rendering cannot drift.
+export function describeDetails(
+  type: SectionType,
+  details: Record<string, string>,
+): { label: string; value: string }[] {
+  return (SECTION_META[type]?.fields ?? [])
+    .filter((f) => details[f.key])
+    .map((f) => ({ label: f.label, value: formatFieldValue(f, details[f.key]) }));
 }
