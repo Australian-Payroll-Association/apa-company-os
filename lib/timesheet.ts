@@ -7,8 +7,20 @@
 // work_date stored in Postgres (a DATE column) always agree.
 
 export const STANDARD_WEEK_HOURS = 38; // APA's standard week; see the charter.
+export const DAILY_CAPACITY_HOURS = STANDARD_WEEK_HOURS / 5; // 7.6h = 7h 36m, weekdays only.
 export const MAX_HOURS_PER_ENTRY = 24;
 export const HOURS_STEP = 0.25;
+
+/** Decimal hours → "Xh Ym" (7.6 → "7h 36m", 1.5 → "1h 30m", 0 → "0h 0m"). */
+export function formatHoursMinutes(h: number): string {
+  const totalMin = Math.max(0, Math.round(h * 60));
+  return `${Math.floor(totalMin / 60)}h ${totalMin % 60}m`;
+}
+
+/** Is a date (ISO) a weekday (Mon–Fri)? Capacity is zero on weekends. */
+export function isWeekday(iso: string): boolean {
+  return ((fromISODate(iso).getDay() + 6) % 7) < 5;
+}
 
 /** ISO date (YYYY-MM-DD) for a Date, in local time. */
 export function toISODate(d: Date): string {

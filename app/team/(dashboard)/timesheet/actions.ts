@@ -2,33 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "@/lib/team-auth";
-import { teamInsertOwn, teamUpdateInScope, teamDeleteInScope } from "@/lib/team/data";
+import { teamInsertOwn, teamRead, teamDeleteInScope } from "@/lib/team/data";
 import { getMyBoardSummaries } from "@/lib/team/boards";
-import { parseHours, isValidISODate } from "@/lib/timesheet";
+import { parseHours, isValidISODate, weekDays } from "@/lib/timesheet";
 
-// Own-service timesheet actions for /team. Every write goes through the scoped
-// helpers in lib/team/data.ts, which force person_id = actor.personId — a member
-// can only ever log, edit, or delete their OWN entries. board_id is the one
-// client-supplied reference, so it is validated against the actor's own boards
-// before use (never trust a passed id as authorization).
+// Grid timesheet actions for /team. A "cell" is one (project, task, billable,
+// day). Writing a cell replaces whatever was there with a single entry, so the
+// grid stays the source of truth for that day's hours on that row. Every write
+// funnels through the scoped helpers, which force person_id = actor.personId.
 
 type Result = { ok: true } | { ok: false; error: string };
-type LogResult = { ok: true; id: string } | { ok: false; error: string };
 
 function refresh() {
   revalidatePath("/team/timesheet");
 }
 
-const MAX_NOTE = 500;
-
-function cleanNote(raw: unknown): string | null {
-  const s = typeof raw === "string" ? raw.trim() : "";
-  if (!s) return null;
-  return s.slice(0, MAX_NOTE);
-}
-
-// The boards this actor may log against — their board memberships plus their
-// client-company assignments. Returns the id set for validation.
 async function allowedBoardIds(
   actor: Awaited<ReturnType<typeof requireTeamMember>>,
 ): Promise<Set<string>> {
@@ -36,74 +24,103 @@ async function allowedBoardIds(
   return new Set(boards.map((b) => b.id));
 }
 
-export async function logTime(input: {
-  workDate: string;
+// Scope a time_entry query to one row's (board, task, billable) identity.
+function rowFilter<T extends { eq: (c: string, v: unknown) => T; is: (c: string, v: null) => T }>(
+  q: T,
+  boardId: string | null,
+  taskId: string | null,
+  billable: boolean,
+): T {
+  let out = boardId ? q.eq("board_id", boardId) : q.is("board_id", null);
+  out = taskId ? out.eq("task_id", taskId) : out.is("task_id", null);
+  return out.eq("billable", billable);
+}
+
+export async function setCell(input: {
   boardId: string | null;
-  hours: number | string;
+  taskId: string | null;
   billable: boolean;
-  note?: string;
-}): Promise<LogResult> {
+  workDate: string;
+  hours: number | string;
+}): Promise<Result> {
   const actor = await requireTeamMember();
 
-  if (!isValidISODate(input.workDate)) return { ok: false, error: "Pick a valid date." };
-
-  const parsed = parseHours(input.hours);
-  if ("error" in parsed) return { ok: false, error: parsed.error };
-
-  // Billable time books against a client project; internal time need not.
-  let boardId = input.boardId || null;
+  if (!isValidISODate(input.workDate)) return { ok: false, error: "Bad date." };
+  const boardId = input.boardId || null;
+  const taskId = input.taskId || null;
   if (boardId) {
     const allowed = await allowedBoardIds(actor);
     if (!allowed.has(boardId)) return { ok: false, error: "That project isn't one of yours." };
   }
   if (input.billable && !boardId) {
-    return { ok: false, error: "Billable time needs a project. Pick one, or mark it non-billable." };
+    return { ok: false, error: "Billable time needs a project." };
   }
 
-  const { data, error } = await teamInsertOwn(actor, "time_entry", {
-    work_date: input.workDate,
-    board_id: boardId,
-    hours: parsed.hours,
-    billable: !!input.billable,
-    note: cleanNote(input.note),
-  });
-  if (error || !data) return { ok: false, error: error ?? "Could not save that entry." };
+  // Empty / zero clears the cell.
+  const raw = typeof input.hours === "string" ? input.hours.trim() : input.hours;
+  const clearing = raw === "" || Number(raw) === 0;
+  let hours = 0;
+  if (!clearing) {
+    const parsed = parseHours(raw);
+    if ("error" in parsed) return { ok: false, error: parsed.error };
+    hours = parsed.hours;
+  }
 
-  refresh();
-  return { ok: true, id: data.id };
-}
+  // Replace the cell: delete existing entries for this (board, task, billable, day),
+  // preserving any note, then insert one if hours > 0.
+  const existing = await rowFilter(
+    teamRead(actor, "time_entry", "id, note"),
+    boardId,
+    taskId,
+    input.billable,
+  ).eq("work_date", input.workDate);
+  const rows = (existing.data ?? []) as unknown as { id: string; note: string | null }[];
+  const keptNote = rows.find((r) => r.note)?.note ?? null;
 
-export async function updateTimeEntry(input: {
-  id: string;
-  hours: number | string;
-  billable: boolean;
-  note?: string;
-}): Promise<Result> {
-  const actor = await requireTeamMember();
-  if (!input.id) return { ok: false, error: "Missing entry." };
+  for (const r of rows) {
+    const del = await teamDeleteInScope(actor, "time_entry", r.id);
+    if (!del.ok) return { ok: false, error: del.error ?? "Could not update the cell." };
+  }
 
-  const parsed = parseHours(input.hours);
-  if ("error" in parsed) return { ok: false, error: parsed.error };
-
-  // teamUpdateInScope re-derives ownership from the id before writing; a member
-  // can only ever patch a row whose person_id is their own.
-  const res = await teamUpdateInScope(actor, "time_entry", input.id, {
-    hours: parsed.hours,
-    billable: !!input.billable,
-    note: cleanNote(input.note),
-  });
-  if (!res.ok) return { ok: false, error: res.error ?? "Could not update that entry." };
+  if (hours > 0) {
+    const { error } = await teamInsertOwn(actor, "time_entry", {
+      board_id: boardId,
+      task_id: taskId,
+      billable: !!input.billable,
+      hours,
+      work_date: input.workDate,
+      note: keptNote,
+    });
+    if (error) return { ok: false, error };
+  }
 
   refresh();
   return { ok: true };
 }
 
-export async function deleteTimeEntry(input: { id: string }): Promise<Result> {
+export async function deleteRow(input: {
+  boardId: string | null;
+  taskId: string | null;
+  billable: boolean;
+  weekStart: string;
+}): Promise<Result> {
   const actor = await requireTeamMember();
-  if (!input.id) return { ok: false, error: "Missing entry." };
+  if (!isValidISODate(input.weekStart)) return { ok: false, error: "Bad week." };
+  const days = weekDays(input.weekStart);
 
-  const res = await teamDeleteInScope(actor, "time_entry", input.id);
-  if (!res.ok) return { ok: false, error: res.error ?? "Could not delete that entry." };
+  const existing = await rowFilter(
+    teamRead(actor, "time_entry", "id"),
+    input.boardId || null,
+    input.taskId || null,
+    input.billable,
+  )
+    .gte("work_date", days[0])
+    .lte("work_date", days[6]);
+
+  for (const r of (existing.data ?? []) as unknown as { id: string }[]) {
+    const del = await teamDeleteInScope(actor, "time_entry", r.id);
+    if (!del.ok) return { ok: false, error: del.error ?? "Could not remove the row." };
+  }
 
   refresh();
   return { ok: true };
