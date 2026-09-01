@@ -75,6 +75,7 @@ export default async function DiscoveryDetailPage({ params }: { params: { id: st
       </div>
       <DiscoveryReview
         engagementId={engagement.id}
+        clientName={engagement.client_name}
         overview={normalizeOverview(engagement.overview)}
         teamMembers={engagement.team_members ?? []}
         responses={responses ?? []}
