@@ -153,10 +153,10 @@ function passesSuppression(row: CandidateRow): boolean {
 // grown. Paging until a short page arrives is the only way to know it is whole.
 const AUDIENCE_PAGE = 500;
 
-// Edge8 owns this CRM, so an Edge8-branded (or brand-less) broadcast draws from
-// the whole house list. Any other brand is a guest and is scoped strictly to
-// its brand_contacts membership, so a guest send can never reach the house list.
-const HOME_BRAND_SLUG = "edge8";
+// APA owns this CRM, so an APA-branded (or brand-less) broadcast draws from the
+// whole house list. Any other brand is a guest and is scoped strictly to its
+// brand_contacts membership, so a guest send can never reach the house list.
+const HOME_BRAND_SLUG = "apa";
 
 // Returns the person_ids a guest brand is allowed to mail, or null when the
 // brand is the home brand (no scoping). An empty array means the guest brand

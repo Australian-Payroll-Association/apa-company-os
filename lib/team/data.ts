@@ -24,6 +24,10 @@ const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   // handed back (its custody row stays, but the item is someone else's).
   equipment: { column: "current_holder_id", scope: "person" },
   equipment_requests: { column: "person_id", scope: "person" },
+  // Newsletter contributions. Scoped to the author: a contributor sees and
+  // edits only what they submitted. The edition itself is company-wide
+  // reference data and is read through getOpenNewsletterEdition() instead.
+  newsletter_submissions: { column: "person_id", scope: "person" },
 };
 
 function scopeIds(actor: TeamActor, scope: ScopeKind): string[] {
@@ -595,4 +599,90 @@ export async function getOwnEmail(actor: TeamActor): Promise<string | null> {
     .eq("id", actor.personId)
     .maybeSingle();
   return (data as { email: string } | null)?.email ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Newsletter Machine — intake
+// ---------------------------------------------------------------------------
+
+// The open edition, as a contributor sees it. Company-wide reference data, so
+// like getDirectory and getOpenRoles it takes no per-actor filter. The safety
+// boundary is the FIXED column list: deadline and dates only. Review notes,
+// signatures and the admin's internal notes are deliberately not selected —
+// widening this list is a reviewed change.
+export type OpenEdition = {
+  id: string;
+  title: string;
+  periodStart: string;
+  periodEnd: string;
+  deadlineAt: string | null;
+};
+
+export async function getOpenNewsletterEdition(): Promise<OpenEdition | null> {
+  const { data } = await companyOs
+    .from("newsletter_editions")
+    .select("id, title, period_start, period_end, deadline_at")
+    .eq("status", "open")
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as {
+    id: string;
+    title: string;
+    period_start: string;
+    period_end: string;
+    deadline_at: string | null;
+  };
+  return {
+    id: row.id,
+    title: row.title,
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    deadlineAt: row.deadline_at,
+  };
+}
+
+// Is this edition still accepting submissions? Re-read at write time rather
+// than trusted from the page that rendered the form, so a form left open in a
+// tab cannot post into an edition that has since closed.
+export async function newsletterEditionIsOpen(editionId: string): Promise<boolean> {
+  const { data } = await companyOs
+    .from("newsletter_editions")
+    .select("status")
+    .eq("id", editionId)
+    .maybeSingle();
+  return (data as { status: string } | null)?.status === "open";
+}
+
+export type OwnSubmission = {
+  id: string;
+  editionId: string;
+  sectionType: string;
+  title: string | null;
+  body: string | null;
+  linkUrl: string | null;
+  createdAt: string;
+};
+
+// The actor's own contributions to one edition, newest first. Scoped by
+// teamRead, so this can only ever return rows the actor authored.
+export async function getOwnNewsletterSubmissions(
+  actor: TeamActor,
+  editionId: string,
+): Promise<OwnSubmission[]> {
+  const { data } = await teamRead(
+    actor,
+    "newsletter_submissions",
+    "id, edition_id, section_type, title, body, link_url, created_at",
+  )
+    .eq("edition_id", editionId)
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    editionId: r.edition_id as string,
+    sectionType: r.section_type as string,
+    title: (r.title as string | null) ?? null,
+    body: (r.body as string | null) ?? null,
+    linkUrl: (r.link_url as string | null) ?? null,
+    createdAt: r.created_at as string,
+  }));
 }

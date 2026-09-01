@@ -1,10 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Server-only Supabase client connected to the shared ai-officer database
-// (also used by caiocoach.com, ai-officer.com, davehajdu.com).
-// Uses the secret key, which bypasses RLS. NEVER import from a client component.
+// Server-only Supabase client for the Australian Payroll Association Company OS
+// database. Uses the secret key, which bypasses RLS. NEVER import from a client
+// component.
+//
+// This file used to describe the database as shared with caiocoach.com,
+// ai-officer.com and davehajdu.com. That was inherited from the Edge8 codebase
+// this repo was forked from and was never true of this project — checked 1 Sep
+// 2026 against the live data, which holds no Edge8 records.
 
-const supabaseUrl = process.env.SUPABASE_URL;
+// SUPABASE_URL is the canonical name. Falling back to the public one matters:
+// they always hold the same value, and when only the public one is set every
+// query silently goes to the placeholder host below instead of failing loudly.
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseSecretKey) {
