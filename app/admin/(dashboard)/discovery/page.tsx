@@ -42,13 +42,33 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 const one = <T,>(e: T | T[] | null): T | null => (Array.isArray(e) ? (e[0] ?? null) : e);
 
+// Reads like an inbox rather than a flat table: whatever needs a consultant's
+// attention right now (a fresh client submission, a drafted report waiting to
+// be sharpened) sorts to the top, ahead of engagements that are just waiting
+// on the client or are already wrapped up. Ties break by most recent
+// submission (falling back to created date for not-yet-submitted rows).
+const STATUS_PRIORITY: Record<string, number> = {
+  submitted: 0,
+  report_drafted: 1,
+  under_review: 2,
+  in_progress: 3,
+  not_started: 4,
+  completed: 5,
+};
+const NEEDS_REVIEW = new Set(["submitted", "report_drafted"]);
+
 export default async function DiscoveryListPage({ searchParams }: { searchParams: SearchParamsObj }) {
   const { data, error } = await discoveryDb
     .from("discovery_engagements")
-    .select("id, client_name, status, access_token, created_at, submitted_at, consultant:people!consultant_person_id(full_name)")
-    .order("created_at", { ascending: false });
+    .select("id, client_name, status, access_token, created_at, submitted_at, consultant:people!consultant_person_id(full_name)");
 
-  const rows = (data ?? []) as unknown as EngagementListRow[];
+  const rows = ((data ?? []) as unknown as EngagementListRow[]).sort((a, b) => {
+    const pa = STATUS_PRIORITY[a.status] ?? 99;
+    const pb = STATUS_PRIORITY[b.status] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (b.submitted_at ?? b.created_at).localeCompare(a.submitted_at ?? a.created_at);
+  });
+  const needsReviewCount = rows.filter((r) => NEEDS_REVIEW.has(r.status)).length;
 
   const columns: Column<EngagementListRow>[] = [
     {
@@ -83,7 +103,11 @@ export default async function DiscoveryListPage({ searchParams }: { searchParams
       <PageHead
         eyebrow="Payroll 360"
         title="Discovery"
-        sub={`${rows.length.toLocaleString()} ${rows.length === 1 ? "review" : "reviews"}`}
+        sub={
+          needsReviewCount > 0
+            ? `${rows.length.toLocaleString()} ${rows.length === 1 ? "review" : "reviews"} · ${needsReviewCount} need${needsReviewCount === 1 ? "s" : ""} your attention`
+            : `${rows.length.toLocaleString()} ${rows.length === 1 ? "review" : "reviews"}`
+        }
         action={
           <Link href="/admin/discovery/new" className="admin-btn admin-btn--primary">
             New review
