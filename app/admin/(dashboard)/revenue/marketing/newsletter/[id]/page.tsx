@@ -7,6 +7,7 @@ import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { EDITION_STATUS_LABEL, SECTION_META, SECTION_TYPES } from "@/lib/newsletter";
 import { EditionControls, IncludeToggle } from "./EditionControls";
+import { AddSubmissionForm } from "./AddSubmissionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,10 @@ export default async function EditionPage({ params }: { params: { id: string } }
 
         <div style={{ marginTop: 14 }}>
           <EditionControls id={edition.id} status={edition.status} />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <AddSubmissionForm editionId={edition.id} />
         </div>
       </div>
 
