@@ -26,7 +26,7 @@ function SubmitButton() {
 export function UploadForm({ ruleSets }: { ruleSets: RuleSetOption[] }) {
   const [state, formAction] = useFormState<RunFormResult | null, FormData>(uploadAndRun, null);
   return (
-    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 32, padding: 24 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label className="admin-label" htmlFor="label">
           Label (optional)
