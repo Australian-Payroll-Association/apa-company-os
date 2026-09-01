@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { getEdition, syncEventsForEdition } from "@/lib/admin/newsletter";
+import { getEdition, syncEventsForEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
 import { SECTION_META, defaultEditionTitle, isSectionType } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
@@ -286,4 +286,76 @@ export async function addSubmissionAsAdmin(input: {
   });
   refresh(input.editionId);
   return { ok: true, message: `Added to ${SECTION_META[input.sectionType].label}.` };
+}
+
+// The training window the pull reads. Left unset it falls back to the edition
+// period plus six weeks; set explicitly when a month should advertise further
+// ahead or stop sooner.
+export async function setTrainingWindow(
+  id: string,
+  input: { from: string; to: string },
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const edition = await getEdition(id);
+  if (!edition) return { ok: false, error: "Edition not found." };
+
+  const from = input.from.trim() || null;
+  const to = input.to.trim() || null;
+  for (const [label, value] of [["from", from], ["to", to]] as const) {
+    if (value && Number.isNaN(Date.parse(value))) {
+      return { ok: false, error: `The ${label} date isn't valid.` };
+    }
+  }
+  if (from && to && from > to) {
+    return { ok: false, error: "The window ends before it starts." };
+  }
+
+  const { error } = await companyOs
+    .from("newsletter_editions")
+    .update({ training_from: from, training_to: to })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { training_from: from, training_to: to },
+  });
+  refresh(id);
+  return { ok: true, message: "Training window saved." };
+}
+
+// Reads austpayroll.com.au/training and materialises the Virtual Classroom
+// courses in the window. Replaces the events-table pull for training: events is
+// empty, and the site is where training actually lives.
+export async function pullTraining(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await syncTrainingForEdition(id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { training_synced: { added: result.added, updated: result.updated } },
+  });
+  refresh(id);
+
+  if (result.found === 0) {
+    const edition = await getEdition(id);
+    const w = edition ? trainingWindow(edition) : null;
+    return {
+      ok: true,
+      message: w
+        ? `No Virtual Classroom courses on the site between ${w.from.toISOString().slice(0, 10)} and ${w.to.toISOString().slice(0, 10)}.`
+        : "No courses found in the window.",
+    };
+  }
+  return {
+    ok: true,
+    message: `${result.found} course${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.`,
+  };
 }

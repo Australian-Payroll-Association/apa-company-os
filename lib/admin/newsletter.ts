@@ -1,4 +1,5 @@
 import { companyOs } from "@/lib/supabase";
+import { fetchCoursesInWindow } from "@/lib/admin/newsletter-training";
 import {
   EVENT_TYPES_BY_SECTION,
   SECTION_META,
@@ -19,6 +20,9 @@ export type EditionRow = {
   periodStart: string;
   periodEnd: string;
   deadlineAt: string | null;
+  /** Window the training pull reads. Null = derive from the period. */
+  trainingFrom: string | null;
+  trainingTo: string | null;
   status: EditionStatus;
   contentId: string | null;
   reviewerSignedBy: string | null;
@@ -33,7 +37,7 @@ export type EditionRow = {
 };
 
 const EDITION_COLUMNS =
-  "id, title, period_start, period_end, deadline_at, status, content_id, reviewer_signed_by, reviewer_signed_at, admin_signed_by, admin_signed_at, review_notes, opened_by, closed_at, notes, created_at";
+  "id, title, period_start, period_end, deadline_at, training_from, training_to, status, content_id, reviewer_signed_by, reviewer_signed_at, admin_signed_by, admin_signed_at, review_notes, opened_by, closed_at, notes, created_at";
 
 type DbEdition = {
   id: string;
@@ -41,6 +45,8 @@ type DbEdition = {
   period_start: string;
   period_end: string;
   deadline_at: string | null;
+  training_from: string | null;
+  training_to: string | null;
   status: string;
   content_id: string | null;
   reviewer_signed_by: string | null;
@@ -61,6 +67,8 @@ function toEdition(row: DbEdition): EditionRow {
     periodStart: row.period_start,
     periodEnd: row.period_end,
     deadlineAt: row.deadline_at,
+    trainingFrom: row.training_from,
+    trainingTo: row.training_to,
     status: row.status as EditionStatus,
     contentId: row.content_id,
     reviewerSignedBy: row.reviewer_signed_by,
@@ -300,4 +308,87 @@ export async function syncEventsForEdition(editionId: string): Promise<SyncResul
   }
 
   return { ok: true, added, updated, sections: AUTO_SECTIONS.length };
+}
+
+// ---------------------------------------------------------------------------
+// Training pull, from austpayroll.com.au/training
+// ---------------------------------------------------------------------------
+
+// The training table advertises past the edition month — July's ran to 14
+// August, August's to 11 September, September's to 15 October. So the window
+// is its own range. When unset it falls back to the period plus six weeks,
+// which is roughly what those three editions used.
+const TRAINING_TAIL_DAYS = 42;
+
+export function trainingWindow(edition: EditionRow): { from: Date; to: Date } {
+  const from = new Date(`${edition.trainingFrom ?? edition.periodStart}T00:00:00Z`);
+  if (edition.trainingTo) return { from, to: new Date(`${edition.trainingTo}T23:59:59Z`) };
+  const to = new Date(`${edition.periodEnd}T23:59:59Z`);
+  to.setUTCDate(to.getUTCDate() + TRAINING_TAIL_DAYS);
+  return { from, to };
+}
+
+export type TrainingSyncResult =
+  | { ok: true; added: number; updated: number; found: number }
+  | { ok: false; error: string };
+
+// Reads the public training page and materialises Virtual Classroom courses in
+// the window as submissions.
+//
+// Dedup is on (course link + printed date) rather than a unique index: the site
+// gives no stable id, and the same course legitimately runs on several dates.
+// Matching in code keeps a re-pull idempotent without inventing a key the
+// source doesn't have. `included` is never written on update, so a course an
+// admin excluded stays excluded when the pull runs again.
+export async function syncTrainingForEdition(editionId: string): Promise<TrainingSyncResult> {
+  const edition = await getEdition(editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+
+  const { from, to } = trainingWindow(edition);
+  const fetched = await fetchCoursesInWindow(from, to);
+  if (!fetched.ok) return { ok: false, error: fetched.error };
+
+  const { data: existingData, error: readError } = await companyOs
+    .from("newsletter_submissions")
+    .select("id, link_url, details")
+    .eq("edition_id", editionId)
+    .eq("section_type", "training");
+  if (readError) return { ok: false, error: readError.message };
+
+  const key = (url: string | null, date: string) => `${url ?? ""}|${date}`;
+  const existing = new Map(
+    ((existingData ?? []) as { id: string; link_url: string | null; details: Record<string, string> | null }[]).map(
+      (r) => [key(r.link_url, r.details?.date ?? ""), r.id],
+    ),
+  );
+
+  let added = 0;
+  let updated = 0;
+
+  for (const course of fetched.courses) {
+    const match = existing.get(key(course.url, course.dateLabel));
+    const row = {
+      title: course.title,
+      body: course.description,
+      link_url: course.url,
+      details: { date: course.dateLabel, format: course.format },
+    };
+    if (match) {
+      const { error } = await companyOs.from("newsletter_submissions").update(row).eq("id", match);
+      if (error) return { ok: false, error: error.message };
+      updated += 1;
+    } else {
+      const { error } = await companyOs.from("newsletter_submissions").insert({
+        ...row,
+        edition_id: editionId,
+        person_id: null,
+        section_type: "training",
+        source: "events",
+      });
+      if (error) return { ok: false, error: error.message };
+      added += 1;
+    }
+  }
+
+  return { ok: true, added, updated, found: fetched.courses.length };
 }
