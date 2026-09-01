@@ -27,21 +27,57 @@ export const EDITION_STATUS_LABEL: Record<EditionStatus, string> = {
   cancelled: "Cancelled",
 };
 
-// PLACEHOLDER STRUCTURE — the five inputs named in the brainstorm. APA's actual
-// section list is still to be supplied; when it arrives, replace this array and
-// SECTION_META below. Nothing else needs to change: the form, the admin view and
-// the completeness check all derive from these.
+// APA's real member-update structure, taken from the September 2026 edition.
+// Order matters: it is the running order of the newsletter, and the contents
+// list at the top of an edition is generated from it.
+//
+// This replaced the brainstorm's placeholder five. Two corrections worth
+// keeping in mind if it is revised again: legislative and regulatory updates
+// are the bulk of an edition (the placeholder had them as generic "topic
+// ideas"), and "What's on the Members Portal" is a standing section that the
+// placeholder missed entirely.
+// This IS the running order. Both the August and September 2026 editions run
+// legislative items first, then member notices, then the portal, then
+// compliance, then the Q&A section, and close on training and the webinar. The
+// contents list at the top of an edition is generated from it, so reordering
+// this array reorders the newsletter.
+// "article" is deliberately one repeatable section rather than a set of typed
+// ones. The month's substantive items vary in number and kind — four ATO
+// rulings one month, a Fair Work reminder and a members' housekeeping notice
+// the next — and splitting them into fixed types (legislative / notice / …)
+// forced a taxonomy onto content that does not have one. Submit as many as the
+// edition needs; running order within the section is the editor's call.
+//
+// Ask Beryl is NOT a section: it is material inside the compliance piece.
 export const SECTION_TYPES = [
-  "topic_idea",
-  "faq",
+  "article",
+  "portal_update",
   "compliance",
+  "faq",
   "training",
   "webinar",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
+// An extra, section-specific field. Values land in newsletter_submissions.details
+// (jsonb) rather than as columns, so a section can gain a field without a
+// migration — the same reasoning as keeping the section list in code.
+export type ExtraField = {
+  key: string;
+  label: string;
+  type: "text" | "date" | "time";
+  placeholder?: string;
+};
+
 export type SectionMeta = {
   label: string;
+  // Per-section wording for the three shared inputs. A webinar's heading is its
+  // subject and its link is where members register; calling both by their
+  // generic names made the form read as a form rather than as the section.
+  titleLabel?: string;
+  bodyLabel?: string;
+  linkLabel?: string;
+  fields?: ExtraField[];
   // Shown on the form. Written to stop things coming back half-finished, which
   // is the failure the whole intake stage exists to prevent.
   hint: string;
@@ -57,37 +93,52 @@ export type SectionMeta = {
 };
 
 export const SECTION_META: Record<SectionType, SectionMeta> = {
-  topic_idea: {
-    label: "Topic idea or link",
-    hint: "One idea per submission. If it came from something you read, paste the link — the draft will reference it.",
+  article: {
+    label: "Article for this edition",
+    hint: "One article per submission — add as many as the month needs. A legislative or regulatory change, an ATO or Fair Work update, or a reminder for members. Give what changed, the effective date, who it affects, and the source link. Where it turns on a calculation, add a worked example with real dates and figures.",
     target: null,
+    source: "team",
+    needsLink: true,
+  },
+  compliance: {
+    label: "Compliance",
+    hint: "The rule, the exceptions, and the withholding or reporting consequence. Close on what payroll should actually do — this section always ends on an action, not a summary. Include an Ask Beryl conversation here if one illustrates the point.",
+    target: 1,
     source: "team",
     needsLink: false,
   },
   faq: {
     label: "FAQ",
-    hint: "A question a member actually asked, and the answer you gave. Write the answer in full — a one-line note cannot be drafted from.",
+    hint: "A question members keep asking, answered by APA in full. Q and A, with the ATO or Fair Work reference. Worked examples and tables are welcome — this is the section that can carry them.",
     target: 2,
     source: "team",
     needsLink: false,
   },
-  compliance: {
-    label: "Compliance piece",
-    hint: "What changed, when it takes effect, and who it affects. Include the source (award, ruling, ATO update) so the draft can cite it.",
-    target: 1,
+  portal_update: {
+    label: "What's on the Members Portal",
+    hint: "New or updated resources — calculators, knowledge base articles, portal features. Say what it does for a payroll professional and paste the portal link. Note if it came from member feedback.",
+    target: null,
     source: "team",
-    needsLink: false,
+    needsLink: true,
   },
   training: {
     label: "Upcoming training",
-    hint: "Sessions running in this edition's dates. Published events are pulled in automatically — add any that aren't in the calendar yet, with the date, format and who it's for.",
+    hint: "One course per submission, as it appears in the table: course name, date with start and finish times and timezone, and delivery (e.g. Virtual Classroom). Mark it NEW! if it is. Published events are pulled in automatically — add anything not in the calendar yet.",
     target: null,
     source: "events",
     needsLink: false,
   },
   webinar: {
-    label: "Next webinar",
-    hint: "Title, date, time and a two-line description of what attendees will get. Pulled from the calendar automatically when the event is published there — otherwise type it here.",
+    label: "Members webinar",
+    hint: "The session's subject, when it runs, where to register, and what it covers. The webinar block sells the session — write the coverage as what attendees will be able to do afterwards, not just a list of topics.",
+    titleLabel: "Subject",
+    bodyLabel: "What's being covered",
+    linkLabel: "Register now link",
+    fields: [
+      { key: "presenter", label: "Presenter", type: "text", placeholder: "Maria Nikoletatos, Australian Payroll Association" },
+      { key: "date", label: "Date", type: "date" },
+      { key: "time", label: "Time", type: "text", placeholder: "1:00 pm AEST" },
+    ],
     target: 1,
     source: "events",
     needsLink: false,

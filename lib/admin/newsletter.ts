@@ -118,6 +118,8 @@ export type SubmissionRow = {
   included: boolean;
   source: "team" | "events";
   eventId: string | null;
+  /** Section-specific extras, keyed by SECTION_META[type].fields. */
+  details: Record<string, string>;
   contributor: string | null;
   createdAt: string;
 };
@@ -131,6 +133,7 @@ type DbSubmission = {
   included: boolean;
   source: string;
   event_id: string | null;
+  details: Record<string, string> | null;
   created_at: string;
   people: { full_name: string | null; preferred_name: string | null } | null;
 };
@@ -139,7 +142,7 @@ export async function listSubmissions(editionId: string): Promise<SubmissionRow[
   const { data, error } = await companyOs
     .from("newsletter_submissions")
     .select(
-      "id, section_type, title, body, link_url, included, source, event_id, created_at, people:people!person_id(full_name, preferred_name)",
+      "id, section_type, title, body, link_url, included, source, event_id, details, created_at, people:people!person_id(full_name, preferred_name)",
     )
     .eq("edition_id", editionId)
     .order("created_at", { ascending: true });
@@ -160,6 +163,7 @@ export async function listSubmissions(editionId: string): Promise<SubmissionRow[
       included: r.included,
       source: r.source === "events" ? "events" : "team",
       eventId: r.event_id,
+      details: r.details ?? {},
       contributor: person?.preferred_name || person?.full_name || null,
       createdAt: r.created_at,
     };

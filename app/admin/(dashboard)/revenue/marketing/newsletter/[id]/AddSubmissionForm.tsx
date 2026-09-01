@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addSubmissionAsAdmin } from "../actions";
 import { CONTRIBUTABLE_SECTIONS, SECTION_META, type SectionType } from "@/lib/newsletter";
+import { SectionFields } from "@/components/admin/SectionFields";
 
 // Admin-side add. Deliberately the same field set and the same hints as the
 // /team form, so an item added here is indistinguishable from one a contributor
@@ -19,6 +20,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [details, setDetails] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,7 +31,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
     setSaving(true);
     setError(null);
     setDone(null);
-    const result = await addSubmissionAsAdmin({ editionId, sectionType, title, body, linkUrl });
+    const result = await addSubmissionAsAdmin({ editionId, sectionType, title, body, linkUrl, details });
     setSaving(false);
     if (!result.ok) {
       setError(result.error);
@@ -38,6 +40,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
     setTitle("");
     setBody("");
     setLinkUrl("");
+    setDetails({});
     setDone(result.message ?? "Added.");
     router.refresh();
   }
@@ -61,7 +64,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
             id="adm-section"
             className="admin-select"
             value={sectionType}
-            onChange={(e) => setSectionType(e.target.value as SectionType)}
+            onChange={(e) => { setSectionType(e.target.value as SectionType); setDetails({}); }}
           >
             {CONTRIBUTABLE_SECTIONS.map((t) => (
               <option key={t} value={t}>
@@ -74,9 +77,11 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
           </p>
         </div>
 
+        <SectionFields sectionType={sectionType} values={details} onChange={(k, v) => setDetails((d) => ({ ...d, [k]: v }))} idPrefix="adm" />
+
         <div className="admin-field">
           <label className="admin-label" htmlFor="adm-title">
-            Heading <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
+            {meta.titleLabel ?? "Heading"} <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
           </label>
           <input
             id="adm-title"
@@ -90,7 +95,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="adm-body">
-            Detail
+            {meta.bodyLabel ?? "Detail"}
           </label>
           <textarea
             id="adm-body"
@@ -105,7 +110,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
 
         <div className="admin-field">
           <label className="admin-label" htmlFor="adm-link">
-            Link <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
+            {meta.linkLabel ?? "Link"} <span style={{ fontWeight: 400, opacity: 0.7 }}>(optional)</span>
           </label>
           <input
             id="adm-link"
