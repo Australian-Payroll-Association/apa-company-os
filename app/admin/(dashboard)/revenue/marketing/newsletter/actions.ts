@@ -5,7 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { getEdition, syncEventsForEdition } from "@/lib/admin/newsletter";
-import { defaultEditionTitle } from "@/lib/newsletter";
+import { SECTION_META, defaultEditionTitle, isSectionType } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
 // deliberate decision — no cron opens one for you), and every write is audited
@@ -204,4 +204,87 @@ export async function setSubmissionIncluded(
   });
   refresh(editionId);
   return { ok: true };
+}
+
+// Admin-side contribution. The /team form is the main path, but the person
+// assembling an edition is the most likely to notice a gap and want to fill it
+// on the spot — sending them to another portal to do it was pure friction.
+//
+// Attribution is resolved from the admin's own email so the item is credited to
+// a real person, exactly as a /team submission would be. An admin with no
+// people record still gets to contribute; the row is simply unattributed.
+export async function addSubmissionAsAdmin(input: {
+  editionId: string;
+  sectionType: string;
+  title: string;
+  body: string;
+  linkUrl: string;
+}): Promise<Result> {
+  const admin = await requireAdmin();
+
+  if (!isSectionType(input.sectionType)) return { ok: false, error: "Pick a section." };
+  // Training and webinars come from the events calendar. Hand-adding them here
+  // would let the auto-pull overwrite or duplicate them.
+  if (SECTION_META[input.sectionType].source === "events") {
+    return {
+      ok: false,
+      error: `${SECTION_META[input.sectionType].label} comes from the events calendar — use "Pull training & webinars".`,
+    };
+  }
+
+  const title = input.title.trim();
+  const body = input.body.trim();
+  if (!body) return { ok: false, error: "Add some detail — an empty item can't be drafted from." };
+  if (title.length > 200) return { ok: false, error: "Keep the heading under 200 characters." };
+  if (body.length > 5000) return { ok: false, error: "That's longer than 5,000 characters." };
+
+  const link = input.linkUrl.trim();
+  if (link) {
+    try {
+      const parsed = new URL(link);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, error: "Links need to be regular http(s) addresses." };
+      }
+    } catch {
+      return { ok: false, error: "That doesn't look like a valid link. Include https:// at the front." };
+    }
+  }
+
+  const edition = await getEdition(input.editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+  if (edition.status !== "open" && edition.status !== "closed") {
+    return { ok: false, error: `A ${edition.status} edition can no longer take new items.` };
+  }
+
+  // Credit the admin's own people record when there is one.
+  const { data: person } = await companyOs
+    .from("people")
+    .select("id")
+    .eq("email", admin.email)
+    .maybeSingle();
+
+  const { data: row, error } = await companyOs
+    .from("newsletter_submissions")
+    .insert({
+      edition_id: input.editionId,
+      person_id: (person as { id: string } | null)?.id ?? null,
+      section_type: input.sectionType,
+      title: title || null,
+      body,
+      link_url: link || null,
+      source: "team",
+    })
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    table: "newsletter_submissions",
+    recordId: (row as { id: string } | null)?.id ?? null,
+    operation: "insert",
+    actor: admin.email,
+    newData: { edition_id: input.editionId, section_type: input.sectionType, added_from: "admin" },
+  });
+  refresh(input.editionId);
+  return { ok: true, message: `Added to ${SECTION_META[input.sectionType].label}.` };
 }
