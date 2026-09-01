@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { companyOs } from "@/lib/supabase";
 import { PageHead } from "@/components/admin/PageHead";
@@ -54,7 +55,7 @@ function band(util: number | null, confirmed: number): "empty" | "ok" | "warn" |
 export default async function SchedulingPage() {
   await requireAdmin();
 
-  const [loadRes, forecastRes] = await Promise.all([
+  const [loadRes, forecastRes, budgetRes] = await Promise.all([
     companyOs
       .from("consultant_load")
       .select(
@@ -63,6 +64,9 @@ export default async function SchedulingPage() {
       .order("display_name", { ascending: true })
       .order("week_start", { ascending: true }),
     companyOs.from("deal_forecast_load").select("team_member_id, week_start, probability_weighted_hours"),
+    companyOs
+      .from("project_budget_health")
+      .select("board_id, name, budget_hours, logged_hours, remaining_budget_hours, remaining_estimate_hours, over_budget_flag"),
   ]);
 
   const rows = (loadRes.data ?? []) as unknown as LoadRow[];
@@ -113,12 +117,33 @@ export default async function SchedulingPage() {
     0,
   );
 
+  // Early-warning flags (Phase 2). Person: over 100% this week. Project:
+  // remaining task estimate exceeds remaining budget hours.
+  type BudgetRow = {
+    board_id: string;
+    name: string;
+    remaining_budget_hours: unknown;
+    remaining_estimate_hours: unknown;
+    over_budget_flag: boolean;
+  };
+  const overBudget = ((budgetRes.data ?? []) as BudgetRow[]).filter((b) => b.over_budget_flag);
+  const overworked = people
+    .map((p) => ({ name: p.name, util: cellOf.get(`${p.personId}|${thisWeek}`)?.util ?? 0 }))
+    .filter((x) => (x.util ?? 0) > 100)
+    .sort((a, b) => (b.util ?? 0) - (a.util ?? 0));
+  const flagCount = overBudget.length + overworked.length;
+
   return (
     <div>
       <PageHead
         eyebrow="Operations"
         title="Scheduling"
         sub="Team load across a rolling eight weeks — confirmed and tentative against a 38-hour week, leave subtracted."
+        action={
+          <Link className="admin-btn admin-btn--sm" href="/admin/operations/scheduling/capability">
+            Capability matrix →
+          </Link>
+        }
       />
 
       {people.length === 0 ? (
@@ -133,6 +158,34 @@ export default async function SchedulingPage() {
             <MetricCard label="Over 100%" value={String(overHard)} sub="hard overwork flag" />
             <MetricCard label="At or over 85%" value={String(atSoft)} sub="soft (burnout) band" />
             <MetricCard label="Tentative" value={`${formatHours(tentativeThisWeek)}h`} sub="unconfirmed, this week" />
+          </div>
+
+          <div className="sched-flags">
+            <div className="sched-flags-head">
+              Early warnings
+              <span className={`sched-flags-count${flagCount > 0 ? " is-hot" : ""}`}>{flagCount}</span>
+            </div>
+            {flagCount === 0 ? (
+              <p className="sched-flags-clear">Nothing flagged — no one over 100% this week, no project tracking over budget.</p>
+            ) : (
+              <div className="sched-flags-list">
+                {overworked.map((o) => (
+                  <div key={o.name} className="sched-flag is-crit">
+                    <span className="sched-flag-tag">Overwork</span>
+                    <span><b>{o.name}</b> is at {Math.round(o.util ?? 0)}% this week (over the 38-hour week going to clients).</span>
+                  </div>
+                ))}
+                {overBudget.map((b) => (
+                  <div key={b.board_id} className="sched-flag is-warn">
+                    <span className="sched-flag-tag">Over budget</span>
+                    <span>
+                      <b>{b.name}</b> — {formatHours(Number(b.remaining_estimate_hours))}h of work left,
+                      {" "}{formatHours(Number(b.remaining_budget_hours))}h of budget remaining.
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="sched-legend" aria-hidden="true">
