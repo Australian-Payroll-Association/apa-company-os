@@ -7,7 +7,7 @@ import { WorkbookDropzone } from "./WorkbookDropzone";
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn btn-primary" disabled={pending} style={{ width: "100%" }}>
+    <button type="submit" className="admin-btn admin-btn--primary" disabled={pending} style={{ width: "100%", justifyContent: "center" }}>
       {pending ? "Calculating…" : "Run recalculation"}
     </button>
   );
