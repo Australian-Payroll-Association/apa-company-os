@@ -355,10 +355,12 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
     .eq("section_type", "training");
   if (readError) return { ok: false, error: readError.message };
 
+  // Keyed on the ISO date rather than the printed label: the site can reword
+  // "September 3rd" without the course itself changing.
   const key = (url: string | null, date: string) => `${url ?? ""}|${date}`;
   const existing = new Map(
     ((existingData ?? []) as { id: string; link_url: string | null; details: Record<string, string> | null }[]).map(
-      (r) => [key(r.link_url, r.details?.date ?? ""), r.id],
+      (r) => [key(r.link_url, r.details?.date_from ?? ""), r.id],
     ),
   );
 
@@ -366,12 +368,15 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
   let updated = 0;
 
   for (const course of fetched.courses) {
-    const match = existing.get(key(course.url, course.dateLabel));
+    const iso = course.date.toISOString().slice(0, 10);
+    const match = existing.get(key(course.url, iso));
     const row = {
       title: course.title,
       body: course.description,
       link_url: course.url,
-      details: { date: course.dateLabel, format: course.format },
+      // date_to is left unset — the site advertises one date per course, and a
+      // blank end date is what marks a single-day course.
+      details: { date_from: iso, format: course.format },
     };
     if (match) {
       const { error } = await companyOs.from("newsletter_submissions").update(row).eq("id", match);
