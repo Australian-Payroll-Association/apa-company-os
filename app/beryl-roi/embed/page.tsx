@@ -7,11 +7,16 @@ import {
 } from '@/lib/roi'
 
 // Build 2 — the embeddable widget. Standalone, APA-branded, chrome-free
-// (see BARE_ROUTES in components/SiteFrame). Embedded via <iframe> on the APA
-// HubSpot site; posts its height to the parent so the frame auto-resizes.
+// (see BARE_ROUTES in components/SiteFrame). Lead capture is the APA HubSpot
+// form embedded below; this app makes NO HubSpot calls. On a successful form
+// submit, the manager-ready PDF (render-only, no side effects) is offered for
+// download here in the iframe.
+
+const HS_PORTAL = '40101382'
+const HS_FORM = 'c380c654-3b7e-4464-998a-d338bfd6fcb2'
+const HS_REGION = 'na1'
 
 type Loaded = { assumptions: RoiAssumptions; price: BerylPrice }
-type FormState = { firstname: string; lastname: string; jobtitle: string; email: string }
 
 export default function BerylRoiEmbed() {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -23,11 +28,15 @@ export default function BerylRoiEmbed() {
   const [salary, setSalary] = useState('')
 
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState<FormState>({ firstname: '', lastname: '', jobtitle: '', email: '' })
-  const [pdfStatus, setPdfStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
+  // idle -> (form submitted) preparing -> ready (download link) | error
+  const [pdfStatus, setPdfStatus] = useState<'idle' | 'preparing' | 'ready' | 'error'>('idle')
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
-  const usageId = useRef<string | null>(null)
   const logged = useRef(false)
+  const usageId = useRef<string | null>(null)
+  const hsCreated = useRef(false)
+  const contactRef = useRef({ firstname: '', lastname: '', jobtitle: '' })
+  const inputsRef = useRef({ t: 0, q: 0, s: 0, valid: false })
 
   useEffect(() => {
     fetch('/api/roi/assumptions')
@@ -36,7 +45,7 @@ export default function BerylRoiEmbed() {
       .catch(() => setLoadError(true))
   }, [])
 
-  // Auto-resize the host iframe.
+  // Auto-resize the host iframe (also catches the HubSpot form + PDF button).
   useEffect(() => {
     const post = () => window.parent?.postMessage(
       { type: 'beryl-roi:height', height: Math.ceil(document.documentElement.scrollHeight) }, '*')
@@ -51,13 +60,14 @@ export default function BerylRoiEmbed() {
     const t = Number(teamSize), q = Number(queriesPerUser), s = Number(salary)
     return { t, q, s, valid: [t, q, s].every(n => Number.isFinite(n) && n > 0) }
   }, [teamSize, queriesPerUser, salary])
+  inputsRef.current = nums
 
   const result = useMemo(() => {
     if (!loaded || !nums.valid) return null
     return computeRoi({ teamSize: nums.t, queriesPerUser: nums.q, annualSalary: nums.s / nums.t }, loaded.assumptions, loaded.price)
   }, [loaded, nums])
 
-  // Log one anonymous usage row the first time a valid result appears.
+  // Anonymous usage row on first valid result (no PII, no HubSpot).
   useEffect(() => {
     if (!result || logged.current) return
     logged.current = true
@@ -67,6 +77,57 @@ export default function BerylRoiEmbed() {
     }).then(r => r.ok ? r.json() : null).then(d => { if (d?.id) usageId.current = d.id }).catch(() => {})
   }, [result, nums])
 
+  // Fetch the render-only PDF and expose it as a download link.
+  async function preparePdf() {
+    const cur = inputsRef.current
+    if (!cur.valid) return
+    setPdfStatus('preparing')
+    try {
+      const res = await fetch('/api/roi/pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...contactRef.current, teamSize: cur.t, queriesPerUser: cur.q, salary: cur.s }),
+      })
+      if (!res.ok) throw new Error('pdf')
+      const blob = await res.blob()
+      setPdfUrl(URL.createObjectURL(blob))
+      setPdfStatus('ready')
+    } catch { setPdfStatus('error') }
+  }
+
+  // Load HubSpot's form embed and render the APA form once the user opts in.
+  useEffect(() => {
+    if (!showForm || hsCreated.current) return
+    const ensure = () => new Promise<void>((resolve) => {
+      if ((window as any).hbspt) return resolve()
+      const s = document.createElement('script')
+      s.src = 'https://js.hsforms.net/forms/embed/v2.js'
+      s.async = true
+      s.onload = () => resolve()
+      document.body.appendChild(s)
+    })
+    ensure().then(() => {
+      const hbspt = (window as any).hbspt
+      if (!hbspt?.forms || hsCreated.current) return
+      hsCreated.current = true
+      hbspt.forms.create({
+        region: HS_REGION,
+        portalId: HS_PORTAL,
+        formId: HS_FORM,
+        target: '#beryl-hs-form',
+        // Capture the entered name (client-side only) purely to personalise the
+        // PDF — nothing is stored or sent anywhere by this app.
+        onFormSubmit: ($form: any) => {
+          try {
+            const v = (n: string) => $form?.find?.(`input[name="${n}"]`)?.val?.() || ''
+            contactRef.current = { firstname: v('firstname'), lastname: v('lastname'), jobtitle: v('jobtitle') }
+          } catch {}
+        },
+        // HubSpot has captured the lead natively; now offer the PDF.
+        onFormSubmitted: () => { preparePdf() },
+      })
+    })
+  }, [showForm])
+
   const currency = loaded?.price.currency ?? 'aud'
   const range = (lo: number, hi: number) =>
     lo === hi ? formatCents(lo, currency) : `${formatCents(lo, currency)} – ${formatCents(hi, currency)}`
@@ -75,32 +136,6 @@ export default function BerylRoiEmbed() {
         ? `${loaded.assumptions.timeSavedMinMinutes} min`
         : `${loaded.assumptions.timeSavedMinMinutes}–${loaded.assumptions.timeSavedMaxMinutes} min`)
     : ''
-
-  const formValid = form.firstname.trim() && form.lastname.trim() && form.jobtitle.trim() &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
-
-  async function requestPdf(e: React.FormEvent) {
-    e.preventDefault()
-    if (!formValid || !nums.valid) return
-    setPdfStatus('sending')
-    try {
-      const res = await fetch('/api/roi/pdf', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, teamSize: nums.t, queriesPerUser: nums.q, salary: nums.s, usageId: usageId.current }),
-      })
-      if (!res.ok) throw new Error('pdf')
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = `Beryl-ROI-${form.lastname || 'estimate'}.pdf`
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
-      setPdfStatus('done')
-    } catch { setPdfStatus('error') }
-  }
-
-  const setF = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(prev => ({ ...prev, [k]: e.target.value }))
 
   return (
     <div className="beryl">
@@ -150,33 +185,32 @@ export default function BerylRoiEmbed() {
         </div>
       </div>
 
-      {/* PDF capture */}
+      {/* Lead capture = the APA HubSpot form; PDF unlocks on submit */}
       {result && (
         <div className="pdf">
-          {pdfStatus === 'done' ? (
-            <p className="done">✓ Your manager ready PDF is downloading. Check your downloads folder.</p>
-          ) : !showForm ? (
+          {!showForm ? (
             <button type="button" className="cta" onClick={() => setShowForm(true)}>
               Get a manager ready PDF of this estimate
             </button>
           ) : (
-            <form onSubmit={requestPdf} className="capture">
-              <div className="frow">
-                <label><span>First name</span><input value={form.firstname} onChange={setF('firstname')} required /></label>
-                <label><span>Last name</span><input value={form.lastname} onChange={setF('lastname')} required /></label>
-              </div>
-              <div className="frow">
-                <label><span>Job title</span><input value={form.jobtitle} onChange={setF('jobtitle')} required /></label>
-                <label><span>Work email</span><input type="email" value={form.email} onChange={setF('email')} required /></label>
-              </div>
-              <p className="consent">By submitting your details to access this resource, you will be added to our mailing list.</p>
-              <div className="factions">
-                <button type="submit" className="cta" disabled={!formValid || pdfStatus === 'sending'}>
-                  {pdfStatus === 'sending' ? 'Preparing your PDF…' : 'Download the PDF'}
-                </button>
-                {pdfStatus === 'error' && <span className="ferr">Something went wrong — please try again.</span>}
-              </div>
-            </form>
+            <div className="capture">
+              {pdfStatus !== 'ready' && (
+                <>
+                  <p className="capnote">Enter your details to download the manager ready PDF of this estimate.</p>
+                  <div id="beryl-hs-form" />
+                </>
+              )}
+              {pdfStatus === 'preparing' && <p className="capnote">Preparing your PDF…</p>}
+              {pdfStatus === 'ready' && pdfUrl && (
+                <div className="ready">
+                  <p className="done">✓ Thanks! Your manager ready PDF is ready.</p>
+                  <a className="cta" href={pdfUrl} download="Beryl-ROI-estimate.pdf">Download your PDF</a>
+                </div>
+              )}
+              {pdfStatus === 'error' && (
+                <p className="ferr">We couldn&rsquo;t generate the PDF just now. Please try again in a moment.</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -208,8 +242,6 @@ export default function BerylRoiEmbed() {
           font-size:18px; max-width:1200px; margin:0 auto; padding:8px; }
         .beryl *, .beryl *::before, .beryl *::after { box-sizing:border-box; }
         .err { color:#a4382f; font-weight:600; }
-        /* Two columns whenever the embed has room (~500px+); stacks below that,
-           so it works across whatever width the HubSpot module gives the iframe. */
         .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; align-items:stretch; }
         .inputs { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
         label { display:block; }
@@ -233,22 +265,15 @@ export default function BerylRoiEmbed() {
         dd { margin:0; font-size:1.05rem; font-family:"Montserrat",sans-serif; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
         .net dd { color:#7fe0b0; }
         .pdf { margin-top:18px; }
-        .cta { font-family:"Montserrat",sans-serif; font-weight:700; font-size:1.1rem; color:var(--blue-d); background:var(--gold);
-          border:0; border-radius:10px; padding:15px 22px; cursor:pointer; width:100%; }
+        .cta { display:inline-block; text-decoration:none; text-align:center; font-family:"Montserrat",sans-serif; font-weight:700; font-size:1.1rem;
+          color:var(--blue-d); background:var(--gold); border:0; border-radius:10px; padding:15px 22px; cursor:pointer; width:100%; }
         .cta:hover { background:#e0ad0c; }
-        .cta:disabled { opacity:.55; cursor:default; }
         .cta:focus-visible { outline:2px solid var(--blue-d); outline-offset:2px; }
-        .capture { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin-top:4px; }
-        .frow { display:flex; gap:12px; }
-        .frow + .frow { margin-top:12px; }
-        @media (max-width:520px){ .frow { flex-direction:column; gap:12px; } }
-        .capture label { flex:1; }
-        .capture label span { display:block; font-family:"Montserrat",sans-serif; font-weight:600; font-size:.88rem; color:var(--blue-d); margin-bottom:6px; }
-        .consent { color:var(--muted); font-size:.9rem; line-height:1.5; margin:14px 0 12px; }
-        .factions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .factions .cta { width:auto; }
-        .ferr { color:#a4382f; font-size:.92rem; }
-        .done { background:#e6f2ec; border:1px solid #bfe0cd; color:var(--good); border-radius:12px; padding:16px 18px; margin:0; font-weight:600; font-size:1.05rem; }
+        .capture { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
+        .capnote { font-family:"Montserrat",sans-serif; font-weight:600; color:var(--blue-d); font-size:1rem; margin:0 0 14px; }
+        .ready { text-align:center; }
+        .done { background:#e6f2ec; border:1px solid #bfe0cd; color:var(--good); border-radius:12px; padding:14px 16px; margin:0 0 14px; font-weight:600; font-size:1.05rem; }
+        .ferr { color:#a4382f; font-size:.95rem; margin:12px 0 0; }
         .method { margin-top:18px; }
         .method > button { width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--ground);
           border:1px solid var(--line); border-radius:10px; padding:13px 18px; font-family:"Montserrat",sans-serif; font-weight:600;
@@ -259,7 +284,19 @@ export default function BerylRoiEmbed() {
         .method-body p { font-size:1rem; color:var(--ink); line-height:1.6; margin:0 0 10px; }
         .fine { color:var(--muted); font-size:.9rem; }
       `}</style>
-      <style jsx global>{`html, body { background:transparent; margin:0; }`}</style>
+      {/* Give HubSpot's injected form fields a look that fits the widget. */}
+      <style jsx global>{`
+        html, body { background:transparent; margin:0; }
+        #beryl-hs-form .hs-form-field { margin-bottom:14px; }
+        #beryl-hs-form label { font-family:"Montserrat",sans-serif; font-weight:600; font-size:.9rem; color:#2a3850; display:block; margin-bottom:6px; }
+        #beryl-hs-form input.hs-input, #beryl-hs-form select.hs-input, #beryl-hs-form textarea.hs-input {
+          width:100%; padding:12px 14px; font-size:1.05rem; border:1px solid #cfd6e0; border-radius:9px; background:#f6f8fb; color:#2a3850; }
+        #beryl-hs-form .hs-button {
+          font-family:"Montserrat",sans-serif; font-weight:700; font-size:1.1rem; color:#2a3850; background:#F0BD18;
+          border:0; border-radius:10px; padding:14px 22px; cursor:pointer; margin-top:6px; }
+        #beryl-hs-form .hs-button:hover { background:#e0ad0c; }
+        #beryl-hs-form .hs-error-msg, #beryl-hs-form .hs-error-msgs label { color:#a4382f; font-weight:400; }
+      `}</style>
     </div>
   )
 }

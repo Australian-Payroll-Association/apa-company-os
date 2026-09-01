@@ -88,8 +88,8 @@ export function BerylRoiPdf(p: BerylPdfProps) {
               </View>
             )}
           <View>
-            <Text style={s.prepared}>Prepared for {p.contact.firstname} {p.contact.lastname}</Text>
-            <Text style={s.prepared}>{p.contact.jobtitle}</Text>
+            {p.contact.firstname ? <Text style={s.prepared}>Prepared for {p.contact.firstname} {p.contact.lastname}</Text> : null}
+            {p.contact.jobtitle ? <Text style={s.prepared}>{p.contact.jobtitle}</Text> : null}
             <Text style={s.prepared}>{p.preparedOn}</Text>
           </View>
         </View>
