@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
     const email = String(b.email ?? '').trim().toLowerCase()
     const t = Number(b.teamSize), q = Number(b.queriesPerUser), sal = Number(b.salary)
     const usageId: string | undefined = b.usageId
-    // TEMP: ?dryRun=1 renders the PDF WITHOUT any lead/HubSpot/usage writes,
-    // so the render path can be tested without firing side effects.
-    const dryRun = new URL(req.url).searchParams.get('dryRun') === '1'
 
     if (!firstname || !lastname || !jobtitle || !emailOk(email)) {
       return NextResponse.json({ error: 'invalid_contact' }, { status: 400 })
@@ -41,7 +38,6 @@ export async function POST(req: NextRequest) {
     const result = computeRoi({ teamSize: t, queriesPerUser: q, annualSalary: sal / t }, model.assumptions, model.price)
 
     // ── Side effects: best-effort, must never block the PDF ──────────────────
-    if (!dryRun) {
     // 1) Native CRM: person + lead (source='roi_calculator'), consent + job title.
     try {
       const person = await getOrCreatePerson({ email, name: `${firstname} ${lastname}`, source: 'roi_calculator' })
@@ -88,7 +84,6 @@ export async function POST(req: NextRequest) {
         })
       }
     } catch (e) { console.error('[beryl-roi] usage flag failed:', e) }
-    } // end if (!dryRun)
 
     // ── Render the PDF ───────────────────────────────────────────────────────
     const logoPath = join(process.cwd(), 'public', 'beryl', 'apa-logo.png')
@@ -118,11 +113,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[beryl-roi] pdf route error:', err)
-    // TEMP: ?debug=1 surfaces the real error to diagnose the Vercel-only 500.
-    const debug = new URL(req.url).searchParams.get('debug') === '1'
-    return NextResponse.json(
-      debug ? { error: 'failed', detail: String(err), stack: (err as Error)?.stack?.split('\n').slice(0, 6) } : { error: 'failed' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
 }
