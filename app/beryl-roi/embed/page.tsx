@@ -205,7 +205,7 @@ export default function BerylRoiEmbed() {
         .beryl { --blue:#48608a; --blue-d:#2a3850; --gold:#F0BD18; --ink:#3a3839;
           --muted:#6b7484; --line:#dde2ea; --surface:#fff; --ground:#f6f8fb; --good:#2f7d5b;
           font-family:"Source Sans 3", system-ui, -apple-system, sans-serif; color:var(--ink);
-          font-size:18px; max-width:720px; margin:0 auto; padding:8px; }
+          font-size:18px; max-width:1200px; margin:0 auto; padding:8px; }
         .beryl *, .beryl *::before, .beryl *::after { box-sizing:border-box; }
         .err { color:#a4382f; font-weight:600; }
         /* Two columns whenever the embed has room (~500px+); stacks below that,
