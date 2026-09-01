@@ -66,24 +66,40 @@ export default async function RecalcPage() {
         <UploadForm />
 
         <section>
-          <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 10px", fontFamily: "var(--font-display)" }}>Runs</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 10px", fontFamily: "var(--font-display)", color: "var(--admin-ink)" }}>Runs</h2>
           {runs.length === 0 ? (
-            <p className="tsheet-empty">No runs yet — download the template, fill it in, and upload it to run the engine.</p>
+            <p style={{ color: "var(--admin-muted)", fontSize: 14, padding: "24px 0", textAlign: "center" }}>
+              No runs yet — download the template, fill it in, and upload it to run the engine.
+            </p>
           ) : (
-            <div className="tsheet-rowlist">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {runs.map((r) => (
-                <Link key={r.id} href={`/admin/innovation/recalc/${r.id}`} className="tsheet-row" style={{ textDecoration: "none", gridTemplateColumns: "1fr auto auto auto" }}>
-                  <div className="tsheet-row-main">
-                    <span className="tsheet-row-project">{r.label || r.id.slice(0, 8)}</span>
-                    <span className="tsheet-row-client">{r.ruleSetName ?? "—"}</span>
+                <Link
+                  key={r.id}
+                  href={`/admin/innovation/recalc/${r.id}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto auto auto",
+                    gap: 14,
+                    alignItems: "center",
+                    padding: "11px 14px",
+                    background: "var(--admin-surface)",
+                    border: "1px solid var(--admin-line)",
+                    borderRadius: "var(--admin-radius-sm)",
+                    textDecoration: "none",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                    <span style={{ fontWeight: 600, color: "var(--admin-ink)" }}>{r.label || r.id.slice(0, 8)}</span>
+                    <span style={{ fontSize: 12, color: "var(--admin-muted)" }}>{r.ruleSetName ?? "—"}</span>
                   </div>
                   <Badge tone={statusTone(r.status)}>{r.status}</Badge>
                   {r.results ? (
                     <Badge tone={r.results.totals.flaggedCount > 0 ? "err" : "ok"}>{r.results.totals.flaggedCount} flagged</Badge>
                   ) : (
-                    <span className="tsheet-row-hours">—</span>
+                    <span style={{ color: "var(--admin-muted)" }}>—</span>
                   )}
-                  <span className="tsheet-row-client">{formatDate(r.createdAt)}</span>
+                  <span style={{ fontSize: 12, color: "var(--admin-muted)", whiteSpace: "nowrap" }}>{formatDate(r.createdAt)}</span>
                 </Link>
               ))}
             </div>
