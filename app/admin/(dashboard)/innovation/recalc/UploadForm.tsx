@@ -6,6 +6,14 @@ import { WorkbookDropzone } from "./WorkbookDropzone";
 
 export type RuleSetOption = { id: string; name: string };
 
+// Native <select> boxes clip overflowing text rather than wrapping it — a
+// full award name ("MA000019 - Banking, Finance and Insurance Award 2020")
+// doesn't fit the ~380px column this form sits in, so shorten what's shown
+// and keep the full name as a hover title.
+function shortRuleSetLabel(name: string): string {
+  return name.length > 34 ? `${name.slice(0, 33)}…` : name;
+}
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -34,8 +42,8 @@ export function UploadForm({ ruleSets }: { ruleSets: RuleSetOption[] }) {
             <option value="">No rule sets seeded</option>
           ) : (
             ruleSets.map((rs) => (
-              <option key={rs.id} value={rs.id}>
-                {rs.name}
+              <option key={rs.id} value={rs.id} title={rs.name}>
+                {shortRuleSetLabel(rs.name)}
               </option>
             ))
           )}
