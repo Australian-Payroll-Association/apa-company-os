@@ -9,6 +9,10 @@ const nextConfig = {
     // actions; the framework default of 1 MB silently rejected files the app
     // itself allows up to 10 MB.
     serverActions: { bodySizeLimit: "10mb" },
+    // @react-pdf/renderer must run from node_modules, not be webpack-bundled —
+    // bundling breaks its font/asset loading in the Vercel lambda, so the Beryl
+    // ROI PDF route 500s in production while working locally.
+    serverComponentsExternalPackages: ["@react-pdf/renderer"],
     // The dynamic [slug] OG image routes render at request time, and Vercel's
     // file tracing does not bundle public/ into those lambdas, so the Manrope
     // TTFs (and case-study photos) 500'd with ENOENT. Statically prerendered
