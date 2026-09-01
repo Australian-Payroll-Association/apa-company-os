@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import { Badge } from "@/components/admin/Badge";
-import { formatCents, formatDate } from "@/lib/admin/format";
+import { formatCents, formatDate, formatVarianceCents } from "@/lib/admin/format";
 import type { VarianceRow } from "@/lib/recalc/types";
 
 type EmployeeGroup = {
@@ -76,7 +76,7 @@ function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defa
         </span>
         {group.flaggedCount > 0 ? (
           <Badge tone="err">
-            {group.flaggedCount} flagged · {formatCents(group.varianceCents)}
+            {group.flaggedCount} flagged · {formatVarianceCents(group.varianceCents)}
           </Badge>
         ) : (
           <Badge tone="ok">matches</Badge>
@@ -126,9 +126,9 @@ function EmployeeGroupBlock({ group, defaultOpen }: { group: EmployeeGroup; defa
               <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatCents(v.actualCents)}</span>
               <span style={{ textAlign: "right" }}>
                 {v.flagged ? (
-                  <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatCents(v.varianceCents)}</Badge>
+                  <Badge tone={v.varianceCents < 0 ? "err" : "warn"}>{formatVarianceCents(v.varianceCents)}</Badge>
                 ) : (
-                  <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatCents(v.varianceCents)}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--admin-ink)" }}>{formatVarianceCents(v.varianceCents)}</span>
                 )}
               </span>
             </div>

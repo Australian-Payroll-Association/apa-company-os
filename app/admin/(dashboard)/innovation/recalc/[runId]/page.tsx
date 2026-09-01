@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin, canViewSensitive } from "@/lib/admin-auth";
 import { PageHead } from "@/components/admin/PageHead";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { formatCents, formatDate } from "@/lib/admin/format";
+import { formatCents, formatDate, formatVarianceCents } from "@/lib/admin/format";
 import { getRun } from "@/lib/recalc/runs";
 import { VarianceExplorer } from "../VarianceExplorer";
 
@@ -34,6 +34,13 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
         }
         title={run.label || run.id.slice(0, 8)}
         sub={`${run.ruleSetName ?? "Unknown rule set"} · workbook: ${run.workbookFilename ?? "—"} · ${formatDate(run.createdAt)}`}
+        action={
+          run.results && (
+            <a className="admin-btn" href={`/api/admin/recalc/runs/${run.id}/export`} download>
+              ⬇ Export to XLSX
+            </a>
+          )
+        }
       />
 
       {run.status === "error" && (
@@ -55,15 +62,14 @@ export default async function RecalcRunPage({ params }: { params: { runId: strin
             <MetricCard label="Actual total" value={formatCents(run.results.totals.actualCents)} />
             <MetricCard
               label="Net variance"
-              value={formatCents(run.results.totals.varianceCents)}
+              value={formatVarianceCents(run.results.totals.varianceCents)}
               sub={run.results.totals.varianceCents === 0 ? "matches" : run.results.totals.varianceCents < 0 ? "underpaid" : "overpaid"}
             />
             <MetricCard label="Total lines" value={String(run.results.variances.length)} sub={`across ${employeeCount} employees`} />
             <MetricCard label="Underpaid / Overpaid" value={`${underpaidCount} / ${overpaidCount}`} sub="flagged lines" />
             {largest && (
-              <MetricCard label="Largest single variance" value={formatCents(largest.varianceCents)} sub={`${largest.employeeId} · ${largest.component.replace(/_/g, " ")}`} />
+              <MetricCard label="Largest single variance" value={formatVarianceCents(largest.varianceCents)} sub={`${largest.employeeId} · ${largest.component.replace(/_/g, " ")}`} />
             )}
-            <MetricCard label="Rule set" value={run.ruleSetName ?? "—"} sub={formatDate(run.createdAt)} />
           </div>
 
           {noticeCount > 0 && (

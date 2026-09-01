@@ -4,6 +4,8 @@ import { useFormState, useFormStatus } from "react-dom";
 import { uploadAndRun, type RunFormResult } from "./actions";
 import { WorkbookDropzone } from "./WorkbookDropzone";
 
+export type RuleSetOption = { id: string; name: string };
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -13,17 +15,33 @@ function SubmitButton() {
   );
 }
 
-export function UploadForm() {
+export function UploadForm({ ruleSets }: { ruleSets: RuleSetOption[] }) {
   const [state, formAction] = useFormState<RunFormResult | null, FormData>(uploadAndRun, null);
   return (
-    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div className="admin-field">
+    <form action={formAction} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label className="admin-label" htmlFor="label">
           Label (optional)
         </label>
         <input id="label" name="label" type="text" placeholder="e.g. Acme Pty Ltd — pilot" />
       </div>
-      <div className="admin-field">
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label className="admin-label" htmlFor="rule_set_id">
+          Rule set
+        </label>
+        <select id="rule_set_id" name="rule_set_id" defaultValue={ruleSets[0]?.id ?? ""} disabled={ruleSets.length === 0}>
+          {ruleSets.length === 0 ? (
+            <option value="">No rule sets seeded</option>
+          ) : (
+            ruleSets.map((rs) => (
+              <option key={rs.id} value={rs.id}>
+                {rs.name}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label className="admin-label">Pay review data gathering workbook</label>
         <WorkbookDropzone name="workbook_file" />
       </div>

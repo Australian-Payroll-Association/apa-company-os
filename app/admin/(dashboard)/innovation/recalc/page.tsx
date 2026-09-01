@@ -6,6 +6,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
 import { listRuns } from "@/lib/recalc/runs";
+import { listRuleSets } from "@/lib/recalc/rule-sets";
 import { UploadForm } from "./UploadForm";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function RecalcPage() {
   // posture as the compensation module.
   if (!(await canViewSensitive(admin.email))) redirect("/admin");
 
-  const runs = await listRuns();
+  const [runs, ruleSets] = await Promise.all([listRuns(), listRuleSets()]);
   const totalFlagged = runs.reduce((sum, r) => sum + (r.results?.totals.flaggedCount ?? 0), 0);
 
   return (
@@ -54,7 +55,7 @@ export default async function RecalcPage() {
       <div className="mp-kpi-grid">
         <MetricCard label="Runs" value={String(runs.length)} />
         <MetricCard label="Flagged lines (all runs)" value={String(totalFlagged)} sub={totalFlagged > 0 ? "worth reviewing" : "all clear so far"} />
-        <MetricCard label="Rule set" value="MA000019" sub="Banking, Finance & Insurance Award 2020" />
+        <MetricCard label="Rule sets available" value={String(ruleSets.length)} sub={ruleSets[0]?.name ?? "none seeded"} />
       </div>
 
       <div className="admin-alert" style={{ marginBottom: 24 }}>
@@ -63,7 +64,7 @@ export default async function RecalcPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 380px) 1fr", gap: 24, alignItems: "start" }}>
-        <UploadForm />
+        <UploadForm ruleSets={ruleSets.map((rs) => ({ id: rs.id, name: rs.name }))} />
 
         <section>
           <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 10px", fontFamily: "var(--font-display)", color: "var(--admin-ink)" }}>Runs</h2>
