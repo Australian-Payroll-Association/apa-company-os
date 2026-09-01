@@ -1,0 +1,157 @@
+<title>Improved Scheduling and Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="apa-plan.css">
+
+<header class="top">
+  <div class="top-inner">
+    <div class="eyebrow">Australian Payroll Association <span class="dot"></span> Project detail <span class="dot"></span> <a href="building-on-company-os.html">Master plan</a></div>
+    <h1>Improved Scheduling and Tracking</h1>
+    <p class="lede">The consulting team&rsquo;s scheduling layer on the Company OS: <b>scheduling, time entry, resourcing, and client projects and tasks</b>. One system to replace the three surfaces the schedule lives on today (Kantata, a spreadsheet, Adriana&rsquo;s whiteboard), and to make the two judgments in people&rsquo;s heads (who has capacity, who can do what) visible.</p>
+    <div class="meta-row">
+      <div><span class="k">Day-one user</span><span class="v">Adriana and the consulting team</span></div>
+      <div><span class="k">The one action</span><span class="v">Answer &ldquo;who can take this project?&rdquo; from the system</span></div>
+      <div><span class="k">Size</span><span class="v">Medium (rides on Unified Project System)</span></div>
+      <div><span class="k">Builds on</span><span class="v"><span class="m">company_os</span> &middot; boards, tasks, deals, leave</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <main>
+
+    <div class="backbar">
+      <div class="bt">Source: discovery interview with <b>Emily (consulting), 1 September 2026</b>. Every requirement traces to that conversation.</div>
+      <a href="project-unified-pm.html">Companion: Unified Project System &rarr;</a>
+    </div>
+
+    <!-- 1 -->
+    <section class="blk" id="today">
+      <div class="sec-head"><span class="n">01</span><div><h2>How it works today</h2><p class="sub">The discovery record, in the team&rsquo;s own terms.</p></div></div>
+      <div class="prose">
+        <ul class="tick">
+          <li><strong>Demand.</strong> Ad hoc; clients ring up. Deals sit in HubSpot from first contact; the sales cycle runs three days to nine months at the client&rsquo;s pace. A project moves to Kantata when signed off, or highly likely. On signing the client pays 50% and the project is fully resourced.</li>
+          <li><strong>Scheduling.</strong> Each project carries start, end, and a rough capacity estimate, sometimes hours (&ldquo;100 hours&rdquo;), sometimes a share of a person&rsquo;s time (&ldquo;50%&rdquo;). Updated every week; end dates hand-shortened when a project is finishing early.</li>
+          <li><strong>Availability.</strong> Not pulled from any calendar. The head of advisory&rsquo;s judgment, resting on real inputs: leave (each consultant enters their own), current projects, maintained end dates. &ldquo;She&rsquo;s got three projects but one finishes soon, so she can take another; he can only run one at a time.&rdquo;</li>
+          <li><strong>Assignment.</strong> Kantata holds no skill, territory, or experience data. Adriana carries the map: who can do what, who likes what, how fast. The constraints are real (Emily cannot do a tech procurement; Dave gets every optimisation) and skill is a speed multiplier: two weeks for Dave, five or six for someone learning as they go. Emily is deliberately cross-training others on her usual tasks.</li>
+          <li><strong>Big unsigned projects.</strong> Deals needing two or three consultants are added before signing so Ross and Adriana can see a consultant is booked out. Allocated, not billable; billing starts when work starts. Pre-reads and the one-to-two-hour client discovery task are billable.</li>
+          <li><strong>Time entry.</strong> Timesheets through Kantata against a 38-hour week, billable / non-billable, by client. Over 100% utilisation genuinely happens. Non-billable books to internal tasks: meetings, collaboration, personal development, travel, new-consultant onboarding.</li>
+          <li><strong>Close-out.</strong> Draft report, walkthrough meeting, final report, trim the resourcing, flip to completed. Client notes (&ldquo;will they come back, be aware of X&rdquo;) go on the project listing, though not everyone writes them.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <div class="cl-k">The daily frictions, in order of weight</div>
+        <p>1&nbsp;&middot; The schedule&rsquo;s truth is split across Kantata, a spreadsheet, and a whiteboard; the key knowledge lives in two heads. &nbsp;2&nbsp;&middot; Project dates, task dates, and resourcing don&rsquo;t link; one timeline change is three manual updates. &nbsp;3&nbsp;&middot; No home for tentative work, so near-certain deals are faked into the confirmed schedule. &nbsp;4&nbsp;&middot; When an 8-to-10-week project overruns, nothing proves whether the cause was consultant load or the client sitting on a data request for three months. &nbsp;5&nbsp;&middot; Over-utilisation and budget overruns show up only after the fact.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="blk" id="build">
+      <div class="sec-head"><span class="n">02</span><div><h2>What we build</h2><p class="sub">Seven pieces. The first three are the spine; the rest hang off them.</p></div></div>
+      <div class="seq">
+        <div class="step"><span class="ord">1</span><div><h4>One schedule</h4><div class="why">Projects, tasks, allocations, and leave on a single timeline per consultant, on a rolling six-to-eight-week horizon. Kills the spreadsheet and the whiteboard. Dates are one model: change one, the others follow. (Benchmark: firms planning at least half the workforce eight weeks ahead run about 75% utilisation against 68% for just-in-time staffing.)</div></div><span class="sizetag m">spine</span></div>
+        <div class="step"><span class="ord">2</span><div><h4>Tentative projects (the whiteboard, digitised)</h4><div class="why">A first-class pipeline state: visible in capacity, clearly unconfirmed, never billable, one click to confirm or dissolve. Replaces the &ldquo;add the big one early&rdquo; hack. The schedule treats tentative work as binary (in or out, by the written entry rule); the utilisation <em>forecast</em> additionally shows a probability-weighted line from the deal&rsquo;s pipeline stage, so leadership sees the committed picture and the expected one.</div></div><span class="sizetag m">spine</span></div>
+        <div class="step"><span class="ord">3</span><div><h4>Time entry</h4><div class="why">The Unified Project System&rsquo;s <code>time_entry</code>, unchanged: fast logging against a 38-hour week, billable or not, by client. No second timesheet. Cadence is the whole game: daily entry recovers material billable hours versus weekly, so the under-10-seconds target is load-bearing.</div></div><span class="sizetag m">spine</span></div>
+        <div class="step"><span class="ord">4</span><div><h4>Capability matrix</h4><div class="why">Per person, per work type: can do fast, can do, learning, cannot do, plus preference. Adriana&rsquo;s head, written down. Cross-training pairs are planned work, not leftover time. To beat the staleness that kills every skills matrix, it updates at project close-out (who did the work, at what level), not by periodic review.</div></div></div>
+        <div class="step"><span class="ord">5</span><div><h4>What-if modelling</h4><div class="why">Win this deal, lose that one, slip a start date; see the ripple on every consultant&rsquo;s utilisation. The real scenario: two big unsigned projects back to back; if the first slips, does the second move or does someone swap?</div></div></div>
+        <div class="step"><span class="ord">6</span><div><h4>Early warnings and the variance loop</h4><div class="why">Person: above 100% utilisation (more than the 38-hour week going to clients). Project: remaining task estimates exceed remaining budget hours (&ldquo;tasks say 10 hours left, budget says 5&rdquo;). Plus one report: planned versus actual hours per project type, so each finished project sharpens the next estimate.</div></div></div>
+        <div class="step"><span class="ord">7</span><div><h4>Client request tracking, with a kickoff SLA</h4><div class="why">At kickoff, agree and record a client response-time expectation on the project. Log each information request and its days unanswered. Decompose an overrun into our load versus waiting-on-client, measured against the number the client agreed to. Operations tool and commercial defence in one.</div></div></div>
+      </div>
+      <div class="callout">
+        <div class="cl-k">Explicitly out</div>
+        <p>Surveys of any kind, rejected in discovery as too much work. Client memory stays as free-text close-out notes on the project.</p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="blk" id="data">
+      <div class="sec-head"><span class="n">03</span><div><h2>On company_os</h2><p class="sub">Most of the spine exists, and the biggest gap (<code>time_entry</code>) is already the heart of the Unified Project System build. This charter mostly extends.</p></div></div>
+
+      <div class="subhead"><span class="sh-n">use</span> Existing tables it uses</div>
+      <div class="chip-row">
+        <span class="chip reuse">people</span><span class="chip reuse">team_members</span><span class="chip reuse">time_off</span><span class="chip reuse">leave_adjustments</span><span class="chip reuse">staff_assignments</span><span class="chip reuse">boards</span><span class="chip reuse">board_columns</span><span class="chip reuse">tasks</span><span class="chip reuse">task_stage_log</span><span class="chip reuse">deals</span><span class="chip reuse">pipelines</span><span class="chip reuse">person_qualifications</span><span class="chip reuse">companies</span><span class="chip reuse">invoices</span>
+      </div>
+      <div class="callout">
+        <div class="cl-k">Already solved</div>
+        <p><b>Leave:</b> <code>time_off</code> already holds typed, dated, approved leave (309 live rows); the availability view just reads it. <b>Pipeline:</b> <code>deals</code> is the HubSpot analogue and already the actively managed pipeline; a tentative project is a delivery-side shadow of a late-stage deal, linked by FK, never a copy. <b>Assignment record:</b> <code>staff_assignments</code> already models one person on one client or project for a period.</p>
+      </div>
+
+      <div class="subhead"><span class="sh-n">new</span> New, and it is small</div>
+      <div class="schema">
+        <div class="tdef">
+          <div class="tname">staff_assignments extensions <span class="tag alt">extend, don&rsquo;t fork</span></div>
+          <div class="cols"><b>status</b> <span class="c">(tentative / confirmed)</span> &middot; <b>allocation</b> <span class="c">weekly hours; percentages convert at entry against a 38-hour week</span> &middot; <b>source_deal_id</b> <span class="fk">&rarr; deals</span> <span class="c">for tentative rows</span></div>
+          <div class="note">The hours-versus-percentage ambiguity ends here.</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">capability <span class="tag">new</span></div>
+          <div class="cols">person_id <span class="fk">&rarr; people</span>, work_type, level <span class="c">(fast / capable / learning / no)</span>, preference, note</div>
+          <div class="note">The old <code>skills</code> / <code>person_skills</code> tables were dropped in the 27 August cleanup as unused; this is a narrower, purpose-built replacement for assignment, not a revival. Durable certifications stay in <code>person_qualifications</code>.</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">client_requests <span class="tag">new</span></div>
+          <div class="cols">board_id <span class="fk">&rarr; boards</span>, asked_on, description, answered_on, note</div>
+          <div class="note">Elapsed days is derived, never stored. The kickoff SLA is one column on the board: <b>client_response_sla_days</b>.</div>
+        </div>
+        <div class="tdef">
+          <div class="tname">close-out note <span class="tag alt">field, not table</span></div>
+          <div class="cols">a field on the board (or a pinned comment convention)</div>
+        </div>
+      </div>
+
+      <div class="subhead"><span class="sh-n">how</span> Views</div>
+      <ul class="tick">
+        <li><strong>consultant_load:</strong> per person per week, confirmed plus tentative allocated hours against capacity, leave subtracted from <code>time_off</code>.</li>
+        <li><strong>project_slip:</strong> per board, planned weeks against elapsed weeks, with total days-waiting-on-client from <code>client_requests</code> alongside.</li>
+        <li><strong>estimate_variance:</strong> planned versus logged hours per project type, from <code>time_entry</code> against task estimates. The feedback loop that makes next quarter&rsquo;s &ldquo;100 hours&rdquo; estimates real.</li>
+        <li><strong>What-if</strong> runs as a scenario overlay on <code>consultant_load</code> (toggle tentative rows, shift dates in memory); it stores nothing. The forecast view adds a probability-weighted line from <code>deals</code> stage probability over the tentative rows.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="blk" id="phasing">
+      <div class="sec-head"><span class="n">04</span><div><h2>Rollout</h2><p class="sub">Three phases, each with a real-world exit test.</p></div></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Phase</th><th>Build</th><th>Move on when</th></tr></thead>
+          <tbody>
+            <tr><td class="ent">1 &middot; One schedule</td><td>Timeline view over boards, tasks, <code>staff_assignments</code>, and <code>time_off</code>; linked dates; tentative status.</td><td>Adriana runs one full weekly scheduling pass in the system, and the whiteboard and spreadsheet are not touched that week.</td></tr>
+            <tr><td class="ent">2 &middot; Judgment made visible</td><td>Capability matrix seeded by Adriana; <code>consultant_load</code> view; the two early-warning flags.</td><td>A new project is assigned using the matrix, and a tracking-over-budget flag fires before the overrun, not after.</td></tr>
+            <tr><td class="ent">3 &middot; Modelling and proof</td><td>What-if scenarios; <code>client_requests</code> and the slip decomposition.</td><td>A big-deal slip is modelled in the system instead of on the whiteboard, and one overrunning project shows its waiting-on-client days with evidence.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose">Phase 1 depends on the Unified Project System&rsquo;s <code>time_entry</code> being live for consulting; the two builds share a pilot team on purpose.</p>
+      <div class="callout">
+        <div class="cl-k">Interim, while the build runs</div>
+        <p>Kantata stays the working system and its data (allocations, soft bookings, timesheets) is the source to mirror; the team dual-maintains during the transition. All new capability (capability matrix, what-if, client requests, variance) is built in the Company OS only; nothing new is invested in Kantata itself.</p>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="blk" id="signoffs">
+      <div class="sec-head"><span class="n">05</span><div><h2>Decisions to settle</h2><p class="sub">Policy and definitions, not code. Settle them early so nothing gets built twice.</p></div></div>
+      <div class="settle">
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Who holds the judgment roles.</b> Confirm whether Adriana is the head of advisory or a second person. Availability judgment and assignment judgment may be one seat or two; the permission model and the bus-factor risk both hang on it.</div></div>
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>Work-type list for the capability matrix.</b> Seed from real project types (optimisation, tech procurement, and the rest of Kantata&rsquo;s list), agreed with Adriana. Keep it under a dozen; this is an assignment aid, not a competency framework.</div></div>
+        <div class="s"><span class="flag dec">Decision</span><div class="body"><b>When may a tentative project enter the schedule.</b> Today it is &ldquo;big and highly likely.&rdquo; Write the rule down (for example: two or more consultants needed, or deal past a named pipeline stage) so the schedule doesn&rsquo;t fill with wishes.</div></div>
+        <div class="s"><span class="flag data">Data</span><div class="body"><b>Get the whiteboard.</b> A photo or sketch of Adriana&rsquo;s whiteboard, structure not data, before designing the tentative-project screen. Asked for in discovery; not yet received.</div></div>
+        <div class="s"><span class="flag data">Watch</span><div class="body"><b>Territories never materialised.</b> Named as a topic at the start of discovery, but skill turned out to be the whole assignment story. Ask once, directly, before assuming they don&rsquo;t exist.</div></div>
+        <div class="s"><span class="flag data">Watch</span><div class="body"><b>Notes adoption.</b> Close-out client notes already have a gap (not everyone writes them). Keep the field one box, on the screen people already use to complete a project.</div></div>
+        <div class="s"><span class="flag data">Watch</span><div class="body"><b>Sustained overwork, on the record.</b> The utilisation flag fires at 100% by decision (1 Sep 2026). For the record: the benchmark literature puts the burnout band at sustained utilisation above roughly 85%, and under s62 of the Fair Work Act additional hours beyond 38 must be &ldquo;reasonable&rdquo;, with the burden of proof on the employer. If sustained-high weeks become common in the data, revisit the threshold.</div></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="fl">
+        <a href="building-on-company-os.html">Master plan</a>
+        <a href="project-unified-pm.html">Unified Project System</a>
+        <a href="project-report-360.html">Payroll 360 Report Engine</a>
+      </div>
+      Improved Scheduling and Tracking &middot; project detail &middot; Australian Payroll Association
+    </footer>
+
+  </main>
+</div>

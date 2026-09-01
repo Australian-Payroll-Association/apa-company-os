@@ -16,6 +16,9 @@ import type { SensitiveRow } from "@/lib/admin/people-sensitive";
 type ScopeKind = "team_member" | "person";
 const SCOPE_ALLOWLIST: Record<string, { column: string; scope: ScopeKind }> = {
   time_off: { column: "team_member_id", scope: "team_member" },
+  // The staff timesheet. Keyed on person_id (people.id), so a member reads and
+  // writes only their own entries. See app/team/(dashboard)/timesheet.
+  time_entry: { column: "person_id", scope: "person" },
   ideas: { column: "person_id", scope: "person" },
   onboarding_plans: { column: "team_member_id", scope: "team_member" },
   onboarding_tasks: { column: "team_member_id", scope: "team_member" },
@@ -206,6 +209,21 @@ export async function teamUpdateInScope(
   const owner = await assertInScope(actor, table, id);
   if (!owner) return { ok: false, error: "Not found." };
   const { error } = await companyOs.from(table).update(patch).eq("id", id);
+  return { ok: !error, error: error?.message ?? null };
+}
+
+// Scoped delete: same ownership re-derivation as teamUpdateInScope, immediately
+// before the delete. Used for rows a member may remove outright (a mis-logged
+// timesheet entry), never for records that must retain history (leave requests
+// are cancelled, not deleted).
+export async function teamDeleteInScope(
+  actor: TeamActor,
+  table: keyof typeof SCOPE_ALLOWLIST,
+  id: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  const owner = await assertInScope(actor, table, id);
+  if (!owner) return { ok: false, error: "Not found." };
+  const { error } = await companyOs.from(table).delete().eq("id", id);
   return { ok: !error, error: error?.message ?? null };
 }
 
