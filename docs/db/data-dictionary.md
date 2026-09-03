@@ -181,7 +181,7 @@ Columns:
 - source: Free-text origin tag of the deal, e.g. `sdr_handoff` or `portal_build_team`.
 - expected_close_date: Rep-entered date the deal is expected to close; used in pipeline forecasting views.
 - closed_at: When the deal was closed (won or lost).
-- metadata: Free-form JSON side-car; edges metrics read a `categories` array (e.g. `[{"name":"AI Program"}]`) from it.
+- metadata: Free-form JSON side-car; edges metrics read a `categories` array (e.g. `[{"name":"AI Program"}]`) from it. E7 stamps `pricing_origin='native'` here when the pricing engine writes the deal value; a deal with no `deal_pricing` row and no `pricing_origin` is treated as `excel_legacy` (hand-priced, never recomputed).
 - created_at: Row creation time.
 - updated_at: Last modification time.
 - service_line_id: FK to service_lines; the business unit/offering the revenue belongs to.
@@ -203,6 +203,56 @@ Columns:
 - position: Manual 0-based ordering of the deal within its stage on the board/list; backfilled from created_at desc at rollout.
 - referrer_company_id: Company that directly referred this deal (mirrors person referrer_id); attributes referred deals to a company affiliate, FK to companies.
 Evidence: rows 138 · reads 5,898 · inserts 191 (stamped 28 Aug 2026)
+
+### company_os.deal_pricing
+One row is: the native CPQ / quote record for one deal — the structured pricing inputs, the computed line-item breakdown, both Member and Non-Member figures, the selected figure, and the manual-sign-off override (E7).
+Bucket: transactional · Revenue documents
+Tier: 2 stage engine
+Status: applied 2026-09-01 to project nubxrrzwcbhgpvvmbioh (Sydney) via direct pooler connection — table live, no rows yet.
+Origin: written by the native pricing server actions (app/admin/(dashboard)/revenue/deals/pricing/actions.ts) from the pure engine in lib/admin/pricing/engine.ts. Never written by hand or by external sync.
+Usage: the deal's Pricing (CPQ) panel and the payroll proposal generator read it; applyPricingToDeal pushes selected_total_cents to deals.amount_cents via the existing FX-on-write path.
+Reuse: this is the sanctioned CPQ home the deals entry points to ("a future CPQ feature should FK to deals; do not create parallel opportunity or quote tables"). One live quote per deal (unique deal_id). Extend here for pricing, not on deals.
+Do not: create a sibling quote table; store the price only on deals.amount_cents (that is the applied figure, not the reproducible inputs); derive a non-member figure from the member figure by a ratio (both are computed and stored explicitly).
+Columns:
+- id: Primary key.
+- deal_id: FK to deals; the deal this quote prices. Unique — one live quote per deal.
+- service_key: Which pricing service config drove the price (the 14 workbook calculators). Valid values: [payroll_360, pay_review, compliance_review, health_check, optimise, pay_compliance, boot, tech_procurement, stp2, award_interpretation, super_review, lsl_review, sys_imp, remediation].
+- is_member: Membership manual toggle; true → the Member figure becomes the deal value, false → the Non-Member figure.
+- inputs: JSON intake fed to the engine (headcount, scope toggles, count drivers, % modifier toggles, complexity, recalc months).
+- breakdown: JSON computed line items: { key, label, memberCents, nonMemberCents }[].
+- member_total_cents: Computed Member figure in AUD cents; null when not computable.
+- non_member_total_cents: Computed Non-Member figure in AUD cents; null when a driver lacked a verified non-member price or the config is unverified.
+- selected_total_cents: The figure pushed to deals.amount_cents (member/non-member per is_member, or override when set), AUD cents.
+- currency: ISO currency code, always 'aud' for native pricing.
+- warnings: JSON array of out-of-range / non-member-withheld warnings surfaced to the consultant.
+- override_cents: Manual-sign-off override value in AUD cents; null when no override.
+- override_reason: Why the override was applied.
+- override_approved_by: Attestation of who approved the override (e.g. "Ross"); no role/login/workflow this epic.
+- override_at: When the override was set.
+- engine_version: The pricing engine/config version stamp (ENGINE_VERSION) that produced this quote, for reproducibility.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+Evidence: applied 2026-09-01 to nubxrrzwcbhgpvvmbioh (verified: 18 columns present); no live rows yet.
+
+### company_os.award_effort_matrix
+One row is: one modern award and its interpretation effort rating (complexity 1–4) from the Award Effort Matrix; reference data used as the pricing source for standalone Award Interpretation.
+Bucket: master · Revenue documents
+Tier: 3 support
+Status: applied 2026-09-01 to project nubxrrzwcbhgpvvmbioh (table created; empty — data import deferred to R2).
+Origin: a one-off import of the 122-award Award Effort Matrix (analysis sheet3). Not read by R1 pricing (Payroll 360 prices awards by its own simple/complex counts).
+Usage: future standalone Award Interpretation pricing looks up complexity by award_code.
+Reuse: keyed by award_code; extend here for award-level interpretation metadata.
+Do not: read it from the R1 services; import award data before R2.
+Columns:
+- id: Primary key.
+- award_code: Modern award code, e.g. MA000018; unique lookup key.
+- award_name: Human-readable award name.
+- complexity: Interpretation effort rating. Valid values: [1, 2, 3, 4].
+- note: Free-text note on what makes the award complex.
+- interpreted: Whether APA has already built the interpretation for this award.
+- created_at: Row creation time.
+- updated_at: Last modification time.
+Evidence: applied 2026-09-01 to nubxrrzwcbhgpvvmbioh; table live and empty (import deferred to R2).
 
 ### htt.pull_requests
 One row is: one pull request observed in a tracked client or internal repo — the raw evidence of engineering effort.
