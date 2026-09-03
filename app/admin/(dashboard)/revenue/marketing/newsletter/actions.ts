@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { getEdition, syncEventsForEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
+import { getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
 import { SECTION_META, defaultEditionTitle, isSectionType } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
@@ -86,9 +86,9 @@ export async function openEdition(input: {
     newData: { title, period_start: bounds.start, period_end: bounds.end },
   });
 
-  // Pull training and webinars straight away, so the admin opens the edition
-  // and immediately sees what the calendar already covers.
-  await syncEventsForEdition(id);
+  // Fill the training table straight away from the default window, so a newly
+  // opened edition already shows what the website is advertising.
+  await syncTrainingForEdition(id);
 
   refresh(id);
   return { ok: true, id };
@@ -148,32 +148,6 @@ export async function reopenEdition(id: string): Promise<Result> {
   return { ok: true, message: "Intake reopened." };
 }
 
-export async function pullEvents(id: string): Promise<Result> {
-  const admin = await requireAdmin();
-  const result = await syncEventsForEdition(id);
-  if (!result.ok) return { ok: false, error: result.error };
-
-  await recordAudit({
-    table: "newsletter_editions",
-    recordId: id,
-    operation: "update",
-    actor: admin.email,
-    context: { events_synced: { added: result.added, updated: result.updated } },
-  });
-  refresh(id);
-
-  if (result.added === 0 && result.updated === 0) {
-    return {
-      ok: true,
-      message: "No published training or webinars fall in this edition's dates.",
-    };
-  }
-  return {
-    ok: true,
-    message: `${result.added} added, ${result.updated} already here.`,
-  };
-}
-
 export async function setSubmissionIncluded(
   submissionId: string,
   included: boolean,
@@ -226,7 +200,10 @@ export async function addSubmissionAsAdmin(input: {
   if (!isSectionType(input.sectionType)) return { ok: false, error: "Pick a section." };
   const title = input.title.trim();
   const body = input.body.trim();
-  if (!body) return { ok: false, error: "Add some detail — an empty item can't be drafted from." };
+  // Training submits as a date range with no words — see SECTION_META.
+  if (SECTION_META[input.sectionType].bodyRequired !== false && !body) {
+    return { ok: false, error: "Add some detail — an empty item can't be drafted from." };
+  }
   if (title.length > 200) return { ok: false, error: "Keep the heading under 200 characters." };
   if (body.length > 5000) return { ok: false, error: "That's longer than 5,000 characters." };
 

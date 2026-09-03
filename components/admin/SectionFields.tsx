@@ -18,7 +18,10 @@ export function SectionFields({
   onChange: (key: string, value: string) => void;
   idPrefix: string;
 }) {
-  const fields = SECTION_META[sectionType].fields ?? [];
+  // formHidden fields are display-only — training's Delivery comes from the
+  // website, so asking a contributor for it would be asking for a value they
+  // do not decide.
+  const fields = (SECTION_META[sectionType].fields ?? []).filter((f) => !f.formHidden);
   if (fields.length === 0) return null;
 
   return (

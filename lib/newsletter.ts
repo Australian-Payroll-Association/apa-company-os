@@ -60,6 +60,10 @@ export type ExtraField = {
   label: string;
   type: "text" | "date" | "time";
   placeholder?: string;
+  // Displayed on an item but not asked for on the form. Training's Delivery is
+  // the case: the website supplies it for pulled courses, and asking a
+  // contributor for it would be asking for something they do not decide.
+  formHidden?: boolean;
 };
 
 export type SectionMeta = {
@@ -71,6 +75,10 @@ export type SectionMeta = {
   bodyLabel?: string;
   linkLabel?: string;
   fields?: ExtraField[];
+  // Most sections are a piece of writing, so the body carries the submission
+  // and is required. Training is a date range instead — the words come from
+  // the website — so it submits with the dates alone.
+  bodyRequired?: boolean;
   // Shown on the form. Written to stop things coming back half-finished, which
   // is the failure the whole intake stage exists to prevent.
   hint: string;
@@ -116,10 +124,14 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   training: {
     label: "Upcoming training",
-    hint: "One course per submission — course name, when it runs, and the delivery format. Leave the end date blank for a single-day course. Virtual Classroom courses inside the training window are pulled from austpayroll.com.au/training automatically; add anything the site does not carry.",
+    // Dates only. The courses themselves come from austpayroll.com.au/training;
+    // what a contributor decides is the range to advertise, which is why this
+    // is the one section that submits without a body.
+    hint: "Give the range of dates to advertise. The courses themselves are read from austpayroll.com.au/training — you don't need to list them.",
     titleLabel: "Course",
     bodyLabel: "Description",
     linkLabel: "Course page link",
+    bodyRequired: false,
     // Two dates, because courses can run over more than one day. Stored as a
     // date input (ISO) rather than free text so there is no dd/mm vs mm/dd
     // ambiguity in the data; everything on screen is rendered dd/mm/yyyy by
@@ -127,7 +139,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     fields: [
       { key: "date_from", label: "From date", type: "date" },
       { key: "date_to", label: "End date", type: "date" },
-      { key: "format", label: "Delivery", type: "text", placeholder: "Virtual Classroom" },
+      { key: "format", label: "Delivery", type: "text", placeholder: "Virtual Classroom", formHidden: true },
     ],
     target: null,
     source: "events",
@@ -150,22 +162,17 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
 };
 
-// Every section can be typed into. The events-backed ones are ALSO auto-pulled,
-// but they are not withheld from the form.
+// Every section is offered on the form, but they are not all the same shape.
+// Training asks only for a date range — the courses in it come from
+// austpayroll.com.au/training, so there is nothing for a person to type beyond
+// which dates to advertise (see its bodyRequired: false and the formHidden
+// Delivery field).
 //
-// They were, briefly. The reasoning was that offering them re-introduced the
-// manual chasing this stage exists to remove — sound in principle, wrong in
-// fact: company_os.events is empty, so the pull returns nothing and there was
-// no way to get a webinar into an edition at all. A section nobody can fill is
-// worse than one filled by hand. Revisit only if the events calendar becomes
-// the reliable source of truth for training and webinars.
+// The training window on the edition remains, and is what the admin-side pull
+// reads. The two are deliberately both present: the window is the editor's
+// control over what gets pulled, and this is a contributor saying which dates
+// the edition should cover.
 export const CONTRIBUTABLE_SECTIONS = SECTION_TYPES;
-
-// Event types that feed each auto-pulled section, mapped to company_os.events.type.
-export const EVENT_TYPES_BY_SECTION: Partial<Record<SectionType, string[]>> = {
-  training: ["workshop", "micro_session"],
-  webinar: ["webinar"],
-};
 
 export function isSectionType(value: string): value is SectionType {
   return (SECTION_TYPES as readonly string[]).includes(value);

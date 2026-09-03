@@ -1,8 +1,6 @@
 import { companyOs } from "@/lib/supabase";
 import { fetchCoursesInWindow } from "@/lib/admin/newsletter-training";
 import {
-  EVENT_TYPES_BY_SECTION,
-  SECTION_META,
   SECTION_TYPES,
   tallySections,
   type EditionStatus,
@@ -212,102 +210,6 @@ export async function getEditionDetail(id: string): Promise<EditionDetail | null
     contributors: [...contributors].sort((a, b) => a.localeCompare(b)),
     includedCount: submissions.filter((s) => s.included).length,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Events auto-pull
-// ---------------------------------------------------------------------------
-
-type DbEvent = {
-  id: string;
-  type: string;
-  title: string;
-  blurb: string | null;
-  description: string | null;
-  starts_at: string | null;
-  landing_path: string | null;
-};
-
-// Sections fed by the events model, and the event types behind each.
-const AUTO_SECTIONS = SECTION_TYPES.filter((t) => SECTION_META[t].source === "events");
-
-export type SyncResult =
-  | { ok: true; added: number; updated: number; sections: number }
-  | { ok: false; error: string };
-
-// Materialises training and webinar events into submissions for the edition.
-//
-// These are stored rather than computed at read time so the admin can exclude a
-// specific session and have that decision stick. Re-running syncs in place —
-// the (edition_id, event_id) unique index makes a repeat pull an update, never
-// a duplicate — so it is safe to press twice, and safe to press again after the
-// events calendar changes.
-export async function syncEventsForEdition(editionId: string): Promise<SyncResult> {
-  const edition = await getEdition(editionId);
-  if (!edition) return { ok: false, error: "Edition not found." };
-
-  let added = 0;
-  let updated = 0;
-
-  for (const section of AUTO_SECTIONS) {
-    const types = EVENT_TYPES_BY_SECTION[section] ?? [];
-    if (types.length === 0) continue;
-
-    const { data, error } = await companyOs
-      .from("events")
-      .select("id, type, title, blurb, description, starts_at, landing_path")
-      .in("type", types)
-      .in("status", ["published", "open"])
-      .eq("visibility", "public")
-      .gte("starts_at", edition.periodStart)
-      .lte("starts_at", `${edition.periodEnd}T23:59:59Z`)
-      .order("starts_at", { ascending: true });
-    if (error) return { ok: false, error: error.message };
-
-    const events = (data ?? []) as DbEvent[];
-    if (events.length === 0) continue;
-
-    // Which of these already exist on the edition, so the counts reported back
-    // are real rather than "however many rows we sent".
-    const { data: existingData } = await companyOs
-      .from("newsletter_submissions")
-      .select("event_id")
-      .eq("edition_id", editionId)
-      .in(
-        "event_id",
-        events.map((e) => e.id),
-      );
-    const existing = new Set(
-      ((existingData ?? []) as { event_id: string | null }[])
-        .map((r) => r.event_id)
-        .filter((v): v is string => Boolean(v)),
-    );
-
-    const rows = events.map((e) => ({
-      edition_id: editionId,
-      person_id: null,
-      section_type: section,
-      title: e.title,
-      body: e.blurb || e.description || null,
-      link_url: e.landing_path,
-      source: "events",
-      event_id: e.id,
-    }));
-
-    // included is intentionally absent from the update list: if an admin has
-    // already excluded a session, a re-sync must not silently put it back.
-    const { error: upsertError } = await companyOs
-      .from("newsletter_submissions")
-      .upsert(rows, { onConflict: "edition_id,event_id" });
-    if (upsertError) return { ok: false, error: upsertError.message };
-
-    for (const e of events) {
-      if (existing.has(e.id)) updated += 1;
-      else added += 1;
-    }
-  }
-
-  return { ok: true, added, updated, sections: AUTO_SECTIONS.length };
 }
 
 // ---------------------------------------------------------------------------

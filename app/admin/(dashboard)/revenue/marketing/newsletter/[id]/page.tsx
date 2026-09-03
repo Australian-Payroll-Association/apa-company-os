@@ -95,13 +95,13 @@ export default async function EditionPage({ params }: { params: { id: string } }
                 {meta.label}
               </h2>
               <Badge tone="neutral">{items.filter((i) => i.included).length} included</Badge>
-              {type === "training" && <Badge tone="info">Also pulled from the website</Badge>}
+              {type === "training" && <Badge tone="info">From the training website</Badge>}
             </div>
 
             {items.length === 0 ? (
               <p className="admin-page-sub" style={{ marginTop: 8, marginBottom: 0 }}>
                 {type === "training"
-                  ? "Nothing yet — pull from the training site above, or add a course by hand."
+                  ? "Nothing yet — set the training window above and the courses are read from the website."
                   : "Nothing submitted yet."}
               </p>
             ) : type === "training" ? (

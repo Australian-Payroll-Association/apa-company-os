@@ -26,6 +26,9 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
   const [saving, setSaving] = useState(false);
 
   const meta = SECTION_META[sectionType];
+  // Training submits as a date range, so it does not need the body filled.
+  const bodyRequired = meta.bodyRequired !== false;
+  const canSubmit = bodyRequired ? Boolean(body.trim()) : Object.values(details).some((v) => v.trim());
 
   async function submit() {
     setSaving(true);
@@ -130,7 +133,7 @@ export function AddSubmissionForm({ editionId }: { editionId: string }) {
             type="button"
             className="admin-btn admin-btn--primary"
             onClick={submit}
-            disabled={saving || !body.trim()}
+            disabled={saving || !canSubmit}
           >
             {saving ? "Adding…" : "Add to edition"}
           </button>
