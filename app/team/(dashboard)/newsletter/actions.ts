@@ -74,7 +74,11 @@ export async function submitContribution(input: {
   }
   const title = input.title.trim();
   const body = input.body.trim();
-  if (!body) return { ok: false, error: "Add some detail — an empty submission can't be drafted from." };
+  // Training submits as a date range with no words — see SECTION_META.
+  const needsBody = SECTION_META[input.sectionType].bodyRequired !== false;
+  if (needsBody && !body) {
+    return { ok: false, error: "Add some detail — an empty submission can't be drafted from." };
+  }
   if (title.length > MAX_TITLE) return { ok: false, error: "Keep the heading under 200 characters." };
   if (body.length > MAX_BODY) return { ok: false, error: "That's longer than 5,000 characters. Trim it or attach a link." };
 

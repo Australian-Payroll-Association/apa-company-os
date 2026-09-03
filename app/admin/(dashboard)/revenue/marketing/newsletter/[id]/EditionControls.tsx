@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { closeEdition, pullEvents, reopenEdition, setSubmissionIncluded } from "../actions";
+import { closeEdition, reopenEdition, setSubmissionIncluded } from "../actions";
 
 type Msg = { tone: "ok" | "err"; text: string } | null;
 
-// Intake controls for one edition. Every action reports what actually happened
-// — "3 added, 2 already here" rather than a silent refresh — because the pull
-// is the step most likely to do nothing and leave you wondering.
+// Open/close for one edition. Training used to have a pull button here too;
+// it moved into TrainingWindow, where the dates that drive it live — two pull
+// buttons in different places for the same section was the confusing part.
+//
+// Every action reports what happened rather than refreshing silently.
 
 export function EditionControls({ id, status }: { id: string; status: string }) {
   const router = useRouter();
@@ -31,14 +33,6 @@ export function EditionControls({ id, status }: { id: string; status: string }) 
   return (
     <div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          className="admin-btn"
-          disabled={pending}
-          onClick={() => run(() => pullEvents(id))}
-        >
-          Pull training &amp; webinars
-        </button>
         {status === "open" && (
           <button
             type="button"
