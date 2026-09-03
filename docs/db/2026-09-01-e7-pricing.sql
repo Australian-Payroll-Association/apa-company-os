@@ -1,10 +1,9 @@
 -- E7 · Native Pricing Engine — CPQ record on the deal + Award Effort Matrix.
 --
--- STATUS: NOT YET APPLIED. The Supabase MCP was unavailable in the session that
--- authored this file, so it was written and recorded but not run against the
--- live database. To apply: run via Supabase MCP `apply_migration` (additive
--- only), then update the "State documented" note and evidence lines in
--- docs/db/data-dictionary.md. No DROP/TRUNCATE/DELETE — additive only.
+-- STATUS: APPLIED 2026-09-01 to project nubxrrzwcbhgpvvmbioh (Sydney) via a direct
+-- pooler connection (Supabase MCP was unavailable). Both tables verified present.
+-- Idempotent + additive only (create ... if not exists, drop trigger if exists) —
+-- safe to re-run. No DROP/TRUNCATE/DELETE.
 --
 -- Design: docs/product/e7-pricing/impl-plan.md §Phase 2.
 -- The CPQ home is the data-dictionary-sanctioned one (deals.md:167 — "a future

@@ -208,7 +208,7 @@ Evidence: rows 138 · reads 5,898 · inserts 191 (stamped 28 Aug 2026)
 One row is: the native CPQ / quote record for one deal — the structured pricing inputs, the computed line-item breakdown, both Member and Non-Member figures, the selected figure, and the manual-sign-off override (E7).
 Bucket: transactional · Revenue documents
 Tier: 2 stage engine
-Status: waiting (migration authored 2026-09-01, NOT yet applied — Supabase MCP was unavailable at authoring; apply via MCP then regenerate)
+Status: applied 2026-09-01 to project nubxrrzwcbhgpvvmbioh (Sydney) via direct pooler connection — table live, no rows yet.
 Origin: written by the native pricing server actions (app/admin/(dashboard)/revenue/deals/pricing/actions.ts) from the pure engine in lib/admin/pricing/engine.ts. Never written by hand or by external sync.
 Usage: the deal's Pricing (CPQ) panel and the payroll proposal generator read it; applyPricingToDeal pushes selected_total_cents to deals.amount_cents via the existing FX-on-write path.
 Reuse: this is the sanctioned CPQ home the deals entry points to ("a future CPQ feature should FK to deals; do not create parallel opportunity or quote tables"). One live quote per deal (unique deal_id). Extend here for pricing, not on deals.
@@ -232,13 +232,13 @@ Columns:
 - engine_version: The pricing engine/config version stamp (ENGINE_VERSION) that produced this quote, for reproducibility.
 - created_at: Row creation time.
 - updated_at: Last modification time.
-Evidence: not yet applied — no live rows.
+Evidence: applied 2026-09-01 to nubxrrzwcbhgpvvmbioh (verified: 18 columns present); no live rows yet.
 
 ### company_os.award_effort_matrix
 One row is: one modern award and its interpretation effort rating (complexity 1–4) from the Award Effort Matrix; reference data used as the pricing source for standalone Award Interpretation.
 Bucket: master · Revenue documents
 Tier: 3 support
-Status: waiting (table DESIGNED in R1, data import deferred to R2; migration authored 2026-09-01, NOT yet applied)
+Status: applied 2026-09-01 to project nubxrrzwcbhgpvvmbioh (table created; empty — data import deferred to R2).
 Origin: a one-off import of the 122-award Award Effort Matrix (analysis sheet3). Not read by R1 pricing (Payroll 360 prices awards by its own simple/complex counts).
 Usage: future standalone Award Interpretation pricing looks up complexity by award_code.
 Reuse: keyed by award_code; extend here for award-level interpretation metadata.
@@ -252,7 +252,7 @@ Columns:
 - interpreted: Whether APA has already built the interpretation for this award.
 - created_at: Row creation time.
 - updated_at: Last modification time.
-Evidence: not yet applied — no live rows.
+Evidence: applied 2026-09-01 to nubxrrzwcbhgpvvmbioh; table live and empty (import deferred to R2).
 
 ### htt.pull_requests
 One row is: one pull request observed in a tracked client or internal repo — the raw evidence of engineering effort.
