@@ -8,7 +8,7 @@ import {
   teamInsertOwn,
   teamUpdateInScope,
 } from "@/lib/team/data";
-import { SECTION_META, isSectionType, type SectionType } from "@/lib/newsletter";
+import { SECTION_META, isSectionType, sectionUses, type SectionType } from "@/lib/newsletter";
 
 // Newsletter intake, contributor side. teamInsertOwn forces
 // person_id = actor.personId server-side, so a contribution can only ever be
@@ -72,17 +72,21 @@ export async function submitContribution(input: {
   if (!isSectionType(input.sectionType)) {
     return { ok: false, error: "Pick a section." };
   }
-  const title = input.title.trim();
-  const body = input.body.trim();
-  // Training submits as a date range with no words — see SECTION_META.
-  const needsBody = SECTION_META[input.sectionType].bodyRequired !== false;
-  if (needsBody && !body) {
+  // Inputs the section does not render are dropped rather than trusted. The
+  // form never sends them, so a payload carrying one is not a contribution —
+  // and for training it would be a hand-typed course competing with a pulled
+  // one.
+  const title = sectionUses(input.sectionType, "title") ? input.title.trim() : "";
+  const body = sectionUses(input.sectionType, "body") ? input.body.trim() : "";
+  const rawLink = sectionUses(input.sectionType, "link") ? input.linkUrl : "";
+
+  if (sectionUses(input.sectionType, "body") && !body) {
     return { ok: false, error: "Add some detail — an empty submission can't be drafted from." };
   }
   if (title.length > MAX_TITLE) return { ok: false, error: "Keep the heading under 200 characters." };
   if (body.length > MAX_BODY) return { ok: false, error: "That's longer than 5,000 characters. Trim it or attach a link." };
 
-  const link = cleanLink(input.linkUrl);
+  const link = cleanLink(rawLink);
   if (link && typeof link === "object") return { ok: false, error: link.error };
 
   // Re-read the edition's state rather than trusting the page that rendered

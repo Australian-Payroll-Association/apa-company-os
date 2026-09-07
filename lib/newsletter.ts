@@ -75,10 +75,14 @@ export type SectionMeta = {
   bodyLabel?: string;
   linkLabel?: string;
   fields?: ExtraField[];
-  // Most sections are a piece of writing, so the body carries the submission
-  // and is required. Training is a date range instead — the words come from
-  // the website — so it submits with the dates alone.
-  bodyRequired?: boolean;
+  // Shared inputs this section does not use, so the form does not render them.
+  // Training is the case: it is a date range, and the course name, description
+  // and link all come from austpayroll.com.au/training. Asking for them invites
+  // a hand-typed course that duplicates a pulled one.
+  //
+  // Hiding the body also makes it not required — a section cannot demand a
+  // field it never shows.
+  hiddenInputs?: readonly ("title" | "body" | "link")[];
   // Shown on the form. Written to stop things coming back half-finished, which
   // is the failure the whole intake stage exists to prevent.
   hint: string;
@@ -128,10 +132,12 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     // what a contributor decides is the range to advertise, which is why this
     // is the one section that submits without a body.
     hint: "Give the range of dates to advertise. The courses themselves are read from austpayroll.com.au/training — you don't need to list them.",
+    // Labels kept for the admin item view, which still shows a pulled course's
+    // name and link; the form itself renders none of these three.
     titleLabel: "Course",
     bodyLabel: "Description",
     linkLabel: "Course page link",
-    bodyRequired: false,
+    hiddenInputs: ["title", "body", "link"],
     // Two dates, because courses can run over more than one day. Stored as a
     // date input (ISO) rather than free text so there is no dd/mm vs mm/dd
     // ambiguity in the data; everything on screen is rendered dd/mm/yyyy by
@@ -165,7 +171,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
 // Every section is offered on the form, but they are not all the same shape.
 // Training asks only for a date range — the courses in it come from
 // austpayroll.com.au/training, so there is nothing for a person to type beyond
-// which dates to advertise (see its bodyRequired: false and the formHidden
+// which dates to advertise (see its hiddenInputs and the formHidden
 // Delivery field).
 //
 // The training window on the edition remains, and is what the admin-side pull
@@ -251,4 +257,11 @@ export function trainingDateRange(details: Record<string, string>): string {
   const to = details.date_to ? formatFieldValue(field, details.date_to) : "";
   if (!from) return to;
   return to && to !== from ? `${from} – ${to}` : from;
+}
+
+// Does this section render the given shared input? Used by both forms and by
+// the two submit actions, so what is asked for and what is validated cannot
+// disagree.
+export function sectionUses(type: SectionType, input: "title" | "body" | "link"): boolean {
+  return !(SECTION_META[type].hiddenInputs ?? []).includes(input);
 }
