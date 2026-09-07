@@ -98,6 +98,20 @@ Never state a rationale, a scope, an effective date or a figure that is not in t
 
 Where a submission is too thin to write from, write one plain line saying what is missing rather than inventing detail. That is more useful to the reviewer than a paragraph of filler.
 
+# The training table
+Render "Upcoming training" as a Markdown table with exactly these columns, in this order:
+
+| Course | Date | Time | Delivery |
+
+One row per course, in the order supplied. Leave a cell empty when the material
+does not give that value — a blank Time is a course whose start time the website
+did not publish, not an invitation to supply a usual one.
+
+Dates are supplied to you already formatted as dd/mm/yyyy. Copy them exactly as
+given. Do not rewrite "29/10/2026" as "29 October 2026", do not reorder the
+parts, and do not drop the year. This is an Australian publication and a date
+that reads either way round is a date a member can act on wrongly.
+
 Return through the provided schema only.`;
 }
 
@@ -116,6 +130,7 @@ function renderSections(sections: DraftInput["sections"]): string {
       if (section.type === "training") {
         const range = trainingDateRange(item.details);
         if (range) lines.push(`Date: ${range}`);
+        if (item.details.time) lines.push(`Time: ${item.details.time}`);
         if (item.details.format) lines.push(`Delivery: ${item.details.format}`);
       } else {
         for (const field of SECTION_META[section.type].fields ?? []) {

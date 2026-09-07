@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getEditionDetail, getEditionDraft, trainingWindow } from "@/lib/admin/newsletter";
+import {
+  getEditionDetail,
+  getEditionDraft,
+  newsletterBrandName,
+  trainingWindow,
+} from "@/lib/admin/newsletter";
+import { renderCampaignHtml } from "@/lib/marketing-email";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
@@ -25,6 +31,20 @@ export default async function EditionPage({ params }: { params: { id: string } }
   const { edition, bySection, tallies, contributors, includedCount } = detail;
   const trainWindow = trainingWindow(edition);
   const draft = await getEditionDraft(edition.contentId);
+
+  // Rendered here rather than in the client component so the reviewer sees the
+  // exact markup that sendMarketingEmail will produce, not a lookalike. The
+  // unsubscribe link is null: this preview is never sent, and a working
+  // unsubscribe token in an admin page is an invitation to click it.
+  const previewHtml = draft?.bodyMd
+    ? renderCampaignHtml({
+        subject: draft.subject,
+        preheader: draft.preheader,
+        bodyMd: draft.bodyMd,
+        unsubscribeLink: null,
+        brandName: await newsletterBrandName(),
+      })
+    : null;
   const short = tallies.filter((t) => t.short);
 
   const statusTone: BadgeTone =
@@ -90,6 +110,7 @@ export default async function EditionPage({ params }: { params: { id: string } }
         subject={draft?.subject ?? null}
         preheader={draft?.preheader ?? null}
         bodyMd={draft?.bodyMd ?? null}
+        previewHtml={previewHtml}
         itemCount={includedCount}
       />
 

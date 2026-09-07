@@ -24,6 +24,8 @@ export type SiteCourse = {
   dateLabel: string;
   /** Resolved calendar date, or null when the label is not a date. */
   date: Date | null;
+  /** Start time as printed, e.g. "8:45am AEST". Null when the detail page did not give one. */
+  time: string | null;
   format: string;
   price: string | null;
   url: string | null;
@@ -94,6 +96,9 @@ export function parseCourses(html: string): SiteCourse[] {
       title,
       dateLabel,
       date: null,
+      // The listing page carries Date and Format and nothing else. Times live
+      // one page deeper, and are filled in by fetchSessionTimes.
+      time: null,
       format,
       price: /mv-pill[^>]*>(\$[\d,]+)/.exec(block)?.[1] ?? null,
       url: /href="(https:\/\/austpayroll\.com\.au\/training\/detail\/[^"]+)"/.exec(block)?.[1] ?? null,
@@ -106,6 +111,38 @@ export function parseCourses(html: string): SiteCourse[] {
 // A course whose date resolved inside the window. Narrowing is kept in the
 // type so callers do not have to re-assert it.
 export type DatedCourse = SiteCourse & { date: Date };
+
+// Session start times, from one course's detail page, keyed by ISO date.
+//
+// Keyed on the checkout link's date rather than the printed "September 24th",
+// because the link already carries an unambiguous 2026-09-24 — no month name
+// to match and no year to infer. A course with several sessions lists them all
+// here, which is why this returns a map and not a single time.
+export async function fetchSessionTimes(url: string): Promise<Map<string, string>> {
+  const times = new Map<string, string>();
+  let html: string;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return times;
+    html = await res.text();
+  } catch {
+    // A missing time is a blank cell, not a failed sync. The course, its date
+    // and its format all came from the listing page and are still good.
+    return times;
+  }
+
+  for (const block of html.split(/<div class="session-list-card--item/).slice(1)) {
+    const time = clean(/session-list-card--date_time">([\s\S]*?)<\/span>/.exec(block)?.[1] ?? "");
+    // The day is not always zero-padded — the Hospitality Award course's link
+    // reads "--2026-10-1" — so the parts are matched loosely and padded here
+    // rather than requiring a shape the site does not consistently emit.
+    const parts = /\/training\/checkout\/[^"]*?--(\d{4})-(\d{1,2})-(\d{1,2})/.exec(block);
+    if (time && parts) {
+      times.set(`${parts[1]}-${parts[2].padStart(2, "0")}-${parts[3].padStart(2, "0")}`, time);
+    }
+  }
+  return times;
+}
 
 export type FetchResult =
   | { ok: true; courses: DatedCourse[] }
@@ -138,6 +175,22 @@ export async function fetchCoursesInWindow(from: Date, to: Date): Promise<FetchR
     .filter((c): c is DatedCourse => c.date !== null)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  // One extra request per in-window course, to pick up its start time. Only
+  // the courses that survived the window filter are fetched — typically a
+  // handful — and they go out together rather than one after another.
+  const timesByUrl = new Map<string, Map<string, string>>();
+  const urls = [...new Set(courses.map((c) => c.url).filter((u): u is string => Boolean(u)))];
+  await Promise.all(
+    urls.map(async (u) => {
+      timesByUrl.set(u, await fetchSessionTimes(u));
+    }),
+  );
+
+  for (const course of courses) {
+    const iso = course.date.toISOString().slice(0, 10);
+    course.time = (course.url ? timesByUrl.get(course.url) : undefined)?.get(iso) ?? null;
+  }
+
   return { ok: true, courses };
 }
 
@@ -145,7 +198,9 @@ export async function fetchCoursesInWindow(from: Date, to: Date): Promise<FetchR
 // wording for date and format, so the edition matches what a member sees when
 // they follow the link.
 export function courseBody(c: SiteCourse): string {
-  const parts = [`Date: ${c.dateLabel}`, `Format: ${c.format}`];
+  const parts = [`Date: ${c.dateLabel}`];
+  if (c.time) parts.push(`Time: ${c.time}`);
+  parts.push(`Format: ${c.format}`);
   if (c.price) parts.push(`Price: ${c.price}`);
   return parts.join("\n");
 }

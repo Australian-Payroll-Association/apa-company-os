@@ -40,7 +40,7 @@ export async function GET(req: Request) {
   const nowIso = new Date().toISOString();
   const { data: campaigns, error: campaignError } = await companyOs
     .from("email_campaigns")
-    .select("id, subject, preheader, body_md, from_email, reply_to, batch_size, scheduled_at")
+    .select("id, subject, preheader, body_md, from_email, reply_to, batch_size, scheduled_at, brands(name)")
     .eq("status", "sending")
     .or(`scheduled_at.is.null,scheduled_at.lte.${nowIso}`)
     .order("created_at", { ascending: true })
@@ -60,12 +60,18 @@ export async function GET(req: Request) {
         reply_to: string | null;
         batch_size: number;
         scheduled_at: string | null;
+        // PostgREST types an embedded relation as either shape depending on
+        // how it infers cardinality, so accept both and normalise below.
+        brands: { name: string | null } | { name: string | null }[] | null;
       }
     | undefined;
 
   if (!campaign) {
     return NextResponse.json({ sending: 0, message: "No campaign is due." });
   }
+
+  const brandName =
+    (Array.isArray(campaign.brands) ? campaign.brands[0] : campaign.brands)?.name ?? null;
 
   // Atomic claim. The rows move to 'claimed' in the same statement that selects
   // them, so an overlapping tick finds nothing to take and cannot double-send.
@@ -144,6 +150,7 @@ export async function GET(req: Request) {
       from: campaign.from_email,
       replyTo: campaign.reply_to,
       campaignId: campaign.id,
+      brandName,
       logSource: "marketing_campaign",
     });
 
