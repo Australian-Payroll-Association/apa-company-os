@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getEditionDetail, trainingWindow } from "@/lib/admin/newsletter";
+import { getEditionDetail, getEditionDraft, trainingWindow } from "@/lib/admin/newsletter";
 import { PageHead } from "@/components/admin/PageHead";
 import { Badge, type BadgeTone } from "@/components/admin/Badge";
 import { formatDate } from "@/lib/admin/format";
@@ -10,6 +10,7 @@ import { EditionControls, IncludeToggle } from "./EditionControls";
 import { AddSubmissionForm } from "./AddSubmissionForm";
 import { TrainingWindow } from "./TrainingWindow";
 import { TrainingTable } from "./TrainingTable";
+import { DraftPanel } from "./DraftPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function EditionPage({ params }: { params: { id: string } }
 
   const { edition, bySection, tallies, contributors, includedCount } = detail;
   const trainWindow = trainingWindow(edition);
+  const draft = await getEditionDraft(edition.contentId);
   const short = tallies.filter((t) => t.short);
 
   const statusTone: BadgeTone =
@@ -82,6 +84,14 @@ export default async function EditionPage({ params }: { params: { id: string } }
           />
         </div>
       </div>
+
+      <DraftPanel
+        editionId={edition.id}
+        subject={draft?.subject ?? null}
+        preheader={draft?.preheader ?? null}
+        bodyMd={draft?.bodyMd ?? null}
+        itemCount={includedCount}
+      />
 
       {SECTION_TYPES.map((type) => {
         const items = bySection[type] ?? [];

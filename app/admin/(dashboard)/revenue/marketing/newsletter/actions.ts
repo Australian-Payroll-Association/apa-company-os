@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
+import { draftEditionContent, getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
 import { SECTION_META, defaultEditionTitle, isSectionType, sectionUses } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
@@ -351,5 +351,33 @@ export async function pullTraining(id: string): Promise<Result> {
   return {
     ok: true,
     message: `${result.found} course${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.`,
+  };
+}
+
+// Phase 2. Assembles everything included in the edition into one draft, in
+// APA's voice, and stores it as the edition's marketing_content row.
+//
+// Re-runnable: the draft is a starting point, and an editor who adds a missing
+// FAQ will want to regenerate rather than hand-patch. Regenerating replaces the
+// same content row, so there is always exactly one draft under review.
+export async function draftEdition(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await draftEditionContent(id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { drafted: true, content_id: result.contentId, regenerated: result.regenerated },
+  });
+  refresh(id);
+
+  return {
+    ok: true,
+    message: result.regenerated
+      ? `Draft regenerated. Subject: "${result.subject}"`
+      : `Draft written. Subject: "${result.subject}"`,
   };
 }

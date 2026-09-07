@@ -71,9 +71,35 @@ CHECK constraints. This follows the surveys precedent and exists so the section
 list can change without a migration — which matters while APA's real structure is
 still to be confirmed.
 
+## Specialist writers (parked)
+
+Beryl, APA's payroll assistant, could draft the payroll articles: it has the
+knowledge base and can research a supplied link. Parked 7 Sep 2026, not
+rejected. Beryl is a separate product with no API configured in Company OS, and
+integrating it was not worth doing before we knew how to call it.
+
+The shape it would take, so this is not re-derived:
+
+- Two stages. A specialist drafts the substance of one submission; the house
+  writer then assembles the edition in APA's voice with the running order,
+  training preamble and webinar block. Beryl should not need to know the
+  newsletter's furniture.
+- A `writer` field per submission (default `house`) and a registry mapping
+  writer to adapter, so a third specialist later costs one adapter.
+- Record which writer produced each piece, so a reviewer knows whose work they
+  are checking.
+
+The condition that makes it safe: Beryl returns claims with the source each came
+from (confirmed 7 Sep 2026). An agent doing its own research reintroduces the
+confabulation this pipeline exists to prevent, and hides it better, because
+genuinely researched output looks identical to invented output. Any adapter must
+carry Beryl's citations through to the draft; if a future writer cannot cite, its
+output should be marked unverified rather than published as a finished section.
+
 ## Known gaps
 
-- No brand voice profile yet, so Phase 2 cannot run.
+- Phase 3 (two signatures, reject-with-notes) is not built; the draft has no
+  review gate yet, which matters more now that a writer can confabulate.
 - `MARKETING_EMAIL_FROM` and `MARKETING_POSTAL_ADDRESS` are empty, and the Resend
   domain is unverified. All three block Phase 4.
 - The member list has not been scoped: location, size and consent state unknown.
