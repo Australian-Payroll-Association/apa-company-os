@@ -2,8 +2,8 @@ import type { SubmissionRow } from "@/lib/admin/newsletter";
 import { trainingDateRange } from "@/lib/newsletter";
 import { IncludeToggle } from "./EditionControls";
 
-// Training rendered as the Course / Date / Delivery table the newsletter itself
-// uses, rather than as cards like the other sections.
+// Training rendered as the Course / Date / Time / Delivery table the newsletter
+// itself uses, rather than as cards like the other sections.
 //
 // The point is that what an editor curates looks like what ships: a missing
 // delivery format or a course out of date order is obvious in a table and easy
@@ -25,6 +25,7 @@ export function TrainingTable({ items }: { items: SubmissionRow[] }) {
           <tr>
             <th>Course</th>
             <th style={{ whiteSpace: "nowrap" }}>Date</th>
+            <th style={{ whiteSpace: "nowrap" }}>Time</th>
             <th>Delivery</th>
             <th style={{ width: 1 }}></th>
           </tr>
@@ -45,6 +46,9 @@ export function TrainingTable({ items }: { items: SubmissionRow[] }) {
                 </td>
                 <td className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>
                   {dates || <span style={{ opacity: 0.6 }}>No date</span>}
+                </td>
+                <td className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>
+                  {item.details.time || <span style={{ opacity: 0.6 }}>Not set</span>}
                 </td>
                 <td className="admin-cell-muted">
                   {item.details.format || <span style={{ opacity: 0.6 }}>Not set</span>}

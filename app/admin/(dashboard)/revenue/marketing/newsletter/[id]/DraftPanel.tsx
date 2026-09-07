@@ -6,10 +6,14 @@ import { draftEdition } from "../actions";
 
 // The draft, and the button that writes it.
 //
-// Deliberately shows the Markdown rather than rendering it: this is the
-// reviewer's copy, and what they are checking is the words, the figures and
-// the citations. A rendered preview belongs with the broadcast, where what
-// matters is how it will look in an inbox.
+// Two views, because a reviewer is doing two different jobs. Markdown is for
+// checking the words, the figures and the citations. Preview is for checking
+// it will not arrive looking broken — the training table in particular, which
+// is pipe characters in Markdown and only becomes a table once rendered.
+//
+// The preview is an iframe with srcDoc, not a div: the email's HTML carries
+// its own <body> styling and would otherwise inherit and leak admin CSS,
+// showing the reviewer something the recipient will never see.
 
 type Msg = { tone: "ok" | "err"; text: string } | null;
 
@@ -18,17 +22,20 @@ export function DraftPanel({
   subject,
   preheader,
   bodyMd,
+  previewHtml,
   itemCount,
 }: {
   editionId: string;
   subject: string | null;
   preheader: string | null;
   bodyMd: string | null;
+  previewHtml: string | null;
   itemCount: number;
 }) {
   const router = useRouter();
   const [msg, setMsg] = useState<Msg>(null);
   const [pending, start] = useTransition();
+  const [view, setView] = useState<"markdown" | "preview">("preview");
   const hasDraft = Boolean(bodyMd);
 
   function run() {
@@ -101,7 +108,49 @@ export function DraftPanel({
             </div>
           )}
           <div className="admin-field" style={{ marginTop: 10 }}>
-            <label className="admin-label">Body</label>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <label className="admin-label">Body</label>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  className={`admin-btn${view === "preview" ? " admin-btn--primary" : ""}`}
+                  onClick={() => setView("preview")}
+                >
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  className={`admin-btn${view === "markdown" ? " admin-btn--primary" : ""}`}
+                  onClick={() => setView("markdown")}
+                >
+                  Markdown
+                </button>
+              </div>
+            </div>
+
+            {view === "preview" && previewHtml ? (
+              <iframe
+                title="Inbox preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                style={{
+                  width: "100%",
+                  height: 620,
+                  border: "1px solid var(--admin-line, rgba(128,128,128,0.25))",
+                  borderRadius: "var(--admin-radius-sm, 6px)",
+                  background: "#ffffff",
+                  marginTop: 8,
+                }}
+              />
+            ) : (
             <pre
               style={{
                 margin: 0,
@@ -119,6 +168,7 @@ export function DraftPanel({
             >
               {bodyMd}
             </pre>
+            )}
           </div>
         </div>
       )}

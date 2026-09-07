@@ -218,6 +218,7 @@ export async function sendTest(id: string): Promise<ActionResult> {
     bodyMd: campaign.bodyMd,
     replyTo: campaign.replyTo,
     campaignId: campaign.id,
+    brandName: campaign.brandName,
     logSource: "marketing_test",
   });
 

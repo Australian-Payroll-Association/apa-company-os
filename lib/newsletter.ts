@@ -145,6 +145,9 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     fields: [
       { key: "date_from", label: "From date", type: "date" },
       { key: "date_to", label: "End date", type: "date" },
+      // Both hidden on the form for the same reason: the website decides them,
+      // and a contributor typing a start time would be guessing at one.
+      { key: "time", label: "Time", type: "text", placeholder: "8:45am AEST", formHidden: true },
       { key: "format", label: "Delivery", type: "text", placeholder: "Virtual Classroom", formHidden: true },
     ],
     target: null,

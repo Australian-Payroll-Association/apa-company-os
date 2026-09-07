@@ -281,7 +281,13 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
       link_url: course.url,
       // date_to is left unset — the site advertises one date per course, and a
       // blank end date is what marks a single-day course.
-      details: { date_from: iso, format: course.format },
+      // time is omitted rather than stored empty when the detail page had
+      // none, so a later pull that finds one is an update, not a no-op.
+      details: {
+        date_from: iso,
+        ...(course.time ? { time: course.time } : {}),
+        format: course.format,
+      },
     };
     if (match) {
       const { error } = await companyOs.from("newsletter_submissions").update(row).eq("id", match);
@@ -312,6 +318,18 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
 // createBroadcastFromEntry already turns a marketing_content row into an
 // email_campaigns broadcast, so Phase 4 is a wiring job rather than a build.
 const HOME_BRAND_FOR_NEWSLETTER = "apa";
+
+// The name shown at the top of the email. Read from the brand record rather
+// than hardcoded so the header is not a second place to keep the brand's name
+// correct — the fork's template said "Edge8" for exactly that reason.
+export async function newsletterBrandName(): Promise<string | null> {
+  const { data } = await companyOs
+    .from("brands")
+    .select("name")
+    .eq("slug", HOME_BRAND_FOR_NEWSLETTER)
+    .maybeSingle();
+  return (data as { name: string | null } | null)?.name ?? null;
+}
 
 export type DraftEditionResult =
   | { ok: true; contentId: string; subject: string; regenerated: boolean }
