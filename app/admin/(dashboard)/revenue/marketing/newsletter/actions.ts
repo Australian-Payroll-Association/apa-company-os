@@ -5,7 +5,7 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
-import { SECTION_META, defaultEditionTitle, isSectionType } from "@/lib/newsletter";
+import { SECTION_META, defaultEditionTitle, isSectionType, sectionUses } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
 // deliberate decision — no cron opens one for you), and every write is audited
@@ -198,16 +198,18 @@ export async function addSubmissionAsAdmin(input: {
   const admin = await requireAdmin();
 
   if (!isSectionType(input.sectionType)) return { ok: false, error: "Pick a section." };
-  const title = input.title.trim();
-  const body = input.body.trim();
-  // Training submits as a date range with no words — see SECTION_META.
-  if (SECTION_META[input.sectionType].bodyRequired !== false && !body) {
+  // Inputs the section does not render are dropped rather than trusted — the
+  // same rule as the /team path, so the two cannot accept different things.
+  const title = sectionUses(input.sectionType, "title") ? input.title.trim() : "";
+  const body = sectionUses(input.sectionType, "body") ? input.body.trim() : "";
+
+  if (sectionUses(input.sectionType, "body") && !body) {
     return { ok: false, error: "Add some detail — an empty item can't be drafted from." };
   }
   if (title.length > 200) return { ok: false, error: "Keep the heading under 200 characters." };
   if (body.length > 5000) return { ok: false, error: "That's longer than 5,000 characters." };
 
-  const link = input.linkUrl.trim();
+  const link = sectionUses(input.sectionType, "link") ? input.linkUrl.trim() : "";
   if (link) {
     try {
       const parsed = new URL(link);
