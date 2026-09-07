@@ -1,6 +1,9 @@
 import { companyOs } from "@/lib/supabase";
 import { fetchCoursesInWindow } from "@/lib/admin/newsletter-training";
+import { draftNewsletter } from "@/lib/ai/newsletter-writer";
+import { fetchSourceText } from "@/lib/ai/brand-writer";
 import {
+  SECTION_META,
   SECTION_TYPES,
   tallySections,
   type EditionStatus,
@@ -298,4 +301,144 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
   }
 
   return { ok: true, added, updated, found: fetched.courses.length };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — drafting
+// ---------------------------------------------------------------------------
+
+// The draft lands in marketing_content rather than on the edition itself. That
+// is what content_id is for, and it keeps the edition on the existing rails:
+// createBroadcastFromEntry already turns a marketing_content row into an
+// email_campaigns broadcast, so Phase 4 is a wiring job rather than a build.
+const HOME_BRAND_FOR_NEWSLETTER = "apa";
+
+export type DraftEditionResult =
+  | { ok: true; contentId: string; subject: string; regenerated: boolean }
+  | { ok: false; error: string };
+
+export async function draftEditionContent(editionId: string): Promise<DraftEditionResult> {
+  const detail = await getEditionDetail(editionId);
+  if (!detail) return { ok: false, error: "Edition not found." };
+
+  if (detail.edition.status === "published") {
+    return { ok: false, error: "This edition has been published. Drafting it again would not change what went out." };
+  }
+
+  const { data: brandRow } = await companyOs
+    .from("brands")
+    .select("id")
+    .eq("slug", HOME_BRAND_FOR_NEWSLETTER)
+    .maybeSingle();
+  const brandId = (brandRow as { id: string } | null)?.id;
+  if (!brandId) {
+    return { ok: false, error: `No brand with slug "${HOME_BRAND_FOR_NEWSLETTER}". Create it under Marketing > Brands.` };
+  }
+
+  // Only what the editor kept. Excluding an item has to mean it stays out of
+  // the draft, or the include/exclude controls are decoration.
+  const sections = SECTION_TYPES.map((type) => ({
+    type,
+    label: SECTION_META[type].label,
+    items: (detail.bySection[type] ?? [])
+      .filter((s) => s.included)
+      .map((s) => ({ title: s.title, body: s.body, linkUrl: s.linkUrl, details: s.details })),
+  })).filter((s) => s.items.length > 0);
+
+  // Fetch every cited source before drafting. A submission often carries a link
+  // and little else — sometimes literally "write a few paragraphs on this" —
+  // and without the page the writer infers from the URL slug and fills the rest
+  // from its own knowledge. Fetching is best-effort; when it fails the writer is
+  // told so and instructed not to describe the source.
+  const withSources = await Promise.all(
+    sections.map(async (section) => ({
+      ...section,
+      items: await Promise.all(
+        section.items.map(async (item) => ({
+          ...item,
+          sourceText: item.linkUrl ? await fetchSourceText(item.linkUrl) : null,
+        })),
+      ),
+    })),
+  );
+
+  if (sections.length === 0) {
+    return { ok: false, error: "Nothing is included in this edition yet, so there is nothing to draft." };
+  }
+
+  const drafted = await draftNewsletter({
+    brandId,
+    editionTitle: detail.edition.title,
+    sections: withSources,
+  });
+  if (!drafted.ok) return { ok: false, error: drafted.error };
+
+  // Re-drafting updates the same row rather than leaving a trail of orphans;
+  // the edition points at one piece of content, and that is the one reviewed.
+  const row = {
+    title: drafted.subject,
+    brand_id: brandId,
+    channel: "email",
+    status: "drafted",
+    publish_date: detail.edition.periodStart,
+    copy_md: drafted.bodyMd,
+    notes: drafted.preheader || null,
+  };
+
+  let contentId = detail.edition.contentId;
+  const regenerated = Boolean(contentId);
+
+  if (contentId) {
+    const { error } = await companyOs.from("marketing_content").update(row).eq("id", contentId);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { data, error } = await companyOs
+      .from("marketing_content")
+      .insert(row)
+      .select("id")
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    contentId = (data as { id: string } | null)?.id ?? null;
+    if (!contentId) return { ok: false, error: "The draft was written but could not be saved." };
+  }
+
+  // Status only moves forward to drafting; an edition already in review keeps
+  // its state, so re-drafting does not silently discard a signature.
+  const patch: Record<string, unknown> = { content_id: contentId };
+  if (detail.edition.status === "open" || detail.edition.status === "closed") {
+    patch.status = "drafting";
+  }
+  const { error: editionError } = await companyOs
+    .from("newsletter_editions")
+    .update(patch)
+    .eq("id", editionId);
+  if (editionError) return { ok: false, error: editionError.message };
+
+  return { ok: true, contentId, subject: drafted.subject, regenerated };
+}
+
+export type EditionDraft = {
+  contentId: string;
+  subject: string;
+  preheader: string | null;
+  bodyMd: string;
+  updatedAt: string | null;
+};
+
+export async function getEditionDraft(contentId: string | null): Promise<EditionDraft | null> {
+  if (!contentId) return null;
+  const { data } = await companyOs
+    .from("marketing_content")
+    .select("id, title, notes, copy_md, created_at")
+    .eq("id", contentId)
+    .maybeSingle();
+  if (!data) return null;
+  const r = data as { id: string; title: string | null; notes: string | null; copy_md: string | null; created_at: string | null };
+  return {
+    contentId: r.id,
+    subject: r.title ?? "",
+    preheader: r.notes,
+    bodyMd: r.copy_md ?? "",
+    updatedAt: r.created_at,
+  };
 }
