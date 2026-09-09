@@ -5,6 +5,11 @@ import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
 import { draftEditionContent, getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
+import {
+  dismissSuggestion,
+  promoteSuggestion,
+  scanTopicsForEdition,
+} from "@/lib/admin/newsletter-radar";
 import { SECTION_META, defaultEditionTitle, isSectionType, sectionUses } from "@/lib/newsletter";
 
 // Newsletter Machine, admin side. Editions are opened and closed by hand (a
@@ -352,6 +357,83 @@ export async function pullTraining(id: string): Promise<Result> {
     ok: true,
     message: `${result.found} course${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.`,
   };
+}
+
+// Topic radar. Scans the ATO, Fair Work, the state revenue offices and the
+// workers compensation authorities for changes worth an article this month.
+//
+// Slow by nature — seven areas, each running its own searches and opening the
+// pages it finds — so it is a button rather than something that happens on
+// page load.
+export async function scanTopics(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await scanTopicsForEdition(id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { topics_scanned: { found: result.found, added: result.added } },
+  });
+  refresh(id);
+
+  // An area that failed is reported rather than swallowed: "nothing found in
+  // long service leave" and "long service leave was never searched" are
+  // different facts, and only one of them means there is nothing to write.
+  const failed = result.areasFailed.length
+    ? ` Could not scan: ${result.areasFailed.join(", ")} — run it again to retry.`
+    : "";
+
+  if (result.found === 0) {
+    return { ok: true, message: `No changes found in the edition's period.${failed}` };
+  }
+  if (result.added === 0) {
+    return {
+      ok: true,
+      message: `${result.found} found, all already on the list.${failed}`,
+    };
+  }
+  return {
+    ok: true,
+    message: `${result.added} new suggestion${result.added === 1 ? "" : "s"} from ${result.found} found.${failed}`,
+  };
+}
+
+export async function addSuggestedTopic(suggestionId: string, editionId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await promoteSuggestion(suggestionId, admin.email);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_topic_suggestions",
+    recordId: suggestionId,
+    operation: "update",
+    actor: admin.email,
+    context: { promoted: true, edition_id: editionId },
+  });
+  refresh(editionId);
+  return { ok: true, message: `Added to Article for this edition, switched off until it's written.` };
+}
+
+export async function dismissSuggestedTopic(
+  suggestionId: string,
+  editionId: string,
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await dismissSuggestion(suggestionId, admin.email);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_topic_suggestions",
+    recordId: suggestionId,
+    operation: "update",
+    actor: admin.email,
+    context: { dismissed: true },
+  });
+  refresh(editionId);
+  return { ok: true };
 }
 
 // Phase 2. Assembles everything included in the edition into one draft, in

@@ -17,6 +17,8 @@ import { AddSubmissionForm } from "./AddSubmissionForm";
 import { TrainingWindow } from "./TrainingWindow";
 import { TrainingTable } from "./TrainingTable";
 import { DraftPanel } from "./DraftPanel";
+import { TopicRadar } from "./TopicRadar";
+import { getSuggestions } from "@/lib/admin/newsletter-radar";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function EditionPage({ params }: { params: { id: string } }
   const { edition, bySection, tallies, contributors, includedCount } = detail;
   const trainWindow = trainingWindow(edition);
   const draft = await getEditionDraft(edition.contentId);
+  const suggestions = await getSuggestions(edition.id);
 
   // Rendered here rather than in the client component so the reviewer sees the
   // exact markup that sendMarketingEmail will produce, not a lookalike. The
@@ -104,6 +107,10 @@ export default async function EditionPage({ params }: { params: { id: string } }
           />
         </div>
       </div>
+
+      {/* Intake, so it sits above the draft: topics are found and accepted
+          before there is anything to write. */}
+      <TopicRadar editionId={edition.id} suggestions={suggestions} />
 
       <DraftPanel
         editionId={edition.id}
