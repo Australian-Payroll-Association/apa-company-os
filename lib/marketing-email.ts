@@ -95,8 +95,9 @@ function atomic(cell: string): boolean {
   if (!s) return false;
   // dd/mm/yyyy, optionally an en-dash range of two of them
   if (/^\d{1,2}\/\d{1,2}\/\d{4}(\s*[–-]\s*\d{1,2}\/\d{1,2}\/\d{4})?$/.test(s)) return true;
-  // 8:45am AEDT, 1.00 pm AEST, 10:00am
-  if (/^\d{1,2}[:.]\d{2}\s*(am|pm)?(\s*[A-Z]{3,4})?$/i.test(s)) return true;
+  // 8:45am AEDT, 1.00 pm AEST, 10:00am, and the 8:45am – 4:30pm AEDT range
+  const t = String.raw`\d{1,2}[:.]\d{2}\s*(?:am|pm)?`;
+  if (new RegExp(`^${t}(\\s*[–-]\\s*${t})?(\\s*[A-Z]{3,4})?$`, "i").test(s)) return true;
   return false;
 }
 
@@ -139,7 +140,7 @@ export function renderMarkdown(md: string): string {
       const th = head
         .map(
           (c) =>
-            `<th align="left" style="padding:8px 10px;border-bottom:2px solid ${NAVY};font-size:13px;color:${NAVY};">${inline(c)}</th>`,
+            `<th align="left" style="padding:8px 6px;border-bottom:2px solid ${NAVY};font-size:13px;color:${NAVY};">${inline(c)}</th>`,
         )
         .join("");
       const trs = body
@@ -148,7 +149,7 @@ export function renderMarkdown(md: string): string {
             `<tr>${r
               .map(
                 (c) =>
-                  `<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;vertical-align:top;${
+                  `<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;font-size:14px;vertical-align:top;${
                     atomic(c) ? "white-space:nowrap;" : ""
                   }">${inline(c)}</td>`,
               )

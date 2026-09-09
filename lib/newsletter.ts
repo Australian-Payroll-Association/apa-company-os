@@ -262,6 +262,44 @@ export function trainingDateRange(details: Record<string, string>): string {
   return to && to !== from ? `${from} – ${to}` : from;
 }
 
+// APA's standard course day, keyed on the start time.
+//
+// The training website publishes a start time and nothing else — there is no
+// finish time and no duration on the listing page, the course detail page or
+// the checkout page. So the finish cannot be read from the site; it comes from
+// the standard each start runs to, which is APA's own rule and not an
+// inference from the data.
+//
+// Derived at render rather than stored on the row, so correcting a standard
+// here corrects every edition at once, including ones already pulled.
+const COURSE_FINISH: Record<string, string> = {
+  "8:45am": "4:30pm",
+  "10:00am": "4:00pm",
+  "1:00pm": "5:00pm",
+};
+
+// A course's hours as one cell: "8:45am – 4:30pm AEDT". The timezone is
+// printed once at the end rather than on both halves — a session does not
+// cross a timezone, and repeating it is noise in a narrow column.
+export function trainingTimeRange(details: Record<string, string>): string {
+  const raw = (details.time ?? "").trim();
+  if (!raw) return "";
+
+  // "8:45am AEST", "8.45 AM aedt" — the site is consistent today, but the
+  // parse is not the place to depend on that.
+  const m = /^(\d{1,2})[:.](\d{2})\s*(am|pm)\s*([A-Za-z]{3,4})?$/i.exec(raw);
+  if (!m) return raw;
+
+  const start = `${Number(m[1])}:${m[2]}${m[3].toLowerCase()}`;
+  const zone = m[4] ? ` ${m[4].toUpperCase()}` : "";
+  const finish = COURSE_FINISH[start];
+
+  // A start time on a schedule nobody has told us about keeps its own time and
+  // gains no finish. Guessing one here is exactly the kind of plausible,
+  // unsourced detail the whole draft path is built to refuse.
+  return finish ? `${start} – ${finish}${zone}` : raw;
+}
+
 // Does this section render the given shared input? Used by both forms and by
 // the two submit actions, so what is asked for and what is validated cannot
 // disagree.
