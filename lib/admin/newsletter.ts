@@ -374,7 +374,15 @@ export async function draftEditionContent(editionId: string): Promise<DraftEditi
       items: await Promise.all(
         section.items.map(async (item) => ({
           ...item,
-          sourceText: item.linkUrl ? await fetchSourceText(item.linkUrl) : null,
+          // 30k, not the 6k default. fetchSourceText takes characters from the
+          // TOP of the stripped page, and on a regulator's site the top is
+          // navigation, breadcrumbs and an on-this-page list. A real edition
+          // proved the cost: the Fair Work vehicle allowance notice is 11,405
+          // characters, the rate change sits at 6,247, and the 6k default cut
+          // off 247 characters short — so the writer correctly reported that
+          // the figure was not in its source and published an article that
+          // told members nothing. The whole page is cheaper than that.
+          sourceText: item.linkUrl ? await fetchSourceText(item.linkUrl, 30000) : null,
         })),
       ),
     })),
@@ -459,4 +467,46 @@ export async function getEditionDraft(contentId: string | null): Promise<Edition
     bodyMd: r.copy_md ?? "",
     updatedAt: r.created_at,
   };
+}
+
+// Hand edits to a drafted edition.
+//
+// The writer gets things nearly right and then misses something only a person
+// knows — a course whose start time the website never published, a figure the
+// source page omitted, a sentence that reads wrong in APA's voice. Without
+// this the only remedy was to regenerate and hope, which changes everything to
+// fix one line.
+//
+// Saved to the same marketing_content row the writer uses, so the inbox
+// preview, the review gate and eventually the broadcast all read the edited
+// text and there is no second copy to diverge.
+export async function saveEditionDraft(
+  editionId: string,
+  input: { subject: string; preheader: string; bodyMd: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const edition = await getEdition(editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+  if (edition.status === "published") {
+    return { ok: false, error: "This edition has been published. Editing it now would not change what went out." };
+  }
+  if (!edition.contentId) {
+    return { ok: false, error: "There is no draft to edit yet. Write one first." };
+  }
+
+  const subject = input.subject.trim();
+  const bodyMd = input.bodyMd.trim();
+  if (!subject) return { ok: false, error: "The subject can't be empty." };
+  if (!bodyMd) return { ok: false, error: "The body can't be empty." };
+
+  const { error } = await companyOs
+    .from("marketing_content")
+    .update({
+      title: subject,
+      notes: input.preheader.trim() || null,
+      copy_md: bodyMd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", edition.contentId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
