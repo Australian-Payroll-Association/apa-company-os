@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { draftEditionContent, getEdition, syncTrainingForEdition, trainingWindow } from "@/lib/admin/newsletter";
+import {
+  draftEditionContent,
+  getEdition,
+  saveEditionDraft,
+  syncTrainingForEdition,
+  trainingWindow,
+} from "@/lib/admin/newsletter";
 import {
   dismissSuggestion,
   promoteSuggestion,
@@ -357,6 +363,34 @@ export async function pullTraining(id: string): Promise<Result> {
     ok: true,
     message: `${result.found} course${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.`,
   };
+}
+
+// Hand edits to the draft.
+//
+// The writer cannot supply what its sources do not carry — a course start time
+// the training website never published is the case that prompted this. Rather
+// than regenerate and hope, the reviewer fixes the line.
+//
+// Edits go to the same row the writer wrote, so the inbox preview and
+// everything downstream read the corrected text. Regenerating overwrites them,
+// which is why the Regenerate button asks first.
+export async function saveDraft(
+  id: string,
+  input: { subject: string; preheader: string; bodyMd: string },
+): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await saveEditionDraft(id, input);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { draft_edited_by_hand: true },
+  });
+  refresh(id);
+  return { ok: true, message: "Draft saved." };
 }
 
 // Topic radar. Scans the ATO, Fair Work, the state revenue offices and the

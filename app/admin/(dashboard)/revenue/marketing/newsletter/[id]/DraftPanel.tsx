@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { draftEdition } from "../actions";
+import { draftEdition, saveDraft } from "../actions";
 
 // The draft, and the button that writes it.
 //
@@ -38,7 +38,42 @@ export function DraftPanel({
   const [view, setView] = useState<"markdown" | "preview">("preview");
   const hasDraft = Boolean(bodyMd);
 
+  // Hand editing. The writer cannot supply what its sources do not carry — a
+  // course start time the training website never published is the case that
+  // prompted this — so the reviewer fixes the line rather than regenerating
+  // the whole edition and hoping.
+  //
+  // Edit state is seeded from the props when editing starts and discarded when
+  // it ends, so after a save the server's copy is what shows rather than a
+  // stale local one.
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ subject: "", preheader: "", bodyMd: "" });
+
+  function startEditing() {
+    setMsg(null);
+    setForm({ subject: subject ?? "", preheader: preheader ?? "", bodyMd: bodyMd ?? "" });
+    setEditing(true);
+  }
+
+  function save() {
+    setMsg(null);
+    start(async () => {
+      const result = await saveDraft(editionId, form);
+      if (result.ok) {
+        setEditing(false);
+        if (result.message) setMsg({ tone: "ok", text: result.message });
+        router.refresh();
+      } else {
+        setMsg({ tone: "err", text: result.error ?? "That didn't work." });
+      }
+    });
+  }
+
   function run() {
+    // Regenerating destroys hand edits and there is no undo. Cheap to ask.
+    if (hasDraft && !window.confirm("Regenerate this draft? Any manual edits will be replaced.")) {
+      return;
+    }
     setMsg(null);
     start(async () => {
       const result = await draftEdition(editionId);
@@ -71,11 +106,39 @@ export function DraftPanel({
         <button
           type="button"
           className={`admin-btn${hasDraft ? "" : " admin-btn--primary"}`}
-          disabled={pending || itemCount === 0}
+          disabled={pending || itemCount === 0 || editing}
           onClick={run}
         >
-          {pending ? "Writing…" : hasDraft ? "Regenerate draft" : "Write the draft"}
+          {pending && !editing ? "Writing…" : hasDraft ? "Regenerate draft" : "Write the draft"}
         </button>
+        {hasDraft && !editing && (
+          <button type="button" className="admin-btn" disabled={pending} onClick={startEditing}>
+            Edit draft
+          </button>
+        )}
+        {editing && (
+          <>
+            <button
+              type="button"
+              className="admin-btn admin-btn--primary"
+              disabled={pending}
+              onClick={save}
+            >
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={pending}
+              onClick={() => {
+                setEditing(false);
+                setMsg(null);
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        )}
       </div>
 
       {itemCount === 0 && (
@@ -97,14 +160,32 @@ export function DraftPanel({
         <div style={{ marginTop: 16 }}>
           <div className="admin-field">
             <label className="admin-label">Subject</label>
-            <p style={{ margin: 0 }}>{subject}</p>
+            {editing ? (
+              <input
+                className="admin-input"
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                style={{ width: "100%" }}
+              />
+            ) : (
+              <p style={{ margin: 0 }}>{subject}</p>
+            )}
           </div>
-          {preheader && (
+          {(editing || preheader) && (
             <div className="admin-field" style={{ marginTop: 10 }}>
               <label className="admin-label">Preheader</label>
-              <p className="admin-page-sub" style={{ margin: 0 }}>
-                {preheader}
-              </p>
+              {editing ? (
+                <input
+                  className="admin-input"
+                  value={form.preheader}
+                  onChange={(e) => setForm((f) => ({ ...f, preheader: e.target.value }))}
+                  style={{ width: "100%" }}
+                />
+              ) : (
+                <p className="admin-page-sub" style={{ margin: 0 }}>
+                  {preheader}
+                </p>
+              )}
             </div>
           )}
           <div className="admin-field" style={{ marginTop: 10 }}>
@@ -118,25 +199,46 @@ export function DraftPanel({
               }}
             >
               <label className="admin-label">Body</label>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  type="button"
-                  className={`admin-btn${view === "preview" ? " admin-btn--primary" : ""}`}
-                  onClick={() => setView("preview")}
-                >
-                  Preview
-                </button>
-                <button
-                  type="button"
-                  className={`admin-btn${view === "markdown" ? " admin-btn--primary" : ""}`}
-                  onClick={() => setView("markdown")}
-                >
-                  Markdown
-                </button>
-              </div>
+              {/* The view switch is meaningless while editing: you are editing
+                  Markdown, and a preview of unsaved text would be a third
+                  version of the truth on screen. */}
+              {!editing && (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    className={`admin-btn${view === "preview" ? " admin-btn--primary" : ""}`}
+                    onClick={() => setView("preview")}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className={`admin-btn${view === "markdown" ? " admin-btn--primary" : ""}`}
+                    onClick={() => setView("markdown")}
+                  >
+                    Markdown
+                  </button>
+                </div>
+              )}
             </div>
 
-            {view === "preview" && previewHtml ? (
+            {editing ? (
+              <textarea
+                className="admin-textarea"
+                value={form.bodyMd}
+                onChange={(e) => setForm((f) => ({ ...f, bodyMd: e.target.value }))}
+                spellCheck
+                style={{
+                  width: "100%",
+                  minHeight: 520,
+                  marginTop: 8,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  resize: "vertical",
+                }}
+              />
+            ) : view === "preview" && previewHtml ? (
               <iframe
                 title="Inbox preview"
                 srcDoc={previewHtml}
