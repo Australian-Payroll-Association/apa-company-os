@@ -1,5 +1,5 @@
 import type { SubmissionRow } from "@/lib/admin/newsletter";
-import { trainingDateRange } from "@/lib/newsletter";
+import { trainingDateRange, trainingTimeRange } from "@/lib/newsletter";
 import { IncludeToggle } from "./EditionControls";
 
 // Training rendered as the Course / Date / Time / Delivery table the newsletter
@@ -33,6 +33,7 @@ export function TrainingTable({ items }: { items: SubmissionRow[] }) {
         <tbody>
           {sorted.map((item) => {
             const dates = trainingDateRange(item.details);
+            const hours = trainingTimeRange(item.details);
             return (
               <tr key={item.id} style={{ opacity: item.included ? 1 : 0.5 }}>
                 <td>
@@ -48,7 +49,7 @@ export function TrainingTable({ items }: { items: SubmissionRow[] }) {
                   {dates || <span style={{ opacity: 0.6 }}>No date</span>}
                 </td>
                 <td className="admin-cell-muted" style={{ whiteSpace: "nowrap" }}>
-                  {item.details.time || <span style={{ opacity: 0.6 }}>Not set</span>}
+                  {hours || <span style={{ opacity: 0.6 }}>Not set</span>}
                 </td>
                 <td className="admin-cell-muted">
                   {item.details.format || <span style={{ opacity: 0.6 }}>Not set</span>}
