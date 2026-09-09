@@ -386,18 +386,24 @@ export async function scanTopics(id: string): Promise<Result> {
     ? ` Could not scan: ${result.areasFailed.join(", ")} — run it again to retry.`
     : "";
 
+  // The window is always stated. It reaches back before the edition month, so
+  // a reader who assumed it covered only September needs to see that it did
+  // not — and a thin result means something different depending on how much
+  // ground was actually covered.
+  const window = ` Scanned ${result.from} to ${result.to}.`;
+
   if (result.found === 0) {
-    return { ok: true, message: `No changes found in the edition's period.${failed}` };
+    return { ok: true, message: `No changes found.${window}${failed}` };
   }
   if (result.added === 0) {
     return {
       ok: true,
-      message: `${result.found} found, all already on the list.${failed}`,
+      message: `${result.found} found, all already on the list.${window}${failed}`,
     };
   }
   return {
     ok: true,
-    message: `${result.added} new suggestion${result.added === 1 ? "" : "s"} from ${result.found} found.${failed}`,
+    message: `${result.added} new suggestion${result.added === 1 ? "" : "s"} from ${result.found} found.${window}${failed}`,
   };
 }
 
