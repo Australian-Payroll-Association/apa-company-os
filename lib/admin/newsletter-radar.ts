@@ -57,19 +57,68 @@ export async function getSuggestions(editionId: string): Promise<SuggestionRow[]
 }
 
 export type ScanResult =
-  | { ok: true; found: number; added: number; areasFailed: string[] }
+  | { ok: true; found: number; added: number; areasFailed: string[]; from: string; to: string }
   | { ok: false; error: string };
 
-// The window scanned is the edition's own period. An edition covering September
-// wants September's changes; widening it to "everything recent" would re-offer
-// what the August edition already covered.
+// How far back before the edition month the scan reaches, in whole months.
+//
+// Not the edition's own period, which was the first attempt and was wrong.
+// Regulators announce ahead of time and Australian payroll changes cluster on
+// 1 July: scanning only September 2026 misses payday super, the annual wage
+// review and the NT payroll tax rate, all announced in June and July and all
+// still the biggest thing a September edition could tell members about. It
+// also means a scan run on the 9th is looking mostly at days that have not
+// happened yet.
+//
+// Two months back is the shape of the problem rather than a guess — it covers
+// the 1 July changeover from any edition up to September, and a quarter's
+// worth of announcements from any other.
+//
+// Re-offering something a previous edition covered is not a real cost here:
+// suggestions are per-edition and the reviewer sees the date on every row.
+const RADAR_LEAD_MONTHS = 2;
+
+// The window runs from the first of the month RADAR_LEAD_MONTHS before the
+// edition period starts, through to the end of the period. Built with Date.UTC
+// so the boundary does not slide under the server's timezone.
+export function radarWindow(periodStart: string, periodEnd: string): { from: string; to: string } {
+  const start = new Date(`${periodStart}T00:00:00Z`);
+  const from = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - RADAR_LEAD_MONTHS, 1),
+  );
+  return { from: from.toISOString().slice(0, 10), to: periodEnd };
+}
+
+// What counts as "the same page" for deduplication.
+//
+// The exact URL string is not enough. A real scan returned the ATO's
+// "Explaining qualifying earnings" twice — once as ato.gov.au and once as
+// www.ato.gov.au, with a spare path segment — and both were stored, so the
+// reviewer saw the same page under two rows.
+//
+// Normalising the host, the scheme, a trailing slash and the query is safe
+// here because these are government content pages, not app URLs where a query
+// string selects the content. The row still stores the URL exactly as
+// retrieved; only the comparison is normalised.
+function dedupKey(url: string): string {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const path = u.pathname.replace(/\/+$/, "").toLowerCase();
+    return `${host}${path}`;
+  } catch {
+    return url.trim().toLowerCase();
+  }
+}
+
 export async function scanTopicsForEdition(editionId: string): Promise<ScanResult> {
   const edition = await getEdition(editionId);
   if (!edition) return { ok: false, error: "Edition not found." };
 
-  const from = edition.periodStart;
-  const to = edition.periodEnd;
-  if (!from || !to) return { ok: false, error: "This edition has no period set, so there is no window to scan." };
+  if (!edition.periodStart || !edition.periodEnd) {
+    return { ok: false, error: "This edition has no period set, so there is no window to scan." };
+  }
+  const { from, to } = radarWindow(edition.periodStart, edition.periodEnd);
 
   const result = await scanTopics(from, to);
   if (!result.ok) return { ok: false, error: result.error };
@@ -77,7 +126,7 @@ export async function scanTopicsForEdition(editionId: string): Promise<ScanResul
   const areasFailed = result.areas.filter((a) => a.error).map((a) => a.label);
   const all: TopicSuggestion[] = result.areas.flatMap((a) => a.suggestions);
   if (all.length === 0) {
-    return { ok: true, found: 0, added: 0, areasFailed };
+    return { ok: true, found: 0, added: 0, areasFailed, from, to };
   }
 
   // Existing rows are left exactly as they are, including dismissed ones. A
@@ -88,19 +137,20 @@ export async function scanTopicsForEdition(editionId: string): Promise<ScanResul
     .select("url")
     .eq("edition_id", editionId);
   if (readError) return { ok: false, error: readError.message };
-  const seen = new Set(((existingData ?? []) as { url: string }[]).map((r) => r.url));
+  const seen = new Set(((existingData ?? []) as { url: string }[]).map((r) => dedupKey(r.url)));
 
   // Two scans in one run can return the same page from different areas — state
   // payroll tax and long service leave share several domains — so the batch is
   // deduped against itself as well as against what is stored.
   const fresh: TopicSuggestion[] = [];
   for (const s of all) {
-    if (seen.has(s.url)) continue;
-    seen.add(s.url);
+    const key = dedupKey(s.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
     fresh.push(s);
   }
   if (fresh.length === 0) {
-    return { ok: true, found: all.length, added: 0, areasFailed };
+    return { ok: true, found: all.length, added: 0, areasFailed, from, to };
   }
 
   const { error } = await companyOs.from("newsletter_topic_suggestions").insert(
@@ -118,7 +168,7 @@ export async function scanTopicsForEdition(editionId: string): Promise<ScanResul
   );
   if (error) return { ok: false, error: error.message };
 
-  return { ok: true, found: all.length, added: fresh.length, areasFailed };
+  return { ok: true, found: all.length, added: fresh.length, areasFailed, from, to };
 }
 
 export type PromoteResult = { ok: true; title: string } | { ok: false; error: string };
