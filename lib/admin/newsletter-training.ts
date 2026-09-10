@@ -112,36 +112,69 @@ export function parseCourses(html: string): SiteCourse[] {
 // type so callers do not have to re-assert it.
 export type DatedCourse = SiteCourse & { date: Date };
 
-// Session start times, from one course's detail page, keyed by ISO date.
+// One scheduled run of a course, from its detail page.
+export type CourseSession = {
+  date: Date;
+  /** As printed, e.g. "8:45am AEDT". Null when the page gives no time. */
+  time: string | null;
+  /** The page's own label, e.g. "October 29th". Kept for reporting. */
+  label: string;
+};
+
+// Every session a course detail page advertises.
 //
-// Keyed on the checkout link's date rather than the printed "September 24th",
-// because the link already carries an unambiguous 2026-09-24 — no month name
-// to match and no year to infer. A course with several sessions lists them all
-// here, which is why this returns a map and not a single time.
-export async function fetchSessionTimes(url: string): Promise<Map<string, string>> {
-  const times = new Map<string, string>();
-  let html: string;
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return times;
-    html = await res.text();
-  } catch {
-    // A missing time is a blank cell, not a failed sync. The course, its date
-    // and its format all came from the listing page and are still good.
-    return times;
-  }
+// This replaced reading the single date on the listing page, which turned out
+// to show only ONE date per course: a live comparison found 9 dates listed
+// against 16 real sessions, so the newsletter was advertising well under half
+// of APA's training. Reading the detail pages is also what makes a date
+// unambiguous — the checkout link carries 2026-10-29, so there is no month
+// name to match and no year to infer from the window.
+//
+// Sessions are NOT in date order on the page (SCHADS lists December before
+// October), so the caller sorts.
+export function parseSessions(html: string, from: Date, to: Date): CourseSession[] {
+  const sessions: CourseSession[] = [];
 
   for (const block of html.split(/<div class="session-list-card--item/).slice(1)) {
     const time = clean(/session-list-card--date_time">([\s\S]*?)<\/span>/.exec(block)?.[1] ?? "");
+    const label = clean(/session-list-card--date_date">([\s\S]*?)<\/h5>/.exec(block)?.[1] ?? "");
+
     // The day is not always zero-padded — the Hospitality Award course's link
     // reads "--2026-10-1" — so the parts are matched loosely and padded here
     // rather than requiring a shape the site does not consistently emit.
     const parts = /\/training\/checkout\/[^"]*?--(\d{4})-(\d{1,2})-(\d{1,2})/.exec(block);
-    if (time && parts) {
-      times.set(`${parts[1]}-${parts[2].padStart(2, "0")}-${parts[3].padStart(2, "0")}`, time);
+
+    let date: Date | null = null;
+    if (parts) {
+      date = new Date(
+        Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])),
+      );
+    } else if (label) {
+      // A session with no Book Now link — sold out, or bookings closed. It is
+      // still a real session members may ask about, so fall back to the
+      // printed label with the year resolved from the window.
+      date = resolveCourseDate(label, from, to);
     }
+    if (!date || Number.isNaN(date.getTime())) continue;
+
+    sessions.push({ date, time: time || null, label });
   }
-  return times;
+  return sessions;
+}
+
+export async function fetchCourseSessions(
+  url: string,
+  from: Date,
+  to: Date,
+): Promise<CourseSession[]> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return [];
+    return parseSessions(await res.text(), from, to);
+  } catch {
+    // One unreachable detail page loses that course's sessions, not the sync.
+    return [];
+  }
 }
 
 export type FetchResult =
@@ -169,28 +202,53 @@ export async function fetchCoursesInWindow(from: Date, to: Date): Promise<FetchR
     };
   }
 
-  const courses = parsed
-    .filter((c) => c.format.toLowerCase().includes(CLASSROOM_FORMAT.toLowerCase()))
-    .map((c) => ({ ...c, date: resolveCourseDate(c.dateLabel, from, to) }))
-    .filter((c): c is DatedCourse => c.date !== null)
-    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  // The listing is the CATALOGUE — which courses exist, their format, price
+  // and description. It is not the schedule: it prints one date per course,
+  // and a live comparison found 9 dates listed against 16 real sessions. The
+  // schedule comes from the detail pages below.
+  //
+  // Deduped by URL because the listing can show the same course twice with
+  // different dates; the Superannuation course does exactly that, and without
+  // this its detail page would be fetched and expanded twice.
+  const catalogue = new Map<string, SiteCourse>();
+  for (const c of parsed) {
+    if (!c.format.toLowerCase().includes(CLASSROOM_FORMAT.toLowerCase())) continue;
+    if (!c.url || catalogue.has(c.url)) continue;
+    catalogue.set(c.url, c);
+  }
+  if (catalogue.size === 0) {
+    return {
+      ok: false,
+      error: `No ${CLASSROOM_FORMAT} courses on the training page. Its layout may have changed — check ${TRAINING_URL}.`,
+    };
+  }
 
-  // One extra request per in-window course, to pick up its start time. Only
-  // the courses that survived the window filter are fetched — typically a
-  // handful — and they go out together rather than one after another.
-  const timesByUrl = new Map<string, Map<string, string>>();
-  const urls = [...new Set(courses.map((c) => c.url).filter((u): u is string => Boolean(u)))];
+  // One request per course, all at once.
+  const sessionsByUrl = new Map<string, CourseSession[]>();
   await Promise.all(
-    urls.map(async (u) => {
-      timesByUrl.set(u, await fetchSessionTimes(u));
+    [...catalogue.keys()].map(async (u) => {
+      sessionsByUrl.set(u, await fetchCourseSessions(u, from, to));
     }),
   );
 
-  for (const course of courses) {
-    const iso = course.date.toISOString().slice(0, 10);
-    course.time = (course.url ? timesByUrl.get(course.url) : undefined)?.get(iso) ?? null;
+  // One row per SESSION, not per course: a course running in October and again
+  // in December is two things a member can book, and the newsletter's table
+  // has a row for each.
+  const courses: DatedCourse[] = [];
+  for (const [url, course] of catalogue) {
+    for (const session of sessionsByUrl.get(url) ?? []) {
+      if (session.date < from || session.date > to) continue;
+      courses.push({
+        ...course,
+        date: session.date,
+        time: session.time,
+        // The session's own printed date, not the listing's.
+        dateLabel: session.label || course.dateLabel,
+      });
+    }
   }
 
+  courses.sort((a, b) => a.date.getTime() - b.date.getTime());
   return { ok: true, courses };
 }
 
