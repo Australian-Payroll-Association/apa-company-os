@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { companyOs } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin/audit";
-import { getBroadcastStats } from "@/lib/admin/broadcasts";
+import { createDraftBroadcastForContent, getBroadcastStats } from "@/lib/admin/broadcasts";
 import { writeForBrand, fetchSourceText } from "@/lib/ai/brand-writer";
 import { generateEntryImage } from "@/lib/ai/brand-image";
 import { listAssetImages, setSelectedImage, type AssetImage } from "@/lib/admin/marketing-images";
@@ -37,11 +37,10 @@ function addDays(isoDate: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// The single place a calendar entry mints a draft broadcast (email_campaigns row)
-// and links it back via broadcast_id. Shared by createBroadcastFromEntry (the
-// "Create broadcast" button) and the email branch of draftWithAI, so the row
-// shape and the link step cannot drift apart. Returns the new broadcast id, or
-// null if the insert produced no row.
+// Minting a draft broadcast moved to lib/admin/broadcasts.ts when the
+// newsletter started doing it too — an edition's draft is a marketing_content
+// row like any calendar entry, and two copies of the row shape would drift.
+// Wrapped here only to keep this file's three call sites reading as they did.
 async function createDraftBroadcastForEntry(input: {
   entryId: string;
   name: string;
@@ -52,24 +51,8 @@ async function createDraftBroadcastForEntry(input: {
   publishDate: string | null;
   createdBy: string;
 }): Promise<string | null> {
-  const row: Record<string, unknown> = {
-    name: input.name,
-    subject: input.subject,
-    brand_id: input.brandId,
-    // A date-only publish target becomes 09:00 UTC as a sane default; the
-    // operator refines it in the broadcast editor.
-    scheduled_at: input.publishDate ? `${input.publishDate}T09:00:00Z` : null,
-    created_by: input.createdBy,
-  };
-  if (input.preheader !== undefined) row.preheader = input.preheader;
-  if (input.bodyMd !== undefined) row.body_md = input.bodyMd;
-
-  const { data } = await companyOs.from("email_campaigns").insert(row).select("id").maybeSingle();
-  const id = (data as { id: string } | null)?.id ?? null;
-  if (id) {
-    await companyOs.from("marketing_content").update({ broadcast_id: id }).eq("id", input.entryId);
-  }
-  return id;
+  const { entryId, ...rest } = input;
+  return createDraftBroadcastForContent({ contentId: entryId, ...rest });
 }
 
 const CHANNELS = new Set<CalendarChannel>(["blog", "email", "linkedin", "facebook"]);

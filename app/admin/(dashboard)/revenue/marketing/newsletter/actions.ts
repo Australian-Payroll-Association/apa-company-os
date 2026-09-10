@@ -7,10 +7,14 @@ import { recordAudit } from "@/lib/admin/audit";
 import {
   draftEditionContent,
   getEdition,
+  rejectEdition,
   saveEditionDraft,
+  sendForReview,
+  signEdition,
   syncTrainingForEdition,
   trainingWindow,
 } from "@/lib/admin/newsletter";
+import { createEditionBroadcast, markEditionPublished } from "@/lib/admin/newsletter-publish";
 import {
   dismissSuggestion,
   promoteSuggestion,
@@ -390,7 +394,14 @@ export async function saveDraft(
     context: { draft_edited_by_hand: true },
   });
   refresh(id);
-  return { ok: true, message: "Draft saved." };
+  // Said out loud, never silently. Someone fixing a typo needs to know they
+  // have just sent the edition back through the gate.
+  return {
+    ok: true,
+    message: result.signaturesCleared
+      ? "Draft saved. The edition left review and both signatures were cleared — it needs signing off again."
+      : "Draft saved.",
+  };
 }
 
 // Topic radar. Scans the ATO, Fair Work, the state revenue offices and the
@@ -496,10 +507,108 @@ export async function draftEdition(id: string): Promise<Result> {
   });
   refresh(id);
 
+  const cleared = result.signaturesCleared
+    ? " Both signatures were cleared — these are different words, so it needs signing off again."
+    : "";
   return {
     ok: true,
     message: result.regenerated
-      ? `Draft regenerated. Subject: "${result.subject}"`
+      ? `Draft regenerated. Subject: "${result.subject}"${cleared}`
       : `Draft written. Subject: "${result.subject}"`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — review
+// ---------------------------------------------------------------------------
+
+export async function submitForReview(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await sendForReview(id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { status: "in_review" },
+  });
+  refresh(id);
+  return { ok: true, message: result.message };
+}
+
+// One signature. The action does not say which slot it fills — the data layer
+// decides that from what is already signed, so the button cannot be used to
+// claim the second signature without the first existing.
+export async function signOffEdition(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await signEdition(id, admin.email);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { signed: true },
+  });
+  refresh(id);
+  return { ok: true, message: result.message };
+}
+
+export async function sendBackForChanges(id: string, notes: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await rejectEdition(id, admin.email, notes);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { rejected: true, notes: notes.trim().slice(0, 500) },
+  });
+  refresh(id);
+  return { ok: true, message: result.message };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4 — publish
+// ---------------------------------------------------------------------------
+
+// Hands a signed-off edition to the broadcast system as a DRAFT. There is no
+// "send" action here and there should not be: approveBroadcast is the gate,
+// and adding a second route to a member's inbox with different rules is the
+// one thing a marketing system must never have.
+export async function handToBroadcast(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await createEditionBroadcast(id, admin.email);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "email_campaigns",
+    recordId: result.broadcastId,
+    operation: "insert",
+    actor: admin.email,
+    context: { from_newsletter_edition: id },
+  });
+  refresh(id);
+  return { ok: true, message: result.message };
+}
+
+export async function markPublished(id: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await markEditionPublished(id, admin.email);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_editions",
+    recordId: id,
+    operation: "update",
+    actor: admin.email,
+    context: { status: "published" },
+  });
+  refresh(id);
+  return { ok: true, message: "Edition marked as published." };
 }

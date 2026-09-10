@@ -332,7 +332,7 @@ export async function newsletterBrandName(): Promise<string | null> {
 }
 
 export type DraftEditionResult =
-  | { ok: true; contentId: string; subject: string; regenerated: boolean }
+  | { ok: true; contentId: string; subject: string; regenerated: boolean; signaturesCleared: boolean }
   | { ok: false; error: string };
 
 export async function draftEditionContent(editionId: string): Promise<DraftEditionResult> {
@@ -428,10 +428,19 @@ export async function draftEditionContent(editionId: string): Promise<DraftEditi
     if (!contentId) return { ok: false, error: "The draft was written but could not be saved." };
   }
 
-  // Status only moves forward to drafting; an edition already in review keeps
-  // its state, so re-drafting does not silently discard a signature.
-  const patch: Record<string, unknown> = { content_id: contentId };
-  if (detail.edition.status === "open" || detail.edition.status === "closed") {
+  // Re-drafting invalidates review. The signatures are on the words, and these
+  // are different words — an edition that keeps a signature through a rewrite
+  // has a gate that approves text nobody read.
+  //
+  // This reverses the earlier behaviour here, which preserved status and
+  // signatures through a regenerate specifically so re-drafting would not
+  // "silently discard a signature". Silently is the part that was wrong, not
+  // the discarding: the action reports it instead.
+  const signaturesCleared = Object.keys(clearSignatures(detail.edition)).length > 0;
+  const patch: Record<string, unknown> = { content_id: contentId, ...clearSignatures(detail.edition) };
+  // A published edition is refused at the top of this function, so the only
+  // status that should not be dragged back to drafting is a cancelled one.
+  if (detail.edition.status !== "cancelled") {
     patch.status = "drafting";
   }
   const { error: editionError } = await companyOs
@@ -440,7 +449,7 @@ export async function draftEditionContent(editionId: string): Promise<DraftEditi
     .eq("id", editionId);
   if (editionError) return { ok: false, error: editionError.message };
 
-  return { ok: true, contentId, subject: drafted.subject, regenerated };
+  return { ok: true, contentId, subject: drafted.subject, regenerated, signaturesCleared };
 }
 
 export type EditionDraft = {
@@ -483,7 +492,7 @@ export async function getEditionDraft(contentId: string | null): Promise<Edition
 export async function saveEditionDraft(
   editionId: string,
   input: { subject: string; preheader: string; bodyMd: string },
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; signaturesCleared: boolean } | { ok: false; error: string }> {
   const edition = await getEdition(editionId);
   if (!edition) return { ok: false, error: "Edition not found." };
   if (edition.status === "published") {
@@ -508,5 +517,160 @@ export async function saveEditionDraft(
     })
     .eq("id", edition.contentId);
   if (error) return { ok: false, error: error.message };
-  return { ok: true };
+
+  // A hand edit invalidates review for the same reason a regenerate does: the
+  // signatures are on the words. Fixing a typo after sign-off would otherwise
+  // leave an edition cleared to send that nobody has read in its final form.
+  const cleared = clearSignatures(edition);
+  if (Object.keys(cleared).length > 0) {
+    const { error: gateError } = await companyOs
+      .from("newsletter_editions")
+      .update({ ...cleared, status: "drafting" })
+      .eq("id", editionId);
+    if (gateError) return { ok: false, error: gateError.message };
+    return { ok: true, signaturesCleared: true };
+  }
+  return { ok: true, signaturesCleared: false };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — review
+// ---------------------------------------------------------------------------
+
+// Two signatures, in sequence, from two different people.
+//
+// One signature was the fork's model (email_campaigns.approved_by) and it is
+// not enough for a compliance publication: the person who assembles an edition
+// is the last person able to notice what they got wrong in it. So the gate
+// requires a second pair of eyes, and "second" is enforced on identity, not on
+// a role — two admins, not one admin twice.
+//
+// The signatures are on the CONTENT, not on the edition. Anything that changes
+// the draft clears them; see clearSignatures. A gate that survives an edit is
+// theatre.
+
+export type ReviewResult = { ok: true; message: string } | { ok: false; error: string };
+
+// Called by every path that changes the draft. Returns the patch rather than
+// applying it, so the caller folds it into the update it is already making.
+function clearSignatures(edition: EditionRow): Record<string, unknown> {
+  if (!edition.reviewerSignedBy && !edition.adminSignedBy) return {};
+  return {
+    reviewer_signed_by: null,
+    reviewer_signed_at: null,
+    admin_signed_by: null,
+    admin_signed_at: null,
+  };
+}
+
+export async function sendForReview(editionId: string): Promise<ReviewResult> {
+  const edition = await getEdition(editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+  if (!edition.contentId) {
+    return { ok: false, error: "There is no draft to review yet. Write one first." };
+  }
+  if (edition.status === "published") {
+    return { ok: false, error: "This edition has already been published." };
+  }
+  if (edition.status === "in_review") {
+    return { ok: false, error: "This edition is already in review." };
+  }
+
+  const { error } = await companyOs
+    .from("newsletter_editions")
+    // review_notes is cleared here, not on reject: the notes explain why the
+    // LAST attempt bounced, and they stay visible through the rewrite that
+    // answers them. Clearing them at the point the edition comes back is what
+    // makes them a reply rather than a permanent scold.
+    .update({ status: "in_review", review_notes: null })
+    .eq("id", editionId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, message: "Sent for review. Two people need to sign it off." };
+}
+
+// One signature. Which slot it lands in is decided here rather than by the
+// caller: the first person to sign is the reviewer, the second is the admin.
+export async function signEdition(editionId: string, actor: string): Promise<ReviewResult> {
+  const edition = await getEdition(editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+  if (edition.status !== "in_review") {
+    return { ok: false, error: "This edition is not in review." };
+  }
+
+  const now = new Date().toISOString();
+
+  if (!edition.reviewerSignedBy) {
+    const { error } = await companyOs
+      .from("newsletter_editions")
+      .update({ reviewer_signed_by: actor, reviewer_signed_at: now })
+      .eq("id", editionId);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, message: "Signed. One more signature needed, from someone else." };
+  }
+
+  // The whole point of a second signature is that it is a second person.
+  if (edition.reviewerSignedBy === actor) {
+    return {
+      ok: false,
+      error: "You have already signed this edition. The second signature has to come from someone else.",
+    };
+  }
+  if (edition.adminSignedBy) {
+    return { ok: false, error: "This edition already has both signatures." };
+  }
+
+  const { error } = await companyOs
+    .from("newsletter_editions")
+    .update({ admin_signed_by: actor, admin_signed_at: now })
+    .eq("id", editionId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, message: "Signed off. Both signatures are in — this edition is cleared to send." };
+}
+
+// Bounce it back. Either signatory can, at any point in the gate, and doing so
+// clears both signatures: whatever gets rewritten is not what the first person
+// approved.
+export async function rejectEdition(
+  editionId: string,
+  actor: string,
+  notes: string,
+): Promise<ReviewResult> {
+  const edition = await getEdition(editionId);
+  if (!edition) return { ok: false, error: "Edition not found." };
+  if (edition.status !== "in_review") {
+    return { ok: false, error: "This edition is not in review." };
+  }
+
+  const trimmed = notes.trim();
+  // Required, not optional. "Rejected" with no reason sends the edition back to
+  // someone who now has to guess what to change.
+  if (!trimmed) {
+    return { ok: false, error: "Say what needs changing — the notes are how the writer knows what to fix." };
+  }
+  if (trimmed.length > 4000) {
+    return { ok: false, error: "That's longer than 4,000 characters." };
+  }
+
+  const { error } = await companyOs
+    .from("newsletter_editions")
+    .update({
+      status: "drafting",
+      review_notes: `${trimmed}\n\n— ${actor}, ${new Date().toISOString().slice(0, 10)}`,
+      reviewer_signed_by: null,
+      reviewer_signed_at: null,
+      admin_signed_by: null,
+      admin_signed_at: null,
+    })
+    .eq("id", editionId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, message: "Sent back for changes." };
+}
+
+// Is this edition cleared to send? Phase 4 asks this before it does anything.
+export function isClearedToSend(edition: EditionRow): boolean {
+  return Boolean(
+    edition.reviewerSignedBy &&
+      edition.adminSignedBy &&
+      edition.reviewerSignedBy !== edition.adminSignedBy,
+  );
 }
