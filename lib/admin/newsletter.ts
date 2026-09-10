@@ -234,7 +234,7 @@ export function trainingWindow(edition: EditionRow): { from: Date; to: Date } {
 }
 
 export type TrainingSyncResult =
-  | { ok: true; added: number; updated: number; found: number }
+  | { ok: true; added: number; updated: number; found: number; stale: number }
   | { ok: false; error: string };
 
 // Reads the public training page and materialises Virtual Classroom courses in
@@ -255,7 +255,7 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
 
   const { data: existingData, error: readError } = await companyOs
     .from("newsletter_submissions")
-    .select("id, link_url, details")
+    .select("id, link_url, details, included")
     .eq("edition_id", editionId)
     .eq("section_type", "training");
   if (readError) return { ok: false, error: readError.message };
@@ -263,18 +263,26 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
   // Keyed on the ISO date rather than the printed label: the site can reword
   // "September 3rd" without the course itself changing.
   const key = (url: string | null, date: string) => `${url ?? ""}|${date}`;
+  type ExistingRow = {
+    id: string;
+    link_url: string | null;
+    details: Record<string, string> | null;
+    included: boolean;
+  };
+  const existingRows = (existingData ?? []) as ExistingRow[];
   const existing = new Map(
-    ((existingData ?? []) as { id: string; link_url: string | null; details: Record<string, string> | null }[]).map(
-      (r) => [key(r.link_url, r.details?.date_from ?? ""), r.id],
-    ),
+    existingRows.map((r) => [key(r.link_url, r.details?.date_from ?? ""), r.id]),
   );
+  const seenKeys = new Set<string>();
 
   let added = 0;
   let updated = 0;
 
   for (const course of fetched.courses) {
     const iso = course.date.toISOString().slice(0, 10);
-    const match = existing.get(key(course.url, iso));
+    const rowKey = key(course.url, iso);
+    seenKeys.add(rowKey);
+    const match = existing.get(rowKey);
     const row = {
       title: course.title,
       body: course.description,
@@ -306,7 +314,36 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
     }
   }
 
-  return { ok: true, added, updated, found: fetched.courses.length };
+  // Sessions the site no longer advertises.
+  //
+  // The pull used to only add and update, so a row for a session that was
+  // rescheduled or withdrawn stayed in the edition forever — the September
+  // edition carried two courses whose dates had quietly vanished from the
+  // site, and the only visible symptom was a blank Time cell. Advertising a
+  // session a member cannot book is worse than omitting it.
+  //
+  // Switched OFF rather than deleted. The editor can see what happened and
+  // turn it back on, and a bad parse costs a toggle rather than data. Only
+  // rows INSIDE the pulled window are considered: a row dated outside it was
+  // never in scope for this pull and its absence proves nothing.
+  const fromIso = from.toISOString().slice(0, 10);
+  const toIso = to.toISOString().slice(0, 10);
+  let stale = 0;
+  for (const row of existingRows) {
+    if (!row.included) continue;
+    const iso = row.details?.date_from ?? "";
+    if (!iso || iso < fromIso || iso > toIso) continue;
+    if (seenKeys.has(key(row.link_url, iso))) continue;
+
+    const { error } = await companyOs
+      .from("newsletter_submissions")
+      .update({ included: false })
+      .eq("id", row.id);
+    if (error) return { ok: false, error: error.message };
+    stale += 1;
+  }
+
+  return { ok: true, added, updated, found: fetched.courses.length, stale };
 }
 
 // ---------------------------------------------------------------------------

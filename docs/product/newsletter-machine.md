@@ -50,8 +50,22 @@ decision wins.
 ## Phases
 
 - **Phase 0 — Foundations.** APA brand, home-brand switch, env corrections. Done.
-- **Phase 1 — Intake.** Editions, submissions, `/team` form, events auto-pull,
-  admin edition view. Done, pending the real section list.
+- **Phase 1 — Intake.** Editions, submissions, `/team` form, the training pull,
+  the topic radar, admin edition view. Done.
+
+  The training pull reads the SCHEDULE from each course's detail page, not from
+  the listing. The listing is the catalogue — which courses exist, their format
+  and price — and it prints only one date per course: a live comparison found
+  9 dates listed against 16 real sessions, so the newsletter was advertising
+  well under half of APA's training. The detail pages also make dates
+  unambiguous, because the checkout link carries `--2026-10-29`; there is no
+  month name to match and no year to infer. Sessions are not in date order on
+  the page, and the listing can show one course twice, so the pull sorts and
+  dedupes by URL.
+
+  A session the site has stopped advertising is switched OFF rather than left
+  in place or deleted — the September edition carried two courses whose dates
+  had quietly vanished, and the only symptom was a blank Time cell.
 - **Phase 2 — Draft.** Wire an edition into `marketing_content` and run
   `draftWithAI` in the APA voice. Needs the voice profile.
 - **Phase 3 — Review.** Two signatures and reject-with-notes on the gate. Done.

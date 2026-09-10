@@ -35,6 +35,16 @@ function refresh(id?: string) {
   revalidatePath("/team/newsletter");
 }
 
+// Sessions the training site has stopped advertising, switched off by the
+// pull. Always said out loud: a row disappearing from the edition without a
+// word is how someone later wonders why a course they expected is missing.
+function staleNote(stale: number): string {
+  if (stale === 0) return "";
+  return ` ${stale} session${stale === 1 ? " is" : "s are"} no longer on the site and ${
+    stale === 1 ? "has" : "have"
+  } been switched off.`;
+}
+
 // Month bounds for a YYYY-MM string, as plain dates. Built with Date.UTC so the
 // month never shifts under the server's timezone — a period that slides by a
 // day would silently change which events the auto-pull picks up.
@@ -332,7 +342,7 @@ export async function setTrainingWindow(
   }
   return {
     ok: true,
-    message: `Window saved — ${pulled.found} course${pulled.found === 1 ? "" : "s"} in range, ${pulled.added} added, ${pulled.updated} already here.`,
+    message: `Window saved — ${pulled.found} session${pulled.found === 1 ? "" : "s"} in range, ${pulled.added} added, ${pulled.updated} already here.${staleNote(pulled.stale)}`,
   };
 }
 
@@ -349,7 +359,7 @@ export async function pullTraining(id: string): Promise<Result> {
     recordId: id,
     operation: "update",
     actor: admin.email,
-    context: { training_synced: { added: result.added, updated: result.updated } },
+    context: { training_synced: { added: result.added, updated: result.updated, stale: result.stale } },
   });
   refresh(id);
 
@@ -365,7 +375,7 @@ export async function pullTraining(id: string): Promise<Result> {
   }
   return {
     ok: true,
-    message: `${result.found} course${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.`,
+    message: `${result.found} session${result.found === 1 ? "" : "s"} in the window — ${result.added} added, ${result.updated} already here.${staleNote(result.stale)}`,
   };
 }
 
