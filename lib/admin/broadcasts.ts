@@ -431,3 +431,44 @@ export async function listRecipients(broadcastId: string, limit = 200): Promise<
     };
   });
 }
+
+// The single place a marketing_content row mints a draft broadcast
+// (email_campaigns) and links itself to it via broadcast_id.
+//
+// Lives here rather than in the calendar's actions file because the newsletter
+// now mints one too: an edition's draft IS a marketing_content row, so both
+// paths want the same row shape and the same link step, and two copies would
+// drift. The calendar imports it back.
+//
+// Always a DRAFT. Nothing in this function approves, builds a recipient list,
+// or sends — approveBroadcast is the gate for that, and it stays a separate,
+// deliberate human action.
+export async function createDraftBroadcastForContent(input: {
+  contentId: string;
+  name: string;
+  subject: string;
+  preheader?: string | null;
+  bodyMd?: string | null;
+  brandId: string | null;
+  publishDate: string | null;
+  createdBy: string;
+}): Promise<string | null> {
+  const row: Record<string, unknown> = {
+    name: input.name,
+    subject: input.subject,
+    brand_id: input.brandId,
+    // A date-only publish target becomes 09:00 UTC as a sane default; the
+    // operator refines it in the broadcast editor.
+    scheduled_at: input.publishDate ? `${input.publishDate}T09:00:00Z` : null,
+    created_by: input.createdBy,
+  };
+  if (input.preheader !== undefined) row.preheader = input.preheader;
+  if (input.bodyMd !== undefined) row.body_md = input.bodyMd;
+
+  const { data } = await companyOs.from("email_campaigns").insert(row).select("id").maybeSingle();
+  const id = (data as { id: string } | null)?.id ?? null;
+  if (id) {
+    await companyOs.from("marketing_content").update({ broadcast_id: id }).eq("id", input.contentId);
+  }
+  return id;
+}

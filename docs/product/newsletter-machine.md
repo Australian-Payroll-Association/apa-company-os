@@ -54,8 +54,15 @@ decision wins.
   admin edition view. Done, pending the real section list.
 - **Phase 2 — Draft.** Wire an edition into `marketing_content` and run
   `draftWithAI` in the APA voice. Needs the voice profile.
-- **Phase 3 — Review.** Second signature and reject-with-notes on the gate.
-- **Phase 4 — Publish.** Gated on a verified sending domain, the sender
+- **Phase 3 — Review.** Two signatures and reject-with-notes on the gate. Done.
+- **Phase 4 — Publish.** Built: a signed-off edition hands itself to the
+  broadcast system as a DRAFT and stops there. No send button, on purpose —
+  approveBroadcast is the gate, resolveAudience is the one place that decides
+  who may receive marketing mail, and the cron worker re-checks every address
+  against the live CRM before sending. A second route to a member's inbox with
+  different rules is the one thing this must never have. The edition is marked
+  published only once the broadcast has actually sent, not at handover.
+  Still gated for real use on a verified sending domain, the sender
   environment variables, and the member import.
 
 Phases 2–4 are deliberately unspecified in detail until Phase 1 has run against
@@ -98,8 +105,23 @@ output should be marked unverified rather than published as a finished section.
 
 ## Known gaps
 
-- Phase 3 (two signatures, reject-with-notes) is not built; the draft has no
-  review gate yet, which matters more now that a writer can confabulate.
-- `MARKETING_EMAIL_FROM` and `MARKETING_POSTAL_ADDRESS` are empty, and the Resend
-  domain is unverified. All three block Phase 4.
+- ~~Phase 3 is not built~~ Done. Two signatures from two DIFFERENT people, the
+  slot decided by what is already signed rather than by the caller, and notes
+  required on a reject. Any change to the draft — regenerate or hand edit —
+  clears both signatures and returns the edition to drafting: the signatures
+  are on the words, and a gate that survives an edit approves text nobody read.
+  This reversed the earlier behaviour, which preserved signatures through a
+  regenerate so as not to "silently discard" one; silently was the wrong part,
+  not the discarding, so the action now reports it.
+- Three sending variables are unset, confirmed by the Phase 4 readiness check
+  running against the real environment. `MARKETING_EMAIL_FROM` and
+  `MARKETING_POSTAL_ADDRESS` fall back to the fork's defaults, so the footer
+  carries Edge8 and a Ho Chi Minh City address. `UNSUBSCRIBE_SECRET` is also
+  unset, which is the worst of the three: without it no unsubscribe link and no
+  RFC 8058 one-click header can be generated at all, so recipients would have
+  no way out except reporting spam. The Resend domain is unverified. All four
+  block a real send.
+- Production authenticates with a dead `SUPABASE_SECRET_KEY`, so none of Phases
+  1-3 work on the deployed site. Every verification to date has been run locally
+  against the live database. Needs Vercel access on `infiniteleverage-2`.
 - The member list has not been scoped: location, size and consent state unknown.

@@ -18,7 +18,11 @@ import { TrainingWindow } from "./TrainingWindow";
 import { TrainingTable } from "./TrainingTable";
 import { DraftPanel } from "./DraftPanel";
 import { TopicRadar } from "./TopicRadar";
+import { ReviewPanel } from "./ReviewPanel";
+import { PublishPanel } from "./PublishPanel";
 import { getSuggestions } from "@/lib/admin/newsletter-radar";
+import { getEditionBroadcast, publishReadiness } from "@/lib/admin/newsletter-publish";
+import { isClearedToSend } from "@/lib/admin/newsletter";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +30,7 @@ export const dynamic = "force-dynamic";
 // people: what has come in, from whom, and what is still missing.
 
 export default async function EditionPage({ params }: { params: { id: string } }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const detail = await getEditionDetail(params.id);
   if (!detail) notFound();
 
@@ -34,6 +38,7 @@ export default async function EditionPage({ params }: { params: { id: string } }
   const trainWindow = trainingWindow(edition);
   const draft = await getEditionDraft(edition.contentId);
   const suggestions = await getSuggestions(edition.id);
+  const broadcast = await getEditionBroadcast(edition.contentId);
 
   // Rendered here rather than in the client component so the reviewer sees the
   // exact markup that sendMarketingEmail will produce, not a lookalike. The
@@ -119,6 +124,25 @@ export default async function EditionPage({ params }: { params: { id: string } }
         bodyMd={draft?.bodyMd ?? null}
         previewHtml={previewHtml}
         itemCount={includedCount}
+      />
+
+      <ReviewPanel
+        editionId={edition.id}
+        status={edition.status}
+        hasDraft={Boolean(draft?.bodyMd)}
+        reviewerSignedBy={edition.reviewerSignedBy}
+        reviewerSignedAt={edition.reviewerSignedAt}
+        adminSignedBy={edition.adminSignedBy}
+        adminSignedAt={edition.adminSignedAt}
+        reviewNotes={edition.reviewNotes}
+        viewerEmail={admin.email}
+      />
+
+      <PublishPanel
+        editionId={edition.id}
+        clearedToSend={isClearedToSend(edition)}
+        broadcast={broadcast}
+        readiness={publishReadiness()}
       />
 
       {SECTION_TYPES.map((type) => {
