@@ -423,20 +423,46 @@ script. They were written to catch exactly this class of drift.
 
 ### 4.5 Auth users: merge, don't just insert
 
-Some people exist in **both** projects (APA staff who are Payroll IQ admins and Company OS
-team members). Rule: **Company OS `auth.users` wins on email match**.
+**Collision report, measured 2026-09-16** (this replaces the guess earlier drafts made):
 
-1. Build `migration.uid_remap(old_uid, new_uid)` from `piq-auth-users.csv` joined to target
-   `auth.users` on `lower(email)`.
-2. Insert the non-colliding rows into `auth.users` and `auth.identities` verbatim (ids
-   preserved, `encrypted_password` preserved).
-3. For colliding rows, update every `payroll_iq` column that stores a user id
-   (`users.id`, `invites.invited_by`, `organisations.created_by`, `*.learner_id`, `*.user_id`,
-   `blueprints.uploaded_by`, `audit_log.actor_id`, `chat_sessions.user_id`, …) via the remap
-   table. Generate the column list from `information_schema.columns` where the column has an FK
-   to `payroll_iq.users` or `auth.users`; do not hand-type it.
-4. Stamp `company_os.people.auth_user_id` for staff who now share a uid.
-5. Verify: `select count(*) from payroll_iq.users u left join auth.users a on a.id=u.id where a.id is null` = 0.
+| | count |
+|---|---|
+| `vgwampgffykiuzsoyevn` auth users | **40** (39 with a `public.users` row — one orphan) |
+| `nubxrrzwcbhgpvvmbioh` auth users | **9** |
+| **Same email in both** | **7** — i.e. 78% of the target's entire auth pool |
+| Payroll IQ roles | 20 learner · 14 manager · 5 admin (3 orgless) |
+
+Of the 7 collisions, **3 are Payroll IQ admins** (and so need `app_access` grants per 2.3) and
+**4 are APA staff who also hold a learner or manager account** — they keep their Payroll IQ role
+and get no grant. The other 2 Payroll IQ admins have no Company OS account at all and need a
+`company_os.people` row created.
+
+**Rule: the Payroll IQ `auth.users` row wins on email match.** Earlier drafts had this the other
+way round, reasoning that Company OS stores its uid in one column while Payroll IQ threads it
+through nineteen. That reasoning was right; the direction was wrong once the collision count
+turned out to be seven rather than zero. Measured footprint:
+
+| Side | Columns holding an auth uid | Rows actually affected |
+|---|---|---|
+| Company OS (`nubxr`) | `company_os.people.auth_user_id` (FK, unique) and `company_os.assistant_conversations.owner_auth_user_id` (no FK) | **4** people have a uid set; `assistant_conversations` is **empty** |
+| Payroll IQ | 19 FK columns + 3 jsonb blobs + `storage.objects.owner`/`owner_id` | all 40 users, including every piece of content attribution |
+
+The three other `auth_user_id` hits in `company_os` — `team_directory`, `current_team_members`,
+`people_with_deals` — are **views** over `people`, so they follow automatically.
+
+1. Insert the **33 non-colliding** Payroll IQ rows into `auth.users` and `auth.identities`
+   verbatim: ids preserved, `encrypted_password` preserved.
+2. For the **7 colliding** emails, replace the target's existing `auth.users` row with Payroll
+   IQ's — delete the target's row and its `auth.identities`, insert Payroll IQ's. Every
+   `payroll_iq` FK, jsonb blob and storage owner is then already correct and needs no rewriting.
+3. Update `company_os.people.auth_user_id` to the Payroll IQ uid for those people — one UPDATE
+   touching at most 4 rows. Create `people` rows for any Payroll IQ admin who has none.
+4. Verify both directions:
+   `select count(*) from payroll_iq.users u left join auth.users a on a.id=u.id where a.id is null` = 0, and
+   `select count(*) from company_os.people p left join auth.users a on a.id=p.auth_user_id where p.auth_user_id is not null and a.id is null` = 0.
+
+The 9 Company OS accounts are signed out once by this — which they were getting anyway, since the
+project ref changes for them too.
 
 Password hashes copy with the row, so **no forced reset**. Sessions and refresh tokens do not
 copy: every Payroll IQ user is signed out once at cutover. Announce that.
@@ -519,7 +545,7 @@ decision box in §2.3 — separate departments, separate staff, separate admin l
 |---|---|---|
 | D1 | Schema per app, `public` empty | Prefixed tables in `public` (`piq_users`): loses per-schema grants, breaks Payroll IQ's `search_path=''` functions less cleanly, and Company OS already chose schemas |
 | D2 | Keep `payroll_iq.users.id = auth uid` | Introduce a `people_id` indirection now: touches every table at the riskiest moment. Do it later if ever |
-| D3 | Company OS auth user wins on email collision | Payroll IQ wins: would orphan `company_os.people.auth_user_id` and team logins |
+| D3 | **Payroll IQ `auth.users` wins on email collision** (reversed 2026-09-16 on measured data) | Company OS winning: sounded right when the collision set was assumed near-empty, but it is **7 of the target's 9 users**, and remapping the Payroll IQ side means 19 FK columns + 3 jsonb blobs + 2 storage columns versus one UPDATE over at most 4 rows the other way |
 | D4 | Bucket names unchanged | Prefixing now: rewrites stored paths and the ingest pipeline for no security gain |
 | D5 | Company OS repo owns all DDL with a restored `supabase/migrations/` ledger | Each app owns its schema's migrations: two ledgers on one DB is how drift returns |
 | D6 | Payroll IQ Vercel project, crons and Stripe webhook stay where they are | Folding the product app into the Company OS Next.js app: unrelated to the database goal, huge, and Company OS's public site vs app split is already strained |
