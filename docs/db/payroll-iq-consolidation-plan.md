@@ -1,6 +1,7 @@
 # Payroll IQ → Company OS database consolidation plan
 
-Status: **reviewed and agreed** — drafted 2026-09-08, corrected 2026-09-15
+Status: **reviewed and agreed** — drafted 2026-09-08, target corrected 2026-09-15,
+authorisation model revised 2026-09-16
 Scope: move the Payroll IQ database (Supabase project `vgwampgffykiuzsoyevn`, repo
 `payroll-training-au`) into the **APA Company OS** Supabase project
 (`nubxrrzwcbhgpvvmbioh`, repo `apa-company-os`), leave the Payroll IQ admin console
@@ -39,6 +40,7 @@ plan · 5 code changes · 6 risks and decisions · 7 execution checklist.
 | Schema source of truth | `supabase/01-schema.sql` pg_dump snapshot (15k lines), no `migrations/` dir | 26 migrations in `website/supabase/migrations/`, applied via MCP, ledger in `supabase_migrations` |
 | RLS model | RLS on, **339 policies all `USING (true)`** for 3 chatbot roles only. Browser key has no grants. Everything goes through service role + app gates (`requireAdmin`, `requireTeamMember`, `requirePortalActor`) | **Real RLS**: 72 policies keyed on `auth.uid()` via `app_security.is_admin/is_org_member/owns_*`. `authenticated` has table grants, `anon` revoked everywhere |
 | Identity spine | `company_os.people` (`auth_user_id` → auth.users), `company_os.admins` (email + `can_view_sensitive`), `team_members`, `portal_members` | `public.users.id` **is** `auth.users.id` (PK = FK, cascade). `role ∈ admin/manager/learner`. `organisations` is the tenant |
+| Authorisation, after this work | `company_os.app_access` grants, read through `app_security.has_app_role()` — replaces both `company_os.admins` and `payroll_iq.users.role = 'admin'` (see 2.3) | same table, same function; `payroll_iq.users.role` collapses to `manager \| learner \| staff` |
 | Extensions | `citext`, `pgcrypto`, `uuid-ossp`, `vector` (in `extensions`) | `pg_trgm` only. No pgvector, no pg_cron |
 | Storage buckets | avatars, event-media, gallery, marketing, id-documents, passports, resumes, meeting-transcripts, onboarding-plans, program-documents | blueprints, e2-module-archives (video, 5 GB), module-posters (public) |
 | DB roles | `chatbot_reader`, `team_chatbot_reader`, `chatbot_writer` (direct pg, 5s timeouts) | none custom |
@@ -68,8 +70,8 @@ Supabase project nubxrrzwcbhgpvvmbioh  (APA Company OS)
 ├── auth.*             shared user pool (one login for all APA apps)
 ├── storage.*          shared buckets, prefixed per app going forward
 ├── extensions.*       citext, pgcrypto, uuid-ossp, vector, pg_trgm
-├── app_security.*     NEW shared: cross-app helpers only (e.g. current_person_id).
-│                    NOT an admin list - see the decision box in 2.3.
+├── app_security.*     NEW shared: has_app_role() - the one authorisation contract
+│                    every app calls. Backed by company_os.app_access (see 2.3).
 ├── company_os.*       internal ops (unchanged)
 ├── htt.*              human token tracker (unchanged)
 ├── payroll_iq.*       Payroll IQ — the 34 tables + 1 view + RPCs + triggers, moved from public
@@ -124,25 +126,83 @@ Name collisions with `company_os`: `audit_log`, `subscriptions`-adjacent billing
 Keep `payroll_iq.users.id = auth.users.id`. It is the cleanest possible bridge: the same uuid
 identifies a person in `auth.users`, `payroll_iq.users`, and `company_os.people.auth_user_id`.
 
-**`payroll_iq.is_admin()` stays exactly as it is**, reading
-`payroll_iq.users.role = 'admin'`. Zero behaviour change for learners, managers or admins.
+**Authorisation is a grant, not a table membership.** A single table records who may use which
+app and in what capacity; every app's RLS asks one shared function.
 
-> **Decided 2026-09-15, at the client's request: the two admin populations stay separate.**
-> An earlier draft of this plan proposed a shared `app_security.is_platform_admin()` reading
-> `company_os.admins`, so one list of staff would be honoured by every app's RLS. **That is
-> wrong here.** The Payroll IQ admins and the APA Company OS admins are *different departments
-> and different people*. Merging the lists would grant every APA Company OS admin access to the
-> Payroll IQ admin surface and vice versa — a privilege escalation across a departmental
-> boundary, dressed up as tidiness. Each app keeps its own admin list, and neither schema's
-> admin function reads the other's.
+> **Revised 2026-09-16, at the client's request.** Two earlier positions are superseded. The
+> first draft proposed one shared admin list read from `company_os.admins` — rejected, correctly,
+> because the Payroll IQ admins and the APA Company OS admins are different departments and one
+> list would have given each department the other's access. The second draft therefore kept the
+> two admin lists wholly separate — which left two sources of truth for "who is staff".
 >
-> Consolidating the database does **not** consolidate authorisation, and the separation survives
-> the merge for two independent reasons. First, grants: `authenticated` is granted on
-> `payroll_iq` only, so a Company OS session reaching for Payroll IQ tables gets nothing.
-> Second, each app's own gate: Company OS `/admin` checks `company_os.admins` by email
-> (`lib/admin-auth.ts:41-45`), Payroll IQ checks `payroll_iq.users.role` by `auth.uid()`. A
-> person in one list and not the other authenticates fine and is then refused by the other app,
-> which is the correct outcome.
+> **A grant table resolves both.** Membership is not the permission; the grant is. All admin
+> records move into Company OS, and access to each app is an explicit row. The consoles stay
+> where they are: Payroll IQ's `/admin` is **not** ported (see D7), it simply asks a different
+> question about who is allowed in.
+
+```sql
+create table company_os.app_access (
+  id         uuid primary key default gen_random_uuid(),
+  person_id  uuid not null references company_os.people(id) on delete cascade,
+  app        text not null check (app in ('company_os','payroll_iq')),
+  role       text not null,                    -- app-defined: admin, sensitive, support…
+  granted_by uuid references company_os.people(id),
+  granted_at timestamptz not null default now(),
+  revoked_at timestamptz,
+  note       text
+);
+-- One live grant per person/app/role; revocation is a timestamp, never a delete, so the
+-- history of who held what and when survives.
+create unique index app_access_live on company_os.app_access (person_id, app, role)
+  where revoked_at is null;
+
+-- The contract. Apps call THIS, never the table - so Company OS can restructure grants
+-- without touching Payroll IQ's 88 policies.
+create or replace function app_security.has_app_role(app_param text, role_param text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from company_os.app_access a
+    join company_os.people p on p.id = a.person_id
+    where p.auth_user_id = auth.uid()
+      and a.app = app_param and a.role = role_param
+      and a.revoked_at is null);
+$$;
+```
+
+Each app then delegates, and that is the whole change:
+
+| App | Gate becomes | Was |
+|---|---|---|
+| Payroll IQ | `payroll_iq.is_admin()` → `app_security.has_app_role('payroll_iq','admin')` | `payroll_iq.users.role = 'admin'` |
+| Company OS `/admin` | `has_app_role('company_os','admin')` | `company_os.admins` matched **by email** (`lib/admin-auth.ts:41-45`) |
+| Sensitive data | `has_app_role('company_os','sensitive')` | `company_os.admins.can_view_sensitive` boolean |
+
+**Why this is cheap:** 88 of Payroll IQ's RLS policies call `app_security.is_admin()`, and
+exactly one place inlines the role check — the body of `is_admin()` itself. Rewriting that one
+function body flips all 88 policies at once. Verified by grep over the 26 migrations.
+
+**Three consequences worth stating:**
+
+1. **`payroll_iq.users.role` collapses to `manager | learner | staff`.** `admin` stops being an
+   authorisation value. `staff` exists only so an APA admin's row can survive for attribution —
+   `questions.authored_by`, `blueprints.uploaded_by`, `ingest_runs.triggered_by`,
+   `audit_log.actor_id` and the rest are all `on delete set null`, so deleting those rows would
+   not fail, it would **silently blank** who authored what. Ten inert rows are cheaper than
+   losing provenance; revisit only if a staff row leaks into a learner count or export, which a
+   `where role <> 'staff'` fixes. The `users_admin_is_orgless` constraint inverts into something
+   simpler: every remaining user has an org.
+2. **Every Payroll IQ admin needs a `company_os.people` row**, because `app_access.person_id`
+   references it. That is a handful of people, and the collision report (4.5) is what tells you
+   whether any of them already exist there under a different auth uid.
+3. **Payroll IQ end users never touch `company_os.people`.** Learners are product users, not
+   people APA has a relationship with, and thousands of them would swamp a 927-row CRM spine.
+   Managers are clients: if they need a record at all it belongs against the customer
+   organisation, which is what the optional `organisations.company_id` link below provides.
+
+**Not chosen: JWT custom claims.** Putting app roles in `raw_app_meta_data` removes the join from
+RLS, but a permission change then needs a token refresh to take effect and is much harder to
+audit. For roughly ten admins the join is free — `has_app_role` is `stable`, so Postgres caches
+it per statement. Revisit only if profiling says so.
 
 The one genuinely shared thing is `auth.users` — one login per human, not one permission set per
 human. That distinction is the whole design.
@@ -466,7 +526,10 @@ decision box in §2.3 — separate departments, separate staff, separate admin l
 | D8 | **Target is `nubxrrzwcbhgpvvmbioh` (APA Company OS), not `wwchefrgkkxmhlkntufm`** | Edge8's own company database: a different Supabase org, a different region, and a different company's data. See the correction note at the top |
 | D9 | **No rollback procedure. Announce downtime, take the site down, flip, verify** | A staged cutover with write-divergence handling: unnecessary, because the source project stays intact and the downtime window means there are no divergent writes to reconcile |
 | D10 | **Khoa emails the APA manager announcing the downtime. One message, no maintenance mode in the app** | Building a `platform_settings` maintenance gate and a proxy check: real work to avoid an email |
-| D7 | **Admin consoles and admin lists stay separate. Payroll IQ keeps its own `/admin` and its own `users.role = 'admin'`** (client decision, 2026-09-15) | Porting the console into Company OS and unifying on `company_os.admins`: the two admin populations are different departments and different staff, so one list would grant each department the other's access |
+| D7 | **Admin CONSOLES stay separate — Payroll IQ keeps its own `/admin`, unported** (client decision, 2026-09-15, unchanged) | Porting fourteen admin route groups into Company OS: different departments run them, and the console is not what needed consolidating |
+| D11 | **Admin RECORDS and authorisation unify into `company_os.app_access`, with a per-app grant** (client decision, 2026-09-16) | Two separate admin lists: leaves two sources of truth for "who is staff". A blanket shared list was rejected earlier for good reason — a grant table keeps departments separated *by row* while still having one place to look |
+| D12 | **`company_os.admins` folds into `app_access` too; `requireAdmin()` reads `has_app_role`** | Only Payroll IQ reading the new table: you would build the grants screen anyway and still have two places to look. Folding also fixes the email-keyed match, which is mutable where `auth_user_id` is not |
+| D13 | **`payroll_iq.users.role` collapses to `manager \| learner \| staff`; staff rows are kept, not deleted** | Deleting admin rows: the attribution FKs are `on delete set null`, so deletion silently blanks who authored each question rather than failing |
 
 **Risks:**
 
@@ -539,10 +602,19 @@ Phase 1 — cutover (announced downtime)
 - [ ] T1.7 Verify: REST call to `payroll_iq` via publishable key returns RLS-filtered rows; learner login, quiz attempt, manager seat view, **Payroll IQ `/admin` still renders for a Payroll IQ admin**, Stripe test webhook, one cron run; Company OS `/admin` still 401s signed out, and a Payroll IQ admin is refused there
 - [ ] T1.8 Unfreeze; announce the one-time sign-out
 
+Phase 1b — unify authorisation (after the schema lands, see 2.3)
+- [ ] T1b.1 `company_os.app_access` + `app_security.has_app_role()`; backfill the 8 `company_os.admins` rows as grants, `can_view_sensitive` as a `sensitive` grant
+- [ ] T1b.2 Company OS `requireAdmin()` / sensitive gate read `has_app_role`; retire the email-keyed lookup
+- [ ] T1b.3 Payroll IQ `is_admin()` delegates to `has_app_role('payroll_iq','admin')` — one function body, 88 policies
+- [ ] T1b.4 `payroll_iq.users.role` → `manager | learner | staff`; invert `users_admin_is_orgless`; fix the `is_learner` logic that special-cased admins
+- [ ] T1b.5 `company_os.people` rows for every Payroll IQ admin (a handful; the collision report from 4.5 says whether any already exist under a different uid)
+- [ ] T1b.6 Company OS grants screen under `/admin`; Payroll IQ "no access here" page for a signed-in user without the grant
+
 Phase 2 — close out (following weeks)
 - [ ] T2.1 Optional `organisations.company_id → company_os.companies`
 - [ ] T2.2 Preview-deploy isolation for Payroll IQ (Supabase branching)
 - [ ] T2.3 Pause `vgwampgffykiuzsoyevn` (+14 d); `pg_dump` to cold storage, then delete (+60 d)
 - [ ] T2.4 Docs: README, CLAUDE.md, data dictionary, architecture overview
 
-There is no admin-migration phase. The Payroll IQ admin console is never touched.
+The Payroll IQ admin **console** is never touched — no route moves, no page is ported. What
+changes is the question it asks about who may enter.
