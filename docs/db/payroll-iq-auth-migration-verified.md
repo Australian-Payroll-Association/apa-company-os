@@ -1,8 +1,15 @@
 # Payroll IQ auth migration — verified against code and Supabase docs
 
-Status: **verified findings** — 2026-09-14
+Status: **verified findings** — 2026-09-14, target corrected 2026-09-15
 Companion to [payroll-iq-consolidation-plan.md](./payroll-iq-consolidation-plan.md), which this
-document **corrects in three places**. Everything below is backed by a file:line in one of the two
+document **corrects in three places**.
+
+> **Target project:** `nubxrrzwcbhgpvvmbioh` (APA Company OS, Sydney, Postgres 17) — *not*
+> `wwchefrgkkxmhlkntufm`, which earlier drafts named and which is Edge8's own internal database
+> in another organisation. Both projects carry a `company_os` schema, so the mistake survived
+> every structural check. Everything below holds either way: the auth mechanics are the same.
+> One thing improves — source and target are both Postgres 17, so the dump direction is
+> supported (a 17 → 15 restore would not have been). Everything below is backed by a file:line in one of the two
 repos or by Supabase's own documentation, not by inference.
 
 ---
@@ -188,9 +195,11 @@ Ordering constraints that are load-bearing, each with its reason:
    work exists. If it is empty, no remap is needed at all.
 3. **Ship the Resend password-reset change to Payroll IQ** (Correction 2) while it is still on its
    own project, so the template conflict never exists in production.
-4. **Pre-copy `e2-module-archives`.** 5 GB object limit, video content — this dominates the
-   window. Copy it ahead of the freeze and re-sync only the delta later.
-5. **Rehearse on a Supabase branch** of the Company OS project. The Payroll IQ migrations end in
+4. **Pre-copy `e2-module-archives`.** 5 GB object limit, video content. Storage objects do not
+   move with a database dump — they copy one at a time through the API, so any of that time
+   spent inside the window *is* the downtime. Copy it while payroll-iq is still live and
+   re-sync only the delta later; module video barely changes, so the delta should be near zero.
+5. **Rehearse on a Supabase branch** of `nubxrrzwcbhgpvvmbioh`. The Payroll IQ migrations end in
    `do $$ … raise exception` post-condition blocks that abort on drift; some assert counts that
    will change in a merged project (`027:440` expects exactly 4 seat tiers, `030:169` asserts no
    unscoped chat policy, `032` asserts `chat.research_enabled` is false). Find out which ones
@@ -198,8 +207,12 @@ Ordering constraints that are load-bearing, each with its reason:
 
 **Phase 1 — the window**
 
-6. **Freeze Payroll IQ writes.** Confirm `hubspot_outbox` is drained first — it is at-least-once
-   delivery state and must not be replayed.
+6. **Announce the downtime and take the site down.** Khoa emails the APA manager; there is no
+   in-app maintenance mode and none is being built. Confirm `hubspot_outbox` is drained before
+   going down — it is at-least-once delivery state and must not be replayed. Because the site is
+   down, no customer writes land in the new database that the old one is missing, which is why
+   this plan has no rollback procedure: until the env flip, payroll-iq is still serving its own
+   untouched database, so the two are live replicas and aborting costs nothing.
 7. **Dump**, in this order: `public` + `app_security` schemas; then the `auth.users` and
    `auth.identities` rows for Payroll IQ's users; then `storage.buckets` rows.
 8. **Transform `public` → `payroll_iq`** with a script, not by hand. Safe to do textually because
@@ -209,7 +222,7 @@ Ordering constraints that are load-bearing, each with its reason:
    (`010_signup_prospects.sql:21`), retarget the `storage.objects` policies to
    `payroll_iq.is_admin()`, and **drop the schema-wide `anon` revoke**
    (`004_grants.sql:77-80`) — applied project-wide it would break Company OS.
-9. **Apply to the Company OS project**: `create extension pg_trgm`, `create schema app_security`,
+9. **Apply to `nubxrrzwcbhgpvvmbioh`**: `create extension pg_trgm`, `create schema app_security`,
    then the transformed dump with `ON_ERROR_STOP=1`, then the per-schema grants.
 10. **Merge auth users.** Insert non-colliding `auth.users` + `auth.identities` **verbatim**, uuid
     and `encrypted_password` preserved. For the collision set only, remap: `auth.users` →
