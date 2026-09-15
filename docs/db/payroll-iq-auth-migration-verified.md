@@ -142,8 +142,11 @@ Company OS stores its uid in exactly one place — `company_os.people.auth_user_
 with a unique constraint (`supabase/01-schema.sql:9566`, `:5296`). Payroll IQ's uid is threaded
 through 19 FK columns plus jsonb. **Remapping the Company OS side would be one UPDATE; remapping
 the Payroll IQ side is the expensive one — so Company OS must win and Payroll IQ's colliding rows
-get remapped.** Expect the set to be small: these are only APA staff who are also Payroll IQ
-admins.
+get remapped.** Expect the set to be small, and quite possibly **empty**: the Payroll IQ admins
+and the APA Company OS admins are different departments and different staff (client decision,
+2026-09-15 — see the decision box in §2.3 of the consolidation plan), so the same person holding
+both logins is the exception, not the rule. Run the collision query early: if it returns nothing,
+the riskiest part of this migration does not apply at all.
 
 Scale context: Company OS has roughly 85 auth users at most (5 `admins`, 64 `team_members`,
 15 `portal_members` per `docs/db/data-dictionary.md:93,157,2058,2067`) — and its own code assumes
@@ -227,8 +230,12 @@ Ordering constraints that are load-bearing, each with its reason:
 
 14. REST call against `payroll_iq` with the publishable key returns RLS-filtered rows (proves
     step 11). Then: a learner signs in **with their existing password**, a quiz attempt saves,
-    a manager sees seat usage, a Stripe test webhook writes, one cron runs, Company OS `/admin`
-    still 401s signed out.
+    a manager sees seat usage, a Stripe test webhook writes, one cron runs, and **the Payroll
+    IQ `/admin` console still renders for a Payroll IQ admin** — it stays in the Payroll IQ app
+    and is never ported. Then the separation check that matters now that one `auth.users` serves
+    both apps: Company OS `/admin` still 401s signed out, a **Payroll IQ admin is refused** at
+    Company OS `/admin`, and a **Company OS admin is refused** at Payroll IQ `/admin`. One login
+    pool is not one permission set.
 
 ---
 

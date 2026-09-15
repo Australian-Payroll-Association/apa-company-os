@@ -3,7 +3,7 @@
 Status: **draft for review** — 2026-09-08
 Scope: move the Payroll IQ database (Supabase project `vgwampgffykiuzsoyevn`, repo
 `payroll-training-au`) into the Company OS Supabase project (`wwchefrgkkxmhlkntufm`,
-repo `apa-company-os`), move the Payroll IQ admin console into Company OS `/admin`,
+repo `apa-company-os`), leave the Payroll IQ admin console inside the Payroll IQ app,
 and define the pattern every future APA app follows to attach to the one database.
 
 Sections: 1 what exists today · 2 target design · 3 connection method · 4 migration
@@ -49,7 +49,8 @@ Supabase project wwchefrgkkxmhlkntufm
 ├── auth.*             shared user pool (one login for all APA apps)
 ├── storage.*          shared buckets, prefixed per app going forward
 ├── extensions.*       citext, pgcrypto, uuid-ossp, vector, pg_trgm
-├── app_security.*     NEW shared: cross-app helpers (is_platform_admin, current_person_id)
+├── app_security.*     NEW shared: cross-app helpers only (e.g. current_person_id).
+│                    NOT an admin list - see the decision box in 2.3.
 ├── company_os.*       internal ops (unchanged)
 ├── htt.*              human token tracker (unchanged)
 ├── payroll_iq.*       Payroll IQ — the 34 tables + 1 view + RPCs + triggers, moved from public
@@ -65,7 +66,7 @@ Rules for every current and future app:
   needs Payroll IQ org billing; Payroll IQ publishes `payroll_iq.admin_org_directory()` (already
   exists) and Company OS calls it. This keeps each app free to refactor its own tables.
 - **Shared nouns live in one place.** People → `company_os.people`. Companies →
-  `company_os.companies`. Platform admins → `company_os.admins`. App schemas reference them by
+  `company_os.companies`. App schemas reference them by
   `uuid` column plus an FK where the schema owner agrees to it (see 2.3).
 - **Grants are the boundary, RLS is the row filter.**
   - `service_role`: full access to every app schema (server code).
@@ -104,32 +105,30 @@ Name collisions with `company_os`: `audit_log`, `subscriptions`-adjacent billing
 Keep `payroll_iq.users.id = auth.users.id`. It is the cleanest possible bridge: the same uuid
 identifies a person in `auth.users`, `payroll_iq.users`, and `company_os.people.auth_user_id`.
 
-Two phases, so the cutover does not depend on an authorisation redesign:
+**`payroll_iq.is_admin()` stays exactly as it is**, reading
+`payroll_iq.users.role = 'admin'`. Zero behaviour change for learners, managers or admins.
 
-**Phase 1 (cutover): keep Payroll IQ's `users.role` as-is.** `payroll_iq.is_admin()` still reads
-`payroll_iq.users.role = 'admin'`. Zero behaviour change for learners and managers.
+> **Decided 2026-09-15, at the client's request: the two admin populations stay separate.**
+> An earlier draft of this plan proposed a shared `app_security.is_platform_admin()` reading
+> `company_os.admins`, so one list of staff would be honoured by every app's RLS. **That is
+> wrong here.** The Payroll IQ admins and the APA Company OS admins are *different departments
+> and different people*. Merging the lists would grant every APA Company OS admin access to the
+> Payroll IQ admin surface and vice versa — a privilege escalation across a departmental
+> boundary, dressed up as tidiness. Each app keeps its own admin list, and neither schema's
+> admin function reads the other's.
+>
+> Consolidating the database does **not** consolidate authorisation, and the separation survives
+> the merge for two independent reasons. First, grants: `authenticated` is granted on
+> `payroll_iq` only, so a Company OS session reaching for Payroll IQ tables gets nothing.
+> Second, each app's own gate: Company OS `/admin` checks `company_os.admins` by email
+> (`lib/admin-auth.ts:41-45`), Payroll IQ checks `payroll_iq.users.role` by `auth.uid()`. A
+> person in one list and not the other authenticates fine and is then refused by the other app,
+> which is the correct outcome.
 
-**Phase 2 (after cutover): platform admin = `company_os.admins`.**
+The one genuinely shared thing is `auth.users` — one login per human, not one permission set per
+human. That distinction is the whole design.
 
-```sql
--- shared, in app_security
-create or replace function app_security.is_platform_admin()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1
-    from company_os.admins a
-    join auth.users u on lower(u.email) = lower(a.email::text)
-    where u.id = auth.uid()
-  );
-$$;
-```
-
-`payroll_iq.is_admin()` becomes `select app_security.is_platform_admin()`. The `role = 'admin'`
-value on `payroll_iq.users` is then retired (constraint `users_admin_is_orgless` and the
-`025`/`026` relaxations go with it). Result: one list of APA staff, managed once in Company OS
-`/admin/admins`, honoured by every app's RLS.
-
-Optional, recommended once Phase 2 lands: add `payroll_iq.organisations.company_id uuid
+Optional and independent of the above: add `payroll_iq.organisations.company_id uuid
 references company_os.companies(id)` so a Payroll IQ customer org links to the CRM company
 record. Nullable, backfilled by email domain match, never required by the app.
 
@@ -293,8 +292,8 @@ A scripted rewrite (`scripts/db/piq-to-schema.mjs`, to be written), not hand edi
 1. `CREATE SCHEMA public` → `CREATE SCHEMA payroll_iq`; every `public.` qualifier →
    `payroll_iq.`, **including inside function bodies** (all Payroll IQ functions use
    `set search_path = ''` and fully qualify, so a textual rewrite is safe and complete).
-2. `app_security.<payroll-specific fn>` → `payroll_iq.<fn>`; keep only `is_platform_admin`
-   style shared functions in `app_security` (Phase 2).
+2. `app_security.<payroll-specific fn>` → `payroll_iq.<fn>`. Every Payroll IQ helper moves,
+   including `is_admin` - nothing app-specific stays in the shared schema.
 3. Unqualified `create table signup_prospects` → qualified.
 4. `pg_policies where schemaname = 'public'` and similar assertions → `'payroll_iq'`.
 5. Drop the schema-wide `anon` revoke / default-privilege statements; replace with the
@@ -393,35 +392,33 @@ a fresh install also has them.
    `.env.local`, `.env.example`, Vercel.
 5. **Auth calls**: audit every `signInWithOtp` / `resetPasswordForEmail` / `inviteUserByEmail`
    for an explicit `redirectTo` on the Payroll IQ domain.
-6. **Remove `/admin`** (18 files under `src/app/admin`, `src/lib/admin/*`, `admin-nav.ts`)
-   once 5.2 ships. Until then leave it, gated as today. Manager and learner surfaces are
-   untouched.
+6. **`/admin` stays exactly where it is.** No files move. The 18 files under `src/app/admin`,
+   `src/lib/admin/*` and `admin-nav.ts` keep working unchanged once their data access is
+   schema-scoped by step 2 above — the console is the same, only the database underneath it
+   moves. Manager and learner surfaces are likewise untouched.
 7. `website/supabase/migrations/` → add a README line "history only; DDL now lives in
    apa-company-os".
 
-### 5.2 `apa-company-os` (the platform and admin)
+### 5.2 `apa-company-os` (the platform)
 
-1. `lib/supabase.ts`: export `payrollIq = supabase.schema("payroll_iq")`.
-2. New admin section `app/admin/payroll-iq/*` ported from Payroll IQ's `/admin/*`: modules,
-   taxonomy, questions, ingest, blueprints, coverage, continuity, notifications, activity,
-   users/orgs, billing, admins. Data modules from `payroll-training-au/website/src/lib/admin/*`
-   port almost verbatim: swap the inline service client for `payrollIq`, swap `requireAdmin()`
-   for Company OS's `requireAdmin()` from `lib/admin-auth.ts`. Server actions keep Payroll IQ's
-   `guard()` shape. Storage actions (blueprints upload, posters) use the base client, buckets
-   unchanged.
-3. Admin nav: add a "Payroll IQ" group. Sensitive data rule: billing and invoice views sit
-   behind `can_view_sensitive`, consistent with the data dictionary.
-4. `supabase/config.toml`: add `payroll_iq` to schemas; add Payroll IQ redirect URLs.
-5. `supabase/00-prereqs.sql`: add `pg_trgm`, `app_security` schema, three buckets.
-6. `supabase/01-schema.sql` regenerated after cutover to include `payroll_iq` (or, better, the
+1. `lib/supabase.ts`: export `payrollIq = supabase.schema("payroll_iq")`. This exists for
+   cross-app reads the internal team genuinely needs (for example a billing or seat figure
+   surfaced in a Company OS report), not for an admin console. Use it only inside
+   `requireAdmin()`-guarded code, and prefer a view or function Payroll IQ publishes over raw
+   table reads.
+2. `supabase/config.toml`: add `payroll_iq` to schemas; add Payroll IQ redirect URLs.
+3. `supabase/00-prereqs.sql`: add `pg_trgm`, `app_security` schema, three buckets.
+4. `supabase/01-schema.sql` regenerated after cutover to include `payroll_iq` (or, better, the
    new `supabase/migrations/` baseline from 2.6 replaces the snapshot).
-7. README and CLAUDE.md: table counts, the schema-per-app rule, the "public stays empty" rule,
+5. README and CLAUDE.md: table counts, the schema-per-app rule, the "public stays empty" rule,
    fix `ANON_KEY` naming, drop references to the non-existent `supabase/migrations/`.
-8. `docs/db/data-dictionary.md`: add the `payroll_iq` schema section and rule 12: "app schemas
+6. `docs/db/data-dictionary.md`: add the `payroll_iq` schema section and rule 12: "app schemas
    reference `company_os.people` / `companies` by uuid; cross-app reads go through views or
    functions."
-9. Phase 2 migration: `app_security.is_platform_admin()`, `payroll_iq.is_admin()` delegation,
-   retire `users.role = 'admin'`.
+
+**Not in scope, and deliberately so:** there is no `app/admin/payroll-iq/*` section, no
+"Payroll IQ" group in the Company OS admin nav, and no shared platform-admin function. See the
+decision box in §2.3 — separate departments, separate staff, separate admin lists.
 
 ---
 
@@ -432,12 +429,12 @@ a fresh install also has them.
 | # | Decision | Alternative rejected |
 |---|---|---|
 | D1 | Schema per app, `public` empty | Prefixed tables in `public` (`piq_users`): loses per-schema grants, breaks Payroll IQ's `search_path=''` functions less cleanly, and Company OS already chose schemas |
-| D2 | Keep `payroll_iq.users.id = auth uid` | Introduce a `people_id` indirection now: touches every table at the riskiest moment. Do it in Phase 2 if ever |
+| D2 | Keep `payroll_iq.users.id = auth uid` | Introduce a `people_id` indirection now: touches every table at the riskiest moment. Do it later if ever |
 | D3 | Company OS auth user wins on email collision | Payroll IQ wins: would orphan `company_os.people.auth_user_id` and team logins |
 | D4 | Bucket names unchanged | Prefixing now: rewrites stored paths and the ingest pipeline for no security gain |
 | D5 | Company OS repo owns all DDL with a restored `supabase/migrations/` ledger | Each app owns its schema's migrations: two ledgers on one DB is how drift returns |
 | D6 | Payroll IQ Vercel project, crons and Stripe webhook stay where they are | Folding the product app into the Company OS Next.js app: unrelated to the database goal, huge, and Company OS's public site vs app split is already strained |
-| D7 | Platform admin unified into `company_os.admins` in Phase 2, not at cutover | Doing it at cutover couples a data move to an auth redesign |
+| D7 | **Admin consoles and admin lists stay separate. Payroll IQ keeps its own `/admin` and its own `users.role = 'admin'`** (client decision, 2026-09-15) | Porting the console into Company OS and unifying on `company_os.admins`: the two admin populations are different departments and different staff, so one list would grant each department the other's access |
 
 **Risks:**
 
@@ -466,10 +463,7 @@ a fresh install also has them.
 1. Compute tier target at cutover, and whether the Payroll IQ Pro-plan add-ons (compute,
    storage egress) transfer or the Company OS project's plan needs upgrading.
 2. Email branding: shared neutral templates, or app-sent mail?
-3. Does the internal team want Payroll IQ admin under `/admin/payroll-iq` in Company OS, or as
-   a top-level "Products" area that will also hold ROI calculator, Discovery 360, and future apps?
-   The plan assumes the latter is where this ends up; naming now saves a rename.
-4. Cutover window: Payroll IQ customers are AU business hours. Sunday 02:00 AEST is the obvious
+3. Cutover window: Payroll IQ customers are AU business hours. Sunday 02:00 AEST is the obvious
    slot.
 
 ---
@@ -483,7 +477,7 @@ Phase 0 — prepare (no customer impact)
 - [ ] T0.4 Write `scripts/db/merge-auth-users.sql` (remap table + FK-driven column update)
 - [ ] T0.5 Rehearse 4.2 to 4.6 on a Supabase branch of the Company OS project; fix until green
 - [ ] T0.6 Payroll IQ code: single client factory, schema scoping, env rename, types regenerated, behind env flag so it still works against the old project
-- [ ] T0.7 Company OS: `payrollIq` export, config.toml schema + redirect URLs, prereqs (pg_trgm, app_security, buckets), admin section ported and reviewed against a branch DB
+- [ ] T0.7 Company OS: `payrollIq` export, config.toml schema + redirect URLs, prereqs (pg_trgm, app_security, buckets)
 - [ ] T0.8 Restore `supabase/migrations/` in Company OS with baselines for `company_os`, `htt`, and `payroll_iq`
 
 Phase 1 — cutover (maintenance window)
@@ -493,13 +487,13 @@ Phase 1 — cutover (maintenance window)
 - [ ] T1.4 Merge auth users (4.5); verify zero orphans
 - [ ] T1.5 Delta-copy storage; verify counts
 - [ ] T1.6 Swap Payroll IQ Vercel env to the Company OS project; redeploy
-- [ ] T1.7 Verify: REST call to `payroll_iq` via publishable key returns RLS-filtered rows; learner login, quiz attempt, manager seat view, Stripe test webhook, one cron run; Company OS `/admin/payroll-iq` renders and `/admin` still 401s signed out
+- [ ] T1.7 Verify: REST call to `payroll_iq` via publishable key returns RLS-filtered rows; learner login, quiz attempt, manager seat view, **Payroll IQ `/admin` still renders for a Payroll IQ admin**, Stripe test webhook, one cron run; Company OS `/admin` still 401s signed out, and a Payroll IQ admin is refused there
 - [ ] T1.8 Unfreeze; announce the one-time sign-out
 
-Phase 2 — unify (following weeks)
-- [ ] T2.1 `app_security.is_platform_admin()`; `payroll_iq.is_admin()` delegates; retire `users.role='admin'`
-- [ ] T2.2 Remove `/admin` from the Payroll IQ app
-- [ ] T2.3 Optional `organisations.company_id → company_os.companies`
-- [ ] T2.4 Preview-deploy isolation for Payroll IQ (Supabase branching)
-- [ ] T2.5 Pause old project (+14 d), delete (+60 d)
-- [ ] T2.6 Docs: README, CLAUDE.md, data dictionary, architecture overview
+Phase 2 — close out (following weeks)
+- [ ] T2.1 Optional `organisations.company_id → company_os.companies`
+- [ ] T2.2 Preview-deploy isolation for Payroll IQ (Supabase branching)
+- [ ] T2.3 Pause old project (+14 d), delete (+60 d)
+- [ ] T2.4 Docs: README, CLAUDE.md, data dictionary, architecture overview
+
+There is no admin-migration phase. The Payroll IQ admin console is never touched.
