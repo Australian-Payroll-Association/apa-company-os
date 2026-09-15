@@ -59,18 +59,17 @@ async function setGrant(
   actorPersonId: string | null,
 ): Promise<string | null> {
   if (granted) {
-    // Revocation is a timestamp, never a delete, so re-granting someone must
-    // not stack a second live row on top of the first.
-    const { data: live } = await companyOs
-      .from("app_access")
-      .select("id")
-      .eq("person_id", personId)
-      .eq("app", "company_os")
-      .eq("role", role)
-      .is("revoked_at", null)
-      .limit(1)
-      .maybeSingle();
-    if (live) return null;
+    // Revocation is a timestamp, never a delete, so re-granting must not stack
+    // a second live row. The DATABASE already guarantees that: migration
+    // 20260916030000 creates the partial unique index `app_access_live` on
+    // (person_id, app, role) WHERE revoked_at IS NULL.
+    //
+    // So this inserts and treats the unique violation as success rather than
+    // reading first. A read-then-insert re-implements the index in the
+    // application and loses the race it was protecting against: two operators
+    // granting at once both see "no live grant", both insert, and the loser
+    // gets "Added, but the access grant failed: duplicate key" for a grant
+    // that is, in fact, correctly in place.
     const { error } = await companyOs.from("app_access").insert({
       person_id: personId,
       app: "company_os",
@@ -78,6 +77,9 @@ async function setGrant(
       granted_by: actorPersonId,
       note: "Granted from /admin/settings/admins.",
     });
+    // 23505 = unique_violation: the grant already exists and is live, which is
+    // the outcome we wanted.
+    if (error && (error as { code?: string }).code === "23505") return null;
     return error?.message ?? null;
   }
   const { error } = await companyOs
@@ -184,7 +186,16 @@ export async function updateAdmin(
 
   // The LEVEL is the sensitive grant. Updating only the boolean would move the
   // badge in this screen and change nothing about what the person can see.
-  if (row.person_id) {
+  // Same reasoning as deleteAdmin: flipping the Super Admin badge while the
+  // sensitive grant stays put makes this screen lie about what someone can see.
+  if (!row.person_id) {
+    return {
+      ok: false,
+      error:
+        "This admin is not linked to a person record, so their clearance cannot be changed. Link them first.",
+    };
+  }
+  {
     if (displayName) {
       await companyOs.from("people").update({ display_name: displayName }).eq("id", row.person_id);
     }
@@ -240,7 +251,19 @@ export async function deleteAdmin(id: string): Promise<Result> {
 
   // Revoke FIRST: deleting the row without revoking would remove them from
   // this screen while leaving the grant — and therefore the access — in place.
-  if (row.person_id) {
+  // NOT `if (row.person_id)`. Skipping the revoke for a row without a person
+  // deletes it from this screen, writes the audit entry, and reports "no longer
+  // has admin access" while the grant — and the access — survive. Silent
+  // success on a revocation path is the worst outcome available here, so the
+  // unlinked case refuses instead.
+  if (!row.person_id) {
+    return {
+      ok: false,
+      error:
+        "This admin is not linked to a person record, so their access grant cannot be revoked. Link them first, or revoke the grant directly.",
+    };
+  }
+  {
     const actor = await actorPersonId(admin.email);
     const gErr =
       (await setGrant(row.person_id, "admin", false, actor)) ??

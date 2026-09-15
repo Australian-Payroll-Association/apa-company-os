@@ -30,3 +30,25 @@ update company_os.admins a
   from company_os.people p
  where a.person_id is null
    and lower(a.email) = lower(p.email);
+
+-- Assert the post-condition. The header above records that a first draft
+-- joined on person_id and silently updated nothing; this is what turns that
+-- from a story into a guard. Names are the only thing the admins table still
+-- holds uniquely, so a no-op here is a future data loss, not a cosmetic miss.
+do $chk$
+declare nameless int; unlinked int;
+begin
+  select count(*) into nameless
+    from company_os.admins a
+    join company_os.people p on lower(p.email) = lower(a.email)
+   where a.display_name is not null
+     and p.display_name is null;
+  if nameless <> 0 then
+    raise exception '% admin name(s) did not reach company_os.people', nameless;
+  end if;
+
+  select count(*) into unlinked from company_os.admins where person_id is null;
+  if unlinked <> 0 then
+    raise exception '% admins row(s) still have a null person_id', unlinked;
+  end if;
+end $chk$;

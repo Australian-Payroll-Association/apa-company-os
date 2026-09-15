@@ -175,7 +175,30 @@ export const canViewSensitive = cache(async (email: string | null | undefined): 
   if (sensitiveEnvAllowlist().has(normalized)) return true;
   // One mechanism instead of a table plus a boolean: clearance is its own
   // grant, so it is granted, revoked and audited exactly like admin is.
+  //
+  // Still keyed on the address, because callers pass one. Prefer
+  // canViewSensitiveForCaller() wherever the SESSION is what is being asked
+  // about — see the note there.
   return hasCompanyOsGrant({ email: normalized }, "sensitive");
+});
+
+/**
+ * Sensitive clearance for the CURRENT caller, keyed on the immutable id.
+ *
+ * The admin gate moved off email for a reason the card states plainly: an
+ * address is mutable and reusable, so changing it silently drops access and
+ * reissuing a departed employee's silently confers it. That reasoning does not
+ * stop at /admin — it applies with more force to wages, PII and the ATS, which
+ * is what this guards. Leaving those on the address would have moved the
+ * mechanism to grants and left the wart exactly where it was.
+ *
+ * The env allowlist still comes first and is still address-based: it is
+ * break-glass, edited by hand in the environment, and covers people with no
+ * people row at all.
+ */
+const canViewSensitiveById = cache(async (authUserId: string, email: string): Promise<boolean> => {
+  if (sensitiveEnvAllowlist().has(email)) return true;
+  return hasCompanyOsGrant({ authUserId }, "sensitive");
 });
 
 // Convenience for server components/actions: the current admin plus whether
@@ -183,7 +206,10 @@ export const canViewSensitive = cache(async (email: string | null | undefined): 
 export async function getSensitiveViewer(): Promise<{ email: string; canViewSensitive: boolean } | null> {
   const user = await getAdminUser();
   if (!user) return null;
-  return { email: user.email, canViewSensitive: await canViewSensitive(user.email) };
+  return {
+    email: user.email,
+    canViewSensitive: await canViewSensitiveById(user.id, user.email),
+  };
 }
 
 // ── Super admin gate ────────────────────────────────────────────────────────
@@ -206,6 +232,7 @@ export const isSuperAdmin = cache(async (email: string | null | undefined): Prom
 // super admin is bounced to the admin home rather than the login page.
 export async function requireSuperAdmin(): Promise<AdminUser> {
   const user = await requireAdmin();
-  if (!(await isSuperAdmin(user.email))) redirect("/admin");
+  // Keyed on the id: this is the session asking about itself.
+  if (!(await canViewSensitiveById(user.id, user.email))) redirect("/admin");
   return user;
 }

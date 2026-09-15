@@ -21,3 +21,26 @@ update company_os.people p
  where p.auth_user_id is null
    and lower(u.email) = lower(p.email)
    and (select count(*) from auth.users u2 where lower(u2.email) = lower(p.email)) = 1;
+
+-- Assert the post-condition. This migration exists solely to stop a
+-- grant-holder being locked out once the gate keys on auth_user_id, so
+-- "it ran" is not the interesting fact — "nobody is left unresolvable" is.
+-- A case or whitespace mismatch, or a second auth row appearing, would make
+-- the update above a silent no-op and the lockout would happen anyway.
+do $chk$
+declare unresolved int;
+begin
+  select count(*) into unresolved
+    from company_os.app_access a
+    join company_os.people p on p.id = a.person_id
+   where a.app = 'company_os'
+     and a.role = 'admin'
+     and a.revoked_at is null
+     and p.auth_user_id is null;
+
+  if unresolved <> 0 then
+    raise exception
+      '% company_os admin grant(s) point at a person with no auth_user_id - the grant gate would refuse them',
+      unresolved;
+  end if;
+end $chk$;
