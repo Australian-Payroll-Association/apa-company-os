@@ -1,9 +1,15 @@
 // Server-only admin auth gate. NEVER import from a client component.
 //
-// A request is "admin" iff it carries a valid Supabase session AND the user's
-// email is in the company_os.admins table (managed at /admin/settings/admins)
-// OR in the ADMIN_ALLOWLIST env var (break-glass fallback so a bad delete in
-// the UI can never lock everyone out). company_os has RLS ENABLED with no
+// A request is "admin" iff it carries a valid Supabase session AND the user
+// holds a live (company_os, admin) grant in company_os.app_access — the one
+// authority every APA app consults — OR their email is in the ADMIN_ALLOWLIST
+// env var (break-glass fallback so a bad delete in the UI can never lock
+// everyone out).
+//
+// The gate used to match on EMAIL against company_os.admins. Two lists then
+// described the same thing with nothing keeping them honest, and the key was
+// mutable: change an address and access vanished, reissue a departed
+// employee's and it transferred. company_os has RLS ENABLED with no
 // policies and no grants to the browser/publishable key, so that key can read
 // nothing there; all data flows through the service-role client
 // (lib/supabase.ts), which bypasses RLS. This gate — enforced in the admin
@@ -17,6 +23,57 @@ import { createSessionClient } from "@/lib/supabase/server";
 import { companyOs } from "@/lib/supabase";
 
 export type AdminUser = { id: string; email: string };
+
+// ── Where admin authority actually lives ───────────────────────────────────
+//
+// company_os.app_access, reached through app_security.has_app_role(). That is
+// the one contract every APA application consults; Payroll IQ's 64 RLS policies
+// and its requireAdmin() both resolve through it.
+//
+// This app cannot CALL has_app_role(), and that is a property of its
+// architecture rather than an oversight: the function resolves auth.uid(), and
+// every query here goes through the service-role client, where there is no JWT
+// and auth.uid() is null. So this runs the function's own query with the key
+// passed in explicitly. Same table, same rule, same answer — see
+// supabase/migrations/20260916030000_app_access_grants.sql.
+//
+// TWO KEYS, because callers ask two different questions and conflating them is
+// what made the old gate wrong:
+//
+//   byAuthUserId — "is the CALLER an admin?" Used once the session has been
+//     revalidated, so it keys on the immutable id rather than the address. This
+//     is the fix for the wart the old gate carried: an email is mutable and
+//     reusable, so changing someone's address silently removed their access and
+//     reissuing a departed employee's address silently granted it.
+//
+//   byEmail — "is THIS OTHER PERSON an admin?" Genuinely a question about an
+//     address: portal-invite and talent/team ask it to refuse inviting an admin
+//     as an employee, signin-link and survey-identity to classify one. No
+//     session is involved, so auth.uid() could never have answered it.
+async function hasCompanyOsGrant(
+  key: { authUserId: string } | { email: string },
+  role: "admin" | "sensitive",
+): Promise<boolean> {
+  let q = companyOs
+    .from("app_access")
+    .select("id, people!inner(id)")
+    .eq("app", "company_os")
+    .eq("role", role)
+    .is("revoked_at", null);
+
+  q = "authUserId" in key
+    ? q.eq("people.auth_user_id", key.authUserId)
+    : q.eq("people.email", key.email);
+
+  const { data, error } = await q.limit(1).maybeSingle();
+  if (error) {
+    // Fail closed, exactly as the table lookup it replaces did: the env
+    // allowlist above is the recovery path, never an open door.
+    console.error(`app_access lookup failed (${role}):`, error.message);
+    return false;
+  }
+  return Boolean(data);
+}
 
 // Emergency allowlist from the environment. Editing it requires a redeploy;
 // day-to-day admin management lives in company_os.admins.
@@ -38,16 +95,7 @@ export async function isAdminEmail(email: string | null | undefined): Promise<bo
   const normalized = email?.trim().toLowerCase();
   if (!normalized) return false;
   if (envAllowlist().has(normalized)) return true;
-  const { data, error } = await companyOs
-    .from("admins")
-    .select("id")
-    .eq("email", normalized)
-    .maybeSingle();
-  if (error) {
-    console.error("admins lookup failed:", error.message);
-    return false;
-  }
-  return Boolean(data);
+  return hasCompanyOsGrant({ email: normalized }, "admin");
 }
 
 // Returns the signed-in admin, or null if not signed in / not allowlisted.
@@ -80,7 +128,14 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
     data: { user },
   } = await supabase.auth.getUser();
   const email = user?.email?.toLowerCase();
-  if (!user || !email || !(await isAdminEmail(email))) return null;
+  if (!user || !email) return null;
+  // Break-glass first (no DB hit), then the grant BY AUTH USER ID. The session
+  // has just been revalidated above, so the immutable key is available here —
+  // and this is the one caller that should never key on an address.
+  const ok =
+    envAllowlist().has(email) ||
+    (await hasCompanyOsGrant({ authUserId: user.id }, "admin"));
+  if (!ok) return null;
   return { id: user.id, email };
 });
 
@@ -118,16 +173,9 @@ export const canViewSensitive = cache(async (email: string | null | undefined): 
   const normalized = email?.trim().toLowerCase();
   if (!normalized) return false;
   if (sensitiveEnvAllowlist().has(normalized)) return true;
-  const { data, error } = await companyOs
-    .from("admins")
-    .select("can_view_sensitive")
-    .eq("email", normalized)
-    .maybeSingle();
-  if (error) {
-    console.error("sensitive-viewer lookup failed:", error.message);
-    return false;
-  }
-  return Boolean(data?.can_view_sensitive);
+  // One mechanism instead of a table plus a boolean: clearance is its own
+  // grant, so it is granted, revoked and audited exactly like admin is.
+  return hasCompanyOsGrant({ email: normalized }, "sensitive");
 });
 
 // Convenience for server components/actions: the current admin plus whether
