@@ -150,10 +150,16 @@ with a unique constraint (`supabase/01-schema.sql:9566`, `:5296`). Payroll IQ's 
 through 19 FK columns plus jsonb. **Remapping the Company OS side would be one UPDATE; remapping
 the Payroll IQ side is the expensive one — so Company OS must win and Payroll IQ's colliding rows
 get remapped.** Expect the set to be small, and quite possibly **empty**: the Payroll IQ admins
-and the APA Company OS admins are different departments and different staff (client decision,
-2026-09-15 — see the decision box in §2.3 of the consolidation plan), so the same person holding
-both logins is the exception, not the rule. Run the collision query early: if it returns nothing,
-the riskiest part of this migration does not apply at all.
+and the APA Company OS admins are different departments and different staff, so the same person
+holding both logins is the exception, not the rule. Run the collision query early: if it returns
+nothing, the riskiest part of this migration does not apply at all.
+
+**This report has a second job now.** Under the revised authorisation model (§2.3 of the
+consolidation plan), every Payroll IQ admin needs a `company_os.people` row so a grant in
+`company_os.app_access` can reference it. The collision report is exactly the input to that
+backfill: a Payroll IQ admin whose email already exists in the target's `auth.users` is a person
+who probably already has a `people` row, and must be linked rather than duplicated. One whose
+email does not appear is a new `people` row with the uid carried over from payroll-iq.
 
 Scale context: Company OS has roughly 85 auth users at most (5 `admins`, 64 `team_members`,
 15 `portal_members` per `docs/db/data-dictionary.md:93,157,2058,2067`) — and its own code assumes
