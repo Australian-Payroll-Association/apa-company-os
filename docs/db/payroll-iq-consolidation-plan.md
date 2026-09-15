@@ -1,10 +1,26 @@
 # Payroll IQ → Company OS database consolidation plan
 
-Status: **draft for review** — 2026-09-08
+Status: **reviewed and agreed** — drafted 2026-09-08, corrected 2026-09-15
 Scope: move the Payroll IQ database (Supabase project `vgwampgffykiuzsoyevn`, repo
-`payroll-training-au`) into the Company OS Supabase project (`wwchefrgkkxmhlkntufm`,
-repo `apa-company-os`), leave the Payroll IQ admin console inside the Payroll IQ app,
-and define the pattern every future APA app follows to attach to the one database.
+`payroll-training-au`) into the **APA Company OS** Supabase project
+(`nubxrrzwcbhgpvvmbioh`, repo `apa-company-os`), leave the Payroll IQ admin console
+inside the Payroll IQ app, and define the pattern every future APA app follows to
+attach to the one database.
+
+> **Correction, 2026-09-15.** Every draft before this one named `wwchefrgkkxmhlkntufm`
+> as the target. **That is Edge8's own internal company database, in a different Supabase
+> organisation and a different region — not APA's.** APA's Company OS is
+> `nubxrrzwcbhgpvvmbioh`, which is what the `apa-company-os` repo actually deploys
+> against (confirmed from its Vercel production environment and
+> `supabase/.temp/linked-project.json`). The confusion was easy to miss because **both
+> projects have a `company_os` schema and an `htt` schema**, so a wrong ref looks right
+> to every structural check. Tell them apart by organisation, region and data:
+> `wwchef` is org `afazlvyacsijthammztl`, Singapore, 29 boards and 927 people;
+> `nubxr` is org `lmprzbyhxbazwrrpdxrt` (the same org as payroll-iq), Sydney.
+>
+> Correcting the target also removed three risks earlier drafts carried: a Postgres
+> 17 → 15 downgrade (both projects are 17), an Australian-payroll-data move from Sydney
+> to Singapore, and mixing a client's customer data into Edge8's own tenant.
 
 Sections: 1 what exists today · 2 target design · 3 connection method · 4 migration
 plan · 5 code changes · 6 risks and decisions · 7 execution checklist.
@@ -15,8 +31,11 @@ plan · 5 code changes · 6 risks and decisions · 7 execution checklist.
 
 | | Company OS | Payroll IQ |
 |---|---|---|
-| Supabase project | `wwchefrgkkxmhlkntufm` | `vgwampgffykiuzsoyevn` |
-| App schemas | `company_os` (141 tables), `htt` (9) — `public` is **empty** | `public` (34 tables) + `app_security` (RLS helper fns) |
+| Supabase project | `nubxrrzwcbhgpvvmbioh` ("apa-company-os") | `vgwampgffykiuzsoyevn` ("payroll-iq") |
+| Supabase org / region | `lmprzbyhxbazwrrpdxrt` · ap-southeast-2 (Sydney) | `lmprzbyhxbazwrrpdxrt` · ap-southeast-2 (Sydney) |
+| Postgres | **17.6** | **17.6** — same major, so the dump direction is supported |
+| Compute | **Small** (2 GB RAM, 90 direct / 400 pooler) — raised from Micro 2026-09-15 | Micro |
+| App schemas | `company_os` (153 tables), `htt` (9) — `public` is **empty** | `public` (34 tables) + `app_security` (RLS helper fns) |
 | Schema source of truth | `supabase/01-schema.sql` pg_dump snapshot (15k lines), no `migrations/` dir | 26 migrations in `website/supabase/migrations/`, applied via MCP, ledger in `supabase_migrations` |
 | RLS model | RLS on, **339 policies all `USING (true)`** for 3 chatbot roles only. Browser key has no grants. Everything goes through service role + app gates (`requireAdmin`, `requireTeamMember`, `requirePortalActor`) | **Real RLS**: 72 policies keyed on `auth.uid()` via `app_security.is_admin/is_org_member/owns_*`. `authenticated` has table grants, `anon` revoked everywhere |
 | Identity spine | `company_os.people` (`auth_user_id` → auth.users), `company_os.admins` (email + `can_view_sensitive`), `team_members`, `portal_members` | `public.users.id` **is** `auth.users.id` (PK = FK, cascade). `role ∈ admin/manager/learner`. `organisations` is the tenant |
@@ -45,7 +64,7 @@ Two facts shape everything below:
 ### 2.1 One project, one schema per app
 
 ```
-Supabase project wwchefrgkkxmhlkntufm
+Supabase project nubxrrzwcbhgpvvmbioh  (APA Company OS)
 ├── auth.*             shared user pool (one login for all APA apps)
 ├── storage.*          shared buckets, prefixed per app going forward
 ├── extensions.*       citext, pgcrypto, uuid-ossp, vector, pg_trgm
@@ -229,7 +248,7 @@ All apps share the same three values from the one project:
 
 | Var | Who | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL` | all | `https://wwchefrgkkxmhlkntufm.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL` | all | `https://nubxrrzwcbhgpvvmbioh.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | browser + SSR | Payroll IQ code currently reads `NEXT_PUBLIC_SUPABASE_ANON_KEY`; standardise on `PUBLISHABLE_KEY` (Company OS README still says `ANON_KEY` in one place, fix that too) |
 | `SUPABASE_SECRET_KEY` | server | Payroll IQ reads `SUPABASE_SERVICE_ROLE_KEY` in 46 files; standardise |
 
@@ -248,8 +267,11 @@ direct pg path and should stay that way. Schema DDL runs on port 5432 only.
 Single project means shared compute, shared PostgREST `max_rows = 1000`, shared connection pool,
 shared Auth rate limits. Actions:
 
-- Upgrade compute one tier at cutover (current usage is unknown to this plan; the dashboard
-  Reports tab tells you). Compute scales without downtime on Supabase Pro.
+- **Done 2026-09-15: `nubxrrzwcbhgpvvmbioh` raised Micro → Small** (1 → 2 GB RAM, 60 → 90
+  direct connections, 200 → 400 pooler connections; ~$10 → ~$15/month, billed hourly). The
+  resize restarted the database for about 40 seconds. The pooler limit is the number that
+  matters here: neither app uses direct Postgres connections for normal traffic, so a merged
+  workload is bounded by PostgREST's pool, not by RAM. Review again a week after cutover.
 - Enable the built-in Supavisor pooler stats and set an alert on connection saturation.
 - `max_rows` is fine for both apps today. Any future bulk export uses `.range()` paging.
 
@@ -263,9 +285,16 @@ shared Auth rate limits. Actions:
   in the Supabase dashboard (Settings → Database), connect on 5432 with `psql`. Company OS
   runbook rules apply: `psql`/`pg_dump` from `libpq` by absolute path, no Docker, no
   `supabase db dump`.
-- Company OS project on the compute tier you want for launch.
+- APA Company OS project on the compute tier you want for launch. **Already done** — Small,
+  see 3.4.
 - A staging rehearsal: run steps 4.2 to 4.5 against a **Supabase branch** or a throwaway project
   first. The post-condition blocks and grant rewrites are where surprises live.
+
+**No rollback plan, and that is deliberate.** Until the env flip, `payroll-iq` keeps serving
+its own database untouched, so the two projects are live replicas and there is nothing to roll
+back from — an abort before the flip costs nothing. The site is down during the flip, so no
+customer writes land in the new database that the old one is missing. Reverting, if it ever
+came to that, is the same env change backwards.
 
 ### 4.2 Dump Payroll IQ
 
@@ -368,7 +397,7 @@ a fresh install also has them.
 | Stripe customer/subscription ids | Live on `payroll_iq.organisations`, tied to the Stripe account, not Supabase. Nothing to do |
 | `platform_settings` | Runtime config, copied as data. Do **not** re-seed defaults (`chat.research_enabled` must stay false) |
 | Vercel crons | Stay in the Payroll IQ Vercel project. Only env changes |
-| `.mcp.json` in payroll repo | `project_ref` → `wwchefrgkkxmhlkntufm` |
+| `.mcp.json` in payroll repo | `project_ref` → `nubxrrzwcbhgpvvmbioh` |
 | Supabase Auth URL config | Add Payroll IQ prod/preview domains to redirect allow-list |
 | Old project | Pause after 14 days of clean operation; delete after 60 |
 
@@ -434,6 +463,9 @@ decision box in §2.3 — separate departments, separate staff, separate admin l
 | D4 | Bucket names unchanged | Prefixing now: rewrites stored paths and the ingest pipeline for no security gain |
 | D5 | Company OS repo owns all DDL with a restored `supabase/migrations/` ledger | Each app owns its schema's migrations: two ledgers on one DB is how drift returns |
 | D6 | Payroll IQ Vercel project, crons and Stripe webhook stay where they are | Folding the product app into the Company OS Next.js app: unrelated to the database goal, huge, and Company OS's public site vs app split is already strained |
+| D8 | **Target is `nubxrrzwcbhgpvvmbioh` (APA Company OS), not `wwchefrgkkxmhlkntufm`** | Edge8's own company database: a different Supabase org, a different region, and a different company's data. See the correction note at the top |
+| D9 | **No rollback procedure. Announce downtime, take the site down, flip, verify** | A staged cutover with write-divergence handling: unnecessary, because the source project stays intact and the downtime window means there are no divergent writes to reconcile |
+| D10 | **Khoa emails the APA manager announcing the downtime. One message, no maintenance mode in the app** | Building a `platform_settings` maintenance gate and a proxy check: real work to avoid an email |
 | D7 | **Admin consoles and admin lists stay separate. Payroll IQ keeps its own `/admin` and its own `users.role = 'admin'`** (client decision, 2026-09-15) | Porting the console into Company OS and unifying on `company_os.admins`: the two admin populations are different departments and different staff, so one list would grant each department the other's access |
 
 **Risks:**
@@ -445,11 +477,14 @@ decision box in §2.3 — separate departments, separate staff, separate admin l
   compute headroom). Keep the chatbot roles' 5s timeouts. Treat this as the price of the
   centralisation the business asked for, and say so in the README.
 - **One Auth config.** Email templates, SMTP, rate limits and `site_url` are shared. The
-  redirect allow-list and explicit `emailRedirectTo` handle routing; branding needs a decision
-  (neutral APA templates, or app-sent mail via Resend).
-- **Session logout at cutover** for every Payroll IQ user. Unavoidable; communicate.
-- **`e2-module-archives` size.** Copy window could be hours. Start it before the freeze; the
-  freeze then only re-syncs the delta.
+  redirect allow-list and explicit `emailRedirectTo` handle routing; branding is resolved by
+  Payroll IQ sending its own reset mail through Resend rather than sharing a template.
+- **Session logout at cutover** for every Payroll IQ user. Unavoidable — the `@supabase/ssr`
+  cookie name is derived from the project ref. Covered by the downtime email (D10).
+- **`e2-module-archives` size.** Objects copy one at a time through the API, so a 5 GB video
+  bucket could take hours — and any of that time spent inside the window *is* the downtime.
+  **Pre-copy it while payroll-iq is still live** and delta-sync during the window; module video
+  barely changes, so the delta should be near zero and the downtime stays minutes.
 - **Post-condition blocks** in the transformed dump may fail on the merged project for reasons
   unrelated to Payroll IQ (for example a policy count that now includes Company OS's). Rehearse
   on a branch.
@@ -458,19 +493,33 @@ decision box in §2.3 — separate departments, separate staff, separate admin l
 - **Payroll IQ Vercel preview deployments** now write to the production database of the whole
   company. Preview envs must point at a Supabase branch or a `payroll_iq` copy, never prod.
 
-**Open questions for Khoa:**
+**Settled in review, 2026-09-15** (these were the open questions):
 
-1. Compute tier target at cutover, and whether the Payroll IQ Pro-plan add-ons (compute,
-   storage egress) transfer or the Company OS project's plan needs upgrading.
-2. Email branding: shared neutral templates, or app-sent mail?
-3. Cutover window: Payroll IQ customers are AU business hours. Sunday 02:00 AEST is the obvious
-   slot.
+1. **Compute** — APA Company OS raised to Small before cutover. Done; see 3.4.
+2. **Email branding** — Payroll IQ moves password reset onto Resend (see the auth doc,
+   Correction 2), which removes the shared-template conflict entirely and leaves each product
+   sending its own mail.
+3. **Downtime comms** — Khoa emails the APA manager. One message, announcing the site will be
+   down. No in-app maintenance mode is built.
+4. **Cutover window** — Payroll IQ customers are AU business hours, so the window is outside
+   them. The whole job is one run: preparation is staged, but the switch itself is a single
+   env flip.
+5. **Old project** — pause `vgwampgffykiuzsoyevn` at +14 days, delete at +60, and take a
+   `pg_dump` to cold storage before deleting. Pausing is reversible; deleting is not.
 
 ---
 
 ## 7. Execution checklist (ticket-sized)
 
+**Order of operations, agreed 2026-09-15.** Copy schema, data and storage into
+`nubxrrzwcbhgpvvmbioh` while payroll-iq is still serving → Khoa emails the APA manager → site
+down → delta-sync → flip `NEXT_PUBLIC_SUPABASE_URL` → verify → back up. One switch, staged
+preparation. The flip is necessarily atomic: one Supabase project means one URL, one auth pool
+and one set of keys, so the app cannot authenticate against one project while reading from the
+other — the JWT is signed by whichever project issued it.
+
 Phase 0 — prepare (no customer impact)
+- [x] T0.0 Raise APA Company OS compute Micro → Small (done 2026-09-15)
 - [ ] T0.1 Reset Payroll IQ DB password, confirm `psql` on 5432 works, record in password manager
 - [ ] T0.2 Write `scripts/db/piq-to-schema.mjs` (dump transform + diff report)
 - [ ] T0.3 Write `scripts/db/copy-storage.mjs` (bucket object copy with verification)
@@ -480,20 +529,20 @@ Phase 0 — prepare (no customer impact)
 - [ ] T0.7 Company OS: `payrollIq` export, config.toml schema + redirect URLs, prereqs (pg_trgm, app_security, buckets)
 - [ ] T0.8 Restore `supabase/migrations/` in Company OS with baselines for `company_os`, `htt`, and `payroll_iq`
 
-Phase 1 — cutover (maintenance window)
-- [ ] T1.1 Pre-copy `e2-module-archives` objects
-- [ ] T1.2 Freeze Payroll IQ writes; confirm `hubspot_outbox` drained
+Phase 1 — cutover (announced downtime)
+- [ ] T1.1 Pre-copy `e2-module-archives` objects **while payroll-iq is still live**
+- [ ] T1.2 Khoa emails the APA manager announcing the downtime; take the site down; confirm `hubspot_outbox` drained
 - [ ] T1.3 Dump, transform, apply, grant, expose (4.2–4.4)
 - [ ] T1.4 Merge auth users (4.5); verify zero orphans
 - [ ] T1.5 Delta-copy storage; verify counts
-- [ ] T1.6 Swap Payroll IQ Vercel env to the Company OS project; redeploy
+- [ ] T1.6 Flip Payroll IQ Vercel env to `nubxrrzwcbhgpvvmbioh`; redeploy. **This is the only irreversible-ish step, and reverting it is the same change backwards**
 - [ ] T1.7 Verify: REST call to `payroll_iq` via publishable key returns RLS-filtered rows; learner login, quiz attempt, manager seat view, **Payroll IQ `/admin` still renders for a Payroll IQ admin**, Stripe test webhook, one cron run; Company OS `/admin` still 401s signed out, and a Payroll IQ admin is refused there
 - [ ] T1.8 Unfreeze; announce the one-time sign-out
 
 Phase 2 — close out (following weeks)
 - [ ] T2.1 Optional `organisations.company_id → company_os.companies`
 - [ ] T2.2 Preview-deploy isolation for Payroll IQ (Supabase branching)
-- [ ] T2.3 Pause old project (+14 d), delete (+60 d)
+- [ ] T2.3 Pause `vgwampgffykiuzsoyevn` (+14 d); `pg_dump` to cold storage, then delete (+60 d)
 - [ ] T2.4 Docs: README, CLAUDE.md, data dictionary, architecture overview
 
 There is no admin-migration phase. The Payroll IQ admin console is never touched.
