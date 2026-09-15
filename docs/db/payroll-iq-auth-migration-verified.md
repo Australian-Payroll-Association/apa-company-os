@@ -135,8 +135,15 @@ and a link.
 one project. So any APA staff member who has both a Company OS login and a Payroll IQ login must
 be merged, and one of the two uids must lose.
 
-The plan already chose "Company OS wins". Verified as correct, because of an asymmetry in how the
-two apps resolve identity:
+**Reversed 2026-09-16 on measured data: Payroll IQ wins.** The asymmetry below is real, but it
+argues the opposite way once you know the collision count. It is **7** — 78% of the target's
+entire 9-user auth pool, not the near-empty set predicted here. Making Company OS win would mean
+remapping 7 users across 19 FK columns, 3 jsonb blobs and 2 storage columns. Making Payroll IQ
+win means one UPDATE over at most 4 rows, because `company_os.people.auth_user_id` is the only FK
+into auth on that side and only 4 people have it set (`assistant_conversations.owner_auth_user_id`
+is the one other uid column and it is empty). See §4.5 of the consolidation plan for the numbers.
+
+The identity-resolution asymmetry, which still holds and still matters:
 
 | Surface | Keyed on | Evidence |
 |---|---|---|
@@ -147,12 +154,18 @@ two apps resolve identity:
 
 Company OS stores its uid in exactly one place — `company_os.people.auth_user_id`, a single FK
 with a unique constraint (`supabase/01-schema.sql:9566`, `:5296`). Payroll IQ's uid is threaded
-through 19 FK columns plus jsonb. **Remapping the Company OS side would be one UPDATE; remapping
-the Payroll IQ side is the expensive one — so Company OS must win and Payroll IQ's colliding rows
-get remapped.** Expect the set to be small, and quite possibly **empty**: the Payroll IQ admins
+through 19 FK columns plus jsonb. **Remapping the Company OS side is one UPDATE; remapping the
+Payroll IQ side is the expensive one — so Payroll IQ must win and the Company OS rows get
+remapped.** Earlier drafts drew the opposite conclusion from the same sentence, which only made
+sense while the collision set was assumed to be empty and the cheap side therefore irrelevant. Expect the set to be small, and quite possibly **empty**: the Payroll IQ admins
 and the APA Company OS admins are different departments and different staff, so the same person
 holding both logins is the exception, not the rule. Run the collision query early: if it returns
 nothing, the riskiest part of this migration does not apply at all.
+
+**Measured result (2026-09-16): 7 collisions.** Three are Payroll IQ admins and need
+`app_access` grants; four are APA staff who also hold a learner or manager account and get no
+grant. Two further Payroll IQ admins have no Company OS account at all and need a `people` row
+created. So the backfill is five people, not forty.
 
 **This report has a second job now.** Under the revised authorisation model (§2.3 of the
 consolidation plan), every Payroll IQ admin needs a `company_os.people` row so a grant in
