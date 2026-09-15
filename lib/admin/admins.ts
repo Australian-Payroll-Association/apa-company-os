@@ -72,6 +72,26 @@ export async function listAdmins(): Promise<{ rows: AdminListRow[]; error: strin
 
   const dbRows = (data ?? []) as AdminDbRow[];
   const dbEmails = new Set(dbRows.map((r) => r.email.toLowerCase()));
+
+  // The SENSITIVE badge is read from the grant, not from admins
+  // .can_view_sensitive, because the grant is what canViewSensitive() now
+  // consults. Reading the column here would let this screen show a clearance
+  // the gate does not honour — a console that lies about access is worse than
+  // one that shows nothing.
+  //
+  // The admin SET is still the admins table, and that remains a divergence:
+  // a grant added or revoked outside this screen is invisible here. Closing it
+  // means sourcing the whole list from app_access, which changes this screen's
+  // row identity (`id`) and its created_by/created_at provenance — the release
+  // the table is being kept for. Tracked on the close-out card.
+  const { data: grantRows } = await companyOs
+    .from("app_access")
+    .select("person_id, role")
+    .eq("app", "company_os")
+    .is("revoked_at", null);
+  const sensitiveByPerson = new Set(
+    (grantRows ?? []).filter((g) => g.role === "sensitive").map((g) => g.person_id),
+  );
   const envEmails = envAllowlist();
   const authUsers = await authUsersByEmail();
 
