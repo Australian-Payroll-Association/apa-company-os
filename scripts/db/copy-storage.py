@@ -13,7 +13,7 @@ modules.poster_url, the archive columns) carry paths relative to the bucket.
 Service keys are read from the Management API using the CLI's own access token,
 so no key is ever written to disk or passed on a command line.
 """
-import json, os, re, sys, urllib.request, urllib.error
+import json, os, re, sys, time, urllib.request, urllib.error
 
 SRC, DST = "vgwampgffykiuzsoyevn", "nubxrrzwcbhgpvvmbioh"
 BUCKETS = ["blueprints", "e2-module-archives", "module-posters"]
@@ -40,15 +40,34 @@ def service_key(tok: str, ref: str) -> str:
     raise SystemExit(f"no service_role key for {ref}")
 
 
-def api(ref, key, path, method="GET", body=None, raw=False):
+def api(ref, key, path, method="GET", body=None, raw=False, content_type=None):
     data = body if isinstance(body, bytes) else (json.dumps(body).encode() if body else None)
     h = {"Authorization": "Bearer " + key, "apikey": key}
-    if body is not None and not isinstance(body, bytes):
+    if isinstance(body, bytes):
+        # Every bucket here restricts allowed_mime_types, and urllib defaults an
+        # unlabelled body to application/x-www-form-urlencoded - which every one
+        # of them rejects with 415. The type must be carried from the source
+        # object's metadata, not guessed from the extension.
+        h["Content-Type"] = content_type or "application/octet-stream"
+    elif body is not None:
         h["Content-Type"] = "application/json"
-    req = urllib.request.Request(f"https://{ref}.supabase.co/storage/v1{path}",
-                                 data=data, method=method, headers=h)
-    resp = urllib.request.urlopen(req)
-    return resp.read() if raw else json.loads(resp.read() or b"{}")
+    url = f"https://{ref}.supabase.co/storage/v1{path}"
+    # The gateway returns 504 on larger objects and occasionally on a listing.
+    # Retry with backoff rather than losing a whole run to one slow transfer.
+    last = None
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(url, data=data, method=method, headers=h)
+            resp = urllib.request.urlopen(req, timeout=180)
+            return resp.read() if raw else json.loads(resp.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504):
+                raise
+            last = e
+        except (urllib.error.URLError, TimeoutError) as e:
+            last = e
+        time.sleep(2 ** attempt)
+    raise last
 
 
 def walk(ref, key, bucket, prefix=""):
@@ -65,7 +84,8 @@ def walk(ref, key, bucket, prefix=""):
             if o.get("id") is None:          # a folder
                 out += walk(ref, key, bucket, name + "/")
             else:
-                out.append((name, (o.get("metadata") or {}).get("size", 0)))
+                meta = o.get("metadata") or {}
+                out.append((name, meta.get("size", 0), meta.get("mimetype")))
         if len(page) < 100:
             break
         offset += 100
@@ -78,10 +98,15 @@ def main() -> int:
     total = copied = skipped = failed = 0
 
     for bucket in BUCKETS:
-        src_objs = walk(SRC, src_key, bucket)
-        have = {n for n, _ in walk(DST, dst_key, bucket)}
+        try:
+            src_objs = walk(SRC, src_key, bucket)
+        except Exception as e:
+            print(f"\n{bucket}: LIST FAILED {e}", flush=True)
+            failed += 1
+            continue
+        have = {n for n, _, _ in walk(DST, dst_key, bucket)}
         print(f"\n{bucket}: {len(src_objs)} source objects, {len(have)} already present")
-        for name, size in src_objs:
+        for name, size, mime in src_objs:
             total += 1
             if name in have:
                 skipped += 1
@@ -91,13 +116,15 @@ def main() -> int:
                 continue
             try:
                 blob = api(SRC, src_key, f"/object/{bucket}/{name}", raw=True)
-                api(DST, dst_key, f"/object/{bucket}/{name}", "POST", blob)
+                api(DST, dst_key, f"/object/{bucket}/{name}", "POST", blob,
+                    content_type=mime)
                 copied += 1
                 if copied % 25 == 0:
-                    print(f"  ... {copied} copied")
-            except urllib.error.HTTPError as e:
+                    print(f"  ... {copied} copied", flush=True)
+            except Exception as e:
                 failed += 1
-                print(f"  FAIL {name}: HTTP {e.code} {e.read()[:120].decode(errors='replace')}")
+                detail = e.read()[:120].decode(errors="replace") if hasattr(e, "read") else str(e)[:120]
+                print(f"  FAIL {name}: {detail}", flush=True)
 
     print(f"\ntotal={total} copied={copied} already_present={skipped} failed={failed}")
     return 1 if failed else 0
