@@ -17,6 +17,9 @@
 
 create schema if not exists company_os;
 create schema if not exists htt;
+-- Payroll IQ, consolidated onto this database 2026-09. Its tables live in
+-- their own schema so one shared database can host many APA applications.
+create schema if not exists payroll_iq;
 
 -- ── extensions ─────────────────────────────────────────────────────────────
 -- citext backs the case-insensitive columns (affiliate codes, github repo

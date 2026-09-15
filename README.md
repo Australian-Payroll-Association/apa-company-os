@@ -20,10 +20,15 @@ enabled. If any are missing, stop at Step 0 and say which.
 **Build the database from `supabase/00-prereqs.sql` + `supabase/01-schema.sql`,
 never from `supabase/migrations/`.**
 
-That directory is present but **incomplete**: it creates 94 of 136 tables and 7
-of 325 row-level-security policies. The rest was applied directly to the
-upstream database and never written back as migration files. Running the
-migrations produces a database that looks fine and that the app cannot use.
+That directory is present but **incomplete by design**: it carries the Payroll
+IQ consolidation and forward changes, never the Company OS schema, so it cannot
+build this database on its own. Running the migrations produces a database that
+looks fine and that the app cannot use.
+
+`01-schema.sql` is generated from the live database by
+`scripts/db/regenerate-schema.sh` and covers all four schemas —
+`app_security`, `company_os`, `htt`, `payroll_iq` (198 tables, 421 policies as
+of 2026-09-15). Do not hand-edit it.
 
 An agent that runs the migrations and reports success has not set this up. If
 `01-schema.sql` is absent, stop and say so rather than substituting.
@@ -138,7 +143,16 @@ PSQL="psql -h db.<PROJECT_REF>.supabase.co -p 5432 -U postgres -d postgres"
 $PSQL -v ON_ERROR_STOP=1 -f supabase/00-prereqs.sql
 $PSQL -v ON_ERROR_STOP=1 -f supabase/01-schema.sql
 unset PGPASSWORD
+
+# Third step, and it is not optional: the two files above built the schema, but
+# Supabase's migration ledger is still empty, so `supabase db push` would try to
+# replay every migration from the start and fail on the first CREATE TABLE.
+./scripts/db/mark-migrations-applied.sh
 ```
+
+Verified 2026-09-15 by restoring both files into an empty PostgreSQL cluster:
+198 tables, 421 policies, 619 indexes, 81 triggers and 348 foreign keys — an
+exact match for production, with nothing missing and nothing extra.
 
 `ON_ERROR_STOP=1` matters: without it psql prints errors and keeps going, and
 you end up with a half-applied schema that looks like it worked.

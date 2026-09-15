@@ -73,9 +73,21 @@ placeholder.
 - Apply `supabase/00-prereqs.sql` **then** `supabase/01-schema.sql`. That
   order is load-bearing; the README explains why.
 - **Never use `supabase/migrations/` to build the database.** It is incomplete
-  — 94 of 136 tables, 7 of 325 row-level-security policies. It exists for
-  history, not for setup. An agent that runs the migrations and reports success
-  has not set this up.
+  by design: it holds the Payroll IQ consolidation and forward changes, not the
+  Company OS schema, so it can never build this database on its own. An agent
+  that runs the migrations and reports success has not set this up.
+- **`supabase/01-schema.sql` is GENERATED, not hand-written.** Regenerate it
+  with `scripts/db/regenerate-schema.sh` after any schema change, and commit the
+  result. It covers all four schemas — `app_security`, `company_os`, `htt`,
+  `payroll_iq` — which as of 2026-09-15 is 198 tables and 421 policies.
+  `scripts/db/check-schema-drift.sh` fails when it falls behind, and exits 0
+  with a message when it has no database password rather than failing where it
+  cannot run.
+- **Forward changes go in `supabase/migrations/`, THEN into the snapshot.**
+  The migration is the reviewable unit and the record of intent; the snapshot is
+  the rebuild path. Writing only the migration leaves the rebuild broken, which
+  is exactly how the snapshot fell 13 tables behind — 8 of them existing nowhere
+  in the repo, 7 of those queried by live code.
 - **Never reconstruct missing schema** from `information_schema` queries or by
   reading the application code. Custom types, 325 policies, foreign keys,
   grants and three purpose-built Postgres roles do not survive that, and the
