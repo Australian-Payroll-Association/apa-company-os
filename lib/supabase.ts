@@ -40,3 +40,11 @@ export const companyOs = supabase.schema("company_os");
 // Same service-role discipline as companyOs: server-only, callers scope every
 // read by the actor's companyScope.
 export const htt = supabase.schema("htt");
+
+// Query builder scoped to the `payroll_iq` schema (Payroll IQ: organisations,
+// users, modules, quizzes, plans, billing). The Payroll IQ app owns this schema
+// and its admin console stays in that app — this export exists only for the
+// cross-app reads the internal team genuinely needs, always behind
+// requireAdmin(). Prefer a view or function payroll_iq publishes (for example
+// admin_org_directory) over reading its tables directly.
+export const payrollIq = supabase.schema("payroll_iq");

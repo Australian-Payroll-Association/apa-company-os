@@ -25,6 +25,16 @@ create extension if not exists citext        with schema extensions;
 create extension if not exists pgcrypto      with schema extensions;
 create extension if not exists "uuid-ossp"   with schema extensions;
 create extension if not exists vector        with schema extensions;
+-- Payroll IQ library search: a generated tsvector on modules.search plus pg_trgm
+-- fuzzy matching. No pgvector is involved on that side.
+create extension if not exists pg_trgm       with schema extensions;
+
+-- Shared authorisation schema. Holds app_security.has_app_role(app, role) - the
+-- one contract every APA app's RLS calls to ask "may this person use me, and in
+-- what capacity". Backed by company_os.app_access. It holds no app-specific
+-- helpers: those live in the app's own schema.
+create schema if not exists app_security;
+grant usage on schema app_security to authenticated, service_role;
 
 -- ── least-privilege roles for the database assistants ──────────────────────
 --
@@ -103,5 +113,10 @@ values
   ('resumes',             'resumes',             false),
   ('meeting-transcripts', 'meeting-transcripts', false),
   ('onboarding-plans',    'onboarding-plans',    false),
-  ('program-documents',   'program-documents',   false)
+  ('program-documents',   'program-documents',   false),
+  -- Payroll IQ (schema payroll_iq). Names kept as they were in the standalone
+  -- project so stored object paths did not have to be rewritten.
+  ('blueprints',          'blueprints',          false),
+  ('e2-module-archives',  'e2-module-archives',  false),
+  ('module-posters',      'module-posters',      true)
 on conflict (id) do nothing;
