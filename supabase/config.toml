@@ -6,7 +6,7 @@ project_id = "apa-company-os"
 # psql-based checks do NOT catch this: psql bypasses PostgREST entirely.
 [api]
 enabled = true
-schemas = ["public", "graphql_public", "company_os", "htt"]
+schemas = ["public", "graphql_public", "company_os", "htt", "payroll_iq"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
