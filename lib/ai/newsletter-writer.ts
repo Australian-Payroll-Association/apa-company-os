@@ -171,6 +171,28 @@ function renderSections(sections: DraftInput["sections"]): string {
   return parts.join("\n\n");
 }
 
+// Turns a literal backslash-u-XXXX left in the text into the character it
+// names.
+//
+// The model sometimes DOUBLE-escapes a non-ASCII character in its JSON, so the
+// wire carries "\\u2013" and JSON.parse faithfully produces a six-character
+// string rather than an en dash. Parsing is not the bug and neither is the
+// parser: the content arrived wrong.
+//
+// It reached a real edition. Every row of the training table read
+// "10:00am – 4:00pm AEST", nine times over, and would have gone to
+// members exactly like that — the en dash comes from trainingTimeRange, so the
+// one column built from structured data was the one that broke.
+//
+// Deliberately narrow: only the \uXXXX form, nothing else. A newsletter body
+// has no legitimate use for that sequence, while it may well contain other
+// backslashes, and a broader unescape would start corrupting real text.
+export function decodeStrayEscapes(text: string): string {
+  return text.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) =>
+    String.fromCharCode(parseInt(hex, 16)),
+  );
+}
+
 export async function draftNewsletter(input: DraftInput): Promise<DraftResult> {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -229,9 +251,9 @@ export async function draftNewsletter(input: DraftInput): Promise<DraftResult> {
 
     return {
       ok: true,
-      subject: parsed.subject?.trim() || input.editionTitle,
-      preheader: parsed.preheader?.trim() || "",
-      bodyMd: parsed.body_md,
+      subject: decodeStrayEscapes(parsed.subject?.trim() || input.editionTitle),
+      preheader: decodeStrayEscapes(parsed.preheader?.trim() || ""),
+      bodyMd: decodeStrayEscapes(parsed.body_md),
     };
   } catch (e) {
     return { ok: false, error: `The writer failed: ${(e as Error).message}` };
