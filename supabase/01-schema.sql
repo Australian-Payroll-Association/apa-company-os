@@ -5967,6 +5967,8 @@ CREATE TABLE payroll_iq.modules (
     force_archive_playback boolean DEFAULT false NOT NULL,
     archive_bytes bigint,
     archive_verified_at timestamp with time zone,
+    video_checked_at timestamp with time zone,
+    video_missing_since timestamp with time zone,
     CONSTRAINT modules_archive_bytes_check CHECK (((archive_bytes IS NULL) OR (archive_bytes > 0))),
     CONSTRAINT modules_archive_verification_consistency CHECK ((((archive_verified_at IS NULL) AND (archive_bytes IS NULL)) OR ((archive_verified_at IS NOT NULL) AND (archive_bytes IS NOT NULL) AND (archive_url IS NOT NULL)))),
     CONSTRAINT modules_duration_seconds_check CHECK ((duration_seconds > 0)),
@@ -6006,6 +6008,20 @@ COMMENT ON COLUMN payroll_iq.modules.force_archive_playback IS 'Play this module
 --
 
 COMMENT ON COLUMN payroll_iq.modules.archive_verified_at IS 'When the archive object was last confirmed to exist in Storage with a non-zero size. NULL means unverified, which is NOT the same as missing — it means nobody has looked. The fallback refuses to serve an unverified archive, because serving a 404 in place of a broken video is not a fallback.';
+
+
+--
+-- Name: COLUMN modules.video_checked_at; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.modules.video_checked_at IS 'When the nightly video-health pass last got a DEFINITIVE answer from Synthesia about this module''s video (200 or 404). Null = never checked, which sorts first so new modules are probed soonest. A rate-limited or errored probe does not touch this, so the module stays at the front of the queue.';
+
+
+--
+-- Name: COLUMN modules.video_missing_since; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.modules.video_missing_since IS 'When this module''s Synthesia video first returned 404, and still is. Cleared the moment a probe returns 200. Persists across nights because the pass only probes a rolling batch, so a module found missing on Monday must still be reported on Thursday.';
 
 
 --
@@ -6578,8 +6594,8 @@ CREATE TABLE payroll_iq.users (
     is_learner boolean DEFAULT true NOT NULL,
     last_seen_at timestamp with time zone,
     CONSTRAINT users_content_track_check CHECK (((content_track IS NULL) OR (content_track = ANY (ARRAY['payroll'::text, 'hr'::text])))),
-    CONSTRAINT users_member_has_org CHECK (((role = 'admin'::text) OR (org_id IS NOT NULL))),
-    CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['manager'::text, 'learner'::text, 'admin'::text]))),
+    CONSTRAINT users_member_has_org CHECK (((role = 'staff'::text) OR (org_id IS NOT NULL))),
+    CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['manager'::text, 'learner'::text, 'staff'::text]))),
     CONSTRAINT users_status_check CHECK ((status = ANY (ARRAY['active'::text, 'deactivated'::text]))),
     CONSTRAINT users_weekly_minutes_check CHECK (((weekly_minutes IS NULL) OR (weekly_minutes = ANY (ARRAY[10, 15, 20, 30, 40, 50, 60, 90, 120]))))
 );
@@ -11042,6 +11058,20 @@ CREATE INDEX modules_verified_archive_idx ON payroll_iq.modules USING btree (arc
 
 
 --
+-- Name: modules_video_checked_at_idx; Type: INDEX; Schema: payroll_iq; Owner: -
+--
+
+CREATE INDEX modules_video_checked_at_idx ON payroll_iq.modules USING btree (video_checked_at NULLS FIRST) WHERE (status = 'published'::text);
+
+
+--
+-- Name: modules_video_missing_since_idx; Type: INDEX; Schema: payroll_iq; Owner: -
+--
+
+CREATE INDEX modules_video_missing_since_idx ON payroll_iq.modules USING btree (video_missing_since) WHERE (video_missing_since IS NOT NULL);
+
+
+--
 -- Name: notification_events_open_idx; Type: INDEX; Schema: payroll_iq; Owner: -
 --
 
@@ -11541,6 +11571,13 @@ CREATE TRIGGER set_meetings_updated_at BEFORE UPDATE ON company_os.meetings FOR 
 --
 
 CREATE TRIGGER set_newsletter_editions_updated_at BEFORE UPDATE ON company_os.newsletter_editions FOR EACH ROW EXECUTE FUNCTION company_os.handle_updated_at();
+
+
+--
+-- Name: newsletter_submissions set_newsletter_submissions_updated_at; Type: TRIGGER; Schema: company_os; Owner: -
+--
+
+CREATE TRIGGER set_newsletter_submissions_updated_at BEFORE UPDATE ON company_os.newsletter_submissions FOR EACH ROW EXECUTE FUNCTION company_os.handle_updated_at();
 
 
 --
