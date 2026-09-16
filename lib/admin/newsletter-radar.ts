@@ -100,7 +100,7 @@ export function radarWindow(periodStart: string, periodEnd: string): { from: str
 // here because these are government content pages, not app URLs where a query
 // string selects the content. The row still stores the URL exactly as
 // retrieved; only the comparison is normalised.
-function dedupKey(url: string): string {
+export function dedupKey(url: string): string {
   try {
     const u = new URL(url);
     const host = u.hostname.toLowerCase().replace(/^www\./, "");
