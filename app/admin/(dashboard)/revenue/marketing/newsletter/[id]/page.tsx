@@ -219,11 +219,17 @@ export default async function EditionPage({ params }: { params: { id: string } }
                           className="admin-cell-muted"
                           style={{ margin: "6px 0 0", fontSize: 12 }}
                         >
-                          {item.source !== "events"
-                            ? item.contributor ?? "Unknown contributor"
-                            : item.sectionType === "training"
-                              ? "austpayroll.com.au/training"
-                              : "Events calendar"}{" "}
+                          {/* A machine-found topic should not read as a
+                              colleague's contribution. It used to say
+                              "Unknown contributor", which is both wrong and
+                              the opposite of the useful fact. */}
+                          {item.source === "radar"
+                            ? "Found by the topic radar"
+                            : item.source !== "events"
+                              ? item.contributor ?? "Unknown contributor"
+                              : item.sectionType === "training"
+                                ? "austpayroll.com.au/training"
+                                : "Events calendar"}{" "}
                           · {formatDate(item.createdAt)}
                         </p>
                       </div>
