@@ -20,6 +20,7 @@ import { DraftPanel } from "./DraftPanel";
 import { TopicRadar } from "./TopicRadar";
 import { ReviewPanel } from "./ReviewPanel";
 import { PublishPanel } from "./PublishPanel";
+import { WriteArticleButton } from "./WriteArticleButton";
 import { getSuggestions } from "@/lib/admin/newsletter-radar";
 import { getEditionBroadcast, publishReadiness } from "@/lib/admin/newsletter-publish";
 import { isClearedToSend } from "@/lib/admin/newsletter";
@@ -226,7 +227,23 @@ export default async function EditionPage({ params }: { params: { id: string } }
                           · {formatDate(item.createdAt)}
                         </p>
                       </div>
-                      <IncludeToggle id={item.id} included={item.included} />
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                        {/* Only where there is a page to write FROM. An
+                            article with no source is someone's own words, and
+                            there is nothing to ground a rewrite in. */}
+                        {type === "article" && item.linkUrl && (
+                          <WriteArticleButton
+                            submissionId={item.id}
+                            editionId={edition.id}
+                            // A brief is short and ends with the standing
+                            // instruction the radar attaches; anything longer
+                            // has been written, by Claude or by a person, and
+                            // replacing it needs asking first.
+                            hasBeenWritten={(item.body ?? "").length > 400}
+                          />
+                        )}
+                        <IncludeToggle id={item.id} included={item.included} />
+                      </div>
                     </div>
                   </div>
                 ))}

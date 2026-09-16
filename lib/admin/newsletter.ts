@@ -359,6 +359,17 @@ const HOME_BRAND_FOR_NEWSLETTER = "apa";
 // The name shown at the top of the email. Read from the brand record rather
 // than hardcoded so the header is not a second place to keep the brand's name
 // correct — the fork's template said "Edge8" for exactly that reason.
+// The brand the newsletter is written as. Needed by anything that reaches for
+// the voice profile, which is more than just the edition writer now.
+export async function newsletterBrandId(): Promise<string | null> {
+  const { data } = await companyOs
+    .from("brands")
+    .select("id")
+    .eq("slug", HOME_BRAND_FOR_NEWSLETTER)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
 export async function newsletterBrandName(): Promise<string | null> {
   const { data } = await companyOs
     .from("brands")
