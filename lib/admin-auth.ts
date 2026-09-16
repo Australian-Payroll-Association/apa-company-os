@@ -56,7 +56,16 @@ async function hasCompanyOsGrant(
 ): Promise<boolean> {
   let q = companyOs
     .from("app_access")
-    .select("id, people!inner(id)")
+    // The FK is NAMED, not inferred. app_access has two foreign keys to
+    // people — person_id and granted_by — so a bare people!inner(...) is
+    // ambiguous and PostgREST refuses the whole query rather than guessing.
+    //
+    // That refusal is an error, this function fails closed on error, and the
+    // result was every admin locked out of production with a correct grant in
+    // the table: people row right, auth_user_id set, company_os/admin live,
+    // and the gate still saying no. Only ADMIN_ALLOWLIST got in, which is the
+    // break-glass path doing its job and hiding the breakage while it did.
+    .select("id, people!app_access_person_id_fkey!inner(id)")
     .eq("app", "company_os")
     .eq("role", role)
     .is("revoked_at", null);
