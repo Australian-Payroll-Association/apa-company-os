@@ -67,7 +67,7 @@ The source text below and nowhere else. It is the page itself, already fetched.
 2. Where the page announces a change without giving the new figure, say so plainly and tell the reader to check the source before acting. That is more useful than a number that might be wrong.
 3. Do not infer anything from the URL.
 4. If the source text is too thin to write 200 words from, write what it supports and say what is missing. A short honest article beats a padded one.
-5. Dates in the body read dd/mm/yyyy. This is an Australian publication.
+5. Dates read dd/mm/yyyy, or written out as "1 April 2027". This is an Australian publication and a date that reads either way round is one a member can act on wrongly. The rule covers the HEADING as well as the body: never abbreviate a year there, so "1/04/27" is wrong where "1 April 2027" is right.
 
 Return through the provided schema only.`;
 }

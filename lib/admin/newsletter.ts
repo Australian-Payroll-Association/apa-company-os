@@ -125,7 +125,12 @@ export type SubmissionRow = {
   body: string | null;
   linkUrl: string | null;
   included: boolean;
-  source: "team" | "events";
+  /**
+   * Where the row came from. "radar" was added when the topic scan started
+   * creating articles; before this it collapsed into "team" and a
+   * machine-found item was indistinguishable from one a colleague wrote.
+   */
+  source: "team" | "events" | "radar";
   eventId: string | null;
   /** Section-specific extras, keyed by SECTION_META[type].fields. */
   details: Record<string, string>;
@@ -170,7 +175,7 @@ export async function listSubmissions(editionId: string): Promise<SubmissionRow[
       body: r.body,
       linkUrl: r.link_url,
       included: r.included,
-      source: r.source === "events" ? "events" : "team",
+      source: r.source === "events" || r.source === "radar" ? r.source : "team",
       eventId: r.event_id,
       details: r.details ?? {},
       contributor: person?.preferred_name || person?.full_name || null,
