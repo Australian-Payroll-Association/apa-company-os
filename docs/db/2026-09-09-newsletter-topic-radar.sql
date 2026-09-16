@@ -1,3 +1,12 @@
+-- SUPERSEDED — do not run this file.
+--
+-- Applied by hand on 2026-09-09, before the rule that forward changes go in
+-- supabase/migrations/ first and then into the snapshot. The migration is
+-- supabase/migrations/20260916140000_newsletter_topic_suggestions.sql and it
+-- is the one to read or run; it also carries the chatbot_reader and
+-- chatbot_writer grants that this file never had, so applying this one would
+-- produce a table subtly different from production. Kept only as history.
+--
 -- Newsletter Machine — topic radar.
 --
 -- Candidate article topics found by scanning the regulators APA actually
