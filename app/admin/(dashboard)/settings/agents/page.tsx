@@ -88,7 +88,8 @@ function RoutineTable({ rows }: { rows: Routine[] }) {
 
 export default async function AgentsPage() {
   await requireSuperAdmin();
-  const { vercel, local, counts, violations, capture } = loadAgentManagement();
+  const { vercel, payrollIq, local, counts, violations, capture, payrollIqCapture } =
+    loadAgentManagement();
 
   return (
     <>
@@ -144,6 +145,19 @@ export default async function AgentsPage() {
           <span className="admin-cell-muted">Schedules read live from vercel.json</span>
         </div>
         <RoutineTable rows={vercel} />
+      </section>
+
+      <section style={{ marginBottom: 32 }}>
+        <div className="admin-card-head" style={{ marginBottom: 12 }}>
+          <h2 className="admin-card-title">
+            Payroll IQ <HostBadge host="vercel" label="Vercel" />
+          </h2>
+          <span className="admin-cell-muted">
+            Second Vercel project, its own repo — snapshot of {payrollIqCapture.repo}{" "}
+            {payrollIqCapture.path} on {payrollIqCapture.at}
+          </span>
+        </div>
+        <RoutineTable rows={payrollIq} />
       </section>
 
       <section>

@@ -171,6 +171,87 @@ const CRON_META: Record<string, CronMeta> = {
   },
 };
 
+// ── Payroll IQ routines (second Vercel project) ───────────────────────────
+// Payroll IQ shares this database — it owns the `payroll_iq` schema alongside
+// `company_os` and `htt` — but it deploys from its own repo to its own Vercel
+// project, so its crons are in THAT project's vercel.json and this page cannot
+// read them the way it reads the ones above.
+//
+// Declared here rather than omitted, because omitting them made this page lie
+// about the shape of the estate: it claimed to be "one pane over every managed
+// routine", and three of APA's connected apps — Synthesia, Resend and Stripe —
+// appeared nowhere on it at all. A routine nobody can see is a routine nobody
+// checks after it breaks.
+//
+// This list is a SNAPSHOT of payroll-iq's vercel.json, in the same sense the
+// local routines below are a snapshot: correct when written, and stale the
+// moment someone edits the other repo without editing this. Verified against
+// that file on 2026-09-16.
+export const PAYROLL_IQ_CAPTURE = {
+  at: "2026-09-16",
+  repo: "Australian-Payroll-Association/payroll-iq",
+  path: "website/vercel.json",
+} as const;
+
+export const PAYROLL_IQ_ROUTINES: Routine[] = [
+  {
+    id: "piq-billing",
+    name: "Billing pass",
+    description:
+      "Daily. Reconciles yesterday's payments, then decides who is suspended today. Runs at 04:45 Sydney so the day's suspensions settle before anyone opens the app, and a customer who paid yesterday afternoon is reconciled before the suspension step looks at them.",
+    host: "vercel",
+    hostLabel: "Vercel · Payroll IQ",
+    schedule: "Daily, 18:45 UTC",
+    cron: "45 18 * * *",
+    content: ["Organisations", "Invoices", "Seat entitlements"],
+    skill: "app/api/cron/billing/route.ts",
+    apps: ["Supabase", "Stripe", "HubSpot"],
+    status: "active",
+  },
+  {
+    id: "piq-notifications",
+    name: "Admin alert pass",
+    description:
+      "Nightly. Evaluates every enabled notification rule — quiet managers, dark organisations, learners behind plan, seats nearly full, unaccepted invites, unreviewed questions, a stalled ingest, and modules whose Synthesia video has been deleted — and raises what is not already suppressed.",
+    host: "vercel",
+    hostLabel: "Vercel · Payroll IQ",
+    schedule: "Daily, 19:30 UTC",
+    cron: "30 19 * * *",
+    content: ["Notification rules", "Learners", "Organisations", "Modules"],
+    skill: "app/api/cron/notifications/route.ts",
+    apps: ["Supabase", "Synthesia"],
+    status: "active",
+  },
+  {
+    id: "piq-cycle-milestones",
+    name: "Cycle milestones",
+    description:
+      "Hourly. Closes 90-day cycles whose time is up and rolls unfinished work into a fresh one, then sends the day 1 / 30 / 75 / 90 milestone nudges.",
+    host: "vercel",
+    hostLabel: "Vercel · Payroll IQ",
+    schedule: "Hourly at :15 UTC",
+    cron: "15 * * * *",
+    content: ["Cycles", "Plans", "Module progress"],
+    skill: "app/api/cron/cycle-milestones/route.ts",
+    apps: ["Supabase", "Resend"],
+    status: "active",
+  },
+  {
+    id: "piq-invite-digest",
+    name: "Invite digest",
+    description:
+      "Daily. One email per organisation to each manager: who accepted an invite in the last 24 hours, and which invites are still outstanding with days remaining. Organisations with no activity are skipped to keep inbox noise low.",
+    host: "vercel",
+    hostLabel: "Vercel · Payroll IQ",
+    schedule: "Daily, 23:00 UTC",
+    cron: "0 23 * * *",
+    content: ["Invites", "Organisation members"],
+    skill: "app/api/cron/invite-digest/route.ts",
+    apps: ["Supabase", "Resend"],
+    status: "active",
+  },
+];
+
 // ── Local routines (snapshot) ─────────────────────────────────────────────
 // Captured from ~/.claude/scheduled-tasks on David's MacBook Pro. host is set
 // to what was OBSERVED, not what is intended: these are on a laptop today, which
@@ -352,11 +433,14 @@ export function cronToHuman(expr: string): string {
 export type AgentManagementView = {
   routines: Routine[];
   vercel: Routine[];
+  /** The second Vercel project's crons — see PAYROLL_IQ_ROUTINES. */
+  payrollIq: Routine[];
   local: Routine[];
   counts: { total: number; vercel: number; macMini: number; laptop: number };
   // Routines that break the "no routines on laptops" policy.
   violations: Routine[];
   capture: typeof LOCAL_CAPTURE;
+  payrollIqCapture: typeof PAYROLL_IQ_CAPTURE;
 };
 
 export function loadAgentManagement(): AgentManagementView {
@@ -381,22 +465,28 @@ export function loadAgentManagement(): AgentManagementView {
     };
   });
 
+  const payrollIq = PAYROLL_IQ_ROUTINES;
   const local = LOCAL_ROUTINES;
-  const routines = [...vercel, ...local];
+  const routines = [...vercel, ...payrollIq, ...local];
   const laptop = routines.filter((r) => r.host === "laptop");
   const macMini = routines.filter((r) => r.host === "mac-mini");
 
   return {
     routines,
     vercel,
+    payrollIq,
     local,
     counts: {
       total: routines.length,
-      vercel: vercel.length,
+      // Both Vercel projects. The KPI answers "how much runs in the cloud",
+      // and splitting it by project would make the four numbers stop summing
+      // to the total, which is the one thing a KPI row has to do.
+      vercel: vercel.length + payrollIq.length,
       macMini: macMini.length,
       laptop: laptop.length,
     },
     violations: laptop,
     capture: LOCAL_CAPTURE,
+    payrollIqCapture: PAYROLL_IQ_CAPTURE,
   };
 }
