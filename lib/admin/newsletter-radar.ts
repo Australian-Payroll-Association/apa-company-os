@@ -1,6 +1,8 @@
 import { companyOs } from "@/lib/supabase";
 import { scanTopics, type TopicSuggestion } from "@/lib/ai/topic-radar";
-import { getEdition } from "@/lib/admin/newsletter";
+import { writeArticleSection } from "@/lib/ai/newsletter-article";
+import { fetchSourceText } from "@/lib/ai/brand-writer";
+import { getEdition, newsletterBrandId } from "@/lib/admin/newsletter";
 
 // Topic radar, admin side. Persists what a scan found and turns an accepted
 // suggestion into an Article submission.
@@ -171,7 +173,9 @@ export async function scanTopicsForEdition(editionId: string): Promise<ScanResul
   return { ok: true, found: all.length, added: fresh.length, areasFailed, from, to };
 }
 
-export type PromoteResult = { ok: true; title: string } | { ok: false; error: string };
+export type PromoteResult =
+  | { ok: true; title: string; written: boolean; writeError?: string }
+  | { ok: false; error: string };
 
 // Accepting a suggestion. It becomes an Article submission carrying the source
 // link, switched OFF — a topic that has been noticed is not yet a topic that
@@ -239,7 +243,22 @@ export async function promoteSuggestion(
     .eq("id", suggestionId);
   if (markError) return { ok: false, error: markError.message };
 
-  return { ok: true, title: row.title };
+  // Write it straight away. Accepting a topic and writing it are one intent
+  // in practice — nobody adds a topic they do not want written — and leaving a
+  // brief meant the Article section filled with things that looked done and
+  // were not.
+  //
+  // Best effort, deliberately. A failed write must not undo the acceptance:
+  // the submission exists either way, the brief is still in it, and the
+  // article can be written from the button. The error is reported rather than
+  // swallowed, so nobody is left wondering why a row reads like a note.
+  const submissionId = (inserted as { id: string } | null)?.id ?? null;
+  if (!submissionId) return { ok: true, title: row.title, written: false };
+
+  const written = await writeArticleForSubmission(submissionId);
+  return written.ok
+    ? { ok: true, title: written.heading, written: true }
+    : { ok: true, title: row.title, written: false, writeError: written.error };
 }
 
 export async function dismissSuggestion(
@@ -252,4 +271,78 @@ export async function dismissSuggestion(
     .eq("id", suggestionId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export type WriteArticleResult =
+  | { ok: true; heading: string; words: number }
+  | { ok: false; error: string };
+
+// Turns an accepted topic into a written article, in place.
+//
+// Accepting a suggestion used to leave a brief — the scan's two-sentence
+// summary plus "write this up from the linked page" — and someone still had to
+// write it. This does that step, from the page itself rather than from the
+// summary, which is the same discipline the edition writer follows: the
+// summary is why the topic was picked, not a source.
+//
+// Re-runnable. The body is replaced, so an editor who improves the brief and
+// runs it again gets a new article rather than a second one.
+export async function writeArticleForSubmission(submissionId: string): Promise<WriteArticleResult> {
+  const { data, error: readError } = await companyOs
+    .from("newsletter_submissions")
+    .select("id, section_type, title, body, link_url, edition_id")
+    .eq("id", submissionId)
+    .maybeSingle();
+  if (readError) return { ok: false, error: readError.message };
+  if (!data) return { ok: false, error: "Submission not found." };
+
+  const row = data as {
+    id: string;
+    section_type: string;
+    title: string | null;
+    body: string | null;
+    link_url: string | null;
+    edition_id: string;
+  };
+  if (row.section_type !== "article") {
+    return { ok: false, error: "Only an article can be written this way." };
+  }
+  if (!row.link_url) {
+    return { ok: false, error: "This item has no source link, so there is no page to write from." };
+  }
+
+  const brandId = await newsletterBrandId();
+  if (!brandId) return { ok: false, error: "No APA brand record to take the voice from." };
+
+  // 30k, matching the edition writer. The default 6k is navigation and
+  // breadcrumbs on a regulator's page, and the substance falls outside it.
+  const sourceText = await fetchSourceText(row.link_url, 30000);
+
+  const written = await writeArticleSection({
+    brandId,
+    sourceTitle: row.title ?? "",
+    sourceUrl: row.link_url,
+    sourceText,
+    brief: row.body,
+  });
+  if (!written.ok) return { ok: false, error: written.error };
+
+  // The heading replaces the source page's title: a regulator names a page for
+  // its own filing, and "Changes to award transport payments" is not how a
+  // payroll practitioner would look for it.
+  //
+  // `included` is deliberately NOT touched. Writing an article is not a
+  // curation decision, and an editor who has already switched a row on should
+  // not have it switched off under them because they asked for a rewrite.
+  const { error } = await companyOs
+    .from("newsletter_submissions")
+    .update({ title: written.heading, body: written.bodyMd })
+    .eq("id", submissionId);
+  if (error) return { ok: false, error: error.message };
+
+  return {
+    ok: true,
+    heading: written.heading,
+    words: written.bodyMd.split(/\s+/).filter(Boolean).length,
+  };
 }

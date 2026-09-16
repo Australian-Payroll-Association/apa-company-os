@@ -19,6 +19,7 @@ import {
   dismissSuggestion,
   promoteSuggestion,
   scanTopicsForEdition,
+  writeArticleForSubmission,
 } from "@/lib/admin/newsletter-radar";
 import { SECTION_META, defaultEditionTitle, isSectionType, sectionUses } from "@/lib/newsletter";
 
@@ -475,7 +476,40 @@ export async function addSuggestedTopic(suggestionId: string, editionId: string)
     context: { promoted: true, edition_id: editionId },
   });
   refresh(editionId);
-  return { ok: true, message: `Added to Article for this edition, switched off until it's written.` };
+  if (result.written) {
+    return {
+      ok: true,
+      message: `Written and added to Article: "${result.title}". Switched off until you've read it.`,
+    };
+  }
+  // Said out loud. A row that looks added but reads like a note is worse than
+  // an error, because nothing tells you to go back to it.
+  return {
+    ok: true,
+    message: `Added to Article, but could not be written: ${result.writeError ?? "unknown error"} Use "Write with Claude" on the item to try again.`,
+  };
+}
+
+// Writes, or rewrites, one article from its source link. Separate from Add
+// because an editor who sharpens the brief wants another go, and because the
+// items added before writing existed still need a way to be written.
+export async function writeArticleNow(submissionId: string, editionId: string): Promise<Result> {
+  const admin = await requireAdmin();
+  const result = await writeArticleForSubmission(submissionId);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await recordAudit({
+    table: "newsletter_submissions",
+    recordId: submissionId,
+    operation: "update",
+    actor: admin.email,
+    context: { written_by_ai: true, heading: result.heading },
+  });
+  refresh(editionId);
+  // Does not claim anything about whether the item is switched on: writing
+  // leaves that alone, and an editor who had already included it would be told
+  // something untrue.
+  return { ok: true, message: `Written — ${result.words} words. Worth reading before it ships.` };
 }
 
 export async function dismissSuggestedTopic(
