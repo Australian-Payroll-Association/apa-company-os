@@ -38,6 +38,16 @@ export function DraftPanel({
   const [view, setView] = useState<"markdown" | "preview">("preview");
   const hasDraft = Boolean(bodyMd);
 
+  // A note the writer addressed to the editor is sitting in a document that
+  // gets SENT. It is marked in the body so a reader cannot mistake it for
+  // copy, but marked is not the same as noticed — a reviewer scrolling a long
+  // edition can miss a blockquote. This says it once, at the top, where the
+  // decision to sign off is made.
+  const editorNotes = (bodyMd ?? "")
+    .split("\n")
+    .filter((l) => l.includes("EDITOR NOTE"))
+    .map((l) => l.replace(/^>\s*/, "").replace(/\*\*/g, "").trim());
+
   // Hand editing. The writer cannot supply what its sources do not carry — a
   // course start time the training website never published is the case that
   // prompted this — so the reviewer fixes the line rather than regenerating
@@ -153,6 +163,22 @@ export function DraftPanel({
           style={{ marginTop: 10 }}
         >
           {msg.text}
+        </div>
+      )}
+
+      {editorNotes.length > 0 && (
+        <div className="admin-alert admin-alert--warn" style={{ marginTop: 12 }}>
+          <strong style={{ display: "block", marginBottom: 4 }}>
+            {editorNotes.length === 1
+              ? "The draft carries a note for you, not for members"
+              : `The draft carries ${editorNotes.length} notes for you, not for members`}
+          </strong>
+          <ul style={{ margin: "0 0 6px", paddingLeft: 18 }}>
+            {editorNotes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+          Fix what is missing and regenerate, or edit the note out. It will send otherwise.
         </div>
       )}
 
