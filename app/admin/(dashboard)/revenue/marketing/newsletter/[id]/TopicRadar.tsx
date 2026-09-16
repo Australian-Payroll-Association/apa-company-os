@@ -30,7 +30,11 @@ export function TopicRadar({
   const open = suggestions.filter((s) => s.status === "new");
   const dismissed = suggestions.filter((s) => s.status === "dismissed");
   const added = suggestions.filter((s) => s.status === "added");
-  const shown = showDismissed ? [...open, ...dismissed] : open;
+  // Added rows STAY in the list, marked. Previously they vanished the moment
+  // you pressed Add — the row disappeared, the new Article landed further down
+  // the page out of view, and the whole thing read as the button doing
+  // nothing. A decision you have made should be visible as one.
+  const shown = showDismissed ? [...open, ...added, ...dismissed] : [...open, ...added];
 
   // Grouped so a scan reads as coverage of the areas, not one long list —
   // an empty area is information too.
@@ -77,10 +81,11 @@ export function TopicRadar({
         <h2 className="admin-card-title" style={{ margin: 0 }}>
           Topic radar
         </h2>
-        {open.length > 0 && (
+        {suggestions.length > 0 && (
           <span className="admin-cell-muted">
             {open.length} to review
             {added.length > 0 && ` · ${added.length} added`}
+            {dismissed.length > 0 && ` · ${dismissed.length} dismissed`}
           </span>
         )}
       </div>
@@ -143,7 +148,7 @@ export function TopicRadar({
                 style={{
                   borderTop: "1px solid var(--admin-line, rgba(128,128,128,0.25))",
                   paddingTop: 10,
-                  opacity: s.status === "dismissed" ? 0.5 : 1,
+                  opacity: s.status === "new" ? 1 : 0.6,
                 }}
               >
                 <div
@@ -182,6 +187,19 @@ export function TopicRadar({
                       {s.url}
                     </a>
                   </div>
+                  {/* Says where it went. The new Article lands further down
+                      the page, so without this the only evidence of the press
+                      is a row quietly changing appearance. */}
+                  {s.status === "added" && (
+                    <span className="admin-cell-muted" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                      Added to Article — switched off until written
+                    </span>
+                  )}
+                  {s.status === "dismissed" && (
+                    <span className="admin-cell-muted" style={{ fontSize: 12 }}>
+                      Dismissed
+                    </span>
+                  )}
                   {s.status === "new" && (
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
