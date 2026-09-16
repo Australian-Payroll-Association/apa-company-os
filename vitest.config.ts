@@ -1,8 +1,19 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// Minimal harness scoped to the pure SLA math module (E8). No jsdom, no path
-// aliases needed — lib/admin/sla.ts only imports a sibling constants module.
+// Node environment, no jsdom: everything under test here is pure — date and
+// time maths, HTML rendering, scraper parsing — and none of it touches a DOM.
+//
+// The "@" alias is needed because the newsletter modules import siblings by
+// the app's path alias. Without it a spec that pulls in lib/marketing-email.ts
+// fails to resolve @/lib/supabase and the whole file is skipped, which looks
+// like a passing suite.
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL(".", import.meta.url)),
+    },
+  },
   test: {
     include: ["lib/**/*.test.ts"],
     environment: "node",
