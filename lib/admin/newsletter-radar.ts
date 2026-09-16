@@ -216,6 +216,12 @@ export async function promoteSuggestion(
       // constraint, matching how section types are kept in code rather than in
       // the database.
       source: "radar",
+      // EXPLICITLY off. The column defaults to true, so omitting this — which
+      // is what the first version did — put an unwritten brief straight into
+      // the draft while the comment above and the button's own message both
+      // said it had been switched off. Accepting a topic is noticing it, not
+      // writing it.
+      included: false,
       details: {},
     })
     .select("id")
