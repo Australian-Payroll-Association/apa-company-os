@@ -157,3 +157,49 @@ describe("renderCampaignHtml", () => {
     expect(html).toContain('href="https://x.test/u?token=abc"');
   });
 });
+
+describe("contents links jump to their section", () => {
+  // Every entry in the edition's contents list is a link to the section it
+  // names. The writer repeats the heading's own words after a hash rather than
+  // guessing a slug, so both sides go through the same normalisation.
+  const ids = (html: string) => [...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
+  const anchors = (html: string) => [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+
+  it("gives every heading an id", () => {
+    const html = renderMarkdown("## Upcoming training\n\nBody.");
+    expect(ids(html)).toEqual(["upcoming-training"]);
+  });
+
+  it("resolves a target written as the heading's own words", () => {
+    // The form the prompt asks for. The href contains SPACES, which the link
+    // pattern used to reject outright — the entry rendered as plain text and
+    // the link was simply missing.
+    const html = renderMarkdown(
+      "- [Award Transport Payment Changes](#Award Transport Payment Changes)\n\n## Award Transport Payment Changes\n\nBody.",
+    );
+    expect(anchors(html)).toEqual(["award-transport-payment-changes"]);
+    expect(ids(html)).toContain("award-transport-payment-changes");
+  });
+
+  it("resolves a target already written as a slug", () => {
+    const html = renderMarkdown("- [Upcoming training](#upcoming-training)\n\n## Upcoming training\n\nB.");
+    expect(anchors(html)[0]).toBe(ids(html)[0]);
+  });
+
+  it("matches a heading carrying markdown emphasis", () => {
+    const html = renderMarkdown(
+      "- [FBT changes](#**FBT**: changes from 1 April 2027)\n\n### **FBT**: changes from 1 April 2027\n\nB.",
+    );
+    expect(anchors(html)[0]).toBe(ids(html)[0]);
+  });
+
+  it("leaves external URLs alone", () => {
+    const html = renderMarkdown("[ATO](https://www.ato.gov.au/a?b=1&c=2)");
+    expect(html).toContain('href="https://www.ato.gov.au/a?b=1&amp;c=2"');
+  });
+
+  it("does not turn bracketed prose into a link", () => {
+    const html = renderMarkdown("Check the rate (and the effective date) before paying.");
+    expect(html).not.toContain("<a ");
+  });
+});
