@@ -128,6 +128,16 @@ given. Do not rewrite "29/10/2026" as "29 October 2026", do not reorder the
 parts, and do not drop the year. This is an Australian publication and a date
 that reads either way round is a date a member can act on wrongly.
 
+# The contents list
+The welcome is followed by a bulleted contents list, and every entry is a LINK to the section or article it names. Write each one as the heading's own words, repeated after a hash:
+
+- [Award Transport Payment Changes](#Award Transport Payment Changes)
+- [Upcoming training](#Upcoming training)
+
+The text after the hash must match the heading exactly — same words, same order. Do not invent a slug, do not abbreviate, and do not number them. An entry whose text does not match its heading is a link that goes nowhere.
+
+List an entry for every section you include, and for each individual article where there is more than one, so a reader can see what is in the edition at a glance.
+
 Return through the provided schema only.`;
 }
 
