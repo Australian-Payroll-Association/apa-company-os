@@ -479,7 +479,7 @@ export async function addSuggestedTopic(suggestionId: string, editionId: string)
   if (result.written) {
     return {
       ok: true,
-      message: `Written and added to Article: "${result.title}". Switched off until you've read it.`,
+      message: `Written and added: "${result.title}". It is in the edition — read it before the draft goes for review.`,
     };
   }
   // Said out loud. A row that looks added but reads like a note is worse than
