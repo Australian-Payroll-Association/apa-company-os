@@ -220,11 +220,18 @@ export async function promoteSuggestion(
       // constraint, matching how section types are kept in code rather than in
       // the database.
       source: "radar",
-      // EXPLICITLY off. The column defaults to true, so omitting this — which
-      // is what the first version did — put an unwritten brief straight into
-      // the draft while the comment above and the button's own message both
-      // said it had been switched off. Accepting a topic is noticing it, not
-      // writing it.
+      // Off at this point, and switched on below IF the write succeeds.
+      //
+      // The reason has changed twice, so it is worth stating. It was off
+      // because accepting a topic only produced a brief, and an unwritten
+      // brief in the draft is filler. Now accepting writes the article, so
+      // leaving it off meant a topic was added, written, and silently absent
+      // from the newsletter — which is what it looked like from the outside:
+      // "it's still not adding the topics to the draft".
+      //
+      // So: written goes in, unwritten stays out. The thing being guarded
+      // against was never the inclusion, it was including something nobody
+      // had written.
       included: false,
       details: {},
     })
@@ -256,9 +263,21 @@ export async function promoteSuggestion(
   if (!submissionId) return { ok: true, title: row.title, written: false };
 
   const written = await writeArticleForSubmission(submissionId);
-  return written.ok
-    ? { ok: true, title: written.heading, written: true }
-    : { ok: true, title: row.title, written: false, writeError: written.error };
+  if (!written.ok) {
+    // Left OFF. A brief is not an article and must not reach the draft.
+    return { ok: true, title: row.title, written: false, writeError: written.error };
+  }
+
+  // Written, so it belongs in the edition. Nothing sends without the two
+  // signatures in Phase 3, so "in the draft" is not "published" — and an
+  // editor who disagrees switches it off, which is one click and visible.
+  const { error: includeError } = await companyOs
+    .from("newsletter_submissions")
+    .update({ included: true })
+    .eq("id", submissionId);
+  if (includeError) return { ok: false, error: includeError.message };
+
+  return { ok: true, title: written.heading, written: true };
 }
 
 export async function dismissSuggestion(
