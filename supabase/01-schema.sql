@@ -688,9 +688,20 @@ CREATE FUNCTION payroll_iq.assert_org_within_seats(p_org_id uuid) RETURNS void
 declare
   v_seats integer;
   v_used  integer;
+  v_lane  text;
 begin
-  -- Admins are orgless by CHECK and never learners; nothing to enforce.
+  -- Staff are orgless by CHECK and never learners; nothing to enforce.
   if p_org_id is null then
+    return;
+  end if;
+
+  -- Seats are not a concept on the HubSpot lane: HubSpot decides who holds a
+  -- licence, and learner_seats is never read for such an org.
+  select o.billing_lane into v_lane
+    from payroll_iq.organisations o
+   where o.id = p_org_id;
+
+  if v_lane = 'hubspot' then
     return;
   end if;
 
@@ -713,6 +724,13 @@ begin
   end if;
 end;
 $$;
+
+
+--
+-- Name: FUNCTION assert_org_within_seats(p_org_id uuid); Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON FUNCTION payroll_iq.assert_org_within_seats(p_org_id uuid) IS 'Raises seat_limit_reached when an organisation is over its learner_seats. Returns early for billing_lane = ''hubspot'', where HubSpot is the licence ledger and learner_seats is meaningless (plan 090).';
 
 
 --
@@ -5873,6 +5891,47 @@ CREATE TABLE payroll_iq.levels (
 
 
 --
+-- Name: licence_events; Type: TABLE; Schema: payroll_iq; Owner: -
+--
+
+CREATE TABLE payroll_iq.licence_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    hubspot_event_id text NOT NULL,
+    hubspot_contact_id text NOT NULL,
+    property_value text,
+    source text NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    received_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_id uuid,
+    outcome text NOT NULL,
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT licence_events_outcome_valid CHECK ((outcome = ANY (ARRAY['created'::text, 'reactivated'::text, 'migrated'::text, 'deactivated'::text, 'noop'::text, 'ignored'::text, 'conflict'::text, 'error'::text]))),
+    CONSTRAINT licence_events_source_valid CHECK ((source = ANY (ARRAY['webhook'::text, 'poll'::text])))
+);
+
+
+--
+-- Name: TABLE licence_events; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON TABLE payroll_iq.licence_events IS 'One row per inbound HubSpot licence signal, written before the effect. Also the idempotency anchor: hubspot_event_id is unique, so a redelivery cannot double-apply. Service role only.';
+
+
+--
+-- Name: COLUMN licence_events.property_value; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.licence_events.property_value IS 'The value of payroll_iq_licence_assigned as FETCHED from HubSpot, not as carried in the webhook payload. Acting on the fetched value is what makes out-of-order delivery harmless.';
+
+
+--
+-- Name: COLUMN licence_events.outcome; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.licence_events.outcome IS 'Starts as ''error'' (the placeholder written before we act) and is updated once the effect lands. A row still reading ''error'' is an interrupted run, and is the first thing to look at.';
+
+
+--
 -- Name: module_progress; Type: TABLE; Schema: payroll_iq; Owner: -
 --
 
@@ -6593,6 +6652,8 @@ CREATE TABLE payroll_iq.users (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     is_learner boolean DEFAULT true NOT NULL,
     last_seen_at timestamp with time zone,
+    hubspot_contact_id text,
+    membership_number text,
     CONSTRAINT users_content_track_check CHECK (((content_track IS NULL) OR (content_track = ANY (ARRAY['payroll'::text, 'hr'::text])))),
     CONSTRAINT users_member_has_org CHECK (((role = 'staff'::text) OR (org_id IS NOT NULL))),
     CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['manager'::text, 'learner'::text, 'staff'::text]))),
@@ -6627,6 +6688,20 @@ COMMENT ON COLUMN payroll_iq.users.is_learner IS 'Whether this account is a lear
 --
 
 COMMENT ON COLUMN payroll_iq.users.last_seen_at IS 'Last time this user was observed on an authenticated page, throttled to at most hourly. NOT auth.users.last_sign_in_at, which long-lived sessions make useless as an engagement signal. NULL means never observed since 023 shipped — which is not the same as never active, and the quiet-manager rule treats it accordingly.';
+
+
+--
+-- Name: COLUMN users.hubspot_contact_id; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.users.hubspot_contact_id IS 'HubSpot contact objectId that owns this learner''s licence. Unique: the licence webhook resolves the user by this first, and a duplicate would make a deactivation ambiguous. Null for anyone not on the HubSpot lane.';
+
+
+--
+-- Name: COLUMN users.membership_number; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.users.membership_number IS 'APA membership number, copied from the associated HubSpot memberships record (mebership_number_number). Provenance for support only — never an access gate, and deliberately not unique because one corporate membership covers many contacts.';
 
 
 --
@@ -8676,6 +8751,22 @@ ALTER TABLE ONLY payroll_iq.levels
 
 
 --
+-- Name: licence_events licence_events_hubspot_event_id_key; Type: CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.licence_events
+    ADD CONSTRAINT licence_events_hubspot_event_id_key UNIQUE (hubspot_event_id);
+
+
+--
+-- Name: licence_events licence_events_pkey; Type: CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.licence_events
+    ADD CONSTRAINT licence_events_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: module_progress module_progress_pkey; Type: CONSTRAINT; Schema: payroll_iq; Owner: -
 --
 
@@ -8897,6 +8988,14 @@ ALTER TABLE ONLY payroll_iq.topics
 
 ALTER TABLE ONLY payroll_iq.users
     ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- Name: users users_hubspot_contact_id_key; Type: CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.users
+    ADD CONSTRAINT users_hubspot_contact_id_key UNIQUE (hubspot_contact_id);
 
 
 --
@@ -10999,6 +11098,20 @@ CREATE INDEX invoice_records_open_grace_idx ON payroll_iq.invoice_records USING 
 --
 
 CREATE INDEX invoice_records_org_idx ON payroll_iq.invoice_records USING btree (org_id, issued_on DESC);
+
+
+--
+-- Name: licence_events_contact_occurred_idx; Type: INDEX; Schema: payroll_iq; Owner: -
+--
+
+CREATE INDEX licence_events_contact_occurred_idx ON payroll_iq.licence_events USING btree (hubspot_contact_id, occurred_at DESC);
+
+
+--
+-- Name: licence_events_outcome_received_idx; Type: INDEX; Schema: payroll_iq; Owner: -
+--
+
+CREATE INDEX licence_events_outcome_received_idx ON payroll_iq.licence_events USING btree (outcome, received_at DESC);
 
 
 --
@@ -14366,6 +14479,14 @@ ALTER TABLE ONLY payroll_iq.invites
 
 ALTER TABLE ONLY payroll_iq.invoice_records
     ADD CONSTRAINT invoice_records_org_id_fkey FOREIGN KEY (org_id) REFERENCES payroll_iq.organisations(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: licence_events licence_events_user_id_fkey; Type: FK CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.licence_events
+    ADD CONSTRAINT licence_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES payroll_iq.users(id) ON DELETE SET NULL;
 
 
 --
@@ -18365,6 +18486,12 @@ CREATE POLICY levels_write ON payroll_iq.levels TO authenticated USING (payroll_
 
 
 --
+-- Name: licence_events; Type: ROW SECURITY; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE payroll_iq.licence_events ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: module_progress; Type: ROW SECURITY; Schema: payroll_iq; Owner: -
 --
 
@@ -21093,6 +21220,13 @@ GRANT ALL ON TABLE payroll_iq.invoice_records TO service_role;
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE payroll_iq.levels TO authenticated;
 GRANT ALL ON TABLE payroll_iq.levels TO service_role;
+
+
+--
+-- Name: TABLE licence_events; Type: ACL; Schema: payroll_iq; Owner: -
+--
+
+GRANT ALL ON TABLE payroll_iq.licence_events TO service_role;
 
 
 --
