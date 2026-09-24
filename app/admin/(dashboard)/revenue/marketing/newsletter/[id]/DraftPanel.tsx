@@ -80,9 +80,28 @@ export function DraftPanel({
   }
 
   function run() {
-    // Regenerating destroys hand edits and there is no undo. Cheap to ask.
-    if (hasDraft && !window.confirm("Regenerate this draft? Any manual edits will be replaced.")) {
-      return;
+    // Regenerating replaces the stored draft and there is no undo, so it asks
+    // first. Two things this got wrong, both of which made the button look
+    // broken rather than cautious:
+    //
+    // The old wording ("Any manual edits will be replaced") described a case
+    // that usually does not apply — most regenerates have no hand edits to
+    // lose — so it read as a warning about nothing and invited a reflexive
+    // dismiss. It now says what the action actually does.
+    //
+    // And cancelling said nothing at all. Pressing Regenerate, dismissing a
+    // dialog, and seeing the draft unchanged is indistinguishable from the
+    // button not working, which is exactly how it was reported.
+    if (hasDraft) {
+      const ok = window.confirm(
+        "Regenerate this draft?\n\n" +
+          "A new draft will be written from the items currently switched on, replacing the one below. " +
+          "Anything you have edited by hand will be lost.",
+      );
+      if (!ok) {
+        setMsg({ tone: "ok", text: "Regenerate cancelled — the draft is unchanged." });
+        return;
+      }
     }
     setMsg(null);
     start(async () => {

@@ -28,11 +28,18 @@ export function WriteArticleButton({
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
 
   function run() {
-    if (
-      hasBeenWritten &&
-      !window.confirm("Rewrite this article? The current text will be replaced.")
-    ) {
-      return;
+    // Cancelling has to say so. A dialog dismissed in silence looks exactly
+    // like a button that does nothing, which is how the same pattern on the
+    // Regenerate button was reported.
+    if (hasBeenWritten) {
+      const ok = window.confirm(
+        "Rewrite this article?\n\n" +
+          "It will be written again from its source link, replacing the current text.",
+      );
+      if (!ok) {
+        setMsg({ tone: "ok", text: "Rewrite cancelled — the article is unchanged." });
+        return;
+      }
     }
     setMsg(null);
     start(async () => {
