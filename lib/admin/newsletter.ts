@@ -374,6 +374,33 @@ const HOME_BRAND_FOR_NEWSLETTER = "apa";
 const NEWSLETTER_MASTHEAD =
   "![Australian Payroll Association — Members Update](https://portal.austpayroll.com.au/hs-fs/hubfs/P26_0655%20Members%20Update%20E-Header%20v2-1.png?width=1200&name=P26_0655%20Members%20Update%20E-Header%20v2-1.png)";
 
+// Masthead on the top, "View here" under the contents list.
+//
+// Both are added HERE rather than asked of the writer. They are fixed
+// furniture, they carry URLs, and a model retyping a long HubSpot path or an
+// edition's uuid is a broken link waiting to happen. Added to the BODY rather
+// than the template so they survive the hand-off to a broadcast in Phase 4 —
+// the send path renders copy_md and knows nothing about newsletters.
+//
+// The button goes immediately before the first "## " heading, which is where
+// the contents list ends. That beats trying to find the end of a list: the
+// first section heading is unambiguous, and if the writer produced no
+// headings at all there is no contents list to sit under either, so appending
+// is the right fallback.
+function withChrome(bodyMd: string, editionId: string): string {
+  const url = `${(process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "")}/newsletter/${editionId}/`;
+  // No site URL configured means no working link, and a button that goes
+  // nowhere is worse than no button.
+  const button = process.env.NEXT_PUBLIC_SITE_URL ? `[VIEW HERE](${url}){button}` : null;
+
+  const withMasthead = `${NEWSLETTER_MASTHEAD}\n\n${bodyMd}`;
+  if (!button) return withMasthead;
+
+  const firstSection = withMasthead.indexOf("\n## ");
+  if (firstSection < 0) return `${withMasthead}\n\n${button}`;
+  return `${withMasthead.slice(0, firstSection)}\n\n${button}\n${withMasthead.slice(firstSection)}`;
+}
+
 // The name shown at the top of the email. Read from the brand record rather
 // than hardcoded so the header is not a second place to keep the brand's name
 // correct — the fork's template said "Edge8" for exactly that reason.
@@ -478,7 +505,7 @@ export async function draftEditionContent(editionId: string): Promise<DraftEditi
     // waiting to happen. Stored in the body so it survives the hand-off to a
     // broadcast in Phase 4 — the send path renders whatever is in copy_md and
     // knows nothing about newsletters.
-    copy_md: `${NEWSLETTER_MASTHEAD}\n\n${drafted.bodyMd}`,
+    copy_md: withChrome(drafted.bodyMd, editionId),
     notes: drafted.preheader || null,
   };
 
