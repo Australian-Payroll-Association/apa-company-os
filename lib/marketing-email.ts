@@ -123,6 +123,25 @@ function slug(text: string): string {
     .slice(0, 80);
 }
 
+// Percent-decode an in-page target before slugging it.
+//
+// The writer is told to repeat the heading's words after the hash, and it
+// often URL-encodes them on the way — "#Article%20for%20this%20edition". Left
+// alone that slugs to "article-20for-20this-20edition" and matches nothing, so
+// six of seven contents links in a real edition went nowhere while looking
+// perfectly fine in the Markdown.
+//
+// Malformed input throws rather than returning the string, so the raw value is
+// the fallback: a heading containing a literal "%" would otherwise take the
+// whole render down.
+function decodeFragment(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return fragment;
+  }
+}
+
 export function renderMarkdown(md: string): string {
   const blocks = md.replace(/\r\n/g, "\n").split(/\n{2,}/);
   const out: string[] = [];
@@ -188,13 +207,43 @@ export function renderMarkdown(md: string): string {
       continue;
     }
 
-    if (/^([-*])\s+/.test(block)) {
-      const items = block
-        .split("\n")
-        .filter((line) => /^([-*])\s+/.test(line.trim()))
-        .map((line) => `<li style="margin:0 0 6px;">${inline(line.trim().replace(/^([-*])\s+/, ""))}</li>`)
+    if (/^\s*([-*])\s+/.test(block)) {
+      // One level of nesting, because the contents list uses it: "What is on
+      // the Members Portal" carries the individual portal items beneath it.
+      // The previous version trimmed every line before testing, so an indented
+      // bullet came out at the same level as its parent and the structure was
+      // silently lost.
+      //
+      // The child <ul> goes INSIDE its parent <li>, which is the valid shape;
+      // a <ul> as a sibling of an <li> renders in most clients and is the kind
+      // of thing one of them eventually gets wrong.
+      const items: { text: string; children: string[] }[] = [];
+      for (const line of block.split("\n")) {
+        const match = /^(\s*)([-*])\s+(.*)$/.exec(line);
+        if (!match) continue;
+        const [, indent, , text] = match;
+        if (indent.length >= 2 && items.length > 0) {
+          items[items.length - 1].children.push(text);
+        } else {
+          items.push({ text, children: [] });
+        }
+      }
+
+      const li = (text: string, nested: string) =>
+        `<li style="margin:0 0 6px;">${inline(text)}${nested}</li>`;
+      const rendered = items
+        .map((item) =>
+          li(
+            item.text,
+            item.children.length
+              ? `<ul style="margin:6px 0 0;padding-left:20px;">${item.children
+                  .map((c) => li(c, ""))
+                  .join("")}</ul>`
+              : "",
+          ),
+        )
         .join("");
-      out.push(`<ul style="margin:0 0 16px;padding-left:20px;">${items}</ul>`);
+      out.push(`<ul style="margin:0 0 16px;padding-left:20px;">${rendered}</ul>`);
       continue;
     }
 
@@ -221,7 +270,7 @@ function inline(text: string): string {
         // both resolve. Everything else is an external URL and is left alone
         // apart from escaping a quote that would break out of the attribute.
         const target = href.startsWith("#")
-          ? `#${slug(href.slice(1))}`
+          ? `#${slug(decodeFragment(href.slice(1)))}`
           : href.replace(/"/g, "&quot;");
         return `<a href="${target}" style="color:${NAVY};text-decoration:underline;">${label}</a>`;
       },

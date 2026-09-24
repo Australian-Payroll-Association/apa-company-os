@@ -203,3 +203,68 @@ describe("contents links jump to their section", () => {
     expect(html).not.toContain("<a ");
   });
 });
+
+describe("nested contents entries", () => {
+  // The Members Portal section lists its individual items beneath it. The
+  // previous renderer trimmed every line before testing for a bullet, so an
+  // indented entry came out level with its parent and the structure was
+  // silently lost.
+  const NESTED = `- [What is on the Members Portal](#What is on the Members Portal)
+  - [New search function](#New search function)
+  - [Redundancy calculator](#Redundancy calculator)
+- [Compliance](#Compliance)`;
+
+  it("nests an indented entry rather than flattening it", () => {
+    const html = renderMarkdown(NESTED);
+    expect((html.match(/<ul /g) ?? []).length).toBe(2);
+    expect((html.match(/<li /g) ?? []).length).toBe(4);
+  });
+
+  it("puts the child list inside its parent item, not beside it", () => {
+    // <ul> as a sibling of <li> renders in most clients and is the kind of
+    // thing one of them eventually gets wrong.
+    const html = renderMarkdown(NESTED);
+    expect(html).toMatch(/Members Portal<\/a><ul /);
+    expect(html).not.toMatch(/<\/li><ul /);
+  });
+
+  it("still resolves every nested entry to a heading id", () => {
+    const html = renderMarkdown(`${NESTED}\n\n## New search function\n\nBody.`);
+    expect(html).toContain('href="#new-search-function"');
+    expect(html).toContain('id="new-search-function"');
+  });
+
+  it("leaves a flat list flat", () => {
+    const html = renderMarkdown("- one\n- two\n- three");
+    expect((html.match(/<ul /g) ?? []).length).toBe(1);
+    expect((html.match(/<li /g) ?? []).length).toBe(3);
+  });
+});
+
+describe("percent-encoded contents targets", () => {
+  // The writer is told to repeat the heading's words after the hash, and it
+  // often URL-encodes them on the way. Left undecoded these slug to
+  // "article-20for-20this-20edition" and match nothing — six of seven links in
+  // a real edition went nowhere while looking correct in the Markdown.
+  it("resolves an encoded target to its heading", () => {
+    const html = renderMarkdown(
+      "- [Article for this edition](#Article%20for%20this%20edition)\n\n## Article for this edition\n\nBody.",
+    );
+    expect(html).toContain('href="#article-for-this-edition"');
+    expect(html).toContain('id="article-for-this-edition"');
+  });
+
+  it("resolves an encoded colon and dollar sign", () => {
+    const html = renderMarkdown(
+      "- [x](#FBT%3A%20cap%20of%20%24270%2C830)\n\n## FBT: cap of $270,830\n\nBody.",
+    );
+    const id = /id="([^"]+)"/.exec(html)?.[1];
+    expect(/href="#([^"]+)"/.exec(html)?.[1]).toBe(id);
+  });
+
+  it("survives a target that is not valid percent-encoding", () => {
+    // A heading with a literal "%" in it. decodeURIComponent throws on this,
+    // and an exception here would take the whole render down.
+    expect(() => renderMarkdown("- [x](#levy rises to 1.7% from July)")).not.toThrow();
+  });
+});
