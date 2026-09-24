@@ -161,9 +161,9 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     bodyLabel: "What's being covered",
     linkLabel: "Register now link",
     fields: [
-      { key: "presenter", label: "Presenter", type: "text", placeholder: "Maria Nikoletatos, Australian Payroll Association" },
+      { key: "presenter", label: "Presenter", type: "text", placeholder: "e.g. Maria Nikoletatos, Australian Payroll Association" },
       { key: "date", label: "Date", type: "date" },
-      { key: "time", label: "Time", type: "text", placeholder: "1:00 pm AEST" },
+      { key: "time", label: "Time", type: "text", placeholder: "e.g. 1:00 pm AEST" },
     ],
     target: 1,
     source: "events",

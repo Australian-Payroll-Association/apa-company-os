@@ -1731,6 +1731,17 @@ a.team-collage-avatar:hover { box-shadow: 0 0 0 3px var(--admin-accent-soft), 0 
   color: var(--admin-ink);
   background: var(--admin-surface);
 }
+/* A placeholder must not read as a value. There was no rule here, so it fell
+   back to the browser default — dark enough in some that "Maria Nikoletatos,
+   Australian Payroll Association" in the webinar Presenter box looked like a
+   filled-in name someone then could not select or delete, and reasonably
+   concluded the field was read-only. Muted and italic, so the difference is
+   the same in every browser. */
+.admin-input::placeholder, .admin-textarea::placeholder {
+  color: var(--admin-muted);
+  font-style: italic;
+  opacity: 1; /* Firefox dims placeholders again on top of the colour. */
+}
 .admin-input:focus, .admin-select:focus, .admin-textarea:focus {
   outline: 0;
   border-color: var(--admin-accent);
