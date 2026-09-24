@@ -101,6 +101,47 @@ function atomic(cell: string): boolean {
   return false;
 }
 
+// A heading's anchor id, and the target of a contents link.
+//
+// Used on BOTH sides on purpose. The writer produces a contents entry as
+// "[Award Transport Payment Changes](#Award Transport Payment Changes)" — the
+// heading's own words after the hash — and this turns that and the heading
+// itself into the same string. A model that guesses a slug format instead
+// still lands on the right section, because slugging an already-slugged
+// string is a no-op.
+//
+// Markdown emphasis and links are stripped first: a heading is occasionally
+// written with bold in it, and "**FBT**: changes" and "FBT: changes" have to
+// reach the same id.
+function slug(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+// Percent-decode an in-page target before slugging it.
+//
+// The writer is told to repeat the heading's words after the hash, and it
+// often URL-encodes them on the way — "#Article%20for%20this%20edition". Left
+// alone that slugs to "article-20for-20this-20edition" and matches nothing, so
+// six of seven contents links in a real edition went nowhere while looking
+// perfectly fine in the Markdown.
+//
+// Malformed input throws rather than returning the string, so the raw value is
+// the fallback: a heading containing a literal "%" would otherwise take the
+// whole render down.
+function decodeFragment(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return fragment;
+  }
+}
+
 export function renderMarkdown(md: string): string {
   const blocks = md.replace(/\r\n/g, "\n").split(/\n{2,}/);
   const out: string[] = [];
@@ -117,8 +158,12 @@ export function renderMarkdown(md: string): string {
       // heading in a real edition read as bold body text, so the reader had no
       // way to see where one section ended and the next began.
       const size = level === 2 ? 19 : level === 3 ? 17 : 15;
+      // An id on every heading, so the contents list at the top of an edition
+      // can jump to its section. Both the id and the link's target run through
+      // the same slug(), so a contents entry written as the heading's own text
+      // lands on it without the writer having to guess a slug format.
       out.push(
-        `<h${level} style="margin:28px 0 10px;font-size:${size}px;line-height:1.3;color:${NAVY};">${inline(heading[2])}</h${level}>`,
+        `<h${level} id="${slug(heading[2])}" style="margin:28px 0 10px;font-size:${size}px;line-height:1.3;color:${NAVY};">${inline(heading[2])}</h${level}>`,
       );
       continue;
     }
@@ -162,13 +207,43 @@ export function renderMarkdown(md: string): string {
       continue;
     }
 
-    if (/^([-*])\s+/.test(block)) {
-      const items = block
-        .split("\n")
-        .filter((line) => /^([-*])\s+/.test(line.trim()))
-        .map((line) => `<li style="margin:0 0 6px;">${inline(line.trim().replace(/^([-*])\s+/, ""))}</li>`)
+    if (/^\s*([-*])\s+/.test(block)) {
+      // One level of nesting, because the contents list uses it: "What is on
+      // the Members Portal" carries the individual portal items beneath it.
+      // The previous version trimmed every line before testing, so an indented
+      // bullet came out at the same level as its parent and the structure was
+      // silently lost.
+      //
+      // The child <ul> goes INSIDE its parent <li>, which is the valid shape;
+      // a <ul> as a sibling of an <li> renders in most clients and is the kind
+      // of thing one of them eventually gets wrong.
+      const items: { text: string; children: string[] }[] = [];
+      for (const line of block.split("\n")) {
+        const match = /^(\s*)([-*])\s+(.*)$/.exec(line);
+        if (!match) continue;
+        const [, indent, , text] = match;
+        if (indent.length >= 2 && items.length > 0) {
+          items[items.length - 1].children.push(text);
+        } else {
+          items.push({ text, children: [] });
+        }
+      }
+
+      const li = (text: string, nested: string) =>
+        `<li style="margin:0 0 6px;">${inline(text)}${nested}</li>`;
+      const rendered = items
+        .map((item) =>
+          li(
+            item.text,
+            item.children.length
+              ? `<ul style="margin:6px 0 0;padding-left:20px;">${item.children
+                  .map((c) => li(c, ""))
+                  .join("")}</ul>`
+              : "",
+          ),
+        )
         .join("");
-      out.push(`<ul style="margin:0 0 16px;padding-left:20px;">${items}</ul>`);
+      out.push(`<ul style="margin:0 0 16px;padding-left:20px;">${rendered}</ul>`);
       continue;
     }
 
@@ -183,9 +258,22 @@ function inline(text: string): string {
     // Quotes are escaped in the href too: esc() covers &<> but a target
     // containing a double quote would otherwise break out of the attribute.
     .replace(
-      /\[([^\]]+)\]\(([^)\s]+)\)/g,
-      (_m, label: string, href: string) =>
-        `<a href="${href.replace(/"/g, "&quot;")}" style="color:${NAVY};text-decoration:underline;">${label}</a>`,
+      // The target may contain SPACES. A contents entry is written as the
+      // heading's own words after a hash — "(#Award Transport Payment
+      // Changes)" — and the old [^)\s]+ silently refused to match it, so the
+      // entry rendered as plain text and the link was simply absent. External
+      // URLs never contain a raw space, so nothing is lost by allowing them.
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_m, label: string, href: string) => {
+        // An in-page target goes through the same slug as the heading ids, so
+        // "#Award Transport Payment Changes" and "#award-transport-payment-changes"
+        // both resolve. Everything else is an external URL and is left alone
+        // apart from escaping a quote that would break out of the attribute.
+        const target = href.startsWith("#")
+          ? `#${slug(decodeFragment(href.slice(1)))}`
+          : href.replace(/"/g, "&quot;");
+        return `<a href="${target}" style="color:${NAVY};text-decoration:underline;">${label}</a>`;
+      },
     )
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");

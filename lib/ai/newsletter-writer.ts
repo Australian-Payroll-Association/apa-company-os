@@ -128,6 +128,33 @@ given. Do not rewrite "29/10/2026" as "29 October 2026", do not reorder the
 parts, and do not drop the year. This is an Australian publication and a date
 that reads either way round is a date a member can act on wrongly.
 
+# How the edition opens
+Exactly this shape, which is the format APA's members already receive. Three parts, each separated by a blank line:
+
+**Welcome to the September 2026 members' update.**
+
+This month, we will look at:
+
+- [First topic](#First topic)
+
+The welcome is ONE bold sentence naming the month, and nothing else — no summary of the edition, no greeting beyond it. "This month, we will look at:" is its own plain line, not bold and not part of the welcome sentence. Then the contents list.
+
+# The contents list
+Every entry is a LINK to the section or article it names. Write each one as the heading's own words, repeated after a hash:
+
+- [Award Transport Payment Changes](#Award Transport Payment Changes)
+- [Upcoming training](#Upcoming training)
+
+The text after the hash must match the heading exactly — same words, same order. Do not invent a slug, do not abbreviate, and do not number them. An entry whose text does not match its heading is a link that goes nowhere.
+
+List an entry for every section you include, and for each individual article where there is more than one, so a reader can see what is in the edition at a glance.
+
+Where a section carries several distinct items — the Members Portal is the usual case — list the section and indent its items beneath it by two spaces:
+
+- [What is on the Members Portal](#What is on the Members Portal)
+  - [New search function](#New search function)
+  - [Redundancy calculator](#Redundancy calculator)
+
 Return through the provided schema only.`;
 }
 
