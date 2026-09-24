@@ -31,24 +31,75 @@ export const fetchCache = "force-no-store";
 // The id is a uuid, so the URL is not guessable in practice, but the status
 // gate is what makes it safe rather than the id.
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
-  const notFound = () =>
-    new Response("<!doctype html><title>Not found</title><p>That edition is not available.</p>", {
-      status: 404,
-      headers: { "content-type": "text/html; charset=utf-8" },
-    });
+// Still a 404 in both cases — the page genuinely is not available — but the
+// two reasons are different and only one of them is the reader's problem.
+//
+// "Not published yet" is the reviewer's case: the VIEW HERE button exists in
+// the draft from the moment it is written, so anyone checking the edition
+// before both signatures are in will click it. Telling them the edition is
+// simply unavailable sends them looking for a fault that is not there.
+//
+// Saying which case applies is safe because reaching it at all requires the
+// edition's uuid, which comes from the admin UI or from the draft email. It
+// is not something a stranger arrives at.
+function unavailable(reason: "not-yet" | "unknown"): Response {
+  const notYet = reason === "not-yet";
+  const heading = notYet ? "Not published yet" : "Edition not available";
+  const body = notYet
+    ? "This members&rsquo; update is still being reviewed. It will be here once it has been signed off and sent."
+    : "That link may be out of date, or the address may have been mistyped.";
 
+  return new Response(
+    `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>${heading} &middot; Australian Payroll Association</title>
+</head>
+<body style="margin:0;padding:0;background:#F5F6F9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F6F9;padding:48px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;padding:40px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#333333;font-size:15px;">
+      <tr><td>
+        <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#465778;">${heading}</h1>
+        <p style="margin:0 0 20px;line-height:1.6;">${body}</p>
+        <p style="margin:0;font-size:14px;">
+          <a href="https://austpayroll.com.au" style="color:#465778;text-decoration:underline;">austpayroll.com.au</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`,
+    {
+      status: 404,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "x-robots-tag": "noindex, nofollow",
+      },
+    },
+  );
+}
+
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
   // A malformed id would otherwise reach PostgREST and come back as a 500.
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)) {
-    return notFound();
+    return unavailable("unknown");
   }
 
   const edition = await getEdition(params.id);
-  if (!edition) return notFound();
-  if (edition.status !== "published" && !isClearedToSend(edition)) return notFound();
+  if (!edition) return unavailable("unknown");
+  if (edition.status !== "published" && !isClearedToSend(edition)) {
+    return unavailable("not-yet");
+  }
 
   const draft = await getEditionDraft(edition.contentId);
-  if (!draft?.bodyMd?.trim()) return notFound();
+  // Signed off but with nothing written is not a state the gate can reach in
+  // practice, since a draft is required before review. If it ever does, the
+  // reviewer's message is the right one — there is an edition, it just has no
+  // content to show.
+  if (!draft?.bodyMd?.trim()) return unavailable("not-yet");
 
   const html = renderCampaignHtml({
     subject: draft.subject,
