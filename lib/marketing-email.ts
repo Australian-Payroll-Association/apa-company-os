@@ -84,6 +84,8 @@ function esc(s: string): string {
 const NAVY = "#465778";
 const INK = "#333333";
 const CANVAS = "#F5F6F9";
+// The outline on APA's call-to-action buttons, from the newsletter masthead.
+const GOLD = "#C9A227";
 
 // A table cell that must not be broken across lines. Dates and times only: at
 // 600px the training table wrapped "10:00am AEST" onto two lines and split
@@ -185,6 +187,24 @@ export function renderMarkdown(md: string): string {
     // promo, and one added only to the preview would not survive the handover
     // to a broadcast — the preview would be showing something the send does
     // not produce.
+    // A button. Marked explicitly with {button} rather than inferred from "a
+    // paragraph containing only a link", because the writer emits lone links
+    // for sources and one of them would eventually turn into a call to action
+    // nobody asked for.
+    //
+    // A bordered link, not a filled one: the fill colour would have to survive
+    // Outlook, and an outline in APA's gold degrades to a plain bordered box
+    // everywhere instead of to an invisible white-on-white label.
+    const button = /^\[([^\]]+)\]\(([^)\s]+)\)\{button\}$/.exec(block);
+    if (button) {
+      out.push(
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td align="center">` +
+          `<a href="${button[2].replace(/"/g, "&quot;")}" style="display:inline-block;padding:12px 28px;border:2px solid ${GOLD};border-radius:24px;color:${NAVY};font-size:14px;font-weight:700;letter-spacing:0.04em;text-decoration:none;">${inline(button[1])}</a>` +
+          `</td></tr></table>`,
+      );
+      continue;
+    }
+
     const lone = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(block);
     if (lone) {
       out.push(imageHtml(lone[1], lone[2]));

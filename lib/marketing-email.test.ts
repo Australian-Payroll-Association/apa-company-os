@@ -326,3 +326,29 @@ describe("masthead", () => {
     expect(html).not.toContain("<b>alt");
   });
 });
+
+describe("call-to-action button", () => {
+  // Marked explicitly with {button} rather than inferred from "a paragraph
+  // containing only a link" — the writer emits lone links for sources, and one
+  // of them would eventually become a call to action nobody asked for.
+  it("renders a marked link as a centred button", () => {
+    const html = renderMarkdown("[VIEW HERE](https://x.test/newsletter/abc/){button}");
+    expect(html).toContain('align="center"');
+    expect(html).toContain("border:2px solid");
+    expect(html).toContain('href="https://x.test/newsletter/abc/"');
+  });
+
+  it("leaves an ordinary link alone", () => {
+    expect(renderMarkdown("[ATO](https://www.ato.gov.au/x)")).not.toContain("border:2px solid");
+  });
+
+  it("leaves a lone source link alone", () => {
+    const html = renderMarkdown("Source: [Fair Work](https://fairwork.gov.au/a)");
+    expect(html).not.toContain("border:2px solid");
+  });
+
+  it("escapes a quote in the target", () => {
+    const html = renderMarkdown('[GO](https://x.test/a"b){button}');
+    expect(html).toContain("&quot;");
+  });
+});
