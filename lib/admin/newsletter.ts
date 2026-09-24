@@ -361,6 +361,19 @@ export async function syncTrainingForEdition(editionId: string): Promise<Trainin
 // email_campaigns broadcast, so Phase 4 is a wiring job rather than a build.
 const HOME_BRAND_FOR_NEWSLETTER = "apa";
 
+// The Members Update masthead, as Markdown so it travels in the body.
+//
+// Served through HubSpot's resizer at 1200px rather than as the original
+// upload: the source PNG is 2500x1537 and 2.6MB, the resized copy is 227KB,
+// and 1200 is twice the 600px body so it stays sharp on a retina screen. A
+// 2.6MB header on a send to the whole membership is bandwidth nobody needs to
+// spend, and weight that pushes a message towards the spam folder.
+//
+// The alt text is not decoration. A large share of recipients block images by
+// default, and for them this line IS the masthead.
+const NEWSLETTER_MASTHEAD =
+  "![Australian Payroll Association — Members Update](https://portal.austpayroll.com.au/hs-fs/hubfs/P26_0655%20Members%20Update%20E-Header%20v2-1.png?width=1200&name=P26_0655%20Members%20Update%20E-Header%20v2-1.png)";
+
 // The name shown at the top of the email. Read from the brand record rather
 // than hardcoded so the header is not a second place to keep the brand's name
 // correct — the fork's template said "Edge8" for exactly that reason.
@@ -460,7 +473,12 @@ export async function draftEditionContent(editionId: string): Promise<DraftEditi
     channel: "email",
     status: "drafted",
     publish_date: detail.edition.periodStart,
-    copy_md: drafted.bodyMd,
+    // The masthead is prepended here rather than asked of the writer: it is a
+    // fixed asset, and a model retyping a long HubSpot URL is a broken image
+    // waiting to happen. Stored in the body so it survives the hand-off to a
+    // broadcast in Phase 4 — the send path renders whatever is in copy_md and
+    // knows nothing about newsletters.
+    copy_md: `${NEWSLETTER_MASTHEAD}\n\n${drafted.bodyMd}`,
     notes: drafted.preheader || null,
   };
 
