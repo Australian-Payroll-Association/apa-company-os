@@ -268,3 +268,61 @@ describe("percent-encoded contents targets", () => {
     expect(() => renderMarkdown("- [x](#levy rises to 1.7% from July)")).not.toThrow();
   });
 });
+
+describe("masthead", () => {
+  // Carried in the BODY, not added by the template. renderCampaignHtml is
+  // shared by every marketing broadcast, so a masthead added there would put a
+  // "Members Update" banner on a one-off promo — and one added only to the
+  // preview would not survive the hand-off to a broadcast.
+  const MH = "![APA — Members Update](https://portal.austpayroll.com.au/x.png?width=1200)";
+  const withMasthead = (body: string) =>
+    renderCampaignHtml({
+      subject: "September 2026",
+      preheader: null,
+      bodyMd: body,
+      unsubscribeLink: null,
+      brandName: "Australian Payroll Association",
+    });
+
+  it("renders a leading image flush, in its own padless row", () => {
+    // Inset by the card's 32px padding it reads as a picture in the body
+    // rather than a header.
+    const html = withMasthead(`${MH}\n\n**Welcome.**`);
+    expect(html).toMatch(/padding:0;line-height:0;"><img/);
+  });
+
+  it("drops the brand-name header when a masthead is present", () => {
+    // The masthead already carries the logo and the publication's name.
+    const html = withMasthead(`${MH}\n\nBody.`);
+    expect(html).not.toContain("letter-spacing:-0.01em");
+  });
+
+  it("keeps the brand-name header when there is no masthead", () => {
+    const html = withMasthead("Just text, no image.");
+    expect(html).toContain("letter-spacing:-0.01em");
+    expect(html).not.toContain("<img");
+  });
+
+  it("carries alt text, for the readers who block images", () => {
+    expect(withMasthead(`${MH}\n\nBody.`)).toContain('alt="APA — Members Update"');
+  });
+
+  it("sets width as an attribute as well as CSS", () => {
+    // Outlook's Word engine ignores much of the style block and sizes from the
+    // attribute.
+    const html = withMasthead(`${MH}\n\nBody.`);
+    expect(html).toMatch(/<img[^>]*width="600"/);
+    expect(html).toContain("max-width:600px");
+  });
+
+  it("renders an image further down the body inline, not flush", () => {
+    const html = withMasthead(`Some text.\n\n${MH}`);
+    expect(html).not.toMatch(/padding:0;line-height:0;"><img/);
+    expect(html).toContain("<img");
+  });
+
+  it("escapes alt text", () => {
+    const html = withMasthead('![a "quoted" <b>alt](https://x.test/a.png)\n\nBody.');
+    expect(html).not.toContain("<b>alt");
+  });
+});

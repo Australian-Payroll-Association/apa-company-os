@@ -142,6 +142,34 @@ function decodeFragment(fragment: string): string {
   }
 }
 
+// An image, email-safe.
+//
+// width as an ATTRIBUTE as well as CSS: Outlook's Word engine ignores much of
+// the style block and sizes from the attribute. display:block kills the few
+// pixels of descender gap clients add under an inline image, and border:0
+// stops the blue link border a wrapped image gets in older Outlook.
+//
+// The alt text matters more here than on the web. A large share of recipients
+// block images by default, and for them the alt IS the masthead.
+function imageHtml(alt: string, src: string, opts: { flush?: boolean } = {}): string {
+  const margin = opts.flush ? "0" : "0 0 20px";
+  return `<img src="${src.replace(/"/g, "&quot;")}" alt="${esc(alt)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;margin:${margin};" />`;
+}
+
+// A masthead is the FIRST thing in the body and runs edge to edge, so it is
+// split off before the rest is rendered into the padded card. Returned as a
+// pair rather than handled inside renderMarkdown, because the flush treatment
+// is a property of where it sits in the wrapper, not of the image itself.
+function splitLeadingImage(md: string): { leading: string | null; rest: string } {
+  const trimmed = md.replace(/^\s+/, "");
+  const match = /^!\[([^\]]*)\]\(([^)\s]+)\)\s*(?:\n|$)/.exec(trimmed);
+  if (!match) return { leading: null, rest: md };
+  return {
+    leading: imageHtml(match[1], match[2], { flush: true }),
+    rest: trimmed.slice(match[0].length),
+  };
+}
+
 export function renderMarkdown(md: string): string {
   const blocks = md.replace(/\r\n/g, "\n").split(/\n{2,}/);
   const out: string[] = [];
@@ -149,6 +177,19 @@ export function renderMarkdown(md: string): string {
   for (const raw of blocks) {
     const block = raw.trim();
     if (!block) continue;
+
+    // A block that is nothing but an image. The masthead is the case this
+    // exists for, and it is carried in the BODY rather than added by the
+    // template: renderCampaignHtml is shared by every marketing broadcast, so
+    // a masthead added there would put a "Members Update" banner on a one-off
+    // promo, and one added only to the preview would not survive the handover
+    // to a broadcast — the preview would be showing something the send does
+    // not produce.
+    const lone = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(block);
+    if (lone) {
+      out.push(imageHtml(lone[1], lone[2]));
+      continue;
+    }
 
     const heading = block.match(/^(#{1,3})\s+(.*)$/);
     if (heading) {
@@ -292,6 +333,10 @@ export function renderCampaignHtml(opts: {
   brandName?: string | null;
 }): string {
   const brand = opts.brandName?.trim() || "Australian Payroll Association";
+
+  // A body that opens with an image is carrying a masthead. Any broadcast can
+  // do it; the newsletter is simply the one that always does.
+  const { leading: masthead, rest: body } = splitLeadingImage(opts.bodyMd);
   const preheader = opts.preheader?.trim()
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(opts.preheader)}</div>`
     : "";
@@ -305,11 +350,28 @@ export function renderCampaignHtml(opts: {
 ${preheader}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CANVAS};padding:24px 12px;">
   <tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${INK};font-size:15px;">
-      <tr><td>
-        <div style="font-weight:700;font-size:18px;letter-spacing:-0.01em;margin-bottom:24px;color:${NAVY};">${esc(brand)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${INK};font-size:15px;">
+      ${
+        masthead
+          ? // Its own row, with no padding, so it runs edge to edge the way a
+            // masthead is meant to. The padding moved off the table and onto
+            // the content cell below to make room for it; a leading image
+            // inset by 32px reads as a picture in the body rather than a
+            // header.
+            `<tr><td style="padding:0;line-height:0;">${masthead}</td></tr>`
+          : ""
+      }
+      <tr><td style="padding:32px;">
+        ${
+          // The brand name is the fallback header. A masthead already carries
+          // the logo and the publication's name, so printing it again is just
+          // saying "Australian Payroll Association" twice above the subject.
+          masthead
+            ? ""
+            : `<div style="font-weight:700;font-size:18px;letter-spacing:-0.01em;margin-bottom:24px;color:${NAVY};">${esc(brand)}</div>`
+        }
         <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:${NAVY};">${esc(opts.subject)}</h1>
-        ${renderMarkdown(opts.bodyMd)}
+        ${renderMarkdown(body)}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px;" />
         <p style="margin:0;font-size:12px;line-height:1.6;color:#6b7280;">
           You are receiving this because you are a member or contact of ${esc(brand)}.<br />
