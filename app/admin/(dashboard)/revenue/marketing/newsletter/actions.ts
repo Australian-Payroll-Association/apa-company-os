@@ -249,7 +249,20 @@ export async function addSubmissionAsAdmin(input: {
 
   const edition = await getEdition(input.editionId);
   if (!edition) return { ok: false, error: "Edition not found." };
-  if (edition.status !== "open" && edition.status !== "closed") {
+  // Only the terminal states refuse. This used to allow open and closed only,
+  // which killed the form the moment an edition was first drafted — and every
+  // regenerate and hand edit puts it back to drafting, so it stayed dead.
+  //
+  // That is the wrong shape for this path. /team refusing anything but an open
+  // edition is a deadline for contributors and correct. The admin assembling
+  // the edition is the person most likely to notice a gap late, which is the
+  // whole reason this form exists; telling them "a drafting edition can no
+  // longer take new items" for the entire drafting stage is backwards.
+  //
+  // in_review still accepts: a new submission does not touch the stored draft,
+  // so it cannot invalidate a signature. Regenerating is what does that, and
+  // regenerating already clears both and says so.
+  if (edition.status === "published" || edition.status === "cancelled") {
     return { ok: false, error: `A ${edition.status} edition can no longer take new items.` };
   }
 
@@ -290,7 +303,21 @@ export async function addSubmissionAsAdmin(input: {
     newData: { edition_id: input.editionId, section_type: input.sectionType, added_from: "admin" },
   });
   refresh(input.editionId);
-  return { ok: true, message: `Added to ${SECTION_META[input.sectionType].label}.` };
+  // Says what has NOT happened yet. A draft is a stored artifact, not a live
+  // view of the intake, so an item added after drafting is simply not in it —
+  // which reads as the item having vanished. Naming the next step is cheaper
+  // than letting someone rediscover that.
+  const draftNote = edition.contentId
+    ? " Regenerate the draft to bring it in."
+    : "";
+  const reviewNote =
+    edition.status === "in_review"
+      ? " Regenerating will also clear both signatures, so it will need signing off again."
+      : "";
+  return {
+    ok: true,
+    message: `Added to ${SECTION_META[input.sectionType].label}.${draftNote}${reviewNote}`,
+  };
 }
 
 // The training window the pull reads. Left unset it falls back to the edition
