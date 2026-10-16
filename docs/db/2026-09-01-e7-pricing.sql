@@ -68,6 +68,14 @@ create trigger set_deal_pricing_updated_at
 create index if not exists deal_pricing_deal_idx on company_os.deal_pricing(deal_id);
 create index if not exists deal_pricing_service_idx on company_os.deal_pricing(service_key);
 
+-- Grant the API service_role table access (matches the house pattern for
+-- company_os tables — e.g. deals). RLS is enabled with no policies, so only the
+-- service-role admin client (the pricing server actions) reaches these rows;
+-- anon/authenticated are not granted and are gated by RLS. Required because a
+-- table created by the postgres role does not inherit service_role's default
+-- privileges in this schema.
+grant select, insert, update, delete on table company_os.deal_pricing to service_role;
+
 -- ---------------------------------------------------------------------------
 -- 2. award_effort_matrix — reference data (DESIGNED now, imported in R2)
 --    122 modern awards keyed by code, complexity 1–4. NOT read by R1 pricing.
@@ -94,6 +102,8 @@ drop trigger if exists set_award_effort_matrix_updated_at on company_os.award_ef
 create trigger set_award_effort_matrix_updated_at
   before update on company_os.award_effort_matrix
   for each row execute function company_os.handle_updated_at();
+
+grant select, insert, update, delete on table company_os.award_effort_matrix to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Legacy flag: no schema change. A native price stamps
