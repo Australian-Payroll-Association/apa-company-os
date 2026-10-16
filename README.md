@@ -17,8 +17,8 @@ enabled. If any are missing, stop at Step 0 and say which.
 
 ## ⚠️ One thing to get right before you start
 
-**Build the database from `supabase/00-prereqs.sql` + `supabase/01-schema.sql`,
-never from `supabase/migrations/`.**
+**Build the database from `supabase/00-prereqs.sql` + `supabase/01-schema.sql`
++ `supabase/01b-storage-policies.sql`, never from `supabase/migrations/`.**
 
 That directory is present but **incomplete by design**: it carries the Payroll
 IQ consolidation and forward changes, never the Company OS schema, so it cannot
@@ -135,13 +135,15 @@ schema work in Step 3. Run `unset PGPASSWORD` when you are finished.
 
 ## Step 3 — database schema
 
-Two files, **in this order**. Both contain schema only — no rows, no data.
+Three files, **in this order**. All contain schema only — no rows, no data.
 
 ```bash
 export PGPASSWORD='<the password from Step 2>'
 PSQL="psql -h db.<PROJECT_REF>.supabase.co -p 5432 -U postgres -d postgres"
 $PSQL -v ON_ERROR_STOP=1 -f supabase/00-prereqs.sql
 $PSQL -v ON_ERROR_STOP=1 -f supabase/01-schema.sql
+# Payroll IQ's storage.objects policies: the dump above cannot carry them.
+$PSQL -v ON_ERROR_STOP=1 -f supabase/01b-storage-policies.sql
 unset PGPASSWORD
 
 # Third step, and it is not optional: the two files above built the schema, but

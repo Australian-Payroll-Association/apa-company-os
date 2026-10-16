@@ -5735,6 +5735,41 @@ COMMENT ON TABLE payroll_iq.discount_codes IS 'Admin-managed discount codes, app
 
 
 --
+-- Name: email_templates; Type: TABLE; Schema: payroll_iq; Owner: -
+--
+
+CREATE TABLE payroll_iq.email_templates (
+    key text NOT NULL,
+    subject text NOT NULL,
+    heading text NOT NULL,
+    body text NOT NULL,
+    button_label text,
+    footnote text DEFAULT ''::text NOT NULL,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT email_templates_body_len CHECK (((char_length(body) >= 1) AND (char_length(body) <= 5000))),
+    CONSTRAINT email_templates_button_len CHECK (((button_label IS NULL) OR ((char_length(button_label) >= 1) AND (char_length(button_label) <= 40)))),
+    CONSTRAINT email_templates_footnote_len CHECK ((char_length(footnote) <= 1000)),
+    CONSTRAINT email_templates_heading_len CHECK (((char_length(heading) >= 1) AND (char_length(heading) <= 120))),
+    CONSTRAINT email_templates_subject_len CHECK (((char_length(subject) >= 1) AND (char_length(subject) <= 150)))
+);
+
+
+--
+-- Name: TABLE email_templates; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON TABLE payroll_iq.email_templates IS 'Admin-edited wording for Payroll IQ emails, one row per edited email. No row = the default wording shipped in code. Service role only: admin writes go through requireAdmin() server actions, and the senders (crons included) read with the service client.';
+
+
+--
+-- Name: COLUMN email_templates.key; Type: COMMENT; Schema: payroll_iq; Owner: -
+--
+
+COMMENT ON COLUMN payroll_iq.email_templates.key IS 'Email identifier from website/src/lib/email/catalog.ts, e.g. invite, cycle_day_30.';
+
+
+--
 -- Name: hubspot_outbox; Type: TABLE; Schema: payroll_iq; Owner: -
 --
 
@@ -8660,6 +8695,14 @@ ALTER TABLE ONLY payroll_iq.discount_codes
 
 ALTER TABLE ONLY payroll_iq.discount_codes
     ADD CONSTRAINT discount_codes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_templates email_templates_pkey; Type: CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.email_templates
+    ADD CONSTRAINT email_templates_pkey PRIMARY KEY (key);
 
 
 --
@@ -14434,6 +14477,14 @@ ALTER TABLE ONLY payroll_iq.discount_codes
 
 
 --
+-- Name: email_templates email_templates_updated_by_fkey; Type: FK CONSTRAINT; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE ONLY payroll_iq.email_templates
+    ADD CONSTRAINT email_templates_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES payroll_iq.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: ingest_items ingest_items_module_id_fkey; Type: FK CONSTRAINT; Schema: payroll_iq; Owner: -
 --
 
@@ -18380,6 +18431,12 @@ CREATE POLICY discount_codes_admin_all ON payroll_iq.discount_codes TO authentic
 
 
 --
+-- Name: email_templates; Type: ROW SECURITY; Schema: payroll_iq; Owner: -
+--
+
+ALTER TABLE payroll_iq.email_templates ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: hubspot_outbox; Type: ROW SECURITY; Schema: payroll_iq; Owner: -
 --
 
@@ -21172,6 +21229,13 @@ GRANT ALL ON TABLE payroll_iq.cycles TO service_role;
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE payroll_iq.discount_codes TO authenticated;
 GRANT ALL ON TABLE payroll_iq.discount_codes TO service_role;
+
+
+--
+-- Name: TABLE email_templates; Type: ACL; Schema: payroll_iq; Owner: -
+--
+
+GRANT ALL ON TABLE payroll_iq.email_templates TO service_role;
 
 
 --

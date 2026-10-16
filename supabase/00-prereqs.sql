@@ -99,9 +99,18 @@ alter role chatbot_writer set search_path = company_os;
 -- buckets hold personal data and are never served directly — the application
 -- issues short-lived signed URLs instead (60s for ID documents, 300s for
 -- resumes). Flipping any of them to public would expose identity documents
--- and candidate resumes to anyone holding a path. There are no RLS policies
--- on storage.objects by design: all access goes through the service-role
--- client behind the app's own authorization checks.
+-- and candidate resumes to anyone holding a path.
+--
+-- Company OS needs no RLS policies on storage.objects: all its access goes
+-- through the service-role client behind the app's own authorization checks.
+-- Payroll IQ is different — it signs and uploads with the USER's session, so
+-- its three buckets need RLS policies. They were missing from 2026-09-15
+-- (the cutover) to 2026-10-16, which silently broke the learner Blueprint
+-- download and every admin upload; see migration
+-- 20261016090000_payroll_iq_storage_policies.sql. The schema-scoped pg_dump
+-- behind 01-schema.sql cannot carry them (storage is not dumped), so they
+-- live in 01b-storage-policies.sql, applied right after 01-schema.sql
+-- (they call payroll_iq.is_admin(), which 01-schema.sql creates).
 
 insert into storage.buckets (id, name, public)
 values
